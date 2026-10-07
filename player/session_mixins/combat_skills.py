@@ -7,6 +7,10 @@ import random
 import time
 
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+from systems.party_synergies import (
+    party_synergy_damage_multiplier_v11338,
+    party_synergy_healing_multiplier_v11338,
+)
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
@@ -164,7 +168,14 @@ class SessionCombatSkillsMixin:
         heal_type = class_type_for_name(self.skill_class_name(skill))
         buff_mult = float(self.skill_buff_multiplier(target_type=heal_type))
         build_mult = float(self.healing_skill_build_multiplier_v11196(skill))
-        total_mult = max(0.0, float(skill_power)) * racial * class_mult * buff_mult * build_mult
+        total_mult = (
+            max(0.0, float(skill_power))
+            * racial
+            * class_mult
+            * buff_mult
+            * build_mult
+            * party_synergy_healing_multiplier_v11338(self)
+        )
 
         authored_pct = skill.get("heal_pct")
         if authored_pct is not None:
@@ -192,7 +203,17 @@ class SessionCombatSkillsMixin:
         power=float(skill_power_multiplier(max(1,min(SKILL_MAX_LEVEL,int(skill_level)))))
         racial=float(self.character.racial_healing_multiplier())
         class_mult=float(self.character.class_healing_multiplier())
-        return max(1,int(round(healing_power*0.10*power*racial*class_mult)))
+        return max(
+            1,
+            int(round(
+                healing_power
+                * 0.10
+                * power
+                * racial
+                * class_mult
+                * party_synergy_healing_multiplier_v11338(self)
+            )),
+        )
 
     def satellite_linker_duration_rounds_v11196(self, skill_level, skill):
         """Explicit Soulbound duration adaptation for source-defined short duration."""
@@ -333,6 +354,7 @@ class SessionCombatSkillsMixin:
         multiplier *= self.total_set_damage_multiplier()
         multiplier *= self.equipment_damage_multiplier(resolved_type)
         multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
+        multiplier *= party_synergy_damage_multiplier_v11338(self, resolved_type)
         return multiplier
 
     async def apply_superboss_helper_skill_damage_v11189(self, target):

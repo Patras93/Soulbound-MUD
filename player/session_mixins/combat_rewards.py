@@ -398,13 +398,20 @@ class SessionCombatRewardsMixin:
                     1.0,
                     float(getattr(mob,"adaptive_reward_multiplier_v11330",1.0) or 1.0),
                 )
+                _elite_reward_mult_v11338=max(
+                    1.0,
+                    float(template.get("elite_reward_multiplier_v11338",1.0) or 1.0),
+                )
+                _combat_reward_mult_v11338=(
+                    _adaptive_reward_mult_v11330 * _elite_reward_mult_v11338
+                )
                 generated_coins=min(
                     V019_SAFE_INT,
                     max(
                         0,
                         int(round(
                             _final_combat_reward(template,"coins")
-                            * _adaptive_reward_mult_v11330
+                            * _combat_reward_mult_v11338
                         )),
                     ),
                 )
@@ -437,7 +444,7 @@ class SessionCombatRewardsMixin:
                     xp_mult=(
                         float(xp_profile["multiplier"])
                         * session.v0210_reward_multiplier()
-                        * _adaptive_reward_mult_v11330
+                        * _combat_reward_mult_v11338
                     )
                     # Scanner-authored UOSSMUD XP is an exact reward, not an
                     # input to Soulbound's dynamic mob reward generator.
@@ -515,6 +522,7 @@ class SessionCombatRewardsMixin:
                         f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, "
                         f"siła moba {xp_profile['target']}/{CHARACTER_MAX_LEVEL}, mnożnik x{xp_profile['multiplier']:.2f}; "
                         f"adaptive reward x{_adaptive_reward_mult_v11330:.2f}; "
+                        f"elite reward x{_elite_reward_mult_v11338:.2f}; "
                         f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
                         f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}.",
                         detail="full",
@@ -664,6 +672,14 @@ class SessionCombatRewardsMixin:
                 for item_id, chance in template["drops"].items():
                     _effective_drop_chance_v11329 = authored_drop_chance_v11329(
                         template, item_id, chance
+                    )
+                    _elite_drop_mult_v11338 = max(
+                        1.0,
+                        float(template.get("elite_drop_multiplier_v11338", 1.0) or 1.0),
+                    )
+                    _effective_drop_chance_v11329 = min(
+                        1.0,
+                        float(_effective_drop_chance_v11329) * _elite_drop_mult_v11338,
                     )
                     if random.random() <= _effective_drop_chance_v11329:
                         # v0.35.9: every normal mob drop is shared locally with the

@@ -294,15 +294,49 @@ def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_in
     slot_scale = float(CLASS_EQUIPMENT_SLOT_POWER_SCALE.get(str(slot or ""), 0.50))
     style = class_equipment_style_profile(class_name, style_index)
     style_mult = float(style.get("power_multiplier", 1.0) or 1.0)
-    power = max(0, int(round(budget * 0.18 * slot_scale * style_mult)))
-    if power <= 0:
-        return {"attack": 0, "magic_attack": 0}
+    # v1.13.38: każdy klasowy element ma realny kanał ofensywny także na
+    # najniższym Tierze. Nie ma już części z poprawnymi statami, ale 0 Attack/
+    # Magic Attack wyłącznie przez zaokrąglenie małego budżetu.
+    # v1.13.38: kalibracja do UOSS Quartz Charm (+60 Attack/+60 Magic Attack
+    # przy wymaganiu 110). Ofensywny klasowy accessory na progu 110 ma być co
+    # najmniej równie mocny w swoim właściwym kanale, a późniejsze Tiery mają
+    # już wyraźnie go przebijać.
+    power = max(1, int(round(budget * 0.45 * slot_scale * style_mult)))
     if class_name == "Mec":
-        hybrid = max(1, int(round(power * 0.60)))
-        return {"attack": hybrid, "magic_attack": hybrid}
+        # Mec jest pełnoprawną hybrydą. Quartz Charm już daje oba kanały po 60,
+        # więc własne klasowe EQ nie może być gorsze tylko za sam fakt hybrydy.
+        return {"attack": power, "magic_attack": power}
     if class_type_for_name(class_name) == "magic":
         return {"attack": 0, "magic_attack": power}
     return {"attack": power, "magic_attack": 0}
+
+
+def legendary_class_equipment_flat_power_channels_v11338(
+    class_name, mastery, slot=None, *, relic=False
+):
+    """Bossowe klasowe EQ zawsze przewyższa sklepowy kanał płaskiej mocy.
+
+    Set bierze najlepszy Attack/Magic Attack spośród trzech sklepowych stylów
+    tego samego progu i slotu, a następnie dostaje +20%. Relikt używa własnej
+    ofensywnej skali slotu relic i +35%, bo nie daje części do progu setowego.
+    """
+    source_slot = "relic" if relic else slot
+    candidates = [
+        class_equipment_flat_power_channels(
+            class_name, mastery, source_slot, style_index
+        )
+        for style_index in (1, 2, 3)
+    ]
+    attack = max(int(row.get("attack", 0) or 0) for row in candidates)
+    magic_attack = max(
+        int(row.get("magic_attack", 0) or 0) for row in candidates
+    )
+    multiplier = 1.35 if relic else 1.20
+    if attack > 0:
+        attack = max(1, int(round(attack * multiplier)))
+    if magic_attack > 0:
+        magic_attack = max(1, int(round(magic_attack * multiplier)))
+    return {"attack": attack, "magic_attack": magic_attack}
 
 
 def class_equipment_profile_properties(class_name, mastery, slot=None):
@@ -819,11 +853,18 @@ def _register_legendary_class_loot():
                         class_name, mastery, slot
                     )
                 )
+                legendary_flat_power_v11338 = (
+                    legendary_class_equipment_flat_power_channels_v11338(
+                        class_name, mastery, slot
+                    )
+                )
                 _catalog_mut.catalog_assign({
                     "name": f"{slot_name} {set_name} +{mastery}",
                     "type": "armor",
                     "slot": slot,
                     "defense": defense,
+                    "attack": int(legendary_flat_power_v11338["attack"]),
+                    "magic_attack": int(legendary_flat_power_v11338["magic_attack"]),
                     "price": None,
                     "rarity": "legendary",
                     "rarity_name": "Legendarny Setowy",
@@ -886,6 +927,11 @@ def _register_legendary_class_loot():
                 raise RuntimeError(
                     f"Legendary class relic stat triplet mismatch: {class_name}"
                 )
+            relic_flat_power_v11338 = (
+                legendary_class_equipment_flat_power_channels_v11338(
+                    class_name, mastery, "relic", relic=True
+                )
+            )
             prop_value = max(1, min(5, mastery // 100 + 1))
             properties = {
                 "all_damage_pct": prop_value,
@@ -901,6 +947,8 @@ def _register_legendary_class_loot():
                 "type": "armor",
                 "slot": "necklace",
                 "defense": relic_defense,
+                "attack": int(relic_flat_power_v11338["attack"]),
+                "magic_attack": int(relic_flat_power_v11338["magic_attack"]),
                 "price": None,
                 "rarity": "legendary",
                 "rarity_name": "Legendarny Klasowy",
@@ -942,6 +990,16 @@ _register_legendary_class_loot()
 def equipment_identity_audit_v11326():
     errors = []
 
+    def _flat_power_channel_ok_v11338(item):
+        class_name = str(item.get("required_class") or "")
+        attack = int(item.get("attack", 0) or 0)
+        magic_attack = int(item.get("magic_attack", 0) or 0)
+        if class_name == "Mec":
+            return attack > 0 and magic_attack > 0
+        if class_type_for_name(class_name) == "magic":
+            return magic_attack > 0 and attack == 0
+        return attack > 0 and magic_attack == 0
+
     class_shop_items = [
         item
         for item in ITEMS.values()
@@ -957,6 +1015,41 @@ def equipment_identity_audit_v11326():
             if not item.get("properties"):
                 errors.append("class shop item has no identity properties")
                 break
+            if not _flat_power_channel_ok_v11338(item):
+                errors.append(
+                    "v1.13.38 class shop Attack/Magic Attack channel missing: "
+                    + str(item.get("name") or "?")
+                )
+                break
+
+    # v1.13.38 UOSS benchmark: Quartz Charm (lvl 110) daje +60 Attack i
+    # +60 Magic Attack. Ofensywny klasowy accessory na tym samym progu nie może
+    # przegrywać w właściwym kanale, również dla hybrydowego Meca.
+    for _class_name in CLASS_EQUIPMENT_SETS:
+        _bench = class_equipment_flat_power_channels(
+            _class_name, 110, "accessory", 3
+            if class_equipment_style_role(_class_name, 3) == "ofensywny"
+            else 2
+            if class_equipment_style_role(_class_name, 2) == "ofensywny"
+            else 1,
+        )
+        if _class_name == "Mec":
+            if int(_bench.get("attack", 0) or 0) < 60 or int(
+                _bench.get("magic_attack", 0) or 0
+            ) < 60:
+                errors.append("v1.13.38 Mec accessory loses to Quartz Charm flat power")
+                break
+        elif class_type_for_name(_class_name) == "magic":
+            if int(_bench.get("magic_attack", 0) or 0) < 60:
+                errors.append(
+                    "v1.13.38 magic class accessory loses to Quartz Charm Magic Attack"
+                )
+                break
+        elif int(_bench.get("attack", 0) or 0) < 60:
+            errors.append(
+                "v1.13.38 physical class accessory loses to Quartz Charm Attack"
+            )
+            break
 
     roles = {}
     for item in class_shop_items:
@@ -977,6 +1070,7 @@ def equipment_identity_audit_v11326():
     # v1.13.27: a boss-set source must not lose to the strongest shop
     # style at the same class/mastery/slot on total percentage properties.
     _shop_prop_by_key = {}
+    _shop_flat_power_by_key_v11338 = {}
     for item in class_shop_items:
         key = (
             item.get("required_class"),
@@ -985,6 +1079,12 @@ def equipment_identity_audit_v11326():
         )
         prop_sum = sum(float(v or 0.0) for v in (item.get("properties") or {}).values())
         _shop_prop_by_key[key] = max(_shop_prop_by_key.get(key, 0.0), prop_sum)
+        flat_sum_v11338 = int(item.get("attack", 0) or 0) + int(
+            item.get("magic_attack", 0) or 0
+        )
+        _shop_flat_power_by_key_v11338[key] = max(
+            _shop_flat_power_by_key_v11338.get(key, 0), flat_sum_v11338
+        )
 
     legendary_sets = [
         item for item in ITEMS.values() if item.get("legendary_set_loot")
@@ -996,6 +1096,8 @@ def equipment_identity_audit_v11326():
             errors.append("boss set identity source missing")
         if not all(item.get("properties") for item in legendary_sets[:100]):
             errors.append("boss set identity properties missing")
+        if not all(_flat_power_channel_ok_v11338(item) for item in legendary_sets):
+            errors.append("v1.13.38 boss set Attack/Magic Attack channel missing")
         for item in legendary_sets:
             key = (
                 item.get("required_class"),
@@ -1013,11 +1115,33 @@ def equipment_identity_audit_v11326():
                     f"properties {boss_sum:.2f} <= shop {shop_sum:.2f}"
                 )
                 break
+            shop_flat_v11338 = int(
+                _shop_flat_power_by_key_v11338.get(key, 0) or 0
+            )
+            boss_flat_v11338 = int(item.get("attack", 0) or 0) + int(
+                item.get("magic_attack", 0) or 0
+            )
+            if shop_flat_v11338 > 0 and boss_flat_v11338 <= shop_flat_v11338:
+                errors.append(
+                    f"v1.13.38 boss set flat power regression: {item.get('name')} "
+                    f"{boss_flat_v11338} <= shop {shop_flat_v11338}"
+                )
+                break
             if int(item.get("source_progression_stage", 0) or 0) != int(
                 item.get("required_mastery", 1) or 1
             ):
                 errors.append("boss set source stage mismatch")
                 break
+
+    legendary_relics_v11338 = [
+        item for item in ITEMS.values() if item.get("legendary_class_relic")
+    ]
+    if not legendary_relics_v11338:
+        errors.append("v1.13.38 missing legendary class relics")
+    elif not all(
+        _flat_power_channel_ok_v11338(item) for item in legendary_relics_v11338
+    ):
+        errors.append("v1.13.38 legendary relic Attack/Magic Attack channel missing")
 
     blacksmith = [
         item for item in ITEMS.values() if item.get("crafted_masterwork")
@@ -1031,7 +1155,7 @@ def equipment_identity_audit_v11326():
         errors.append("blacksmith masterwork identity incomplete")
 
     return {
-        "version": "1.13.26",
+        "version": "1.13.38",
         "class_shop_count": len(class_shop_items),
         "legendary_set_count": len(legendary_sets),
         "blacksmith_count": len(blacksmith),

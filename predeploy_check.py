@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.37.
+"""Fast Railway predeploy gate for Soulbound v1.13.38.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.37 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.38 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.37 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.38 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -97,6 +97,34 @@ try:
 except Exception as exc:
     _semantic_errors.append(
         f"adaptive combat audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.elite_variants import (
+        ELITE_VARIANTS_AUDIT_V11338 as _elite_variants_audit_v11338,
+    )
+    for _error in _elite_variants_audit_v11338.get("errors", ()):
+        _semantic_errors.append("elite_variants: " + str(_error))
+    if int(_elite_variants_audit_v11338.get("affix_count", 0) or 0) != 5:
+        _semantic_errors.append("elite_variants: expected exactly five reviewed affixes")
+except Exception as exc:
+    _semantic_errors.append(
+        f"elite variants audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.party_synergies import (
+        PARTY_SYNERGY_AUDIT_V11338 as _party_synergy_audit_v11338,
+    )
+    for _error in _party_synergy_audit_v11338.get("errors", ()):
+        _semantic_errors.append("party_synergies: " + str(_error))
+    if int(_party_synergy_audit_v11338.get("synergy_count", 0) or 0) != 7:
+        _semantic_errors.append("party_synergies: expected seven reviewed class pairs")
+    if int(_party_synergy_audit_v11338.get("covered_classes", 0) or 0) != 14:
+        _semantic_errors.append("party_synergies: expected coverage of all 14 classes")
+except Exception as exc:
+    _semantic_errors.append(
+        f"party synergy audit import failed: {type(exc).__name__}: {exc}"
     )
 
 # AP is a learning-point cost, never authored combat power. Keep a small
@@ -2004,7 +2032,7 @@ for _needle in (
     '"role": "pancerny"',
     "def class_equipment_flat_power_channels(",
     'if class_name == "Mec":',
-    'return {"attack": hybrid, "magic_attack": hybrid}',
+    'return {"attack": power, "magic_attack": power}',
     "class_name, legacy_affix_amount, slot, style_index",
 ):
     if _needle not in _class_eq_source:
@@ -2475,7 +2503,7 @@ if "'uoss_deep_dungeon_floor_'" not in _admin_audits_source_v11337:
         "v1.13.37 Deep Dungeon lazy-exit audit recognition missing"
     )
 for _needle in (
-    'production_matrix_version": "1.13.37"',
+    'production_matrix_version": "1.13.38"',
     "for party_size in range(1, 5):",
     "ordinary mob fight target left reviewed 7-10 second band",
 ):
@@ -2521,19 +2549,109 @@ for _item_id in (
             "v1.13.37 UOSS resale-safe shop policy missing for " + _item_id
         )
 
+# v1.13.38 — class equipment flat Attack/Magic Attack must remain present on
+# shop gear and the stronger legendary boss-set/relic progression.
+_equipment_crafting_source_v11338 = (
+    _root / "systems/equipment_crafting.py"
+).read_text(encoding="utf-8")
+for _needle in (
+    "def class_equipment_flat_power_channels(",
+    "power = max(1, int(round(budget * 0.45 * slot_scale * style_mult)))",
+    "def legendary_class_equipment_flat_power_channels_v11338(",
+    '"attack": int(legendary_flat_power_v11338["attack"])',
+    '"magic_attack": int(legendary_flat_power_v11338["magic_attack"])',
+    '"attack": int(relic_flat_power_v11338["attack"])',
+    '"magic_attack": int(relic_flat_power_v11338["magic_attack"])',
+    "v1.13.38 boss set flat power regression",
+    "Quartz Charm flat power",
+):
+    if _needle not in _equipment_crafting_source_v11338:
+        _semantic_errors.append(
+            "v1.13.38 class equipment flat power regression: missing " + _needle
+        )
+
+# v1.13.38 — local party class synergies must affect the same combat/healing
+# paths that Adaptive Combat previews, and must stay visible in party status.
+_party_synergy_source_v11338 = (_root / "systems/party_synergies.py").read_text(encoding="utf-8")
+_party_damage_source_v11338 = (_root / "player/session_mixins/combat_damage.py").read_text(encoding="utf-8")
+_party_skills_source_v11338 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_party_ui_source_v11338 = (_root / "player/session_mixins/party.py").read_text(encoding="utf-8")
+for _needle in (
+    '"holy_circuit"', '"runic_bastion"', '"blood_front"', '"shadow_hunt"',
+    '"mind_body"', '"life_death_cycle"', '"aether_overclock"',
+    "V11338_PARTY_SYNERGY_DAMAGE_CAP_PCT = 20.0",
+    "V11338_PARTY_SYNERGY_HEALING_CAP_PCT = 25.0",
+):
+    if _needle not in _party_synergy_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy system regression: missing " + _needle)
+for _needle in (
+    'party_synergy_damage_multiplier_v11338(self, "physical")',
+    'party_synergy_damage_multiplier_v11338(self, "magic")',
+):
+    if _needle not in _party_damage_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy Adaptive/basic damage regression: missing " + _needle)
+for _needle in (
+    "party_synergy_damage_multiplier_v11338(self, resolved_type)",
+    "party_synergy_healing_multiplier_v11338(self)",
+):
+    if _needle not in _party_skills_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy skill/heal regression: missing " + _needle)
+for _needle in (
+    "party_synergy_summary_v11338(self)",
+    "party_synergy_healing_multiplier_v11338(self)",
+):
+    if _needle not in _party_ui_source_v11338:
+        _semantic_errors.append("v1.13.38 party synergy UI/auto-heal regression: missing " + _needle)
+
+# v1.13.38 — random elite affixes must stay wired through spawn, combat,
+# rewards and the canonical Adaptive Combat layer.
+_elite_system_source_v11338 = (_root / "systems/elite_variants.py").read_text(encoding="utf-8")
+_elite_world_source_v11338 = (_root / "world/world_state.py").read_text(encoding="utf-8")
+_elite_realtime_source_v11338 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_elite_rewards_source_v11338 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+for _needle in (
+    "V11338_ELITE_SPAWN_CHANCE = 0.08",
+    '"enraged"', '"armored"', '"vampiric"', '"storm"', '"cursed"',
+    "elite_reward_multiplier_v11338",
+    "elite_drop_multiplier_v11338",
+):
+    if _needle not in _elite_system_source_v11338:
+        _semantic_errors.append("v1.13.38 elite system regression: missing " + _needle)
+for _needle in (
+    "_elite_spawn_template_v11338",
+    "elite_roll_affix_v11338",
+    "elite_source_template_id_v11338",
+):
+    if _needle not in _elite_world_source_v11338:
+        _semantic_errors.append("v1.13.38 elite spawn/respawn regression: missing " + _needle)
+for _needle in (
+    "elite_enemy_action_multiplier_v11338",
+    "elite_regen_amount_v11338",
+    "burzowe wyładowanie",
+):
+    if _needle not in _elite_realtime_source_v11338:
+        _semantic_errors.append("v1.13.38 elite combat regression: missing " + _needle)
+for _needle in (
+    "_elite_reward_mult_v11338",
+    "_elite_drop_mult_v11338",
+    "_combat_reward_mult_v11338",
+):
+    if _needle not in _elite_rewards_source_v11338:
+        _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
+
 if _semantic_errors:
-    print("Soulbound v1.13.37 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.38 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.37 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.38 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.37 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.38 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

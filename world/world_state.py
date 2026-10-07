@@ -3,6 +3,12 @@ from core.bootstrap_economy_professions import SILVER_PER_GOLD
 from core.mines_threat import v0866_room_threat_profile
 from systems.items_resources import economy_stage_anchor_v11314
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
+from systems.elite_variants import (
+    build_elite_variant_template_v11338,
+    elite_roll_affix_v11338,
+    elite_source_template_id_v11338,
+    elite_variant_id_v11338,
+)
 from world.uoss_superboss_world import (
     create_infinite_uoss_deep_dungeon_floor_definition_v11331,
     uoss_deep_dungeon_floor_number_v11331,
@@ -126,10 +132,11 @@ class World:
         # and endgame regions from inheriting low-level combat numbers.
         for room_id, template_id in list(MOB_SPAWNS):
             template_id = resolve_world_spawn_template(template_id)
-            template_id = self._terrain_scaled_template_v0362(room_id, template_id)
-            counts[(room_id, template_id)] = counts.get((room_id, template_id), 0) + 1
-            n = counts[(room_id, template_id)]
-            key = f"{room_id}:{template_id}:{n}"
+            spawn_template_id = self._terrain_scaled_template_v0362(room_id, template_id)
+            counts[(room_id, spawn_template_id)] = counts.get((room_id, spawn_template_id), 0) + 1
+            n = counts[(room_id, spawn_template_id)]
+            key = f"{room_id}:{spawn_template_id}:{n}"
+            template_id = self._elite_spawn_template_v11338(spawn_template_id)
             v0190_apply_combat_template(MOB_TEMPLATES[template_id])
             self.mobs[key] = MobState(
                 key=key, room_id=room_id, template_id=template_id,
@@ -140,6 +147,26 @@ class World:
                 ),
             )
             self._last_refresh_at = 0.0
+
+    def _elite_spawn_template_v11338(self, template_id):
+        """Roll one ordinary spawn into a reviewed elite affix, if eligible."""
+        template_id = str(template_id or "")
+        current = MOB_TEMPLATES.get(template_id)
+        if not isinstance(current, dict):
+            return template_id
+        source_id = elite_source_template_id_v11338(template_id, current)
+        source = MOB_TEMPLATES.get(source_id, current)
+        affix = elite_roll_affix_v11338(source)
+        if not affix:
+            return source_id
+        variant_id = elite_variant_id_v11338(source_id, affix)
+        if variant_id not in MOB_TEMPLATES:
+            clone = build_elite_variant_template_v11338(source_id, source, affix)
+            _catalog_mut.catalog_assign(
+                clone, "MOB_TEMPLATES", MOB_TEMPLATES, (variant_id,)
+            )
+            v0190_apply_combat_template(MOB_TEMPLATES[variant_id])
+        return variant_id
 
     def _terrain_scaled_template_v0362(self, room_id, template_id):
         """Return a room-stage clone for ordinary open-world terrain mobs.
@@ -211,17 +238,30 @@ class World:
 
     def _register_runtime_spawn(self, room_id, template_id):
         room_meta = ROOMS.get(str(room_id or ""), {})
-        template_id = self._terrain_scaled_template_v0362(room_id, template_id)
-        template_meta = MOB_TEMPLATES.get(template_id)
+        spawn_template_id = self._terrain_scaled_template_v0362(room_id, template_id)
+        template_meta = MOB_TEMPLATES.get(spawn_template_id)
         if isinstance(template_meta, dict):
             template_meta["auto_aggro"] = False
-        if not any(r == room_id and t == template_id for r, t in MOB_SPAWNS):
-            MOB_SPAWNS.append((room_id, template_id))
-        existing = [m for m in self.mobs.values() if m.room_id == room_id and m.template_id == template_id]
+        if not any(r == room_id and t == spawn_template_id for r, t in MOB_SPAWNS):
+            MOB_SPAWNS.append((room_id, spawn_template_id))
+        existing = [
+            m for m in self.mobs.values()
+            if m.room_id == room_id
+            and elite_source_template_id_v11338(
+                m.template_id, MOB_TEMPLATES.get(m.template_id, {})
+            ) == spawn_template_id
+        ]
         if existing:
             return existing[0]
-        n = 1 + sum(1 for m in self.mobs.values() if m.room_id == room_id and m.template_id == template_id)
-        key = f"{room_id}:{template_id}:{n}"
+        n = 1 + sum(
+            1 for m in self.mobs.values()
+            if m.room_id == room_id
+            and elite_source_template_id_v11338(
+                m.template_id, MOB_TEMPLATES.get(m.template_id, {})
+            ) == spawn_template_id
+        )
+        key = f"{room_id}:{spawn_template_id}:{n}"
+        template_id = self._elite_spawn_template_v11338(spawn_template_id)
         v0190_apply_combat_template(MOB_TEMPLATES[template_id])
         mob = MobState(
             key=key, room_id=room_id, template_id=template_id,
@@ -589,6 +629,14 @@ class World:
 
             if not (getattr(mob, "v016_ephemeral", False) and not mob.alive):
                 if not mob.alive and mob.respawn_at <= now:
+                    current_template = MOB_TEMPLATES.get(mob.template_id, {})
+                    source_template_id = elite_source_template_id_v11338(
+                        mob.template_id, current_template
+                    )
+                    mob.template_id = self._elite_spawn_template_v11338(
+                        source_template_id
+                    )
+                    v0190_apply_combat_template(MOB_TEMPLATES[mob.template_id])
                     mob.alive = True
                     mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
                     mob.engaged_by = None

@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.37
+Aktualna paczka: v1.13.38
 
 
 
@@ -19,6 +19,35 @@ Aktualna paczka: v1.13.37
 
 
 
+
+==============================================================================
+Soulbound v1.13.38 — ELITE MOBS, CLASS GEAR POWER & PARTY SYNERGIES
+==============================================================================
+
+- SYNERGIE KLASOWE PARTY: żywi członkowie tej samej drużyny stojący w tej samej lokacji aktywują nazwane bonusy par klas. Każda z 14 klas ma własnego partnera synergetycznego; żadna synergia nie jest wymagana do gry solo.
+- ŚWIĘTY OBWÓD — Kapłan + Mec: +6% obrażeń całej lokalnej drużyny i +12% leczenia.
+- RUNICZNY BASTION — Strażnik + Mag: +4% wszystkich obrażeń i dodatkowe +8% obrażeń magicznych.
+- KRWAWY FRONT — Wojownik + Berserker: +10% obrażeń fizycznych.
+- POLOWANIE Z CIENIA — Łotrzyk + Łowca: +10% obrażeń fizycznych.
+- JEDNOŚĆ CIAŁA I UMYSŁU — Mnich + Psionik: +8% wszystkich obrażeń.
+- CYKL ŻYCIA I ŚMIERCI — Nekromanta + Druid: +7% obrażeń magicznych i +10% leczenia.
+- PRZECIĄŻENIE ETERU — Czarownik + Inżynier: +8% wszystkich obrażeń i dodatkowe +4% magicznych.
+- CAP SYNERGII: łączny bonus damage z wielu aktywnych par jest ograniczony do 20%, a leczenie do 25%, więc duże party nie tworzy runaway multiplikatorów.
+- ADAPTIVE COMBAT: consider i obliczanie realnego DPS drużyny widzą bonus synergii, więc dodatkowy damage jest uwzględniany w skalowaniu HP przeciwników.
+- NVDA / PARTY UI: komenda druzyna/party pokazuje aktywne synergie w bieżącej lokacji wraz z ich bonusami.
+- KLASOWE ATTACK / MAGIC ATTACK: każda część naszego klasowego EQ ma teraz co najmniej +1 właściwego płaskiego kanału ofensywnego nawet na najniższym Tierze. Fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba kanały.
+- KALIBRACJA QUARTZ CHARM: Quartz Charm na wymaganiu 110 daje +60 Attack i +60 Magic Attack. Ofensywny klasowy accessory na Biegłości 110 ma co najmniej +60 właściwego kanału, a kolejne Tiery rosną dalej. Mec dostaje pełny Attack i Magic Attack bez wcześniejszej kary hybrydowej 0.60.
+- BOSSOWE SETY I RELIKTY: legendarne sety klasowe z bossów co 50 pięter oraz klasowe relikty z progów co 100 pięter dostały Attack/Magic Attack. Bossowy set ma wyższą płaską moc niż najlepszy sklepowy styl tego samego progu i slotu; relikt ma jeszcze mocniejszy profil ofensywny.
+- BEZ KASOWANIA STARYCH STATÓW: STR/DEX/CON albo INT/WILL/CON, procentowe właściwości, Defense i sockety pozostają. Flat Attack/Magic Attack jest dodatkową warstwą mocy.
+- LOSOWE ELITY: zwykły mob ma 8 procent szansy przy pierwszym spawnie i przy każdym respawnie na wariant elitarny. Dostępne affixy: Wściekły, Opancerzony, Wampiryczny, Burzowy i Przeklęty.
+- BEZ NADPISYWANIA BOSSÓW: losowa elita nie dotyka bossów, minibossów, world bossów, UOSS Super Bossów, authored rare/elite, manekinów ani przeciwników z exact source XP.
+- ADAPTIVE COMBAT ZOSTAJE ŹRÓDŁEM BALANSU: elity mają rangę elite, więc nadal skalują się do realnej siły solo/lokalnego party. Affix nie tworzy osobnego świata dla słabych i mocnych graczy.
+- WŚCIEKŁY: zadaje wyraźnie większą presję obrażeń. OPANCERZONY: wydłuża walkę dodatkowym mnożnikiem HP. WAMPIRYCZNY: podczas własnych akcji odzyskuje część maksymalnego HP. BURZOWY: co trzeci atak dostaje silniejszy impuls. PRZEKLĘTY: ma stale podniesioną presję obrażeń.
+- LEPSZE NAGRODY: każdy affix ma mnożnik EXP/waluty powyżej zwykłego moba oraz zwiększa szansę authored dropów. Najtrudniejsze affixy mają najwyższą premię.
+- QUESTY I BESTIARIUSZ: runtime clone zachowuje elite_base_template, quest_target, quest_targets i authored drops, więc zabicie elity nadal zalicza bazowy gatunek i stare questy.
+- RESPAWN REROLL: elitarny status nie przykleja się do punktu spawnu na zawsze. Po śmierci kolejny respawn ponownie losuje zwykły/elita oraz affix.
+- NVDA: affix jest częścią nazwy moba, np. "Wampiryczny Goblin", a specjalne leczenie i burzowy impuls są komunikowane tekstowo w walce.
+- Brak migracji SQLite, brak wipe i brak zmian ID authored contentu.
 
 ==============================================================================
 Soulbound v1.13.37 — FULL PRODUCTION CLEANUP

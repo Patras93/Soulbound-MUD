@@ -18,6 +18,8 @@ from systems.adaptive_combat import (
     adaptive_target_incoming_fraction_v11330,
     adaptive_target_max_hp_v11330,
 )
+from systems.elite_variants import elite_average_enemy_multiplier_v11338
+from systems.party_synergies import party_synergy_damage_multiplier_v11338
 from data.mobs import MOB_TEMPLATES
 
 MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 = 1.20
@@ -220,6 +222,7 @@ class SessionCombatDamageMixin:
                                 * c.racial_all_damage_multiplier()
                                 * self.total_set_damage_multiplier()
                                 * self.equipment_damage_multiplier("physical")
+                                * party_synergy_damage_multiplier_v11338(self, "physical")
                                 * self.basic_attack_inherent_multiplier_v1124()
                             )
                         )
@@ -247,6 +250,7 @@ class SessionCombatDamageMixin:
                                 * c.racial_all_damage_multiplier()
                                 * self.total_set_damage_multiplier()
                                 * self.equipment_damage_multiplier("magic")
+                                * party_synergy_damage_multiplier_v11338(self, "magic")
                             )
                         )
                     )
@@ -277,6 +281,7 @@ class SessionCombatDamageMixin:
                                 * c.racial_magic_damage_multiplier()
                                 * c.racial_all_damage_multiplier()
                                 * self.total_set_damage_multiplier()
+                                * party_synergy_damage_multiplier_v11338(self, "magic")
                             )
                         )
                     )
@@ -300,6 +305,7 @@ class SessionCombatDamageMixin:
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
                         * self.equipment_damage_multiplier("physical")
+                        * party_synergy_damage_multiplier_v11338(self, "physical")
                         * self.basic_attack_inherent_multiplier_v1124()
                     )
                 elif self.current_mana >= 4:
@@ -316,6 +322,7 @@ class SessionCombatDamageMixin:
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
                         * self.equipment_damage_multiplier("magic")
+                        * party_synergy_damage_multiplier_v11338(self, "magic")
                     )
                 else:
                     base_damage = (
@@ -330,6 +337,7 @@ class SessionCombatDamageMixin:
                         * c.racial_all_damage_multiplier()
                         * self.total_set_damage_multiplier()
                         * self.equipment_damage_multiplier("magic")
+                        * party_synergy_damage_multiplier_v11338(self, "magic")
                     )
 
                 # Średnia wartość uwzględnia prawdopodobieństwo krytyka,
@@ -464,6 +472,7 @@ class SessionCombatDamageMixin:
                 enemy_hit = (
                     max(base_enemy_hit, adaptive_floor)
                     * self.v0210_enemy_damage_multiplier()
+                    * elite_average_enemy_multiplier_v11338(template)
                 )
 
                 return {

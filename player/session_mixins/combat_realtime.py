@@ -16,6 +16,10 @@ from core.player_math import (
 )
 from data.mobs import MOB_TEMPLATES
 from systems.game_feel_rewards import mob_attack_flavor_v11324
+from systems.elite_variants import (
+    elite_enemy_action_multiplier_v11338,
+    elite_regen_amount_v11338,
+)
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from world.uoss_superboss_runtime import (
     superboss_attack_gate_v11137, superboss_helper_profile_v11137,
@@ -380,6 +384,28 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _elite_template_v11338 = MOB_TEMPLATES[enemy_mob.template_id]
+                                _elite_regen_v11338 = elite_regen_amount_v11338(
+                                    _elite_template_v11338,
+                                    self.mob_effective_max_hp_v11330(
+                                        enemy_mob, _elite_template_v11338
+                                    ),
+                                    enemy_mob.hp,
+                                )
+                                if _elite_regen_v11338 > 0:
+                                    enemy_mob.hp += _elite_regen_v11338
+                                    _elite_regen_text_v11338 = (
+                                        f"{_elite_template_v11338['name']} wysysa energię i odzyskuje "
+                                        f"{_elite_regen_v11338} HP."
+                                    )
+                                    await self.send_combat(
+                                        _elite_regen_text_v11338, "normal"
+                                    )
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        _elite_regen_text_v11338,
+                                        detail="normal",
+                                    )
                                 _tiger_break_rounds=max(
                                     0,int(
                                         getattr(
@@ -532,6 +558,27 @@ class SessionCombatRealtimeMixin:
                                 _mob_flavor_v11324 = mob_attack_flavor_v11324(
                                     _action_template, random.random()
                                 )
+                                _storm_every_v11338 = max(
+                                    0,
+                                    int(_action_template.get("elite_storm_every_v11338", 0) or 0),
+                                )
+                                if (
+                                    _action_template.get("elite_affix") == "storm"
+                                    and _storm_every_v11338 > 0
+                                    and int(getattr(enemy_mob, "combat_turn", 0) or 0)
+                                    % _storm_every_v11338 == 0
+                                ):
+                                    _storm_text_v11338 = (
+                                        f"{_action_template['name']}: burzowe wyładowanie wzmacnia ten atak."
+                                    )
+                                    await self.send_combat(
+                                        _storm_text_v11338, "essential"
+                                    )
+                                    await self.server.party_combat_broadcast(
+                                        self,
+                                        _storm_text_v11338,
+                                        detail="essential",
+                                    )
                                 _party_targets = self.server.party_combat_targets(self, enemy_mob)
                                 # One mob action attacks the whole living local party.
                                 # The existing realtime loop owner remains the sole
@@ -703,10 +750,17 @@ class SessionCombatRealtimeMixin:
                                             enemy_mob, _enemy_template
                                         )
                                     )
+                                    _elite_enemy_mult_v11338 = (
+                                        elite_enemy_action_multiplier_v11338(
+                                            _enemy_template,
+                                            getattr(enemy_mob, "combat_turn", 0),
+                                        )
+                                    )
                                     _enemy_action_mult_v11324 = (
                                         _uoss_mult
                                         * _flavor_mult_v11324
                                         * _adaptive_enemy_mult_v11330
+                                        * _elite_enemy_mult_v11338
                                     )
                                     if _enemy_action_mult_v11324 != 1.0:
                                         _old_damage = _enemy_template.get("damage", 1)
