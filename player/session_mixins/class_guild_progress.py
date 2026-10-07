@@ -3,6 +3,7 @@
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
 
+from core.progression_resources import v0190_quest_stage
 from player.character import GUILD_REPUTATION_MAX, GUILD_REPUTATION_RANKS
 from player.session_mixins.character_profile import currency_reading_text
 from player.session_mixins.museum_bounty import v0914_combat_quest_stat_reward
@@ -369,19 +370,35 @@ class SessionClassGuildProgressMixin:
         new_rep = self.character.add_guild_reputation(cls, data[2])
         self.character.silver += data[3]
         objective_kind = str(data[5])
+        guild_content_level=max(
+            1,int(state.get("mastery_level",1) or 1)
+        )
         combat_quest = {
             "kind": "kill" if objective_kind in ("kill", "boss") else objective_kind,
             "needed": needed,
             "required_soul_level": 25,
+            "required_mastery": guild_content_level,
             "repeatable": True,
         }
         guild_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
         await self.grant_combat_quest_stat_xp(
-            guild_stat_xp, repeatable=True, source_label="Godzinne zadanie klasowe Gildii"
+            guild_stat_xp,
+            repeatable=True,
+            source_label="Godzinne zadanie klasowe Gildii",
+            content_level=guild_content_level,
+            content_scaled=True,
         )
-        guild_soul_xp = v0914_combat_quest_soul_reward(combat_quest, self.character)
-        await self.send(f"Zadanie klasowe Gildii: +{guild_soul_xp} Soul XP.")
-        await self.grant_soul_xp(guild_soul_xp)
+        guild_soul_xp = v0914_combat_quest_soul_reward(
+            combat_quest,self.character
+        )
+        await self.send(
+            f"Zadanie klasowe Gildii: +{guild_soul_xp} Soul XP."
+        )
+        await self.grant_soul_xp(
+            guild_soul_xp,
+            content_level=guild_content_level,
+            content_scaled=True,
+        )
         self.server.db.save_character(self.character)
 
         completed_count = sum(
@@ -520,13 +537,26 @@ class SessionClassGuildProgressMixin:
                     "kind": "kill", "target": target[0], "needed": 1,
                     "repeatable": True,
                 }
+                guild_content_level=v0190_quest_stage(combat_quest)
                 guild_stat_xp = v0914_combat_quest_stat_reward(combat_quest)
                 await self.grant_combat_quest_stat_xp(
-                    guild_stat_xp, repeatable=True, source_label="Zlecenie bojowe Gildii"
+                    guild_stat_xp,
+                    repeatable=True,
+                    source_label="Zlecenie bojowe Gildii",
+                    content_level=guild_content_level,
+                    content_scaled=True,
                 )
-                guild_soul_xp = v0914_combat_quest_soul_reward(combat_quest, self.character)
-                await self.send(f"Zlecenie bojowe Gildii: +{guild_soul_xp} Soul XP.")
-                await self.grant_soul_xp(guild_soul_xp)
+                guild_soul_xp = v0914_combat_quest_soul_reward(
+                    combat_quest,self.character
+                )
+                await self.send(
+                    f"Zlecenie bojowe Gildii: +{guild_soul_xp} Soul XP."
+                )
+                await self.grant_soul_xp(
+                    guild_soul_xp,
+                    content_level=guild_content_level,
+                    content_scaled=True,
+                )
                 self.character.set_guild_bounty_state({})
                 self.server.db.save_character(self.character)
                 await self.send(
