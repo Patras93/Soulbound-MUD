@@ -2787,8 +2787,8 @@ for _needle in (
 if '"best_kill"' not in _rewards_source_v11341:
     _semantic_errors.append("v1.13.41 Best Kill reward credit missing")
 for _needle in (
-    '"Best Kill: "',
-    '"Worst Defeat: "',
+    'f"Best Kill:',
+    'f"Worst Defeat:',
     "backfill_combat_profile_records_v11341(",
 ):
     if _needle not in _profile_source_v11341:
@@ -2798,7 +2798,7 @@ for _needle in (
 for _needle in (
     "def boss_key_smelt_outputs_v11341(",
     "def smelt_boss_keys_v11341(",
-    '"przetop klucze"',
+    'f"PRZETOP KLUCZE:',
     "await self.smelt_wait_v1124(3.0)",
     "Przetop wszystko celowo nie niszczy kluczy bossowych.",
 ):
