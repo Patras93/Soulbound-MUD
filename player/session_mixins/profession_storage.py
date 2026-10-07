@@ -368,6 +368,11 @@ class SessionProfessionStorageMixin:
             level = int(row["level"])
             old_tier = tool_tier(level)
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
+            if content_level is not None:
+                _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
+                    content_level,tool_type
+                )
+                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + max(0, int(tool_xp))
@@ -842,7 +847,9 @@ class SessionProfessionStorageMixin:
                     f"{self.container_label(container)}."
                 )
 
-    async def grant_tool_reward_xp(self, tool_type, tool_xp):
+    async def grant_tool_reward_xp(
+        self, tool_type, tool_xp, *, content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(
                     f"Nieznany typ narzędzia: {tool_type}"
@@ -904,7 +911,10 @@ class SessionProfessionStorageMixin:
                 uses,
             )
 
-    async def grant_profession_reward_xp(self, profession, profession_xp, tool_type, tool_xp):
+    async def grant_profession_reward_xp(
+        self, profession, profession_xp, tool_type, tool_xp, *,
+        content_level=None
+    ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
@@ -932,6 +942,14 @@ class SessionProfessionStorageMixin:
                     * max(0.25,float(PROFESSION_XP_GAIN_MULTIPLIER)/2.0)
                 )),
             )
+            if content_level is not None:
+                _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
+                    content_level,tool_type
+                )
+                actual_profession_xp=max(
+                    0,int(round(actual_profession_xp*_prof_mult))
+                )
+                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
             actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
