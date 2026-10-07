@@ -19,6 +19,7 @@ from systems.adaptive_combat import (
     adaptive_target_max_hp_v11330,
 )
 from systems.elite_variants import elite_average_enemy_multiplier_v11338
+from systems.elemental_combat import elemental_expected_incoming_multiplier_v11339
 from systems.party_synergies import party_synergy_damage_multiplier_v11338
 from data.mobs import MOB_TEMPLATES
 
@@ -405,6 +406,7 @@ class SessionCombatDamageMixin:
                     1.0 - self.dodge_chance(),
                 )
 
+                incoming *= elemental_expected_incoming_multiplier_v11339(template)
                 return max(1.0, incoming)
 
     def consider_adaptive_preview_v11331(self, mob, template):
