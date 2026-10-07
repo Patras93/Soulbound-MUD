@@ -3216,6 +3216,64 @@ for _call_name_v11342,_missing_v11342 in _missing_content_by_call_v11342.items()
             + ", ".join(_missing_v11342[:100])
         )
 
+# v1.13.42 — forbid legacy bypasses around the content-aware gateways.
+# Direct model/DB XP mutations are allowed only inside their canonical gateway
+# (plus combat stat rewards, which already derive XP from the killed mob stage).
+_direct_xp_gateway_allow_v11342 = {
+    "add_character_xp": {
+        "player/session_mixins/session_runtime_state.py",
+        "player/character.py",
+    },
+    "add_soul_xp": {
+        "player/session_mixins/dungeon_progression.py",
+        "player/character.py",
+    },
+    "add_stat_progress": {
+        "player/session_mixins/dungeon_progression.py",
+        "player/session_mixins/combat_rewards.py",
+        "player/character.py",
+    },
+    "add_class_mastery_xp": {
+        "player/session_mixins/class_progression.py",
+        "storage/db_progression.py",
+    },
+}
+_direct_xp_bypasses_v11342 = []
+for _source_path_v11342 in _root.rglob("*.py"):
+    if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
+        continue
+    _relative_v11342=str(_source_path_v11342.relative_to(_root))
+    try:
+        _tree_v11342=ast.parse(
+            _source_path_v11342.read_text(encoding="utf-8"),
+            filename=str(_source_path_v11342),
+        )
+    except Exception:
+        continue
+    for _node_v11342 in ast.walk(_tree_v11342):
+        if not isinstance(_node_v11342, ast.Call):
+            continue
+        _func_v11342=_node_v11342.func
+        _name_v11342=(
+            _func_v11342.attr
+            if isinstance(_func_v11342, ast.Attribute)
+            else _func_v11342.id
+            if isinstance(_func_v11342, ast.Name)
+            else ""
+        )
+        if _name_v11342 not in _direct_xp_gateway_allow_v11342:
+            continue
+        if _relative_v11342 not in _direct_xp_gateway_allow_v11342[_name_v11342]:
+            _direct_xp_bypasses_v11342.append(
+                f"{_name_v11342}@{_relative_v11342}:"
+                f"{getattr(_node_v11342,'lineno','?')}"
+            )
+if _direct_xp_bypasses_v11342:
+    _semantic_errors.append(
+        "v1.13.42 direct XP gateway bypasses: "
+        + ", ".join(_direct_xp_bypasses_v11342[:100])
+    )
+
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
