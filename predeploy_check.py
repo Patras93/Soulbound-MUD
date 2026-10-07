@@ -1979,13 +1979,13 @@ for _needle in _dragon_required_namespaced_helpers:
             "dragon runtime helper namespace regression: missing " + _needle
         )
 
-# v1.13.1: uncapped stats must stay generous globally. The natural stat
-# requirement curve is used without the old x2 tax and every source is
-# accelerated x4 before race/guild bonuses and uncapped post-400 scaling.
+# v1.13.42: uncapped stats keep the global x4 reward accelerator, but the
+# requirement is also x4 so matching-stage progression targets ~60 actions
+# per permanent point instead of the old ~15.
 _balance_source = (_root / "config/balance.py").read_text(encoding="utf-8")
 _character_source = (_root / "player/character.py").read_text(encoding="utf-8")
 _stat_pace_needles = (
-    "STAT_XP_REQUIREMENT_MULTIPLIER = 1.0",
+    "STAT_XP_REQUIREMENT_MULTIPLIER = 4.0",
     "STAT_XP_REWARD_MULTIPLIER = 4.0",
 )
 for _needle in _stat_pace_needles:
@@ -2018,7 +2018,7 @@ else:
         'HELP_TOPICS["statystyki"]',
         "bez twardego limitu",
         "x4",
-        "15 akcji",
+        "60 akcji",
     )
     for _needle in _final_stat_help_needles:
         if _needle not in _final_help_block:
@@ -2177,24 +2177,24 @@ for _needle in (
 
 _long_term_balance_source = (_root / "admin/long_term_balance_audit_v0502.py").read_text(encoding="utf-8")
 _long_term_stat_needles = (
-    "STAT_XP_REWARD_MULTIPLIER",
-    'errors.append("stat requirement multiplier must be 1.0")',
-    'errors.append("stat reward multiplier must be 4.0")',
-    '"profession": 50, "tool": 65, "stat": 15,',
-    "14.0 <= actions <= 16.0",
+    '"stat_requirement": 4.0',
+    '"stat_reward": 4.0',
+    '"stat": 60,',
+    "58.0 <= actions <= 62.0",
+    "single_level_cap_samples",
 )
 for _needle in _long_term_stat_needles:
     if _needle not in _long_term_balance_source:
         _semantic_errors.append(
             "long-term stat audit regression: missing " + _needle
         )
-if 'stat requirement multiplier must be 2.0' in _long_term_balance_source:
+if 'STAT_XP_REQUIREMENT_MULTIPLIER) != 1.0' in _long_term_balance_source:
     _semantic_errors.append(
-        "long-term stat audit regression: stale x2 stat requirement contract"
+        "long-term stat audit regression: stale x1 stat requirement contract"
     )
-if '"stat": 120' in _long_term_balance_source:
+if '"stat": 15' in _long_term_balance_source:
     _semantic_errors.append(
-        "long-term stat audit regression: stale 120-action stat target"
+        "long-term stat audit regression: stale 15-action stat target"
     )
 
 try:
@@ -2208,9 +2208,10 @@ try:
         * float(_stat_req_mult)
         / max(0.000001, float(_stat_reward_mult))
     )
-    if _effective_stat_actions > 15.01:
+    if not (59.99 <= _effective_stat_actions <= 60.01):
         _semantic_errors.append(
-            f"stat XP pace regression: effective actions per point {_effective_stat_actions:.2f} > 15"
+            f"stat XP pace regression: expected 60 effective actions per point, "
+            f"got {_effective_stat_actions:.2f}"
         )
 except Exception as exc:
     _semantic_errors.append(
