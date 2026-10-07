@@ -300,6 +300,13 @@ class SessionProfessionStorageMixin:
                 tool_mult*=1.35
             return material_mult,tool_mult
 
+    def profession_authored_xp_multiplier_v11343(self, raw_xp, baseline_xp):
+            raw=max(0,int(raw_xp or 0))
+            baseline=max(1,int(baseline_xp or 1))
+            if raw<=0:
+                return 0.0
+            return max(1.0,min(2.5,raw/float(baseline)))
+
     def grant_profession_progress(
         self, profession, prof_xp, tool_type, tool_xp,
         tool_progress=True, content_level=None
@@ -307,10 +314,31 @@ class SessionProfessionStorageMixin:
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
 
+            raw_prof_xp=max(0,int(prof_xp or 0))
+            raw_tool_xp=max(0,int(tool_xp or 0))
+            content_stage=max(
+                1,
+                min(
+                    PROFESSION_MAX_LEVEL,
+                    int(content_level or 1),
+                ),
+            )
+            base_prof_floor,base_tool_floor=self.profession_content_xp_floor_v11342(
+                0,0,content_stage,tool_type
+            )
             if content_level is not None:
                 prof_xp, tool_xp = self.profession_content_xp_floor_v11342(
-                    prof_xp, tool_xp, content_level, tool_type
+                    raw_prof_xp, raw_tool_xp, content_stage, tool_type
                 )
+            else:
+                prof_xp,tool_xp=raw_prof_xp,raw_tool_xp
+
+            authored_prof_mult=self.profession_authored_xp_multiplier_v11343(
+                prof_xp,base_prof_floor
+            )
+            authored_tool_mult=self.profession_authored_xp_multiplier_v11343(
+                tool_xp,base_tool_floor
+            )
 
             _guild_pct=self.guild_bonus_percent_v0926()
             prow = self.server.db.profession(
@@ -332,13 +360,11 @@ class SessionProfessionStorageMixin:
             # a jakość wykonywanej pracy różnicuje realny przyrost. Wcześniej
             # raw XP był ignorowany przez v0190_scaled_gain, więc miedź i
             # Eternium mogły dawać ten sam realny postęp.
-            content_stage=max(
-                1,
-                min(
-                    PROFESSION_MAX_LEVEL,
-                    int(content_level or max(plevel,tlevel_preview,1)),
-                ),
-            )
+            if content_level is None:
+                content_stage=max(
+                    1,
+                    min(PROFESSION_MAX_LEVEL,max(plevel,tlevel_preview,1)),
+                )
             content_prof_mult,content_tool_mult=(
                 self.profession_content_xp_multiplier_v11342(
                     content_stage,tool_type
@@ -355,11 +381,16 @@ class SessionProfessionStorageMixin:
                     actual_prof_xp
                     * profession_speed_mult
                     * content_prof_mult
+                    * authored_prof_mult
                 )),
             )
             tool_xp=max(
                 0,
-                int(round(tool_xp*content_tool_mult)),
+                int(round(
+                    tool_xp
+                    * content_tool_mult
+                    * authored_tool_mult
+                )),
             )
 
             actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
@@ -400,6 +431,15 @@ class SessionProfessionStorageMixin:
             self.server.db.save_profession(
                 self.account_id, profession, plevel, pxp, actions
             )
+            if plevel>=profession_cap:
+                messages.append(
+                    f"{profession}: poziom {plevel}, XP maksimum."
+                )
+            else:
+                messages.append(
+                    f"{profession}: poziom {plevel}, XP {pxp} z "
+                    f"{self.profession_xp_to_next(plevel,profession)}."
+                )
             # v0.70.0: mastery contracts count only real profession actions.
             # Reward XP uses grant_profession_reward_xp(), so it cannot recurse.
             for quest_id, quest_progress, quest_needed in self.server.db.increment_profession_action_quests_v0700(
@@ -466,6 +506,15 @@ class SessionProfessionStorageMixin:
                 self.server.db.save_tool(
                     self.account_id, tool_type, tlevel, txp, uses
                 )
+                if tlevel>=tool_level_cap:
+                    messages.append(
+                        f"{tool_name}: poziom {tlevel}, XP maksimum."
+                    )
+                else:
+                    messages.append(
+                        f"{tool_name}: poziom {tlevel}, XP {txp} z "
+                        f"{self.tool_xp_to_next(tlevel,tool_type)}."
+                    )
 
                 new_tool_tier = tool_tier(tlevel)
                 if new_tool_tier > old_tool_tier:
