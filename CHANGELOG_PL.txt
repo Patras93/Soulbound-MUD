@@ -33,6 +33,8 @@ Soulbound v1.13.43 — PROFESSION & COMMAND RUNTIME REPAIR
 - KRAWIECTWO / GARBARSTWO / STOLARSTWO / ZAKLINANIE: statusy pokazują pełny próg XP profesji i odpowiedniego narzędzia.
 - ARCHEOLOGIA / KARTOGRAFIA: statusy pokazują pełne XP profesji i narzędzia.
 - TOOL REWARD XP: naprawiono błąd, w którym grant_tool_reward_xp przyjmował content_level, ale nie stosował mnożnika trudności treści.
+- PROFESJE/NARZĘDZIA 1-600: usunięto stary limit 400 z bootstrapowych helperów używanych przez runtime. Kowalstwo, pozostałe profesje i wszystkie narzędzia ponownie awansują do 600, z Rangami/Tierami do końca osi.
+- NAZWY NARZĘDZI: Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia i Kartografia nie wpadają już w historyczny fallback nazwy Kilofa.
 - RARE / JACKPOT / AUTHORED XP: Generator Core nadal wyznacza bezpieczną bazę, ale warstwa profesji zachowuje teraz realny mnożnik siły akcji od x1 do x2.5. Większy authored XP, jackpot, wyjątkowy materiał lub specjalna nagroda nie znika po v0190_scaled_gain.
 - PEŁNY RAPORT PO AKCJI: zwykłe akcje i nagrody pokazują teraz nie tylko +X XP, ale również bieżący poziom i postęp XP z progu do następnego poziomu profesji/narzędzia.
 - SALVAGE WSZYSTKO: raportuje faktycznie przyznany łączny XP Kowalstwa i Młota po wszystkich mnożnikach, a nie sumę starych bazowych wartości.
