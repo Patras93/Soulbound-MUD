@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.51.
+"""Fast Railway predeploy gate for Soulbound v1.13.52.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.51 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.52 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.51 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.52 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -3573,20 +3573,55 @@ for _needle_v11351_wrapper in (
             "v1.13.51 legacy XP wrapper regression: missing "
             + _needle_v11351_wrapper
         )
+# v1.13.52: smelt max must remain a true single-action batch.
+_crafting_expansion_source_v11352 = (
+    _root / "player/session_mixins/crafting_expansion.py"
+).read_text(encoding="utf-8")
+_smelt_max_start_v11352 = _crafting_expansion_source_v11352.find(
+    '        if norm.startswith("max "):'
+)
+_smelt_max_end_v11352 = _crafting_expansion_source_v11352.find(
+    "        found=self.resolve_smelt_recipe(raw)",
+    _smelt_max_start_v11352,
+)
+if _smelt_max_start_v11352 < 0 or _smelt_max_end_v11352 < 0:
+    _semantic_errors.append(
+        "v1.13.52 smelt max batch regression: max block missing"
+    )
+else:
+    _smelt_max_block_v11352 = _crafting_expansion_source_v11352[
+        _smelt_max_start_v11352:_smelt_max_end_v11352
+    ]
+    for _needle_v11352 in (
+        "await self.smelt_wait_v1124(action_seconds)",
+        "need=int(amount)*n",
+        "pooled_profession_xp=roll_crafting_xp",
+        'await self.advance_class_guild_quest_v11132("craft",n)',
+    ):
+        if _needle_v11352 not in _smelt_max_block_v11352:
+            _semantic_errors.append(
+                "v1.13.52 smelt max batch regression: missing "
+                + _needle_v11352
+            )
+    if "await self.perform_recipe(" in _smelt_max_block_v11352:
+        _semantic_errors.append(
+            "v1.13.52 smelt max batch regression: reverted to per-item perform_recipe loop"
+        )
+
 
 if _semantic_errors:
-    print("Soulbound v1.13.51 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.52 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.51 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.52 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.51 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.52 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

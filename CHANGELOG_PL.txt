@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.51
+Aktualna paczka: v1.13.52
 
 
 
@@ -19,6 +19,17 @@ Aktualna paczka: v1.13.51
 
 
 
+
+==============================================================================
+Soulbound v1.13.52 — SMELT MAX TRUE BATCH
+==============================================================================
+
+- `przetop max <metal>` nie wykonuje już `perform_recipe()` osobno dla każdej sztabki.
+- Cały wybrany stos rudy jest przetapiany jako jedna akcja: jeden timer, jedno pobranie stosu, jeden wspólny pakiet Profession/Tool XP.
+- Zachowano bonus Tieru narzędzia, quest progress, Crafting Mastery, osiągnięcia i statystyki lifetime.
+- Po czasie oczekiwania ilość materiału jest liczona ponownie, więc batch nie tworzy sztabek z brakujących składników.
+- Naprawia objaw, w którym `przetop max żelazo` robił pierwszą sztabkę i nie przechodził do kolejnych.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.51 — XP RUNTIME COMPATIBILITY + AUDIT HOTFIX

@@ -908,34 +908,211 @@ class SessionCraftingExpansionV03114Mixin:
             await self.sync_extended_achievements()
             return True
         if norm.startswith("max "):
+            # v1.13.52: prawdziwy batch dla jednego metalu.
+            # Stara wersja wykonywała perform_recipe() N razy; pierwszy craft
+            # mógł zakończyć cały task po błędzie/eventach i każda sztabka
+            # odpalała osobny timer. Teraz max działa jak "przetop wszystko",
+            # ale tylko dla wybranego materiału: jeden timer, jeden grant XP.
             wanted=raw.split(maxsplit=1)[1]
             found=self.resolve_smelt_recipe(wanted)
-            if not found: await self.send("Nie rozpoznaję metalu dla przetop max."); return False
+            if not found:
+                await self.send("Nie rozpoznaję metalu dla przetop max.")
+                return False
             rid,rec=found
-            # same primary -> salvage fallback preference as normal smelt
+
             if self.max_recipe_crafts_v03114(rec)<=0:
-                fb=SALVAGE_SMELT_FALLBACK_V03113.get(rec.get('output'))
-                if fb and CRAFT_RECIPES.get(fb): rid,rec=fb,CRAFT_RECIPES[fb]
+                fb=SALVAGE_SMELT_FALLBACK_V03113.get(rec.get("output"))
+                if fb and CRAFT_RECIPES.get(fb):
+                    rid,rec=fb,CRAFT_RECIPES[fb]
+
             n=self.max_recipe_crafts_v03114(rec)
-            if n<=0: await self.send("Brak materiału do przetopienia."); return False
-            input_text = " + ".join(
-                f"{ITEMS.get(item_id, {}).get('name', item_id)} x{int(amount) * n}"
-                for item_id, amount in rec.get("ingredients", {}).items()
+            if n<=0:
+                await self.send("Brak materiału do przetopienia.")
+                return False
+            if self.combat_mob_key:
+                await self.send("Nie możesz użyć przetop max podczas walki.")
+                return False
+
+            tool_type, tool_item_id, tool_name = self.recipe_tool_info(
+                CRAFT_RECIPES, rec
             )
-            output_id = rec.get("output")
-            output_name = ITEMS.get(output_id, {}).get("name", rec.get("name", output_id))
-            output_count = max(1, int(rec.get("quantity", 1) or 1)) * n
-            await self.send(f"PRZETOP MAX: {input_text} -> {output_name} x{output_count}.")
-            done=0
-            for _ in range(n):
-                if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
-                    break
-                if not await self.perform_recipe(rid,CRAFT_RECIPES,"przetapianie"):
-                    break
-                done+=1
-                if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
-                    break
-            await self.send(f"PRZETOP MAX zakończony: {done}/{n}."); return done>0
+            if self.server.db.item_qty(self.account_id, tool_item_id) <= 0:
+                await self.send(f"Do przetapiania potrzebujesz: {tool_name}.")
+                return False
+            if self.character.room_id not in rec.get("stations", ()):
+                await self.send(
+                    f"Tę recepturę wykonasz w: "
+                    f"{self.recipe_station_text(rec.get('stations', ()))}."
+                )
+                return False
+
+            profession=self.recipe_profession_name(CRAFT_RECIPES, rec)
+            profession_row=self.server.db.profession(self.account_id, profession)
+            profession_level=int(profession_row["level"])
+            tool_row=self.server.db.tool(self.account_id, tool_type)
+            old_tool_level=int(tool_row["level"])
+            required_profession=max(
+                1,
+                int(
+                    rec.get(
+                        "min_profession_level",
+                        rec.get("min_tool_level", 1),
+                    ) or 1
+                ),
+            )
+            required_tool_tier=required_tool_tier_for_level(required_profession)
+            if profession_level < required_profession:
+                await self.send(
+                    f"{rec['name']} wymaga {profession} poziom "
+                    f"{required_profession}, a masz {profession_level}."
+                )
+                return False
+            if tool_tier(old_tool_level) < required_tool_tier:
+                await self.send(
+                    f"{rec['name']} wymaga {tool_name} Tier "
+                    f"{required_tool_tier}+, a masz Tier "
+                    f"{tool_tier(old_tool_level)}."
+                )
+                return False
+
+            action_seconds=self.recipe_action_seconds(
+                tool_type, profession_level, rec
+            )
+            input_text=" + ".join(
+                f"{ITEMS.get(item_id, {}).get('name', item_id)} "
+                f"x{int(amount) * n}"
+                for item_id,amount in rec.get("ingredients", {}).items()
+            )
+            output_id=rec["output"]
+            per_craft=max(1,int(rec.get("quantity",1) or 1))
+            output_name=ITEMS.get(
+                output_id, {}
+            ).get("name", rec.get("name", output_id))
+            await self.send(
+                f"PRZETOP MAX: {n} przetopów w jednej akcji. "
+                f"{input_text} -> {output_name} x{per_craft*n}. "
+                f"{self.tool_action_label(tool_type)}: {action_seconds} sekund."
+            )
+            await self.smelt_wait_v1124(action_seconds)
+
+            # Po czasie oczekiwania jeszcze raz policz realnie dostępny stos.
+            # Dzięki temu równoległa zmiana magazynu nie tworzy brakujących
+            # składników ani częściowo wykonanego batcha.
+            n=min(n,self.max_recipe_crafts_v03114(rec))
+            if n<=0:
+                await self.send(
+                    "Materiały do przetopienia zniknęły przed zakończeniem akcji."
+                )
+                return False
+
+            for item_id,amount in rec.get("ingredients", {}).items():
+                need=int(amount)*n
+                if self.available_recipe_item(item_id) < need:
+                    await self.send(
+                        "Nie masz już pełnego stosu materiałów do przetop max."
+                    )
+                    return False
+            for item_id,amount in rec.get("ingredients", {}).items():
+                need=int(amount)*n
+                if need>0 and not self.consume_recipe_item(item_id,need):
+                    await self.send(
+                        "Nie udało się pobrać materiałów. Przetop max przerwany."
+                    )
+                    return False
+
+            bonus_chance=tool_tier_bonus_chance(old_tool_level)
+            bonus_crafts=0
+            if bonus_chance>0:
+                expected=n*float(bonus_chance)
+                bonus_crafts=int(expected)
+                if random.random() < (expected-bonus_crafts):
+                    bonus_crafts+=1
+            produced=per_craft*n + bonus_crafts*per_craft
+
+            self.server.db.add_item(self.account_id,output_id,produced)
+            await self.record_item_collection(
+                output_id,
+                source="Przetapianie",
+                announce=True,
+                record_history=False,
+                amount=produced,
+            )
+            await self.announce_craft_quest_progress(output_id,produced)
+            await self.advance_class_guild_quest_v11132("craft",n)
+
+            mastery_category=crafting_mastery_category_v03054(rec,profession)
+            mastery_before_row=self.server.db.crafting_mastery_v03054(
+                self.account_id,profession,mastery_category
+            )
+            mastery_before=crafting_mastery_level_v03054(
+                mastery_before_row["actions"]
+            )
+            mastery_after_row=self.server.db.add_crafting_mastery_action_v03054(
+                self.account_id,
+                profession,
+                mastery_category,
+                critical=False,
+                legendary=False,
+            )
+            mastery_after=crafting_mastery_level_v03054(
+                mastery_after_row["actions"]
+            )
+
+            self.server.db.add_lifetime_stat(
+                self.account_id,"craft_actions",n
+            )
+            self.server.db.add_lifetime_stat(
+                self.account_id,"crafted_items",produced
+            )
+            self.server.db.add_lifetime_stat(
+                self.account_id,"profession_actions",1
+            )
+
+            recipe_stage=self.profession_content_level_v11342(
+                item_id=output_id,
+                recipe=rec,
+            )
+            prof_base=int(rec.get("profession_xp",10) or 10)*n
+            tool_base=int(rec.get("tool_xp",8) or 8)*n
+            prof_base,tool_base=self.profession_content_xp_floor_v11342(
+                prof_base,tool_base,recipe_stage,tool_type
+            )
+            pooled_profession_xp=roll_crafting_xp(max(1,prof_base))
+            pooled_tool_xp=roll_crafting_xp(max(1,tool_base))
+            messages,_profession_level_after,new_tool_level=(
+                self.grant_profession_progress(
+                    profession,
+                    pooled_profession_xp,
+                    tool_type,
+                    pooled_tool_xp,
+                    content_level=recipe_stage,
+                )
+            )
+
+            await self.send(
+                f"PRZETOP MAX zakończony: {n}/{n}. "
+                f"Uzyskano {output_name} x{produced}."
+            )
+            if bonus_crafts:
+                await self.send(
+                    f"Bonus Tieru {tool_tier(old_tool_level)} {tool_name}: "
+                    f"dodatkowe {output_name} x{bonus_crafts*per_craft}."
+                )
+            for message in messages:
+                await self.send(message)
+            if mastery_after>mastery_before:
+                await self.send(
+                    f"Crafting Mastery {profession}/{mastery_category}: "
+                    f"{mastery_before} -> {mastery_after}."
+                )
+            if new_tool_level != old_tool_level:
+                await self.send(
+                    f"{tool_name} ma teraz poziom {new_tool_level}, "
+                    f"Tier {tool_tier(new_tool_level)}: "
+                    f"{tool_tier_name(tool_type,new_tool_level)}."
+                )
+            await self.sync_extended_achievements()
+            return True
         found=self.resolve_smelt_recipe(raw)
         if not found:
             await self.send("Nie rozpoznaję metalu do przetopienia."); return False
