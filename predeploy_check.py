@@ -62,6 +62,20 @@ _semantic_audits = {
     "physical_skill_mana": PHYSICAL_SKILL_MANA_AUDIT,
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
+try:
+    from systems.equipment_crafting import GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342
+except Exception as exc:
+    print(
+        "Soulbound v1.13.42 FAST PREDEPLOY FAILED: "
+        f"class quest progression import: {type(exc).__name__}: {exc}"
+    )
+    traceback.print_exc()
+    raise SystemExit(1)
+
+_semantic_audits["class_quest_progress_v11342"] = (
+    GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342
+)
+
 _semantic_errors = []
 if int(audit.get("swallowed_exception_count", 0) or 0):
     _semantic_errors.append(
@@ -3048,6 +3062,85 @@ for _needle in (
     if _needle not in _profession_storage_source_v11342:
         _semantic_errors.append(
             "v1.13.42 profession XP regression: missing " + _needle
+        )
+
+# v1.13.42 — progressive class quests and elemental hardening.
+_class_guild_source_v11342 = (
+    _root / "player/session_mixins/class_guild_progress.py"
+).read_text(encoding="utf-8")
+_equipment_crafting_source_v11342 = (
+    _root / "systems/equipment_crafting.py"
+).read_text(encoding="utf-8")
+_db_crafting_source_v11342 = (
+    _root / "storage/db_crafting_extensions.py"
+).read_text(encoding="utf-8")
+_equipment_stats_source_v11342 = (
+    _root / "player/session_mixins/equipment_stats.py"
+).read_text(encoding="utf-8")
+_crafting_expansion_source_v11342 = (
+    _root / "player/session_mixins/crafting_expansion.py"
+).read_text(encoding="utf-8")
+_command_registry_source_v11342 = (
+    _root / "player/session_mixins/command_registry.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "GUILD_CLASS_QUEST_STAGES_V11342",
+    "guild_class_quest_pool_for_mastery_v11342",
+    "GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342",
+    '"Wojownik": {"kill", "boss"}',
+    '"Inżynier": {"craft", "gather"}',
+):
+    if _needle not in _equipment_crafting_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 class quest progression regression: missing " + _needle
+        )
+for _needle in (
+    '"mastery_level": self.class_guild_mastery_level_v11342(class_name)',
+    "class_guild_quest_pool_v11342(cls, state)",
+    "Etap i wymagania są stałe do odnowienia",
+):
+    if _needle not in _class_guild_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hourly class quest freeze regression: missing " + _needle
+        )
+
+for _needle in (
+    "CREATE TABLE IF NOT EXISTS equipment_hardening_v11342",
+    "def equipment_hardening_v11342(",
+    "def add_equipment_hardening_v11342(",
+    "DELETE FROM equipment_hardening_v11342",
+):
+    if _needle not in _db_crafting_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening persistence regression: missing " + _needle
+        )
+for _needle in (
+    "hardening_ward += min(0.10, rank * 0.02)",
+    "hardening_ward=min(0.40,hardening_ward)",
+    "min(0.80,static_ward+hardening_ward)",
+):
+    if _needle not in _equipment_stats_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening combat regression: missing " + _needle
+        )
+for _needle in (
+    "async def harden_equipment_v11342",
+    "Fire, Ice, Electric, Dark, Poison, Holy, Water, Arcane",
+    "add_equipment_hardening_v11342",
+    '"Kowalstwo",profession_xp,"crafting",0,tool_progress=False',
+):
+    if _needle not in _crafting_expansion_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening command regression: missing " + _needle
+        )
+for _needle in (
+    "'hartuj': ('harden_equipment_v11342', (COMMAND_TEXT,), {})",
+    '("harden", "hardening", "hartowanie")',
+):
+    if _needle not in _command_registry_source_v11342:
+        _semantic_errors.append(
+            "v1.13.42 hardening routing regression: missing " + _needle
         )
 
 if _semantic_errors:
