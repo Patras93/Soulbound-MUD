@@ -207,6 +207,9 @@ def main():
             # v0.11 removes pregenerated instance rooms/spawns on startup.
             # Materialize one fresh boss checkpoint per dungeon through the real
             # World.ensure_runtime_room() path, exactly as production movement does.
+            # predeploy imports the server bootstrap module but does not start its
+            # async main(), so create the same World object directly for this smoke.
+            audit_world = ns["World"]()
             for kind, (
                 floors_name, predicate_name, room_id_name, boss_flag, floor_key,
             ) in representative_specs.items():
@@ -226,14 +229,14 @@ def main():
                         f"{kind}: could not find a fresh lazy boss checkpoint"
                     )
                     continue
-                if not server.world.ensure_runtime_room(chosen_room):
+                if not audit_world.ensure_runtime_room(chosen_room):
                     chest_errors.append(
                         f"{kind} {floor}: World.ensure_runtime_room failed"
                     )
                     continue
 
                 boss_rooms = []
-                for mob in server.world.mobs.values():
+                for mob in audit_world.mobs.values():
                     template = ns.get("MOB_TEMPLATES", {}).get(mob.template_id, {})
                     if not template.get(boss_flag):
                         continue
