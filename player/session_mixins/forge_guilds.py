@@ -200,13 +200,20 @@ class SessionForgeGuildsMixin:
                 "Wszystko trafia do odpowiednich kategorii Szkatułki."
             )
 
-            # v0.31.15: salvage is a real Kowalstwo action, but it does not
-            # pretend that the crafting hammer was used.
+            # v1.13.42: Salvage rozwija Kowalstwo i Młot. Lepsze EQ daje
+            # większy XP obu osi zamiast starej płaskiej nagrody.
             salvage_prof_xp = max(8, 8 + level // 10 + rarity_bonus * 6)
             messages, _prof_after, _tool_after = self.grant_profession_progress(
-                "Kowalstwo", salvage_prof_xp, "crafting", 0, tool_progress=False
+                "Kowalstwo",
+                salvage_prof_xp,
+                "crafting",
+                0,
+                content_level=level,
             )
-            await self.send(f"Kowalstwo: +{salvage_prof_xp} XP za Salvage.")
+            await self.send(
+                f"Salvage poziomu {level}: Kowalstwo i Młot dostają XP "
+                "zależny od jakości rozłożonego EQ."
+            )
             for message in messages:
                 await self.send(message)
 
@@ -347,7 +354,11 @@ class SessionForgeGuildsMixin:
             profession_xp = max(12, 12 + xp_stage // 8 + target * 3)
             tool_xp = max(10, 10 + xp_stage // 10 + target * 2)
             messages, _prof_after, _tool_after = self.grant_profession_progress(
-                "Kowalstwo", profession_xp, "crafting", tool_xp
+                "Kowalstwo",
+                profession_xp,
+                "crafting",
+                tool_xp,
+                content_level=xp_stage,
             )
             for message in messages:
                 await self.send(message)
