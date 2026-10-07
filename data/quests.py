@@ -796,6 +796,63 @@ QUESTS = {
         "reward_items": {"healing_potion": 2},
         "repeatable": True, "repeat_cooldown": 60 * 60,
     },
+    "party_contract_elites_v11339": {
+        "name": "Elitarny kontrakt: Łowcy elit",
+        "giver": "Koordynatorka Kontraktów Lyra",
+        "kind": "party_contract", "target": "elite", "needed": 8,
+        "description": (
+            "W drużynie co najmniej dwóch graczy pokonajcie 8 losowych elitarnych "
+            "przeciwników. Liczą się tylko członkowie tej samej drużyny stojący "
+            "w lokacji podczas zabicia. Normalna gra solo pozostaje bez zmian."
+        ),
+        "reward_stat_progress": 2500,
+        "reward_silver": 25000, "reward_gold": 25, "reward_mithril": 0,
+        "reward_items": {"soul_shard": 5},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+        "party_contract_v11339": True, "minimum_party_size": 2,
+    },
+    "party_contract_bosses_v11339": {
+        "name": "Elitarny kontrakt: Trzy korony",
+        "giver": "Koordynatorka Kontraktów Lyra",
+        "kind": "party_contract", "target": "boss", "needed": 3,
+        "description": (
+            "W lokalnej drużynie pokonajcie 3 bossów dowolnych systemów. "
+            "Kontrakt jest dodatkową ścieżką nagród i niczego nie blokuje graczom solo."
+        ),
+        "reward_stat_progress": 6000,
+        "reward_silver": 60000, "reward_gold": 60, "reward_mithril": 0,
+        "reward_items": {"soul_elixir": 2},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+        "party_contract_v11339": True, "minimum_party_size": 2,
+    },
+    "party_contract_elements_v11339": {
+        "name": "Elitarny kontrakt: Burza żywiołów",
+        "giver": "Koordynatorka Kontraktów Lyra",
+        "kind": "party_contract", "target": "elemental", "needed": 10,
+        "description": (
+            "W drużynie pokonajcie 10 przeciwników posiadających affinity Fire, Ice, "
+            "Electric, Dark, Poison, Holy, Water albo Arcane."
+        ),
+        "reward_stat_progress": 3500,
+        "reward_silver": 40000, "reward_gold": 40, "reward_mithril": 0,
+        "reward_items": {"soul_shard": 8},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+        "party_contract_v11339": True, "minimum_party_size": 2,
+    },
+    "party_contract_named_rare_v11339": {
+        "name": "Elitarny kontrakt: Imię z legendy",
+        "giver": "Koordynatorka Kontraktów Lyra",
+        "kind": "party_contract", "target": "named_rare", "needed": 1,
+        "description": (
+            "W drużynie odnajdźcie i pokonajcie jednego nazwanego rare z wydarzenia świata. "
+            "To trudniejszy kontrakt opcjonalny; solo content nie jest nim blokowany."
+        ),
+        "reward_stat_progress": 12000,
+        "reward_silver": 120000, "reward_gold": 120, "reward_mithril": 0,
+        "reward_items": {"soul_elixir": 4},
+        "repeatable": True, "repeat_cooldown": 60 * 60,
+        "party_contract_v11339": True, "minimum_party_size": 2,
+    },
 }
 
 __all__ = ['QUESTS']

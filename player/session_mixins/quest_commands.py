@@ -121,7 +121,7 @@ class SessionQuestCommandsMixin:
             # EXP rozwoju statystyk nie tworzy levelu postaci.
             # v0.19: quest może dawać bardzo duże liczby EXP. Nie obcinamy
             # nagrody procentowym capem; tempo kontroluje globalna krzywa wymagań.
-            is_combat_quest = str(q.get("kind") or "") in {"kill", "legendary_rare", "world_boss"}
+            is_combat_quest = str(q.get("kind") or "") in {"kill", "legendary_rare", "world_boss", "party_contract"}
             # v0.9.14: każdy quest walki daje prawdziwy EXP sześciu statystyk.
             # Korzystamy z istniejącego add_stat_progress, więc rosną bezpośrednio
             # Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.

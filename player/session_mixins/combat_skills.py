@@ -10,7 +10,9 @@ from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from systems.party_synergies import (
     party_synergy_damage_multiplier_v11338,
     party_synergy_healing_multiplier_v11338,
+    party_synergy2_apply_hit_v11339,
 )
+from systems.elemental_combat import skill_element_v11339
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
@@ -274,6 +276,13 @@ class SessionCombatSkillsMixin:
         damage,note=v0314_adjust_damage_vs_template(
             template,damage,"physical",skill.get("name","Satellite Linker")
         )
+        damage,_reaction_note_v11339,_reaction_element_v11339 = (
+            party_synergy2_apply_hit_v11339(
+                self, target, self.skill_class_name(skill),
+                skill.get("name","Satellite Linker"), damage, "physical"
+            )
+        )
+        note=(note or "")+_reaction_note_v11339
         target.hp-=damage
         self._recap52_dealt=int(getattr(self,"_recap52_dealt",0) or 0)+max(0,int(damage))
 
@@ -1189,6 +1198,13 @@ class SessionCombatSkillsMixin:
                             if time.time() < float(getattr(target,"v0317_oiled_until",0.0) or 0.0) and "fire" in element:
                                 damage=int(round(damage*1.25))
                             damage,mnote=v0314_adjust_damage_vs_template(template,damage,element or "physical",skill.get("name",""))
+                            damage,_reaction_note_v11339,_reaction_element_v11339=(
+                                party_synergy2_apply_hit_v11339(
+                                    self,target,self.skill_class_name(skill),
+                                    skill.get("name",""),damage,element
+                                )
+                            )
+                            mnote=(mnote or "")+_reaction_note_v11339
                             target.hp-=damage; total+=damage
                             await self.send(f"{skill['name']}: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,target.hp)}.{mnote}")
                             if special=="napalm" and upgraded:
@@ -1598,8 +1614,17 @@ class SessionCombatSkillsMixin:
                                 damage,note_light=v0314_adjust_damage_vs_template(template,damage,"lightning",skill.get("name",""))
                                 damage,note_dark=v0314_adjust_damage_vs_template(template,damage,"dark",skill.get("name",""))
                                 note=(note_light or "")+(note_dark or "")
+                                _synergy_element_v11339="lightning"
                             else:
                                 damage,note=v0314_adjust_damage_vs_template(template,damage,element,skill.get("name",""))
+                                _synergy_element_v11339=element
+                            damage,_reaction_note_v11339,_reaction_element_v11339=(
+                                party_synergy2_apply_hit_v11339(
+                                    self,target,self.skill_class_name(skill),
+                                    skill.get("name",""),damage,_synergy_element_v11339
+                                )
+                            )
+                            note=(note or "")+_reaction_note_v11339
                             target.hp-=damage; total+=damage
                             _crit_note=" KRYTYK." if crit else ""
                             _vmax_note=" V-MAX." if special=="shoot_all" and vmax else ""
@@ -2029,6 +2054,13 @@ class SessionCombatSkillsMixin:
                             damage,crit=self.roll_critical_hit(damage)
                             damage=await self.apply_boss_defense(mob,damage); damage=self.v0210_adjust_player_damage(damage)
                             damage,note=v0314_adjust_damage_vs_template(template,damage,_element,skill.get("name","Tiger Rampage"))
+                            damage,_reaction_note_v11339,_reaction_element_v11339=(
+                                party_synergy2_apply_hit_v11339(
+                                    self,mob,self.skill_class_name(skill),
+                                    skill.get("name","Tiger Rampage"),damage,_element
+                                )
+                            )
+                            note=(note or "")+_reaction_note_v11339
                             mob.hp-=damage; total+=damage
                             await self.send(f"Tiger Rampage: {template['name']} otrzymuje {damage} obrażeń. HP {max(0,mob.hp)}.{note}")
                         broke=False
@@ -2257,9 +2289,20 @@ class SessionCombatSkillsMixin:
                             critical_hits += 1
                         damage = await self.apply_boss_defense(target, damage)
                         damage = self.v0210_adjust_player_damage(damage)
-                        damage, machine_note = v0314_adjust_damage_vs_template(
-                            template, damage, aoe_class_type, skill.get("name", "")
+                        _skill_element_v11339 = skill_element_v11339(
+                            self.skill_class_name(skill), skill.get("name",""), ""
                         )
+                        _typed_hit_v11339 = _skill_element_v11339 or aoe_class_type
+                        damage, machine_note = v0314_adjust_damage_vs_template(
+                            template, damage, _typed_hit_v11339, skill.get("name", "")
+                        )
+                        damage,_reaction_note_v11339,_reaction_element_v11339=(
+                            party_synergy2_apply_hit_v11339(
+                                self,target,self.skill_class_name(skill),
+                                skill.get("name",""),damage,_skill_element_v11339
+                            )
+                        )
+                        machine_note=(machine_note or "")+_reaction_note_v11339
                         target.hp -= damage
                         total_damage += damage
                         marker = " Krytyk." if critical else ""
@@ -2603,9 +2646,22 @@ class SessionCombatSkillsMixin:
                     if skill.get("mec_authored") and skill.get("carries_soul_weapon_elements"):
                         _sw_element=str(getattr(self.character,"soul_weapon_element","") or "").casefold()
                         if _sw_element: _damage_element=_sw_element
-                    damage, machine_note = v0314_adjust_damage_vs_template(
-                        template, damage, _damage_element, skill.get("name", ""),
+                    _inferred_element_v11339 = skill_element_v11339(
+                        self.skill_class_name(skill),
+                        skill.get("name",""),
+                        _damage_element if _damage_element not in ("physical","magic") else "",
                     )
+                    _typed_hit_v11339 = _inferred_element_v11339 or _damage_element
+                    damage, machine_note = v0314_adjust_damage_vs_template(
+                        template, damage, _typed_hit_v11339, skill.get("name", ""),
+                    )
+                    damage,_reaction_note_v11339,_reaction_element_v11339=(
+                        party_synergy2_apply_hit_v11339(
+                            self,mob,self.skill_class_name(skill),skill.get("name",""),
+                            damage,_inferred_element_v11339
+                        )
+                    )
+                    machine_note=(machine_note or "")+_reaction_note_v11339
                 elif damage>0:
                     # Compress is explicitly percentage-of-target-HP damage. Do not
                     # turn that percentage into ordinary STR/Attack damage afterward.

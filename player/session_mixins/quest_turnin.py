@@ -346,7 +346,7 @@ class SessionQuestTurninMixin:
                 await self.send(f"Zadanie {q['name']} jest już ukończone.")
                 return
 
-            if q["kind"] == "kill":
+            if q["kind"] in ("kill", "party_contract"):
                 progress = int(row["progress"])
                 if progress < q["needed"]:
                     await self.send(

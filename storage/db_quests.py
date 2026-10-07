@@ -106,6 +106,38 @@ class DatabaseQuestMixin:
         self.conn.commit()
         return changed
 
+    def increment_party_contract_v11339(self, account_id, category, amount=1):
+        """Advance active optional party contracts for one real local-party kill."""
+        category = str(category or "").strip()
+        amount = max(0, int(amount or 0))
+        if not category or amount <= 0:
+            return []
+        rows = self.conn.execute(
+            "SELECT * FROM quests WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall()
+        changed = []
+        for row in rows:
+            quest = QUESTS.get(row["quest_id"])
+            if (
+                not quest
+                or quest.get("kind") != "party_contract"
+                or str(quest.get("target") or "") != category
+            ):
+                continue
+            needed = max(1, int(quest.get("needed", 1) or 1))
+            old = max(0, int(row["progress"] or 0))
+            new = min(needed, old + amount)
+            if new == old:
+                continue
+            self.conn.execute(
+                "UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?",
+                (new, account_id, row["quest_id"]),
+            )
+            changed.append((str(row["quest_id"]), new, needed))
+        self.conn.commit()
+        return changed
+
     def increment_item_collect_quest(self, account_id, item_id, amount=1):
         """v0.8.66: zwykłe collect liczy wyłącznie nowe zdobycze po przyjęciu."""
         amount = max(0, int(amount))

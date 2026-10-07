@@ -10,6 +10,7 @@ from player.session_mixins.movement import MOB_TEMPLATES, ROOMS
 from systems.party_synergies import (
     party_synergy_healing_multiplier_v11338,
     party_synergy_summary_v11338,
+    party_synergy2_summary_v11339,
 )
 
 
@@ -539,6 +540,11 @@ class SessionPartyMixin:
             await self.send(
                 "Synergie klas w tej lokacji: "
                 + party_synergy_summary_v11338(self)
+                + "."
+            )
+            await self.send(
+                "Synergy 2.0 — dostępne reakcje: "
+                + party_synergy2_summary_v11339(self)
                 + "."
             )
             for number, session in enumerate(members, 1):

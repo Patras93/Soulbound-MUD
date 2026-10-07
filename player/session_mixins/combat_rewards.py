@@ -25,6 +25,7 @@ from systems.equipment_crafting import (
     LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER,
 )
 from systems.drop_excitement import authored_drop_chance_v11329
+from systems.elemental_combat import mob_element_affinities_v11339
 from systems.milestone import dungeon_party_bonus_v0320
 from world.dynamic_content import (
     BESTIARY_CATALOG, BOSS_COLLECTION_CATALOG, canonical_bestiary_template_id,
@@ -642,6 +643,32 @@ class SessionCombatRewardsMixin:
                                 quest_id,
                                 template.get("name", mob.template_id),
                             )
+
+                    if count >= 2:
+                        _party_contract_categories_v11339 = []
+                        if template.get("elite_affix") or str(template.get("rank") or "") == "elite":
+                            _party_contract_categories_v11339.append("elite")
+                        if v0866_is_boss_template(template):
+                            _party_contract_categories_v11339.append("boss")
+                        if mob_element_affinities_v11339(template):
+                            _party_contract_categories_v11339.append("elemental")
+                        if template.get("v11339_named_rare"):
+                            _party_contract_categories_v11339.append("named_rare")
+                        for _contract_category_v11339 in dict.fromkeys(
+                            _party_contract_categories_v11339
+                        ):
+                            _contract_changes_v11339 = (
+                                self.server.db.increment_party_contract_v11339(
+                                    session.account_id,
+                                    _contract_category_v11339,
+                                    1,
+                                )
+                            )
+                            for _qid_v11339, _progress_v11339, _needed_v11339 in _contract_changes_v11339:
+                                await session.announce_active_quest_progress(
+                                    _qid_v11339,
+                                    template.get("name", mob.template_id),
+                                )
 
                     await session.grant_hourly_quest_kill_drop_v0929(
                         mob.template_id, template

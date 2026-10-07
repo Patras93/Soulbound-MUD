@@ -115,7 +115,7 @@ class SessionQuestProgressMixin:
             if not row or row["status"] != "active":
                 return None
 
-            if q["kind"] == "kill":
+            if q["kind"] in ("kill", "party_contract"):
                 return min(int(row["progress"]), int(q["needed"]))
 
             if q["kind"] in ("collect", "collect_category", "collect_distinct_category", "collect_resource", "collect_resource_set"):
@@ -551,7 +551,7 @@ class SessionQuestProgressMixin:
                 return 0, False
 
             needed = int(q.get("needed", 0))
-            if q["kind"] == "kill":
+            if q["kind"] in ("kill", "party_contract"):
                 progress = int(row["progress"])
                 return progress, progress >= needed
 
