@@ -297,10 +297,15 @@ def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_in
     # v1.13.38: każdy klasowy element ma realny kanał ofensywny także na
     # najniższym Tierze. Nie ma już części z poprawnymi statami, ale 0 Attack/
     # Magic Attack wyłącznie przez zaokrąglenie małego budżetu.
-    power = max(1, int(round(budget * 0.18 * slot_scale * style_mult)))
+    # v1.13.38: kalibracja do UOSS Quartz Charm (+60 Attack/+60 Magic Attack
+    # przy wymaganiu 110). Ofensywny klasowy accessory na progu 110 ma być co
+    # najmniej równie mocny w swoim właściwym kanale, a późniejsze Tiery mają
+    # już wyraźnie go przebijać.
+    power = max(1, int(round(budget * 0.45 * slot_scale * style_mult)))
     if class_name == "Mec":
-        hybrid = max(1, int(round(power * 0.60)))
-        return {"attack": hybrid, "magic_attack": hybrid}
+        # Mec jest pełnoprawną hybrydą. Quartz Charm już daje oba kanały po 60,
+        # więc własne klasowe EQ nie może być gorsze tylko za sam fakt hybrydy.
+        return {"attack": power, "magic_attack": power}
     if class_type_for_name(class_name) == "magic":
         return {"attack": 0, "magic_attack": power}
     return {"attack": power, "magic_attack": 0}
@@ -1016,6 +1021,35 @@ def equipment_identity_audit_v11326():
                     + str(item.get("name") or "?")
                 )
                 break
+
+    # v1.13.38 UOSS benchmark: Quartz Charm (lvl 110) daje +60 Attack i
+    # +60 Magic Attack. Ofensywny klasowy accessory na tym samym progu nie może
+    # przegrywać w właściwym kanale, również dla hybrydowego Meca.
+    for _class_name in CLASS_EQUIPMENT_SETS:
+        _bench = class_equipment_flat_power_channels(
+            _class_name, 110, "accessory", 3
+            if class_equipment_style_role(_class_name, 3) == "ofensywny"
+            else 2
+            if class_equipment_style_role(_class_name, 2) == "ofensywny"
+            else 1,
+        )
+        if _class_name == "Mec":
+            if int(_bench.get("attack", 0) or 0) < 60 or int(
+                _bench.get("magic_attack", 0) or 0
+            ) < 60:
+                errors.append("v1.13.38 Mec accessory loses to Quartz Charm flat power")
+                break
+        elif class_type_for_name(_class_name) == "magic":
+            if int(_bench.get("magic_attack", 0) or 0) < 60:
+                errors.append(
+                    "v1.13.38 magic class accessory loses to Quartz Charm Magic Attack"
+                )
+                break
+        elif int(_bench.get("attack", 0) or 0) < 60:
+            errors.append(
+                "v1.13.38 physical class accessory loses to Quartz Charm Attack"
+            )
+            break
 
     roles = {}
     for item in class_shop_items:
