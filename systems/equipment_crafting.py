@@ -985,6 +985,16 @@ _register_legendary_class_loot()
 def equipment_identity_audit_v11326():
     errors = []
 
+    def _flat_power_channel_ok_v11338(item):
+        class_name = str(item.get("required_class") or "")
+        attack = int(item.get("attack", 0) or 0)
+        magic_attack = int(item.get("magic_attack", 0) or 0)
+        if class_name == "Mec":
+            return attack > 0 and magic_attack > 0
+        if class_type_for_name(class_name) == "magic":
+            return magic_attack > 0 and attack == 0
+        return attack > 0 and magic_attack == 0
+
     class_shop_items = [
         item
         for item in ITEMS.values()
@@ -999,6 +1009,12 @@ def equipment_identity_audit_v11326():
                 break
             if not item.get("properties"):
                 errors.append("class shop item has no identity properties")
+                break
+            if not _flat_power_channel_ok_v11338(item):
+                errors.append(
+                    "v1.13.38 class shop Attack/Magic Attack channel missing: "
+                    + str(item.get("name") or "?")
+                )
                 break
 
     roles = {}
@@ -1020,6 +1036,7 @@ def equipment_identity_audit_v11326():
     # v1.13.27: a boss-set source must not lose to the strongest shop
     # style at the same class/mastery/slot on total percentage properties.
     _shop_prop_by_key = {}
+    _shop_flat_power_by_key_v11338 = {}
     for item in class_shop_items:
         key = (
             item.get("required_class"),
@@ -1028,6 +1045,12 @@ def equipment_identity_audit_v11326():
         )
         prop_sum = sum(float(v or 0.0) for v in (item.get("properties") or {}).values())
         _shop_prop_by_key[key] = max(_shop_prop_by_key.get(key, 0.0), prop_sum)
+        flat_sum_v11338 = int(item.get("attack", 0) or 0) + int(
+            item.get("magic_attack", 0) or 0
+        )
+        _shop_flat_power_by_key_v11338[key] = max(
+            _shop_flat_power_by_key_v11338.get(key, 0), flat_sum_v11338
+        )
 
     legendary_sets = [
         item for item in ITEMS.values() if item.get("legendary_set_loot")
@@ -1039,6 +1062,8 @@ def equipment_identity_audit_v11326():
             errors.append("boss set identity source missing")
         if not all(item.get("properties") for item in legendary_sets[:100]):
             errors.append("boss set identity properties missing")
+        if not all(_flat_power_channel_ok_v11338(item) for item in legendary_sets):
+            errors.append("v1.13.38 boss set Attack/Magic Attack channel missing")
         for item in legendary_sets:
             key = (
                 item.get("required_class"),
@@ -1056,11 +1081,33 @@ def equipment_identity_audit_v11326():
                     f"properties {boss_sum:.2f} <= shop {shop_sum:.2f}"
                 )
                 break
+            shop_flat_v11338 = int(
+                _shop_flat_power_by_key_v11338.get(key, 0) or 0
+            )
+            boss_flat_v11338 = int(item.get("attack", 0) or 0) + int(
+                item.get("magic_attack", 0) or 0
+            )
+            if shop_flat_v11338 > 0 and boss_flat_v11338 <= shop_flat_v11338:
+                errors.append(
+                    f"v1.13.38 boss set flat power regression: {item.get('name')} "
+                    f"{boss_flat_v11338} <= shop {shop_flat_v11338}"
+                )
+                break
             if int(item.get("source_progression_stage", 0) or 0) != int(
                 item.get("required_mastery", 1) or 1
             ):
                 errors.append("boss set source stage mismatch")
                 break
+
+    legendary_relics_v11338 = [
+        item for item in ITEMS.values() if item.get("legendary_class_relic")
+    ]
+    if not legendary_relics_v11338:
+        errors.append("v1.13.38 missing legendary class relics")
+    elif not all(
+        _flat_power_channel_ok_v11338(item) for item in legendary_relics_v11338
+    ):
+        errors.append("v1.13.38 legendary relic Attack/Magic Attack channel missing")
 
     blacksmith = [
         item for item in ITEMS.values() if item.get("crafted_masterwork")
@@ -1074,7 +1121,7 @@ def equipment_identity_audit_v11326():
         errors.append("blacksmith masterwork identity incomplete")
 
     return {
-        "version": "1.13.26",
+        "version": "1.13.38",
         "class_shop_count": len(class_shop_items),
         "legendary_set_count": len(legendary_sets),
         "blacksmith_count": len(blacksmith),
