@@ -97,7 +97,7 @@ class SessionRestManaMixin:
                 task.cancel()
                 try:
                     await task
-                except asyncio.CancelledError:
+                except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal standing-regen task cancellation
                     pass
 
     def rest_status_text(self):
