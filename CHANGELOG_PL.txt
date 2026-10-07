@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.43
+Aktualna paczka: v1.13.44
 
 
 
@@ -21,7 +21,7 @@ Aktualna paczka: v1.13.43
 
 
 ==============================================================================
-Soulbound v1.13.43 — WORLD DEATH RESCUE
+Soulbound v1.13.44 — WORLD DEATH RESCUE
 ==============================================================================
 
 - GLOBALNY ZGON: po realnej śmierci bez Phoenix Egg cały świat dostaje czytelny komunikat z nazwą gracza, nazwą lokacji, zabójcą/przyczyną i dokładnym death recapem.
