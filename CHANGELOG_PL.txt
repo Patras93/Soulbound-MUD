@@ -45,14 +45,16 @@ Soulbound v1.13.42 — OCEAN TRADE, PROGRESSION, CLASS QUESTS & HARDENING
 - SAVE BEZ RESETU: istniejące levele, Soul, Biegłości i staty nie są cofane. Zmienia się tylko koszt przyszłych awansów.
 - AUDYT PROGRESJI: CI pilnuje docelowego tempa 72/48/75/54/60 oraz semantyki limitu jednego awansu z killa.
 - SZYBSZE PROFESJE: globalny mnożnik Profession XP rośnie z x2 do x4. Zwykłe akcje, craft, questy specjalistów i zamówienia dają około 2 razy więcej Profession XP niż wcześniej.
-- NARZĘDZIA BEZ ZMIANY: Tool XP ma osobną progresję i nie dostaje tego dodatkowego x2, więc profesja dogania szybciej bez automatycznego wystrzelenia poziomu narzędzia.
+- KONIEC PŁASKIEGO XP: każda realna akcja wywołująca rozwój profesji musi podać content_level; CI blokuje każdą nową ścieżkę bez poziomu treści. Lepsza ruda, ryba, drewno, zioło, receptura, zaklęcie, Tech Upgrade, hartowanie i salvage dają więcej realnego Profession XP i Tool XP.
+- MŁOT RZEMIEŚLNICZY: Młot ma dodatkowe x1.35 do mnożnika jakości treści, ponieważ wcześniej rozwijał się wyraźnie za wolno. Salvage także rozwija teraz Młot; lepsze rozkładane EQ daje więcej XP.
+- TOOL XP PO JAKOŚCI: narzędzia nie dostają globalnego x2 z Profession XP, ale ich realny XP rośnie z poziomem materiału, receptury, EQ do salvage lub innej wykonywanej pracy. Poziom 1 ma bazowe x1, a treść poziomu 600 około x2.
 - QUESTY KLASOWE 2.0: pięć godzinnych ofert każdej z 14 klas skaluje wymagania, nazwy i nagrody z Biegłością klasy przez etapy Początek, Adept, Mistrz, Legenda, Transcendencja, Apogeum i Absolut.
 - TOŻSAMOŚĆ KLAS: każda klasa ma dwa priorytetowe typy aktywności; np. Wojownik/Berserker walka+boss, Druid teren+zasoby, Mec boss+craft, Inżynier craft+zasoby.
 - STABILNY CYKL: etap Biegłości jest zapisywany na początek godziny. Awans klasy podczas aktywnego questa nie zmienia celu w połowie zadania; wyższy etap wchodzi dopiero przy kolejnym odnowieniu.
 - HARTOWANIE EQ: nowa komenda hartuj <żywioł> <nazwa EQ> oraz hartuj status <nazwa EQ>. System działa osobno od questów klasowych.
 - ODPORNOŚCI: Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane mają po 5 rang na każdym EQ; każda ranga daje +2%, maksymalnie 10% na przedmiot dla danego żywiołu.
 - CAP HARTOWANIA: odporność z hartowania założonego EQ sumuje się do 40%; authored/boss Wardy pozostają dodatkową warstwą, a finalny Ward ma limit 80%.
-- KOSZT HARTOWANIA: Esencja Runiczna + stop zależny od poziomu EQ; koszt rośnie z rangą. Hartowanie daje Profession XP Kowalstwa, ale nie Tool XP.
+- KOSZT HARTOWANIA: Esencja Runiczna + stop zależny od poziomu EQ; koszt rośnie z rangą. Hartowanie daje XP Kowalstwa i Młota zależny od poziomu EQ/rangi.
 - TRWAŁOŚĆ: hartowanie zapisuje się w SQLite, przenosi razem z EQ przy przekazaniu i jest czyszczone razem z pozostałymi modyfikacjami craftingu przy utracie przedmiotu.
 - ZAKLINANIE: naprawiono brak dostępnego narzędzia. Fokus Runiczny nadal istnieje jako Character-Bound tool, ale dynamiczny sklep klasowy Komnaty Arkanów wcześniej ukrywał zwykłe pozycje SHOPS. Teraz Kwatermistrzyni Selene pokazuje i sprzedaje Fokus Runiczny obok EQ Maga/Psionika.
 - SKLEPY KLASOWE: dynamiczne podmienianie Tieru klasowego EQ nie usuwa już nieklasowych narzędzi ani innych pozycji użytkowych przypisanych do tej samej lokacji.
