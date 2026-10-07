@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.38.
+"""Fast Railway predeploy gate for Soulbound v1.13.39.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.38 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.39 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.38 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.39 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -125,6 +125,32 @@ try:
 except Exception as exc:
     _semantic_errors.append(
         f"party synergy audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.elemental_combat import (
+        ELEMENTAL_COMBAT_AUDIT_V11339 as _elemental_combat_audit_v11339,
+    )
+    for _error in _elemental_combat_audit_v11339.get("errors", ()):
+        _semantic_errors.append("elemental_combat: " + str(_error))
+    if int(_elemental_combat_audit_v11339.get("elements", 0) or 0) != 8:
+        _semantic_errors.append("elemental_combat: expected eight reviewed elements")
+except Exception as exc:
+    _semantic_errors.append(
+        f"elemental combat audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.party_synergies import (
+        PARTY_SYNERGY2_AUDIT_V11339 as _party_synergy2_audit_v11339,
+    )
+    for _error in _party_synergy2_audit_v11339.get("errors", ()):
+        _semantic_errors.append("party_synergy2: " + str(_error))
+    if int(_party_synergy2_audit_v11339.get("reaction_count", 0) or 0) != 8:
+        _semantic_errors.append("party_synergy2: expected eight reviewed reactions")
+except Exception as exc:
+    _semantic_errors.append(
+        f"party Synergy 2.0 audit import failed: {type(exc).__name__}: {exc}"
     )
 
 # AP is a learning-point cost, never authored combat power. Keep a small
@@ -2603,6 +2629,86 @@ for _needle in (
     if _needle not in _party_ui_source_v11338:
         _semantic_errors.append("v1.13.38 party synergy UI/auto-heal regression: missing " + _needle)
 
+# v1.13.39 — elemental combat, Synergy 2.0, optional party contracts,
+# named rares and chase loot are one reviewed production package.
+_elemental_source_v11339 = (_root / "systems/elemental_combat.py").read_text(encoding="utf-8")
+_synergy2_source_v11339 = (_root / "systems/party_synergies.py").read_text(encoding="utf-8")
+_realtime_source_v11339 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_skills_source_v11339 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_party_source_v11339 = (_root / "player/session_mixins/party.py").read_text(encoding="utf-8")
+_quest_data_source_v11339 = (_root / "data/quests.py").read_text(encoding="utf-8")
+_npc_data_source_v11339 = (_root / "data/npcs.py").read_text(encoding="utf-8")
+_quest_db_source_v11339 = (_root / "storage/db_quests.py").read_text(encoding="utf-8")
+_rewards_source_v11339 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
+_world_generation_source_v11339 = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
+_world_state_source_v11339 = (_root / "world/world_state.py").read_text(encoding="utf-8")
+
+for _needle in (
+    '"fire"', '"ice"', '"lightning"', '"dark"', '"poison"', '"holy"', '"water"', '"arcane"',
+    "elemental_mob_attack_profile_v11339",
+    "elemental_target_ward_multiplier_v11339",
+    "player_element_bonus_multiplier_v11339",
+):
+    if _needle not in _elemental_source_v11339:
+        _semantic_errors.append("v1.13.39 elemental combat regression: missing " + _needle)
+for _needle in (
+    "elemental_mob_attack_profile_v11339(",
+    "elemental_target_ward_multiplier_v11339(",
+    '_enemy_template["damage_type"] = str(',
+):
+    if _needle not in _realtime_source_v11339:
+        _semantic_errors.append("v1.13.39 elemental mob runtime regression: missing " + _needle)
+for _needle in (
+    '"frostbreak"', '"venom_harvest"', '"hellstorm_overload"',
+    '"marked_ambush"', '"holy_circuit_burst"', '"runic_fracture"',
+    '"mind_resonance"', '"bloodrend"',
+    "V11339_SYNERGY2_MARK_SECONDS = 12.0",
+    "V11339_SYNERGY2_MAX_REACTION_MULTIPLIER = 1.35",
+):
+    if _needle not in _synergy2_source_v11339:
+        _semantic_errors.append("v1.13.39 Synergy 2.0 regression: missing " + _needle)
+for _needle in (
+    "party_synergy2_apply_hit_v11339(",
+    "skill_element_v11339(",
+):
+    if _needle not in _skills_source_v11339:
+        _semantic_errors.append("v1.13.39 Synergy 2.0 skill runtime regression: missing " + _needle)
+if "party_synergy2_summary_v11339(self)" not in _party_source_v11339:
+    _semantic_errors.append("v1.13.39 Synergy 2.0 party UI regression")
+for _needle in (
+    '"party_contract_elites_v11339"', '"party_contract_bosses_v11339"',
+    '"party_contract_elements_v11339"', '"party_contract_named_rare_v11339"',
+    '"minimum_party_size": 2',
+):
+    if _needle not in _quest_data_source_v11339:
+        _semantic_errors.append("v1.13.39 party contract data regression: missing " + _needle)
+if '"party_contract_coordinator_v11339"' not in _npc_data_source_v11339:
+    _semantic_errors.append("v1.13.39 party contract coordinator missing")
+if "def increment_party_contract_v11339(" not in _quest_db_source_v11339:
+    _semantic_errors.append("v1.13.39 party contract DB progress missing")
+for _needle in (
+    'if count >= 2:',
+    'append("elite")', 'append("boss")', 'append("elemental")', 'append("named_rare")',
+    "increment_party_contract_v11339(",
+):
+    if _needle not in _rewards_source_v11339:
+        _semantic_errors.append("v1.13.39 party contract kill credit regression: missing " + _needle)
+for _needle in (
+    '"elemental_rift"', '"shadow_invasion"',
+    "V11339_BIOME_NAMED_RARES", "V11339_ELEMENT_CHASE_ITEMS",
+    "v11339_named_rare_template_for_kind", "V11339_WORLD_CONTENT_AUDIT",
+    '"element_wards": {_element_v11339: 0.20}',
+    '"element_damage_bonus_pct": {_element_v11339: 12.0}',
+):
+    if _needle not in _world_generation_source_v11339:
+        _semantic_errors.append("v1.13.39 world event/chase regression: missing " + _needle)
+for _needle in (
+    "v11339_combat_events_for_room(",
+    "v11339_named_rare_template_for_kind(",
+):
+    if _needle not in _world_state_source_v11339:
+        _semantic_errors.append("v1.13.39 named rare spawn regression: missing " + _needle)
+
 # v1.13.38 — random elite affixes must stay wired through spawn, combat,
 # rewards and the canonical Adaptive Combat layer.
 _elite_system_source_v11338 = (_root / "systems/elite_variants.py").read_text(encoding="utf-8")
@@ -2640,18 +2746,18 @@ for _needle in (
         _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.38 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.39 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.38 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.39 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.38 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.39 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
