@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.53 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.54 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.53 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.54 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -745,6 +745,25 @@ for _needle in (
         _semantic_errors.append(
             "superboss personal eligibility regression: missing " + _needle
         )
+
+# v1.13.54: UOSS party-oriented Super Bosses must remain enterable solo.
+for _needle_v11354 in (
+    "if min_players and len(entrants)>1 and len(entrants)<min_players:",
+    "wejście solo jest dozwolone",
+):
+    if _needle_v11354 not in _superboss_entry_source_v11331:
+        _semantic_errors.append(
+            "v1.13.54 superboss solo-entry regression: missing " + _needle_v11354
+        )
+for _needle_v11354 in (
+    "if min_players and len(party) > 1 and len(party)<min_players:",
+    "solo jest dozwolone",
+):
+    if _needle_v11354 not in _superboss_runtime_source_v11331:
+        _semantic_errors.append(
+            "v1.13.54 superboss attack-gate solo regression: missing " + _needle_v11354
+        )
+
 for _needle in (
     "def uoss_helper_contract_here_v11331",
     'str(npc.get("room") or "") != str(self.character.room_id)',
@@ -3600,18 +3619,18 @@ for _needle_v11351_wrapper in (
         )
 
 if _semantic_errors:
-    print("Soulbound v1.13.53 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.54 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.53 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.54 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.53 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.54 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

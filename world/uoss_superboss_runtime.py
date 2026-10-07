@@ -166,12 +166,12 @@ def superboss_attack_gate_v11137(session, template):
     mode = str(spec.get("mode", "solo"))
     if mode == "solo" and len(party) > 1:
         return False, f"{spec['name']} jest wyzwaniem solo. Opuść drużynę albo walcz sam."
-    if mode == "party" and len(party) < 2:
-        return False, f"{spec['name']} jest wyzwaniem drużynowym. Potrzebujesz co najmniej 2 graczy."
+    # UOSSMUD-compatible rule: bosses designed for party play may also be challenged solo.
+    # Party minimums apply only when the player actually enters with a party.
     min_players=int(spec.get("min_players",0) or 0)
     max_players=int(spec.get("max_players",0) or 0)
-    if min_players and len(party)<min_players:
-        return False, f"{spec['name']} wymaga co najmniej {min_players} graczy w tej samej lokacji."
+    if min_players and len(party) > 1 and len(party)<min_players:
+        return False, f"{spec['name']} wymaga co najmniej {min_players} graczy w tej samej lokacji, jeśli wchodzisz drużyną; solo jest dozwolone."
     if max_players and len(party)>max_players:
         return False, f"{spec['name']} dopuszcza maksymalnie {max_players} graczy."
     for member in party:

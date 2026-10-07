@@ -1,4 +1,13 @@
-Aktualna paczka: v1.13.53
+Aktualna paczka: v1.13.54
+
+
+Soulbound v1.13.54 — UOSS SUPER BOSS SOLO ENTRY
+
+- Super Bossowie oznaczeni dotąd jako drużynowi mogą być teraz podejmowani także solo, zgodnie z zachowaniem UOSSMUD.
+- Wejście drużynowe nadal działa: lider przenosi członków stojących razem i każdy uczestnik musi spełniać własne wymagania/lockout.
+- Minimalna liczebność drużyny jest egzekwowana tylko wtedy, gdy faktycznie wchodzi więcej niż 1 gracz. Dzięki temu np. Odin dopuszcza solo, a przy wejściu grupowym nadal wymaga 3–5 graczy.
+- Bossowie zaprojektowani jako stricte solo pozostają solo.
+- Brak wipe i brak migracji bazy.
 
 Soulbound v1.13.53 — COMBAT CLASS XP LEGACY HOOK HOTFIX
 

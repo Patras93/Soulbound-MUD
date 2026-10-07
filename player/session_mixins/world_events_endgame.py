@@ -797,7 +797,8 @@ class SessionWorldEventsEndgameMixin:
                 await self.send(f"{name}: {mode}, {state}" + (". " + "; ".join(extra) if extra else "") + ".")
             await self.send("Zaliczenia i osobiste nagrody są trwałe; restart/deploy ich nie resetuje.")
             await self.send(
-                "W party lider używa superboss <nazwa>. Kwalifikujący się członkowie "
+                "Super Bossowie oznaczeni jako drużynowi dopuszczają także wejście solo. "
+                "W party lider używa superboss <nazwa>, a kwalifikujący się członkowie "
                 "stojący razem z liderem są przenoszeni na arenę wspólnie."
             )
 
@@ -856,19 +857,15 @@ class SessionWorldEventsEndgameMixin:
                     if self not in entrants and self.current_hp>0:
                         entrants.append(self)
 
-                if mode=="party" and len(entrants)<2:
-                    await self.send(
-                        f"{data['name']} jest wyzwaniem drużynowym. "
-                        "Potrzebujesz co najmniej 2 żywych graczy stojących razem z liderem."
-                    )
-                    return
+                # UOSSMUD-compatible rule: party-oriented Super Bosses also allow solo entry.
+                # If a real party enters, its existing party-size rules still apply.
 
                 min_players=int(data.get("min_players",0) or 0)
                 max_players=int(data.get("max_players",0) or 0)
-                if min_players and len(entrants)<min_players:
+                if min_players and len(entrants)>1 and len(entrants)<min_players:
                     await self.send(
                         f"{data['name']} wymaga co najmniej {min_players} "
-                        "graczy stojących razem z liderem."
+                        "graczy przy wejściu drużynowym; wejście solo jest dozwolone."
                     )
                     return
                 if max_players and len(entrants)>max_players:
