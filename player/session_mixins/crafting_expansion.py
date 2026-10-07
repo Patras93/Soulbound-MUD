@@ -531,7 +531,13 @@ class SessionCraftingExpansionV03114Mixin:
             return None
 
         if key_alias:
-            chosen=owned
+            # Zbiorcza komenda przetapia wyłącznie nadmiar: po jednej sztuce
+            # każdego rodzaju zostaje na najbliższą nieotwartą skrzynię.
+            chosen=[
+                (iid,item,max(0,qty-1),True)
+                for iid,item,qty in owned
+                if qty>1
+            ]
         else:
             pool={iid:item for iid,item,_qty in owned}
             found=find_by_name(pool,raw)
@@ -539,11 +545,21 @@ class SessionCraftingExpansionV03114Mixin:
                 return None
             iid,item=found
             qty=next(qty for _iid,_item,qty in owned if _iid==iid)
-            chosen=[(iid,item,1 if qty>0 else 0)]
+            # Jawna nazwa klucza jest świadomym wyborem gracza i może zużyć
+            # także jedyną posiadaną sztukę.
+            chosen=[(iid,item,1 if qty>0 else 0,False)]
 
-        planned_keys=sum(max(0,int(qty or 0)) for _iid,_item,qty in chosen)
+        planned_keys=sum(
+            max(0,int(qty or 0)) for _iid,_item,qty,_preserve_one in chosen
+        )
         if planned_keys<=0:
-            await self.send("Nie masz kluczy do przetopienia.")
+            if key_alias:
+                await self.send(
+                    "Nie masz nadmiarowych kluczy bossowych do przetopienia. "
+                    "Komenda zbiorcza zostawia po jednej sztuce każdego rodzaju."
+                )
+            else:
+                await self.send("Nie masz klucza do przetopienia.")
             return False
 
         await self.send(
@@ -555,13 +571,16 @@ class SessionCraftingExpansionV03114Mixin:
         total_keys=0
         total_dust=0
         total_essence=0
-        for iid,item,qty in chosen:
+        for iid,item,qty,preserve_one in chosen:
             qty=max(0,int(qty or 0))
             if qty<=0:
                 continue
-            # Stan jest sprawdzany ponownie po czasie oczekiwania.
-            have=self.server.db.item_qty(self.account_id,iid)
-            qty=min(qty,max(0,int(have or 0)))
+            # Stan jest sprawdzany ponownie po czasie oczekiwania. Zbiorczy
+            # przetop również tutaj zachowuje jedną sztukę, więc równoległa
+            # zmiana ekwipunku nie może skasować ostatniego klucza.
+            have=max(0,int(self.server.db.item_qty(self.account_id,iid) or 0))
+            available=max(0,have-1) if preserve_one else have
+            qty=min(qty,available)
             if qty<=0 or not self.server.db.remove_item(self.account_id,iid,qty):
                 continue
             dust,essence=self.boss_key_smelt_outputs_v11341(item)
@@ -596,6 +615,14 @@ class SessionCraftingExpansionV03114Mixin:
         )
         for message in messages:
             await self.send(message)
+        if self.character:
+            self.server.db.v0370_record_max(
+                "largest_smelt",
+                total_keys,
+                self.account_id,
+                self.character.name,
+                "jedna akcja przetapiania",
+            )
         return True
 
     async def smelt_item_v03114(self, query):
