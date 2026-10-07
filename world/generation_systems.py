@@ -2902,3 +2902,19 @@ def v11339_world_content_audit():
 
 
 V11339_WORLD_CONTENT_AUDIT = v11339_world_content_audit()
+
+HELP_TOPICS["elementy_v11339"] = [
+    "Ataki mobów mogą mieć typ Fire, Ice, Electric, Dark, Poison, Holy, Water albo Arcane. Żywiołowy atak używa Magic Defense.",
+    "EQ z element_wards redukuje konkretny żywioł. Named rare mogą upuścić chase loot z Ward 20% i +12% obrażeń danego elementu.",
+    "Synergy 2.0: Mag->Wojownik Shatter, Druid->Nekromanta Blightburst, Czarownik Fire->Inżynier Electric Overload oraz inne reakcje widoczne w komendzie druzyna.",
+]
+HELP_TOPICS["kontrakty_party_v11339"] = [
+    "Koordynatorka Kontraktów Lyra stoi na rynku i oferuje cztery opcjonalne elitarne kontrakty drużynowe.",
+    "Kontrakt zalicza postęp tylko wtedy, gdy przy zabiciu jest co najmniej dwóch żywych członków tej samej drużyny w tej samej lokacji.",
+    "Kontrakty party nie blokują żadnej progresji solo. Odnawiają się co godzinę.",
+]
+HELP_TOPIC_ALIASES.update({
+    "elementy": "elementy_v11339", "zywioly": "elementy_v11339", "żywioły": "elementy_v11339",
+    "synergy 2": "elementy_v11339", "synergia 2": "elementy_v11339",
+    "kontrakty party": "kontrakty_party_v11339", "party contracts": "kontrakty_party_v11339",
+})
