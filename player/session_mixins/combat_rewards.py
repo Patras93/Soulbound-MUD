@@ -485,7 +485,11 @@ class SessionCombatRewardsMixin:
                     stat_rewards=[]
                     for stat_name in session.character.STAT_PROGRESS_FIELDS:
                         stat_rewards.append(raw_stat_reward)
-                        for msg in session.character.add_stat_progress(raw_stat_reward,targets=(stat_name,)):
+                        for msg in session.character.add_stat_progress(
+                            raw_stat_reward,
+                            targets=(stat_name,),
+                            single_level_cap=True,
+                        ):
                             await session.send(msg)
                     stat_reward_text=str(raw_stat_reward)
 
@@ -500,7 +504,9 @@ class SessionCombatRewardsMixin:
                             )),
                         ),
                     )
-                    await session.grant_soul_xp(soul_xp_reward)
+                    await session.grant_soul_xp(
+                        soul_xp_reward, single_level_cap=True
+                    )
 
                     class_xp_reward = min(
                         V019_SAFE_INT,
@@ -537,11 +543,16 @@ class SessionCombatRewardsMixin:
                         f"adaptive reward x{_adaptive_reward_mult_v11330:.2f}; "
                         f"elite reward x{_elite_reward_mult_v11338:.2f}; "
                         f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
-                        f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}.",
+                        f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; "
+                        "limit zabicia: maksymalnie 1 awans każdej stałej osi.",
                         detail="full",
                     )
-                    await session.grant_class_xp(class_xp_reward)
-                    for _msg in session.add_character_xp_with_event(character_xp_reward):
+                    await session.grant_class_xp(
+                        class_xp_reward, single_level_cap=True
+                    )
+                    for _msg in session.add_character_xp_with_event(
+                        character_xp_reward, single_level_cap=True
+                    ):
                         await session.send(_msg)
                     await self.server.events.publish(
                         PlayerMobKillQuestEvent(session=session, mob=mob)
