@@ -25,6 +25,7 @@ Soulbound v1.13.38 — ELITE MOB AFFIXES
 ==============================================================================
 
 - KLASOWE ATTACK / MAGIC ATTACK: każda część naszego klasowego EQ ma teraz co najmniej +1 właściwego płaskiego kanału ofensywnego nawet na najniższym Tierze. Fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba kanały.
+- KALIBRACJA QUARTZ CHARM: Quartz Charm na wymaganiu 110 daje +60 Attack i +60 Magic Attack. Ofensywny klasowy accessory na Biegłości 110 ma co najmniej +60 właściwego kanału, a kolejne Tiery rosną dalej. Mec dostaje pełny Attack i Magic Attack bez wcześniejszej kary hybrydowej 0.60.
 - BOSSOWE SETY I RELIKTY: legendarne sety klasowe z bossów co 50 pięter oraz klasowe relikty z progów co 100 pięter dostały Attack/Magic Attack. Bossowy set ma wyższą płaską moc niż najlepszy sklepowy styl tego samego progu i slotu; relikt ma jeszcze mocniejszy profil ofensywny.
 - BEZ KASOWANIA STARYCH STATÓW: STR/DEX/CON albo INT/WILL/CON, procentowe właściwości, Defense i sockety pozostają. Flat Attack/Magic Attack jest dodatkową warstwą mocy.
 - LOSOWE ELITY: zwykły mob ma 8 procent szansy przy pierwszym spawnie i przy każdym respawnie na wariant elitarny. Dostępne affixy: Wściekły, Opancerzony, Wampiryczny, Burzowy i Przeklęty.
