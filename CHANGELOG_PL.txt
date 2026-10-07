@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.50
+Aktualna paczka: v1.13.51
 
 
 
@@ -19,6 +19,15 @@ Aktualna paczka: v1.13.50
 
 
 
+
+==============================================================================
+Soulbound v1.13.51 — COMBAT SOUL XP AUDIT HOTFIX
+==============================================================================
+
+- Fast predeploy klasyfikuje grant_combat_soul_xp_v11350 jako oficjalny content-aware XP gateway.
+- Nowy gateway nadal musi przekazywać content_level, więc audit zachowuje ochronę przed płaskim XP.
+- Nie osłabiono blokady bezpośrednich Character/Class/Soul/stat XP mutacji.
+- Brak zmian danych gracza, brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.50 — COMBAT SOUL XP GATEWAY HOTFIX
