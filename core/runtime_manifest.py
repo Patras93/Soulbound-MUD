@@ -244,7 +244,7 @@ EXPLICIT_RUNTIME_EXPORTS = {
         "party_drop_recipients_v0359", "SessionSkillsCombatMixin",
     ),
     "player/session.py": ("Session",),
-    "systems/economy_income_balance.py": (),
+    "systems/economy_income_balance.py": ("PRODUCTION_CLEANUP_AUDIT_V11337",),
     "admin/modular_services_audit_v0420.py": (
         "modular_services_audit_v0420", "MODULAR_SERVICES_AUDIT_V0420",
     ),

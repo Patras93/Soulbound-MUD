@@ -471,9 +471,11 @@ class SessionSkillQueueBuffsMixin:
                 value=skill.get(key)
                 if value is not None:
                     try:
-                        return max(1,int(value))
+                        parsed_duration = int(value)
                     except (TypeError,ValueError):
-                        pass
+                        parsed_duration = 0
+                    if parsed_duration > 0:
+                        return max(1, parsed_duration)
             if base_seconds is not None and skill.get("duration_source_defined"):
                 return max(1,int(base_seconds))
             return None

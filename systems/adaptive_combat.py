@@ -103,6 +103,7 @@ def adaptive_combat_audit_v11330():
         errors.append("fight seconds are not monotonic by rank")
     if any(b < a for a, b in zip(pressure, pressure[1:])):
         errors.append("incoming pressure is not monotonic by rank")
+
     sample = {"rank": "normal"}
     if adaptive_target_max_hp_v11330(1000, 1000, sample) < 8000:
         errors.append("solo DPS does not raise ordinary mob HP enough")
@@ -114,7 +115,72 @@ def adaptive_combat_audit_v11330():
         errors.append("base reward multiplier must remain 1.0")
     if not 1.0 < adaptive_reward_multiplier_v11330(1000, 16000) <= 3.0:
         errors.append("adaptive reward multiplier out of bounds")
-    return {"version": V11330_ADAPTIVE_COMBAT_VERSION, "errors": errors, "error_count": len(errors)}
+
+    # v1.13.37 production tuning matrix. Simulate local parties of 1-4 with
+    # proportional real DPS. This protects both sides of the game-feel target:
+    # ordinary mobs cannot collapse back to one-hit paper and cannot turn into
+    # runaway sponges just because more players stand in the room.
+    party_profiles = {}
+    previous_normal_hp = 0
+    for party_size in range(1, 5):
+        party_dps = 1200.0 * party_size
+        normal_hp = adaptive_target_max_hp_v11330(
+            1000, party_dps, {"rank": "normal"}
+        )
+        boss_hp = adaptive_target_max_hp_v11330(
+            5000, party_dps, {"rank": "boss"}
+        )
+        normal_seconds = normal_hp / party_dps
+        boss_seconds = boss_hp / party_dps
+        normal_pressure = adaptive_target_incoming_fraction_v11330(
+            {"rank": "normal"}, party_size
+        )
+        boss_pressure = adaptive_target_incoming_fraction_v11330(
+            {"rank": "boss"}, party_size
+        )
+        party_profiles[party_size] = {
+            "party_dps": int(party_dps),
+            "normal_hp": int(normal_hp),
+            "normal_seconds": round(normal_seconds, 3),
+            "boss_hp": int(boss_hp),
+            "boss_seconds": round(boss_seconds, 3),
+            "normal_pressure": round(normal_pressure, 5),
+            "boss_pressure": round(boss_pressure, 5),
+        }
+        if normal_hp <= previous_normal_hp and previous_normal_hp:
+            errors.append(
+                f"party {party_size}: ordinary mob HP did not grow with local DPS"
+            )
+        previous_normal_hp = normal_hp
+        if not 7.95 <= normal_seconds <= 8.05:
+            errors.append(
+                f"party {party_size}: ordinary target drifted from ~8s to {normal_seconds:.3f}s"
+            )
+        if not 27.95 <= boss_seconds <= 28.05:
+            errors.append(
+                f"party {party_size}: boss target drifted from ~28s to {boss_seconds:.3f}s"
+            )
+        if not 0.0 < normal_pressure < boss_pressure <= 0.22:
+            errors.append(
+                f"party {party_size}: incoming pressure ordering/cap invalid"
+            )
+
+    if adaptive_combat_rank_v11330({"uoss_superboss": True}) != "world_boss":
+        errors.append("UOSS Super Boss is not classified as world_boss")
+    if not 7.0 <= V11330_TARGET_FIGHT_SECONDS["normal"] <= 10.0:
+        errors.append("ordinary mob fight target left reviewed 7-10 second band")
+    if not 24.0 <= V11330_TARGET_FIGHT_SECONDS["boss"] <= 32.0:
+        errors.append("boss fight target left reviewed 24-32 second band")
+    if not 40.0 <= V11330_TARGET_FIGHT_SECONDS["world_boss"] <= 55.0:
+        errors.append("world boss fight target left reviewed 40-55 second band")
+
+    return {
+        "version": V11330_ADAPTIVE_COMBAT_VERSION,
+        "production_matrix_version": "1.13.37",
+        "party_profiles": party_profiles,
+        "errors": errors,
+        "error_count": len(errors),
+    }
 
 
 ADAPTIVE_COMBAT_AUDIT_V11330 = adaptive_combat_audit_v11330()

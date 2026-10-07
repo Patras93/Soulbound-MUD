@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.36
+Aktualna paczka: v1.13.37
 
 
 
@@ -19,6 +19,21 @@ Aktualna paczka: v1.13.36
 
 
 
+
+==============================================================================
+Soulbound v1.13.37 — FULL PRODUCTION CLEANUP
+==============================================================================
+
+- DEEP DUNGEON AUDIT: historyczny full audit rozpoznaje teraz uoss_deep_dungeon_floor_* jako legalny lazy-generated exit. Full predeploy dodatkowo materializuje i sprawdza piętra 1, 25 i 100, powrót do windy, Apandę na progu 25 oraz próg Serpentariusa na 100.
+- STARE DUPLIKATY NAZW MOBÓW: końcowy production finalizer wykrywa powtarzające się player-facing nazwy po złożeniu całego świata. Pierwszy/autorski template zachowuje nazwę, a kolejne klony dostają stabilny słowny kryptonim bez technicznego ID i bez cyfr. Template ID, dropy, quest-targety i mechanika nie zmieniają się.
+- NORMALIZACJA WALUTY MOBÓW: stare rekordy silver/gold/mithril są przeliczane do jednego kanonicznego salda silver z zachowaniem dokładnie tej samej łącznej wartości. Pola gold/mithril zostają wyzerowane; formatowanie nadal pokazuje graczowi srebro/złoto/mithril jako nominały.
+- ADAPTIVE COMBAT PRODUCTION MATRIX: audit testuje solo oraz lokalne party 2/3/4 graczy, monotoniczne HP, docelowy czas walki zwykłego moba około 8 s, bossa około 28 s, presję obrażeń i klasyfikację UOSS jako world_boss. Chroni to zarówno przed powrotem "wszystko na hita", jak i przed runaway sponge.
+- BOSS CHEST RUNTIME GATE: full predeploy porównuje pokój skrzyni z faktycznym najnowszym spawnem każdego checkpointowego bossa po ekspansji piętra. Jeśli boss jest w _rXX, stary landing room nie może wystawić skrzyni. Dotyczy Krypty, Mitycznej Krypty, obu Wież Astralnych i Twierdzy Gigantów.
+- GUARDY PREDEPLOY: fast predeploy pilnuje obecności finalizera, eksportu jego auditu, lazy-exitu Deep Dungeon, macierzy Adaptive Combat oraz runtime smoke testów. Wszystkie te audyty są deploy-time/diagnostic i nie mogą tworzyć restart-loopa produkcji.
+- UOSS SHOP ARBITRAGE: Behemoth Suit, Venetian Shield, Ziedrich i Thief Hat nie miały źródłowej ceny Fur Shop, ale były dostępne w uniwersalnym sklepie. Dostały jawny Soulbound resale-safe money price, który zachowuje dotychczasową wartość odsprzedaży i zamyka kupno->sprzedaż nawet przy maksymalnym 25% rabacie Charyzmy. Źródłowe ceny/tokeny innych nagród UOSS pozostają nietknięte.
+- ZERO LEGACY ADVISORY BASELINE: pełny historyczny audit po tym cleanupie ma być czysty. Każde nowe znalezisko FULL_GAME_PREDEPLOY_AUDIT_V0336 jest znowu błędem deployu, a nie ignorowanym advisory.
+- ZERO SILENT EXCEPTIONS: wyczyszczono wszystkie nieoznaczone swallowed exceptions. Normalne anulowanie tasków jest jawnie oznaczone jako intentional, błędy cleanupu walki są raportowane, a awaria weryfikacji UOSS status-proof działa fail-safe i nie nakłada szkodliwego statusu. Fast predeploy blokuje powrót nieoznaczonych cichych wyjątków.
+- Brak wipe, brak migracji SQLite, brak zmiany ID zawartości i brak celowego nerfu nagród — normalizacja waluty zachowuje łączną wartość 1:1.
 
 ==============================================================================
 Soulbound v1.13.36 — UNIQUE DUNGEON MOB NAMES, NO FLOOR NUMBERS

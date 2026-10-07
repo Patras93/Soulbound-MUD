@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.36.
+"""Fast Railway predeploy gate for Soulbound v1.13.37.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.36 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.37 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.36 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.37 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -63,6 +63,11 @@ _semantic_audits = {
     "skill_cooldowns": SKILL_COOLDOWN_AUDIT_V11140,
 }
 _semantic_errors = []
+if int(audit.get("swallowed_exception_count", 0) or 0):
+    _semantic_errors.append(
+        "unclassified swallowed exceptions remain: "
+        + str(int(audit.get("swallowed_exception_count", 0) or 0))
+    )
 for _name, _result in _semantic_audits.items():
     if int(_result.get("error_count", 0) or 0):
         for _error in _result.get("errors", ()):
@@ -2427,19 +2432,108 @@ for _needle in (
     if _needle not in _combat_realtime_source_v11330:
         _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
 
+
+# v1.13.37 Full Production Cleanup: current runtime must normalize old split
+# mob currency, remove duplicate mob display names, understand Deep Dungeon
+# lazy exits and retain the stronger production smoke gates.
+_cleanup_source_v11337 = (
+    _root / "systems/economy_income_balance.py"
+).read_text(encoding="utf-8")
+_manifest_source_v11337 = (
+    _root / "core/runtime_manifest.py"
+).read_text(encoding="utf-8")
+_admin_audits_source_v11337 = (
+    _root / "admin/audits.py"
+).read_text(encoding="utf-8")
+_adaptive_source_v11337 = (
+    _root / "systems/adaptive_combat.py"
+).read_text(encoding="utf-8")
+_full_predeploy_source_v11337 = (
+    _root / "predeploy_full.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "def v11337_normalize_mob_currency():",
+    "def v11337_unique_mob_display_names():",
+    "PRODUCTION_CLEANUP_AUDIT_V11337",
+    'mob["gold"] = 0',
+    'mob["mithril"] = 0',
+):
+    if _needle not in _cleanup_source_v11337:
+        _semantic_errors.append(
+            "v1.13.37 production cleanup regression: missing " + _needle
+        )
+if (
+    '"systems/economy_income_balance.py": ("PRODUCTION_CLEANUP_AUDIT_V11337",)'
+    not in _manifest_source_v11337
+):
+    _semantic_errors.append(
+        "v1.13.37 production cleanup audit is not exported to full predeploy"
+    )
+if "'uoss_deep_dungeon_floor_'" not in _admin_audits_source_v11337:
+    _semantic_errors.append(
+        "v1.13.37 Deep Dungeon lazy-exit audit recognition missing"
+    )
+for _needle in (
+    'production_matrix_version": "1.13.37"',
+    "for party_size in range(1, 5):",
+    "ordinary mob fight target left reviewed 7-10 second band",
+):
+    if _needle not in _adaptive_source_v11337:
+        _semantic_errors.append(
+            "v1.13.37 Adaptive Combat production matrix regression: missing "
+            + _needle
+        )
+for _needle in (
+    "DEEP DUNGEON LAZY SMOKE:",
+    "BOSS CHEST RUNTIME:",
+    "floors 1/25/100 checked",
+    "boss checkpoints checked",
+    "World.ensure_runtime_room failed",
+    "did not materialize all five dungeon families",
+):
+    if _needle not in _full_predeploy_source_v11337:
+        _semantic_errors.append(
+            "v1.13.37 full runtime smoke regression: missing " + _needle
+        )
+
+if 'nonblocking_legacy_audits = set()' not in _full_predeploy_source_v11337:
+    _semantic_errors.append(
+        "v1.13.37 legacy full-game findings are not deploy blockers"
+    )
+
+_items_source_v11337 = (
+    _root / "data/items.py"
+).read_text(encoding="utf-8")
+for _item_id in (
+    "uoss_behemoth_suit",
+    "uoss_venetian_shield",
+    "uoss_ziedrich",
+    "uoss_thief_hat",
+):
+    _match = re.search(
+        rf'"{re.escape(_item_id)}"\s*:\s*\{{[^\n]*'
+        rf'"shop_price_policy"\s*:\s*"resale_safe_v11337"',
+        _items_source_v11337,
+    )
+    if not _match:
+        _semantic_errors.append(
+            "v1.13.37 UOSS resale-safe shop policy missing for " + _item_id
+        )
+
 if _semantic_errors:
-    print("Soulbound v1.13.36 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.37 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.36 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.37 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.36 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.37 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
