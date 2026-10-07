@@ -373,8 +373,12 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.38 - Elite Mobs, Class Gear Power & Party Synergies"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.39 - Elemental Combat, Party Contracts & Synergy 2.0"
 LATEST_CHANGES = [
+    "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
+    "v1.13.39: Synergy 2.0 dodaje znaczniki i detonacje między skillami klas, m.in. Mag -> Arcane Frost -> Wojownik Shatter oraz Druid -> Venom Bloom -> Nekromanta Blightburst.",
+    "v1.13.39: Koordynatorka Kontraktów Lyra na rynku oferuje cztery dobrowolne elitarne kontrakty party; liczy się tylko lokalna drużyna 2+ i nic nie blokuje progresji solo.",
+    "v1.13.39: world eventy dostały Szczeliny Żywiołów i Najazdy Cienia, nazwane rare oraz osiem chase itemów z 20% Wardem i +12% obrażeń odpowiedniego żywiołu.",
     "v1.13.38: lokalne party ma 7 nazwanych synergii klasowych obejmujących wszystkie 14 klas; działają tylko dla żywych członków tej samej drużyny w tej samej lokacji, wzmacniają obrażenia i/lub leczenie, są widoczne w komendzie druzyna i mają cap 20% damage / 25% healing.",
     "v1.13.38: klasowy flat power jest skalibrowany do Quartz Charmu: ofensywny accessory przy Biegłości 110 osiąga co najmniej +60 właściwego kanału, a późniejsze Tiery rosną wyżej; Mec nie ma już kary 0.60 za hybrydę i dostaje pełne oba kanały.",
     "v1.13.38: nasze klasowe EQ ma płaski kanał ofensywny na każdej części: fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba; bossowe sety i relikty przewyższają sklepowy odpowiednik na tym samym progu.",
