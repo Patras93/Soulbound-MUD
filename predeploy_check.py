@@ -3160,10 +3160,20 @@ for _needle in (
             "v1.13.42 enchanting tool availability regression: missing " + _needle
         )
 
-# v1.13.42 — real profession actions must declare their content tier.
-# This prevents a future recipe/gather/salvage path from silently returning to
-# flat XP that ignores the material or task difficulty.
-_profession_progress_missing_content_v11342 = []
+# v1.13.42 — every real XP gateway must declare the content tier.
+# This prevents old/new systems from silently returning to flat XP.
+_content_aware_xp_calls_v11342 = {
+    "grant_profession_progress",
+    "grant_profession_reward_xp",
+    "grant_tool_reward_xp",
+    "grant_class_xp",
+    "grant_soul_xp",
+    "add_character_xp_with_event",
+    "grant_combat_quest_stat_xp",
+}
+_missing_content_by_call_v11342 = {
+    name: [] for name in _content_aware_xp_calls_v11342
+}
 for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
         continue
@@ -3185,21 +3195,22 @@ for _source_path_v11342 in _root.rglob("*.py"):
             if isinstance(_func_v11342, ast.Name)
             else ""
         )
-        if _name_v11342 != "grant_profession_progress":
+        if _name_v11342 not in _content_aware_xp_calls_v11342:
             continue
         if not any(
             _kw_v11342.arg == "content_level"
             for _kw_v11342 in _node_v11342.keywords
         ):
-            _profession_progress_missing_content_v11342.append(
+            _missing_content_by_call_v11342[_name_v11342].append(
                 f"{_source_path_v11342.relative_to(_root)}:"
                 f"{getattr(_node_v11342, 'lineno', '?')}"
             )
-if _profession_progress_missing_content_v11342:
-    _semantic_errors.append(
-        "v1.13.42 flat profession XP calls without content_level: "
-        + ", ".join(_profession_progress_missing_content_v11342[:100])
-    )
+for _call_name_v11342,_missing_v11342 in _missing_content_by_call_v11342.items():
+    if _missing_v11342:
+        _semantic_errors.append(
+            f"v1.13.42 flat XP call {_call_name_v11342} without content_level: "
+            + ", ".join(_missing_v11342[:100])
+        )
 
 if _semantic_errors:
     print("Soulbound v1.13.42 FAST PREDEPLOY FAILED: semantic contracts")
