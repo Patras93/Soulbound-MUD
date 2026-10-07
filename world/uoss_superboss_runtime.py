@@ -514,8 +514,13 @@ def superboss_apply_source_status_v11173(session, template, ability_name):
         for row in session.equipped_item_rows():
             item=ITEMS.get(row["item_id"],{})
             proofs.update(str(x).lower().replace("'", "").replace(" ", "_") for x in item.get("status_proof",()))
-    except Exception:
-        pass
+    except Exception as exc:
+        reporter = getattr(getattr(session, "server", None), "report_runtime_error", None)
+        if callable(reporter):
+            reporter(exc, handler="superboss_apply_source_status_v11173")
+        # Fail safe: if equipment proofs cannot be verified, never apply a
+        # harmful sourced status by pretending the player has no protection.
+        return {"status":status,"blocked":True,"verification_failed":True}
     if normalized in proofs:
         return {"status":status,"blocked":True}
     active=getattr(session,"uoss_source_statuses_v11173",None)
