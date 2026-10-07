@@ -18,6 +18,7 @@ from systems.adaptive_combat import (
     adaptive_target_incoming_fraction_v11330,
     adaptive_target_max_hp_v11330,
 )
+from systems.elite_variants import elite_average_enemy_multiplier_v11338
 from data.mobs import MOB_TEMPLATES
 
 MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 = 1.20
@@ -464,6 +465,7 @@ class SessionCombatDamageMixin:
                 enemy_hit = (
                     max(base_enemy_hit, adaptive_floor)
                     * self.v0210_enemy_damage_multiplier()
+                    * elite_average_enemy_multiplier_v11338(template)
                 )
 
                 return {
