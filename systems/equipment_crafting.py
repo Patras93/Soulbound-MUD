@@ -717,6 +717,135 @@ GUILD_CLASS_QUEST_AUDIT_V1120 = {
     "errors": tuple(_GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120),
 }
 
+
+# v1.13.42: godzinne zadania klasowe rosną razem z realną Biegłością klasy.
+# Typy aktywności pozostają zgodne ze starym runtime, ale wymagania, nazwy
+# i nagrody mają siedem wyraźnych etapów. Bieżący etap jest zamrażany na
+# godzinę przez SessionClassGuildProgressMixin, więc level-up w połowie zadania
+# nigdy nie podnosi celu pod nogami gracza.
+GUILD_CLASS_QUEST_STAGES_V11342 = (
+    (1, "Początek", 1.00, 1.00),
+    (100, "Adept", 1.25, 1.40),
+    (200, "Mistrz", 1.55, 1.90),
+    (300, "Legenda", 1.90, 2.60),
+    (400, "Transcendencja", 2.25, 3.50),
+    (500, "Apogeum", 2.60, 4.60),
+    (600, "Absolut", 2.90, 6.00),
+)
+
+GUILD_CLASS_QUEST_FOCUS_V11342 = {
+    "Wojownik": {"kill", "boss"},
+    "Berserker": {"kill", "boss"},
+    "Łotrzyk": {"kill", "explore"},
+    "Łowca": {"explore", "gather"},
+    "Mnich": {"explore", "boss"},
+    "Strażnik": {"boss", "craft"},
+    "Mag": {"explore", "craft"},
+    "Nekromanta": {"kill", "boss"},
+    "Kapłan": {"explore", "gather"},
+    "Czarownik": {"kill", "craft"},
+    "Druid": {"gather", "explore"},
+    "Psionik": {"explore", "boss"},
+    "Mec": {"boss", "craft"},
+    "Inżynier": {"craft", "gather"},
+}
+
+GUILD_CLASS_QUEST_FLAVOUR_V11342 = {
+    "Wojownik": "walcz jak czempion pierwszej linii",
+    "Berserker": "podtrzymuj napór i kontrolowaną furię",
+    "Łotrzyk": "działaj szybko, cicho i poza utartym szlakiem",
+    "Łowca": "trop cele i poznawaj teren",
+    "Mnich": "łącz dyscyplinę walki z drogą mistrza",
+    "Strażnik": "utrzymuj linię obrony i wzmacniaj zaplecze",
+    "Mag": "badaj świat i przygotowuj zaplecze arkanów",
+    "Nekromanta": "zbieraj doświadczenie z najgroźniejszych starć",
+    "Kapłan": "poznawaj świat i wspieraj zaplecze wypraw",
+    "Czarownik": "łącz walkę z przygotowaniem rytuałów",
+    "Druid": "pracuj z naturą i badaj dzikie obszary",
+    "Psionik": "poszerzaj wiedzę i podejmuj próby umysłu",
+    "Mec": "testuj systemy na bossach i w warsztacie",
+    "Inżynier": "buduj, zbieraj i rozwijaj zaplecze konstrukcyjne",
+}
+
+
+def guild_class_quest_stage_v11342(mastery):
+    mastery = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(mastery or 1)))
+    selected = GUILD_CLASS_QUEST_STAGES_V11342[0]
+    for row in GUILD_CLASS_QUEST_STAGES_V11342:
+        if mastery >= int(row[0]):
+            selected = row
+        else:
+            break
+    return selected
+
+
+def guild_class_quest_pool_for_mastery_v11342(class_name, mastery):
+    base_pool = tuple(GUILD_CLASS_QUEST_POOLS.get(class_name, ()))
+    if not base_pool:
+        return ()
+    threshold, stage_label, effort_mult, reward_mult = guild_class_quest_stage_v11342(
+        mastery
+    )
+    identity = _GUILD_CLASS_QUEST_IDENTITIES_V1120.get(class_name, class_name)
+    focus = set(GUILD_CLASS_QUEST_FOCUS_V11342.get(class_name, ()))
+    flavour = GUILD_CLASS_QUEST_FLAVOUR_V11342.get(class_name, "")
+    rows = []
+    for name, _description, rep, silver, needed, activity in base_pool:
+        focus_mult = 1.12 if activity in focus and int(threshold) >= 100 else 1.0
+        scaled_needed = max(1, int(round(int(needed) * float(effort_mult) * focus_mult)))
+        scaled_rep = max(1, int(round(int(rep) * float(reward_mult) * focus_mult)))
+        scaled_silver = max(1, int(round(int(silver) * float(reward_mult) * focus_mult)))
+        suffix, description_template = _GUILD_CLASS_ACTIVITY_V1120[str(activity)]
+        description = description_template.format(needed=scaled_needed)
+        if flavour:
+            description += " Kierunek klasy: " + flavour + "."
+        if int(threshold) <= 1:
+            scaled_name = str(name)
+        else:
+            scaled_name = f"{identity}: {stage_label} — {suffix}"
+        rows.append((
+            scaled_name,
+            description,
+            scaled_rep,
+            scaled_silver,
+            scaled_needed,
+            str(activity),
+        ))
+    return tuple(rows)
+
+
+_GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342 = []
+for _class_name in GUILD_CLASS_QUEST_POOLS:
+    _previous_effort = 0
+    _previous_reward = 0
+    for _mastery in (1, 100, 200, 300, 400, 500, 600):
+        _pool = guild_class_quest_pool_for_mastery_v11342(_class_name, _mastery)
+        if len(_pool) != 5:
+            _GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342.append(
+                f"{_class_name} mastery {_mastery}: expected 5 quests"
+            )
+            continue
+        _effort = sum(int(row[4]) for row in _pool)
+        _reward = sum(int(row[2]) + int(row[3]) for row in _pool)
+        if _effort < _previous_effort:
+            _GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342.append(
+                f"{_class_name} mastery {_mastery}: effort regressed"
+            )
+        if _reward < _previous_reward:
+            _GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342.append(
+                f"{_class_name} mastery {_mastery}: reward regressed"
+            )
+        _previous_effort = _effort
+        _previous_reward = _reward
+
+GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342 = {
+    "version": "1.13.42",
+    "classes": len(GUILD_CLASS_QUEST_POOLS),
+    "stages": len(GUILD_CLASS_QUEST_STAGES_V11342),
+    "error_count": len(_GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342),
+    "errors": tuple(_GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342),
+}
+
 GUILD_BOUNTY_TARGETS = (
     # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
     # 100 srebra = 1 złoto; 1 000 000 złota = 1 mithril.
