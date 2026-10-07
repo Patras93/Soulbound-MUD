@@ -163,6 +163,20 @@ class SessionProfessionStorageMixin:
                 max(max(0, int(tool_xp or 0)), tool_floor),
             )
 
+    def profession_content_xp_multiplier_v11342(self, content_level, tool_type=""):
+            """Realny mnożnik jakości treści nakładany PO Generator Core.
+
+            v0190_scaled_gain celowo ignoruje wielkość starego raw XP, więc
+            sam authored tool_xp/profession_xp nie różnicował materiałów.
+            Poziom 1 daje ~x1, a poziom 600 ~x2. Młot ma dodatkowo x1.35.
+            """
+            stage=max(1,min(PROFESSION_MAX_LEVEL,int(content_level or 1)))
+            material_mult=1.0 + (stage-1)/float(max(1,PROFESSION_MAX_LEVEL-1))
+            tool_mult=material_mult
+            if str(tool_type)=="crafting":
+                tool_mult*=1.35
+            return material_mult,tool_mult
+
     def grant_profession_progress(
         self, profession, prof_xp, tool_type, tool_xp,
         tool_progress=True, content_level=None
@@ -184,8 +198,47 @@ class SessionProfessionStorageMixin:
             trow_preview = self.server.db.tool(self.account_id, tool_type)
             tlevel_preview = int(trow_preview["level"])
             legacy_prof_xp = max(0, int(prof_xp)) * PROFESSION_XP_GAIN_MULTIPLIER
-            actual_prof_xp = v0190_scaled_gain(legacy_prof_xp, plevel, "profession", 40)
-            tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
+            actual_prof_xp = v0190_scaled_gain(
+                legacy_prof_xp, plevel, "profession", 40
+            )
+            tool_xp = v0190_scaled_gain(
+                tool_xp, tlevel_preview, "tool", 12
+            )
+
+            # v1.13.42: Generator Core daje bazę zależną od bieżącego levelu,
+            # a jakość wykonywanej pracy różnicuje realny przyrost. Wcześniej
+            # raw XP był ignorowany przez v0190_scaled_gain, więc miedź i
+            # Eternium mogły dawać ten sam realny postęp.
+            content_stage=max(
+                1,
+                min(
+                    PROFESSION_MAX_LEVEL,
+                    int(content_level or max(plevel,tlevel_preview,1)),
+                ),
+            )
+            content_prof_mult,content_tool_mult=(
+                self.profession_content_xp_multiplier_v11342(
+                    content_stage,tool_type
+                )
+            )
+            # Historyczne x2 było punktem odniesienia. v1.13.42 ustawia x4,
+            # czyli realnie około 2x szybsze profession leveling niż wcześniej.
+            profession_speed_mult=max(
+                0.25,float(PROFESSION_XP_GAIN_MULTIPLIER)/2.0
+            )
+            actual_prof_xp=max(
+                0,
+                int(round(
+                    actual_prof_xp
+                    * profession_speed_mult
+                    * content_prof_mult
+                )),
+            )
+            tool_xp=max(
+                0,
+                int(round(tool_xp*content_tool_mult)),
+            )
+
             actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
@@ -862,8 +915,21 @@ class SessionProfessionStorageMixin:
             trow_preview = self.server.db.tool(self.account_id, tool_type)
             tlevel_preview = int(trow_preview["level"])
             legacy_profession_xp = max(0, int(profession_xp)) * PROFESSION_XP_GAIN_MULTIPLIER
-            actual_profession_xp = v0190_scaled_gain(legacy_profession_xp, plevel, "profession", 40)
-            tool_xp = v0190_scaled_gain(tool_xp, tlevel_preview, "tool", 12)
+            actual_profession_xp = v0190_scaled_gain(
+                legacy_profession_xp, plevel, "profession", 40
+            )
+            tool_xp = v0190_scaled_gain(
+                tool_xp, tlevel_preview, "tool", 12
+            )
+            # Quest/order rewards do not point at one material, but the global
+            # v1.13.42 profession-speed boost must still be real.
+            actual_profession_xp=max(
+                0,
+                int(round(
+                    actual_profession_xp
+                    * max(0.25,float(PROFESSION_XP_GAIN_MULTIPLIER)/2.0)
+                )),
+            )
             actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
             _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)
