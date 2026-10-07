@@ -845,6 +845,11 @@ GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342 = {
     "error_count": len(_GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342),
     "errors": tuple(_GUILD_CLASS_PROGRESS_AUDIT_ERRORS_V11342),
 }
+if GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342["error_count"]:
+    raise RuntimeError(
+        "Class Quest Progress Audit v1.13.42 failed: "
+        + "; ".join(GUILD_CLASS_QUEST_PROGRESS_AUDIT_V11342["errors"][:100])
+    )
 
 GUILD_BOUNTY_TARGETS = (
     # v0.8.61: nagrody są wartościami jednego wspólnego salda w srebrze.
