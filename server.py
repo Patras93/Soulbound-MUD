@@ -40,6 +40,10 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
+from systems.combat_xp_repair_v11346 import COMBAT_XP_ZERO_AUDIT_V11346
+if COMBAT_XP_ZERO_AUDIT_V11346["error_count"]:
+    raise RuntimeError("Combat XP zero audit failed: " + "; ".join(COMBAT_XP_ZERO_AUDIT_V11346["errors"]))
+
 # Run the exhaustive gate against the FINAL assembled runtime, after all
 # compatibility layers and cumulative milestone guards have finished.
 if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on"):
