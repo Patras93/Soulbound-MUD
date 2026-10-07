@@ -121,3 +121,47 @@ def dungeon_mob_display_name_v11336(kind, base_name, floor, variant=0):
         return f"{str(base_name).strip()} {codename}".strip()
     theme = themes[(floor - 1 + variant) % len(themes)]
     return f"{str(base_name).strip()} — {theme} {codename}".strip()
+
+
+def dungeon_mob_name_audit_v11336():
+    errors = []
+    kinds = tuple(DUNGEON_MOB_NAME_THEMES_V11336)
+    for kind in kinds:
+        seen = set()
+        for floor in range(1, 2001):
+            name = dungeon_mob_display_name_v11336(
+                kind, "Przeciwnik Testowy", floor
+            )
+            if any(ch.isdigit() for ch in name):
+                errors.append(
+                    f"{kind}: digit leaked into display name at floor {floor}: {name}"
+                )
+                break
+            if name in seen:
+                errors.append(
+                    f"{kind}: duplicate display name at floor {floor}: {name}"
+                )
+                break
+            seen.add(name)
+
+    # Multiple mobs sharing one floor also need separate identities.
+    for kind in kinds:
+        names = {
+            dungeon_mob_display_name_v11336(
+                kind, "Przeciwnik Testowy", 777, variant=variant
+            )
+            for variant in range(8)
+        }
+        if len(names) != 8:
+            errors.append(f"{kind}: same-floor variants are not unique")
+
+    return {
+        "version": "1.13.36",
+        "checked_kinds": len(kinds),
+        "sampled_floors_per_kind": 2000,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+DUNGEON_MOB_NAME_AUDIT_V11336 = dungeon_mob_name_audit_v11336()
