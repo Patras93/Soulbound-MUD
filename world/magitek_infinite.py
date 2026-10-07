@@ -5,6 +5,7 @@ Merges the authored Magitek Complex + Magitek Dungeon 2.0 into one zone and
 adds an infinite, large-floor continuation after WarMech Zero's archive.
 """
 from data import catalog_mutations as _catalog_mut
+from systems.dungeon_names import dungeon_mob_display_name_v11336
 import re as _re_v0382
 
 V0382_MAGITEK_VERSION = "0.38.2"
@@ -171,7 +172,12 @@ def create_infinite_magitek_floor_definition(floor):
         name = _MAGITEK_REGULAR_NAMES[(floor * 2 + variant - 2) % len(_MAGITEK_REGULAR_NAMES)]
         variant_mult = 1.0 + variant * 0.12
         template = _machine_template(
-            f"{name}, {theme_name}, piętro {floor}",
+            dungeon_mob_display_name_v11336(
+                "magitek",
+                f"{name} — {theme_name}",
+                floor,
+                variant=variant,
+            ),
             max(1, int(round(base_hp * variant_mult))),
             max(1, int(round(base_dmg * (1.0 + variant * 0.08)))),
             stage,
@@ -204,7 +210,12 @@ def create_infinite_magitek_floor_definition(floor):
     if floor % 5 == 0 and not is_magitek_boss_floor(floor):
         elite_id = f"magitek_floor_elite_{floor}"
         elite = _machine_template(
-            f"Przetaktowany Elitarny Prototyp, {theme_name}, piętro {floor}",
+            dungeon_mob_display_name_v11336(
+                "magitek_elite",
+                f"Przetaktowany Elitarny Prototyp — {theme_name}",
+                floor,
+                variant=2,
+            ),
             int(round(base_hp * 4.2)),
             int(round(base_dmg * 1.55)),
             stage,
@@ -237,8 +248,11 @@ def create_infinite_magitek_floor_definition(floor):
         boss_name = _MAGITEK_BOSS_NAMES[cycle_index]
         mech_id, mech_text = _MAGITEK_BOSS_MECHANICS[cycle_index % len(_MAGITEK_BOSS_MECHANICS)]
         cycle = max(1, (floor - 1) // (len(_MAGITEK_BOSS_NAMES) * 10) + 1)
-        display = (
-            f"{boss_name}, {theme_name}, cykl {cycle}, piętro {floor}"
+        display = dungeon_mob_display_name_v11336(
+            "magitek_boss",
+            f"{boss_name} — {theme_name}",
+            floor,
+            variant=3,
         )
         boss = _machine_template(
             display,

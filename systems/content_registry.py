@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.35 - Dungeon Mob Identity Pass"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.36 - Unique Dungeon Mob Names"
 LATEST_CHANGES = [
+    "v1.13.36: proceduralne moby lochowe nie pokazują już numeru piętra/poziomu/cyklu w nazwie; każdy dostaje unikalny słowny kryptonim bez cyfr.",
+    "v1.13.36: poprawka obejmuje Kryptę, Mityczną Kryptę, obie Wieże Astralne, Twierdzę Gigantów, lochy profesyjne, Deep Dungeon oraz nieskończony Magitek; mechanika i balans pozostają bez zmian.",
     "v1.13.35: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża, Twierdza Gigantów i bojowe lochy profesyjne dostały deterministyczne motywy nazw zależne od piętra, więc te same archetypy nie brzmią identycznie przez setki poziomów.",
     "v1.13.35: dwa dodatkowe Szkielety Strażnicy na tym samym piętrze Krypty mają teraz różne nazwy; NVDA nie czyta już dwóch identycznych celów.",
     "v1.13.35: Magitek dopisuje motyw sektora do zwykłych/elitarnych jednostek, a boss ma także numer cyklu i piętra. Deep Dungeon pozostaje bez zmian.",

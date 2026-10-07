@@ -6,6 +6,7 @@ Creates stable superboss arenas plus the on-demand UOSS Deep Dungeon.
 import re
 from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
 from data.items import ITEMS
+from systems.dungeon_names import dungeon_mob_display_name_v11336
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
 
@@ -106,7 +107,11 @@ def create_infinite_uoss_deep_dungeon_floor_definition_v11331(floor):
     MOB_TEMPLATES.setdefault(
         regular_id,
         {
-            "name": f"{regular_names[(floor - 1) % len(regular_names)]}, piętro {floor}",
+            "name": dungeon_mob_display_name_v11336(
+                "deep_dungeon",
+                regular_names[(floor - 1) % len(regular_names)],
+                floor,
+            ),
             "max_hp": base_hp,
             "damage": base_damage,
             "damage_type": "magic" if floor % 3 == 0 else "physical",
@@ -133,7 +138,12 @@ def create_infinite_uoss_deep_dungeon_floor_definition_v11331(floor):
         MOB_TEMPLATES.setdefault(
             apanda_id,
             {
-                "name": f"Apanda, piętro {floor}",
+                "name": dungeon_mob_display_name_v11336(
+                    "deep_dungeon_apanda",
+                    "Apanda",
+                    floor,
+                    variant=7,
+                ),
                 "max_hp": max(12_000, base_hp * 5),
                 "damage": max(180, int(base_damage * 1.7)),
                 "damage_type": "physical",
