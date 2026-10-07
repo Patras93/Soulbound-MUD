@@ -2484,6 +2484,7 @@ for _needle in (
     "BOSS CHEST RUNTIME:",
     "floors 1/25/100 checked",
     "boss checkpoints checked",
+    "audit would be vacuous",
 ):
     if _needle not in _full_predeploy_source_v11337:
         _semantic_errors.append(
