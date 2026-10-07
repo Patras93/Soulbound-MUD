@@ -375,7 +375,7 @@ SYSTEM_DESCRIPTIONS = {
 
 LATEST_CHANGES_TITLE = "Soulbound v1.13.43 - Profession & Command Runtime Repair"
 LATEST_CHANGES = [
-    "v1.13.43: naprawiono runtime profesji — przywrócono brakujące show_single_tool, professions i tools; Kowalstwo/Gotowanie/Jubilerstwo oraz wszystkie rozszerzone profesje pokazują dokładne bieżące XP i próg do następnego poziomu dla profesji i narzędzia.",
+    "v1.13.43: pełny audit profesji usunął niespójności statusów bez duplikowania istniejących handlerów z gathering.py; Kowalstwo/Gotowanie/Jubilerstwo oraz rozszerzone profesje pokazują dokładne bieżące XP i próg do następnego poziomu profesji/narzędzia.",
     "v1.13.43: grant_tool_reward_xp ponownie respektuje content_level, więc nagrody Tool XP z questów/zamówień skalują się z trudnością treści zamiast zachowywać się płasko.",
     "v1.13.43: predeploy audytuje cały COMMAND_REGISTRY i blokuje wydanie, jeśli jakakolwiek komenda wskazuje na nieistniejący handler sesji.",
     "v1.13.42: handel morski ma 28 kontraktów — po 4 w każdym z 7 głównych portów; krótkie, średnie i dalekomorskie kursy działają w obie strony, lista pokazuje długość rejsu, wymagany poziom Ładowni i nagrodę, a dynamiczna wypłata uwzględnia także dystans.",
