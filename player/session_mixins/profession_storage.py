@@ -85,6 +85,59 @@ class SessionProfessionStorageMixin:
                 "cartography_profession",
             )
 
+    def profession_xp_status_text_v11343(self, profession):
+            row=self.server.db.profession(self.account_id,profession)
+            level=int(row["level"])
+            maximum=profession_max_level(profession)
+            if level>=maximum:
+                return "maksimum"
+            needed=self.profession_xp_to_next(level,profession)
+            return f"{int(row['xp'])} z {needed}"
+
+    def tool_xp_status_text_v11343(self, tool_type):
+            row=self.server.db.tool(self.account_id,tool_type)
+            level=int(row["level"])
+            maximum=tool_max_level(tool_type)
+            if level>=maximum:
+                return "maksimum"
+            needed=self.tool_xp_to_next(level,tool_type)
+            return f"{int(row['xp'])} z {needed}"
+
+    def tool_display_name_v11343(self, tool_type):
+            return {
+                "fishing": "Wędka",
+                "mining": "Kilof",
+                "woodcutting": "Piła",
+                "crafting": "Młot Rzemieślniczy",
+                "cooking": "Nóż Kucharski",
+                "herbalism": "Sierp Zielarski",
+                "alchemy": "Moździerz Alchemiczny",
+                "jewelcrafting": "Szczypce Jubilerskie",
+                "tailoring": "Zestaw Krawiecki",
+                "leatherworking": "Nóż Garbarski",
+                "carpentry": "Narzędzia Ciesielskie",
+                "enchanting": "Fokus Runiczny",
+                "archaeology": "Pędzel Archeologa",
+                "cartography_profession": "Kompas Mierniczy",
+            }.get(str(tool_type),str(tool_type))
+
+    async def show_single_tool(self, tool_type):
+            if not self.valid_tool_type(tool_type):
+                await self.send(f"Nieznany typ narzędzia: {tool_type}.")
+                return
+            row=self.server.db.tool(self.account_id,tool_type)
+            level=int(row["level"])
+            maximum=tool_max_level(tool_type)
+            tier=tool_tier(level)
+            name=self.tool_display_name_v11343(tool_type)
+            xp_text=self.tool_xp_status_text_v11343(tool_type)
+            await self.send(
+                f"{name}: poziom {level} z {maximum}. "
+                f"Tier {tier} z {TOOL_MAX_TIER}: "
+                f"{tool_tier_name(tool_type,level)}. "
+                f"XP: {xp_text}. Użycia: {int(row['uses'])}."
+            )
+
     def tool_progress_state(self):
             result = {}
             for tool_type in (
@@ -875,6 +928,11 @@ class SessionProfessionStorageMixin:
             )
             level = int(row["level"])
             tool_xp = v0190_scaled_gain(tool_xp, level, "tool", 12)
+            if content_level is not None:
+                _prof_mult,_tool_mult=self.profession_content_xp_multiplier_v11342(
+                    content_level,tool_type
+                )
+                tool_xp=max(0,int(round(tool_xp*_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + tool_xp
