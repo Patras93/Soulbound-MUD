@@ -17,6 +17,7 @@ from core.progression_resources import (
     WOODCUTTING_ROOMS,
 )
 from systems.content_registry import CRYPT_MAX_FLOOR, INFINITE_CRYPT_STEP_RATE, MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
+from systems.dungeon_names import dungeon_mob_display_name_v11336
 from systems.items_resources import (
     CLASS_EQUIPMENT_SLOT_DEFS,
     MATERIAL_SLOT_POWER_SCALE,
@@ -118,75 +119,6 @@ CRYPT_REGULAR_NAMES = (
     "Zjawisko Pustki", "Kościany Herold",
     "Widmo Otchłani", "Strażnik Wieczności",
 )
-
-# v1.13.35: nazwy mobów w lochach zachowują rozpoznawalny archetyp,
-# ale dostają krótki, deterministyczny motyw piętra. Dzięki temu NVDA nie
-# czyta w kółko tych samych kilku nazw przez setki poziomów.
-DUNGEON_MOB_NAME_THEMES_V11335 = {
-    "crypt": (
-        "Kościana Warta", "Grobowy Mrok", "Krwawy Korytarz",
-        "Popielna Krypta", "Widmowy Chód", "Nekrotyczny Krąg",
-        "Otchłanny Znak", "Pustkowa Straż", "Przeklęty Grobowiec",
-        "Wieczna Katakumba",
-    ),
-    "mythic_crypt": (
-        "Mityczna Kość", "Duszożerny Mrok", "Czarny Płomień",
-        "Żelazny Grobowiec", "Bezdenny Krąg", "Astralny Grób",
-        "Pustkowa Pieczęć", "Widmowy Tron", "Kres Katakumb",
-        "Wieczna Otchłań",
-    ),
-    "astral": (
-        "Gwiezdna Brama", "Pył Konstelacji", "Mgła Nebuli",
-        "Ślad Komety", "Gwiezdny Ogień", "Orbitalny Krąg",
-        "Pęknięcie Sfer", "Seraficzna Pustka", "Burza Gwiazd",
-        "Firmament",
-    ),
-    "mythic_astral": (
-        "Mityczny Rezonans", "Pęknięta Konstelacja", "Czarna Nebula",
-        "Upadła Kometa", "Wieczny Gwiazdozbiór", "Otchłań Sfer",
-        "Astralny Bastion", "Pustkowy Firmament", "Burza Wieczności",
-        "Tron Suwerena",
-    ),
-    "giant": (
-        "Kamienny Garnizon", "Sala Miotaczy", "Runiczny Bastion",
-        "Górski Mur", "Cyklopia Warta", "Burzowa Cytadela",
-        "Żelazny Dziedziniec", "Królewski Szaniec", "Tytaniczny Krąg",
-        "Tron Gigantów",
-    ),
-    "sunken_grotto": (
-        "Mętna Toń", "Zatopiony Prąd", "Głębinowa Szczelina",
-        "Słona Otchłań", "Wrakowy Szlak", "Ciemna Rafa",
-        "Studnia Prądu", "Syreni Przesmyk", "Głębinowy Wir",
-        "Dno Bez Światła",
-    ),
-    "ancient_forest": (
-        "Stary Korzeń", "Cierniowy Ostęp", "Dziki Gaj",
-        "Omszała Knieja", "Pradawna Kora", "Leśny Krąg",
-        "Zielony Mrok", "Duchowy Matecznik", "Splątany Ostęp",
-        "Serce Lasu",
-    ),
-    "alchemy_garden": (
-        "Cierniowy Sektor", "Toksyczna Grządka", "Zarodnikowy Krąg",
-        "Mutacyjna Aleja", "Ogród Oparów", "Kwasowy Kwartał",
-        "Esencjonalny Węzeł", "Trujący Labirynt", "Alchemiczny Rozrost",
-        "Serce Mutacji",
-    ),
-}
-
-
-def dungeon_mob_display_name_v11335(
-        kind, base_name, floor, floor_word="piętro", variant=0
-):
-    floor = max(1, int(floor))
-    themes = DUNGEON_MOB_NAME_THEMES_V11335.get(str(kind), ())
-    if not themes:
-        return f"{base_name}, {floor_word} {floor}"
-    slot = (floor - 1 + max(0, int(variant))) % len(themes)
-    cycle = (floor - 1) // len(themes) + 1
-    return (
-        f"{base_name}, {themes[slot]} {cycle}, "
-        f"{floor_word} {floor}"
-    )
 
 def crypt_floor_id(floor):
     return f"crypt_floor_{int(floor)}"
@@ -1075,8 +1007,8 @@ def profession_dungeon_combat_pack(dungeon, floor):
         base_hp = 120 + effective * 4 + min(floor, 400) * 12 + index * 35
         base_damage = 8 + effective // 8 + index * 2
         template = {
-            "name": dungeon_mob_display_name_v11335(
-                dungeon, name, floor, "poziom", variant=index - 1
+            "name": dungeon_mob_display_name_v11336(
+                dungeon, name, floor, variant=index - 1
             ),
             "max_hp": max(1, int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER))),
             "base_max_hp": base_hp,
@@ -1206,8 +1138,8 @@ def build_astral_tower():
         ]
         relative = floor - ASTRAL_MIN_FLOOR
         _catalog_mut.catalog_assign({
-            "name": dungeon_mob_display_name_v11335(
-                "astral", regular_name, floor, "poziom"
+            "name": dungeon_mob_display_name_v11336(
+                "astral", regular_name, floor
             ),
             "max_hp": 1050 + relative * 12,
             "damage": 42 + relative // 3,
@@ -1322,8 +1254,8 @@ def build_crypt_200_floors():
         name=CRYPT_REGULAR_NAMES[(floor-1)%len(CRYPT_REGULAR_NAMES)]
         depth_mult=crypt_depth_multiplier(floor)
         _catalog_mut.catalog_assign({
-            "name":dungeon_mob_display_name_v11335(
-                "crypt", name, floor, "piętro"
+            "name":dungeon_mob_display_name_v11336(
+                "crypt", name, floor
             ),
             "max_hp":max(1,int(round((70+floor*9)*depth_mult))),
             "damage":max(1,int(round((6+floor//3)*depth_mult))),
@@ -1437,11 +1369,10 @@ def build_mythic_endgame():
         c_regular = f"mythic_crypt_mob_{floor}"
         c_depth_mult = crypt_depth_multiplier(floor)
         _catalog_mut.catalog_assign({
-            "name": dungeon_mob_display_name_v11335(
+            "name": dungeon_mob_display_name_v11336(
                 "mythic_crypt",
                 crypt_names[(floor - 1) % len(crypt_names)],
                 floor,
-                "piętro",
             ),
             "max_hp": max(1, int(round((4000 + floor * 100) * c_depth_mult))),
             "damage": max(1, int(round((120 + floor) * c_depth_mult))),
@@ -1466,7 +1397,7 @@ def build_mythic_endgame():
         if is_mythic_crypt_boss_floor(floor):
             c_boss = f"mythic_crypt_boss_{floor}"
             _catalog_mut.catalog_assign({
-                "name": dungeon_mob_display_name_v11335(
+                "name": dungeon_mob_display_name_v11336(
                     "mythic_crypt",
                     "Mityczny Władca Krypty",
                     floor,
@@ -1533,11 +1464,10 @@ def build_mythic_endgame():
 
         a_regular = f"mythic_astral_mob_{floor}"
         _catalog_mut.catalog_assign({
-            "name": dungeon_mob_display_name_v11335(
+            "name": dungeon_mob_display_name_v11336(
                 "mythic_astral",
                 astral_names[(floor - 1) % len(astral_names)],
                 floor,
-                "poziom",
             ),
             "max_hp": 5000 + floor * 120,
             "damage": 145 + floor,
@@ -1562,7 +1492,7 @@ def build_mythic_endgame():
         if floor in MYTHIC_BOSS_FLOORS:
             a_boss = f"mythic_astral_boss_{floor}"
             _catalog_mut.catalog_assign({
-                "name": dungeon_mob_display_name_v11335(
+                "name": dungeon_mob_display_name_v11336(
                     "mythic_astral",
                     "Mityczny Suweren Astralny",
                     floor,
