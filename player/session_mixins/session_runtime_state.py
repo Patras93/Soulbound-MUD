@@ -138,10 +138,12 @@ class SessionRuntimeStateMixin:
             state = self.double_xp_state(now)
             return min(V019_SAFE_INT, amount * int(state["multiplier"]))
 
-    def add_character_xp_with_event(self, amount):
+    def add_character_xp_with_event(self, amount, single_level_cap=False):
             actual = self.apply_double_xp(amount)
             self.session_summary_add("character_xp", actual)
-            return self.character.add_character_xp(actual)
+            return self.character.add_character_xp(
+                actual, single_level_cap=single_level_cap
+            )
 
     async def show_double_xp_event(self):
             state = self.double_xp_state()
