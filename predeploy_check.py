@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.40.
+"""Fast Railway predeploy gate for Soulbound v1.13.41.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.13.40 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.13.41 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -42,7 +42,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.13.40 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.13.41 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -138,6 +138,19 @@ try:
 except Exception as exc:
     _semantic_errors.append(
         f"elemental combat audit import failed: {type(exc).__name__}: {exc}"
+    )
+
+try:
+    from systems.combat_profile_records import (
+        COMBAT_PROFILE_RECORDS_AUDIT_V11341 as _combat_profile_records_audit_v11341,
+    )
+    for _error in _combat_profile_records_audit_v11341.get("errors", ()):
+        _semantic_errors.append("combat_profile_records: " + str(_error))
+    if int(_combat_profile_records_audit_v11341.get("error_count", 0) or 0):
+        _semantic_errors.append("combat_profile_records: self-audit reported errors")
+except Exception as exc:
+    _semantic_errors.append(
+        f"combat profile records audit import failed: {type(exc).__name__}: {exc}"
     )
 
 try:
@@ -2709,6 +2722,93 @@ for _needle in (
     if _needle not in _world_state_source_v11339:
         _semantic_errors.append("v1.13.39 named rare spawn regression: missing " + _needle)
 
+# v1.13.41 — death causes, public combat records and key smelting.
+_combat_profile_source_v11341 = (
+    _root / "systems/combat_profile_records.py"
+).read_text(encoding="utf-8")
+_death_source_v11341 = (
+    _root / "player/session_mixins/combat_survival.py"
+).read_text(encoding="utf-8")
+_counter_source_v11341 = (
+    _root / "player/session_mixins/skill_learning.py"
+).read_text(encoding="utf-8")
+_realtime_source_v11341 = (
+    _root / "player/session_mixins/combat_realtime.py"
+).read_text(encoding="utf-8")
+_rewards_source_v11341 = (
+    _root / "player/session_mixins/combat_rewards.py"
+).read_text(encoding="utf-8")
+_profile_source_v11341 = (
+    _root / "player/session_mixins/social_expansion.py"
+).read_text(encoding="utf-8")
+_smelting_source_v11341 = (
+    _root / "player/session_mixins/crafting_expansion.py"
+).read_text(encoding="utf-8")
+_public_records_source_v11341 = (
+    _root / "systems/public_records.py"
+).read_text(encoding="utf-8")
+
+for _needle in (
+    "def mob_profile_xp_v11341(",
+    "def record_combat_profile_v11341(",
+    "def backfill_combat_profile_records_v11341(",
+    "def death_cause_text_v11341(",
+    '"best_kill"', '"worst_defeat"',
+):
+    if _needle not in _combat_profile_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 combat profile records regression: missing " + _needle
+        )
+for _needle in (
+    '"worst_defeat"',
+    '"Przyczyna śmierci: "',
+    '"Śmierć: " + _death_cause_text_v11341',
+):
+    if _needle not in _death_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 death cause/runtime regression: missing " + _needle
+        )
+for _needle in (
+    '"damage_type": str(damage_type or "")',
+    '"damage": int(incoming)',
+):
+    if _needle not in _counter_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 lethal hit capture regression: missing " + _needle
+        )
+for _needle in (
+    "_last_death_cause_v11341",
+    "_incoming_attack_context_v11341",
+):
+    if _needle not in _realtime_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 sourced/elemental death context regression: missing " + _needle
+        )
+if '"best_kill"' not in _rewards_source_v11341:
+    _semantic_errors.append("v1.13.41 Best Kill reward credit missing")
+for _needle in (
+    '"Best Kill: "',
+    '"Worst Defeat: "',
+    "backfill_combat_profile_records_v11341(",
+):
+    if _needle not in _profile_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 player profile combat records regression: missing " + _needle
+        )
+for _needle in (
+    "def boss_key_smelt_outputs_v11341(",
+    "def smelt_boss_keys_v11341(",
+    '"przetop klucze"',
+    "await self.smelt_wait_v1124(3.0)",
+    "Przetop wszystko celowo nie niszczy kluczy bossowych.",
+):
+    if _needle not in _smelting_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 boss key smelting regression: missing " + _needle
+        )
+if '"klucze","keys","klucze bossow","klucze bossów","boss keys"' not in _public_records_source_v11341:
+    _semantic_errors.append("v1.13.41 key-smelt public record count missing")
+
 # v1.13.40 — infinite-dungeon edge shortcuts must cover regular/Mythic
 # Crypt, regular/Mythic Astral Tower, Giant Fortress and UOSS Deep Dungeon.
 # Routing stays inside the current floor and never performs the final up/down.
@@ -2791,18 +2891,18 @@ for _needle in (
         _semantic_errors.append("v1.13.38 elite rewards regression: missing " + _needle)
 
 if _semantic_errors:
-    print("Soulbound v1.13.40 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.13.41 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.13.40 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.13.41 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.13.40 FAST PREDEPLOY PASS")
+print("Soulbound v1.13.41 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
