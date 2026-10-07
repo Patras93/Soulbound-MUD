@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.49 - Combat + Auto Gathering Runtime Repair"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.50 - Combat Soul XP Gateway Hotfix"
 LATEST_CHANGES = [
+    "v1.13.50: combat Soul XP wraca przez kanoniczny gateway; usunięto bezpośredni add_soul_xp blokowany przez predeploy i zachowano single-level cap.",
     "v1.13.49: naprawiono crash Soul XP po zabiciu moba; combat omija stary override grant_soul_xp_v0380 i zachowuje limit jednego awansu Soul na kill.",
     "v1.13.48: naprawiono auto-zbieranie dla Zielarstwa, Górnictwa, Drwalstwa i Wędkarstwa; auto czeka na wspólny cooldown zamiast wpadać w busy-loop.",
     "v1.13.47: naprawiono routing przetapiania po dodaniu kluczy bossowych; iron i inne rudy nie są już przechwytywane przez parser kluczy.",

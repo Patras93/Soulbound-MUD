@@ -75,36 +75,6 @@ def _v11325_legacy_identity_drop_spec(template):
     return legacy_identity_drop_spec_v11325(template, random.random())
 
 
-async def _grant_combat_soul_xp_v11349(session, amount, content_level):
-    """Combat-only Soul XP path immune to legacy grant_soul_xp overrides."""
-    old_level = session.character.soul_level
-    amount = session.scale_progression_xp_v11342(
-        amount, content_level, content_scaled=True
-    )
-    amount = session.apply_double_xp(amount)
-    mentor_pct = session.mentor_bonus_percent_v03050()
-    if mentor_pct:
-        amount = max(0, int(round(amount * (1.0 + mentor_pct / 100.0))))
-        session.mentor_record_activity_v03051()
-
-    session.session_summary_add("soul_xp", amount)
-    messages = session.character.add_soul_xp(
-        amount, single_level_cap=True
-    )
-    for message in messages:
-        await session.send(message)
-
-    await session.set_achievement_progress(
-        "soul_level", session.character.soul_level
-    )
-    if session.character.soul_level > old_level:
-        session.current_hp = session.max_hp()
-        await session.send(
-            f"Awans Soul Level odnawia całe HP. "
-            f"HP: {session.current_hp} z {session.max_hp()}."
-        )
-    return session.character.soul_level > old_level
-
 
 def _v0711_crypt_soul_shard_guaranteed(template_id, template):
     """Return True for Crypt/Mythic Crypt combat templates, including variants."""
@@ -535,10 +505,10 @@ class SessionCombatRewardsMixin:
                             )),
                         ),
                     )
-                    await _grant_combat_soul_xp_v11349(
-                        session,
+                    await session.grant_combat_soul_xp_v11350(
                         soul_xp_reward,
-                        v0190_mob_stage(template),
+                        content_level=v0190_mob_stage(template),
+                        content_scaled=True,
                     )
 
                     class_xp_reward = min(

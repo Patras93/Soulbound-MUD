@@ -1,5 +1,5 @@
 SOULBOUND — PEŁNY SKUMULOWANY CHANGELOG PL
-Aktualna paczka: v1.13.49
+Aktualna paczka: v1.13.50
 
 
 
@@ -19,6 +19,16 @@ Aktualna paczka: v1.13.49
 
 
 
+
+==============================================================================
+Soulbound v1.13.50 — COMBAT SOUL XP GATEWAY HOTFIX
+==============================================================================
+
+- Naprawiono build v1.13.49 blokowany przez audit bezpośrednich gatewayów XP.
+- Combat nie wywołuje już Character.add_soul_xp bezpośrednio.
+- Dodano stabilny grant_combat_soul_xp_v11350 w kanonicznym mixinie progresji; wywołuje oryginalny grant_soul_xp z single_level_cap=True nawet wtedy, gdy późny legacy override nadpisze publiczną metodę Session.grant_soul_xp.
+- Zachowane: content scaling, x2 EXP, Mentor, bonusy rasy/Gildii, osiągnięcia, pełne HP po awansie i limit jednego Soul Levelu na kill.
+- Brak wipe i brak migracji bazy.
 
 ==============================================================================
 Soulbound v1.13.49 — COMBAT SOUL XP RUNTIME REPAIR
