@@ -337,9 +337,13 @@ class SessionPartyMixin:
                         f"{self.character.name} wskrzesza {target.character.name}.",
                         history_category="combat",
                     )
+            _revive_room_name=str(
+                ROOMS.get(self.character.room_id,{}).get("name")
+                or self.character.room_id
+            )
             await self.server.broadcast_all(
                 f"ŚWIAT: {self.character.name} wskrzesił {target.character.name} "
-                f"w lokacji {self.character.room_id}.",
+                f"w lokacji {_revive_room_name}.",
                 history_category="system",
             )
             return True
