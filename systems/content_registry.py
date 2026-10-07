@@ -373,8 +373,11 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.36 - Unique Dungeon Mob Names"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.37 - Full Production Cleanup"
 LATEST_CHANGES = [
+    "v1.13.37: końcowy production finalizer normalizuje stare split-currency mobów do jednego salda silver bez zmiany łącznej wartości i usuwa powtarzające się nazwy mobów przez stabilne słowne kryptonimy.",
+    "v1.13.37: full predeploy sprawdza lazy-generation Deep Dungeon na piętrach 1/25/100, Apandę, próg Serpentariusa oraz faktyczne pokoje wszystkich skrzyń bossów po ekspansji pięter.",
+    "v1.13.37: Adaptive Combat ma produkcyjną macierz solo/party 2-4 graczy i guardy przeciw zarówno one-shotom, jak i przesadnym gąbkom.",
     "v1.13.36: proceduralne moby lochowe nie pokazują już numeru piętra/poziomu/cyklu w nazwie; każdy dostaje unikalny słowny kryptonim bez cyfr.",
     "v1.13.36: poprawka obejmuje Kryptę, Mityczną Kryptę, obie Wieże Astralne, Twierdzę Gigantów, lochy profesyjne, Deep Dungeon oraz nieskończony Magitek; mechanika i balans pozostają bez zmian.",
     "v1.13.35: Krypta, Mityczna Krypta, Wieża Astralna, Mityczna Wieża, Twierdza Gigantów i bojowe lochy profesyjne dostały deterministyczne motywy nazw zależne od piętra, więc te same archetypy nie brzmią identycznie przez setki poziomów.",
