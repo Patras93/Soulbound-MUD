@@ -287,8 +287,24 @@ async def _v0370_perform_recipe(self,query,recipes,action_name):
 SessionCraftingInventoryEquipmentMixin.perform_recipe = _v0370_perform_recipe
 
 _V0370_SMELT_BEFORE = SessionCraftingExpansionV03114Mixin.smelt_item_v03114
+
+def _v0370_finish_smelt_record(task, session, count):
+    if task.cancelled():
+        return
+    if task.exception() is not None:
+        return
+    if bool(task.result()) and count>0 and session.character:
+        session.server.db.v0370_record_max(
+            "largest_smelt",
+            count,
+            session.account_id,
+            session.character.name,
+            "jedna akcja przetapiania",
+        )
+
 async def _v0370_smelt(self,query):
     raw=str(query or '').strip(); norm=normalize_lookup_text(raw); count=0
+    _control_request=norm in ("stop","off","przerwij","koniec","status","stan")
     _owned_key_pool={
         str(row["item_id"]):ITEMS.get(str(row["item_id"]),{})
         for row in self.server.db.inventory(self.account_id)
@@ -299,9 +315,9 @@ async def _v0370_smelt(self,query):
         norm in ("klucze","keys","klucze bossow","klucze bossów","boss keys")
         or bool(raw and find_by_name(_owned_key_pool,raw))
     )
-    if _key_request:
-        # Klucze zapisują largest_smelt dopiero po rzeczywistym zakończeniu
-        # 3-sekundowej akcji. Start lub przetop stop nie może ustanowić rekordu.
+    if _control_request or _key_request:
+        # Kontrola zadania i klucze nie zapisują rekordu przy samym starcie.
+        # Klucze zapisują rzeczywistą liczbę dopiero w smelt_boss_keys_v11341.
         count=0
     elif norm in ("wszystko","all"):
         profession_level=int(self.server.db.profession(self.account_id,"Kowalstwo")["level"])
@@ -319,8 +335,18 @@ async def _v0370_smelt(self,query):
     else:
         count=1
     result=await _V0370_SMELT_BEFORE(self,query)
-    if result and count>0 and self.character:
-        self.server.db.v0370_record_max("largest_smelt",count,self.account_id,self.character.name,"jedna akcja przetapiania")
+    task=getattr(self,"smelt_task_v1124",None)
+    if result and count>0 and task is not None and not task.done():
+        task.add_done_callback(
+            lambda done, session=self, planned=count:
+                _v0370_finish_smelt_record(done,session,planned)
+        )
+    elif result and count>0 and self.character and (task is None or task.done()):
+        # Zachowaj kompatybilność dla ewentualnych synchronicznych ścieżek.
+        self.server.db.v0370_record_max(
+            "largest_smelt",count,self.account_id,self.character.name,
+            "jedna akcja przetapiania"
+        )
     return result
 SessionCraftingExpansionV03114Mixin.smelt_item_v03114 = _v0370_smelt
 
