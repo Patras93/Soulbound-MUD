@@ -24,6 +24,9 @@ Aktualna paczka: v1.13.38
 Soulbound v1.13.38 — ELITE MOB AFFIXES
 ==============================================================================
 
+- KLASOWE ATTACK / MAGIC ATTACK: każda część naszego klasowego EQ ma teraz co najmniej +1 właściwego płaskiego kanału ofensywnego nawet na najniższym Tierze. Fizyczne klasy dostają Attack, magiczne Magic Attack, a Mec oba kanały.
+- BOSSOWE SETY I RELIKTY: legendarne sety klasowe z bossów co 50 pięter oraz klasowe relikty z progów co 100 pięter dostały Attack/Magic Attack. Bossowy set ma wyższą płaską moc niż najlepszy sklepowy styl tego samego progu i slotu; relikt ma jeszcze mocniejszy profil ofensywny.
+- BEZ KASOWANIA STARYCH STATÓW: STR/DEX/CON albo INT/WILL/CON, procentowe właściwości, Defense i sockety pozostają. Flat Attack/Magic Attack jest dodatkową warstwą mocy.
 - LOSOWE ELITY: zwykły mob ma 8 procent szansy przy pierwszym spawnie i przy każdym respawnie na wariant elitarny. Dostępne affixy: Wściekły, Opancerzony, Wampiryczny, Burzowy i Przeklęty.
 - BEZ NADPISYWANIA BOSSÓW: losowa elita nie dotyka bossów, minibossów, world bossów, UOSS Super Bossów, authored rare/elite, manekinów ani przeciwników z exact source XP.
 - ADAPTIVE COMBAT ZOSTAJE ŹRÓDŁEM BALANSU: elity mają rangę elite, więc nadal skalują się do realnej siły solo/lokalnego party. Affix nie tworzy osobnego świata dla słabych i mocnych graczy.
