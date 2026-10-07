@@ -597,8 +597,25 @@ class SessionExplorationProgressMixin:
             # v1.11.32: Explorer Points jak w klasycznych MUD-ach.
             # Każda nowa lokacja w terenie daje 1 EP dokładnie raz oraz Character EXP.
             zone_for_ep = str(room_meta.get("zone") or "Nieznany teren")
-            ep_xp = max(50, min(5000, 50 + int(self.character.character_level) * 10))
-            for message in self.add_character_xp_with_event(ep_xp):
+            room_stage=max(
+                1,
+                min(
+                    600,
+                    int(
+                        room_meta.get("recommended_mastery")
+                        or room_meta.get("recommended_level")
+                        or room_meta.get("generator_level")
+                        or room_meta.get("level")
+                        or 1
+                    ),
+                ),
+            )
+            ep_xp = max(50, min(5000, 50 + room_stage * 10))
+            for message in self.add_character_xp_with_event(
+                ep_xp,
+                content_level=room_stage,
+                content_scaled=True,
+            ):
                 if announce:
                     await self.send(message)
             self.server.db.add_lifetime_stat(self.account_id, "explorer_points", 1)
