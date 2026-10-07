@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.13.40 - Infinite Dungeon Walk Shortcuts"
+LATEST_CHANGES_TITLE = "Soulbound v1.13.41 - Death Recaps, Combat Records & Key Smelting"
 LATEST_CHANGES = [
+    "v1.13.41: śmierć pokazuje przyczynę zgonu z zabójcą, zdolnością/żywiołem, typem obrażeń, końcowym trafieniem i miejscem; profil <gracz> pokazuje Best Kill i Worst Defeat z XP; klucze bossowe można przetapiać w Kuźni przez przetop klucze lub przetop <nazwa klucza>.",
     "v1.13.40: skróty walk do kolejnego przejścia są spójne w nieskończonych lochach: Krypta/Mityczna Krypta dół, Wieża/Mityczna Wieża góra, Twierdza Gigantów góra i UOSS Deep Dungeon dół; zawsze zatrzymują się przed ostatnim up/down.",
     "v1.13.39: moby mogą używać czytelnych ataków Fire, Ice, Electric, Dark, Poison, Holy, Water i Arcane; ataki używają Magic Defense oraz istniejących element_wards z EQ.",
     "v1.13.39: Synergy 2.0 dodaje znaczniki i detonacje między skillami klas, m.in. Mag -> Arcane Frost -> Wojownik Shatter oraz Druid -> Venom Bloom -> Nekromanta Blightburst.",
