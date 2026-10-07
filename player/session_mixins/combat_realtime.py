@@ -625,7 +625,7 @@ class SessionCombatRealtimeMixin:
                                             "template_id": str(enemy_mob.template_id),
                                             "mob_key": str(getattr(enemy_mob, "key", "") or ""),
                                             "ability": str(_source_round.get("name") or _source_round.get("text") or "atak natychmiastowej śmierci"),
-                                            "damage_type": str(_enemy_template.get("damage_type") or ""),
+                                            "damage_type": "",
                                             "damage": max(0, int(target_session.current_hp or 0)),
                                         }
                                         target_session.current_hp = 0
@@ -681,7 +681,7 @@ class SessionCombatRealtimeMixin:
                                                 "template_id": str(enemy_mob.template_id),
                                                 "mob_key": str(getattr(enemy_mob, "key", "") or ""),
                                                 "ability": str(_source_ability or "specjalna zdolność"),
-                                                "damage_type": str(_enemy_template.get("damage_type") or ""),
+                                                "damage_type": "",
                                                 "damage": _source_damage_v11341,
                                             }
                                         if target_session.current_hp <= 0:
