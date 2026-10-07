@@ -3556,6 +3556,24 @@ if "session.character.add_soul_xp(" in _combat_rewards_source_v11350:
     _semantic_errors.append("v1.13.50 combat Soul XP gateway regression: direct Character.add_soul_xp bypass returned")
 
 
+# v1.13.51: legacy v0.38.0 dungeon-summary XP wrappers must remain
+# transparent to the modern content-aware gateway signatures.
+_party_summary_source_v11351 = (
+    _root / "world/party_combo_ultimate_summary.py"
+).read_text(encoding="utf-8")
+for _needle_v11351_wrapper in (
+    "async def _grant_class_xp_v0380(self, total_xp, *args, **kwargs):",
+    "async def _grant_soul_xp_v0380(self, amount, *args, **kwargs):",
+    "def _add_character_xp_v0380(self, amount, *args, **kwargs):",
+    "self, total_xp, *args, **kwargs",
+    "self, amount, *args, **kwargs",
+):
+    if _needle_v11351_wrapper not in _party_summary_source_v11351:
+        _semantic_errors.append(
+            "v1.13.51 legacy XP wrapper regression: missing "
+            + _needle_v11351_wrapper
+        )
+
 if _semantic_errors:
     print("Soulbound v1.13.51 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
