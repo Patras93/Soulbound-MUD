@@ -2747,6 +2747,12 @@ _smelting_source_v11341 = (
 _public_records_source_v11341 = (
     _root / "systems/public_records.py"
 ).read_text(encoding="utf-8")
+_combat_skills_source_v11341 = (
+    _root / "player/session_mixins/combat_skills.py"
+).read_text(encoding="utf-8")
+_uoss_runtime_source_v11341 = (
+    _root / "world/uoss_superboss_runtime.py"
+).read_text(encoding="utf-8")
 
 for _needle in (
     "def mob_profile_xp_v11341(",
@@ -2754,6 +2760,8 @@ for _needle in (
     "def backfill_combat_profile_records_v11341(",
     "def death_cause_text_v11341(",
     '"best_kill"', '"worst_defeat"',
+    '"combat_profile_backfill_v11341"',
+    "ambiguous_names",
 ):
     if _needle not in _combat_profile_source_v11341:
         _semantic_errors.append(
@@ -2763,6 +2771,8 @@ for _needle in (
     '"worst_defeat"',
     '"Przyczyna śmierci: "',
     '"Śmierć: " + _death_cause_text_v11341',
+    '_death_cause_v11341.get("template_id")',
+    '_death_cause_v11341.get("mob_key")',
 ):
     if _needle not in _death_source_v11341:
         _semantic_errors.append(
@@ -2771,6 +2781,8 @@ for _needle in (
 for _needle in (
     '"damage_type": str(damage_type or "")',
     '"damage": int(incoming)',
+    '"template_id": str(mob.template_id)',
+    '"mob_key": str(getattr(mob, "key", "") or "")',
 ):
     if _needle not in _counter_source_v11341:
         _semantic_errors.append(
@@ -2779,6 +2791,9 @@ for _needle in (
 for _needle in (
     "_last_death_cause_v11341",
     "_incoming_attack_context_v11341",
+    "_source_summons=tuple(",
+    "and not _source_status_result",
+    '"damage_type": ""',
 ):
     if _needle not in _realtime_source_v11341:
         _semantic_errors.append(
@@ -2801,13 +2816,38 @@ for _needle in (
     'f"PRZETOP KLUCZE:',
     "await self.smelt_wait_v1124(3.0)",
     "Przetop wszystko celowo nie niszczy kluczy bossowych.",
+    "max(0,qty-1)",
+    "available=max(0,have-1)",
 ):
     if _needle not in _smelting_source_v11341:
         _semantic_errors.append(
             "v1.13.41 boss key smelting regression: missing " + _needle
         )
-if '"klucze","keys","klucze bossow","klucze bossów","boss keys"' not in _public_records_source_v11341:
-    _semantic_errors.append("v1.13.41 key-smelt public record count missing")
+for _needle in (
+    "_v0370_finish_smelt_record(",
+    "task.add_done_callback(",
+):
+    if _needle not in _public_records_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 completed-smelt record regression: missing " + _needle
+        )
+for _needle in (
+    '"ability": "Dispose Feedback"',
+    '"ability": "Uzi Punch Feedback"',
+    '"ability": str(skill.get("name") or "umiejętność")',
+):
+    if _needle not in _combat_skills_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 self-damage death cause regression: missing " + _needle
+        )
+for _needle in (
+    '"name":"Limit 100 rund"',
+    '"name":"Shin-Zantetsuken"',
+):
+    if _needle not in _uoss_runtime_source_v11341:
+        _semantic_errors.append(
+            "v1.13.41 sourced instant-death label regression: missing " + _needle
+        )
 
 # v1.13.40 — infinite-dungeon edge shortcuts must cover regular/Mythic
 # Crypt, regular/Mythic Astral Tower, Giant Fortress and UOSS Deep Dungeon.
