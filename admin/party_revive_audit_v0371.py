@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Soulbound v1.13.43 - World Death Rescue audit/help."""
+"""Soulbound v1.13.44 - World Death Rescue audit/help."""
 
 PARTY_REVIVE_WINDOW_SECONDS_V0371 = 180
 PARTY_REVIVE_RESTORE_FRACTION_V0371 = 0.35
@@ -13,7 +13,7 @@ HELP_TOPICS["wskrzeszenie"] = [
     "Powalony może wpisać odrodz, aby natychmiast samemu wrócić do Świątyni. Po 180 sekundach bez pomocy następuje automatyczne odrodzenie.",
 ]
 HELP_TOPICS["druzyny"].append(
-    "Wskrzeszanie v1.13.43 jest światowe: każdy żywy gracz w tej samej lokacji może użyć wskrzes <gracz>; okno ratunku 180 s."
+    "Wskrzeszanie v1.13.44 jest światowe: każdy żywy gracz w tej samej lokacji może użyć wskrzes <gracz>; okno ratunku 180 s."
 )
 HELP_TOPIC_ALIASES.update({
     "wskrzes":"wskrzeszenie", "wskrzesz":"wskrzeszenie", "wskrześ":"wskrzeszenie",
@@ -47,7 +47,7 @@ def party_revive_audit_v0371():
     if "wskrzeszenie" not in HELP_TOPICS:
         errors.append("missing help wskrzeszenie")
     return {
-        "version":"1.13.43",
+        "version":"1.13.44",
         "window_seconds":PARTY_REVIVE_WINDOW_SECONDS_V0371,
         "restore_fraction":PARTY_REVIVE_RESTORE_FRACTION_V0371,
         "world_rescue":True,
@@ -56,4 +56,4 @@ def party_revive_audit_v0371():
 
 PARTY_REVIVE_AUDIT_V0371=party_revive_audit_v0371()
 if PARTY_REVIVE_AUDIT_V0371["error_count"]:
-    raise RuntimeError("Party Revive Audit v1.13.43 failed: "+"; ".join(PARTY_REVIVE_AUDIT_V0371["errors"]))
+    raise RuntimeError("Party Revive Audit v1.13.44 failed: "+"; ".join(PARTY_REVIVE_AUDIT_V0371["errors"]))
