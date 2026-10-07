@@ -62,9 +62,17 @@ def record_combat_profile_v11341(db, account_id, record_key, template):
 
 
 def backfill_combat_profile_records_v11341(db, account_id, mob_templates):
-    """Best-effort migration from already stored Bestiary/death recap history."""
+    """One-time best-effort migration from stored Bestiary/death history."""
     account_id = int(account_id)
     mob_templates = mob_templates or {}
+
+    marker = db.conn.execute(
+        "SELECT 1 FROM player_records_v03051 "
+        "WHERE account_id=? AND record_key=?",
+        (account_id, "combat_profile_backfill_v11341"),
+    ).fetchone()
+    if marker is not None:
+        return
 
     best = combat_profile_row_v11341(db, account_id, "best_kill")
     if best is None:
@@ -95,34 +103,54 @@ def backfill_combat_profile_records_v11341(db, account_id, mob_templates):
             "WHERE account_id=? ORDER BY id DESC LIMIT 500",
             (account_id,),
         ).fetchall()
-        by_name = {}
-        for template in mob_templates.values():
-            name = str(
-                template.get("uoss_superboss_name")
-                or template.get("name")
-                or ""
-            ).strip()
-            if not name:
-                continue
-            current = by_name.get(name.casefold())
-            if current is None or mob_profile_xp_v11341(template) > mob_profile_xp_v11341(current):
-                by_name[name.casefold()] = template
-        worst_template = None
-        worst_xp = -1
-        for row in rows:
-            killer = str(row["killer"] or "").strip().casefold()
-            template = by_name.get(killer)
-            if not template:
-                continue
-            xp = mob_profile_xp_v11341(template)
-            if xp > worst_xp:
-                worst_xp = xp
-                worst_template = template
-        if worst_template is not None:
-            record_combat_profile_v11341(
-                db, account_id, "worst_defeat", worst_template
-            )
+        if rows:
+            # Stare death recap'y przechowują tylko nazwę. Jeśli kilka
+            # template'ów ma tę samą nazwę, nie zgadujemy najmocniejszego:
+            # taki historyczny wpis jest z definicji niejednoznaczny.
+            by_name = {}
+            ambiguous_names = set()
+            for template_id, template in mob_templates.items():
+                name = str(
+                    template.get("uoss_superboss_name")
+                    or template.get("name")
+                    or ""
+                ).strip()
+                if not name:
+                    continue
+                key = name.casefold()
+                if key in by_name:
+                    ambiguous_names.add(key)
+                else:
+                    by_name[key] = (str(template_id), template)
+            for key in ambiguous_names:
+                by_name.pop(key, None)
 
+            worst_template = None
+            worst_xp = -1
+            for row in rows:
+                killer = str(row["killer"] or "").strip().casefold()
+                resolved = by_name.get(killer)
+                if not resolved:
+                    continue
+                _template_id, template = resolved
+                xp = mob_profile_xp_v11341(template)
+                if xp > worst_xp:
+                    worst_xp = xp
+                    worst_template = template
+            if worst_template is not None:
+                record_combat_profile_v11341(
+                    db, account_id, "worst_defeat", worst_template
+                )
+
+    db.conn.execute(
+        """
+        INSERT OR IGNORE INTO player_records_v03051(
+            account_id,record_key,value,text_value
+        ) VALUES(?,?,?,?)
+        """,
+        (account_id, "combat_profile_backfill_v11341", 1, "done"),
+    )
+    db.conn.commit()
 
 def combat_profile_row_v11341(db, account_id, record_key):
     return db.conn.execute(
