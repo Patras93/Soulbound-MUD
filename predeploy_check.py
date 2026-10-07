@@ -2490,6 +2490,30 @@ for _needle in (
             "v1.13.37 full runtime smoke regression: missing " + _needle
         )
 
+if 'nonblocking_legacy_audits = set()' not in _full_predeploy_source_v11337:
+    _semantic_errors.append(
+        "v1.13.37 legacy full-game findings are not deploy blockers"
+    )
+
+_items_source_v11337 = (
+    _root / "data/items.py"
+).read_text(encoding="utf-8")
+for _item_id in (
+    "uoss_behemoth_suit",
+    "uoss_venetian_shield",
+    "uoss_ziedrich",
+    "uoss_thief_hat",
+):
+    _match = re.search(
+        rf'"{re.escape(_item_id)}"\s*:\s*\{{[^\n]*'
+        rf'"shop_price_policy"\s*:\s*"resale_safe_v11337"',
+        _items_source_v11337,
+    )
+    if not _match:
+        _semantic_errors.append(
+            "v1.13.37 UOSS resale-safe shop policy missing for " + _item_id
+        )
+
 if _semantic_errors:
     print("Soulbound v1.13.37 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
