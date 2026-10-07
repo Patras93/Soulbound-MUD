@@ -20,6 +20,7 @@ from systems.dungeons_regions import (
     crypt_floor_number,
     giant_fortress_floor_number,
     mythic_astral_floor_number,
+    mythic_crypt_floor_id,
     mythic_crypt_floor_number,
     profession_dungeon_floor,
     profession_dungeon_room_id,
@@ -1040,41 +1041,53 @@ class SessionGuideNavigationMixin:
             if shortcut and shortcut not in ROOMS:
                 self.server.world.ensure_runtime_room(shortcut)
 
-            # v0.30.10 HOTFIX: wewnątrz zwykłej Krypty `walk krypta dół`
-            # prowadzi wyłącznie do komnaty z zejściem bieżącego piętra. Nie wykonuje
-            # ostatniego kroku `down`; gracz sam decyduje, kiedy zejść niżej.
+            # v1.13.40: `walk krypta dół` działa zarówno w zwykłej, jak i
+            # Mitycznej Krypcie. Komenda prowadzi wyłącznie do komnaty z wyjściem
+            # `down`; ostatnie zejście gracz nadal wykonuje ręcznie, więc blokada
+            # bossa/checkpointu pozostaje w zwykłym runtime ruchu.
             crypt_down_requested = normalized in (
                 "krypta dol", "krypta w dol", "krypta down", "crypt down",
                 "krypty dol", "krypta dool", "krytta dol", "krytta dool",
+                "mityczna krypta dol", "mityczna krypta w dol",
+                "mityczna krypta down", "mythic crypt down",
             )
             direct_crypt_down = False
             crypt_down_floor = None
+            crypt_down_label = "Krypty"
             if crypt_down_requested:
                 current_crypt_floor = crypt_floor_number(self.character.room_id)
+                crypt_floor_parser = crypt_floor_number
+                crypt_floor_builder = crypt_floor_id
+                if current_crypt_floor is None:
+                    current_crypt_floor = mythic_crypt_floor_number(
+                        self.character.room_id
+                    )
+                    crypt_floor_parser = mythic_crypt_floor_number
+                    crypt_floor_builder = mythic_crypt_floor_id
+                    crypt_down_label = "Mitycznej Krypty"
                 if current_crypt_floor is None:
                     await self.send(
-                        "walk krypta dół działa wewnątrz zwykłej Krypty. "
+                        "walk krypta dół działa wewnątrz zwykłej albo Mitycznej Krypty. "
                         "Najpierw wejdź na jej piętro."
                     )
                     return
                 crypt_down_floor = current_crypt_floor + 1
-                canonical_floor = crypt_floor_id(current_crypt_floor)
+                canonical_floor = crypt_floor_builder(current_crypt_floor)
                 self.server.world.ensure_runtime_room(canonical_floor)
 
-                # Szukamy prawdziwej komnaty, z której wyjście `down` prowadzi na
-                # następne piętro. Dzięki temu działa to także na rozgałęzionych
-                # i dynamicznie generowanych piętrach.
+                # Szukamy prawdziwej komnaty tej samej rodziny lochu, z której
+                # wyjście `down` prowadzi na kolejne piętro.
                 crypt_target = None
                 for room_id, room in ROOMS.items():
-                    if crypt_floor_number(room_id) != current_crypt_floor:
+                    if crypt_floor_parser(room_id) != current_crypt_floor:
                         continue
                     next_room = room.get("exits", {}).get("down")
-                    if crypt_floor_number(next_room) == crypt_down_floor:
+                    if crypt_floor_parser(next_room) == crypt_down_floor:
                         crypt_target = room_id
                         break
                 if crypt_target is None:
                     await self.send(
-                        "Nie udało się odnaleźć zejścia na tym piętrze Krypty."
+                        f"Nie udało się odnaleźć zejścia na tym piętrze {crypt_down_label}."
                     )
                     return
 
@@ -1237,7 +1250,7 @@ class SessionGuideNavigationMixin:
             if target == self.character.room_id:
                 if direct_crypt_down:
                     await self.send(
-                        f"Już jesteś przed zejściem na piętro {crypt_down_floor} Krypty. "
+                        f"Już jesteś przed zejściem na piętro {crypt_down_floor} {crypt_down_label}. "
                         "Wykonaj zejście ręcznie."
                     )
                 elif direct_astral_up:
@@ -1301,7 +1314,7 @@ class SessionGuideNavigationMixin:
                 )
             elif direct_crypt_down:
                 await self.send(
-                    f"Prowadzę przed zejście na piętro {crypt_down_floor} Krypty. "
+                    f"Prowadzę przed zejście na piętro {crypt_down_floor} {crypt_down_label}. "
                     f"Automatyczne przejścia: {len(path)}. "
                     "Ostatnie zejście wykonujesz ręcznie."
                 )
@@ -1433,7 +1446,7 @@ class SessionGuideNavigationMixin:
                     await self.look()
                 elif direct_crypt_down and self.character.room_id == target:
                     await self.send(
-                        f"Dotarłeś przed zejście na piętro {crypt_down_floor} Krypty. "
+                        f"Dotarłeś przed zejście na piętro {crypt_down_floor} {crypt_down_label}. "
                         "Wykonaj zejście ręcznie."
                     )
                     await self.look()
