@@ -122,9 +122,11 @@ class SessionProfessionStorageMixin:
             levels = []
             if explicit_level is not None:
                 try:
-                    levels.append(int(explicit_level))
+                    explicit_value=int(explicit_level)
                 except (TypeError, ValueError):
-                    pass
+                    explicit_value=0
+                if explicit_value>0:
+                    levels.append(explicit_value)
             if item is None and item_id:
                 item = ITEMS.get(str(item_id), {})
             for source in (item or {}, recipe or {}):
