@@ -16,6 +16,7 @@ from core.progression_600 import CHARACTER_MAX_LEVEL
 from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from systems.content_registry import MOB_TEMPLATES
+from systems.mercenary_taverns import MERCENARIES, mercenary_follow_notice_v12210
 from world.uoss_superboss_world import (
     UOSS_DEEP_DUNGEON_ENTRY_V11331,
     UOSS_DEEP_DUNGEON_FLOOR0_V11331,
@@ -274,6 +275,20 @@ class SessionMovementMixin:
                     await self.send(f"WEJŚCIE: {target_name}.")
                 else:
                     await self.send(f"{'Dopływasz' if sailing_v1000 else 'Docierasz'} do: {target_name}.")
+                # Manual moves already show the follower line in `look`.
+                # A guided route shows it only once, not on every step (NVDA).
+                if not show_room:
+                    if not guided or not getattr(self, "_mercenary_guide_announced_v12210", False):
+                        names = [
+                            MERCENARIES[row["role"]]["name"]
+                            for row in self.server.db.mercenary_contracts(self.account_id)
+                            if row["role"] in MERCENARIES
+                        ] if self.account_id is not None else []
+                        notice = mercenary_follow_notice_v12210(names)
+                        if notice:
+                            await self.send(notice)
+                        if guided:
+                            self._mercenary_guide_announced_v12210 = True
                 if show_room:
                     await self.look()
                 return True

@@ -1471,6 +1471,7 @@ class SessionGuideNavigationMixin:
                 await self.send("Auto-Zielarstwo wyłączone z powodu rozpoczęcia podróży.")
 
             self.guiding = True
+            self._mercenary_guide_announced_v12210 = False
             if target_is_npc:
                 await self.send(
                     f"Prowadzę do NPC: {target_npc['name']}. "

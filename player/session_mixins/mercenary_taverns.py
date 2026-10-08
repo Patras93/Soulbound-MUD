@@ -7,7 +7,7 @@ from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
 from systems.mercenary_growth_v1220 import (
-    mercenary_owner_level_v1228, mercenary_attack_multiplier, mercenary_unlocked,
+    mercenary_owner_level_v1228, mercenary_attack_multiplier, mercenary_unlocked, mercenary_tactic,
 )
 
 class SessionMercenaryTavernsMixin:
@@ -117,26 +117,28 @@ class SessionMercenaryTavernsMixin:
             for key in selected:
                 progress = self.server.db.mercenary_progress_v1220(self.account_id, key)
                 await self.send(f"{MERCENARIES[key]['name']}: poziom {level} (równy twojemu, bez osobnego EXP), "
-                                f"specjalizacja {progress['specialization'] or 'nie wybrana'}, "
-                                f"technika: {mercenary_unlocked(level, progress['specialization'])}.")
+                                f"taktyka {mercenary_tactic(progress['specialization'])}. Umiejętność: {MERCENARIES[key]['ability']}.")
             return
         if action in ("specjalizacja", "spec", "szkol"):
+            await self.send("Nie ma już specjalizacji ani szkolenia najemników. Wpisz: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
+            return
+        if action in ("taktyka", "tryb", "tactic"):
             choices = name.rsplit(maxsplit=1)
             if len(choices) != 2:
-                await self.send("Użycie: najemnik specjalizacja <imię> <szturm|obrona|wsparcie>. Dostępne od poziomu 10.")
+                await self.send("Użycie: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>. Zmienisz ją zawsze, za darmo.")
                 return
             role = mercenary_role(choices[0])
             if not role:
                 await self.send("Nieznany najemnik.")
                 return
-            outcome = self.server.db.mercenary_specialize_v1220(
-                self.account_id, role, choices[1].lower(),
-                owner_level=mercenary_owner_level_v1228(self.character),
-            )
-            messages = {"ok":f"{MERCENARIES[role]['name']} wybiera specjalizację: {choices[1].lower()}.",
-                "level":"Wymagany poziom właściciela: 10.", "already":"Ten najemnik wybrał już specjalizację.",
-                "not_hired":"Najemnik nie jest zatrudniony.", "unknown":"Specjalizacje: szturm, obrona, wsparcie."}
-            await self.send(messages[outcome])
+            tactic = choices[1].lower()
+            result = self.server.db.mercenary_set_tactic_v1229(self.account_id, role, tactic)
+            messages = {
+                "ok": f"{MERCENARIES[role]['name']}: ustawiono taktykę {tactic}.",
+                "not_hired": "Ten najemnik nie jest zatrudniony.",
+                "unknown": "Taktyki: automatyczna, szturm, obrona, wsparcie.",
+            }
+            await self.send(messages.get(result, "Nie udało się zmienić taktyki."))
             return
         if action in ("status", "stan", "moje"):
             active = self.server.db.mercenary_contracts(self.account_id)
@@ -144,11 +146,12 @@ class SessionMercenaryTavernsMixin:
                 await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3.")
                 return
             level = mercenary_owner_level_v1228(self.character)
-            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Moc zależy też od silniejszego ataku właściciela wraz z EQ. Najemnik rozwoj — specjalizacje i techniki.")
+            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Moc zależy też od silniejszego ataku właściciela wraz z EQ. Taktyki zmienisz w każdej chwili: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
             for row in active:
                 role = row["role"]
                 if role in MERCENARIES:
-                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}.")
+                    progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
+                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}, taktyka {mercenary_tactic(progress['specialization'])}.")
             await self.send(f"Najemnicy: {len(active)}/3. Pomocnicy UOSS mają osobne miejsce.")
             return
         if action in ("zwolnij", "usun", "odeślij", "odeslij"):
@@ -181,7 +184,7 @@ class SessionMercenaryTavernsMixin:
             await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
             return
         if action not in ("lista", "list", "", "oferta"):
-            await self.send("Komendy: najemnicy; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy>.")
+            await self.send("Komendy: najemnicy; najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>.")
             return
         if not tavern_here(self.character.room_id):
             await self.send("Ofertę i wynajem znajdziesz w miejskich tawernach. Status sprawdzisz wszędzie: najemnik status.")
@@ -212,7 +215,7 @@ class SessionMercenaryTavernsMixin:
         weakest = min(living,key=lambda p: p.current_hp/max(1,p.max_hp()))
         progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
         merc_level = mercenary_owner_level_v1228(self.character)
-        specialization = progress["specialization"]
+        tactic = mercenary_tactic(progress["specialization"])
         message = None
         experience_action = False
         if role in ("kaplan", "paladyn", "druid") and weakest.current_hp < weakest.max_hp()*(.70 if role != "druid" else .60):
@@ -236,7 +239,7 @@ class SessionMercenaryTavernsMixin:
             power_base = mercenary_owner_power_v1213(
                 self.physical_power(), self.spell_power()
             )
-            power = max(1,int(power_base*.20*spec["power"]*mercenary_attack_multiplier(merc_level,specialization)))
+            power = max(1,int(power_base*.20*spec["power"]*mercenary_attack_multiplier(merc_level,tactic)))
             template = MOB_TEMPLATES.get(mob.template_id, {})
             power = await self.apply_boss_defense(mob, power)
             power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
@@ -244,28 +247,21 @@ class SessionMercenaryTavernsMixin:
             damage=min(mob.hp-1, max(1,min(int(power),max(1,int(max_hp*.015)))))
             mob.hp-=damage
             technique = spec["ability"]
-            if specialization == "szturm" and merc_level >= 50:
-                technique = f"Legendarna seria: {technique}"
-            elif specialization == "szturm" and merc_level >= 25:
-                technique = f"Mistrzowski atak: {technique}"
             message=f"{name} używa {technique}: {damage} obrażeń. {mob.hp} HP przeciwnika."
             experience_action = True
         if message:
-            # Specializations unlock at owner's level 10. Support effects are
-            # bounded by the receiver's HP/guard and do not alter kill rewards.
-            if experience_action and merc_level >= 10:
-                if specialization == "obrona":
-                    # Increase an already raised shield modestly; do not create
-                    # a second full shield on top of an active one.
-                    percent = .03 if merc_level < 25 else .05 if merc_level < 50 else .07
-                    guard = max(1, int(weakest.max_hp() * percent))
+            # Tactics are freely selectable from level 1. Every mercenary keeps
+            # their own role ability; this small extra effect is player-configured.
+            if experience_action:
+                if tactic == "obrona":
+                    guard = max(1, int(weakest.max_hp() * .05))
                     weakest.skill_guard += guard
-                    message += f" Mistrzowska osłona: {guard}."
-                elif specialization == "wsparcie" and weakest.current_hp < weakest.max_hp():
-                    heal = min(max(0, weakest.max_hp()-weakest.current_hp), max(1, int(weakest.max_hp() * (.025 if merc_level < 25 else .04 if merc_level < 50 else .06))))
+                    message += f" Dodatkowa osłona: {guard}."
+                elif tactic == "wsparcie" and weakest.current_hp < weakest.max_hp():
+                    heal = min(max(0, weakest.max_hp()-weakest.current_hp), max(1, int(weakest.max_hp() * .04)))
                     if heal and not superboss_healing_blocked_v11179(weakest):
                         weakest.current_hp += heal
-                        message += f" Pomocne uzdrowienie: +{heal} HP."
+                        message += f" Dodatkowe leczenie: +{heal} HP."
             # The owner is excluded from party_combat_broadcast by design.
             # Tell the owner directly, even in concise NVDA combat mode;
             # share the same action with party members in the same room.

@@ -3,6 +3,7 @@
 
 from core.progression_600 import soul_tier_title_for_class
 from datetime import datetime, timezone
+from systems.mercenary_taverns import mercenary_follow_notice_v12210
 from world.world_secrets_v1190 import (
     secret_room_id_v1190, secret_room_identity_v1190, world_secret_roll_v1190,
     SECRET_ARCHIVISTS_V1190,
@@ -394,12 +395,15 @@ class SessionPerceptionMapsMixin:
 
             followers = self.nearby_mercenaries_v1226()
             if followers:
-                await self.send(
-                    "Najemnicy tutaj: " + ", ".join(
-                        f"{spec['name']} ({spec['role']}, przy {owner.character.name})"
-                        for owner, role, spec in followers
-                    ) + "."
-                )
+                mine = [spec["name"] for owner, _role, spec in followers if owner is self]
+                others = [
+                    f"{spec['name']} ({spec['role']}, przy {owner.character.name})"
+                    for owner, _role, spec in followers if owner is not self
+                ]
+                if mine:
+                    await self.send(mercenary_follow_notice_v12210(mine))
+                if others:
+                    await self.send("Najemnicy innych graczy: " + ", ".join(others) + ".")
 
             mobs = self.server.world.room_mobs(
                 self.character.room_id

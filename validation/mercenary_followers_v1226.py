@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from systems.mercenary_taverns import (MERCENARIES, COOLDOWN,
     pick_next_contract, mercenary_owner_power_v1213)
 from systems.mercenary_growth_v1220 import (mercenary_owner_level_v1228, mercenary_attack_multiplier,
-    mercenary_unlocked)
+    mercenary_unlocked, mercenary_tactic)
 
 
 class _Db:
@@ -49,7 +49,7 @@ _namespace = dict(time=time, COOLDOWN=COOLDOWN, MERCENARIES=MERCENARIES,
                   mercenary_owner_power_v1213=mercenary_owner_power_v1213,
                   mercenary_owner_level_v1228=mercenary_owner_level_v1228,
                   mercenary_attack_multiplier=mercenary_attack_multiplier,
-                  mercenary_unlocked=mercenary_unlocked,
+                  mercenary_unlocked=mercenary_unlocked, mercenary_tactic=mercenary_tactic,
                   superboss_healing_blocked_v11179=lambda session: False,
                   MOB_TEMPLATES={"test_enemy": {"name": "Strażnik", "level": 8}},
                   v0314_adjust_damage_vs_template=_npc_adjust)

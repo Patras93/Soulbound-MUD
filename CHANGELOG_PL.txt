@@ -1,3 +1,29 @@
+Aktualna paczka: v1.22.10
+Soulbound v1.22.10 — NAJEMNICY PODĄŻAJĄ ZA TOBĄ
+==============================================================================
+- Po wejściu do nowej lokacji gra wyraźnie potwierdza, że Twoi najemnicy
+  idą razem z Tobą, wymieniając ich imiona.
+- Przykład: "Najemnicy podążają za tobą: Seren, Vael i Gareth."
+- Bez wynajętych najemników nie pojawia się dodatkowy komunikat.
+- Przy nieudanym ruchu nie ma fałszywego potwierdzenia.
+- Podczas automatycznego prowadzenia komunikat pojawia się raz na trasę,
+  żeby nie zasypywać czytnika NVDA powtarzającą się informacją.
+- Inni gracze nadal widzą najemników w opisie lokacji.
+- Brak zmian statystyk, EQ, poziomów, taktyk, wynajmu i zapisów SQLite.
+- Pełna gra z changelogiem, bez raportów audytów.
+
+Aktualna paczka: v1.22.9
+Soulbound v1.22.9 — SWOBODNE TAKTYKI NAJEMNIKÓW
+==============================================================================
+- Nie ma już jednorazowego wyboru specjalizacji ani progów talentów 10/25/50.
+- Każdy najemnik ma poziom właściciela i skalowanie do jego EQ, bez EXP najemnika.
+- Najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.
+- Swobodna zmiana taktyki od 1. poziomu, bez kosztu i bez powtórnego wynajmu.
+- Zachowane unikatowe zdolności najemników, 3 kontrakty i istniejące dane SQLite.
+- Stare zapisane specjalizacje stają się bieżącą taktyką (bez migracji danych).
+- Dawna komenda specjalizacja kieruje do nowej komendy taktyka.
+- Pełny pakiet gry z changelogiem, bez raportów AUDYT.
+
 Aktualna paczka: v1.22.8
 Soulbound v1.22.8 — NAJEMNICY NA POZIOMIE WLASCICIELA
 ==============================================================================

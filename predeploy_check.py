@@ -4005,4 +4005,11 @@ print('Soulbound v1.22.7 FAST PREDEPLOY PASS')
 # v1.22.8: mercenary levels come from the owner, never from stored EXP.
 from validation.mercenary_owner_level_v1228 import validate_mercenary_owner_level_v1228
 print(f'MERCENARY OWNER LEVEL v1.22.8: {validate_mercenary_owner_level_v1228()} checks PASS')
-print('Soulbound v1.22.8 FAST PREDEPLOY PASS')
+print('Soulbound v1.22.8 OWNER LEVEL CONTRACT PASS')
+# v1.22.9: No locked specializations, freely adjustable mercenary tactics.
+from validation.mercenary_tactics_v1229 import validate_mercenary_tactics_v1229
+print(f'MERCENARY TACTICS v1.22.9: {validate_mercenary_tactics_v1229()} checks PASS')
+print('Soulbound v1.22.9 FAST PREDEPLOY PASS')
+from validation.mercenary_follow_notice_v12210 import validate_mercenary_follow_notice_v12210
+print(f'MERCENARY FOLLOW NOTICE v1.22.10: {validate_mercenary_follow_notice_v12210()} checks PASS')
+print('Soulbound v1.22.10 FAST PREDEPLOY PASS')

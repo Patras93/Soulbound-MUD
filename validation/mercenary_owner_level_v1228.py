@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from systems.mercenary_growth_v1220 import (
-    mercenary_owner_level_v1228, mercenary_unlocked, mercenary_attack_multiplier,
+    mercenary_owner_level_v1228, mercenary_unlocked, mercenary_attack_multiplier, mercenary_tactic,
 )
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from validation.mercenary_followers_v1226 import _GameSession, _Db
@@ -22,12 +22,9 @@ def validate_mercenary_owner_level_v1228():
     assert mercenary_owner_level_v1228(SimpleNamespace()) == 1
     checks += 1
     for level in (1, 9, 10, 25, 50):
-        spec = 'szturm' if level >= 10 else ''
-        technique = mercenary_unlocked(level, spec)
-        assert ('Dostępna specjalizacja' in technique) == (level >= 10 and not spec)
-        assert (technique == 'Legendarna technika') == (level >= 50)
-        assert (technique == 'Mistrzowska technika') == (25 <= level < 50)
-        checks += 3
+        for tactic in ('', 'szturm', 'obrona', 'wsparcie'):
+            assert 'Taktyka' in mercenary_unlocked(level, tactic)
+            checks += 1
     assert mercenary_attack_multiplier(50, 'szturm') > mercenary_attack_multiplier(10, 'szturm')
     checks += 1
 
@@ -41,11 +38,11 @@ def validate_mercenary_owner_level_v1228():
     db.conn.execute("INSERT INTO mercenary_contracts VALUES(1,'mag',0)")
     db.conn.execute("INSERT INTO mercenary_progress_v1220 VALUES(1,'mag',999999999,'',123)")
     db.conn.commit()
-    assert db.mercenary_specialize_v1220(1,'mag','szturm',owner_level=9) == 'level'
+    assert db.mercenary_specialize_v1220(1,'mag','szturm',owner_level=1) == 'ok'
     checks += 1
     assert db.mercenary_specialize_v1220(1,'mag','szturm',owner_level=10) == 'ok'
     checks += 1
-    assert db.mercenary_specialize_v1220(1,'mag','wsparcie',owner_level=500) == 'already'
+    assert db.mercenary_specialize_v1220(1,'mag','wsparcie',owner_level=500) == 'ok'
     checks += 1
     assert db.mercenary_progress_v1220(1,'mag')['xp'] == 999999999
     checks += 1
@@ -61,6 +58,7 @@ def validate_mercenary_owner_level_v1228():
     namespace = {
         'mercenary_owner_level_v1228': mercenary_owner_level_v1228,
         'mercenary_unlocked': mercenary_unlocked,
+        'mercenary_tactic': mercenary_tactic,
         'MERCENARIES': MERCENARIES,
         'mercenary_role': lambda text: next((role for role, spec in MERCENARIES.items() if text.lower() in (role, spec['name'].lower())), None),
     }
@@ -97,10 +95,10 @@ def validate_mercenary_owner_level_v1228():
             assert mob_type.hp < 100000 and owner.messages
             checks += 1
             if level >= 50:
-                assert 'Legendarna seria:' in '\n'.join(owner.messages)
+                assert 'Legendarna seria:' not in '\n'.join(owner.messages)
                 checks += 1
             if 25 <= level < 50:
-                assert 'Mistrzowski atak:' in '\n'.join(owner.messages)
+                assert 'Mistrzowski atak:' not in '\n'.join(owner.messages)
                 checks += 1
         assert harness_db.mercenary_progress_v1220(1, 'mag')['xp'] == 999999999
         checks += 1

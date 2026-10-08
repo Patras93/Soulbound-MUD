@@ -40,10 +40,14 @@ class DatabaseMercenariesMixin:
         self.conn.commit()
         return self.mercenary_progress_v1220(character_account_id,role)
 
-    def mercenary_specialize_v1220(self, character_account_id, role, name, owner_level=1):
-        """Choose a specialization based on the OWNER's level (v1.22.8)."""
-        from systems.mercenary_growth_v1220 import SPECIALIZATIONS
-        if name not in SPECIALIZATIONS:
+    def mercenary_set_tactic_v1229(self, character_account_id, role, tactic):
+        """Freely change any hired mercenary's tactic, at any owner level.
+
+        Reuse the historical specialization column so existing selections and
+        characters survive migrations. No XP writes, no money cost or lock-in.
+        """
+        from systems.mercenary_growth_v1220 import TACTICS
+        if tactic not in TACTICS:
             return "unknown"
         hired = self.conn.execute(
             "SELECT 1 FROM mercenary_contracts WHERE character_account_id=? AND role=?",
@@ -51,22 +55,18 @@ class DatabaseMercenariesMixin:
         ).fetchone()
         if not hired:
             return "not_hired"
-        current = self.mercenary_progress_v1220(character_account_id, role)
-        if current['specialization']:
-            return "already"
-        if max(1, int(owner_level or 1)) < 10:
-            return "level"
         self.conn.execute(
-            "INSERT OR IGNORE INTO mercenary_progress_v1220(character_account_id,role) VALUES (?,?)",
-            (int(character_account_id),str(role)),
-        )
-        self.conn.execute(
-            "UPDATE mercenary_progress_v1220 SET specialization=? "
-            "WHERE character_account_id=? AND role=? AND specialization=''",
-            (str(name),int(character_account_id),str(role)),
+            "INSERT INTO mercenary_progress_v1220(character_account_id,role,specialization) "
+            "VALUES(?,?,?) ON CONFLICT(character_account_id,role) "
+            "DO UPDATE SET specialization=excluded.specialization",
+            (int(character_account_id), str(role), "" if tactic == "automatyczna" else tactic),
         )
         self.conn.commit()
         return "ok"
+
+    def mercenary_specialize_v1220(self, character_account_id, role, name, owner_level=1):
+        """Compatibility alias; specialization now means an editable tactic."""
+        return self.mercenary_set_tactic_v1229(character_account_id, role, name)
 
     def mercenary_contracts(self, character_account_id, now=None):
         now = time.time() if now is None else float(now)

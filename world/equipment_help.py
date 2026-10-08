@@ -1355,8 +1355,8 @@ HELP_TOPICS["najemnicy"] = [
     "Możesz mieć najwyżej 3 wynajętych najemników bez limitu czasu."
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
     "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
-    "najemnik rozwoj [imię] — poziom właściciela i talenty; najemnik specjalizacja <imię> <szturm|obrona|wsparcie> — wybór od poziomu właściciela 10.",
-    "Progi talentów: 10, 25 i 50 poziomu właściciela. Odesłanie i ponowne wynajęcie nie kasuje wybranej specjalizacji.",
+    "najemnik rozwoj [imię] — poziom właściciela i aktualna taktyka; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> — zmiana bez kosztu w dowolnym momencie.",
+    "Nie ma specjalizacji, progów talentów ani osobnego EXP. Każdy najemnik zachowuje swoje umiejętności klasowe, a wybrana taktyka jest zapamiętywana.",
     "Cena zależy od wybranej postaci i rabatu Charyzmy. W tawernie wpisz najemnicy, aby usłyszeć bieżące ceny.",
     "Najemnicy walczą przy tobie; EXP i łupy pozostają graczom. Nie zajmują miejsca pomocnika UOSS.",
     "Dostępne postacie: " + "; ".join(

@@ -74,3 +74,13 @@ def mercenary_owner_power_v1213(physical_power, magic_power):
     mage (or a magic owner for hiring a warrior), and does not double-dip EQ.
     """
     return max(1, int(physical_power), int(magic_power))
+
+
+def mercenary_follow_notice_v12210(names):
+    """One compact NVDA line; a follower belongs to the owner, not party slots."""
+    names = tuple(str(name).strip() for name in names if str(name).strip())
+    if not names:
+        return ""
+    if len(names) == 1:
+        return f"{names[0]} podąża za tobą."
+    return "Najemnicy podążają za tobą: " + ", ".join(names[:-1]) + " i " + names[-1] + "."
