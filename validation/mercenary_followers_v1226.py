@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 from systems.mercenary_taverns import (MERCENARIES, COOLDOWN,
-    pick_next_contract, mercenary_owner_power_v1213)
+    pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212)
 from systems.mercenary_growth_v1220 import (mercenary_owner_level_v1228, mercenary_attack_multiplier,
     mercenary_unlocked, mercenary_tactic)
 
@@ -47,6 +47,7 @@ _npc_adjust = lambda template, damage, dtype, role: (damage, None)
 _namespace = dict(time=time, COOLDOWN=COOLDOWN, MERCENARIES=MERCENARIES,
                   pick_next_contract=pick_next_contract,
                   mercenary_owner_power_v1213=mercenary_owner_power_v1213,
+                  mercenary_damage_cap_ratio_v12212=mercenary_damage_cap_ratio_v12212,
                   mercenary_owner_level_v1228=mercenary_owner_level_v1228,
                   mercenary_attack_multiplier=mercenary_attack_multiplier,
                   mercenary_unlocked=mercenary_unlocked, mercenary_tactic=mercenary_tactic,

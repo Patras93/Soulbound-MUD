@@ -4012,4 +4012,10 @@ print(f'MERCENARY TACTICS v1.22.9: {validate_mercenary_tactics_v1229()} checks P
 print('Soulbound v1.22.9 FAST PREDEPLOY PASS')
 from validation.mercenary_follow_notice_v12210 import validate_mercenary_follow_notice_v12210
 print(f'MERCENARY FOLLOW NOTICE v1.22.10: {validate_mercenary_follow_notice_v12210()} checks PASS')
-print('Soulbound v1.22.10 FAST PREDEPLOY PASS')
+from validation.mercenary_skills_v12211 import validate_mercenary_skills_v12211
+print(f'MERCENARY SKILLS v1.22.11: {validate_mercenary_skills_v12211()} checks PASS')
+print('Soulbound v1.22.11 FAST PREDEPLOY PASS')
+
+from validation.hunters_mercenaries_v12212 import validate_hunters_mercenaries_v12212
+print(f'HUNTERS + MERCENARIES v1.22.12: {validate_hunters_mercenaries_v12212()} checks PASS')
+print('Soulbound v1.22.12 FAST PREDEPLOY PASS')

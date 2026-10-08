@@ -1037,9 +1037,27 @@ class DatabaseInventoryMixin:
             self.conn.execute('RELEASE SAVEPOINT hunter_accept_v1225')
             raise
 
-    def hunter_kill_v1225(self, account_id, mob_template_id):
+    def hunter_kill_v1225(self, account_id, mob_template_id, template=None):
+        """Credit genuine kills by category, including valid world variants."""
+        from data.mobs import MOB_TEMPLATES
+        template = template if template is not None else MOB_TEMPLATES.get(str(mob_template_id), {})
+        template = template or {}
+        key = str(mob_template_id)
+        rank = str(template.get('rank', '')).casefold()
+        is_boss = bool(rank in ('boss', 'world_boss', 'superboss') or any(template.get(flag) for flag in (
+            'world_boss', 'mini_boss', 'crypt_boss', 'mythic_crypt_boss',
+            'astral_boss', 'mythic_astral_boss', 'giant_fortress_boss',
+            'uoss_unique_superboss_key', 'boss_mechanic', 'v020_mythic_world_boss', 'boss')))
+        is_elite = bool(template.get('elite') or rank == 'elite' or key.endswith('_elite'))
+        matched = {
+            'zwykle': not is_boss and not is_elite and (key.startswith('goblin_') or key == 'goblin' or template.get('quest_target') == 'goblin'),
+            'elitarne': is_elite,
+            'boss': is_boss,
+        }
         changed=[]
-        for row in self.conn.execute("SELECT tier,progress,needed FROM hunter_contracts_v1225 WHERE account_id=? AND target_id=? AND state='active'",(int(account_id),str(mob_template_id))).fetchall():
+        for row in self.conn.execute("SELECT tier,progress,needed FROM hunter_contracts_v1225 WHERE account_id=? AND state='active'",(int(account_id),)).fetchall():
+            if not matched.get(row['tier'], False):
+                continue
             count=min(int(row['needed']),int(row['progress'])+1)
             self.conn.execute("UPDATE hunter_contracts_v1225 SET progress=?,state=? WHERE account_id=? AND tier=? AND state='active'",(count,'ready' if count >= int(row['needed']) else 'active',int(account_id),row['tier']))
             changed.append((row['tier'],count,int(row['needed'])))

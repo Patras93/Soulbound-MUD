@@ -2,7 +2,7 @@
 """Hire permanent NPC mercenaries independently of UOSS helpers."""
 from core.bootstrap_economy_professions import currency_price_text
 import time
-from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213
+from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_skill_lines_v12211
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
@@ -57,7 +57,7 @@ class SessionMercenaryTavernsMixin:
         parts=text.split()
         action=parts[0] if parts else 'lista'
         tier=parts[1] if len(parts)>1 else ''
-        aliases={'zwykłe':'zwykle','zwykly':'zwykle','elita':'elitarne','elitarne':'elitarne','bossy':'boss','bossowie':'boss'}
+        aliases={'zwykłe':'zwykle','zwykly':'zwykle','elita':'elitarne','elitarne':'elitarne','bossy':'boss','bossowie':'boss','bos':'boss','bosa':'boss'}
         tier=aliases.get(tier,tier)
         now=int(time.time())
         if action in ('', 'lista','list','pomoc','help'):
@@ -65,7 +65,8 @@ class SessionMercenaryTavernsMixin:
             for key,(mob_id,needed,reward,cooldown,label) in offers.items():
                 entry=self.server.db.hunter_state_v1225(self.account_id,key)
                 state=(f"{entry['progress']}/{entry['needed']}; {entry['state']}" if entry else 'dostępne')
-                await self.send(f"{key}: {label}, cel {MOB_TEMPLATES[mob_id]['name']} x{needed}. Nagroda {currency_price_text(reward)}. Odnowienie {cooldown//3600} godz. Status: {state}.")
+                target = 'gobliny i odmiany' if key == 'zwykle' else 'dowolni elitarni' if key == 'elitarne' else 'dowolny boss'
+                await self.send(f"{key}: {label}, cel {target} x{needed}. Nagroda {currency_price_text(reward)}. Odnowienie {cooldown//3600} godz. Status: {state}.")
             await self.send('W sali: lowcy przyjmij zwykle, lowcy przyjmij elitarne, lowcy przyjmij boss; lowcy status; lowcy odbierz zwykle.')
             return
         if action in ('status','stan'):
@@ -83,10 +84,34 @@ class SessionMercenaryTavernsMixin:
         if self.character.room_id!='soul_hunter_board_v1225':
             await self.send('Odbieranie i przyjmowanie zleceń tylko w Sali Łowców Nagród: Plac Dusz, północny wschód, wschód.');return
         if action in ('przyjmij','rozpocznij'):
-            result=self.server.db.hunter_accept_v1225(self.account_id,tier,mob_id,needed,reward,now)
-            await self.send({'ok':f'Przyjęto {label}. Cel: {MOB_TEMPLATES[mob_id]["name"]} x{needed}.',
-                'active':'Masz już aktywne lub ukończone zlecenie. Wpisz lowcy status.',
-                'cooldown':'Zlecenie jeszcze się odnawia. Wpisz lowcy status.'}.get(result,'Błąd zlecenia.'))
+            party_key = self.server.party_key_for_account(self.account_id)
+            recipients = [self]
+            if party_key == self.account_id:
+                recipients = list(self.server.party_sessions(self.account_id)) or [self]
+            accepted = []
+            rejected = []
+            seen = set()
+            for member in recipients:
+                if member.account_id in seen or not getattr(member, 'character', None):
+                    continue
+                seen.add(member.account_id)
+                result = self.server.db.hunter_accept_v1225(member.account_id, tier, mob_id, needed, reward, now)
+                if result == 'ok':
+                    accepted.append(member)
+                else:
+                    rejected.append((member, result))
+            for member in accepted:
+                await member.send(f'Przyjęto {label}: ' +
+                    ('pokonaj 6 goblinów i ich odmian.' if tier == 'zwykle' else
+                     'pokonaj 4 elitarne potwory.' if tier == 'elitarne' else
+                     'pokonaj dowolnego prawdziwego bossa.') +
+                    ' Postęp: lowcy status.')
+            if rejected:
+                for member, reason in rejected:
+                    await member.send({'active':'Zlecenie już aktywne lub gotowe. Sprawdź lowcy status.',
+                                       'cooldown':'Zlecenie jeszcze się odnawia. Sprawdź lowcy status.'}.get(reason, 'Nie udało się przyjąć zlecenia.'))
+            if len(recipients) > 1:
+                await self.send(f'Tablica Łowców: przyjęło {len(accepted)} z {len(seen)} graczy online w drużynie. Każdy odbiera własną nagrodę.')
             return
         result=self.server.db.hunter_claim_v1225(self.account_id,tier,now,cooldown)
         if result>0:
@@ -94,7 +119,13 @@ class SessionMercenaryTavernsMixin:
         elif result==-1:
             await self.send('Przekroczony limit salda banku. Zwolnij miejsce przed odbiorem nagrody.')
         else:
-            await self.send('Zlecenie nie jest gotowe lub nagroda została już odebrana.')
+            row = self.server.db.hunter_state_v1225(self.account_id, tier)
+            if not row:
+                await self.send(f'Nie masz przyjętego zlecenia {tier}. Wpisz lowcy przyjmij {tier}.')
+            elif row['state'] == 'active':
+                await self.send(f'Zlecenie {tier}: postęp {row["progress"]} z {row["needed"]}. Najpierw pokonaj wymaganych przeciwników.')
+            else:
+                await self.send(f'Nagroda za {tier} została już odebrana. Wpisz lowcy status, aby sprawdzić odnowienie.')
 
     async def handle_mercenaries_v1170(self, args=""):
         if not self.character:
@@ -103,6 +134,28 @@ class SessionMercenaryTavernsMixin:
         parts = text.split(maxsplit=1)
         action = parts[0].lower() if parts else "lista"
         name = parts[1].strip() if len(parts)>1 else ""
+        if action in ("skille", "skills", "umiejetnosci", "umiejętności", "zdolnosci", "zdolności"):
+            # Read-only: mercenaries decide which abilities to use themselves.
+            role = mercenary_role(name) if name else None
+            if name and role is None:
+                await self.send("Nieznany najemnik. Wpisz najemnik skille, aby poznać pełną listę.")
+                return
+            if not name:
+                await self.send("UMIEJĘTNOŚCI NAJEMNIKÓW — działają automatycznie; nie musisz nimi sterować.")
+                for key, spec in MERCENARIES.items():
+                    extras = []
+                    if key in ("kaplan", "druid", "paladyn"):
+                        extras.append("leczenie")
+                    if key in ("wojownik", "paladyn", "straznik", "psionik", "inzynier"):
+                        extras.append("osłona")
+                    label = ", ".join(extras) if extras else "atak"
+                    await self.send(f"{spec['name']} ({spec['role']}): {spec['ability']}; dodatkowo: {label}.")
+                await self.send("Szczegóły: najemnik skille <imię>, np. najemnik skille Seren. "
+                                "Działa również przed zatrudnieniem.")
+                return
+            for line in mercenary_skill_lines_v12211(role):
+                await self.send(line)
+            return
         if action in ("rozwoj", "rozwój", "poziom", "exp", "talenty"):
             active = self.server.db.mercenary_contracts(self.account_id)
             role = mercenary_role(name) if name else None
@@ -184,7 +237,7 @@ class SessionMercenaryTavernsMixin:
             await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
             return
         if action not in ("lista", "list", "", "oferta"):
-            await self.send("Komendy: najemnicy; najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>.")
+            await self.send("Komendy: najemnicy; najemnik skille [imię] (podgląd); najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>. Najemnicy sami używają swoich umiejętności.")
             return
         if not tavern_here(self.character.room_id):
             await self.send("Ofertę i wynajem znajdziesz w miejskich tawernach. Status sprawdzisz wszędzie: najemnik status.")
@@ -239,12 +292,12 @@ class SessionMercenaryTavernsMixin:
             power_base = mercenary_owner_power_v1213(
                 self.physical_power(), self.spell_power()
             )
-            power = max(1,int(power_base*.20*spec["power"]*mercenary_attack_multiplier(merc_level,tactic)))
+            power = max(1,int(power_base*.42*spec["power"]*mercenary_attack_multiplier(merc_level,tactic)))
             template = MOB_TEMPLATES.get(mob.template_id, {})
             power = await self.apply_boss_defense(mob, power)
             power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
             max_hp=max(1,int(self.mob_effective_max_hp_v11330(mob)))
-            damage=min(mob.hp-1, max(1,min(int(power),max(1,int(max_hp*.015)))))
+            damage=min(mob.hp-1, max(1,min(int(power),max(1,int(max_hp*mercenary_damage_cap_ratio_v12212(template))))))
             mob.hp-=damage
             technique = spec["ability"]
             message=f"{name} używa {technique}: {damage} obrażeń. {mob.hp} HP przeciwnika."

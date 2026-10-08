@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 
-from systems.mercenary_taverns import mercenary_owner_power_v1213, MERCENARIES
+from systems.mercenary_taverns import mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, MERCENARIES
 from systems.mercenary_growth_v1220 import mercenary_owner_level_v1228, mercenary_attack_multiplier, mercenary_unlocked, mercenary_tactic
 
 
@@ -58,6 +58,7 @@ def audit_mercenary_scaling_v1213():
         'MERCENARIES': MERCENARIES,
         'pick_next_contract': __import__('systems.mercenary_taverns', fromlist=['pick_next_contract']).pick_next_contract,
         'mercenary_owner_power_v1213': mercenary_owner_power_v1213,
+        'mercenary_damage_cap_ratio_v12212': mercenary_damage_cap_ratio_v12212,
         'mercenary_owner_level_v1228': mercenary_owner_level_v1228,
         'mercenary_attack_multiplier': mercenary_attack_multiplier,
         'mercenary_unlocked': mercenary_unlocked,
@@ -125,7 +126,7 @@ def audit_mercenary_scaling_v1213():
             check(m_damage == p_damage, f'{role}: mixed hiring equalized owner power')
             check(high_damage > p_damage, f'{role}: effective EQ power increases mercenary damage')
             check(bool(p_msgs) and bool(m_msgs), f'{role}: messages emitted')
-            check(all(0 < value <= 30000 for value in (p_damage, m_damage, high_damage)), f'{role}: 1.5 percent boss cap')
+            check(all(0 < value <= 70000 for value in (p_damage, m_damage, high_damage)), f'{role}: 3.5 percent boss cap')
         for attack_type, role in events:
             desired = 'magic' if any(spec['role'] == role and spec['attack_type'] == 'magic' for spec in MERCENARIES.values()) else 'physical'
             check(attack_type == desired, f'{role}: damage channel retained')

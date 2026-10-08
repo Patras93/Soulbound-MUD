@@ -76,6 +76,23 @@ def mercenary_owner_power_v1213(physical_power, magic_power):
     return max(1, int(physical_power), int(magic_power))
 
 
+def mercenary_damage_cap_ratio_v12212(template):
+    """High-impact equipment scaling without trivializing authored superbosses."""
+    rank = str(template.get('rank', '')).casefold()
+    if (template.get('uoss_unique_superboss_key') or template.get('superboss')
+            or template.get('v020_mythic_world_boss')):
+        return 0.0125
+    if (rank in ('boss', 'world_boss', 'superboss')
+            or any(template.get(flag) for flag in (
+                'world_boss', 'mini_boss', 'crypt_boss', 'mythic_crypt_boss',
+                'astral_boss', 'mythic_astral_boss', 'giant_fortress_boss',
+                'boss_mechanic', 'v1200_boss', 'legendary_boss'))):
+        return 0.035
+    if template.get('elite') or rank == 'elite':
+        return 0.18
+    return 0.35
+
+
 def mercenary_follow_notice_v12210(names):
     """One compact NVDA line; a follower belongs to the owner, not party slots."""
     names = tuple(str(name).strip() for name in names if str(name).strip())
@@ -84,3 +101,40 @@ def mercenary_follow_notice_v12210(names):
     if len(names) == 1:
         return f"{names[0]} podąża za tobą."
     return "Najemnicy podążają za tobą: " + ", ".join(names[:-1]) + " i " + names[-1] + "."
+
+
+# v1.22.11: documentation of REAL combat actions; no skill control interface.
+_MERCENARY_HEAL_V12211 = {
+    "kaplan": (70, 18), "druid": (60, 13), "paladyn": (70, 11),
+}
+_MERCENARY_GUARD_V12211 = {
+    "wojownik": 9, "paladyn": 6, "straznik": 13,
+    "psionik": 8, "inzynier": 10,
+}
+
+
+def mercenary_skill_lines_v12211(role):
+    """Readable, non-interactive description of the actual combat implementation."""
+    spec = MERCENARIES[role]
+    attack = "magiczny" if spec["attack_type"] == "magic" else "fizyczny"
+    lines = [
+        f"{spec['name']} ({spec['role']}): umiejętności wykonywane AUTOMATYCZNIE.",
+        f"1. {spec['ability']}: atak {attack} na przeciwnika. Moc zależy od "
+        "silniejszej mocy właściciela (fizycznej lub magicznej) i jego EQ. "
+        "Najemnik osłabia cel i sam dobiera umiejętności. Lepszy ekwipunek właściciela zwiększa obrażenia; limity są ostrzejsze przeciw bossom.",
+    ]
+    if role in _MERCENARY_HEAL_V12211:
+        threshold, percent = _MERCENARY_HEAL_V12211[role]
+        lines.append(
+            f"2. Leczenie drużyny: gdy HP najsłabszego sojusznika spadnie poniżej "
+            f"{threshold}%, najemnik może przywrócić do {percent}% jego maksymalnego HP. "
+            "Blokada leczenia przeciwnika może uniemożliwić efekt."
+        )
+    if role in _MERCENARY_GUARD_V12211:
+        lines.append(
+            f"{3 if role in _MERCENARY_HEAL_V12211 else 2}. Osłona drużyny: "
+            f"ochrona do {_MERCENARY_GUARD_V12211[role]}% maksymalnego HP "
+            "wybranego sojusznika, jeśli nie ma już osłony."
+        )
+    lines.append("Najemnik sam wybiera atak, leczenie lub osłonę w walce; gracz nie wydaje poleceń użycia skilli.")
+    return lines

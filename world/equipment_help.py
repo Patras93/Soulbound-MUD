@@ -1356,6 +1356,8 @@ HELP_TOPICS["najemnicy"] = [
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
     "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
     "najemnik rozwoj [imię] — poziom właściciela i aktualna taktyka; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> — zmiana bez kosztu w dowolnym momencie.",
+    "najemnik skille — lista rzeczywistych umiejętności wszystkich 15 najemników; najemnik skille Seren — szczegółowy opis ataku, leczenia i osłony. Działa również przed wynajęciem.",
+    "Umiejętności najemnicy wybierają automatycznie w walce. Gracz może podejrzeć skille, ale nie wskazuje im, którego skilla mają użyć.",
     "Nie ma specjalizacji, progów talentów ani osobnego EXP. Każdy najemnik zachowuje swoje umiejętności klasowe, a wybrana taktyka jest zapamiętywana.",
     "Cena zależy od wybranej postaci i rabatu Charyzmy. W tawernie wpisz najemnicy, aby usłyszeć bieżące ceny.",
     "Najemnicy walczą przy tobie; EXP i łupy pozostają graczom. Nie zajmują miejsca pomocnika UOSS.",
@@ -1430,8 +1432,8 @@ HELP_TOPICS["odzyskaj_haslo"] = [
 # v1.22.5: short NVDA help for both new commands and equipment inspection.
 HELP_TOPICS['lowcy'] = [
     'Sala Łowców Nagród w Mieście Dusz: Plac Dusz, północny wschód do tawerny, potem wschód.',
-    'lowcy: lista. lowcy status: postęp; lowcy przyjmij zwykle|elitarne|boss: przyjęcie kontraktu.',
-    'lowcy odbierz zwykle|elitarne|boss: odbiór po wykonaniu. Nagroda trafia do Banku Dusz.',
+    'lowcy: lista. lowcy status: postęp; lowcy przyjmij zwykle|elitarne|boss: lider przyjmuje dla drużyny online.',
+    'lowcy odbierz zwykle|elitarne|boss (również bos): odbiór po wykonaniu. Nagroda trafia do Banku Dusz.',
     'Liczą się rzeczywiste zabójstwa konkretnego rodzaju przeciwnika, także zaliczone uczestnikom drużyny.',
     'Zwykłe polowanie odnawia się po 1 godzinie, elitarne po 4 godzinach, boss po 24 godzinach.',
 ]

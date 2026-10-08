@@ -1,4 +1,33 @@
-Aktualna paczka: v1.22.10
+Aktualna paczka: v1.22.12
+Soulbound v1.22.12 — LOWCY DRUZYNOWI I MOC NAJEMNIKOW
+==============================================================================
+- Komendy lowcy odbierz bos i boss działają identycznie.
+- Tablica Łowców nalicza gobliny i odmiany, prawdziwe elity oraz prawdziwych bossów,
+  zamiast szukać jednego identyfikatora potwora. Postęp jest komunikowany po walce.
+- Lider przyjmujący zlecenie przyznaje je wszystkim zalogowanym członkom drużyny.
+  Każdy ma swój postęp i może odebrać osobną nagrodę w Sali Łowców.
+- Wyraźne powody odmowy odbioru: brak zlecenia, brak zabójstw, odnowienie.
+- Najemnicy nadal skalują się do skutecznej mocy fizycznej lub magicznej
+  właściciela i jego EQ, niezależnie od klasy. Moc ataku wzrosła z 20 do 42%.
+- Limit udziału w HP celu: zwykłe 35%, elity 18%, bossowie 3,5%,
+  superbossowie 1,25% na atak. Nie kończą walki bez gracza.
+- Bez osobnego EXP najemników i bez blokowanych specjalizacji.
+- Zachowane istniejące dane postaci i kontraktów, brak migracji danych.
+- Pełna gra z changelogiem, bez raportów audytów.
+
+Aktualna paczka: v1.22.11
+Soulbound v1.22.11 — PODGLĄD SKILLI NAJEMNIKÓW
+==============================================================================
+- Nowa komenda `najemnik skille`: lista realnych umiejętności wszystkich
+  15 najemników. `najemnik skille Seren` i `najemnik skille Vael` pokazują
+  szczegóły poszczególnych najemników także przed wynajęciem.
+- Opisy obejmują prawdziwe ataki (fizyczne/magiczne), leczenie i osłony,
+  ich warunki oraz skalowanie względem silniejszego ataku właściciela i EQ.
+- Najemnicy sami decydują, czy atakować, leczyć czy osłaniać. NIE dodano
+  ręcznego używania skilli, osobnego EXP ani ograniczeń poziomowych.
+- Dotychczasowe taktyki pozostają bez zmian. Opisy i testy zgodne z NVDA.
+- Pełna paczka z changelogiem, bez raportów audytów.
+
 Soulbound v1.22.10 — NAJEMNICY PODĄŻAJĄ ZA TOBĄ
 ==============================================================================
 - Po wejściu do nowej lokacji gra wyraźnie potwierdza, że Twoi najemnicy

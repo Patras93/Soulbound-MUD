@@ -308,7 +308,9 @@ class SessionCombatRewardsMixin:
                 # v1.22.5: genuine kills advance the hunter board for each
                 # eligible present player independently (including party members).
                 for session in recipients:
-                    session.server.db.hunter_kill_v1225(session.account_id, mob.template_id)
+                    for tier, progress, needed in session.server.db.hunter_kill_v1225(session.account_id, mob.template_id, template):
+                        await session.send(f'Łowcy {tier}: {progress} z {needed}.' +
+                                           (' Zlecenie gotowe, odbierz nagrodę w Sali Łowców.' if progress >= needed else ''))
 
                 # v1.22.0: every same-room participant advances their own
                 # active crisis on genuine regional victories. Never on summons.

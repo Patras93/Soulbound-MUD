@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.10 - Najemnicy podazaja za graczem"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.12 - Lowcy i moc najemnikow"
 LATEST_CHANGES = [
+    "v1.22.12: Tablica Lowcow: bos/boss, wspolne przyjecie przez lidera, postep z walk i prawidlowy odbior nagrod. Najemnicy: moc EQ i klasy wplywa na obrazenia, z roznymi limitami dla zwyklych potworow, elit i bossow.",
+    "v1.22.11: najemnik skille [imie] - NVDA-czytelny podglad prawdziwych atakow, leczenia i oslon 15 najemnikow, rowniez przed wynajmem. Najemnicy autonomicznie wybieraja akcje podczas walki; nie ma recznego wydawania skilli. Bez zmian skalowania, poziomow, kosztow i EXP.",
     "v1.22.10: Po udanym ruchu gracz slyszy, ktorzy najemnicy za nim podazaja. W opisie lokacji potwierdzenie jest przy wlasnych najemnikach; podczas prowadzenia tylko raz na trase, bez zalewania NVDA. Bez zmian walki, umow i balansu.",
     "v1.22.9: Usunieto jednorazowe specjalizacje i progi talentow najemnikow. Od poziomu 1 mozna dowolnie zmieniac taktyki: automatyczna, szturm, obrona, wsparcie. Bez EXP, bez dodatkowych kosztow; stare wybory pozostaja jako taktyki.",
     "v1.22.8: Najemnicy automatycznie maja poziom wlasciciela. Bez osobnego EXP i grindu; specjalizacje od poziomu wlasciciela 10, talenty od 25/50. Umowy, wybrane specjalizacje, skalowanie do EQ i limity pozostaja. Stare EXP zachowane w bazie, lecz nieuzywane.",
