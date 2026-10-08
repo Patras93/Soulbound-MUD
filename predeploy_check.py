@@ -4019,3 +4019,12 @@ print('Soulbound v1.22.11 FAST PREDEPLOY PASS')
 from validation.hunters_mercenaries_v12212 import validate_hunters_mercenaries_v12212
 print(f'HUNTERS + MERCENARIES v1.22.12: {validate_hunters_mercenaries_v12212()} checks PASS')
 print('Soulbound v1.22.12 FAST PREDEPLOY PASS')
+
+# v1.22.13: full owner equipment offense, no enemy HP caps, real defeat credit.
+from validation.mercenary_full_power_v12213 import validate_mercenary_full_power_v12213
+print(f'MERCENARY FULL POWER v1.22.13: {validate_mercenary_full_power_v12213()} checks PASS')
+print('Soulbound v1.22.13 FAST PREDEPLOY PASS')
+
+# v1.22.13: friendships are account-wide across existing/future characters.
+from validation.friends_account_wide_v12213 import validate_friends_account_wide_v12213
+print(f'FRIENDS ACCOUNT WIDE v1.22.13: {validate_friends_account_wide_v12213()} checks PASS')

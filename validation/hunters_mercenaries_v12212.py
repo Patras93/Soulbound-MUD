@@ -18,11 +18,11 @@ def validate_hunters_mercenaries_v12212():
             raise AssertionError('v1.22.12: ' + message)
         checks += 1
 
-    for template, ratio in (({}, .35), ({'elite': True}, .18),
-                            ({'rank': 'elite'}, .18), ({'world_boss': True}, .035),
-                            ({'rank': 'world_boss'}, .035),
-                            ({'uoss_unique_superboss_key': 'black_rabite'}, .0125)):
-        ok(mercenary_damage_cap_ratio_v12212(template) == ratio, 'damage cap ' + str(template))
+    for template, ratio in (({}, 1.0), ({'elite': True}, 1.0),
+                            ({'rank': 'elite'}, 1.0), ({'world_boss': True}, 1.0),
+                            ({'rank': 'world_boss'}, 1.0),
+                            ({'uoss_unique_superboss_key': 'black_rabite'}, 1.0)):
+        ok(mercenary_damage_cap_ratio_v12212(template) == ratio, 'uncapped damage ' + str(template))
     for physical, magic in ((40000, 1000), (1000, 40000), (40000, 40000)):
         ok(mercenary_owner_power_v1213(physical, magic) == 40000, 'cross-class EQ')
 

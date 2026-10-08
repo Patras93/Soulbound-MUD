@@ -87,6 +87,7 @@ class Database(
         self.conn.execute("PRAGMA wal_autocheckpoint=1000")
         self.create_schema()
         self.migrate_schema()
+        self.migrate_friend_accounts_v12213()
         self.install_crafting_extensions_schema()
         self.create_mercenary_schema()
         self.create_world_crises_schema_v1220()

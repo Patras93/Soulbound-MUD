@@ -2,7 +2,7 @@
 """Hire permanent NPC mercenaries independently of UOSS helpers."""
 from core.bootstrap_economy_professions import currency_price_text
 import time
-from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_skill_lines_v12211
+from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213, mercenary_skill_lines_v12211
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
@@ -284,24 +284,33 @@ class SessionMercenaryTavernsMixin:
             weakest.skill_guard += guard
             message=f"{name} osłania {weakest.character.name}: następny cios osłabiony o maksymalnie {guard}."
             experience_action = True
-        if message is None and mob.hp > 1:
-            # Bounded support that cannot independently kill bosses or multiply XP.
+        defeated_by_mercenary = False
+        if message is None and mob.hp > 0:
             magic = spec["attack_type"] == "magic"
-            # v1.21.3: use the owner's strongest effective attack channel for
-            # *every* hired class. Attack type still controls enemy defenses.
-            power_base = mercenary_owner_power_v1213(
-                self.physical_power(), self.spell_power()
+            # 100% real equipped offense: effective STR/INT, flat item power,
+            # equipment/rune damage-percent properties and active set bonuses.
+            # Use the owner's strongest channel even for cross-class hiring.
+            physical_eq = self.equipment_damage_multiplier("physical") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
+            magic_eq = self.equipment_damage_multiplier("magic") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
+            set_eq = self.total_set_damage_multiplier() if callable(getattr(self, "total_set_damage_multiplier", None)) else 1.0
+            power_base = mercenary_owner_full_power_v12213(
+                self.physical_power(), self.spell_power(), physical_eq, magic_eq, set_eq
             )
-            power = max(1,int(power_base*.42*spec["power"]*mercenary_attack_multiplier(merc_level,tactic)))
+            # Every hire starts at FULL owner power (never an arbitrary 42%).
+            # Above-1.0 class multipliers still distinguish offensive roles.
+            power = max(1, int(power_base * max(1.0, float(spec["power"]))
+                               * mercenary_attack_multiplier(merc_level, tactic)))
             template = MOB_TEMPLATES.get(mob.template_id, {})
             power = await self.apply_boss_defense(mob, power)
             power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
-            max_hp=max(1,int(self.mob_effective_max_hp_v11330(mob)))
-            damage=min(mob.hp-1, max(1,min(int(power),max(1,int(max_hp*mercenary_damage_cap_ratio_v12212(template))))))
-            mob.hp-=damage
+            # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
+            # finish through the existing kill pipeline, including party credit.
+            damage = min(max(0, int(mob.hp)), max(1, int(power)))
+            mob.hp -= damage
             technique = spec["ability"]
-            message=f"{name} używa {technique}: {damage} obrażeń. {mob.hp} HP przeciwnika."
+            message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
             experience_action = True
+            defeated_by_mercenary = mob.hp <= 0
         if message:
             # Tactics are freely selectable from level 1. Every mercenary keeps
             # their own role ability; this small extra effect is player-configured.
@@ -320,5 +329,7 @@ class SessionMercenaryTavernsMixin:
             # share the same action with party members in the same room.
             await self.send_combat(message, detail="essential")
             await self.server.party_combat_broadcast(self, message, detail="essential")
+            if defeated_by_mercenary:
+                await self.mob_defeated(mob)
             # v1.22.8: no separate mercenary leveling or per-action SQLite writes.
             # The hire follows the owner's level immediately, even after reconnect.

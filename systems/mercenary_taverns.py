@@ -77,20 +77,26 @@ def mercenary_owner_power_v1213(physical_power, magic_power):
 
 
 def mercenary_damage_cap_ratio_v12212(template):
-    """High-impact equipment scaling without trivializing authored superbosses."""
-    rank = str(template.get('rank', '')).casefold()
-    if (template.get('uoss_unique_superboss_key') or template.get('superboss')
-            or template.get('v020_mythic_world_boss')):
-        return 0.0125
-    if (rank in ('boss', 'world_boss', 'superboss')
-            or any(template.get(flag) for flag in (
-                'world_boss', 'mini_boss', 'crypt_boss', 'mythic_crypt_boss',
-                'astral_boss', 'mythic_astral_boss', 'giant_fortress_boss',
-                'boss_mechanic', 'v1200_boss', 'legendary_boss'))):
-        return 0.035
-    if template.get('elite') or rank == 'elite':
-        return 0.18
-    return 0.35
+    """Compatibility API: v1.22.13 removed the enemy-HP percentage cap."""
+    return 1.0
+
+
+def mercenary_owner_full_power_v12213(physical_power, magic_power,
+                                     physical_equipment_multiplier=1.0,
+                                     magic_equipment_multiplier=1.0,
+                                     set_damage_multiplier=1.0):
+    """100% of the stronger offensive channel, including all equipped EQ bonuses.
+
+    physical_power/spell_power already include effective STR/INT plus flat Attack,
+    Magic Attack and Weapon Power from worn gear and upgrades. Apply the proper
+    damage-% bonuses, runes and set multiplier once, BEFORE choosing the strongest
+    channel, so cross-class hires are not penalised or double-count the equipment.
+    The mercenary still chooses its own physical/magical attack type.
+    """
+    physical = max(1, int(physical_power)) * max(0.0, float(physical_equipment_multiplier))
+    magical = max(1, int(magic_power)) * max(0.0, float(magic_equipment_multiplier))
+    return max(1, int(round(max(physical, magical) *
+                            max(0.0, float(set_damage_multiplier)))))
 
 
 def mercenary_follow_notice_v12210(names):
@@ -120,8 +126,8 @@ def mercenary_skill_lines_v12211(role):
     lines = [
         f"{spec['name']} ({spec['role']}): umiejętności wykonywane AUTOMATYCZNIE.",
         f"1. {spec['ability']}: atak {attack} na przeciwnika. Moc zależy od "
-        "silniejszej mocy właściciela (fizycznej lub magicznej) i jego EQ. "
-        "Najemnik osłabia cel i sam dobiera umiejętności. Lepszy ekwipunek właściciela zwiększa obrażenia; limity są ostrzejsze przeciw bossom.",
+        "pełnej silniejszej mocy właściciela (fizycznej lub magicznej) i jego EQ. "
+        "Najemnik sam dobiera umiejętności. Atak używa pełnej mocy właściciela, w tym bonusów procentowych EQ i setów; nie ma limitu procentowego HP przeciwnika.",
     ]
     if role in _MERCENARY_HEAL_V12211:
         threshold, percent = _MERCENARY_HEAL_V12211[role]

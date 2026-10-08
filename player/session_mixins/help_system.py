@@ -206,7 +206,7 @@ class SessionHelpSystemMixin:
             "reforge / przekuj <pełna nazwa EQ> - u Haldora zmienia jeden affix EQ za Esencję Przekucia; próg Biegłości nie zmienia się",
             "runy - informacje, tworzenie i wyjmowanie run; runa <typ> <EQ> osadza runę w endgame EQ; tworzenie run od v0.59.2 zużywa też Odłamki Duszy",
             "gildia - Gildia graczy: poziomy 1-600, Siedziba 1-10, budynki, kontrakty, bossowie, skarbiec, rangi, bank, trofea, osiągnięcia, log i czat",
-            "znajomi - lista znajomych; dodaj/akceptuj/odrzuc/usun; szybkie zaproszenia party i gildia",
+            "znajomi - lista wszystkich postaci zaakceptowanych znajomych (takze nowych); dodaj/akceptuj/odrzuc/usun; zaproszenia party i gildia",
             "tell <gracz> <tekst>; reply <tekst> - prywatne wiadomości i szybka odpowiedź do ostatniego nadawcy",
             "osiagnieciaklasowe - osiągnięcia klas i profesji na progresji 1-600",
                 "put fish net / wloz ryba siatka - przenieś ryby do Siatki",

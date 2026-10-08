@@ -1,3 +1,24 @@
+Aktualna paczka: v1.22.13
+Soulbound v1.22.13 — PELNA MOC NAJEMNIKOW, EQ I ZNAJOMI
+==============================================================================
+- Najemnicy korzystają ze 100% silniejszej ofensywnej mocy właściciela zamiast 42%.
+- Uwzględniają skuteczne STR/INT, płaskie bonusy broni i całego EQ, bonusy
+  procentowe obrażeń, runy i bonusy zestawów bez podwójnego naliczania.
+- Postać fizyczna może wynająć silnego maga i odwrotnie. Każdy najemnik zachowuje
+  swój typ obrażeń, własne umiejętności i automatyczne decyzje.
+- Usunięto limity obrażeń procentowych HP zwykłych, elit, bossów i superbossów.
+  Nadal działają realne obrony oraz odporności przeciwników.
+- Najemnik może zadać ostatni cios; standardowe rozliczenie zwycięstwa zalicza
+  EXP, loot i postęp zadań właścicielowi i obecnej drużynie.
+- Bez zmian walut, kontraktów, poziomów, postaci i EQ. Migracja SQLite
+  obejmuje wyłącznie dotychczasowe znajomości oraz zaproszenia.
+- Znajomi są przypisani do kont głównych, nie do pojedynczych slotów postaci.
+- Po akceptacji prośby wszystkie obecne i przyszłe postacie znajomego są
+  automatycznie widoczne w `znajomi` z informacją online/offline.
+- Jednorazowa, bezpieczna migracja dawnych znajomości i oczekujących zaproszeń;
+  bez utraty znajomych, bez udostępniania postaci przed akceptacją.
+- Pełna gra z changelogiem, bez raportów audytów.
+
 Aktualna paczka: v1.22.12
 Soulbound v1.22.12 — LOWCY DRUZYNOWI I MOC NAJEMNIKOW
 ==============================================================================

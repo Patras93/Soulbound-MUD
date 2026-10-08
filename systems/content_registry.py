@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.12 - Lowcy i moc najemnikow"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.13 - Pelna moc najemnikow, EQ i znajomi"
 LATEST_CHANGES = [
+    "v1.22.13: Znajomi przypisani do kont, z automatycznym widokiem nowych postaci po akceptacji zaproszenia. Najemnicy otrzymuja 100 procent silniejszej mocy wlasciciela wraz ze statystykami, plaskimi oraz procentowymi bonusami EQ, runami i setami. Bez limitow procentowych HP; moga konczyc walke z prawidlowym zaliczeniem nagrod.",
     "v1.22.12: Tablica Lowcow: bos/boss, wspolne przyjecie przez lidera, postep z walk i prawidlowy odbior nagrod. Najemnicy: moc EQ i klasy wplywa na obrazenia, z roznymi limitami dla zwyklych potworow, elit i bossow.",
     "v1.22.11: najemnik skille [imie] - NVDA-czytelny podglad prawdziwych atakow, leczenia i oslon 15 najemnikow, rowniez przed wynajmem. Najemnicy autonomicznie wybieraja akcje podczas walki; nie ma recznego wydawania skilli. Bez zmian skalowania, poziomow, kosztow i EXP.",
     "v1.22.10: Po udanym ruchu gracz slyszy, ktorzy najemnicy za nim podazaja. W opisie lokacji potwierdzenie jest przy wlasnych najemnikach; podczas prowadzenia tylko raz na trase, bez zalewania NVDA. Bez zmian walki, umow i balansu.",

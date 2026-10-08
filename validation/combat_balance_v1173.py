@@ -272,8 +272,8 @@ def audit_party_support_runtime_v1173():
         errors.append(f"mercenary combat action failed: {type(exc).__name__}: {exc}")
         return {"checks": 1, "errors": errors, "error_count": len(errors)}
     checks += 1
-    if not 0 < before - first_hp <= 3500:
-        errors.append("mercenary dealt zero / more than 3.5% max boss HP")
+    if not 3500 < before - first_hp <= before:
+        errors.append("mercenary missing uncapped full owner power against boss")
     checks += 1
     if first_msgs != 1 or msg_count != 1 or after != first_hp:
         errors.append("three contracts generated more than one action in same cooldown")

@@ -217,6 +217,8 @@ class SessionCombatRealtimeMixin:
                 self.apply_adaptive_mob_scale_v11330(mob)
                 await self.apply_uoss_helper_turn_v1146(mob)
                 await self.mercenary_combat_turn_v1170(mob)
+                if not mob.alive or mob.hp <= 0:
+                    return  # mercenary finished the encounter via mob_defeated
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
                 await self.mec_refresh_vmax_v0319()

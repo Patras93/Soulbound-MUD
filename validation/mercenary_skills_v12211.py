@@ -77,9 +77,9 @@ def validate_mercenary_skills_v12211():
     check('najemnik skille Seren' in help_source)
     check('Gracz może podejrzeć skille' in help_source)
     combat_source = ast.get_source_segment(source, next(node for node in cls.body if isinstance(node, ast.AsyncFunctionDef) and node.name == 'mercenary_combat_turn_v1170'))
-    check('mercenary_owner_power_v1213' in combat_source)
+    check('mercenary_owner_full_power_v12213' in combat_source)
     check('if role in ("kaplan", "paladyn", "druid")' in combat_source)
-    check('if message is None and mob.hp > 1:' in combat_source)
+    check('if message is None and mob.hp > 0:' in combat_source)
     return checks
 
 
