@@ -1,4 +1,15 @@
-Aktualna paczka: v1.22.0
+Aktualna paczka: v1.22.1
+Soulbound v1.22.1 — RAILWAY FULL AUDIT / NAJEMNICY 2.0 HOTFIX
+==============================================================================
+- Naprawiono test PARTY SUPPORT v1.17.3: symulacja DB obsługuje teraz
+  postęp i naliczanie EXP najemników, dodane w v1.22.0.
+- Test sprawdza również, że za jeden wykonany atak najemnika EXP naliczany
+  jest dokładnie raz, a drugi obrót przed końcem cooldownu go nie zwiększa.
+- Nie zmieniono obliczania obrażeń najemników, statystyk, specjalizacji,
+  wypłat, bazy danych ani mechaniki wydarzeń świata.
+- Pakiet zawiera całą grę i CHANGELOG_PL.txt, bez raportów audytów.
+
+Poprzednia paczka: v1.22.0
 Soulbound v1.22.0 — NAJEMNICY 2.0 I WIELKIE WYDARZENIA ŚWIATA
 ==============================================================================
 - 15 najemników zdobywa własne EXP i poziomy za rzeczywiste działania w walce.

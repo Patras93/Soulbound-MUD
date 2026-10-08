@@ -170,13 +170,38 @@ def audit_combat_balance_runtime_v1173(items, catalog):
 
 
 def audit_party_support_runtime_v1173():
-    """Exercise the real mercenary action path, including the three-hire cooldown."""
+    """Exercise a real mercenary turn, cooldown and v1.22 EXP persistence calls."""
     import asyncio
     import time
     from data.mobs import MOB_TEMPLATES
     from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
 
     errors, checks, messages = [], 0, []
+
+    class ProgressStore:
+        """Small in-memory replacement for the two DB calls made by a mercenary turn.
+
+        Keep this historical combat test independent of the live player database,
+        while exercising the same read -> grant EXP -> read progression contract.
+        """
+        def __init__(self, contracts):
+            self.contracts = contracts
+            self.rows = {}
+
+        def mercenary_contracts(self, _account, _now=None):
+            return self.contracts
+
+        def mercenary_progress_v1220(self, account, role):
+            return dict(self.rows.get((account, role),
+                                      {"xp": 0, "specialization": "", "actions": 0}))
+
+        def mercenary_gain_xp_v1220(self, account, role, xp):
+            key = (account, role)
+            row = self.mercenary_progress_v1220(account, role)
+            row["xp"] += max(1, int(xp))
+            row["actions"] += 1
+            self.rows[key] = row
+            return dict(row)
 
     class TestSession(SessionMercenaryTavernsMixin):
         def __init__(self):
@@ -191,7 +216,7 @@ def audit_party_support_runtime_v1173():
                 for role in ("mec", "mag", "druid")
             ]
             self.server = SimpleNamespace(
-                db=SimpleNamespace(mercenary_contracts=lambda _account, _now: contracts),
+                db=ProgressStore(contracts),
                 party_sessions=lambda _account, same_room=None: [self],
                 party_combat_broadcast=self._broadcast,
             )
@@ -230,12 +255,13 @@ def audit_party_support_runtime_v1173():
             first_hp = mob.hp
             first_msgs = len(messages)
             await session.mercenary_combat_turn_v1170(mob)
-            return before, first_hp, first_msgs, mob.hp, len(messages)
+            progress = session.server.db.mercenary_progress_v1220(1, "mec")
+            return before, first_hp, first_msgs, mob.hp, len(messages), progress
         finally:
             MOB_TEMPLATES.pop(mob.template_id, None)
 
     try:
-        before, first_hp, first_msgs, after, msg_count = asyncio.run(run())
+        before, first_hp, first_msgs, after, msg_count, progress = asyncio.run(run())
     except Exception as exc:
         errors.append(f"mercenary combat action failed: {type(exc).__name__}: {exc}")
         return {"checks": 1, "errors": errors, "error_count": len(errors)}
@@ -248,5 +274,8 @@ def audit_party_support_runtime_v1173():
     checks += 1
     if not messages or "Vex" not in messages[0]:
         errors.append("mercenary round-robin first action not activated")
+    checks += 1
+    if progress["actions"] != 1 or progress["xp"] <= 0:
+        errors.append("mercenary v1.22 progression must grant EXP exactly once per turn")
     return {"version": "1.17.3", "checks": checks,
             "errors": errors, "error_count": len(errors)}
