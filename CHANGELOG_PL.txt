@@ -1,3 +1,14 @@
+Soulbound v1.14.6 — Pomocnicy Superbossów 2.0 (wzorowani na UOSS)
+
+- Popoi: Air Blast, Earth Slide, Acid Storm, Vine Hell, Luna; Faerie Walnut przy niskiej Manie (źródłowe +20% MP).
+- Primm: Cure Water przy niskim HP, Bubble +50% maksymalnego HP, Dryad Preach oraz ofensywne Lucent Beam/Lumina.
+- Montblanc: Bubble i aktywne czary Firaga/Blizzaga/Thundaga/Darkra/Bioga/Flare/Drain/Syphon.
+- Byblos i Seifer: odpalają własne akcje zapisane w Soulbound; Power Breakdown osłabia wroga, Zantetsuken Reverse reaguje na atak Odina.
+- Każdy zatrudniony pomocnik wykonuje jedną akcję na turę bossa, niezależnie od liczby graczy i skilli AoE.
+- Usunięto zastępcze darmowe uderzenie pomocnika przy każdym zwykłym ataku i użytym skillu.
+- Bubble działa na rzeczywistą maksymalną pulę HP i znika po walce; pomocnicy nie blokują kolejnego zatrudnienia po zakończeniu starcia.
+- Źródła: UOSS Wiki Black Rabite / Yiazmat; nieopisane tam liczby obrażeń i częstotliwości zostały zbalansowane dla Soulbound.
+
 Soulbound v1.14.5 — Superboss AI / Ataki Specjalne Hotfix
 
 - Naprawiono wykonywanie specjalnych ataków sześciu unikalnych superbossów: Culex, Emerald Weapon, Ruby Weapon, Serpentarius, Odin i Yiazmat. Wcześniej funkcja wybierała tylko przywołania.
@@ -88,7 +99,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.14.5
+Aktualna paczka: v1.14.6
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

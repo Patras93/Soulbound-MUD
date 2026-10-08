@@ -5,6 +5,7 @@ This module deliberately uses the existing collection_entries persistence for
 per-account clears/lockouts. No new SQLite migration is required.
 """
 import random
+from data.mobs import MOB_TEMPLATES
 from data.items import ITEMS
 from datetime import datetime, timezone
 import world.uoss_superboss_world as _uoss_superboss_world_v11136
@@ -721,9 +722,111 @@ def superboss_clear_source_statuses_v11176(session):
     active=getattr(session,"uoss_source_statuses_v11173",None)
     if isinstance(active,set):
         active.clear()
+    session.uoss_helper_preach_v1146=False
     session.uoss_nullify_healing_rounds_v11179=0
     session.uoss_necrotic_energy_rounds_v11179=0
+    if getattr(session, "uoss_helper_bubble_v1146", False):
+        session.uoss_helper_bubble_v1146 = False
+        if getattr(session, "character", None):
+            session.current_hp = min(session.current_hp, session.max_hp())
 
+
+
+# v1.14.6: UOSS-inspired active hired helpers. The wiki documents ability names
+# and two utility magnitudes, but not cooldowns or damage numbers; the rotation
+# and other numeric effects below are Soulbound balancing, not source-exact.
+HELPER_OFFENSIVE_ROTATIONS_V1146 = {
+    "Popoi": ("Air Blast", "Earth Slide", "Acid Storm", "Vine Hell", "Luna"),
+    "Primm": ("Lucent Beam", "Lumina"),
+    "Byblos": ("Parasite", "Pollute Soul"),
+    "Montblanc": ("Firaga", "Blizzaga", "Thundaga", "Darkra", "Bioga", "Flare", "Drain", "Syphon"),
+    "Seifer": ("No Mercy",),
+}
+
+
+def superboss_helper_action_v1146(session, template, mob):
+    """Select exactly one hired-helper action for one boss action cycle.
+
+    A single state marker on the *mob* guards party-wide execution. The helper
+    remains a group asset; three party members cannot each trigger its spells.
+    """
+    profile = superboss_helper_profile_v11137(session, template)
+    if not profile or not mob or not mob.alive or mob.hp <= 1:
+        return None
+    party = [member for member in superboss_local_party_v11137(session)
+             if getattr(member, "character", None) and not member.closed
+             and member.current_hp > 0 and member.character.room_id == mob.room_id]
+    if not party:
+        return None
+    name = str(profile["name"])
+    party_key = session.party_key() if session.party_key() is not None else session.account_id
+    marker = (str(party_key), name)
+    turn = max(0, int(getattr(mob, "combat_turn", 0) or 0))
+    done = getattr(mob, "uoss_helper_action_turns_v1146", None)
+    if not isinstance(done, dict):
+        done = {}
+        mob.uoss_helper_action_turns_v1146 = done
+    if done.get(marker) == turn:
+        return None
+    # Mark before the caller awaits network I/O; no party race or double cast.
+    done[marker] = turn
+    setattr(session.server, "_uoss_helper_used_" + str(party_key), True)
+    hp_target = min(party, key=lambda m: m.current_hp / max(1, m.max_hp()))
+    mp_target = min(party, key=lambda m: m.current_mana / max(1, m.max_mana()))
+    ability = None
+    target = None
+    if name == "Primm":
+        if hp_target.current_hp < hp_target.max_hp() * 0.72:
+            ability, target = "Cure Water", hp_target
+        elif any(getattr(m, "uoss_helper_bubble_v1146", False) is False for m in party):
+            ability = "Bubble"
+        elif not getattr(mob, "uoss_helper_preach_v1146", False):
+            ability = "Dryad Preach"
+            mob.uoss_helper_preach_v1146 = True
+    elif name == "Popoi":
+        if mp_target.max_mana() and mp_target.current_mana < mp_target.max_mana() * 0.40:
+            ability, target = "Faerie Walnut", mp_target
+    elif name == "Byblos":
+        if hp_target.current_hp < hp_target.max_hp() * 0.65:
+            ability, target = "Cure", hp_target
+        elif mp_target.max_mana() and mp_target.current_mana < mp_target.max_mana() * 0.35:
+            ability, target = "X-Ether", mp_target
+    elif name == "Montblanc":
+        if any(not getattr(m, "uoss_helper_bubble_v1146", False) for m in party):
+            ability = "Bubble"
+    elif name == "Seifer" and not getattr(mob, "uoss_power_breakdown_v11174", False):
+        ability = "Power Breakdown"
+    if ability is None:
+        rotation = HELPER_OFFENSIVE_ROTATIONS_V1146[name]
+        ability = rotation[turn % len(rotation)]
+    return {"name": name, "ability": ability, "party": party, "target": target, "turn": turn}
+
+
+def superboss_helper_release_v1146(session, force=False):
+    """Release the paid helper after a finished encounter, never mid-party fight."""
+    if not getattr(session, "character", None):
+        return False
+    party_key = session.party_key() if session.party_key() is not None else session.account_id
+    used_attr = "_uoss_helper_used_" + str(party_key)
+    if not force and not getattr(session.server, used_attr, False):
+        return False  # A hire not yet used against a superboss must not expire in ordinary combat.
+    party = superboss_local_party_v11137(session)
+    for member in (() if force else party):
+        key = getattr(member, "combat_mob_key", None)
+        mob = session.server.world.mobs.get(key) if key else None
+        if (mob and mob.alive and getattr(member, "character", None)
+                and member.current_hp > 0 and mob.room_id == member.character.room_id):
+            if superboss_key_from_template_v11135(MOB_TEMPLATES.get(mob.template_id, {})):
+                task = getattr(member, "combat_task", None)
+                if task and not task.done():
+                    return False
+    attr = "_uoss_helper_choice_" + str(party_key)
+    if getattr(session.server, attr, None) is None:
+        return False
+    delattr(session.server, attr)
+    if hasattr(session.server, used_attr):
+        delattr(session.server, used_attr)
+    return True
 
 
 def superboss_helper_exact_utility_v11183(session, template, ability_name):

@@ -39,7 +39,8 @@ from world.uoss_superboss_runtime import (
     superboss_apply_source_status_v11173, superboss_combat_start_effects_v11176,
     superboss_add_round_event_v11176, superboss_clear_source_statuses_v11176,
     superboss_source_timed_effect_v11179, superboss_advance_timed_effects_v11179,
-    superboss_healing_blocked_v11179,
+    superboss_healing_blocked_v11179, superboss_helper_action_v1146,
+    superboss_helper_release_v1146,
 )
 
 class SessionCombatRealtimeMixin:
@@ -114,12 +115,97 @@ class SessionCombatRealtimeMixin:
                     haste=self.beneficial_status_active_v11154("haste"),
                 )
 
+    async def apply_uoss_helper_turn_v1146(self, mob):
+        """One real helper spell per boss round, even for a whole party."""
+        if not mob or not mob.alive:
+            return None
+        template = MOB_TEMPLATES[mob.template_id]
+        action = superboss_helper_action_v1146(self, template, mob)
+        if not action:
+            return None
+        name, ability = action["name"], action["ability"]
+        party, target = action["party"], action["target"]
+        text = None
+        if ability in {"Cure Water", "Cure"} and target:
+            if superboss_healing_blocked_v11179(target):
+                text = f"{name} używa {ability}, ale Nullify Healing blokuje leczenie."
+            else:
+                base = target.max_hp()
+                # 23% is a Soulbound helper balance rule, not a UOSS source value.
+                amount = min(max(0, base - target.current_hp), max(1, int(base * .23)))
+                target.current_hp += amount
+                target._recap52_heal = int(getattr(target, "_recap52_heal", 0) or 0) + amount
+                text = f"{name} używa {ability}: {target.character.name} odzyskuje {amount} HP."
+        elif ability in {"Faerie Walnut", "X-Ether"} and target:
+            before = target.current_mana
+            # UOSS specifies 20% only for Popoi's Faerie Walnut.
+            percent = .20 if ability == "Faerie Walnut" else .25
+            target.current_mana = min(target.max_mana(), target.current_mana + max(1, int(target.max_mana() * percent)))
+            text = f"{name} używa {ability}: {target.character.name} odzyskuje {target.current_mana-before} MP."
+        elif ability == "Bubble":
+            recipients = []
+            for member in party:
+                if not getattr(member, "uoss_helper_bubble_v1146", False):
+                    member.uoss_helper_bubble_v1146 = True
+                    recipients.append(member.character.name)
+            text = (f"{name} używa Bubble: +50% maksymalnego HP dla " + ", ".join(recipients) + ".") if recipients else None
+        elif ability == "Dryad Preach":
+            # No fabricated Protect/Shell multiplier; existing class status APIs
+            # define those effects independently. A small group mana regen is a
+            # Soulbound support interpretation of this helper action.
+            restored = 0
+            for member in party:
+                gain = min(max(0, member.max_mana()-member.current_mana), max(1, int(member.max_mana()*.08)))
+                member.current_mana += gain
+                restored += gain
+            text = f"{name} używa Dryad Preach: drużyna odzyskuje łącznie {restored} MP."
+        elif ability == "Power Breakdown":
+            mob.uoss_power_breakdown_v11174 = True
+            mob.uoss_power_breakdown_target_scope_v11196 = "enemy_only"
+            text = f"Seifer używa Power Breakdown: moc ataków bossa spada."
+        else:
+            if mob.hp <= 1:
+                return None
+            if name == "Popoi" and ability in {"Vine Hell", "Luna"}:
+                affected = []
+                for enemy in self.server.session_engaged_mobs(self, self.character.room_id):
+                    if not enemy.alive:
+                        continue
+                    enemy_template = MOB_TEMPLATES.get(enemy.template_id, {})
+                    if enemy_template.get("uoss_unique_superboss_key") == "black_rabite":
+                        continue  # UOSS: Black Rabite is immune to all statuses.
+                    flag = "uoss_helper_slow_rounds_v1146" if ability == "Vine Hell" else "uoss_helper_mini_rounds_v1146"
+                    setattr(enemy, flag, 3)
+                    affected.append(enemy_template.get("name", enemy.template_id))
+                if affected:
+                    await self.server.party_combat_broadcast(
+                        self, f"{name}: {ability} nakłada efekt na: " + ", ".join(affected) + ".",
+                        detail="normal",
+                    )
+            kind = "physical" if name == "Seifer" else "magic"
+            power = self.physical_power() if kind == "physical" else self.spell_power()
+            # Not source-exact damage; helper action takes the place of the old
+            # extra generic helper hit on every basic/skill attack.
+            mult = float((superboss_helper_profile_v11137(self, template) or {}).get("damage_multiplier", 1.0))
+            damage = max(1, int((power + self.character.soul_power()) * .32 * mult))
+            damage = await self.apply_boss_defense(mob, damage)
+            damage = self.v0210_adjust_player_damage(damage)
+            damage, _ = v0314_adjust_damage_vs_template(template, damage, kind, ability)
+            damage = min(max(0, mob.hp - 1), max(0, int(damage)))
+            mob.hp -= damage
+            self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0) or 0) + damage
+            text = f"{name} używa {ability}: {damage} obrażeń. {template['name']}: {mob.hp} HP."
+        if text:
+            await self.server.party_combat_broadcast(self, text, detail="essential")
+        return ability
+
     async def realtime_player_action(self, mob):
                 if not mob or not mob.alive:
                     return
                 # Re-evaluate only upward so late party joins / stronger current
                 # builds cannot leave an already engaged mob as a one-hit sponge.
                 self.apply_adaptive_mob_scale_v11330(mob)
+                await self.apply_uoss_helper_turn_v1146(mob)
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
                 await self.mec_refresh_vmax_v0319()
@@ -197,37 +283,9 @@ class SessionCombatRealtimeMixin:
                         f"Szansa tego ataku: {round(weapon_crit_chance * 100, 1)} procent.",
                         "normal",
                     )
-                _uoss_helper = superboss_helper_profile_v11137(self, template)
+                # Helpers now cast one active UOSS-inspired action per boss round.
+                # Never append an identical bonus strike to every party attack.
                 _uoss_helper_damage = 0
-                if _uoss_helper and not _zantetsuken_no_melee:
-                    # v1.11.86: helpers are real combatants, not a cosmetic x1.0 marker.
-                    # Their strike follows the player's current build, so shop/drop/crafted
-                    # and future EQ that raises effective stats also raises helper output.
-                    _helper_name = str(_uoss_helper.get("name", "Pomocnik"))
-                    _helper_magic = _helper_name in {"Popoi", "Primm", "Montblanc", "Byblos"}
-                    _helper_stat = self.spell_power() if _helper_magic else self.physical_power()
-                    _helper_kind = "magic" if _helper_magic else "physical"
-                    _helper_raw_stat = (
-                        max(self.effective_intelligence(), self.effective_willpower())
-                        if _helper_magic else
-                        max(self.effective_strength(), self.effective_dexterity())
-                    )
-                    _helper_mult = self.equipment_damage_multiplier(_helper_kind)
-                    _helper_mult *= self.total_set_damage_multiplier()
-                    _helper_mult *= character_offensive_build_multiplier(_helper_raw_stat)
-                    _helper_role_mult = max(
-                        0.90,
-                        min(1.20, float(_uoss_helper.get("damage_multiplier", 1.0) or 1.0)),
-                    )
-                    _uoss_helper_damage = max(
-                        1,
-                        int(round(
-                            (self.character.soul_power() + _helper_stat)
-                            * 0.65
-                            * _helper_role_mult
-                            * _helper_mult
-                        )),
-                    )
                 damage = await self.apply_boss_defense(mob, damage)
                 if _zantetsuken_no_melee:
                     damage = 0
@@ -251,20 +309,6 @@ class SessionCombatRealtimeMixin:
                     _total_basic_damage += _per_hit_damage
                     _actual_hits += 1
                 damage = _total_basic_damage
-                if _uoss_helper_damage > 0 and mob.hp > 0:
-                    _uoss_helper_damage = await self.apply_boss_defense(mob, _uoss_helper_damage)
-                    _uoss_helper_damage = self.v0210_adjust_player_damage(_uoss_helper_damage)
-                    _uoss_helper_damage, _helper_machine_note = v0314_adjust_damage_vs_template(
-                        template, _uoss_helper_damage, _helper_kind, _helper_name
-                    )
-                    _uoss_helper_damage = min(max(0, mob.hp), _uoss_helper_damage)
-                    mob.hp -= _uoss_helper_damage
-                    if _uoss_helper_damage:
-                        await self.send_combat(
-                            f"{_helper_name} pomaga: {_uoss_helper_damage} obrażeń. "
-                            f"Przeciwnik: {max(0, mob.hp)} z {self.mob_effective_max_hp_v11330(mob, template)} HP.",
-                            "normal",
-                        )
                 self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))+max(0,int(_uoss_helper_damage))
                 await self.grant_soul_weapon_mastery_hit_xp(mob)
                 echo_damage = 0
@@ -415,6 +459,18 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                _slow_left = max(0, int(getattr(enemy_mob, "uoss_helper_slow_rounds_v1146", 0) or 0))
+                                _mini_left = max(0, int(getattr(enemy_mob, "uoss_helper_mini_rounds_v1146", 0) or 0))
+                                if _slow_left:
+                                    enemy_mob.uoss_helper_slow_rounds_v1146 = _slow_left - 1
+                                    if enemy_mob.combat_turn % 2 == 0:
+                                        await self.server.party_combat_broadcast(
+                                            self, f"{MOB_TEMPLATES[enemy_mob.template_id]['name']} traci akcję przez Slow Popoiego.",
+                                            detail="normal",
+                                        )
+                                        continue
+                                if _mini_left:
+                                    enemy_mob.uoss_helper_mini_rounds_v1146 = _mini_left - 1
                                 _elite_template_v11338 = MOB_TEMPLATES[enemy_mob.template_id]
                                 _elite_regen_v11338 = elite_regen_amount_v11338(
                                     _elite_template_v11338,
@@ -691,6 +747,18 @@ class SessionCombatRealtimeMixin:
                                             detail="normal",
                                         )
                                         _source_ability=None
+                                    if (
+                                        _source_ability in {"Zantetsuken", "Shin-Zantetsuken"}
+                                        and (superboss_helper_profile_v11137(target_session, _enemy_template) or {}).get("name") == "Seifer"
+                                    ):
+                                        if getattr(enemy_mob, "uoss_seifer_counter_turn_v1146", -1) != enemy_mob.combat_turn:
+                                            enemy_mob.uoss_seifer_counter_turn_v1146 = enemy_mob.combat_turn
+                                            await self.server.party_combat_broadcast(
+                                                target_session,
+                                                "Seifer używa Zantetsuken Reverse i odbija atak Odina!",
+                                                detail="essential",
+                                            )
+                                        _source_ability = None
                                     _source_effect = superboss_exact_ability_effect_v11160(target_session, _enemy_template, enemy_mob, _source_ability)
                                     _timed_effect=superboss_source_timed_effect_v11179(target_session,_enemy_template,_source_ability)
                                     if _timed_effect:
@@ -753,6 +821,10 @@ class SessionCombatRealtimeMixin:
                                     )
                                     _uoss_mult *= superboss_source_attack_multiplier_v11162(_enemy_template,_source_ability)
                                     _uoss_mult *= _sonata_power_mult
+                                    if getattr(enemy_mob, "uoss_power_breakdown_v11174", False):
+                                        _uoss_mult *= 0.85  # Soulbound balance; UOSS has no published percentage
+                                    if _mini_left:
+                                        _uoss_mult *= 0.80  # Soulbound helper balance for Mini
                                     if _logic_active and "curse" in _logic_effects:
                                         _uoss_mult *= max(
                                             0.01,min(
@@ -962,6 +1034,9 @@ class SessionCombatRealtimeMixin:
                             )
                     if self.combat_task is this_task:
                         self.combat_task = None
+                    # Release after the final local fighter leaves the encounter.
+                    if getattr(self, "character", None) and getattr(self, "server", None):
+                        superboss_helper_release_v1146(self)
 
     async def attack(self, query):
                 wanted = (query or "").strip()
@@ -1069,6 +1144,11 @@ class SessionCombatRealtimeMixin:
                     mob.combat_turn = 0
                     mob.phase_stage = 0
                     mob.uoss_ability_announced_turn_v1145 = -1
+                    # A fresh encounter cannot inherit last fight's helper debuffs.
+                    mob.uoss_helper_action_turns_v1146 = {}
+                    mob.uoss_helper_preach_v1146 = False
+                    mob.uoss_power_breakdown_v11174 = False
+                    mob.uoss_seifer_breakdown_v11174 = False
                     mob.player_hits = 0
                 self.combat_mob_key = mob.key
 

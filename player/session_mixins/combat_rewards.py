@@ -42,6 +42,7 @@ from world.uoss_superboss_runtime import (
     superboss_personal_reward_v11135,
     superboss_shared_drop_v11135,
     advance_superboss_series_v11138,
+    superboss_helper_release_v1146,
 )
 
 
@@ -270,6 +271,11 @@ class SessionCombatRewardsMixin:
                         await session.send(
                             f"Super Boss pokonany: {template.get('name', _uoss_key)}. Kolejna nagroda będzie dostępna po 24 godzinach."
                         )
+
+                if _uoss_key:
+                    # All boss targets have been detached above. Release once
+                    # for the entire local party after the completed fight.
+                    superboss_helper_release_v1146(self, force=True)
 
                 # v0.42.0: the combat producer announces one real defeat;
                 # chronicle/analytics consumers subscribe without being embedded here.

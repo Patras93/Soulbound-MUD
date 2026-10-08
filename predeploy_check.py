@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.14.5 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.14.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -79,7 +79,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.14.5 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.14.6 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -2673,13 +2673,25 @@ for _needle in (
 ):
     if _needle not in _uoss_runtime_source_v11330:
         _semantic_errors.append("UOSS helper balance regression: missing " + _needle)
+# v1.14.6: helpers are active round-based fighters. The old multiplier-per-hit
+# check would force the broken generic bonus attack back into the game.
 for _needle in (
-    '_helper_role_mult = max(',
-    '* _helper_role_mult',
+    'async def apply_uoss_helper_turn_v1146(self, mob):',
+    'superboss_helper_action_v1146(self, template, mob)',
+    'await self.apply_uoss_helper_turn_v1146(mob)',
+    'uoss_power_breakdown_v11174',
+    'uoss_seifer_counter_turn_v1146',
     "Rola: {_uoss_helper.get('role', 'support')}",
 ):
     if _needle not in _combat_realtime_source_v11330:
-        _semantic_errors.append("UOSS helper runtime regression: missing " + _needle)
+        _semantic_errors.append("UOSS active helper runtime regression: missing " + _needle)
+for _needle in (
+    'def superboss_helper_action_v1146(session, template, mob):',
+    'def superboss_helper_release_v1146(session, force=False):',
+    'HELPER_OFFENSIVE_ROTATIONS_V1146',
+):
+    if _needle not in _uoss_runtime_source_v11330:
+        _semantic_errors.append("UOSS active helper selection regression: missing " + _needle)
 
 
 # v1.13.37 Full Production Cleanup: current runtime must normalize old split
@@ -3737,18 +3749,18 @@ except Exception as _exc_v11358:
     )
 
 if _semantic_errors:
-    print("Soulbound v1.14.5 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.14.6 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.14.5 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.14.6 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.14.5 FAST PREDEPLOY PASS")
+print("Soulbound v1.14.6 FAST PREDEPLOY PASS")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"

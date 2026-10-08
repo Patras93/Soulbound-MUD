@@ -781,6 +781,8 @@ class SessionEquipmentStatsMixin:
                 * self.total_set_hp_mana_multiplier()
                 * (1.0 + self.equipment_property_totals()["max_hp_pct"] / 100.0)
             ))
+            if getattr(self, "uoss_helper_bubble_v1146", False):
+                value = int(round(value * 1.50))
             return max(1, value)
 
     def max_mana(self):

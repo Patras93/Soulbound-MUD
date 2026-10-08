@@ -367,42 +367,8 @@ class SessionCombatSkillsMixin:
         return multiplier
 
     async def apply_superboss_helper_skill_damage_v11189(self, target):
-        """Helper joins damaging skill actions against its sourced superboss.
-
-        Uses the same build-scaled helper strike as realtime combat. No cadence,
-        ability multiplier or source percentage is invented.
-        """
-        if not target or not target.alive:
-            return 0
-        template = MOB_TEMPLATES[target.template_id]
-        profile = superboss_helper_profile_v11137(self, template)
-        if not profile:
-            return 0
-        name = str(profile.get("name", "Pomocnik"))
-        magic = name in {"Popoi", "Primm", "Montblanc", "Byblos"}
-        kind = "magic" if magic else "physical"
-        stat = self.spell_power() if magic else self.physical_power()
-        raw_stat = (
-            max(self.effective_intelligence(), self.effective_willpower())
-            if magic else
-            max(self.effective_strength(), self.effective_dexterity())
-        )
-        mult = self.equipment_damage_multiplier(kind) * self.total_set_damage_multiplier()
-        mult *= character_offensive_build_multiplier(raw_stat)
-        damage = max(1, int(round((self.character.soul_power() + stat) * 0.65 * mult)))
-        damage = await self.apply_boss_defense(target, damage)
-        damage = self.v0210_adjust_player_damage(damage)
-        damage, note = v0314_adjust_damage_vs_template(template, damage, kind, name)
-        damage = min(max(0, target.hp), max(0, int(damage)))
-        if damage <= 0:
-            return 0
-        target.hp -= damage
-        self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0) or 0) + damage
-        await self.send(
-            f"{name} dołącza do umiejętności: {damage} obrażeń. "
-            f"Przeciwnik: {max(0, target.hp)} z {self.mob_effective_max_hp_v11330(target, template)} HP." + note
-        )
-        return damage
+        """Legacy hook: active helpers now act once per boss round, not per skill."""
+        return 0
 
     async def apply_superboss_helper_after_skill_v11192(self, targets):
         """Let the sourced helper join once per damaging skill action.
