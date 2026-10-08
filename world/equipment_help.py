@@ -1354,9 +1354,9 @@ HELP_TOPICS["najemnicy"] = [
     "najemnik odeslij <imię> — odeślij wskazanego najemnika; najemnik odeslij wszyscy — odeślij wszystkich. Działa również zwolnij.",
     "Możesz mieć najwyżej 3 wynajętych najemników bez limitu czasu."
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
-    "Najemnicy zdobywają własne EXP i poziomy podczas faktycznych działań w walce. Ich bazowa moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
-    "najemnik rozwoj [imię] — poziom, EXP i talenty; najemnik specjalizacja <imię> <szturm|obrona|wsparcie> — wybór po poziomie 10.",
-    "Progi talentów: 10, 25 i 50. Wysłanie najemnika do tawerny nie zeruje wypracowanego postępu.",
+    "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
+    "najemnik rozwoj [imię] — poziom właściciela i talenty; najemnik specjalizacja <imię> <szturm|obrona|wsparcie> — wybór od poziomu właściciela 10.",
+    "Progi talentów: 10, 25 i 50 poziomu właściciela. Odesłanie i ponowne wynajęcie nie kasuje wybranej specjalizacji.",
     "Cena zależy od wybranej postaci i rabatu Charyzmy. W tawernie wpisz najemnicy, aby usłyszeć bieżące ceny.",
     "Najemnicy walczą przy tobie; EXP i łupy pozostają graczom. Nie zajmują miejsca pomocnika UOSS.",
     "Dostępne postacie: " + "; ".join(

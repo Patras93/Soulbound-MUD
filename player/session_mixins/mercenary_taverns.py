@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """Hire permanent NPC mercenaries independently of UOSS helpers."""
+from core.bootstrap_economy_professions import currency_price_text
 import time
 from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
-from systems.mercenary_growth_v1220 import (SPECIALIZATIONS, mercenary_level, mercenary_xp_for_level,
-    mercenary_action_xp, mercenary_attack_multiplier, mercenary_unlocked)
+from systems.mercenary_growth_v1220 import (
+    mercenary_owner_level_v1228, mercenary_attack_multiplier, mercenary_unlocked,
+)
 
 class SessionMercenaryTavernsMixin:
     def nearby_mercenaries_v1226(self):
@@ -63,7 +65,7 @@ class SessionMercenaryTavernsMixin:
             for key,(mob_id,needed,reward,cooldown,label) in offers.items():
                 entry=self.server.db.hunter_state_v1225(self.account_id,key)
                 state=(f"{entry['progress']}/{entry['needed']}; {entry['state']}" if entry else 'dostępne')
-                await self.send(f"{key}: {label}, cel {MOB_TEMPLATES[mob_id]['name']} x{needed}. Nagroda {reward} srebra. Odnowienie {cooldown//3600} godz. Status: {state}.")
+                await self.send(f"{key}: {label}, cel {MOB_TEMPLATES[mob_id]['name']} x{needed}. Nagroda {currency_price_text(reward)}. Odnowienie {cooldown//3600} godz. Status: {state}.")
             await self.send('W sali: lowcy przyjmij zwykle, lowcy przyjmij elitarne, lowcy przyjmij boss; lowcy status; lowcy odbierz zwykle.')
             return
         if action in ('status','stan'):
@@ -88,7 +90,7 @@ class SessionMercenaryTavernsMixin:
             return
         result=self.server.db.hunter_claim_v1225(self.account_id,tier,now,cooldown)
         if result>0:
-            await self.send(f'Zlecenie rozliczone. Nagroda {result} srebra wpłynęła do Banku Dusz. Następne za {cooldown//3600} godz.')
+            await self.send(f'Zlecenie rozliczone. Nagroda {currency_price_text(result)} wpłynęła do Banku Dusz. Następne za {cooldown//3600} godz.')
         elif result==-1:
             await self.send('Przekroczony limit salda banku. Zwolnij miejsce przed odbiorem nagrody.')
         else:
@@ -111,11 +113,10 @@ class SessionMercenaryTavernsMixin:
             if not selected:
                 await self.send("Nie masz takiego zatrudnionego najemnika.")
                 return
+            level = mercenary_owner_level_v1228(self.character)
             for key in selected:
                 progress = self.server.db.mercenary_progress_v1220(self.account_id, key)
-                level = mercenary_level(progress["xp"])
-                next_xp = mercenary_xp_for_level(level + 1)
-                await self.send(f"{MERCENARIES[key]['name']}: poziom {level}, EXP {progress['xp']} / {next_xp}, "
+                await self.send(f"{MERCENARIES[key]['name']}: poziom {level} (równy twojemu, bez osobnego EXP), "
                                 f"specjalizacja {progress['specialization'] or 'nie wybrana'}, "
                                 f"technika: {mercenary_unlocked(level, progress['specialization'])}.")
             return
@@ -128,9 +129,12 @@ class SessionMercenaryTavernsMixin:
             if not role:
                 await self.send("Nieznany najemnik.")
                 return
-            outcome = self.server.db.mercenary_specialize_v1220(self.account_id, role, choices[1].lower())
+            outcome = self.server.db.mercenary_specialize_v1220(
+                self.account_id, role, choices[1].lower(),
+                owner_level=mercenary_owner_level_v1228(self.character),
+            )
             messages = {"ok":f"{MERCENARIES[role]['name']} wybiera specjalizację: {choices[1].lower()}.",
-                "level":"Wymagany poziom najemnika: 10.", "already":"Ten najemnik wybrał już specjalizację.",
+                "level":"Wymagany poziom właściciela: 10.", "already":"Ten najemnik wybrał już specjalizację.",
                 "not_hired":"Najemnik nie jest zatrudniony.", "unknown":"Specjalizacje: szturm, obrona, wsparcie."}
             await self.send(messages[outcome])
             return
@@ -139,13 +143,12 @@ class SessionMercenaryTavernsMixin:
             if not active:
                 await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3.")
                 return
-            level = max(1, int(getattr(self.character, "character_level", 1) or 1))
-            await self.send(f"Najemnicy rozwijają własne EXP i poziom za walkę, a moc bazowa zależy od silniejszego ataku właściciela wraz z EQ. Twój poziom: {level}. Najemnik rozwoj — szczegóły.")
+            level = mercenary_owner_level_v1228(self.character)
+            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Moc zależy też od silniejszego ataku właściciela wraz z EQ. Najemnik rozwoj — specjalizacje i techniki.")
             for row in active:
                 role = row["role"]
                 if role in MERCENARIES:
-                    progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
-                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {mercenary_level(progress['xp'])}.")
+                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}.")
             await self.send(f"Najemnicy: {len(active)}/3. Pomocnicy UOSS mają osobne miejsce.")
             return
         if action in ("zwolnij", "usun", "odeślij", "odeslij"):
@@ -170,12 +173,12 @@ class SessionMercenaryTavernsMixin:
             price = price_silver(self.character, role)
             result = self.server.db.hire_mercenary(self.account_id, role, price)
             if result != "ok":
-                reasons={"duplicate":"Ten najemnik już jest zatrudniony.","full":"Możesz mieć jednocześnie najwyżej 3 najemników.","money":f"Brakuje złota. Koszt po rabacie: {price} srebra."}
+                reasons={"duplicate":"Ten najemnik już jest zatrudniony.","full":"Możesz mieć jednocześnie najwyżej 3 najemników.","money":f"Brakuje złota. Koszt po rabacie: {currency_price_text(price)}."}
                 await self.send(reasons.get(result,"Nie można zawrzeć kontraktu."))
                 return
             self.server.db.apply_shared_wallet_to_character(self.character)
             spec = MERCENARIES[role]
-            await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {price} srebra. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
+            await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
             return
         if action not in ("lista", "list", "", "oferta"):
             await self.send("Komendy: najemnicy; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy>.")
@@ -184,9 +187,9 @@ class SessionMercenaryTavernsMixin:
             await self.send("Ofertę i wynajem znajdziesz w miejskich tawernach. Status sprawdzisz wszędzie: najemnik status.")
             return
         level = max(1, int(getattr(self.character, "character_level", 1) or 1))
-        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Moc skaluje się z silniejszym atakiem właściciela (fizycznym lub magicznym) i jego EQ (twój poziom: {level}); najemnicy zdobywają EXP podczas walki.")
+        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Poziom każdego najemnika to twój poziom {level}, bez osobnego EXP; moc skaluje się z silniejszym atakiem fizycznym lub magicznym i twoim EQ.")
         for role, spec in MERCENARIES.items():
-            await self.send(f"{spec['name']} — {spec['role']}; {price_silver(self.character,role)} srebra po rabacie Charyzmy. Wpisz: najemnik wynajmij {spec['name']}.")
+            await self.send(f"{spec['name']} — {spec['role']}; {currency_price_text(price_silver(self.character,role))} po rabacie Charyzmy. Wpisz: najemnik wynajmij {spec['name']}.")
 
     async def mercenary_combat_turn_v1170(self, mob):
         if not self.character or self.current_hp <= 0 or not mob or not mob.alive or mob.room_id != self.character.room_id:
@@ -208,7 +211,7 @@ class SessionMercenaryTavernsMixin:
             return
         weakest = min(living,key=lambda p: p.current_hp/max(1,p.max_hp()))
         progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
-        merc_level = mercenary_level(progress["xp"])
+        merc_level = mercenary_owner_level_v1228(self.character)
         specialization = progress["specialization"]
         message = None
         experience_action = False
@@ -248,7 +251,7 @@ class SessionMercenaryTavernsMixin:
             message=f"{name} używa {technique}: {damage} obrażeń. {mob.hp} HP przeciwnika."
             experience_action = True
         if message:
-            # Specializations unlock only after level 10. Support effects are
+            # Specializations unlock at owner's level 10. Support effects are
             # bounded by the receiver's HP/guard and do not alter kill rewards.
             if experience_action and merc_level >= 10:
                 if specialization == "obrona":
@@ -268,11 +271,5 @@ class SessionMercenaryTavernsMixin:
             # share the same action with party members in the same room.
             await self.send_combat(message, detail="essential")
             await self.server.party_combat_broadcast(self, message, detail="essential")
-            if experience_action:
-                template = MOB_TEMPLATES.get(mob.template_id, {})
-                foe_level = template.get("level", template.get("generator_level", 1)) or 1
-                xp = mercenary_action_xp(getattr(self.character, "character_level", 1), foe_level, bool(template.get("boss") or template.get("v1200_boss")))
-                updated = self.server.db.mercenary_gain_xp_v1220(self.account_id,role,xp)
-                new_level = mercenary_level(updated["xp"])
-                if new_level > merc_level:
-                    await self.send(f"AWANS NAJEMNIKA: {name}, poziom {new_level}. {mercenary_unlocked(new_level,updated['specialization'])}.")
+            # v1.22.8: no separate mercenary leveling or per-action SQLite writes.
+            # The hire follows the owner's level immediately, even after reconnect.

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Soulbound v1.00.0 - Ocean 2.0 session actions."""
 from __future__ import annotations
+from core.bootstrap_economy_professions import currency_price_text
 
 import random
 import time
@@ -72,7 +73,7 @@ class SessionOceanV1000Mixin:
         if not args or args in ("info", "status"):
             if not owned:
                 await self.send(
-                    f"STATEK: nie posiadasz statku. Kupno kosztuje {currency_reading_text(self.V1000_SHIP_BASE_COST)}. Wpisz statek kup w porcie."
+                    f"STATEK: nie posiadasz statku. Kupno kosztuje {currency_price_text(self.V1000_SHIP_BASE_COST)}. Wpisz statek kup w porcie."
                 )
                 return
             await self.send(
@@ -90,7 +91,7 @@ class SessionOceanV1000Mixin:
                 return
             wallet = self.character_wallet_silver_value()
             if wallet < self.V1000_SHIP_BASE_COST:
-                await self.send(f"Potrzebujesz {currency_reading_text(self.V1000_SHIP_BASE_COST)}.")
+                await self.send(f"Potrzebujesz {currency_price_text(self.V1000_SHIP_BASE_COST)}.")
                 return
             self.character.silver = wallet - self.V1000_SHIP_BASE_COST
             self.character.gold = 0
@@ -124,7 +125,7 @@ class SessionOceanV1000Mixin:
             cost = 12_500 * (level + 1) * (level + 1)
             wallet = self.character_wallet_silver_value()
             if wallet < cost:
-                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {currency_reading_text(cost)}.")
+                await self.send(f"Ulepszenie na poziom {level+1} kosztuje {currency_price_text(cost)}.")
                 return
             self.character.silver = wallet - cost
             self.character.gold = 0

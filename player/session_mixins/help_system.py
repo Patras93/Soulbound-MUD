@@ -92,7 +92,7 @@ class SessionHelpSystemMixin:
                 "bufor / bufory [xp|loot|quest|system|chat|party|tell|walka|all] [1-100] - sesyjne bufory ostatnich komunikatów; działa też historia xp / historia loot / historia quest",
                 "eksploracja / exploration [all] - procent odkrycia stref i świata",
                 "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
-                "najemnik rozwoj i najemnik specjalizacja <imię> <szturm|obrona|wsparcie> - rozwój najemników 2.0",
+                "najemnik rozwoj i najemnik specjalizacja <imię> <szturm|obrona|wsparcie> - poziom najemnika równy twojemu, bez osobnego EXP",
                 "kryzysy / kryzys start|status|ratuj|odbierz - wielkie wydarzenia świata w 4 krainach",
                 "kariera [status|walka|profesje|rekordy|postep] — odczyt trwałych statystyk; osiagniecia postep — kolejne progi informacyjne",
                 "nawigacja [status|krok|okolica|cel <nazwa>|druzyna] — Nawigacja 2.0 dla NVDA",

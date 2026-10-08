@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Profession XP, tools and profession storage."""
+from core.bootstrap_economy_professions import currency_price_text
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from config.balance import (
@@ -847,7 +848,7 @@ class SessionProfessionStorageMixin:
                     if definition.get("show_value", True):
                         await self.send(
                             "Szacowany zarobek ze sprzedaży "
-                            f"{definition['value_label']}: 0 srebra."
+                            f"{definition['value_label']}: {currency_price_text(0)}."
                         )
                 return
 

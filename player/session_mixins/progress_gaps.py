@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.59.0 - precise 'braki' progression summary."""
 from __future__ import annotations
+from core.bootstrap_economy_professions import currency_price_text
 
 from core.bootstrap_economy_professions import SOUL_TRIAL_QUEST_IDS, currency_reading_text
 from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL, SOUL_MAX_TIER, soul_tier_title_for_class
@@ -115,13 +116,13 @@ class SessionProgressGapsV0590Mixin:
         if missing <= 0:
             return (
                 f"Gildia gracza: poziom {level}/{V0926_GUILD_MAX_LEVEL}. "
-                f"Skarbiec ma środki na poziom {level + 1}; koszt {currency_reading_text(cost, 0, 0)}. "
+                f"Skarbiec ma środki na poziom {level + 1}; koszt {currency_price_text(cost)}. "
                 "Lider może użyć gildia rozbuduj."
             )
         return (
             f"Gildia gracza: poziom {level}/{V0926_GUILD_MAX_LEVEL}. "
-            f"Do rozbudowy na {level + 1} brakuje w skarbcu {currency_reading_text(missing, 0, 0)}; "
-            f"koszt {currency_reading_text(cost, 0, 0)}."
+            f"Do rozbudowy na {level + 1} brakuje w skarbcu {currency_price_text(missing)}; "
+            f"koszt {currency_price_text(cost)}."
         )
 
     async def _collection_gap_v0590(self):

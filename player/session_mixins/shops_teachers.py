@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Shop, buying and teacher interactions."""
+from core.bootstrap_economy_professions import currency_price_text
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import re
@@ -142,7 +143,7 @@ class SessionShopsTeachersMixin:
             )
             parts = []
             if money > 0:
-                parts.append(currency_reading_text(money, 0, 0))
+                parts.append(currency_price_text(money))
             if token_text:
                 parts.append(token_text)
             # Safe pricing makes this unreachable for real non-token offers.
@@ -214,13 +215,13 @@ class SessionShopsTeachersMixin:
                     f"Etap źródła EQ: {_source_stage_v11327}."
                 )
             if cashback > 0:
-                _catalog_text = currency_reading_text(base_price, 0, 0)
+                _catalog_text = currency_price_text(base_price)
                 _token_id, _token_cost, _token_text = self.shop_offer_token_parts(item)
                 if _token_text:
                     _catalog_text += " + " + _token_text
                 await self.send(
                     "Cena katalogowa: " + _catalog_text
-                    + ". Rabat Charyzmy: -" + currency_reading_text(cashback, 0, 0)
+                    + ". Rabat Charyzmy: -" + currency_price_text(cashback)
                     + ". Efektywny koszt: " + self.shop_offer_cost_text(item) + "."
                 )
             else:
@@ -436,7 +437,7 @@ class SessionShopsTeachersMixin:
             if current < total_price:
                 await self.send(
                     "Masz za mało pieniędzy. Potrzeba "
-                    + currency_reading_text(total_price, 0, 0)
+                    + currency_price_text(total_price)
                     + f" za {quantity} szt. Masz "
                     + currency_reading_text(current, 0, 0) + "."
                 )
@@ -479,7 +480,7 @@ class SessionShopsTeachersMixin:
             if cashback > 0:
                 await self.send(
                     "Rabat Charyzmy: sprzedawca zwraca ci "
-                    + currency_reading_text(cashback, 0, 0) + "."
+                    + currency_price_text(cashback) + "."
                 )
 
     async def show_teachers(self):

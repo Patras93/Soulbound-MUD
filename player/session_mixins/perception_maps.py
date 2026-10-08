@@ -304,9 +304,9 @@ class SessionPerceptionMapsMixin:
                 if mercenary:
                     owner, role, spec = mercenary
                     progress = self.server.db.mercenary_progress_v1220(owner.account_id, role)
-                    from systems.mercenary_growth_v1220 import mercenary_level
+                    from systems.mercenary_growth_v1220 import mercenary_owner_level_v1228
                     await self.send(
-                        f"{spec['name']}, {spec['role']}, poziom {mercenary_level(progress['xp'])}. "
+                        f"{spec['name']}, {spec['role']}, poziom {mercenary_owner_level_v1228(owner.character)}. "
                         f"Najemnik towarzyszy postaci {owner.character.name}. "
                         f"Specjalizacja: {progress['specialization'] or 'brak'}."
                     )

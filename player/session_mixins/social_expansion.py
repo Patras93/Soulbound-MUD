@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Social Suite 2.0 and player services."""
+from core.bootstrap_economy_professions import currency_price_text
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
 from core.progression_600 import soul_tier_title_for_class
@@ -358,7 +359,7 @@ class SessionSocialExpansionMixin:
             lvl=int(row['level'])
             if lvl>=10: await self.send("Dom ma maksymalny poziom 10."); return
             cost=2000*lvl; wallet=self.character_wallet_silver_value()
-            if wallet<cost: await self.send(f"Koszt: {currency_reading_text(cost,0,0)}."); return
+            if wallet<cost: await self.send(f"Koszt: {currency_price_text(cost)}."); return
             self.character.silver=wallet-cost; self.character.gold=0; self.character.mithril=0; self.server.db.save_character(self.character)
             conn.execute("UPDATE player_housing_v03051 SET level=level+1 WHERE account_id=?",(self.account_id,)); conn.commit(); await self.send(f"Dom osiąga poziom {lvl+1}."); return
         if action in ('chest','skrzynia'):

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Legacy/base social methods used by the newer social layer."""
+from core.bootstrap_economy_professions import currency_price_text
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 from player.session_mixins.exp_terrain import NPCS, ROOMS
 from player.session_mixins.exploration_progress import normalize_lookup_text
@@ -177,7 +178,7 @@ class SessionBaseSocialMixin:
                 )
                 if current < cost_silver:
                     await self.send(
-                        f"Potrzebujesz {cost_silver} srebra po rabacie Charyzmy, "
+                        f"Potrzebujesz {currency_price_text(cost_silver)} po rabacie Charyzmy, "
                         f"aby zatrudnić {helper}. Cena bazowa: {cost_mithril} mithril."
                     )
                     return True
@@ -189,7 +190,7 @@ class SessionBaseSocialMixin:
             setattr(self.server, attr, helper)
             cost_text = (
                 f"Cena bazowa: {cost_mithril} mithril. "
-                f"Zapłacono po rabacie Charyzmy: {cost_silver} srebra."
+                f"Zapłacono po rabacie Charyzmy: {currency_price_text(cost_silver)}."
                 if cost_mithril
                 else "Ten pomocnik nie ma kosztu zatrudnienia."
             )

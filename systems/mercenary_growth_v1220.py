@@ -10,6 +10,15 @@ SPECIALIZATIONS = {
 MILESTONES = (10, 25, 50)
 
 
+def mercenary_owner_level_v1228(character):
+    """Every hired companion matches the owner's current character level.
+
+    Do not infer the level from old stored mercenary EXP: those rows are kept
+    for backward compatibility and for already selected specializations.
+    """
+    return max(1, int(getattr(character, "character_level", 1) or 1))
+
+
 def mercenary_level(xp):
     """Long-term, non-capped growth, with increasingly expensive levels."""
     return 1 + isqrt(max(0, int(xp)) // 180)

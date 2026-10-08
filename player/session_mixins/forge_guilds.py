@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.59 Session mixin: forge_guilds."""
+from core.bootstrap_economy_professions import currency_price_text
 from data import catalog_mutations as _catalog_mut
 
 class SessionForgeGuildsMixin:
@@ -723,11 +724,11 @@ class SessionForgeGuildsMixin:
     async def show_guild_hall_v0927(self, row):
             cid=int(row["clan_id"]); hall=self.server.db.guild_hall_v0927(cid); treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
             level=int(hall["hall_level"]); await self.send(f"SIEDZIBA GILDII: poziom {level}/10. Skarbiec: {currency_reading_text(treasury,0,0)}.")
-            if level<10: await self.send(f"Rozbudowa Siedziby {level}->{level+1}: {currency_reading_text(v0927_guild_hall_upgrade_cost(level),0,0)}.")
+            if level<10: await self.send(f"Rozbudowa Siedziby {level}->{level+1}: {currency_price_text(v0927_guild_hall_upgrade_cost(level),0,0)}.")
             for key,(label,_alias,_field) in V0927_GUILD_BUILDINGS.items():
                 field=f"{key}_level" if key!='treasury' else 'treasury_level'
                 lvl=int(hall[field]); text=f"{label}: {lvl}/10"
-                if lvl<10: text+=f", następny poziom {currency_reading_text(v0927_guild_building_upgrade_cost(lvl),0,0)}"
+                if lvl<10: text+=f", następny poziom {currency_price_text(v0927_guild_building_upgrade_cost(lvl),0,0)}"
                 await self.send(text+".")
             unlocks=["prywatna Siedziba"]
             if level>=2: unlocks.append("Tablica Kontraktów")
@@ -747,9 +748,9 @@ class SessionForgeGuildsMixin:
                 if not cost: await self.send("Siedziba ma już poziom 10."); return
                 confirm=any(x in norm for x in ("potwierdz","confirm","tak"))
                 treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
-                if not confirm: await self.send(f"Rozbudowa Siedziby {level}->{level+1} kosztuje {currency_reading_text(cost,0,0)}. Wpisz: gildia siedziba rozbuduj potwierdz."); return
-                if treasury<cost: await self.send(f"Brakuje {currency_reading_text(cost-treasury,0,0)}."); return
-                self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute("UPDATE player_guild_halls_v0927 SET hall_level=hall_level+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Siedzibę Gildii do poziomu {level+1}; koszt {currency_reading_text(cost,0,0)}."); self.ensure_guild_estate_rooms_v0927(cid,row["name"]); await self.send(f"Siedziba Gildii osiąga poziom {level+1}."); return
+                if not confirm: await self.send(f"Rozbudowa Siedziby {level}->{level+1} kosztuje {currency_price_text(cost)}. Wpisz: gildia siedziba rozbuduj potwierdz."); return
+                if treasury<cost: await self.send(f"Brakuje {currency_price_text(cost-treasury)}."); return
+                self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute("UPDATE player_guild_halls_v0927 SET hall_level=hall_level+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Siedzibę Gildii do poziomu {level+1}; koszt {currency_price_text(cost)}."); self.ensure_guild_estate_rooms_v0927(cid,row["name"]); await self.send(f"Siedziba Gildii osiąga poziom {level+1}."); return
             await self.send("Użyj: gildia siedziba; gildia siedziba wejdz; gildia siedziba rozbuduj [potwierdz].")
 
     async def handle_guild_building_v0927(self, raw, row):
@@ -765,8 +766,8 @@ class SessionForgeGuildsMixin:
             if lvl>=10: await self.send("Ten budynek ma już poziom 10."); return
             if lvl>=hall_level: await self.send(f"Najpierw rozbuduj Siedzibę powyżej poziomu {hall_level}; budynek nie może przewyższać Siedziby."); return
             cost=v0927_guild_building_upgrade_cost(lvl); treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
-            if treasury<cost: await self.send(f"Potrzeba {currency_reading_text(cost,0,0)}; brakuje {currency_reading_text(cost-treasury,0,0)}."); return
-            self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute(f"UPDATE player_guild_halls_v0927 SET {field}={field}+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); label=V0927_GUILD_BUILDINGS[chosen][0]; self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje {label} do poziomu {lvl+1}; koszt {currency_reading_text(cost,0,0)}."); self.ensure_guild_estate_rooms_v0927(cid,row['name']); await self.send(f"{label} osiąga poziom {lvl+1}/10.")
+            if treasury<cost: await self.send(f"Potrzeba {currency_price_text(cost)}; brakuje {currency_price_text(cost-treasury)}."); return
+            self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute(f"UPDATE player_guild_halls_v0927 SET {field}={field}+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); label=V0927_GUILD_BUILDINGS[chosen][0]; self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje {label} do poziomu {lvl+1}; koszt {currency_price_text(cost)}."); self.ensure_guild_estate_rooms_v0927(cid,row['name']); await self.send(f"{label} osiąga poziom {lvl+1}/10.")
 
     async def handle_guild_contracts_v0927(self, raw, row):
             cid=int(row["clan_id"]); norm=normalize_lookup_text(raw); now=int(time.time())
@@ -854,7 +855,7 @@ class SessionForgeGuildsMixin:
                 ach=int(conn.execute("SELECT COUNT(*) c FROM player_clan_achievements WHERE clan_id=?",(cid,)).fetchone()["c"])
                 bonus=v0926_guild_bonus_percent(level); next_cost=v0926_guild_upgrade_cost(level)
                 await self.send(f"GILDIA {row['name']}. Ranga: {self.guild_rank_name_v0926(row)}. Poziom {level} z {V0926_GUILD_MAX_LEVEL}. Bonus rozwoju +{bonus}%. Członkowie: {members}. Skarbiec: {currency_reading_text(treasury,0,0)}. Bank przedmiotów: {item_bank}. Osiągnięcia: {ach}.")
-                if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Następna rozbudowa kosztuje {currency_reading_text(next_cost,0,0)}.")
+                if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Następna rozbudowa kosztuje {currency_price_text(next_cost)}.")
                 hall=self.server.db.guild_hall_v0927(cid)
                 await self.send(f"Siedziba: {int(hall['hall_level'])}/10. Kontrakty, bossowie i budynki są dostępne przez komendy Gildii.")
                 await self.send("Komendy: gildia członkowie, zaproś, dołącz, chat, wpłać, wypłać, skarbiec, bank, rangi, ranga, rozbuduj, siedziba, budynek, kontrakty, kontrakt, boss, trofea, log, osiągnięcia.")
@@ -983,7 +984,7 @@ class SessionForgeGuildsMixin:
             if action in ("skarbiec","treasury"):
                 grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
                 await self.send(f"SKARBIEC GILDII: {currency_reading_text(treasury,0,0)}. Poziom Gildii {level}; bonus +{v0926_guild_bonus_percent(level)}%.")
-                if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Koszt następnej rozbudowy: {currency_reading_text(v0926_guild_upgrade_cost(level),0,0)}.")
+                if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Koszt następnej rozbudowy: {currency_price_text(v0926_guild_upgrade_cost(level),0,0)}.")
                 return
             if action in ("wplac","wpłać","deposit"):
                 amount=self.parse_guild_money_v0926(rest)
@@ -1009,10 +1010,10 @@ class SessionForgeGuildsMixin:
                 if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 600."); return
                 cost=v0926_guild_upgrade_cost(level); confirm=normalize_lookup_text(rest) in ("potwierdz","potwierdź","confirm","tak")
                 if not confirm:
-                    await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_reading_text(cost,0,0)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return
-                if treasury<cost: await self.send(f"Brakuje {currency_reading_text(cost-treasury,0,0)} w skarbcu Gildii."); return
+                    await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_price_text(cost)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return
+                if treasury<cost: await self.send(f"Brakuje {currency_price_text(cost-treasury)} w skarbcu Gildii."); return
                 conn.execute("UPDATE player_clans SET treasury=treasury-?,level=level+1 WHERE id=?",(cost,cid)); conn.commit(); new_level=level+1; new_bonus=v0926_guild_bonus_percent(new_level)
-                self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Gildię do poziomu {new_level}; koszt {currency_reading_text(cost,0,0)}.")
+                self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje Gildię do poziomu {new_level}; koszt {currency_price_text(cost)}.")
                 for sess in list(self.server.sessions):
                     if getattr(sess,"account_id",None) and not sess.closed:
                         sr=sess.guild_row_v0926()

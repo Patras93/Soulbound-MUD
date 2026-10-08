@@ -3999,4 +3999,10 @@ from admin.city_services_fast_v1225 import city_services_fast_v1225
 print(f'CITY SERVICES v1.22.5: {city_services_fast_v1225()} checks PASS')
 from validation.mercenary_followers_v1226 import validate_mercenary_followers_v1226
 print(f'MERCENARY FOLLOWERS v1.22.6: {validate_mercenary_followers_v1226()} checks PASS')
-print('Soulbound v1.22.6 FAST PREDEPLOY PASS')
+from validation.gold_prices_v1227 import validate_gold_prices_v1227
+print(f"GOLD PRICES v1.22.7: {validate_gold_prices_v1227()} checks PASS")
+print('Soulbound v1.22.7 FAST PREDEPLOY PASS')
+# v1.22.8: mercenary levels come from the owner, never from stored EXP.
+from validation.mercenary_owner_level_v1228 import validate_mercenary_owner_level_v1228
+print(f'MERCENARY OWNER LEVEL v1.22.8: {validate_mercenary_owner_level_v1228()} checks PASS')
+print('Soulbound v1.22.8 FAST PREDEPLOY PASS')

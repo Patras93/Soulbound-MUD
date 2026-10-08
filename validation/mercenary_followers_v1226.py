@@ -7,8 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from systems.mercenary_taverns import (MERCENARIES, COOLDOWN,
     pick_next_contract, mercenary_owner_power_v1213)
-from systems.mercenary_growth_v1220 import (mercenary_level, mercenary_attack_multiplier,
-    mercenary_action_xp, mercenary_unlocked)
+from systems.mercenary_growth_v1220 import (mercenary_owner_level_v1228, mercenary_attack_multiplier,
+    mercenary_unlocked)
 
 
 class _Db:
@@ -47,9 +47,8 @@ _npc_adjust = lambda template, damage, dtype, role: (damage, None)
 _namespace = dict(time=time, COOLDOWN=COOLDOWN, MERCENARIES=MERCENARIES,
                   pick_next_contract=pick_next_contract,
                   mercenary_owner_power_v1213=mercenary_owner_power_v1213,
-                  mercenary_level=mercenary_level,
+                  mercenary_owner_level_v1228=mercenary_owner_level_v1228,
                   mercenary_attack_multiplier=mercenary_attack_multiplier,
-                  mercenary_action_xp=mercenary_action_xp,
                   mercenary_unlocked=mercenary_unlocked,
                   superboss_healing_blocked_v11179=lambda session: False,
                   MOB_TEMPLATES={"test_enemy": {"name": "Strażnik", "level": 8}},
@@ -152,7 +151,7 @@ def validate_mercenary_followers_v1226():
     checks += 1
     assert len(calls) == 1 and calls[0][2] == "essential"
     checks += 1
-    assert db.exp == 1
+    assert db.exp == 0  # v1.22.8: combat does not award independent EXP.
     checks += 1
     assert mob.hp < 1000 or first.skill_guard > 0
     checks += 1

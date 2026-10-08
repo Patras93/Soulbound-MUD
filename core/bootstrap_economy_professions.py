@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "1.22.6"
+VERSION = "1.22.8"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -532,6 +532,19 @@ def currency_reading_text(silver=0, gold=0, mithril=0, *, full_names=False, incl
     if silver_count or include_zero or not parts:
         parts.append(f"{silver_count} srebra")
     return ", ".join(parts)
+
+
+def currency_price_text(silver=0, gold=0, mithril=0):
+    """Show an exact monetary PRICE in gold (100 silver = 1 gold).
+
+    This changes presentation only. All transaction arithmetic and existing
+    saved wallet balances continue to use the smallest unit (silver).
+    Using integer divmod prevents rounding / floats from changing the price.
+    """
+    coins = legacy_currency_to_coins(silver, gold, mithril)
+    whole, cents = divmod(coins, SILVER_PER_GOLD)
+    head = f"{whole:,}".replace(",", " ")
+    return f"{head},{cents:02d} złota" if cents else f"{head} złota"
 
 
 PROFESSION_MAX_LEVEL = 600

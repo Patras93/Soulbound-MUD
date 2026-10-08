@@ -1,4 +1,31 @@
-Aktualna paczka: v1.22.6
+Aktualna paczka: v1.22.8
+Soulbound v1.22.8 — NAJEMNICY NA POZIOMIE WLASCICIELA
+==============================================================================
+- Najemnicy automatycznie otrzymują poziom równy aktualnemu poziomowi wynajmującego.
+  Wraz z awansem gracza rośnie poziom wszystkich jego wynajętych najemników.
+- Zrezygnowano z odrębnego EXP, awansów i grindu najemników. Walka nie zapisuje
+  już osobnego doświadczenia pomocników.
+- Specjalizacje dostępne od poziomu 10 właściciela, techniki na poziomach 25 i 50.
+  Wybrane wcześniej specjalizacje zostają, tak samo umowy i zapisane postacie.
+- Zachowane skalowanie mocy do statystyk i EQ właściciela, rodzaje ataków, leczenie,
+  umiejętności, ceny, limit trzech najemników i limit obrażeń przeciw bossom.
+- Stare rekordy EXP pozostają w SQLite wyłącznie dla zgodności; nie służą do
+  liczenia poziomu ani nie trzeba migrować bazy.
+- Pełna gra i CHANGELOG_PL.txt, bez raportów audytów.
+
+Soulbound v1.22.7 — CENY W ZŁOCIE
+==============================================================================
+- Jedna cena w całej grze jest odczytywana przede wszystkim w złocie:
+  100 srebra = 1 złoto; reszty w srebrze są pokazywane jako setne części złota.
+- Przykład: 10000 srebra = 100 złota; 12550 srebra = 125,50 złota.
+- Poprawione opisy sklepów, zakupu, rabatów Charyzmy, najmu najemników,
+  pomocników UOSS, zakupów statku, rozbudowy gildii, egzaminów, domu
+  i zleceń łowców. Wartości kont, banku i nagród są zachowane.
+- Zero zmian cen zapisanych przedmiotów, rabatów, transakcji, kursów walut,
+  zapisów postaci i SQLite. Srebro nadal jest najmniejszą jednostką rozliczeń.
+- Pełna gra i CHANGELOG_PL.txt, bez raportów AUDYT_*.txt.
+
+
 Soulbound v1.22.6 — NAJEMNICY WIDOCZNI I WALCZĄCY
 ==============================================================================
 - Wynajęci najemnicy są widoczni przy swoich właścicielach w opisie lokacji

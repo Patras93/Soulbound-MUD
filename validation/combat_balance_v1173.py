@@ -281,7 +281,7 @@ def audit_party_support_runtime_v1173():
     if not messages or "Vex" not in messages[0]:
         errors.append("mercenary round-robin first action not activated")
     checks += 1
-    if progress["actions"] != 1 or progress["xp"] <= 0:
-        errors.append("mercenary v1.22 progression must grant EXP exactly once per turn")
+    if progress["actions"] != 0 or progress["xp"] != 0:
+        errors.append("mercenary v1.22.8: combat must not grant separate mercenary EXP")
     return {"version": "1.17.3", "checks": checks,
             "errors": errors, "error_count": len(errors)}

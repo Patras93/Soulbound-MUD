@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.6 - Najemnicy widoczni i walczacy"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.8 - Najemnicy na poziomie wlasciciela"
 LATEST_CHANGES = [
+    "v1.22.8: Najemnicy automatycznie maja poziom wlasciciela. Bez osobnego EXP i grindu; specjalizacje od poziomu wlasciciela 10, talenty od 25/50. Umowy, wybrane specjalizacje, skalowanie do EQ i limity pozostaja. Stare EXP zachowane w bazie, lecz nieuzywane.",
+    "v1.22.7: Ceny sklepów, rabaty, najemników, statków i wybranych usług przedstawiane w złocie (100 srebra = 1 złoto, bez zaokrąglania reszty). Bez zmiany kwot, zapisów i kursów.",
     "v1.22.6: Najemnicy wynajęci na stałe są widoczni przy właścicielu (look/l, l IMIĘ); właściciel i drużyna widzą ich działania podczas walki także w zwięzłym trybie NVDA. Bez zmian balansu i zapisów.",
     "v1.22.5: eq info NUMER lub SLOT pokazuje dane założonej części bez zdejmowania.",
     "v1.22.5: Wielka Tawerna Najemników przy Placu Dusz (15 stałych najemników); Bank Dusz z przelewami pieniędzy i przedmiotów oraz historią; Tablica Łowców Nagród z trzema stopniami, celami i odnawianiem. Zachowany stary bank, bounty i kontrakty.",

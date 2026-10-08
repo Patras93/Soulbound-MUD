@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from systems.mercenary_taverns import mercenary_owner_power_v1213, MERCENARIES
-from systems.mercenary_growth_v1220 import mercenary_level, mercenary_attack_multiplier, mercenary_action_xp, mercenary_unlocked
+from systems.mercenary_growth_v1220 import mercenary_owner_level_v1228, mercenary_attack_multiplier, mercenary_unlocked
 
 
 def audit_mercenary_scaling_v1213():
@@ -58,9 +58,8 @@ def audit_mercenary_scaling_v1213():
         'MERCENARIES': MERCENARIES,
         'pick_next_contract': __import__('systems.mercenary_taverns', fromlist=['pick_next_contract']).pick_next_contract,
         'mercenary_owner_power_v1213': mercenary_owner_power_v1213,
-        'mercenary_level': mercenary_level,
+        'mercenary_owner_level_v1228': mercenary_owner_level_v1228,
         'mercenary_attack_multiplier': mercenary_attack_multiplier,
-        'mercenary_action_xp': mercenary_action_xp,
         'mercenary_unlocked': mercenary_unlocked,
         'superboss_healing_blocked_v11179': lambda target: False,
         'MOB_TEMPLATES': {'merc_cross_test': {'max_hp': 2000000, 'damage': 1, 'rank': 'boss'}},

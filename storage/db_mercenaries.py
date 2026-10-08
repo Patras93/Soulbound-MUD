@@ -40,9 +40,9 @@ class DatabaseMercenariesMixin:
         self.conn.commit()
         return self.mercenary_progress_v1220(character_account_id,role)
 
-    def mercenary_specialize_v1220(self, character_account_id, role, name):
-        """A specialization can be chosen once per hired mercenary; no rehire."""
-        from systems.mercenary_growth_v1220 import mercenary_level, SPECIALIZATIONS
+    def mercenary_specialize_v1220(self, character_account_id, role, name, owner_level=1):
+        """Choose a specialization based on the OWNER's level (v1.22.8)."""
+        from systems.mercenary_growth_v1220 import SPECIALIZATIONS
         if name not in SPECIALIZATIONS:
             return "unknown"
         hired = self.conn.execute(
@@ -54,7 +54,7 @@ class DatabaseMercenariesMixin:
         current = self.mercenary_progress_v1220(character_account_id, role)
         if current['specialization']:
             return "already"
-        if mercenary_level(current['xp']) < 10:
+        if max(1, int(owner_level or 1)) < 10:
             return "level"
         self.conn.execute(
             "INSERT OR IGNORE INTO mercenary_progress_v1220(character_account_id,role) VALUES (?,?)",

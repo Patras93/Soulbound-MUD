@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Item/resource sale rules, bulk selling and sale XP."""
+from core.bootstrap_economy_professions import currency_price_text
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import re
@@ -848,7 +849,7 @@ class SessionSalesMixin:
                 values = self.generic_item_sale_value(item_id, item)
                 await self.send(
                     f"{number}. {item['name']}. Wolne sztuki: {free_qty}. "
-                    f"Cena jednej: {currency_reading_text(values['silver'], values['gold'], values['mithril'])}."
+                    f"Cena jednej: {currency_price_text(values['silver'], values['gold'], values['mithril'])}."
                 )
 
     async def sell_command(self, query):
@@ -986,7 +987,7 @@ class SessionSalesMixin:
                 await self.send(
                     f"Sprzedajesz sprzedawcy {self.generic_item_sale_buyer_name()}{copy_text}: "
                     f"{item['name']} za "
-                    f"{currency_reading_text(values['silver'], values['gold'], values['mithril'])}."
+                    f"{currency_price_text(values['silver'], values['gold'], values['mithril'])}."
                 )
                 return
 

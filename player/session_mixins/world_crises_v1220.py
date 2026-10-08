@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """NVDA-friendly multi-stage world events in real v1.20 regions."""
+from core.bootstrap_economy_professions import currency_price_text
 from data.catalogs import ROOMS, ITEMS
 from systems.world_crises_v1220 import CRISES, crisis_day, crisis_progress_message, crisis_reward
 from world.great_world import V1200_REGIONAL_INDEX
@@ -83,7 +84,7 @@ class SessionWorldCrisesV1220Mixin:
                 await self.send("Nagroda jeszcze nie jest gotowa albo została dziś już odebrana. Sprawdź: kryzys status.")
                 return
             self.server.db.apply_shared_wallet_to_character(self.character)
-            await self.send(f"KRYZYS UKOŃCZONY: {title}. Nagroda: {coins} srebra i {quantity} szt. {ITEMS[spec['resource']]['name']}. Kolejna edycja następnego dnia (UTC).")
+            await self.send(f"KRYZYS UKOŃCZONY: {title}. Nagroda: {currency_price_text(coins)} i {quantity} szt. {ITEMS[spec['resource']]['name']}. Kolejna edycja następnego dnia (UTC).")
             return
 
     async def record_world_crisis_kill_v1220(self, mob, template):

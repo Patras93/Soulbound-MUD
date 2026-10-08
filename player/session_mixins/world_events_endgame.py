@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Weather, factions, events, ascension and endgame systems."""
+from core.bootstrap_economy_professions import currency_price_text
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import random
 import time
@@ -996,7 +997,7 @@ class SessionWorldEventsEndgameMixin:
                 have=self.server.db.item_qty(self.account_id,iid)
                 if have<qty: missing.append(f"{ITEMS[iid]['name']} {have}/{qty}")
             coins=int(req.get("coins",0)); wallet=self.character_wallet_silver_value()
-            if wallet<coins: missing.append(f"waluta {currency_reading_text(wallet,0,0)} / {currency_reading_text(coins,0,0)}")
+            if wallet<coins: missing.append(f"waluta {currency_reading_text(wallet,0,0)} / {currency_price_text(coins)}")
             if missing:
                 await self.send("Brakuje: "+"; ".join(missing)+"."); return
             # Nie ma RNG/faila: dopiero po pełnej walidacji pobieramy koszt i zamieniamy przedmiot.
@@ -1006,7 +1007,7 @@ class SessionWorldEventsEndgameMixin:
             self.server.db.remove_item(self.account_id,item_id,1)
             new_item=V020_ARTIFACT_VARIANTS[fid][next_tier-1]; self.server.db.add_item(self.account_id,new_item,1); self.server.db.save_character(self.character)
             await self.record_item_collection(new_item,source="Rozwój artefaktu",announce=True)
-            await self.send(f"Artefakt rozwinięty bez ryzyka: {ITEMS[new_item]['name']}. Koszt waluty: {currency_reading_text(coins,0,0)}.")
+            await self.send(f"Artefakt rozwinięty bez ryzyka: {ITEMS[new_item]['name']}. Koszt waluty: {currency_price_text(coins)}.")
 
     async def show_endgame_goals_v020(self):
             mega=len(self.server.db.collection_entry_ids(self.account_id,"mega_boss_kills_v020"))

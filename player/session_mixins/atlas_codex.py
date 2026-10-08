@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Descriptions, atlas, bestiary and world codex."""
+from core.bootstrap_economy_professions import currency_price_text
 
 class SessionAtlasCodexMixin:
 
@@ -129,12 +130,12 @@ class SessionAtlasCodexMixin:
 
             if item.get("price") is not None:
                 price_coins = self.shop_item_base_value_silver(item)
-                parts.append("Cena kupna: " + currency_reading_text(price_coins, 0, 0) + ".")
+                parts.append("Cena kupna: " + currency_price_text(price_coins) + ".")
 
             if item.get("sell_silver") or item.get("sell_gold") or item.get("sell_mithril"):
                 parts.append(
                     "Wartość sprzedaży: "
-                    + currency_reading_text(
+                    + currency_price_text(
                         item.get("sell_silver", 0),
                         item.get("sell_gold", 0),
                         item.get("sell_mithril", 0),

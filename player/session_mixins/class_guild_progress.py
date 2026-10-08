@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Class guild status, quests, exams and bounties."""
+from core.bootstrap_economy_professions import currency_price_text
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
 
@@ -479,7 +480,7 @@ class SessionClassGuildProgressMixin:
                 200: 250_000_000,  # 250 000 złota
             }[threshold]
             if not self.pay_training_cost(total_silver_cost):
-                await self.send(f"Egzamin Soul {threshold} kosztuje " + currency_reading_text(total_silver_cost, 0, 0) + ". Nie masz wystarczającej ilości pieniędzy.")
+                await self.send(f"Egzamin Soul {threshold} kosztuje " + currency_price_text(total_silver_cost) + ". Nie masz wystarczającej ilości pieniędzy.")
                 return
 
             self.character.mark_guild_exam_done(cls, threshold)
@@ -488,7 +489,7 @@ class SessionClassGuildProgressMixin:
             self.server.db.save_character(self.character)
             await self.send(
                 f"Zdano egzamin {cls} Soul {threshold}. "
-                "Koszt " + currency_reading_text(total_silver_cost, 0, 0) + f". Reputacja +{reward_rep}. "
+                "Koszt " + currency_price_text(total_silver_cost) + f". Reputacja +{reward_rep}. "
                 f"Reputacja teraz {rep}/{GUILD_REPUTATION_MAX}."
             )
 
