@@ -1,3 +1,25 @@
+Aktualna paczka: v1.22.4
+Soulbound v1.22.4 — ADMIN TOOLS 2.0
+==============================================================================
+- Nowe admin help: kategorie graczy, serwera, świata i diagnostyki postaci.
+- admin online, admin gracz, admin goto gracz, admin przywolaj, admin ulecz,
+  admin wskrzes, admin odbuguj, admin wyrzuc.
+- admin serwer, admin blad, admin log ostatnie, admin komendy wolne,
+  admin backup, admin baza sprawdz, admin oglos, admin historia.
+- admin lokacja, admin npc, admin moby, admin boss oraz diagnostyka postaci:
+  profesje, zamowienia, prace, najemnicy, questy, eq, napraw postac.
+- Potwierdzanie operacji na innych graczach przez POTWIERDZAM; automatyczna
+  historia działań administracyjnych w SQLite.
+- Rejestr błędów i wolnych komend zapisuje tylko bezpieczne metadane:
+  nie przechowuje treści haseł, tokenów ani pełnych komend użytkowników.
+- admin backup tworzy spójną kopię bazy w katalogu backups na tym samym wolumenie;
+  do zewnętrznych backupów konieczne jest niezależne kopiowanie tego katalogu.
+- Rejestracja kont znów działa bez SMTP i obowiązkowego e-maila.
+  Stare zweryfikowane adresy i reset e-mail pozostają opcjonalne;
+  właściciel może nadal odzyskać hasło przez kod admina lub zapasowy.
+- Bez zmian balansu, sklepów, istniejących kont, postaci i map świata.
+- Pełna paczka gry z changelogiem; bez raportów AUDYT_*.txt.
+
 Aktualna paczka: v1.22.3
 Soulbound v1.22.3 — ZWERYFIKOWANY E-MAIL KONT I RESET HASŁA
 ==============================================================================

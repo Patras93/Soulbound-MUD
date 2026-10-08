@@ -2,10 +2,12 @@
 from core.runtime_diagnostics import build_runtime_error_report, log_runtime_error
 from events.bootstrap import build_default_event_bus
 import time
+import sqlite3
 from systems.infinite_equipment import ensure_infinite_equipment_variant
 
 class MudServer:
     def __init__(self):
+        self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
         # v0.42.0: one central event bus decouples combat/gathering producers
         # from quest, bounty, chronicle and progression consumers.
@@ -38,6 +40,10 @@ class MudServer:
             exc, root=globals().get("_ROOT"), command=command, handler=handler
         )
         log_runtime_error(report)
+        try:
+            self.db.record_admin_error_v1224(report)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+            print(f"[ADMIN DIAGNOSTICS] Cannot store error id: {type(exc).__name__}", flush=True)
         return report
 
     def account_online(self, account_id):

@@ -90,3 +90,50 @@ class Database(
         self.install_crafting_extensions_schema()
         self.create_mercenary_schema()
         self.create_world_crises_schema_v1220()
+        # v1.22.4: persistent but minimal admin diagnostics; no passwords or tokens.
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS admin_actions_v1224 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                admin_login TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS admin_errors_v1224 (
+                id TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                exception TEXT NOT NULL, file TEXT NOT NULL, line INTEGER NOT NULL,
+                subsystem TEXT NOT NULL, handler TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS admin_slow_commands_v1224 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                command TEXT NOT NULL, duration_ms INTEGER NOT NULL
+            );
+        """)
+        self.conn.commit()
+
+    def record_admin_action_v1224(self, admin_login, action, target=""):
+        self.conn.execute(
+            "INSERT INTO admin_actions_v1224(admin_login,action,target) VALUES (?,?,?)",
+            (str(admin_login)[:64], str(action)[:64], str(target)[:96]),
+        )
+        self.conn.execute("DELETE FROM admin_actions_v1224 WHERE id NOT IN "
+                          "(SELECT id FROM admin_actions_v1224 ORDER BY id DESC LIMIT 2000)")
+        self.conn.commit()
+
+    def record_admin_error_v1224(self, report):
+        # Deliberately omit command, traceback and exception message: may contain secrets.
+        self.conn.execute("INSERT OR REPLACE INTO admin_errors_v1224 "
+                          "(id,exception,file,line,subsystem,handler) VALUES (?,?,?,?,?,?)",
+                          (report['error_id'], str(report.get('exception',''))[:80],
+                           str(report.get('file',''))[:240], int(report.get('line',0)),
+                           str(report.get('subsystem',''))[:80], str(report.get('handler',''))[:80]))
+        self.conn.execute("DELETE FROM admin_errors_v1224 WHERE id NOT IN "
+                          "(SELECT id FROM admin_errors_v1224 ORDER BY created_at DESC, rowid DESC LIMIT 500)")
+        self.conn.commit()
+
+    def record_slow_command_v1224(self, command, duration):
+        self.conn.execute("INSERT INTO admin_slow_commands_v1224(command,duration_ms) VALUES (?,?)",
+                          (str(command)[:50], int(duration * 1000)))
+        self.conn.execute("DELETE FROM admin_slow_commands_v1224 WHERE id NOT IN "
+                          "(SELECT id FROM admin_slow_commands_v1224 ORDER BY id DESC LIMIT 100)")
+        self.conn.commit()
+

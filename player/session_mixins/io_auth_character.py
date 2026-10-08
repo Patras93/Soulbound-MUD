@@ -1116,51 +1116,16 @@ class SessionIOAuthCharacterMixin:
                     await self.send("Hasła się różnią.")
                     continue
                 break
-            if not smtp_ready_v1223():
-                await self.send("Rejestracja e-mail wymaga konfiguracji SMTP przez administratora Railway. Konto nie zostało utworzone.")
-                return False
-            email = await self.ask("Adres e-mail do potwierdzenia (0 anuluje): ")
-            if email is None or email.strip() == "0":
-                return False
-            email = normalized_email_v1223(email)
-            if email is None:
-                await self.send("Nieprawidłowy adres e-mail. Spróbuj ponownie od menu.")
-                return False
-            if self.server.db.email_taken_v1223(email):
-                await self.send("Adres e-mail jest już powiązany z innym kontem.")
-                return False
-            peer = self.writer.get_extra_info("peername") if getattr(self, "writer", None) else None
-            peer_ip = peer[0] if isinstance(peer, tuple) and peer else None
-            if not allow_verification_send_v1223(email, peer_ip):
-                await self.send("Limit wysyłki kodów. Spróbuj ponownie za 15 minut.")
-                return False
-            code = secrets.token_hex(4).upper()  # Eight ASCII characters, easy for NVDA.
-            started = time.monotonic()
+            # v1.22.4: accounts do not require SMTP. The administrator can
+            # issue one-time reset codes and players can keep a backup code.
+            # Existing verified e-mails remain valid for optional recovery.
             try:
-                await send_code_v1223(email, "register", code)
-            except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
-                await self.send("Nie udało się wysłać kodu. Konto nie zostało utworzone.")
-                return False
-            await self.send("Wysłano kod na podany adres. Ważny przez 10 minut; do 5 prób.")
-            verified = False
-            for _ in range(5):
-                entered = await self.ask("Kod potwierdzenia e-mail (0 anuluje): ")
-                if entered is None or entered.strip() == "0" or time.monotonic() - started > 600:
-                    break
-                if hmac.compare_digest(entered.strip().upper(), code):
-                    verified = True
-                    break
-                await self.send("Nieprawidłowy kod.")
-            if not verified:
-                await self.send("Nie potwierdzono adresu. Konto nie zostało utworzone.")
-                return False
-            try:
-                self.master_account_id = self.server.db.create_account_verified_email_v1223(username, password, email)
-            except (sqlite3.IntegrityError, ValueError):
-                await self.send("Nie można utworzyć konta: login lub adres e-mail są już zajęte.")
+                self.master_account_id = self.server.db.create_account(username, password)
+            except sqlite3.IntegrityError:
+                await self.send("Ta nazwa konta jest już zajęta.")
                 return False
             self.account_id = None
-            await self.send("Konto utworzone, adres e-mail zweryfikowany.")
+            await self.send("Konto utworzone. E-mail nie jest wymagany. Po zalogowaniu możesz zapisać zapasowy kod przez: odzyskaj haslo kod.")
             await self.send(
                 f"Na tym koncie możesz utworzyć maksymalnie {MAX_CHARACTERS_PER_ACCOUNT} postaci."
             )

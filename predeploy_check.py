@@ -3972,4 +3972,27 @@ print(f"MERCENARIES 2.0 + WORLD CRISES v1.22.0: {_count_v1220} checks PASS")
 from validation.account_email_v1223 import audit_account_email_v1223
 _checks_v1223 = audit_account_email_v1223()
 print(f"ACCOUNT EMAIL v1.22.3: {_checks_v1223} checks PASS")
-print('Soulbound v1.22.3 FAST PREDEPLOY PASS')
+# v1.22.4: source-level safety contract for admin commands without full world boot.
+_admin_source_v1224 = (_root / "player/session_mixins/admin_tools.py").read_text(encoding="utf-8")
+_admin_tree_v1224 = ast.parse(_admin_source_v1224)
+_admin_class_v1224 = next(n for n in _admin_tree_v1224.body
+                          if isinstance(n, ast.ClassDef) and n.name == "SessionAdminToolsMixin")
+_admin_methods_v1224 = {n.name for n in _admin_class_v1224.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+if not {"is_admin", "admin_command", "admin_tools_v1224"}.issubset(_admin_methods_v1224):
+    raise RuntimeError("ADMIN TOOLS 2.0: missing restricted handlers")
+_admin_required_v1224 = (
+    'if not self.is_admin():', 'if not check_confirm():',
+    'record_admin_action_v1224', 'admin_errors_v1224', 'admin_slow_commands_v1224',
+    'sqlite3.connect(str(destination))', 'db.conn.backup(backup_db)',
+    "row['room_id'] in ROOMS", 'clear_downed_v0371(cancel_task=True)',
+    'brak aktywnych prac automatycznych',
+)
+for _marker_v1224 in _admin_required_v1224:
+    if _marker_v1224 not in _admin_source_v1224:
+        raise RuntimeError("ADMIN TOOLS 2.0 missing safety contract: " + _marker_v1224)
+_db_source_v1224 = (_root / "storage/database.py").read_text(encoding="utf-8")
+for _marker_v1224 in ("admin_errors_v1224", "admin_actions_v1224", "admin_slow_commands_v1224"):
+    if _marker_v1224 not in _db_source_v1224:
+        raise RuntimeError("ADMIN TOOLS 2.0 missing DB migration: " + _marker_v1224)
+print("ADMIN TOOLS v1.22.4: 13 safety-contract checks PASS")
+print('Soulbound v1.22.4 FAST PREDEPLOY PASS')

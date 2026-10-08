@@ -7,6 +7,7 @@ state-safety metadata live in the central command registry.
 from __future__ import annotations
 
 import time
+import sqlite3
 
 from core.command_catalog import COMMAND_LOOP_BREAK
 from core.mines_threat import DIRECTION_ALIASES
@@ -109,6 +110,11 @@ class SessionCommandLoopMixin:
                     f"[PERF SLOW COMMAND] {command or token}: {_perf_elapsed_v0718:.3f}s",
                     flush=True,
                 )
+                # Never record raw arguments: a command may contain a secret.
+                try:
+                    self.server.db.record_slow_command_v1224(command or token, _perf_elapsed_v0718)
+                except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
+                    print(f"[ADMIN DIAGNOSTICS] Slow command not recorded: {type(exc).__name__}", flush=True)
             if dispatched is COMMAND_LOOP_BREAK:
                 break
             if dispatched:

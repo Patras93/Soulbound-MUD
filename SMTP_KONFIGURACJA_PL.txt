@@ -1,0 +1,35 @@
+SOULBOUND v1.22.3 — WERYFIKACJA E-MAIL I RESET HASLA
+
+W Railway: projekt Soulbound -> Variables, dodaj dane swojego dostawcy SMTP:
+SOULBOUND_SMTP_HOST = serwer SMTP dostawcy
+SOULBOUND_SMTP_PORT = 587 (STARTTLS) lub 465 (SSL)
+SOULBOUND_SMTP_USER = nazwa logowania SMTP
+SOULBOUND_SMTP_PASSWORD = haslo aplikacji lub token SMTP
+SOULBOUND_SMTP_FROM = prawidlowy adres nadawcy, autoryzowany u dostawcy
+SOULBOUND_SMTP_MODE = starttls (domyslnie) albo ssl
+
+Nigdy nie wprowadzaj tych wartosci do kodu gry i nie przesylaj mi hasla SMTP.
+Bez SMTP istniejące loginy działają, ale rejestracja nowych kont z e-mail
+oraz funkcje e-mail zostaną zablokowane (fail closed).
+
+Nowe konto:
+- Menu logowania -> 2 -> login, haslo min. 10 znakow, e-mail, kod.
+- Kod na e-mail wazny 10 minut, maksimum 5 prob.
+
+Starsze konto (bez utraty postaci):
+- Po zalogowaniu: konto email ustaw lub emailkonto ustaw.
+- Podaj aktualne haslo, nowy adres, potem kod otrzymany na adres.
+- Po potwierdzeniu: konto email pokazuje status.
+
+Zgubione haslo:
+- Menu logowania -> 4 -> 2, wpisz login; kod przychodzi na zweryfikowany e-mail.
+- Kod resetowania jest jednorazowy, wazny 15 minut, 5 prob, wysylka max
+  raz na 5 minut na konto. Nowe haslo musi miec 10-256 znakow.
+- Admin: admin haslo wyslij LOGIN wysyla kod na zweryfikowany e-mail.
+- Admin: admin haslo reset LOGIN generuje prywatny kod awaryjny.
+- Nikt nie poznaje poprzedniego hasla.
+
+UWAGA: tradycyjny Telnet wysyla wpisywane dane (w tym hasla i adresy)
+bez szyfrowania transportu. Do publicznej rejestracji nalezy uzywac
+szyfrowanego polaczenia klient-serwer (TLS / bezpieczny tunel), a nie
+otwartego Telnetu. Wysylka e-mail jest szyfrowana STARTTLS albo SSL.
