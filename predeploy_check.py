@@ -4038,3 +4038,10 @@ print('Soulbound v1.22.14 FAST PREDEPLOY PASS')
 from validation.living_world_v1230 import audit_living_world_v1230
 print(f'LIVING WORLD v1.23.0: {audit_living_world_v1230()} checks PASS')
 print('Soulbound v1.23.0 FAST PREDEPLOY PASS')
+
+# v1.23.1: hires use the owner's real Soul Weapon + multi-hit + timed throughput.
+from validation.mercenary_real_damage_v1231 import validate_mercenary_real_damage_v1231
+print(f'MERCENARY REAL DAMAGE v1.23.1: {validate_mercenary_real_damage_v1231()} checks PASS')
+from validation.mercenary_specialists_v1240 import validate_mercenary_specialists_v1240
+print(f'MERCENARY SPECIALISTS v1.24.0: {validate_mercenary_specialists_v1240()} checks PASS')
+print('Soulbound v1.24.0 FAST PREDEPLOY PASS')

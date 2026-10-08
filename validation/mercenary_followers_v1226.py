@@ -7,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from systems.mercenary_taverns import (MERCENARIES, COOLDOWN,
     pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213)
+from systems.mercenary_taverns import mercenary_owner_real_action_power_v1231
 from systems.mercenary_growth_v1220 import (mercenary_owner_level_v1228, mercenary_attack_multiplier,
     mercenary_unlocked, mercenary_tactic)
 
@@ -49,6 +50,7 @@ _namespace = dict(time=time, COOLDOWN=COOLDOWN, MERCENARIES=MERCENARIES,
                   mercenary_owner_power_v1213=mercenary_owner_power_v1213,
                   mercenary_damage_cap_ratio_v12212=mercenary_damage_cap_ratio_v12212,
                   mercenary_owner_full_power_v12213=mercenary_owner_full_power_v12213,
+                  mercenary_owner_real_action_power_v1231=mercenary_owner_real_action_power_v1231,
                   mercenary_owner_level_v1228=mercenary_owner_level_v1228,
                   mercenary_attack_multiplier=mercenary_attack_multiplier,
                   mercenary_unlocked=mercenary_unlocked, mercenary_tactic=mercenary_tactic,

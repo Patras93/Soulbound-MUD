@@ -1,3 +1,35 @@
+Aktualna paczka: v1.24.0
+Soulbound v1.24.0 — NAJEMNICY 4.0: WŁASNE SPECJALIZACJE
+- Każda z 15 postaci ma własną automatyczną specjalizację klasową i trzy techniki
+  ofensywne. AI wybiera atak zależnie od presji bossa, fazy HP i kolejności ataków.
+- Kolejne ataki różnych najemników na tego samego moba tworzą rzeczywiste
+  reakcje: magia + stal, lub wspólny nacisk. Bez dodatkowych komend i bez
+  nakładania bonusów na cudzych graczy. Reakcje wygasają po przerwie walki.
+- Dodatkowe leczenie lub osłona w trakcie zadawania obrażeń: bez utraty
+  ataku, z poszanowaniem blokady leczenia u superbossów.
+- Specjalizacje wzmacniają się automatycznie wraz z poziomem właściciela
+  bez górnego sufitu; skalowanie realnego DPS, EQ, Broni Duszy, serii Speed/Haste
+  i premii klas/rasy z v1.23.1 zostaje w pełni zachowane.
+- Podgląd: najemnik specjalizacje [imię]; najemnik skille [imię];
+  najemnik status. Dotychczasowe taktyki są niezależne i pozostają zapisane.
+- Nie ma nowego EXP, dodatkowych kosztów, migracji SQLite ani zmian w liczbie
+  najemników (maksymalnie trzech jednocześnie). Pomocnicy UOSS bez zmian.
+
+---
+Aktualna paczka: v1.23.1
+Soulbound v1.23.1 — NAJEMNICY PRAWDZIWA MOC GRACZA
+- Naprawa realnej przyczyny słabych obrażeń najemników: samo 100% STR/INT
+  pomijało Soul Power, rozwój statystyki ofensywnej, klasy/rasy i wielokrotne hity.
+- Każdy najemnik czerpie realną ofensywę z tego samego wzoru co atak gracza,
+  włącznie z pełnym EQ, setami, Bronią Duszy, premiami klasy/rasy i krytykiem.
+- Własne 5 sekund najemnika odpowiada rzeczywistym seriom właściciela
+  w tych 5 sekundach (Speed, Haste, tempo), bez limitu ataków/damage.
+- Najemnicy magiczni postaci fizycznej i odwrotnie dostają równie pełną moc.
+- Zachowane osobne akcje, AI, taktyki, leczenie, ochrona, obrona bossów,
+  odporności i jednorazowe rozliczanie zabójstwa; wybrany world tier działa
+  jak na obrażenia gracza. Brak migracji postaci i kontraktów.
+
+---
 Aktualna paczka: v1.23.0
 Soulbound v1.23.0 — ŻYJĄCY ŚWIAT I INTELIGENTNA WALKA
 - AI mobów: zwykłe potwory co kilka tur reagują taktycznie i potrafią osłaniać rannych towarzyszy; ataki żywiołowe korzystają z istniejących odporności oraz obrony magicznej.

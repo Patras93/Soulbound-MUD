@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from systems.mercenary_taverns import (
     COOLDOWN, MERCENARIES, mercenary_owner_full_power_v12213,
 )
+from systems.mercenary_taverns import mercenary_owner_real_action_power_v1231
 from systems.mercenary_growth_v1220 import (
     mercenary_attack_multiplier, mercenary_owner_level_v1228, mercenary_tactic,
 )
@@ -43,6 +44,7 @@ def validate_mercenary_unlimited_v12214():
         time=SimpleNamespace(time=lambda: clock[0]), COOLDOWN=COOLDOWN,
         MERCENARIES=MERCENARIES,
         mercenary_owner_full_power_v12213=mercenary_owner_full_power_v12213,
+        mercenary_owner_real_action_power_v1231=mercenary_owner_real_action_power_v1231,
         mercenary_attack_multiplier=mercenary_attack_multiplier,
         mercenary_owner_level_v1228=mercenary_owner_level_v1228,
         mercenary_tactic=mercenary_tactic,

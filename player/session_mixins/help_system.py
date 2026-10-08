@@ -106,7 +106,7 @@ class SessionHelpSystemMixin:
                 "zdobycze [legendarne|epickie|rzadkie|wszystkie] [1-30] / zdobycze szukaj <nazwa> — czytelna lista zapisanych dropów",
                 "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
                 "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
-                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik skille [imię] - podgląd automatycznych zdolności; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy> - do 3 NPC na stałe, niezależnie od pomocników UOSS",
+                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik skille [imię] - podgląd zdolności; najemnik specjalizacje [imię] - automatyczne specjalizacje 4.0; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy> - do 3 NPC na stałe, niezależnie od pomocników UOSS",
                 "look lub l - opis aktualnej lokacji",
                 "exits / ex - kierunki i nazwy lokacji, do których prowadzą; exits info dodaje strefę i poziom zagrożenia",
                 "map / mapa - w świecie mapa regionu, w instancji mapa sektora 100 pięter z procentem, sekretami i checkpointami; mapa instancje - podsumowanie",

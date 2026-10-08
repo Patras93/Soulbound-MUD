@@ -1358,7 +1358,8 @@ HELP_TOPICS["najemnicy"] = [
     "najemnik rozwoj [imię] — poziom właściciela i aktualna taktyka; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> — zmiana bez kosztu w dowolnym momencie.",
     "najemnik skille — lista rzeczywistych umiejętności wszystkich 15 najemników; najemnik skille Seren — szczegółowy opis ataku, leczenia i osłony. Działa również przed wynajęciem.",
     "Umiejętności najemnicy wybierają automatycznie w walce. Gracz może podejrzeć skille, ale nie wskazuje im, którego skilla mają użyć.",
-    "Nie ma specjalizacji, progów talentów ani osobnego EXP. Każdy najemnik zachowuje swoje umiejętności klasowe, a wybrana taktyka jest zapamiętywana.",
+    "Najemnicy 4.0: każdy ma własną automatyczną specjalizację klasową, trzy techniki ofensywne i współpracuje z innymi najemnikami. Wszystkie techniki rosną z siłą właściciela bez osobnego EXP i bez limitu mocy.",
+    "najemnik specjalizacje [imię] — lista i opis automatycznych specjalizacji. Są niezależne od ustawianych taktyk.",
     "Cena zależy od wybranej postaci i rabatu Charyzmy. W tawernie wpisz najemnicy, aby usłyszeć bieżące ceny.",
     "Najemnicy walczą przy tobie; EXP i łupy pozostają graczom. Nie zajmują miejsca pomocnika UOSS.",
     "Dostępne postacie: " + "; ".join(

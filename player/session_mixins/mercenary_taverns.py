@@ -2,7 +2,7 @@
 """Hire permanent NPC mercenaries independently of UOSS helpers."""
 from core.bootstrap_economy_professions import currency_price_text
 import time
-from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213, mercenary_skill_lines_v12211
+from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213, mercenary_owner_real_action_power_v1231, mercenary_skill_lines_v12211
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
@@ -156,6 +156,16 @@ class SessionMercenaryTavernsMixin:
             for line in mercenary_skill_lines_v12211(role):
                 await self.send(line)
             return
+        if action in ("specjalizacje", "specjalizacje4", "style"):
+            from systems.mercenary_specialists_v1240 import specialist_description_v1240
+            role = mercenary_role(name) if name else None
+            if name and role is None:
+                await self.send("Nieznany najemnik. Podaj imię lub wpisz najemnik specjalizacje.")
+                return
+            for key in ([role] if role else MERCENARIES):
+                await self.send(f"{MERCENARIES[key]['name']}: " + specialist_description_v1240(key))
+            await self.send("Specjalizacje należą do klas i działają same. Taktykę nadal można zmieniać osobno.")
+            return
         if action in ("rozwoj", "rozwój", "poziom", "exp", "talenty"):
             active = self.server.db.mercenary_contracts(self.account_id)
             role = mercenary_role(name) if name else None
@@ -173,7 +183,7 @@ class SessionMercenaryTavernsMixin:
                                 f"taktyka {mercenary_tactic(progress['specialization'])}. Umiejętność: {MERCENARIES[key]['ability']}.")
             return
         if action in ("specjalizacja", "spec", "szkol"):
-            await self.send("Nie ma już specjalizacji ani szkolenia najemników. Wpisz: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
+            await self.send("Nie ma już specjalizacji do ręcznego szkolenia. Każdy najemnik ma własną automatyczną specjalizację klasową 4.0. Sprawdź: najemnik specjalizacje [imię]. Taktyka: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
             return
         if action in ("taktyka", "tryb", "tactic"):
             choices = name.rsplit(maxsplit=1)
@@ -199,12 +209,13 @@ class SessionMercenaryTavernsMixin:
                 await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3.")
                 return
             level = mercenary_owner_level_v1228(self.character)
-            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna silniejsza moc właściciela i jego EQ; bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
+            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna realna moc i tempo ataków właściciela (Broń Duszy, statystyki, EQ, trafienia wielokrotne); bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Specjalizacje klasowe: najemnik specjalizacje [imię]. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
             for row in active:
                 role = row["role"]
                 if role in MERCENARIES:
                     progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
-                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}, taktyka {mercenary_tactic(progress['specialization'])}.")
+                    from systems.mercenary_specialists_v1240 import SPECIALISTS
+                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}, taktyka {mercenary_tactic(progress['specialization'])}, specjalizacja {SPECIALISTS[role][0]}.")
             await self.send(f"Najemnicy: {len(active)}/3. Pomocnicy UOSS mają osobne miejsce.")
             return
         if action in ("zwolnij", "usun", "odeślij", "odeslij"):
@@ -237,18 +248,21 @@ class SessionMercenaryTavernsMixin:
             await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
             return
         if action not in ("lista", "list", "", "oferta"):
-            await self.send("Komendy: najemnicy; najemnik skille [imię] (podgląd); najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>. Najemnicy sami używają swoich umiejętności.")
+            await self.send("Komendy: najemnicy; najemnik specjalizacje [imię]; najemnik skille [imię] (podgląd); najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>. Najemnicy sami używają swoich umiejętności.")
             return
         if not tavern_here(self.character.room_id):
             await self.send("Ofertę i wynajem znajdziesz w miejskich tawernach. Status sprawdzisz wszędzie: najemnik status.")
             return
         level = max(1, int(getattr(self.character, "character_level", 1) or 1))
-        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Poziom każdego najemnika to twój poziom {level}, bez osobnego EXP; moc rośnie bez sztucznego limitu wraz z poziomem, silniejszym atakiem fizycznym lub magicznym i pełnym EQ. Każdy walczy samodzielnie.")
+        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Poziom każdego najemnika to twój poziom {level}, bez osobnego EXP; moc rośnie bez sztucznego limitu wraz z poziomem, pełnymi obrażeniami, Bronią Duszy, trafieniami wielokrotnymi i całym EQ. Każdy walczy samodzielnie.")
         for role, spec in MERCENARIES.items():
             await self.send(f"{spec['name']} — {spec['role']}; {currency_price_text(price_silver(self.character,role))} po rabacie Charyzmy. Wpisz: najemnik wynajmij {spec['name']}.")
 
     async def mercenary_combat_turn_v1170(self, mob):
         from systems.encounter_brain_v1230 import mercenary_combo_v1230
+        from systems.mercenary_specialists_v1240 import (
+            specialist_attack_v1240, specialist_support_on_strike_v1240,
+        )
         if not self.character or self.current_hp <= 0 or not mob or not mob.alive or mob.room_id != self.character.room_id:
             return
         now = time.time()
@@ -288,7 +302,9 @@ class SessionMercenaryTavernsMixin:
             target_template = MOB_TEMPLATES.get(mob.template_id, {})
             major_threat = bool(target_template.get('boss') or target_template.get('world_boss') or
                                 target_template.get('uoss_superboss') or target_template.get('crypt_boss') or
-                                target_template.get('mythic_crypt_boss'))
+                                target_template.get('mythic_crypt_boss') or
+                                target_template.get('uoss_unique_superboss_key') or
+                                target_template.get('superboss') or target_template.get('rank') == 'boss')
             heal_threshold = (.89 if major_threat else (.78 if role != 'druid' else .68))
             if role in ("kaplan", "paladyn", "druid") and (
                     weakest.current_hp < weakest.max_hp() * heal_threshold and
@@ -316,20 +332,44 @@ class SessionMercenaryTavernsMixin:
                 power_base = mercenary_owner_full_power_v12213(
                     self.physical_power(), self.spell_power(), physical_eq, magic_eq, set_eq
                 )
-                # Every hire starts at FULL owner power (never an arbitrary 42%).
-                # Above-1.0 class multipliers still distinguish offensive roles.
+                # v1.23.1: actual full owner action throughput, not just the
+                # STR/INT power *before* Soul Weapon, stat build and multi-hits.
+                # Physical/magic hire types never punish the owner's build.
+                power_base = mercenary_owner_real_action_power_v1231(self, power_base)
+                # Native class specialization: an additional positive modifier,
+                # a situational skill, and a real chain reaction between hires.
+                specialist_factor, specialist_technique, chain_reaction = specialist_attack_v1240(
+                    mob, self.account_id, role, spec["attack_type"], merc_level, now,
+                    boss=major_threat, max_hp_hint=target_template.get("max_hp", 0),
+                )
+                # No arbitrary 42%, damage ceiling or downgrade for support roles.
                 power = max(1, int(power_base * max(1.0, float(spec["power"]))
                                    * mercenary_attack_multiplier(merc_level, tactic)
-                                   * mercenary_combo_v1230(role, roles, MERCENARIES)))
+                                   * mercenary_combo_v1230(role, roles, MERCENARIES)
+                                   * specialist_factor))
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 power = await self.apply_boss_defense(mob, power)
+                # Same world-tier damage rule used by the owner's normal hits.
+                tier_fn = getattr(self, "v0210_adjust_player_damage", None)
+                if callable(tier_fn):
+                    power = tier_fn(power)
                 power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
                 # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
                 # finish through the existing kill pipeline, including party credit.
                 damage = min(max(0, int(mob.hp)), max(1, int(power)))
                 mob.hp -= damage
-                technique = spec["ability"]
+                technique = specialist_technique
                 message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
+                if chain_reaction:
+                    message += f" {chain_reaction}."
+                # Protection/healing can support an attack rather than costing
+                # an additional damage turn. Anti-heal is always respected.
+                support_text = specialist_support_on_strike_v1240(
+                    role, weakest, damage, major_threat,
+                    superboss_healing_blocked_v11179(weakest),
+                )
+                if support_text:
+                    message += f" {support_text}"
                 experience_action = True
                 defeated_by_mercenary = mob.hp <= 0
             if message:

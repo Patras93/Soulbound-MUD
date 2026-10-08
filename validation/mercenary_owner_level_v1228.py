@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
+from systems.mercenary_taverns import mercenary_owner_real_action_power_v1231
 from systems.mercenary_growth_v1220 import (
     mercenary_owner_level_v1228, mercenary_unlocked, mercenary_attack_multiplier, mercenary_tactic,
 )

@@ -99,6 +99,57 @@ def mercenary_owner_full_power_v12213(physical_power, magic_power,
                             max(0.0, float(set_damage_multiplier)))))
 
 
+def mercenary_owner_real_action_power_v1231(owner, legacy_power, cadence=COOLDOWN):
+    """Owner's actual *combat throughput* during one mercenary cadence.
+
+    The old "100% power" promise only copied physical_power/spell_power. A real
+    Soulbound hit also has Soul Weapon, the uncapped effective-stat build curve,
+    racial/class/EQ/set bonuses and critical hits. One owner action can contain
+    multiple Speed/Haste hits, and actions occur more frequently than a hire's
+    five-second turn. Use the game's existing non-mutating expected-hit method to
+    avoid estimating those modifiers a second, incompatible way.
+
+    Legacy base is deliberately a FLOOR: magical and physical hires both inherit
+    the strongest complete offensive channel regardless of owner's build.
+    Nothing here changes owner's HP, mana, cooldowns, skills or saved contracts.
+    """
+    baseline = max(1.0, float(legacy_power))
+    estimator = getattr(owner, "consider_player_expected_hit", None)
+    if not callable(estimator):
+        return max(1, int(round(baseline)))
+    try:
+        hit = max(1.0, float(estimator()))
+        # Player expected hit includes Soul Power, effective-stat build growth,
+        # class/race, EQ, set, party synergies and expected ordinary criticals.
+        # Soul Weapon mastery + traits modify the real hit AFTER player_damage.
+        from core.progression_600 import soul_weapon_trait_totals_v11193
+        from core.progression_resources import soul_weapon_mastery_bonuses
+        character = owner.character
+        mastery = soul_weapon_mastery_bonuses(
+            int(getattr(character, "soul_weapon_mastery_level", 1) or 1)
+        )
+        traits = soul_weapon_trait_totals_v11193(
+            int(getattr(character, "soul_tier", 1) or 1),
+            str(getattr(character, "class_name", "") or ""),
+        )
+        hit *= (1.0 + float(mastery.get("damage_percent", 0)) / 100.0)
+        hit *= (1.0 + float(traits.get("damage_percent", 0)) / 100.0)
+        # Every owner series has Speed/Haste hits. Every hired ally deals the
+        # equivalent in its OWN five-second turn: no shared companion cooldown,
+        # no speed ceiling, no invented fixed damage amount.
+        count_fn = getattr(owner, "basic_attack_hit_count_v11196", None)
+        hits = max(1, int(count_fn())) if callable(count_fn) else 1
+        interval_fn = getattr(owner, "player_action_interval_v11154", None)
+        interval = float(interval_fn()) if callable(interval_fn) else float(cadence)
+        interval = max(0.05, interval)
+        owner_actions = max(1.0, float(cadence) / interval)
+        return max(1, int(round(max(baseline, hit) * hits * owner_actions)))
+    except (AttributeError, TypeError, ValueError, OverflowError, KeyError):
+        # Synthetic legacy test sessions / older character state retain the
+        # proven old full-equipment damage; never drop combat on a missing field.
+        return max(1, int(round(baseline)))
+
+
 def mercenary_follow_notice_v12210(names):
     """One compact NVDA line; a follower belongs to the owner, not party slots."""
     names = tuple(str(name).strip() for name in names if str(name).strip())
@@ -127,7 +178,7 @@ def mercenary_skill_lines_v12211(role):
         f"{spec['name']} ({spec['role']}): umiejętności wykonywane AUTOMATYCZNIE.",
         f"1. {spec['ability']}: atak {attack} na przeciwnika. Moc zależy od "
         "pełnej silniejszej mocy właściciela (fizycznej lub magicznej) i jego EQ. "
-        "Najemnik sam dobiera umiejętności. Atak używa pełnej mocy właściciela, w tym bonusów procentowych EQ i setów; nie ma limitu procentowego HP przeciwnika.",
+        "Najemnik sam dobiera umiejętności. Atak odpowiada pełnemu tempu ofensywnemu właściciela z Bronią Duszy, rozwojem statystyk, trafieniami Speed/Haste, premiami EQ i zestawów; bez limitu procentowego HP przeciwnika.",
     ]
     if role in _MERCENARY_HEAL_V12211:
         threshold, percent = _MERCENARY_HEAL_V12211[role]
@@ -142,5 +193,7 @@ def mercenary_skill_lines_v12211(role):
             f"ochrona do {_MERCENARY_GUARD_V12211[role]}% maksymalnego HP "
             "wybranego sojusznika, jeśli nie ma już osłony."
         )
+    from systems.mercenary_specialists_v1240 import specialist_description_v1240
+    lines.append("Specjalizacja 4.0: " + specialist_description_v1240(role))
     lines.append("Najemnik sam wybiera atak, leczenie lub osłonę w walce; gracz nie wydaje poleceń użycia skilli. Każdy z wynajętych najemników działa osobno, a bonus za poziom właściciela nie ma górnego limitu. Wspólna walka najemników fizycznych i magicznych daje im premię współpracy. Leczący i obrońcy reagują na stan HP i zagrożenie od bossa.")
     return lines

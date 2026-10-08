@@ -1,3 +1,4 @@
+from systems.mercenary_taverns import mercenary_owner_real_action_power_v1231
 # -*- coding: utf-8 -*-
 """Read-only mercenary skills catalogue; combat skills remain AI-controlled."""
 import ast

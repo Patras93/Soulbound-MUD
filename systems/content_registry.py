@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.23.0 - Zyjacy swiat i inteligentna walka"
+LATEST_CHANGES_TITLE = "Soulbound v1.24.0 - Najemnicy 4.0, specjalizacje klasowe"
 LATEST_CHANGES = [
+    "v1.24.0: Najemnicy 4.0 - 15 automatycznych specjalizacji klasowych, sytuacyjne warianty skilli, reagowanie na bossow i oslabione cele, lancuchy fizyczno-magiczne w ramach kontraktow, dodatkowa ochrona i leczenie przy atakach. Pelna realna moc oraz tempo wlasciciela nadal bez sztucznych limitow. Bez sterowania skillami, nowego EXP i zmian baz SQLite.",
+    "v1.23.1: Najemnicy biorą realną ofensywę i tempo gracza: Broń Duszy, krzywa statystyk, klasa i rasa, EQ, sety, krytyki, serie Speed/Haste oraz wielokrotne akcje w 5 sekund. Bez kar klasowych i sztucznego limitu obrażeń; zachowane AI, kontrakty, obrona bossów i world tier.",
     "v1.23.0: Inteligencja mobow 2.0, 3 fazy zwyklych bossow, autonomiczni najemnicy z lepsza ochrona i leczeniem, synergie magiczne/fizyczne, 3 nowe relikty, 2 prawdziwie wedrujace karawany z oferta sklepu oraz dochody z aktywnosci skaluja sie rowniez po etapie 600. Zachowane skrypty UOSS, brak nowych limitow zadawanych obrazen, starych kontraktow lub migracji zapisow.",
     "v1.22.14: Kazdy najemnik wykonuje wlasna akcje co 5 sekund zamiast dzielic cooldown trojki. Bonus za poziom nie konczy sie na 20 procentach. Pelna moc statystyk i EQ wlasciciela, bez limitu procentowego HP celu; wlasne skille, leczenie i oslony. Bez zmian w zapisach i kontraktach.",
     "v1.22.13: Znajomi przypisani do kont, z automatycznym widokiem nowych postaci po akceptacji zaproszenia. Najemnicy otrzymuja 100 procent silniejszej mocy wlasciciela wraz ze statystykami, plaskimi oraz procentowymi bonusami EQ, runami i setami. Bez limitow procentowych HP; moga konczyc walke z prawidlowym zaliczeniem nagrod.",
