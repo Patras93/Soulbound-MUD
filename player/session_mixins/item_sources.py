@@ -41,7 +41,7 @@ from systems.equipment_crafting import (
 )
 from systems.items_resources import BLACKSMITH_TIERS, fish_unlock_level
 from systems.milestone import TECH_SET_UPGRADE_COSTS_V0320
-from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS
+from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS, V1215_ENCHANT_RECIPES
 
 V0610_ITEM_SOURCE_VERSION = "0.61.0"
 V0611_CRAFT_GUIDANCE_VERSION = "0.61.1"
@@ -507,12 +507,12 @@ def _special_use_entries_v0611(item_id):
         rows.append("V-MAX Upgrade: moduł jest zużywany do trwałego skrócenia chłodzenia V-MAX.")
 
     enchant_uses = []
-    for key, data in V03053_ENCHANTS.items():
-        label, _stat, _base, mats = data
+    for recipe in V1215_ENCHANT_RECIPES.values():
+        mats = recipe['ingredients']
         if item_id in mats:
-            enchant_uses.append(f"{label} x{int(mats[item_id])}")
+            enchant_uses.append(f"{recipe['name']} x{int(mats[item_id])}")
     if enchant_uses:
-        rows.append("Zaklinanie EQ: materiał zużywają zaklęcia: " + ", ".join(enchant_uses) + ".")
+        rows.append("Zaklinanie EQ: materiał zużywają zaklęcia: " + ", ".join(enchant_uses[:12]) + (f" i {len(enchant_uses)-12} dalszych receptur." if len(enchant_uses)>12 else "."))
 
     return rows
 
@@ -1023,6 +1023,14 @@ class SessionItemSourcesV0610Mixin:
                 if requested_profession and normalize_lookup_text(profession) != requested_profession:
                     continue
                 ready.append((profession, state["required_profession"], str(recipe.get("name") or recipe_id), label, recipe))
+        # Zaklinanie nie wytwarza przedmiotów: jego receptury kończą się
+        # na wyposażonym slocie, dlatego są liczone obok receptur craftu.
+        if not requested_profession or requested_profession == "zaklinanie":
+            equipped = bool(self.server.db.equipment(self.account_id))
+            for recipe in V1215_ENCHANT_RECIPES.values():
+                state = self._recipe_readiness_v0611(V1215_ENCHANT_RECIPES, recipe)
+                if equipped and state["ready"]:
+                    ready.append(("Zaklinanie", state["required_profession"], recipe["name"], "Zaklinanie EQ", recipe))
         ready.sort(key=lambda row: (normalize_lookup_text(row[0]), int(row[1]), normalize_lookup_text(row[2])))
         room_name = str(ROOMS.get(self.character.room_id, {}).get("name") or self.character.room_id)
         if requested_profession:
@@ -1046,8 +1054,11 @@ class SessionItemSourcesV0610Mixin:
             # osobno dla profesji, żeby jedna duża grupa nie ukrywała innych.
             for number, (_profession, required, name, _label, recipe) in enumerate(rows[:20], 1):
                 output_id = str(recipe.get("output") or "")
-                output_name = ITEMS.get(output_id, {}).get("name", output_id or name)
-                await self.send(f"{number}. {name} -> {output_name}. Wymagany poziom {required}.")
+                output_name = ("Zaklęcie na założonym EQ" if recipe.get("enchant_key")
+                               else ITEMS.get(output_id, {}).get("name", output_id or name))
+                extra = (f" Komenda: zaklinaj <slot> {recipe['enchant_key']} {required}."
+                         if recipe.get('enchant_key') else "")
+                await self.send(f"{number}. {name} -> {output_name}. Wymagany poziom {required}.{extra}")
                 shown_total += 1
             if len(rows) > 20:
                 await self.send(f"Dalsze możliwe receptury {profession}: {len(rows) - 20}. Użyj receptury lub nazwy profesji, aby zawęzić listę.")

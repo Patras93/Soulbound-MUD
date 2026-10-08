@@ -373,8 +373,14 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.20.2 - Sklep Zaklinania"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.0 - Najemnicy 2.0 i Wielkie Wydarzenia"
 LATEST_CHANGES = [
+    "v1.22.0: Najemnicy zdobywaja wlasne EXP i poziomy podczas walki, trzy specjalizacje od poziomu 10 oraz umiejetnosci na progach 25 i 50; staly najem i skalowanie do EQ bez zmian. Cztery wieloetapowe wydarzenia swiata w nowych krainach: inwazja, oblezenie, ratunek i kryzys, postep dla kazdego uczestnika party, dzienne nagrody.",
+    "v1.21.3: Najemnicy licza moc ataku od silniejszej efektywnej mocy fizycznej lub magicznej wlasciciela (razem z EQ), niezaleznie od typu najemnika. Ich typ obrazen, mnozniki, cooldown i limit boss damage nie ulegly zmianie.",
+    "v1.21.2: Najemnicy zostaja na stale po jednorazowym wynajmie; aktywne stare kontrakty migruja bezplatnie. Najemnik status pokazuje stale zatrudnienie, najemnik odeslij <imie|wszyscy> zwalnia. Ich moc skaluje sie ze statystykami postaci, bez wlasnych leveli.",
+    "v1.21.1: help najemnicy / najemnik / mercenaries / tawerna — kompletna pomoc wynajmu, lista 15 postaci i komend, widoczna w kategoriach SPOŁECZNE; bez zmian zasad wynajmu.",
+    "v1.21.0: Legendarne Wyprawy — 4 niezależne szlaki w nowych krainach, 20 lokacji, minibossowie, bossowie z fazami HP, questy, odnawialne kontrakty i rzadkie surowce do craftingu; komenda legendarnewyprawy dla NVDA.",
+    "v1.20.3: Audyt wszystkich 36 sklepów i zakupów 14 narzędzi na izolowanej bazie SQLite. Poprawiono czytelność komunikatów kupna dla NVDA; utrzymano zabezpieczenia przed podwójnym zakupem i utratą waluty.",
     "v1.20.2: Kwatermistrzyni Selene znowu sprzedaje Fokus Runiczny w Komnacie Arkanów (`list` / `kup 1`); osobne sklepy Maga i Psionika pozostają bez zmian.",
     "v1.20.1: Naprawiono `zamowienia oddaj` dla wszystkich 14 profesji; starsze, gotowe zamówienia po awarii v1.20.0 można odzyskać bez ponownego płacenia materiałami. Brak zmian ekonomii i balansu.",
     "v1.20.0: Wielki Świat — 77 lokacji w 4 krainach, 4 bossów, 12 questów, 8 NPC, 8 przedmiotów, 4 prawdziwe godzinne wydarzenia i komenda krainy dla NVDA.",

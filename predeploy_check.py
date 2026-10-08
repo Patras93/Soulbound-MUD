@@ -3911,4 +3911,62 @@ _enchanting_vendor = audit_enchanting_vendor_v1202()
 if _enchanting_vendor['error_count']:
     raise RuntimeError('ENCHANTING VENDOR v1.20.2: ' + '; '.join(_enchanting_vendor['errors']))
 print(f"ENCHANTING VENDOR v1.20.2 FAST: {_enchanting_vendor['checks']} checks PASS")
-print("Soulbound v1.20.2 FAST PREDEPLOY PASS")
+from validation.final_stability_v1203 import audit_final_stability_v1203
+_final_stability_v1203 = audit_final_stability_v1203()
+if _final_stability_v1203['error_count']:
+    raise RuntimeError('FINAL STABILITY v1.20.3: ' + '; '.join(_final_stability_v1203['errors']))
+print(f"FINAL STABILITY v1.20.3 FAST: {_final_stability_v1203['checks']} checks, "
+      f"{_final_stability_v1203['shops']} shops, "
+      f"{_final_stability_v1203['profession_tools']} tools PASS")
+from validation.legendary_expeditions import audit_legendary_expeditions_v1210
+_legendary_v1210 = audit_legendary_expeditions_v1210()
+if _legendary_v1210['error_count']:
+    raise RuntimeError("LEGENDARY EXPEDITIONS v1.21.0: " + "; ".join(_legendary_v1210['errors']))
+print(f"LEGENDARY EXPEDITIONS v1.21.0 FAST: {_legendary_v1210['checks']} checks PASS")
+# v1.21.1: check the help definitions without assembling the complete world.
+# The fast lane cannot import world.equipment_help directly (runtime loader
+# resolves the world dependencies); the live command is tested separately.
+from pathlib import Path as _PathHelpV1211
+_help_file_v1211 = _PathHelpV1211(__file__).resolve().parent / "world" / "equipment_help.py"
+_help_source_v1211 = _help_file_v1211.read_text(encoding="utf-8")
+_help_mark_v1211 = "# v1.21.1: osobny, prawdziwy temat HELP dla istniejącej Tawerny Najemników."
+if _help_mark_v1211 not in _help_source_v1211:
+    raise RuntimeError("MERCENARY HELP v1.21.1 definitions missing")
+_help_test_scope_v1211 = {"HELP_TOPICS": {}, "HELP_TOPIC_ALIASES": {}}
+exec(compile(_help_source_v1211.split(_help_mark_v1211, 1)[1], str(_help_file_v1211), "exec"), _help_test_scope_v1211)
+_help_v1211 = _help_test_scope_v1211["HELP_TOPICS"]
+_aliases_v1211 = _help_test_scope_v1211["HELP_TOPIC_ALIASES"]
+from systems.mercenary_taverns import MERCENARIES as _mercenaries_v1211
+_help_text_v1211 = " ".join(_help_v1211.get("najemnicy", []))
+for _alias_v1211 in ("najemnik", "najemnikow", "mercenary", "mercenaries", "tawerna"):
+    if _aliases_v1211.get(_alias_v1211) != "najemnicy":
+        raise RuntimeError("MERCENARY HELP v1.21.1 missing alias: " + _alias_v1211)
+for _role_v1211, _spec_v1211 in _mercenaries_v1211.items():
+    if _spec_v1211["name"] not in _help_text_v1211:
+        raise RuntimeError("MERCENARY HELP v1.21.1 missing hireable name: " + _role_v1211)
+for _required_v1211 in ("najemnik status", "najemnik wynajmij", "najemnik odeslij", "bez limitu czasu", "pomocnika UOSS"):
+    if _required_v1211 not in _help_text_v1211:
+        raise RuntimeError("MERCENARY HELP v1.21.1 missing rule: " + _required_v1211)
+_help_command_source_v1211 = (_PathHelpV1211(__file__).resolve().parent / "player/session_mixins/help_system.py").read_text(encoding="utf-8")
+if '"SPOŁECZNE: help gracze, help druzyny, help najemnicy,' not in _help_command_source_v1211:
+    raise RuntimeError("MERCENARY HELP v1.21.1 missing category entry")
+print("MERCENARY HELP v1.21.1: 15 hireable names, aliases and rules PASS")
+print("Soulbound v1.21.2 MERCENARY CONTRACT CHECK PASS")
+
+# v1.21.3: cross-class physical/magic hiring regression and owner equipment scaling.
+from validation.mercenary_scaling import audit_mercenary_scaling_v1213
+_mercenary_scale_v1213 = audit_mercenary_scaling_v1213()
+if _mercenary_scale_v1213['error_count']:
+    raise RuntimeError('MERCENARY SCALING v1.21.3: ' + '; '.join(_mercenary_scale_v1213['errors']))
+print(f"MERCENARY SCALING v1.21.3: {_mercenary_scale_v1213['checks']} checks PASS")
+# v1.21.4: prevent decorative hyphens returning to smithing/rare resource names.
+from validation.crafting_names_v1214 import audit_crafting_names_v1214
+_name_gate_v1214 = audit_crafting_names_v1214()
+if _name_gate_v1214["error_count"]:
+    raise RuntimeError("CRAFT NAME CLEAN v1.21.4: " + "; ".join(_name_gate_v1214["errors"]))
+print(f"CRAFT NAME CLEAN v1.21.4: {_name_gate_v1214['checks']} checks PASS")
+# v1.22.0: in-memory progression and daily claim regression.
+from validation.mercenary_crises_v1220 import validate_mercenary_crises_v1220
+_count_v1220 = validate_mercenary_crises_v1220()
+print(f"MERCENARIES 2.0 + WORLD CRISES v1.22.0: {_count_v1220} checks PASS")
+print('Soulbound v1.22.0 FAST PREDEPLOY PASS')

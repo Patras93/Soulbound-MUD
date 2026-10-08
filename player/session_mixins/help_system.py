@@ -92,6 +92,8 @@ class SessionHelpSystemMixin:
                 "bufor / bufory [xp|loot|quest|system|chat|party|tell|walka|all] [1-100] - sesyjne bufory ostatnich komunikatów; działa też historia xp / historia loot / historia quest",
                 "eksploracja / exploration [all] - procent odkrycia stref i świata",
                 "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
+                "najemnik rozwoj i najemnik specjalizacja <imię> <szturm|obrona|wsparcie> - rozwój najemników 2.0",
+                "kryzysy / kryzys start|status|ratuj|odbierz - wielkie wydarzenia świata w 4 krainach",
                 "kariera [status|walka|profesje|rekordy|postep] — odczyt trwałych statystyk; osiagniecia postep — kolejne progi informacyjne",
                 "nawigacja [status|krok|okolica|cel <nazwa>|druzyna] — Nawigacja 2.0 dla NVDA",
                 "druzyna raport / zbiorka / trasa <cel|krok|off> — Party 4.0, koordynacja bez teleportacji",
@@ -104,7 +106,7 @@ class SessionHelpSystemMixin:
                 "zdobycze [legendarne|epickie|rzadkie|wszystkie] [1-30] / zdobycze szukaj <nazwa> — czytelna lista zapisanych dropów",
                 "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
                 "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
-                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik wynajmij <imię>; najemnik status; najemnik zwolnij <imię|wszyscy> - do 3 NPC na 45 minut, niezależnie od pomocników UOSS",
+                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy> - do 3 NPC na stałe, niezależnie od pomocników UOSS",
                 "look lub l - opis aktualnej lokacji",
                 "exits / ex - kierunki i nazwy lokacji, do których prowadzą; exits info dodaje strefę i poziom zagrożenia",
                 "map / mapa - w świecie mapa regionu, w instancji mapa sektora 100 pięter z procentem, sekretami i checkpointami; mapa instancje - podsumowanie",
@@ -591,7 +593,7 @@ class SessionHelpSystemMixin:
                 await self.send("WALKA: help walka, help statusy, help wimpy, help bossowie, help superbossy, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
                 await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help event_exp, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
                 await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help archeologia, help kartografia, help craftmastery.")
-                await self.send("SPOŁECZNE: help gracze, help druzyny, help przekazywanie, help reputacja, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
+                await self.send("SPOŁECZNE: help gracze, help druzyny, help najemnicy, help przekazywanie, help reputacja, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
                 await self.send("SYSTEM: help logowanie, help smierc, help recaps, help loothistory2, help accessibility_presets, help audyt_v03055, help opisy, help zmiany.")
                 if self.is_admin():
                     await self.send("ADMINISTRATOR: help admin.")

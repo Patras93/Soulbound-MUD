@@ -1,4 +1,131 @@
-Aktualna paczka: v1.20.2
+Aktualna paczka: v1.22.0
+Soulbound v1.22.0 — NAJEMNICY 2.0 I WIELKIE WYDARZENIA ŚWIATA
+==============================================================================
+- 15 najemników zdobywa własne EXP i poziomy za rzeczywiste działania w walce.
+- Poziomy nie mają twardego końca, ale premia bojowa ma bezpieczny limit.
+- Od poziomu 10 można wybrać jedną specjalizację: szturm, obrona albo wsparcie.
+- Kolejne techniki odblokowują się na poziomach 25 i 50.
+- Stałe umowy, maksymalnie trzech najemników i skalowanie do właściciela/EQ zachowane.
+- Postęp jest zapisywany w SQLite i nie znika po odesłaniu najemnika.
+- Cztery wieloetapowe wydarzenia: inwazja Ogrodów Zorzy, oblężenie Burzowych
+  Stepów, ratunek na Koralowych Urwiskach i kryzys Mechanicznej Doliny.
+- Każde wydarzenie: fale 3 zwiadowców i 4 najeźdźców w prawdziwych lokacjach, ratunek w obozowisku,
+  finał z regionalnym bossem, osobna nagroda w obozie. Działa solo i w party.
+- Nagrody: regionalne esencje i srebro zależne od poziomu krainy.
+- Postęp wydarzeń i dzienny limit nagród zapisywany trwale, niezależnie dla postaci.
+- Komendy: najemnik rozwoj, najemnik specjalizacja, kryzysy,
+  kryzys start/status/ratuj/odbierz, help wielkie_wydarzenia.
+- Bez raportów audytów w paczce, bez zmian poprzedniego balansu i zapisów EQ.
+
+Aktualna paczka: v1.21.5
+Soulbound v1.21.5 — RECEPTURY ZAKLINANIA
+==============================================================================
+- Uzupełniono brakujący katalog działających receptur Zaklinania: siedem
+  specjalizacji i warianty poziomów od 1 do 600, zależnie od rodzaju zaklęcia.
+- `receptury zaklinanie` pokazuje przegląd, a `receptury zaklinanie sila`
+  szczegóły: wymagany poziom, Fokus Runiczny, materiały i komendę wykonania.
+- `zaklinaj <slot> <typ> [poziom]`: jawny poziom używa wybranej receptury;
+  bez poziomu pozostaje dotychczasowy typ i efekt zaklęcia.
+- Warianty wyższych poziomów wymagają rosnącej ilości kamienia runicznego,
+  a od poziomu 400 także odpowiedniej rudy wysokiego tieru.
+- Wyższe receptury przyznają dodatkowy bonus do statystyki i skalowane EXP.
+- `receptury mozliwe zaklinanie` uwzględnia zaklęcia z posiadanymi materiałami,
+  narzędziem, wymaganym tierem i założonym ekwipunkiem.
+- Jeden aktywny czar na slot: nowy zastępuje poprzedni. Stare EQ, stare
+  zaklęcia i dane postaci pozostają ważne; bez migracji bazy.
+- Pełna paczka gry z CHANGELOG_PL.txt, bez raportów audytów.
+
+Poprzednia paczka: v1.21.4
+Aktualna paczka: v1.21.4
+Soulbound v1.21.4 — NAZWY CRAFTU BEZ MINUSÓW
+==============================================================================
+- Usunięto separator " - " z nazw całego zestawu pancerzy Kowalstwa, np.
+  "Pancerz - Srebrny" -> "Pancerz Srebrny". Dotyczy wszystkich slotów i tierów.
+- Usunięto zbędny separator również z nazw rzadkich ryb, drewna i ziół.
+- Poprawiono też 17 nazw rud świata; nazwę minerału zachowano w nawiasie.
+- Wyświetlane nazwy receptur craftu używają teraz nazw bez minusa.
+- ID przedmiotów, receptur, materiały, ceny, statystyki, EXP i zapisy
+  ekwipunku nie uległy zmianie: istniejące przedmioty pozostają ważne.
+- Dodano ochronę przed powrotem takich separatorów w testach predeploy.
+- Pełna paczka gry i CHANGELOG_PL.txt, bez raportów AUDYT_*.txt.
+
+Poprzednia paczka: v1.21.3
+Aktualna paczka: v1.21.3
+Soulbound v1.21.3 — SKALOWANIE NAJEMNIKÓW NIEZALEŻNE OD KLASY GRACZA
+==============================================================================
+- Mag, Kapłan, Nekromanta i inni magiczni najemnicy są równie skuteczni przy
+  silnym fizycznym właścicielu; analogicznie fizyczni najemnicy przy Magu.
+- Moc ataku najemników bazuje na silniejszym z dwóch *efektywnych* ataków
+  właściciela, fizycznym lub magicznym, z uwzględnieniem premii wyposażenia.
+- Typ ataku, zdolności, mnożniki, odporności celu, limit 1,5% HP bossa na
+  trafienie i wspólny cooldown 5 sekund pozostają bez zmian.
+- Nie zmieniono działania leczenia i osłon, stałych umów, wynajmu, kosztów,
+  profilu postaci, sqlite i relacji z pomocnikami UOSS.
+- Odświeżono opis najemników dla NVDA i dodano testy dla mieszanego party.
+- Pełny pakiet gry z CHANGELOG_PL.txt, bez raportów audytów.
+
+Poprzednia paczka: v1.21.2
+Aktualna paczka: v1.21.2
+Soulbound v1.21.2 — NAJEMNICY NA STAŁE
+==============================================================================
+- Jednorazowy wynajem: najemnicy pozostają z postacią bez limitu czasu,
+  również po wylogowaniu i restarcie serwera. Do 3 równocześnie.
+- `najemnik status` podaje stałe zatrudnienie. `najemnik odeslij <imię|wszyscy>`
+  oraz stara komenda `najemnik zwolnij` pozwalają ich usunąć; ponowny wynajem płatny.
+- Dotychczas aktywne 45-minutowe umowy zostają bezpłatnie zamienione na stałe
+  przy uruchomieniu nowej wersji. Wygasłe umowy nie są przywracane.
+- Brak oddzielnych leveli: siła najemników skaluje się z aktualną mocą gracza;
+  ich umiejętności i osobne mnożniki pozostają bez zmian.
+- Zachowano 15 najemników, niezależność od pomocników UOSS, ceny oraz zasadę
+  jednego działania najemnika co 5 sekund; bez resetowania SQLite.
+- Odświeżono help najemnicy, help komendy i komunikaty dla NVDA.
+- Pełna paczka + CHANGELOG_PL.txt, bez raportów AUDYT_*.txt.
+
+Poprzednia paczka: v1.21.1
+Aktualna paczka: v1.21.1
+Soulbound v1.21.1 — HELP NAJEMNICY FIX
+==============================================================================
+- Naprawiono brak osobnego tematu help najemnicy. Była tylko linia w help komendy,
+  przez co wpisanie help najemnicy kończyło się komunikatem o nieznanym temacie.
+- Dodano szczegółowe objaśnienia: oferta w tawernie, wynajem, status w dowolnym
+  miejscu, zwalnianie, limit 3, czas 45 minut, rabat Charyzmy, pomocnicy UOSS.
+- Pełna lista 15 najemników jest pobierana z aktualnego katalogu gry, by help nie
+  pokazywał nieistniejących imion. Aliasy: help najemnik, help mercenary,
+  help mercenaries, help tawerna oraz help tawerna najemników.
+- Temat jest widoczny w help tematy, help wszystko i indeksie SPOŁECZNE.
+- Dodano kontrolę regresji dostępności pomocy przy szybkim predeploy.
+- Nie zmieniono działania najemników, ich cen, umów, AI, SQLite ani innych systemów.
+- Pełna paczka z changelogiem; bez plików AUDYT_*.txt.
+
+Poprzednia paczka: v1.21.0
+Soulbound v1.21.0 — LEGENDARNE WYPRAWY
+==============================================================================
+- Rozbudowano cztery regiony Wielkiego Świata o 20 połączonych lokacji (po pięć na wyprawę); wejścia w archiwach regionalnych.
+- Cztery nowe historie czteroetapowe: rozmowa ze świadkiem, patrol, miniboss, finałowy boss; osobny zapis questów na konto.
+- Czterech minibossów i czterech bossów z istniejącą mechaniką faz 75/50/25% oraz żywiołami regionów. Normalne moby pozostają pasywne do zaatakowania.
+- Cztery odnawialne co 60 minut kontrakty mistrzowskie, niezależne od fabularnych questów, dostępne solo i w drużynie.
+- Osiem nowych materiałów, cztery unikalne przedmioty wyposażenia i cztery receptury Kowalstwa; skarbiec raz na 24h tylko przy bossie.
+- Komendy NVDA: legendarnewyprawy, legendarnewyprawy <nazwa>, legendarnewyprawy postep; help legendarne_wyprawy.
+- Trwałość postępów obsługuje istniejący SQLite: bez migracji, resetów postaci, duplikacji nagród lub zastępowania ekspedycji oceanicznych.
+- Nie zmieniono bazowych klas, ras, umiejętności, statystyk, kontraktów legendarnych v0.22 ani starej ekonomii.
+- Pełny ZIP z changelogiem, bez raportów AUDYT_*.txt. Brak wdrożenia Railway i zmian GitHub.
+
+Aktualna paczka: v1.20.3
+Soulbound v1.20.3 — FINAL STABILITY / REGRESJA SKLEPÓW I NARZĘDZI
+==============================================================================
+- Wykonano przekrojowy audyt sklepów i narzędzi na czystej, testowej bazie SQLite.
+- Dodano trwałe testy wykonujące realne `list` / `shop info 1` w 36 sklepach.
+- Dla 14 narzędzi profesji testowane są kolejno: brak pieniędzy, zakup numerem,
+  trwały zapis, blokada ponownego zakupu nazwą i brak drugiego pobrania waluty.
+- Testowane są przypisania sprzedawców do lokacji, kompletność ofert i cen.
+- Poprawiono krótkie komunikaty zakupów pod NVDA: neutralne gramatycznie
+  `Kupujesz: ... Koszt: ...` i `Narzędzie ... jest już przypisane ...`.
+- Zachowano poprawki zamówień v1.20.1 i sklepu zaklinania v1.20.2.
+- Bez zmian EXP, HP, dropów, receptur, cen, struktury SQLite i postaci.
+- Pełna paczka produkcyjna z CHANGELOG_PL.txt, bez plików AUDYT_*.txt.
+- Bez operacji GitHub i bez wdrożenia Railway.
+
+Poprzednia paczka: v1.20.2
 Soulbound v1.20.2 — SKLEP ZAKLINANIA / FOKUS RUNICZNY
 ==============================================================================
 - Naprawiono regresję z rozdzielenia sklepów klasowych: po migracji Mag/Psionik

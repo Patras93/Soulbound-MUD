@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Small release test: payments, contracts and isolation from UOSS helpers."""
+"""Regression: payments, permanent contracts, migration and UOSS isolation."""
 import sqlite3
+import time
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from systems.mercenary_taverns import MERCENARIES, mercenary_role, pick_next_contract
 from core.classes_skills import CLASSES
@@ -52,13 +53,35 @@ def mercenary_contract_audit_v1170():
     check(db.hire_mercenary(2,'lucznik',13000,now=1000)=='full','three contract cap')
     rows=db.mercenary_contracts(2,1001)
     check(len(rows)==3, '3 active')
+    check(all(row['expires_at']==0 for row in rows), 'all hires permanent')
     check(pick_next_contract(rows,'mag',1001)=='wojownik','round robin')
+    check(pick_next_contract(rows,'mag',10**12)=='wojownik','permanent combat after long time')
     check(db.hire_mercenary(3,'paladyn',2000000,now=1000)=='money','insufficient funds')
     check(db.mercenary_contracts(3,1001)==[],'no free contract')
-    check(db.mercenary_contracts(2,4000)==[],'expire')
-    check(db.hire_mercenary(2,'lucznik',300,now=4000)=='ok','hire after expiration')
+    check(len(db.mercenary_contracts(2,10**12))==3,'no expiry at any time')
+    check(db.hire_mercenary(2,'lucznik',300,now=4000)=='full','no fourth hire after 45 minutes')
+    check(db.dismiss_mercenary(2,'mag')==1,'dismiss one')
+    check(db.hire_mercenary(2,'lucznik',300,now=4000)=='ok','hire in freed slot')
     db.dismiss_mercenary(2,'lucznik')
-    check(not db.mercenary_contracts(2,4001),'dismiss')
+    check({row['role'] for row in db.mercenary_contracts(2,4001)}=={'kaplan','wojownik'},'dismiss only selected')
+    check(db.dismiss_mercenary(2,'lucznik')==0,'cannot dismiss twice')
+    check(db.dismiss_mercenary(2)==2,'dismiss all')
+    check(db.mercenary_contracts(2,4001)==[],'all dismissed')
+    check(db.mercenary_contracts(3,4001)==[],'other character unaffected')
+    # Existing 45-minute contracts: keep active hires, discard expired ones,
+    # and migrate without charging a second time.
+    clock=time.time()
+    db.conn.execute("INSERT INTO mercenary_contracts VALUES (?,?,?)",(5,'paladyn',clock+2000))
+    db.conn.execute("INSERT INTO mercenary_contracts VALUES (?,?,?)",(5,'mag',clock-1))
+    old_balance=db.shared_wallet_for_master(1)[0]
+    db.create_mercenary_schema()
+    check({row['role'] for row in db.mercenary_contracts(5)}=={'paladyn'}, 'preserve only active historical hire')
+    check(db.mercenary_contracts(5)[0]['expires_at']==0,'convert historical hire to permanent')
+    check(db.shared_wallet_for_master(1)[0]==old_balance,'migration does not charge wallet')
+    db.create_mercenary_schema()
+    check(db.mercenary_contracts(5)[0]['expires_at']==0,'restart retains permanent hire')
+    check(db.mercenary_contracts(6)==[],'accounts isolated')
+    check(pick_next_contract([{'role':'paladyn','expires_at':100}], None, 101) is None,'ignore obsolete timed hire')
     check('Popoi' not in MERCENARIES and 'Primm' not in MERCENARIES,'UOSS independent')
     db.conn.close()
     return {'checks':checks,'errors':0}

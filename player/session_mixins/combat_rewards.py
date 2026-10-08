@@ -305,6 +305,12 @@ class SessionCombatRewardsMixin:
                     fight_duration_ms=fight_duration_ms,
                 ))
 
+                # v1.22.0: every same-room participant advances their own
+                # active crisis on genuine regional victories. Never on summons.
+                if template.get("v1200_region"):
+                    for session in recipients:
+                        await session.record_world_crisis_kill_v1220(mob, template)
+
                 if template.get("v020_megadungeon_boss"):
                     _mk=str(template.get("v020_mega_key")); _mi=int(template.get("v020_mega_index",0) or 0)
                     for session in recipients:

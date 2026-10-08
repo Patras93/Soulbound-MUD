@@ -385,7 +385,7 @@ class SessionShopsTeachersMixin:
                 )
                 if owned_quantity > 0:
                     await self.send(
-                        f"{item['name']} jest już przypisany do tej postaci. "
+                        f"Narzędzie {item['name']} jest już przypisane do tej postaci. "
                         "Każde narzędzie profesji można kupić tylko raz."
                     )
                     return
@@ -469,11 +469,11 @@ class SessionShopsTeachersMixin:
             self.server.db.save_character(self.character)
             if quantity == 1:
                 await self.send(
-                    f"Kupujesz {item['name']} za {purchase_cost_text}."
+                    f"Kupujesz: {item['name']}. Koszt: {purchase_cost_text}."
                 )
             else:
                 await self.send(
-                    f"Kupujesz {quantity} szt. {item['name']} za "
+                    f"Kupujesz: {quantity} szt. {item['name']}. Koszt: "
                     + purchase_cost_text + "."
                 )
             if cashback > 0:

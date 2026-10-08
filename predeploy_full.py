@@ -22,6 +22,11 @@ def main():
         import server
         try:
             ns = vars(server)
+            from validation.final_stability_v1203 import audit_final_stability_v1203
+            _final = audit_final_stability_v1203()
+            print(f"FINAL STABILITY v1.20.3 RUNTIME: {_final['checks']} checks, {_final['error_count']} errors")
+            if _final['error_count']:
+                raise SystemExit('FINAL STABILITY: ' + '; '.join(_final['errors']))
             from validation.enchanting_vendor_v1202 import audit_enchanting_vendor_v1202
             _enchanting_vendor = audit_enchanting_vendor_v1202()
             print(f"ENCHANTING VENDOR v1.20.2 RUNTIME: {_enchanting_vendor['checks']} checks, {_enchanting_vendor['error_count']} errors")
@@ -138,6 +143,12 @@ def main():
             print(f"GREAT WORLD v1.20.0 RUNTIME: {_great_world_v1200['checks']} checks, {_great_world_v1200['error_count']} errors")
             if _great_world_v1200['error_count']:
                 raise RuntimeError("GREAT WORLD v1.20.0: " + "; ".join(_great_world_v1200['errors']))
+
+            from validation.legendary_expeditions import audit_legendary_expeditions_v1210
+            _legendary_v1210 = audit_legendary_expeditions_v1210()
+            print(f"LEGENDARY EXPEDITIONS v1.21.0 RUNTIME: {_legendary_v1210['checks']} checks, {_legendary_v1210['error_count']} errors")
+            if _legendary_v1210['error_count']:
+                raise RuntimeError("LEGENDARY EXPEDITIONS v1.21.0: " + "; ".join(_legendary_v1210['errors']))
 
             from validation.order_turnin_hotfix_v1201 import audit_order_turnin_hotfix_v1201
             _order_hotfix_v1201 = audit_order_turnin_hotfix_v1201()

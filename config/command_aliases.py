@@ -942,7 +942,8 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "kariera": "career2", "kariera2": "career2", "career2": "career2",
 })
 
-# v1.20.0: small NVDA regional atlas for authored world expansion.
+# v1.20.0 and v1.21.0: small NVDA atlases for authored world expeditions.
 COMMAND_ALIAS_DEFINITIONS.update({
+    "legendarnewyprawy": "legendaryexpeditions1210", "wyprawylegendarne": "legendaryexpeditions1210", "legendaryexpeditions": "legendaryexpeditions1210",
     "krainy": "greatworld", "wielkiswiat": "greatworld", "greatworld": "greatworld",
 })

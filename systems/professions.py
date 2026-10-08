@@ -230,6 +230,44 @@ V03053_ENCHANTS={
  'mana':('Mana','mana',15,{'runestone_ore':1,'star_moss':1}),
 }
 
+
+# v1.21.5: Wykonywalne receptury Zaklinania, nie tylko informacja o profesji.
+# Zachowujemy V03053_ENCHANTS (i dotychczasowe zaklęcia), a warianty mocy
+# są wybierane przez jawny wymagany poziom: zaklinaj <slot> <typ> <poziom>.
+V1215_ENCHANT_REQUIREMENTS = {
+    "sila": 1, "zrecznosc": 1, "kondycja": 30,
+    "inteligencja": 60, "wola": 100, "hp": 160, "mana": 220,
+}
+V1215_ENCHANT_TIERS = (1, 30, 60, 100, 160, 220, 300, 400, 500, 600)
+V1215_ENCHANT_RECIPES = {}
+for _ekey, (_elabel, _estat, _ebase, _ebase_mats) in V03053_ENCHANTS.items():
+    _start = V1215_ENCHANT_REQUIREMENTS[_ekey]
+    for _elvl in V1215_ENCHANT_TIERS:
+        if _elvl < _start:
+            continue
+        _emats = dict(_ebase_mats)
+        if _elvl > _start:
+            _emats['runestone_ore'] = max(_emats.get('runestone_ore', 0), 1 + _elvl // 100)
+            if _elvl >= 400:
+                _emats[f'ore_400_{_elvl}'] = 1 + (_elvl - 400) // 100
+        _recipe_id = f'{_ekey}_{_elvl}'
+        V1215_ENCHANT_RECIPES[_recipe_id] = {
+            'name': f'Zaklęcie {_elabel} { _elvl}',
+            'enchant_key': _ekey,
+            'stat': _estat,
+            'base_amount': _ebase,
+            'min_profession_level': _elvl,
+            'profession': 'Zaklinanie',
+            'tool_type': 'enchanting',
+            'tool_item_id': 'runic_focus',
+            'tool_name': 'Fokus Runiczny',
+            'stations': ('guild_arcane_chamber',),
+            'ingredients': _emats,
+            # Wariant wysokiego poziomu daje dodatkową moc, niezależnie od
+            # dotychczasowego skalowania z poziomem profesji.
+            'tier_bonus': max(0, (_elvl - _start) // 25),
+        }
+
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
 # v1.15.0: stolarstwo i krawiectwo współtworzą endgame EQ.

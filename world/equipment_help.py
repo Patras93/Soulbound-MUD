@@ -1339,3 +1339,59 @@ if "nawigacja" in HELP_TOPICS:
     HELP_TOPICS["nawigacja"].append("Rozszerzenie v1.19.1: nawigacja status, krok, okolica, cel <nazwa>. help nawigacja2.")
 if "druzyny" in HELP_TOPICS:
     HELP_TOPICS["druzyny"].append("Party 4.0: raport, zbiorka, trasa <cel>/krok/off. help party4.")
+
+
+# v1.21.1: osobny, prawdziwy temat HELP dla istniejącej Tawerny Najemników.
+# Jedyna lista nazw/klas pochodzi z runtime, żeby opis nie rozjeżdżał się z ofertą.
+from systems.mercenary_taverns import MERCENARIES as _MERCENARIES_HELP_V1211
+
+HELP_TOPICS["najemnicy"] = [
+    "NAJEMNICY — w miejskich tawernach wynajmujesz pomoc w walce; to osobny system od pomocników UOSS.",
+    "najemnicy — pokazuje ofertę piętnastu najemników i aktualne ceny, jeśli jesteś w tawernie.",
+    "najemnik wynajmij <imię> — zatrudnij wybraną postać, np. najemnik wynajmij Seren.",
+    "najemnik status — lista najemników zatrudnionych na stałe; działa w dowolnym miejscu.",
+    "najemnik odeslij <imię> — odeślij wskazanego najemnika; najemnik odeslij wszyscy — odeślij wszystkich. Działa również zwolnij.",
+    "Możesz mieć najwyżej 3 wynajętych najemników bez limitu czasu."
+    " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
+    "Najemnicy zdobywają własne EXP i poziomy podczas faktycznych działań w walce. Ich bazowa moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
+    "najemnik rozwoj [imię] — poziom, EXP i talenty; najemnik specjalizacja <imię> <szturm|obrona|wsparcie> — wybór po poziomie 10.",
+    "Progi talentów: 10, 25 i 50. Wysłanie najemnika do tawerny nie zeruje wypracowanego postępu.",
+    "Cena zależy od wybranej postaci i rabatu Charyzmy. W tawernie wpisz najemnicy, aby usłyszeć bieżące ceny.",
+    "Najemnicy walczą przy tobie; EXP i łupy pozostają graczom. Nie zajmują miejsca pomocnika UOSS.",
+    "Dostępne postacie: " + "; ".join(
+        f"{spec['name']} ({spec['role']})" for spec in _MERCENARIES_HELP_V1211.values()
+    ) + ".",
+]
+HELP_TOPIC_ALIASES.update({
+    "najemnik": "najemnicy",
+    "najemnikow": "najemnicy",
+    "najemników": "najemnicy",
+    "tawerna": "najemnicy",
+    "tawerna najemnikow": "najemnicy",
+    "tawerna najemników": "najemnicy",
+    "tawerna_najemnikow": "najemnicy",
+    "mercenary": "najemnicy",
+    "mercenaries": "najemnicy",
+})
+
+# v1.21.5: pełna pomoc nowych receptur Zaklinania, dostępna z NVDA.
+HELP_TOPICS["zaklinanie"] = [
+    "ZAKLINANIE 1-600: kup Fokus Runiczny u Selene w Komnacie Arkanów Gildii Dusz (list, kup 1).",
+    "receptury zaklinanie — siedem typów bonusów i dostępne poziomy; receptury zaklinanie sila — koszty i dokładne komendy.",
+    "zaklinaj <slot> <typ> [poziom] — nakłada zaklęcie na założony przedmiot w podanym slocie, np. zaklinaj weapon sila 100.",
+    "Typy: sila, zrecznosc, kondycja, inteligencja, wola, hp, mana. Warianty wysokopoziomowe wymagają trudniejszych materiałów.",
+    "receptury mozliwe zaklinanie — pokazuje receptury, na które masz poziom, Fokus Runiczny, Tier i materiały; wymagany jest założony przedmiot.",
+    "enchants — aktywne zaklęcia. Jedno zaklęcie na slot; ponowne zaklinanie zastępuje poprzednie. Istniejące zaklęcia zachowują działanie.",
+]
+HELP_TOPIC_ALIASES.update({"enchanting": "zaklinanie", "enchant": "zaklinanie"})
+
+# v1.22.0: major crises accessible by NVDA.
+HELP_TOPICS["wielkie_wydarzenia"] = [
+    "WIELKIE WYDARZENIA ŚWIATA: regionalne inwazje, oblężenia, wyprawy ratunkowe i kryzysy.",
+    "kryzysy — bieżące kryzysy; kryzys <region> — informacje; kryzys start — rozpocznij w obozowisku regionu.",
+    "Etapy: 3 zwiadowcy kryzysu, 4 najeźdźcy kryzysu na szlakach, kryzys ratuj w obozie, potem lokalny boss w arenie.",
+    "Po wygranej kryzys odbierz w obozowisku. Jedna nagroda na postać i region dziennie.",
+    "Wydarzenia można przechodzić solo lub z drużyną; wszyscy obecni w walce dostają własny postęp.",
+    "kryzys status — szczegóły. Dzienna zmiana o 00:00 UTC; brak pułapek i obowiązkowej drużyny.",
+]
+HELP_TOPIC_ALIASES.update({"kryzys": "wielkie_wydarzenia", "kryzysy": "wielkie_wydarzenia", "worldcrises":"wielkie_wydarzenia"})

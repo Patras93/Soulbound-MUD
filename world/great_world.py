@@ -194,6 +194,34 @@ def v1200_register_catalogs():
                         "quest_target":boss_id, "quest_targets":(boss_id,),
                         "drops":{relic_id:.07, resource_id:1.0, "soul_shard":1.0},
                         "v1200_region":key}, "MOB_TEMPLATES",MOB_TEMPLATES,(boss_id,))
+        # v1.22.0: real siege/invasion/rescue mobs on traversable regional
+        # routes, near (but not inside) the safe settlement. One spawn per
+        # distinct room avoids duplicate spawn keys and forced waiting.
+        from systems.world_crises_v1220 import CRISES
+        for wave, count, start_index, title in (
+            (1, 3, 1, "Zwiadowca kryzysu"),
+            (2, 4, 4, "Najeźdźca kryzysu"),
+        ):
+            crisis_mid = f"v1220_{key}_crisis_wave_{wave}"
+            crisis_level = stage + (35 if wave == 1 else 65)
+            catalog_assign({
+                "name": f"{title}: {name}",
+                "max_hp": max(25000, crisis_level * 2500),
+                "damage": max(120, crisis_level * 21),
+                "damage_type": "magic" if wave == 2 else "physical",
+                "attack_elements_v11339": (element,),
+                "silver": crisis_level * 960,
+                "stat_reward": crisis_level * 3100,
+                "class_xp_reward": crisis_level * 23000,
+                "soul_reward": crisis_level * 8800,
+                "generator_level": crisis_level,
+                "auto_aggro": False,
+                "v1200_region": key,
+                "v1220_crisis_wave": wave,
+                "drops": {resource_id: 0.14 if wave == 1 else 0.22},
+            }, "MOB_TEMPLATES", MOB_TEMPLATES, (crisis_mid,))
+            for room_id in rooms[start_index:start_index+count]:
+                MOB_SPAWNS.append((room_id, crisis_mid))
         MOB_SPAWNS.append((arena,boss_id))
         TREASURE_CHESTS[arena] = {"name":f"Skarbiec: {name}", "respawn":86400,
                                   "base_pool":("soul_shard",resource_id),
@@ -265,3 +293,190 @@ def v1200_rotating_events(now=None):
 
 
 v1200_register_catalogs()
+
+
+# v1.21.0: Legendary Expeditions use the existing, durable quest/bestiary/loot
+# systems, not a second expedition database or an intrusive level lock.
+# A linear returnable path branches from each region's existing archive.
+V1210_EXPEDITIONS = (
+    ("aurora", "Pielgrzymka Pierwszego Światła", "Świetlisty Herold", "Matka Zorzy", "holy", "Pielgrzymia Iskra"),
+    ("thunder", "Szlak Rozdartego Nieba", "Burzowy Egzekutor", "Tytan Błyskawic", "electric", "Rdzeń Burzy"),
+    ("coral", "Pieśń Zatopionej Korony", "Strażnik Raf", "Królowa Bezdennych Mórz", "water", "Perła Głębokich Raf"),
+    ("clock", "Ostatnia Godzina", "Mechaniczny Inkwizytor", "Wieczny Chronomanta", "arcane", "Zębatka Wieczności"),
+)
+V1210_EXPEDITION_INDEX = {}
+V1210_REGISTERED = False
+
+
+def v1210_register_expeditions():
+    """Extend existing regional topology and content once; no schema migrations."""
+    global V1210_REGISTERED
+    if V1210_REGISTERED:
+        return V1210_EXPEDITION_INDEX
+    from data.crafting_recipes import CRAFT_RECIPES
+    for index, (key, title, mini_name, boss_name, element, material_name) in enumerate(V1210_EXPEDITIONS):
+        spec = V1200_REGIONAL_INDEX[key]
+        stage = spec['stage']
+        prefix = f"v1210_{key}"
+        rooms = tuple(f"{prefix}_room_{i}" for i in range(1, 6))
+        scout, keeper, boss = (f"{prefix}_{type_name}" for type_name in ("scout", "keeper", "boss"))
+        seal, heart, gear = (f"{prefix}_{type_name}" for type_name in ("seal", "heart", "gear"))
+        quest_ids = tuple(f"{prefix}_q{i}" for i in range(1, 5))
+        bounty_id = f"{prefix}_bounty"
+        giver_id, witness_id, board_id = (f"{prefix}_{suffix}" for suffix in ("guide", "witness", "contractor"))
+        # The runtime manifest may load an import under an alternate module name.
+        # Rehydrate the index without duplicating spawns, NPCs or reward chests.
+        if rooms[0] in ROOMS:
+            V1210_EXPEDITION_INDEX[key]={
+                "title":title,"region":spec['name'],"stage":stage,"entry":rooms[0],
+                "rooms":rooms,"scout":scout,"keeper":keeper,"boss":boss,
+                "giver":giver_id,"witness":witness_id,"contractor":board_id,
+                "quests":quest_ids,"contract":bounty_id,"seal":seal,"heart":heart,"gear":gear,
+            }
+            continue
+        # The archive's eastern exit was empty in v1.20.0. Other exits remain unchanged.
+        if "east" in ROOMS[spec['archive']]['exits'] and ROOMS[spec['archive']]['exits']['east'] != rooms[0]:
+            raise RuntimeError(f"Legendary expedition {key}: occupied archive exit")
+        catalog_set_path("ROOMS", ROOMS, (spec['archive'], "exits", "east"), rooms[0])
+        titles = ("Próg Legendy", "Kronika Wędrowca", "Szlak Próby", "Sala Strażnika", "Tron Legendy")
+        for j, rid in enumerate(rooms):
+            exits = {"west": spec['archive'] if j == 0 else rooms[j-1]}
+            if j < len(rooms)-1:
+                exits["east"] = rooms[j+1]
+            catalog_assign({
+                "name":f"{titles[j]}: {title}", "zone":f"Wyprawa: {title}",
+                "desc":f"{titles[j]}. Ślady dawnej wyprawy prowadzą dalej. "
+                       "Każde pomieszczenie ma drogę powrotną; nie ma pułapek ani teleportów.",
+                "exits":exits, "recommended_level":stage + 30*(j+1),
+                "generator_level":stage + 30*(j+1), "v1210_expedition":key,
+                "v1200_region":key, "v1200_safe": j <= 1,
+            }, "ROOMS", ROOMS, (rid,))
+        catalog_assign({
+            "name":material_name, "type":"resource", "price":None,
+            "sell_gold":max(25,stage//2), "rarity":"epic", "rarity_name":"Epicka",
+            "desc":f"Pieczęć z legendarnej wyprawy: {title}. Składnik wyposażenia, nie jednorazowa waluta."
+        }, "ITEMS", ITEMS, (seal,))
+        catalog_assign({
+            "name":f"Serce: {title}", "type":"resource", "price":None,
+            "sell_gold":max(60,stage), "rarity":"legendary", "rarity_name":"Legendarna",
+            "desc":f"Serce pokonanego bossa. Składnik wyjątkowej receptury: {title}."
+        }, "ITEMS", ITEMS, (heart,))
+        stats = (("strength","constitution"),("dexterity","constitution"),
+                 ("intelligence","willpower"),("willpower","constitution"))[index]
+        bonus = max(80,int(stage*0.48))
+        slot = ("charm","ring","necklace","cloak")[index]
+        catalog_assign({
+            "name":f"Dziedzictwo: {title}", "type":"armor", "slot":slot,
+            "defense":max(50,int(stage*0.28)),
+            "stats":{stats[0]:bonus,stats[1]:max(55,int(bonus*.75))},
+            "element_wards":{element:0.11}, "sockets":3,
+            "rarity":"legendary","rarity_name":"Legendarna", "price":None,
+            "required_mastery":max(1,stage),
+            "desc":f"Unikalny przedmiot wyprawy {title}. {stats[0]} +{bonus}; "
+                   f"{stats[1]} +{max(55,int(bonus*.75))}; odporność na {element} 11%; 3 gniazda."
+        }, "ITEMS", ITEMS, (gear,))
+        for mob_id, name, level, hp, strength, drops, is_boss in (
+            (scout, f"Zwiadowca: {title}", stage+20, 3200, 25,
+             {spec['resource']:0.27,seal:0.025},False),
+            (keeper,mini_name,stage+95,15000,48,{seal:1.0,spec['resource']:0.5},True),
+            (boss,boss_name,stage+180,40000,75,{heart:1.0,seal:0.45,gear:0.035},True),
+        ):
+            catalog_assign({
+                "name":name, "max_hp":max(25000,level*hp),
+                "damage":max(800,level*strength), "damage_type":"magic",
+                "attack_elements_v11339":(element,),
+                "silver":level*1400, "stat_reward":level*4800,
+                "class_xp_reward":level*32000, "soul_reward":level*15000,
+                "generator_level":level,"auto_aggro":False,
+                "stationary_mob":is_boss,"boss":is_boss,"world_boss":mob_id==boss,
+                "boss_mechanic":(("stellar_barrier", "comet_evade", "firmament_guard", "crystal_lord")[index]
+                                 if is_boss else None),
+                "boss_mechanic_text":f"Etapy 75/50/25% HP. Żywioł {element}; "
+                                     f"unikalna obrona {('Gwiezdna Bariera', 'Unik Komety', 'Straż Firmamentu', 'Kryształowa Bariera')[index]}." if is_boss else "",
+                "v017_boss_phases":is_boss,
+                "quest_target":mob_id,"quest_targets":(mob_id,),
+                "drops":drops,"v1210_expedition":key,
+            }, "MOB_TEMPLATES",MOB_TEMPLATES,(mob_id,))
+        for rid, mid in ((rooms[2],scout),(rooms[2],scout), (rooms[2],scout),
+                         (rooms[3],keeper),(rooms[4],boss)):
+            MOB_SPAWNS.append((rid,mid))
+        TREASURE_CHESTS[rooms[4]] = {
+            "name":f"Skarbiec Legendy: {title}","respawn":86400,
+            "base_pool":(seal,heart,spec['resource']), "set_pool":(gear,),
+        }
+        giver_name=f"Mistrz Wyprawy {spec['name']}"
+        catalog_assign({
+            "name":giver_name,"room":rooms[0],"quest":quest_ids[0],"quest_chain":quest_ids,
+            "dialogue":f"{title}. Cztery etapy: kronika, zwiadowcy, strażnik, boss. "
+                       "Przyjmij dostępny etap przez quest accept. Każdy gracz może wejść sam lub z drużyną."
+        },"NPCS",NPCS,(giver_id,))
+        catalog_assign({
+            "name":f"Świadek Legendy {spec['name']}","room":rooms[1],
+            "dialogue":f"Poznałem dzieje wyprawy {title}. Wróć do Mistrza po dalsze zadania."
+        },"NPCS",NPCS,(witness_id,))
+        catalog_assign({
+            "name":f"Kwatermistrz Kontraktów {spec['name']}","room":rooms[2],
+            "quest":bounty_id,
+            "dialogue":"Przyjmuję odnawialne, godzinne kontrakty mistrzowskie na Szlaku Próby. "
+                       "Ukończ je solo albo z drużyną i odbierz nagrodę tutaj."
+        },"NPCS",NPCS,(board_id,))
+        for j, qid in enumerate(quest_ids):
+            kind = "talk_npc" if j==0 else "kill"
+            targets = (witness_id,scout,keeper,boss)
+            needed = (1,4,1,1)[j]
+            reward_items = ({spec['resource']:2},{seal:1},{seal:2},{heart:1})[j]
+            quest_data={
+                "name":f"{title} — etap {j+1}: " + ("Kronika","Patrol","Strażnik","Finał")[j],
+                "giver":giver_name,"kind":kind,"target":targets[j],"needed":needed,
+                "description": ("Porozmawiaj ze Świadkiem w Kronice Wędrowca." if j==0 else
+                                f"Pokonaj {needed} przeciwników: {MOB_TEMPLATES[targets[j]]['name']}."),
+                "reward_gold":0,"reward_mithril":0,
+                "reward_silver":stage*120*(j+1),
+                "reward_items":reward_items, "generator_level":stage+(j+1)*50,
+                "v1210_expedition":key,
+            }
+            if j==0:
+                quest_data['target_npc']=witness_id
+            if j>0:
+                quest_data['requires_quest']=quest_ids[j-1]
+            catalog_assign(quest_data,"QUESTS",QUESTS,(qid,))
+        catalog_assign({
+            "name":f"Kontrakt mistrzowski: {title}","giver":f"Kwatermistrz Kontraktów {spec['name']}",
+            "kind":"kill","target":scout,"needed":7,
+            "description":"Pokonaj 7 zwiadowców w Szlaku Próby. Odnowienie po godzinie.",
+            "reward_gold":0,"reward_mithril":0,"reward_silver":stage*500,
+            "reward_items":{spec['resource']:3,seal:1},"generator_level":stage+70,
+            "repeatable":True,"repeat_cooldown":3600,"v1210_expedition":key,
+        },"QUESTS",QUESTS,(bounty_id,))
+        craft_level = min(500,max(100,stage))
+        ingot_id = ("cobalt_ingot", "runestone_ingot", "astral_ingot", "eternium_ingot")[index]
+        catalog_assign({
+            "name":f"Wykucie: Dziedzictwo {title}",
+            "profession":"Kowalstwo","tool_type":"crafting","tool_item_id":"crafting_hammer",
+            "tool_name":ITEMS['crafting_hammer']['name'],"stations":("forge",),
+            "min_profession_level":craft_level,
+            "ingredients":{heart:2,seal:4,spec['resource']:6,ingot_id:4,"soul_shard":4},
+            "output":gear,"quantity":1,"generator_level":stage+120,
+            "profession_xp":stage*14,"tool_xp":stage*9,"category":"crafting",
+            "desc":f"Unikalna receptura wyprawy: {title}. "
+                   f"2 Serca + 4 Pieczęcie + 6 esencji regionu + 4 sztabki ({ITEMS[ingot_id]['name']}) + 4 Odłamki Duszy.",
+        },"CRAFT_RECIPES",CRAFT_RECIPES,(gear,))
+        V1210_EXPEDITION_INDEX[key]={
+            "title":title,"region":spec['name'],"stage":stage,"entry":rooms[0],
+            "rooms":rooms,"scout":scout,"keeper":keeper,"boss":boss,
+            "giver":giver_id,"witness":witness_id,"contractor":board_id,
+            "quests":quest_ids,"contract":bounty_id,"seal":seal,"heart":heart,"gear":gear,
+        }
+    HELP_TOPICS['legendarne_wyprawy']=[
+        "LEGENDARNE WYPRAWY v1.21.0: cztery wyprawy dostępne pieszo z archiwów nowych krain.",
+        "legendarnewyprawy: lista; legendarnewyprawy <nazwa>: lokalizacja i kierunek.",
+        "legendarnewyprawy postep: zapisany stan misji z SQLite, osobno dla każdej postaci.",
+        "Mistrz Wyprawy czeka na Progu Legendy; Świadek w Kronice; Kwatermistrz Kontraktów na Szlaku Próby.",
+        "Mistrz oferuje 4 zadania fabularne; Kwatermistrz godzinne powtarzalne wyzwania.",
+        "Nowe materiały, bossowie 75/50/25% i receptury Kowalstwa w Kuźni. Bez pułapek, teleportu, limitów klas i wymogu party.",
+    ]
+    V1210_REGISTERED=True
+    return V1210_EXPEDITION_INDEX
+
+
+v1210_register_expeditions()

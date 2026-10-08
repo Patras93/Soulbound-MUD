@@ -7,7 +7,7 @@ from core.classes_skills import ROOMS
 from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL, TOOL_MAX_TIER
 from systems.crafting_quality import player_item_display_name_v0335
 from systems.equipment_crafting import JEWELCRAFT_RECIPES
-from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS, V03053_PROFESSIONS, normalize_profession_name
+from systems.professions import V03053_CRAFT_RECIPES, V03053_ENCHANTS, V03053_PROFESSIONS, V1215_ENCHANT_RECIPES, V1215_ENCHANT_REQUIREMENTS, normalize_profession_name
 
 class SessionProfessionsV03053Mixin:
     def v03053_recipe_table(self, profession):
@@ -37,8 +37,30 @@ class SessionProfessionsV03053Mixin:
     def v03053_command_for(self,name):
         return {'Krawiectwo':'szyj / sew','Garbarstwo':'garbuj / tan','Stolarstwo':'stolarka / woodcraft','Zaklinanie':'zaklinaj / enchantitem'}.get(name,'craft')
 
-    async def v03053_show_recipes(self, profession):
+    async def v03053_show_recipes(self, profession, filter_query=""):
         name=normalize_profession_name(profession)
+        if name=='Zaklinanie':
+            query=str(filter_query or '').strip().casefold()
+            aliases={'str':'sila','strength':'sila','dex':'zrecznosc','dexterity':'zrecznosc',
+                     'constitution':'kondycja','con':'kondycja','intelligence':'inteligencja',
+                     'int':'inteligencja','will':'wola','willpower':'wola','health':'hp'}
+            query=aliases.get(query,query)
+            rows=[r for r in V1215_ENCHANT_RECIPES.values()
+                  if not query or r['enchant_key']==query or str(r['min_profession_level'])==query]
+            await self.send(f"RECEPTURY: ZAKLINANIE. Liczba: {len(rows)}. Komenda: zaklinaj <slot> <typ> [poziom].")
+            if not query:
+                await self.send('Typy: sila, zrecznosc, kondycja, inteligencja, wola, hp, mana. Wpisz receptury zaklinanie sila, aby zobaczyć wymagania i materiały konkretnego typu. Bez poziomu działa dotychczasowa wersja zaklęcia.')
+                for typ, (label, _stat, _base, _mats) in V03053_ENCHANTS.items():
+                    levels=sorted(r['min_profession_level'] for r in rows if r['enchant_key']==typ)
+                    await self.send(f"{label}: poziomy {', '.join(map(str,levels))}.")
+                return
+            if not rows:
+                await self.send('Nie znaleziono receptur tego typu. Dostępne: sila, zrecznosc, kondycja, inteligencja, wola, hp, mana.')
+                return
+            for r in sorted(rows,key=lambda x:(x['enchant_key'], x['min_profession_level'])):
+                mats=', '.join(f"{player_item_display_name_v0335(i)} x{q}" for i,q in r['ingredients'].items())
+                await self.send(f"{r['name']}. Zaklinanie poziom {r['min_profession_level']}. Fokus Runiczny. Składniki: {mats}. Wykonaj: zaklinaj <slot> {r['enchant_key']} {r['min_profession_level']}.")
+            return
         if name=='Jubilerstwo':
             rows=[(k,v) for k,v in JEWELCRAFT_RECIPES.items() if str(k).startswith('v03053_')]
         else:
@@ -63,44 +85,56 @@ class SessionProfessionsV03053Mixin:
     async def v03053_enchant(self,args):
         parts=str(args or '').split()
         if not parts or parts[0].casefold() in ('lista','list','info'):
-            await self.send('ZAKLINANIE / ENCHANTING: zaklinaj / enchantitem <slot> <sila|strength|zrecznosc|dexterity|kondycja|constitution|inteligencja|intelligence|wola|will|hp|mana>. Jedno zaklęcie na slot; nowe zastępuje stare.')
+            await self.send('ZAKLINANIE: zaklinaj <slot> <sila|zrecznosc|kondycja|inteligencja|wola|hp|mana> [poziom]. Jedno zaklęcie na slot; nowe zastępuje stare. Lista: receptury zaklinanie, szczegóły: receptury zaklinanie sila.')
             await self.v03053_show_profession('Zaklinanie'); return False
         if len(parts)<2:
-            await self.send('Użycie: zaklinaj / enchantitem <slot> <typ>.'); return False
+            await self.send('Użycie: zaklinaj <slot> <typ> [poziom].'); return False
         slot=parts[0].casefold(); key=parts[1].casefold().replace('ę','e').replace('ó','o').replace('ł','l').replace('ś','s').replace('ć','c').replace('ż','z').replace('ź','z').replace('ń','n').replace('ą','a')
         alias={'sila':'sila','strength':'sila','str':'sila','zrecznosc':'zrecznosc','dexterity':'zrecznosc','dex':'zrecznosc','kondycja':'kondycja','constitution':'kondycja','con':'kondycja','inteligencja':'inteligencja','intelligence':'inteligencja','int':'inteligencja','wola':'wola','will':'wola','willpower':'wola','hp':'hp','health':'hp','mana':'mana'}
         key=alias.get(key,key)
         ench=V03053_ENCHANTS.get(key)
+        if not ench:
+            await self.send('Nieznany typ zaklęcia. Wpisz receptury zaklinanie.'); return False
+        if len(parts)>3 or (len(parts)==3 and not parts[2].isdigit()):
+            await self.send('Użycie: zaklinaj <slot> <typ> [poziom]. Poziomy sprawdzisz: receptury zaklinanie <typ>.'); return False
+        requested_level=int(parts[2]) if len(parts)==3 else V1215_ENCHANT_REQUIREMENTS[key]
+        recipe=V1215_ENCHANT_RECIPES.get(f'{key}_{requested_level}')
+        if recipe is None:
+            await self.send('Brak takiej receptury. Wpisz receptury zaklinanie '+key+'.'); return False
+        if self.combat_mob_key:
+            await self.send('Nie możesz zaklinać podczas walki.'); return False
         eq={str(r['slot']).casefold():r for r in self.server.db.equipment(self.account_id)}
         if slot not in eq:
             await self.send('W tym slocie nie masz założonego przedmiotu.'); return False
-        if not ench:
-            await self.send('Nieznany typ zaklęcia. Wpisz zaklinaj lista albo enchantitem list.'); return False
         if self.character.room_id!='guild_arcane_chamber':
             await self.send('Zaklinać możesz w Komnacie Arkanów Gildii Dusz.'); return False
-        tool_item='runic_focus'
-        if self.server.db.item_qty(self.account_id,tool_item)<=0:
+        if self.server.db.item_qty(self.account_id,'runic_focus')<=0:
             await self.send('Potrzebujesz Fokus Runiczny.'); return False
         prow=self.server.db.profession(self.account_id,'Zaklinanie'); level=int(prow['level'])
-        req=max(1, {'sila':1,'zrecznosc':1,'kondycja':30,'inteligencja':60,'wola':100,'hp':160,'mana':220}.get(key,1))
+        req=recipe['min_profession_level']
         if level<req:
             await self.send(f"To zaklęcie wymaga Zaklinanie poziom {req}, masz {level}."); return False
-        label,stat,base,mats=ench
-        missing=[f"{player_item_display_name_v0335(i)}: {self.server.db.item_qty(self.account_id,i)}/{q}" for i,q in mats.items() if self.server.db.item_qty(self.account_id,i)<q]
+        from core.bootstrap_economy_professions import required_tool_tier_for_level
+        tool_level=int(self.server.db.tool(self.account_id,'enchanting')['level'])
+        required_tier=required_tool_tier_for_level(req)
+        if tool_tier(tool_level)<required_tier:
+            await self.send(f"Receptura wymaga Fokus Runiczny Tier {required_tier}+, masz Tier {tool_tier(tool_level)}."); return False
+        label,stat,base,_legacy_mats=ench
+        mats=recipe['ingredients']
+        missing=[f"{player_item_display_name_v0335(i)}: {self.available_recipe_item(i)}/{q}" for i,q in mats.items() if self.available_recipe_item(i)<q]
         if missing:
             await self.send('Brakuje składników: '+', '.join(missing)+'.'); return False
-        for iid,q in mats.items(): self.server.db.remove_item(self.account_id,iid,q)
-        amt=self.v03053_enchant_amount(base,level)
+        # Wszystkie składniki sprawdzamy przed pobraniem; możliwe także zapasy magazynowe.
+        for iid,q in mats.items():
+            if not self.consume_recipe_item(iid,q):
+                await self.send('Nie udało się pobrać składników. Zaklinanie przerwane.'); return False
+        amt=self.v03053_enchant_amount(base,level)+recipe['tier_bonus']
         self.server.db.set_equipment_enchant_v03053(self.account_id,slot,key,stat,amt)
         await self.announce_profession_action_order_progress_v0713('enchanting', 1)
         messages,*_=self.grant_profession_progress(
-            'Zaklinanie',
-            max(25,req*2),
-            'enchanting',
-            max(20,req),
-            content_level=req,
+            'Zaklinanie',max(25,req*2),'enchanting',max(20,req),content_level=req,
         )
-        await self.send(f"Zaklinasz {player_item_display_name_v0335(eq[slot]['item_id'])}: {label} +{amt}.")
+        await self.send(f"Zaklinasz {player_item_display_name_v0335(eq[slot]['item_id'])}: {label} +{amt}. Receptura poziom {req}.")
         for m in messages: await self.send(m)
         return True
 

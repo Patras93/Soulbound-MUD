@@ -1147,7 +1147,7 @@ try:
       "krawiectwo":"Krawiectwo 1-400. Krawcowa Lysa, Pracownia Krawiecka. Komendy: krawiectwo, szyj <receptura>, szyj lista. Tworzy tkaniny, szaty i płaszcze.",
       "garbarstwo":"Garbarstwo 1-400. Kaletnik Soren. Komendy: garbarstwo, garbuj <receptura>, garbuj lista. Skóry bestii -> garbowana skóra -> pasy, karwasze i naramienniki.",
       "stolarstwo":"Stolarstwo 1-400. Cieśla Edric. Komendy: stolarstwo, stolarka <receptura>, stolarka lista. Obrabia drewno i tworzy totemy oraz komponenty housingu.",
-      "zaklinanie":"Zaklinanie 1-400. Komnata Arkanów. Fokus Runiczny kupisz u Kwatermistrzyni Selene przez shop / kup Fokus Runiczny; narzędzie kupuje się tylko raz na postać. Komendy: zaklinanie, zaklinaj <slot> <typ>, enchants. Jedno trwałe zaklęcie na slot; nowe zastępuje stare.",
+      "zaklinanie":"Zaklinanie 1-600. Komnata Arkanów. Fokus Runiczny kupisz u Selene (list, kup 1). Receptury: receptury zaklinanie, receptury zaklinanie sila. Wykonaj: zaklinaj <slot> <typ> [poziom]; enchants pokazuje efekty. Jedno zaklęcie na slot.",
       "jubilerstwo2":"Jubilerstwo 2.0 dodaje nowe kolczyki, pierścienie i naszyjniki w progresji do levelu 400. Użyj receptury jubilerstwo i jub <nazwa>.",
     })
 except Exception as exc:

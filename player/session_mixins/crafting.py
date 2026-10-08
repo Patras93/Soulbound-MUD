@@ -129,6 +129,10 @@ class SessionCraftingMixin:
                 await self.send("receptury zaklinanie")
                 await self.send("Receptury nie są łączone w jedną mieszaną listę; każda profesja ma osobną sekcję.")
                 return
+            if _raw_mode.startswith(("zaklinanie ", "enchanting ")):
+                parts = _raw_mode.split(maxsplit=1)
+                await self.v03053_show_recipes(parts[0], parts[1])
+                return
             if _raw_mode in ("krawiectwo", "tailoring", "garbarstwo", "leatherworking", "stolarstwo", "carpentry", "zaklinanie", "enchanting"):
                 await self.v03053_show_recipes(_raw_mode)
                 return

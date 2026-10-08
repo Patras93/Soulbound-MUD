@@ -47,6 +47,7 @@ COMMAND_REGISTRY = {
     'navigation2': ('navigation_v1191', (COMMAND_TEXT,), {}),
     'career2': ('career_v1192', (COMMAND_TEXT,), {}),
     'greatworld': ('great_world_v1200', (COMMAND_TEXT,), {}),
+    'legendaryexpeditions1210': ('legendary_expeditions_v1210', (COMMAND_TEXT,), {}),
     'titles': ('show_titles', (), {}),
     'title': ('set_title', (COMMAND_TEXT,), {}),
     'collection': ('show_collection', (COMMAND_TEXT,), {}),
@@ -171,6 +172,7 @@ COMMAND_REGISTRY = {
     'selfrespawn': ('respawn_from_downed_v0371', (), {'auto': False}),
     'najemnicy': ('handle_mercenaries_v1170', ('lista',), {}),
     'najemnik': ('handle_mercenaries_v1170', (COMMAND_TEXT,), {}),
+    'wielkiewydarzenia': ('handle_world_crises_v1220', (COMMAND_TEXT,), {}),
     'charisma': ('show_charisma', (), {}),
     'multiclass': ('handle_multiclass', (COMMAND_TEXT,), {}),
     'rest': ('handle_rest', (COMMAND_TEXT,), {}),
@@ -413,6 +415,8 @@ for _alias in ("resp", "respi", "respawn"):
         "playerresp",
         source="player/session_mixins/command_registry.py",
     )
+for _alias in ("kryzys", "kryzysy", "duzewydarzenia", "worldcrises"):
+    COMMAND_CATALOG.add_alias(_alias, "wielkiewydarzenia", source="player/session_mixins/command_registry.py")
 for _canonical in DOWNED_SAFE_COMMANDS | REST_SAFE_COMMANDS | GUIDE_SAFE_COMMANDS:
     COMMAND_CATALOG.set_policy(
         _canonical,

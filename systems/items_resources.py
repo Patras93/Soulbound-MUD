@@ -444,7 +444,7 @@ def _register_blacksmith_items():
             masterwork = _blacksmith_masterwork_profile_v1138(level, slot)
             _catalog_mut.catalog_assign({
                 "name": (
-                    f"{slot_name} - {tier['name']} "
+                    f"{slot_name} {tier['name']} "
                     f"[Kowalstwo Tier {tier_number}]"
                 ),
                 "type": "armor",
@@ -1066,28 +1066,28 @@ LOOT_SOURCE_EQUIPMENT_AUDIT_V11327 = loot_source_equipment_audit_v11327()
 FISH_RARE_VARIANTS = {
     "albino": {
         "label": "Albinos",
-        "name_prefix": "Albinos - ",
+        "name_prefix": "Albinos ",
         "value_mult": 3,
         "weight": 50,
         "desc": "Rzadki albinos danego gatunku.",
     },
     "golden": {
         "label": "Złoty",
-        "name_prefix": "Złoty okaz - ",
+        "name_prefix": "Złoty okaz ",
         "value_mult": 8,
         "weight": 25,
         "desc": "Bardzo rzadki złoty wariant.",
     },
     "giant": {
         "label": "Olbrzymi",
-        "name_prefix": "Olbrzymi okaz - ",
+        "name_prefix": "Olbrzymi okaz ",
         "value_mult": 5,
         "weight": 18,
         "desc": "Nienaturalnie duży okaz gatunku.",
     },
     "ancient": {
         "label": "Pradawny",
-        "name_prefix": "Pradawny okaz - ",
+        "name_prefix": "Pradawny okaz ",
         "value_mult": 15,
         "weight": 7,
         "desc": "Ekstremalnie rzadki pradawny okaz.",
@@ -1097,28 +1097,28 @@ FISH_RARE_VARIANTS = {
 WOOD_RARE_VARIANTS = {
     "lush": {
         "label": "Bujne",
-        "name_prefix": "Bujne drewno - ",
+        "name_prefix": "Bujne drewno ",
         "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo zdrowe i gęste drewno.",
     },
     "ancient": {
         "label": "Pradawne",
-        "name_prefix": "Pradawne drewno - ",
+        "name_prefix": "Pradawne drewno ",
         "value_mult": 7,
         "weight": 30,
         "desc": "Drewno pochodzące z bardzo starego drzewa.",
     },
     "crystal": {
         "label": "Kryształowe",
-        "name_prefix": "Kryształowe drewno - ",
+        "name_prefix": "Kryształowe drewno ",
         "value_mult": 12,
         "weight": 15,
         "desc": "Rzadkie drewno przesiąknięte kryształową energią.",
     },
     "legendary": {
         "label": "Legendarne",
-        "name_prefix": "Legendarne drewno - ",
+        "name_prefix": "Legendarne drewno ",
         "value_mult": 20,
         "weight": 5,
         "desc": "Najrzadszy wariant drewna.",
@@ -1128,28 +1128,28 @@ WOOD_RARE_VARIANTS = {
 HERB_RARE_VARIANTS = {
     "lush": {
         "label": "Bujna",
-        "name_prefix": "Bujna roślina - ",
+        "name_prefix": "Bujna roślina ",
         "value_mult": 3,
         "weight": 50,
         "desc": "Wyjątkowo dorodny okaz rośliny.",
     },
     "glowing": {
         "label": "Lśniąca",
-        "name_prefix": "Lśniąca roślina - ",
+        "name_prefix": "Lśniąca roślina ",
         "value_mult": 7,
         "weight": 25,
         "desc": "Rzadki okaz emanujący delikatnym blaskiem.",
     },
     "ancient": {
         "label": "Pradawna",
-        "name_prefix": "Pradawna roślina - ",
+        "name_prefix": "Pradawna roślina ",
         "value_mult": 12,
         "weight": 18,
         "desc": "Bardzo stary i wyjątkowo silny okaz.",
     },
     "legendary": {
         "label": "Legendarna",
-        "name_prefix": "Legendarna roślina - ",
+        "name_prefix": "Legendarna roślina ",
         "value_mult": 20,
         "weight": 7,
         "desc": "Najrzadszy wariant rośliny.",

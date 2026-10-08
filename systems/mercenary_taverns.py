@@ -23,7 +23,9 @@ MERCENARIES = {
     "paladyn":    {"name": "Seren",  "role": "Paladyn",    "class": None,        "cost": 220, "power": 0.80, "attack_type": "physical", "ability": "Święty Cios"},
 }
 
-DURATION = 45*60
+# v1.21.2: contracts are permanent (0 is also the persisted sentinel).
+# Keep DURATION for any legacy imports; it no longer limits the contract.
+DURATION = 0
 COOLDOWN = 5.0
 
 
@@ -53,9 +55,22 @@ def price_silver(character, role):
 
 
 def pick_next_contract(contracts, last_role, time_now):
-    roles = [row["role"] for row in contracts if row["role"] in MERCENARIES and row["expires_at"] > time_now]
+    roles = [row["role"] for row in contracts
+             if row["role"] in MERCENARIES and
+             (float(row["expires_at"]) <= 0 or float(row["expires_at"]) > time_now)]
     if not roles:
         return None
     if last_role in roles:
         return roles[(roles.index(last_role)+1)%len(roles)]
     return roles[0]
+
+
+def mercenary_owner_power_v1213(physical_power, magic_power):
+    """One owner power budget for every hired class, including cross-class hires.
+
+    Inputs must be the owner's *effective* offensive powers, including equipment.
+    The mercenary's class still determines damage type and role multiplier.
+    Using the stronger channel avoids punishing a physical owner for hiring a
+    mage (or a magic owner for hiring a warrior), and does not double-dip EQ.
+    """
+    return max(1, int(physical_power), int(magic_power))
