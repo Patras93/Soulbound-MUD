@@ -452,6 +452,18 @@ class SessionShopsTeachersMixin:
                 self.store_profession_resource(item_id, quantity)
             else:
                 self.server.db.add_item(self.account_id, item_id, quantity)
+            # v1.17.5: only cash-paid normal inventory stock is tagged;
+            # token contracts and profession storage keep their established economy.
+            if (
+                unit_price > 0
+                and not (token_id and token_cost)
+                and item_id not in (FISH_STORAGE_IDS | MINING_STORAGE_IDS | WOOD_STORAGE_IDS | HERB_STORAGE_IDS)
+                and item.get("type") != "craft_material"
+            ):
+                self.server.db.record_shop_purchase_v1175(
+                    self.account_id, item_id, quantity,
+                    self.shop_offer_effective_money_silver(item),
+                )
             if item.get("type") == "tool":
                 self.server.db.ensure_tool(self.account_id, item["tool_type"])
             self.server.db.save_character(self.character)

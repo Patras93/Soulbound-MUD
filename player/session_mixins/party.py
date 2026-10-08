@@ -421,6 +421,7 @@ class SessionPartyMixin:
             self.server.parties[self.account_id] = {self.account_id}
             self.server.party_goals.pop(self.account_id, None)
             self.server.party_ready_checks.pop(self.account_id, None)
+            self.server.party_routes_v1193.pop(self.account_id, None)
             await self.send(
                 f"Zakładasz drużynę. Jesteś liderem. "
                 f"Limit: {self.character.party_capacity()} osób."
@@ -451,6 +452,7 @@ class SessionPartyMixin:
 
             protector_id = self.server.party_protectors.pop(key, None)
             goal = self.server.party_goals.pop(key, None)
+            route = self.server.party_routes_v1193.pop(key, None)
             ready = self.server.party_ready_checks.pop(key, None)
             self.server.parties.pop(key, None)
             self.server.parties[target.account_id] = set(members)
@@ -458,6 +460,8 @@ class SessionPartyMixin:
                 self.server.party_protectors[target.account_id] = protector_id
             if goal:
                 self.server.party_goals[target.account_id] = goal
+            if route:
+                self.server.party_routes_v1193[target.account_id] = route
             if ready is not None:
                 self.server.party_ready_checks[target.account_id] = {
                     member_id for member_id in ready if member_id in members
@@ -604,6 +608,8 @@ class SessionPartyMixin:
                 await self.send(f"Cel drużyny: {goal}.")
             else:
                 await self.send("Cel drużyny: nie ustawiono.")
+            if key in self.server.party_routes_v1193:
+                await self.send("Trasa drużyny: druzyna trasa. Odczyt kroku: druzyna trasa krok.")
             if key in self.server.party_ready_checks:
                 ready = self.server.party_ready_checks.get(key, set())
                 await self.send(
@@ -796,6 +802,7 @@ class SessionPartyMixin:
                 self.server.party_protectors.pop(key, None)
                 self.server.party_goals.pop(key, None)
                 self.server.party_ready_checks.pop(key, None)
+                self.server.party_routes_v1193.pop(key, None)
                 for invited_id, leader_id in list(self.server.party_invites.items()):
                     if leader_id == key:
                         self.server.party_invites.pop(invited_id, None)
@@ -841,6 +848,7 @@ class SessionPartyMixin:
             self.server.party_protectors.pop(key, None)
             self.server.party_goals.pop(key, None)
             self.server.party_ready_checks.pop(key, None)
+            self.server.party_routes_v1193.pop(key, None)
             for target_id, leader_id in list(self.server.party_invites.items()):
                 if leader_id == key:
                     self.server.party_invites.pop(target_id, None)
@@ -1145,6 +1153,16 @@ class SessionPartyMixin:
                     await self.assist_party_member(value)
             elif action in ("wskrzes", "wskrześ", "revive"):
                 await self.revive_party_member_v0371(value)
+            elif action in ("raport", "health", "zdrowie"):
+                await self.party_report_v1193()
+            elif action in ("zbiorka", "zbiórka", "zbierz", "gather"):
+                await self.party_gather_v1193()
+            elif action in ("trasa", "route"):
+                await self.party_route_v1193(value)
+            elif action in ("pomoc", "komendy", "help"):
+                await self.send("Party 4.0: druzyna raport, druzyna zbiorka, druzyna trasa <cel>, "
+                                "druzyna trasa krok, druzyna trasa off. "
+                                "Ponadto: druzyna cel, gotowi, niegotowy, zapros, wspieraj.")
             elif action in ("cel", "goal", "objective"):
                 await self.set_party_goal_v0610(value)
             elif action in ("gotowi", "ready", "readycheck"):
@@ -1164,5 +1182,6 @@ class SessionPartyMixin:
                     "Drużyna: zaloz, status, zapros <gracz>, dolacz, odrzuc, "
                     "opusc, wyrzuc <gracz>, rozwiaz, lider <gracz>, "
                     "cel <tekst>/off, gotowi [status/reset], niegotowy, "
+                    "raport, zbiorka, trasa <cel>/krok/off, "
                     "zaslon [off], wspieraj <gracz>, wskrzes <gracz>, limit. Czat: pc <tekst>."
                 )

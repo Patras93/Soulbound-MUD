@@ -599,7 +599,7 @@ class SessionInventoryEquipmentMixin:
                 return 1.0 if magic or "Mec" in active else 0.20
             if prop == "max_mana_pct":
                 return 1.0 if magic or "Mec" in active else 0.35
-            if prop in {"max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "all_damage_pct"}:
+            if prop in {"max_hp_pct", "physical_defense_pct", "magic_defense_pct", "dodge_pct", "all_damage_pct", "lifesteal_percent", "mana_restore_percent"}:
                 return 1.0
             return 0.50
 

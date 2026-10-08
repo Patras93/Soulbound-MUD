@@ -32,6 +32,10 @@ from player.session_mixins.ocean import SessionOceanV1000Mixin
 from player.session_mixins.exploration_professions import SessionExplorationProfessionsV1100Mixin
 from player.session_mixins.command_special_handlers import SessionCommandSpecialHandlersMixin
 from player.session_mixins.activity_guidance import SessionActivityGuidanceV0560Mixin
+from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
+from player.session_mixins.quality_of_life_v1180 import SessionQualityOfLifeV1180Mixin
+from player.session_mixins.upgrade_v1193 import SessionUpgradeV1193Mixin
+from player.session_mixins.great_world import SessionGreatWorldV1200Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
 
@@ -68,6 +72,10 @@ class Session(
     SessionExplorationProfessionsV1100Mixin,
     SessionCommandSpecialHandlersMixin,
     SessionActivityGuidanceV0560Mixin,
+    SessionMercenaryTavernsMixin,
+    SessionQualityOfLifeV1180Mixin,
+    SessionUpgradeV1193Mixin,
+    SessionGreatWorldV1200Mixin,
     SessionCommandRegistryMixin,
     SessionCommandLoopMixin
 ):

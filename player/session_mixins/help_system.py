@@ -66,9 +66,21 @@ class SessionHelpSystemMixin:
                 "ryb, rud, drewna, ziół i wytworzonych przedmiotów są liczone od v0.9.4."
             )
 
-    async def show_where(self):
-            room = ROOMS[self.character.room_id]
+    async def show_where(self, args=""):
+            room = ROOMS.get(self.character.room_id)
+            if not room:
+                await self.send("Nie mogę ustalić bieżącej lokacji. Użyj look.")
+                return
             await self.send(f"Jesteś tutaj: {room['name']}. Strefa: {room['zone']}.")
+            action = normalize_lookup_text(args or "")
+            if action in ("cele", "miasto", "walk"):
+                await self.show_current_city_walk_destinations()
+                return
+            if action in ("pomoc", "help", "?"):
+                await self.send("gdzie — aktualna lokacja i wyjścia; gdzie cele — cele prowadzenia w mieście; trasa <cel> — zaplanuj drogę; walk <cel> — rozpocznij prowadzenie.")
+                return
+            await self.show_exits()
+            await self.send("Szukasz miejsca? gdzie cele, trasa <cel>, walk <cel>.")
 
     def help_commands(self):
             lines = [
@@ -80,14 +92,19 @@ class SessionHelpSystemMixin:
                 "bufor / bufory [xp|loot|quest|system|chat|party|tell|walka|all] [1-100] - sesyjne bufory ostatnich komunikatów; działa też historia xp / historia loot / historia quest",
                 "eksploracja / exploration [all] - procent odkrycia stref i świata",
                 "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
+                "kariera [status|walka|profesje|rekordy|postep] — odczyt trwałych statystyk; osiagniecia postep — kolejne progi informacyjne",
+                "nawigacja [status|krok|okolica|cel <nazwa>|druzyna] — Nawigacja 2.0 dla NVDA",
+                "druzyna raport / zbiorka / trasa <cel|krok|off> — Party 4.0, koordynacja bez teleportacji",
                 "tytuly / titles; tytul <nazwa> - lista i aktywny tytuł; Titles 2.0 dodaje tytuły za eksplorację, bossy, profesje, Kurierów i gildie; tytuły są prestiżowe i nie dają statystyk",
                 "bounty / zlecenia / contracts - losowana Tablica Zleceń; kontrakty startują od 0/x i czytają postęp na żywo",
                 "kolekcja / collection - Collection Codex; 2.0: kolekcja klasy, sety2, legendy, materialy eq, regiony, instancje",
                 "rankingi / leaderboard - Top Krypty, Wieży, bossów, legend i kompletnych setów",
                 "bosskodex / bosscodex [lista|nazwa] - kille, czas, solo/grupa, najwyższa wersja piętra i odkryte unikalne dropy",
                 "historiadropow / drophistory - ostatnie wartościowe dropy",
+                "zdobycze [legendarne|epickie|rzadkie|wszystkie] [1-30] / zdobycze szukaj <nazwa> — czytelna lista zapisanych dropów",
                 "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
                 "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
+                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik wynajmij <imię>; najemnik status; najemnik zwolnij <imię|wszyscy> - do 3 NPC na 45 minut, niezależnie od pomocników UOSS",
                 "look lub l - opis aktualnej lokacji",
                 "exits / ex - kierunki i nazwy lokacji, do których prowadzą; exits info dodaje strefę i poziom zagrożenia",
                 "map / mapa - w świecie mapa regionu, w instancji mapa sektora 100 pięter z procentem, sekretami i checkpointami; mapa instancje - podsumowanie",
@@ -106,7 +123,9 @@ class SessionHelpSystemMixin:
                 "legendarnekontrakty / legendarycontracts - bardzo długie kontrakty z ogromnym Class XP, Soul XP i walutą",
                 "geody / geodes - geody w Sakwie Górnika; open geode / otwórz geodę - otwórz jedną geodę",
                 "unlock / odklucz / odblokuj - otwórz skrzynię bossową właściwym kluczem; poza skrzynią odblokuj kolejny Tier Broni Duszy",
-                "where - aktualna lokacja",
+                "gdzie / where — bieżąca lokacja i kierunki; gdzie cele — lokalne cele walk; trasa <cel> — zaplanuj przejście",
+                "prace — status przetopu, automatycznego zbierania i kolejki skilli; działa także podczas przetapiania",
+                "combat concise / normal / full; combat ostatnie [liczba] — tryb i historia komunikatów walki",
                 "teren info <nazwa> - Soul, NPC, questy, bossowie, profesje i dojście w regionie",
                 "location / lokalizacja - lokacja, strefa i wyjścia",
                 "north/south/east/west/up/down lub n/s/e/w/u/d - chodzenie; każdy krok najpierw rozpoczyna marsz, potem dopiero przenosi do sąsiedniej lokacji",

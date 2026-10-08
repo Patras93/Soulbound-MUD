@@ -231,3 +231,7 @@ V03053_ENCHANTS={
 }
 
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
+
+# v1.15.0: stolarstwo i krawiectwo współtworzą endgame EQ.
+from systems.legendary_reborn import register_extended_legendary_recipes_v1150
+register_extended_legendary_recipes_v1150(V03053_CRAFT_RECIPES)

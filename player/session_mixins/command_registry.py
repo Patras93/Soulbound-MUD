@@ -43,7 +43,10 @@ COMMAND_REGISTRY = {
     'historybuffer': ('show_history_buffer', (COMMAND_TEXT,), {}),
     'regionprogress': ('show_region_progress', (), {}),
     'exploration': ('show_exploration', (COMMAND_TEXT,), {}),
-    'achievements': ('show_achievements', (), {}),
+    'achievements': ('achievements_plus_v1192', (COMMAND_TEXT,), {}),
+    'navigation2': ('navigation_v1191', (COMMAND_TEXT,), {}),
+    'career2': ('career_v1192', (COMMAND_TEXT,), {}),
+    'greatworld': ('great_world_v1200', (COMMAND_TEXT,), {}),
     'titles': ('show_titles', (), {}),
     'title': ('set_title', (COMMAND_TEXT,), {}),
     'collection': ('show_collection', (COMMAND_TEXT,), {}),
@@ -117,12 +120,14 @@ COMMAND_REGISTRY = {
     'mythicsets': ('show_mythic_sets_v021', (COMMAND_TEXT,), {}),
     'endlessgauntlet': ('handle_endless_gauntlet_v021', (COMMAND_TEXT,), {}),
     'mythicprogression': ('show_mythic_progression_v021', (), {}),
-    'instancesecret': ('discover_instance_secret', (), {}),
+    'instancesecret': ('discover_instance_secret', (COMMAND_TEXT,), {}),
     'bestiary': ('show_bestiary', (COMMAND_TEXT,), {}),
     'atlas': ('show_atlas', (COMMAND_TEXT,), {}),
     'classcodex': ('show_class_codex', (COMMAND_TEXT,), {}),
     'chest': ('open_treasure_chest', (COMMAND_TEXT,), {}),
-    'where': ('show_where', (), {}),
+    'where': ('show_where', (COMMAND_TEXT,), {}),
+    'treasures': ('show_treasures_v1180', (COMMAND_TEXT,), {}),
+    'tasks': ('show_tasks_v1180', (COMMAND_TEXT,), {}),
     'expareas': ('show_exp_areas', (COMMAND_TEXT,), {}),
     'terraininfo': ('show_terrain_info', (COMMAND_TEXT,), {}),
     'dungeon_exit': ('dungeon_exit', (), {}),
@@ -164,6 +169,8 @@ COMMAND_REGISTRY = {
     'partyrevive': ('revive_party_member_v0371', (COMMAND_TEXT,), {}),
     'playerresp': ('respawn_downed_player_v11343', (COMMAND_TEXT,), {}),
     'selfrespawn': ('respawn_from_downed_v0371', (), {'auto': False}),
+    'najemnicy': ('handle_mercenaries_v1170', ('lista',), {}),
+    'najemnik': ('handle_mercenaries_v1170', (COMMAND_TEXT,), {}),
     'charisma': ('show_charisma', (), {}),
     'multiclass': ('handle_multiclass', (COMMAND_TEXT,), {}),
     'rest': ('handle_rest', (COMMAND_TEXT,), {}),
@@ -344,8 +351,8 @@ COMMAND_REGISTRY.update({
 DOWNED_SAFE_COMMANDS = {
     "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
     "help", "look", "party", "partychat", "say", "tell", "reply", "who",
-    "where", "hp", "score", "records", "chronicle", "selfrespawn",
-    "historybuffer", "lifetime", "deathrecap", "combatrecap",
+    "where", "hp", "score", "records", "chronicle", "selfrespawn", "treasures", "tasks",
+    "historybuffer", "lifetime", "deathrecap", "combatrecap", "navigation2", "career2", "greatworld",
 }
 REST_SAFE_COMMANDS = {
     "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
@@ -361,7 +368,7 @@ REST_SAFE_COMMANDS = {
     "gemsockets", "tiers", "location", "route", "guide", "recipes", "inventory", "equipment", "shop",
     "teachers", "quests", "charisma", "multiclass", "back", "dungeonexit", "progress", "exploration",
     "achievements", "titles", "title", "collection", "bosscodex", "bounty", "drophistory", "lootfilter",
-    "regionprogress", "combatlog", "lifetime", "historybuffer", "craftbox", "craftmastery",
+    "regionprogress", "combatlog", "lifetime", "historybuffer", "treasures", "tasks", "navigation2", "career2", "greatworld", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "ignore", "unignore", "afk",
     "whois", "mail", "postal", "cityreputation", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
     "emote", "smile", "wave", "cheer", "collection2", "completion", "deathrecap", "combatrecap",
@@ -378,7 +385,7 @@ GUIDE_SAFE_COMMANDS = {
     "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "archaeology", "cartography", "cartographyworld",
     "artifactupgrade", "endgamegoals", "collection", "museum", "prestige", "bosscodex", "leaderboards",
     "bounty", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords",
-    "drophistory", "combatlog", "lifetime", "historybuffer", "fishjournal", "say", "gossip", "newbie",
+    "drophistory", "combatlog", "lifetime", "historybuffer", "treasures", "tasks", "navigation2", "career2", "greatworld", "fishjournal", "say", "gossip", "newbie",
     "trade", "channels", "mentor", "tell", "reply", "friends", "postal", "cityreputation", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
 }
@@ -388,6 +395,9 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
         _canonical, _handler, source="player/session_mixins/command_registry.py",
         help_topic=_canonical, kind="session",
     )
+
+for _alias in ("mercenary", "mercenaries", "tawerna"):
+    COMMAND_CATALOG.add_alias(_alias, "najemnik" if _alias == "mercenary" else "najemnicy", source="player/session_mixins/command_registry.py")
 
 # v1.13.42: czytelne polskie polecenie jest kanoniczne, ale zachowujemy
 # angielskie odpowiedniki dla graczy używających starych skrótów.

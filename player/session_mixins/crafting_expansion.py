@@ -3,8 +3,10 @@
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import asyncio
+import time
 import random
 from core.bootstrap_economy_professions import required_tool_tier_for_level, tool_tier, tool_tier_bonus_chance, tool_tier_name
+from core.profession_batch_v1176 import profession_batch_content_level_v1176
 from core.mines_threat import ITEMS
 from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL
 from network.protocol_gameplay_utils import (
@@ -464,10 +466,12 @@ class SessionCraftingExpansionV03114Mixin:
         if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
             raise asyncio.CancelledError
         self.smelt_interruptible_v1124 = True
+        self.smelt_wait_until_v1180 = time.monotonic() + max(0.0, float(seconds))
         try:
             await asyncio.sleep(seconds)
         finally:
             self.smelt_interruptible_v1124 = False
+            self.smelt_wait_until_v1180 = 0.0
         if bool(getattr(self, "smelt_cancel_requested_v1124", False)):
             raise asyncio.CancelledError
 
@@ -678,7 +682,9 @@ class SessionCraftingExpansionV03114Mixin:
             if self.smelt_task_active_v1124():
                 await self.send(
                     f"Przetapianie aktywne: {self.smelt_label_v1124 or 'w toku'}. "
-                    "Aby zatrzymać wpisz: przetop stop."
+                    + (f"Pozostało około {max(0, int(round(self.smelt_wait_until_v1180 - time.monotonic())))} s. "
+                       if getattr(self, 'smelt_wait_until_v1180', 0.0) else "Trwa finalizacja partii. ")
+                    + "Aby zatrzymać wpisz: przetop stop."
                 )
                 return True
             await self.send("Przetapianie nie jest aktywne.")
@@ -794,6 +800,8 @@ class SessionCraftingExpansionV03114Mixin:
             total_output_items = 0
             total_profession_xp_base = 0
             total_tool_xp_base = 0
+            completed_batch_weighted_stages = []
+            completed_batch_crafts = 0
             bonus_chance = tool_tier_bonus_chance(old_tool_level)
 
             for _recipe_id, recipe, count in plan:
@@ -842,6 +850,8 @@ class SessionCraftingExpansionV03114Mixin:
                 )
                 total_profession_xp_base += prof_base
                 total_tool_xp_base += tool_base
+                completed_batch_weighted_stages.append((recipe_stage, prof_base + tool_base))
+                completed_batch_crafts += count
 
             if not outputs:
                 return False
@@ -864,9 +874,10 @@ class SessionCraftingExpansionV03114Mixin:
 
             pooled_profession_xp = roll_crafting_xp(max(1, total_profession_xp_base))
             pooled_tool_xp = roll_crafting_xp(max(1, total_tool_xp_base))
-            batch_content_level=self.profession_content_level_v11342(
-                item_id=first_recipe.get("output"),
-                recipe=first_recipe,
+            # The first recipe may be cheap iron even in a mostly-Eternium batch.
+            # Use completed recipe XP weights, not catalogue order.
+            batch_content_level = profession_batch_content_level_v1176(
+                completed_batch_weighted_stages
             )
             messages, _profession_level_after, new_tool_level = self.grant_profession_progress(
                 profession,
@@ -874,6 +885,7 @@ class SessionCraftingExpansionV03114Mixin:
                 tool_type,
                 pooled_tool_xp,
                 content_level=batch_content_level,
+                batch_count=completed_batch_crafts,
             )
 
             result_parts = [f"{ITEMS[item_id]['name']} x{qty}" for item_id, qty in outputs.items()]

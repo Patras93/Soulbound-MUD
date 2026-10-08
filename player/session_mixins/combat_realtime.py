@@ -24,6 +24,16 @@ from systems.elite_variants import (
     elite_enemy_action_multiplier_v11338,
     elite_regen_amount_v11338,
 )
+from systems.monster_ai import (
+    monster_ai_plan_v1160, monster_ai_execute_v1160,
+    monster_ai_eligible_v1160, monster_ai_necromancer_v1160,
+    monster_ai_attack_multiplier_v1160, monster_ai_lifesteal_v1160,
+)
+from systems.monster_magic import (
+    monster_magic_apply_v1151, monster_magic_tick_v1151,
+    monster_magic_player_action_v1151, monster_magic_action_interval_v1151,
+    monster_magic_incoming_multiplier_v1151, monster_magic_clear_v1151,
+)
 from systems.elemental_combat import (
     elemental_mob_attack_profile_v11339,
     elemental_target_ward_multiplier_v11339,
@@ -206,6 +216,7 @@ class SessionCombatRealtimeMixin:
                 # builds cannot leave an already engaged mob as a one-hit sponge.
                 self.apply_adaptive_mob_scale_v11330(mob)
                 await self.apply_uoss_helper_turn_v1146(mob)
+                await self.mercenary_combat_turn_v1170(mob)
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
                 await self.mec_refresh_vmax_v0319()
@@ -317,14 +328,15 @@ class SessionCombatRealtimeMixin:
                     mob.hp -= echo_damage
                     self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0)) + echo_damage
                 soul_heal = 0
-                _lifesteal = float(trait_totals.get("lifesteal_percent", 0.0) or 0.0)
+                _eq_specials_v1150 = self.equipment_property_totals()
+                _lifesteal = float(trait_totals.get("lifesteal_percent", 0.0) or 0.0) + min(8.0, float(_eq_specials_v1150.get("lifesteal_percent", 0.0) or 0.0))
                 if _lifesteal > 0 and self.current_hp < self.max_hp() and not superboss_healing_blocked_v11179(self):
                     soul_heal = min(self.max_hp() - self.current_hp, max(1, int(round(damage * _lifesteal / 100.0))))
                     if soul_heal > 0:
                         self.current_hp += soul_heal
                         self._recap52_heal = int(getattr(self, "_recap52_heal", 0)) + soul_heal
                 _mana_restore = 0
-                _mana_pct = float(trait_totals.get("mana_restore_percent", 0.0) or 0.0)
+                _mana_pct = float(trait_totals.get("mana_restore_percent", 0.0) or 0.0) + min(6.0, float(_eq_specials_v1150.get("mana_restore_percent", 0.0) or 0.0))
                 if _mana_pct > 0 and self.current_mana < self.max_mana():
                     _mana_restore = min(self.max_mana() - self.current_mana, max(1, int(round(damage * _mana_pct / 100.0))))
                     if _mana_restore > 0:
@@ -394,7 +406,16 @@ class SessionCombatRealtimeMixin:
 
                         now = time.monotonic()
                         if now >= next_player:
-                            await self.realtime_player_action(mob)
+                            for _magic_tick_v1151 in monster_magic_tick_v1151(self, now):
+                                await self.send_combat(_magic_tick_v1151, "essential")
+                            _magic_skip_v1151 = monster_magic_player_action_v1151(self, now)
+                            if _magic_skip_v1151:
+                                await self.send_combat(
+                                    f"{_magic_skip_v1151}: tracisz jedną automatyczną akcję. Efekt nie może ponownie przerwać ataku przed wygaśnięciem.",
+                                    "essential",
+                                )
+                            else:
+                                await self.realtime_player_action(mob)
                             await self.apply_active_regen_round_v11196()
                             await self.mec_self_repair_round_v11154()
                             await self.apply_satellite_linker_round_v11196()
@@ -402,7 +423,9 @@ class SessionCombatRealtimeMixin:
                             # action is the recovery cycle; after it the state clears.
                             if self.mec_finish_overheat_recovery_v0319():
                                 await self.send("OVERHEAT mija. V-MAX może być ponownie użyty.")
-                            _interval=self.player_action_interval_v11154()
+                            _interval=monster_magic_action_interval_v1151(
+                                self, self.player_action_interval_v11154()
+                            )
                             next_player = time.monotonic() + _interval
                             # Haste source says attacks/actions occur more frequently,
                             # but supplies no numeric speed multiplier. Soulbound has no
@@ -479,6 +502,8 @@ class SessionCombatRealtimeMixin:
                                     ),
                                     enemy_mob.hp,
                                 )
+                                if _elite_template_v11338.get("elite_affix") == "vampiric":
+                                    _elite_regen_v11338 = 0
                                 if _elite_regen_v11338 > 0:
                                     enemy_mob.hp += _elite_regen_v11338
                                     _elite_regen_text_v11338 = (
@@ -622,6 +647,35 @@ class SessionCombatRealtimeMixin:
                                         if _logic_expires_after_action:
                                             enemy_mob.v11196_logic_bomb_effects=set()
                                         continue
+                                # AI support is one mob action, not a second attack
+                                # against every party member. Authored bosses are exempt.
+                                _ai_template_v1160 = MOB_TEMPLATES[enemy_mob.template_id]
+                                _ai_ready_v1160 = (
+                                    enemy_mob.combat_turn % 3 == 0
+                                    and monster_ai_eligible_v1160(enemy_mob, _ai_template_v1160)
+                                )
+                                _room_ai_v1160 = tuple(
+                                    other for other in self.server.world.mobs.values()
+                                    if other.room_id == enemy_mob.room_id
+                                    and (other.engaged_by == enemy_mob.engaged_by or (
+                                        not other.alive and monster_ai_necromancer_v1160(_ai_template_v1160)
+                                    ))
+                                ) if _ai_ready_v1160 else ()
+                                _ai_plan_v1160 = monster_ai_plan_v1160(
+                                    enemy_mob, _ai_template_v1160,
+                                    [other for other in _room_ai_v1160 if other.alive],
+                                    [other for other in _room_ai_v1160 if not other.alive],
+                                ) if _ai_ready_v1160 else None
+                                # Logic Bomb Silence cancels monster spellcasting.
+                                if _ai_plan_v1160 and not (_logic_active and "silence" in _logic_effects):
+                                    _ai_text_v1160 = monster_ai_execute_v1160(
+                                        self.server.world, enemy_mob, _ai_template_v1160, _ai_plan_v1160,
+                                    )
+                                    if _ai_text_v1160:
+                                        await self.server.party_combat_broadcast(
+                                            self, _ai_text_v1160, detail="essential"
+                                        )
+                                        continue
                                 _sonata_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
                                 )
@@ -642,8 +696,13 @@ class SessionCombatRealtimeMixin:
                                     if _sonata_rounds>0 else 1.0
                                 )
                                 _action_template = MOB_TEMPLATES[enemy_mob.template_id]
+                                _elemental_template_v1160 = (
+                                    dict(_action_template, attack_elements_v11339=("ice",))
+                                    if _action_template.get("elite_affix") == "ice"
+                                    else _action_template
+                                )
                                 _elemental_attack_v11339 = elemental_mob_attack_profile_v11339(
-                                    _action_template,
+                                    _elemental_template_v1160,
                                     random.random(),
                                     getattr(enemy_mob, "combat_turn", 0),
                                 )
@@ -950,8 +1009,12 @@ class SessionCombatRealtimeMixin:
                                         * _flavor_mult_v11324
                                         * _adaptive_enemy_mult_v11330
                                         * _elite_enemy_mult_v11338
+                                        * monster_ai_attack_multiplier_v1160(enemy_mob)
                                         * _elemental_enemy_mult_v11339
+                                        * monster_magic_incoming_multiplier_v1151(target_session)
                                     )
+                                    target_session._monster_magic_last_hit_v1151 = False
+                                    _hp_before_monster_v1160 = int(target_session.current_hp or 0)
                                     if (
                                         _enemy_action_mult_v11324 != 1.0
                                         or _elemental_attack_v11339
@@ -981,6 +1044,41 @@ class SessionCombatRealtimeMixin:
                                             _enemy_template["damage_type"] = _old_damage_type
                                     else:
                                         await target_session.enemy_counterattack(enemy_mob)
+                                    _drained_v1160 = monster_ai_lifesteal_v1160(
+                                        enemy_mob, _enemy_template,
+                                        max(0, _hp_before_monster_v1160 - int(target_session.current_hp or 0)),
+                                    )
+                                    if _drained_v1160:
+                                        await self.server.party_combat_broadcast(
+                                            target_session,
+                                            f"{_enemy_template['name']} wysysa {_drained_v1160} HP z trafienia.",
+                                            detail="normal",
+                                        )
+                                    # Apply a spell status only after an actual hit:
+                                    # dodge, guard evasion and Mec interception never proc it.
+                                    if (
+                                        _elemental_attack_v11339
+                                        and getattr(target_session, "_monster_magic_last_hit_v1151", False)
+                                        and target_session.current_hp > 0
+                                    ):
+                                        _element_v1151 = _elemental_attack_v11339["element"]
+                                        _ward_getter_v1151 = getattr(
+                                            target_session, "equipment_element_ward_v11176", None
+                                        )
+                                        _ward_v1151 = (
+                                            float(_ward_getter_v1151(_element_v1151) or 0.0)
+                                            if callable(_ward_getter_v1151) else 0.0
+                                        )
+                                        _spell_status_v1151 = monster_magic_apply_v1151(
+                                            target_session, _element_v1151, random.random(),
+                                            ward=_ward_v1151,
+                                        )
+                                        if _spell_status_v1151:
+                                            await self.server.party_combat_broadcast(
+                                                target_session,
+                                                f"{target_session.character.name}: {_spell_status_v1151}",
+                                                detail="essential",
+                                            )
 
                                 if _logic_active and _logic_expires_after_action:
                                     enemy_mob.v11196_logic_bomb_effects=set()
@@ -1023,6 +1121,7 @@ class SessionCombatRealtimeMixin:
                     except Exception:  # AUDIT_INTENTIONAL_PASS: session may already be disconnected while reporting loop failure
                         pass
                 finally:
+                    monster_magic_clear_v1151(self)
                     try:
                         superboss_clear_source_statuses_v11176(self)
                     except Exception as exc:

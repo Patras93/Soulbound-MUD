@@ -32,6 +32,9 @@ class SessionCommandLoopMixin:
                         "stop", "off", "przerwij", "koniec", "status", "stan"
                     }
                 )
+                # Read-only QoL status must remain usable during long smelting.
+                if _busy_command == "tasks":
+                    _busy_control = True
                 if not _busy_control:
                     await self.send(
                         "Trwa przetapianie. Wpisz przetop status albo przetop stop "

@@ -89,6 +89,17 @@ def create_core_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        -- v1.17.5: shop purchase basis for anti-arbitrage. Only purchased
+        -- inventory lots are tracked; monster loot and crafting stay untagged.
+        CREATE TABLE IF NOT EXISTS shop_purchase_lots_v1175 (
+            account_id INTEGER NOT NULL,
+            item_id TEXT NOT NULL,
+            paid_silver INTEGER NOT NULL CHECK(paid_silver>=0),
+            quantity INTEGER NOT NULL CHECK(quantity>0),
+            PRIMARY KEY (account_id, item_id, paid_silver),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS equipment (
                         account_id INTEGER NOT NULL,
                         slot TEXT NOT NULL,

@@ -17,6 +17,10 @@ CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600
 # v0.61.3: orders accepted before this hotfix may have had their products
 # consumed by the broken turn-in path before the reward_tool_type crash.
 CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613 = 1790294400
+# v1.20.1: in v1.20.0 an absent `required_level` column raised IndexError
+# after products had already been consumed. Allow legacy pre-hotfix orders with
+# completed progress to be recovered exactly once via the existing cycle ledger.
+CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V1201 = 1791463860
 
 # v1.10.6: all 14 professions have rotating orders. Product professions use
 # real recipes, gathering professions request fresh category gathers, and
@@ -386,17 +390,30 @@ class SessionCraftingOrdersV0600Mixin:
                 have = int(self.server.db.total_items_across_storage_and_inventory(
                     self.account_id, ids, container
                 ))
-                if have < needed:
+                # v1.20.0 could consume gathered resources before raising
+                # IndexError on the nonexistent SQLite `required_level` key.
+                legacy_recovery = (
+                    have < needed
+                    and progress >= needed
+                    and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V1201
+                )
+                if have < needed and not legacy_recovery:
                     await self.send(
                         f"Masz tylko {have} z {needed} wymaganych {label}. "
                         "Świeży postęp jest zaliczony, ale surowce muszą być nadal w magazynie profesji lub ekwipunku."
                     )
                     return
-                if not self.server.db.consume_items_across_storage_and_inventory(
-                    self.account_id, ids, needed, container
-                ):
-                    await self.send("Nie udało się pobrać surowców do zamówienia. Sprawdź magazyn profesji.")
-                    return
+                if not legacy_recovery:
+                    if not self.server.db.consume_items_across_storage_and_inventory(
+                        self.account_id, ids, needed, container
+                    ):
+                        await self.send("Nie udało się pobrać surowców do zamówienia. Sprawdź magazyn profesji.")
+                        return
+                else:
+                    await self.send(
+                        "NAPRAWA ZAMÓWIENIA v1.20.1: stara wersja mogła pobrać surowce przed błędem. "
+                        "Nie pobieram ich ponownie; tę ofertę można zaliczyć tylko raz w cyklu."
+                    )
             elif order_kind == "action":
                 # Udana akcja Zaklinania już zużyła swoje materiały; nie pobieramy
                 # drugiego produktu przy oddawaniu zamówienia.
@@ -406,7 +423,7 @@ class SessionCraftingOrdersV0600Mixin:
                 legacy_recovery = (
                     have < needed
                     and progress >= needed
-                    and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V0613
+                    and int(active["accepted_at"] or 0) <= CRAFTING_ORDER_BROKEN_TURNIN_CUTOFF_V1201
                 )
                 if have < needed and not legacy_recovery:
                     await self.send(f"Masz tylko {have} z {needed} wymaganych sztuk. Produkty muszą być nadal przy tobie lub w magazynie profesji.")
@@ -417,8 +434,9 @@ class SessionCraftingOrdersV0600Mixin:
                         return
                 else:
                     await self.send(
-                        "NAPRAWA ZAMÓWIENIA v0.61.3: wykryto aktywne, ukończone zamówienie przyjęte przed hotfixem. "
-                        "Stara ścieżka mogła już pobrać produkty przed crashem, więc nie pobieram ich ponownie."
+                        "NAPRAWA ZAMÓWIENIA v1.20.1: zamówienie wykonane przed hotfixem. "
+                        "Poprzednia wersja mogła pobrać produkty przed błędem, więc nie pobieram ich ponownie. "
+                        "Tę ofertę można zaliczyć tylko raz w cyklu."
                     )
 
             coins = int(active["reward_coins"])
@@ -432,7 +450,8 @@ class SessionCraftingOrdersV0600Mixin:
             )
             order_content_level=max(
                 1,
-                int(active["required_level"] or 1),
+                # `required_level` belongs to in-memory offer definitions, not
+                # to persisted `crafting_orders_v0600` SQLite rows.
                 int(order_profession_row["level"] if order_profession_row else 1),
             )
             await self.grant_profession_reward_xp(

@@ -1630,6 +1630,28 @@ def apply_separate_class_shops_v03036():
                 normalize_lookup_text(f"{prefix} {class_name}")
             ] = room_id
 
+    # v1.20.2: The shared arcane *class EQ* shop was retired, but Selene is
+    # also the Zaklinanie profession specialist. Restore her independent
+    # single-tool shop after creating the separate Mag/Psionik EQ shops.
+    # Without this, the v0.30.36 cleanup silently removes the Runic Focus
+    # added by systems.professions and `list` says there is no shop.
+    enchanting_room = "guild_arcane_chamber"
+    enchanting_seller_id = "guild_quartermaster_arcane"
+    _catalog_mut.catalog_assign(["runic_focus"], 'SHOPS', SHOPS, (enchanting_room,))
+    SHOP_SELLERS[enchanting_room] = enchanting_seller_id
+    enchanting_seller = NPCS[enchanting_seller_id]
+    enchanting_seller["shopkeeper"] = True
+    enchanting_seller["dialogue"] = (
+        "Prowadzę Zaklinanie i sprzedaję Fokus Runiczny. "
+        "Wpisz list albo shop, potem kup 1 lub kup fokus runiczny. "
+        "Wyposażenie klasowe Maga i Psionika jest w osobnych salach."
+    )
+    enchanting_description = " U Selene kupisz Fokus Runiczny: list, kup 1."
+    if enchanting_description.strip() not in str(ROOMS[enchanting_room].get("desc") or ""):
+        ROOMS[enchanting_room]["desc"] = (
+            str(ROOMS[enchanting_room].get("desc") or "") + enchanting_description
+        )
+
     HELP_TOPICS["sklepy klasowe"] = [
         "Każda z 14 klas ma własny, osobny sklep EQ w swojej sali klasowej w Gildii Dusz.",
         "Wojownik, Berserker, Łotrzyk, Łowca, Mnich, Strażnik, Mag, Nekromanta, Kapłan, Czarownik, Druid i Psionik nie współdzielą już punktów sprzedaży.",
@@ -1704,6 +1726,16 @@ def class_shop_audit_v03036():
     for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
         if room_id in CLASS_SHOP_CLASSES_BY_ROOM:
             errors.append(f"old shared room still class shop: {room_id}")
+        if room_id == "guild_arcane_chamber":
+            # Zaklinanie has a real profession-tool vendor here; it must not
+            # bring back the old mixed Mag/Psionik class EQ catalogue.
+            if SHOPS.get(room_id) != ["runic_focus"]:
+                errors.append("arcane profession shop must sell only runic_focus")
+            seller = NPCS.get("guild_quartermaster_arcane", {})
+            if (SHOP_SELLERS.get(room_id) != "guild_quartermaster_arcane"
+                    or seller.get("room") != room_id or not seller.get("shopkeeper")):
+                errors.append("arcane profession shop has no active Selene")
+            continue
         if SHOPS.get(room_id):
             errors.append(f"old shared room still sells items: {room_id}")
         if SHOP_SELLERS.get(room_id):

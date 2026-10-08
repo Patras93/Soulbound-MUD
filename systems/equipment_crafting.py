@@ -1,6 +1,7 @@
 from data import catalog_mutations as _catalog_mut
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
+from core.profession_drop_rates_v1149 import mined_gem_quality_chances_v1149, mining_geode_chances_v1149
 import random
 from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
@@ -1818,26 +1819,12 @@ def gem_quality_amount(base_amount, quality):
     return max(base_amount + index, scaled)
 
 def roll_mined_gem_quality(tool_level, profession_level):
-    tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
-    profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
-    power = (tool_level + profession_level) / 2.0
-    old_power = min(200.0, power)
-    # 1-200 zachowuje stare szanse. 201-600 dodaje mały dalszy bonus,
-    # ale perfekcyjny kamień nadal pozostaje jackpotem.
-    perfect = 0.0 if old_power < 120 else min(0.020, (old_power - 120) * 0.00025)
-    excellent = 0.0 if old_power < 70 else min(0.100, (old_power - 70) * 0.00077)
-    pure = 0.0 if old_power < 30 else min(0.180, (old_power - 30) * 0.00106)
-    post = max(0.0, power - 200.0)
-    perfect += min(0.020, post * 0.00010)
-    excellent += min(0.050, post * 0.00025)
-    pure += min(0.040, post * 0.00020)
+    chances = mined_gem_quality_chances_v1149(tool_level, profession_level)
     roll = random.random()
-    if roll < perfect:
-        return "perfect"
-    if roll < perfect + excellent:
-        return "excellent"
-    if roll < perfect + excellent + pure:
-        return "pure"
+    for key in ("perfect", "excellent", "pure"):
+        if roll < chances[key]:
+            return key
+        roll -= chances[key]
     return "raw"
 
 def _register_gem_quality_variants():
@@ -1921,25 +1908,13 @@ for _geode_id, _geode in GEODE_DEFINITIONS.items():
     }, 'ITEMS', ITEMS, (_geode_id,))
 
 def roll_mining_geode(tool_level, profession_level, floor):
-    tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
-    profession_level = max(1, min(PROFESSION_MAX_LEVEL, int(profession_level)))
-    # v0.9.13: głębokość lochu jest nieskończona, ale zasobowa moc ekonomii
-    # zatrzymuje się na progresji 600.
-    floor = max(1, min(PROFESSION_MAX_LEVEL, int(floor or 1)))
-    eligible = [
-        geode_id for geode_id, cfg in GEODE_DEFINITIONS.items()
-        if tool_level >= cfg["min_tool"] and floor >= cfg["min_floor"]
-    ]
-    if not eligible:
-        return None
-    chance = min(0.045, 0.012 + (tool_level + profession_level) / 20000.0 + floor / 20000.0)
-    if random.random() >= chance:
-        return None
-    if "astral_geode" in eligible:
-        return random.choices(["stone_geode", "crystal_geode", "astral_geode"], weights=[4, 5, 3], k=1)[0]
-    if "crystal_geode" in eligible:
-        return random.choices(["stone_geode", "crystal_geode"], weights=[6, 4], k=1)[0]
-    return "stone_geode"
+    rates = mining_geode_chances_v1149(tool_level, profession_level, floor)
+    roll = random.random()
+    for key, rate in rates.items():
+        if roll < rate:
+            return key
+        roll -= rate
+    return None
 
 # v0.8.67: osobny zestaw zawartości Sakwy Górnika. ORE_STORAGE_IDS pozostaje
 # zestawem prawdziwych rud/minerałów używanym przez questy typu "dowolna ruda",
@@ -2188,3 +2163,7 @@ for _level in PROGRESSION_400_LEVELS:
         "category": "smithing",
         "desc": f"Kowalstwo level {_level}. Sztabki i drewno progresji {_level}.",
     }, 'CRAFT_RECIPES', CRAFT_RECIPES, (_charm_id,))
+
+# v1.15.0: legendarne receptury i działające, unikalne efekty sprzętu.
+from systems.legendary_reborn import register_legendary_content_v1150
+register_legendary_content_v1150(CRAFT_RECIPES, JEWELCRAFT_RECIPES)

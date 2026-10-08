@@ -30,6 +30,8 @@ class MudServer:
         # lidera; ready-check przechowuje konta, które potwierdziły gotowość.
         self.party_goals = {}
         self.party_ready_checks = {}
+        # v1.19.3: route goals are session-only and never grant travel permissions.
+        self.party_routes_v1193 = {}
 
     def report_runtime_error(self, exc, *, command=None, handler=None):
         report = build_runtime_error_report(

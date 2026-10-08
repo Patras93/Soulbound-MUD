@@ -22,7 +22,169 @@ def main():
         import server
         try:
             ns = vars(server)
+            from validation.enchanting_vendor_v1202 import audit_enchanting_vendor_v1202
+            _enchanting_vendor = audit_enchanting_vendor_v1202()
+            print(f"ENCHANTING VENDOR v1.20.2 RUNTIME: {_enchanting_vendor['checks']} checks, {_enchanting_vendor['error_count']} errors")
+            if _enchanting_vendor['error_count']:
+                raise SystemExit('ENCHANTING VENDOR: ' + '; '.join(_enchanting_vendor['errors']))
+            # v1.17.2: test actual post-Generator class EQ, not merely early
+            # recipe templates.  This catches missing Mec INT/WILL channels.
+            from validation.class_balance_v1172 import (
+                audit_class_skill_balance_v1172,
+                audit_class_equipment_balance_v1172,
+            )
+            from systems.items_resources import CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
+            from systems.crafting_expansion import TECH_SET_ITEMS_V03114
+            _class_v1172 = audit_class_skill_balance_v1172()
+            _eq_v1172 = audit_class_equipment_balance_v1172(
+                ns["ITEMS"], CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER, TECH_SET_ITEMS_V03114
+            )
+            print(f"CLASS BALANCE v1.17.2: {_class_v1172['classes']} classes, "
+                  f"{_class_v1172['skills']} skills, {_class_v1172['checks']} checks, "
+                  f"{_class_v1172['error_count']} errors")
+            print(f"CLASS EQUIPMENT v1.17.2: {_eq_v1172['classes']} classes, "
+                  f"{_eq_v1172['checks']} checks, {_eq_v1172['error_count']} errors")
+            if _class_v1172['error_count'] or _eq_v1172['error_count']:
+                for _error in (_class_v1172['errors'] + _eq_v1172['errors'])[:60]:
+                    print('CLASS BALANCE ERROR: ' + _error)
+                raise SystemExit(1)
+            # v1.17.3: actual adaptive scaling with final EQ, Haste and party sizes.
+            from validation.combat_balance_v1173 import (
+                audit_combat_balance_runtime_v1173,
+                audit_party_support_runtime_v1173,
+            )
+            _combat_v1173 = audit_combat_balance_runtime_v1173(
+                ns["ITEMS"], CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
+            )
+            _support_v1173 = audit_party_support_runtime_v1173()
+            print(f"COMBAT BALANCE v1.17.3 RUNTIME: {_combat_v1173['checks']} checks, "
+                  f"{_combat_v1173['classes']} classes, {_combat_v1173['error_count']} errors")
+            print(f"PARTY SUPPORT v1.17.3: {_support_v1173['checks']} checks, "
+                  f"{_support_v1173['error_count']} errors")
+            if _combat_v1173['error_count'] or _support_v1173['error_count']:
+                for _issue in (_combat_v1173['errors'] + _support_v1173['errors'])[:100]:
+                    print('COMBAT BALANCE ERROR: ' + _issue)
+                raise SystemExit(1)
+            # v1.17.4: real post-Generator gear, fractional crafting perks,
+            # handcrafted legendary sources and persisted variant restoration.
+            from validation.equipment_balance_v1174 import audit_equipment_balance_runtime_v1174
+            _equipment_v1174 = audit_equipment_balance_runtime_v1174(
+                ns["ITEMS"], CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER
+            )
+            print(f"EQUIPMENT BALANCE v1.17.4: {_equipment_v1174['checks']} checks, "
+                  f"{_equipment_v1174['error_count']} errors, "
+                  f"sources={_equipment_v1174['sources']}")
+            if _equipment_v1174['error_count']:
+                for _issue in _equipment_v1174['errors'][:80]:
+                    print('EQUIPMENT BALANCE ERROR: ' + _issue)
+                raise SystemExit(1)
+            # v1.17.5: canonical merchant prices, profession availability and
+            # real SQLite purchase->sell/bank/transfer anti-arbitrage.
+            from validation.economy_final_v1175 import audit_economy_final_v1175
+            _economy_v1175 = audit_economy_final_v1175()
+            print(f"ECONOMY FINAL v1.17.5: {_economy_v1175['checks']} checks, "
+                  f"{_economy_v1175['professions']} professions, "
+                  f"{_economy_v1175['offers']} static offers, "
+                  f"{_economy_v1175['at_risk_before']} pre-fix price risks, "
+                  f"{_economy_v1175['error_count']} errors")
+            if _economy_v1175['error_count']:
+                for _issue in _economy_v1175['errors'][:80]:
+                    print('ECONOMY ERROR: ' + _issue)
+                raise SystemExit(1)
+            # v1.17.6: 14 professions are assembled by runtime after server import.
+            from validation.profession_balance_v1176 import audit_profession_balance_v1176
+            _professions_v1176 = audit_profession_balance_v1176(runtime=True)
+            print(f"PROFESSIONS v1.17.6 RUNTIME: {_professions_v1176['checks']} checks, "
+                  f"{_professions_v1176['professions']} professions, "
+                  f"{_professions_v1176['error_count']} errors")
+            if _professions_v1176['error_count']:
+                for _issue in _professions_v1176['errors'][:80]:
+                    print('PROFESSIONS ERROR: ' + _issue)
+                raise SystemExit(1)
+            # v1.17.7: runtime Character passives for 14 races (legacy Smoczy too).
+            from validation.race_balance_v1177 import audit_race_balance_v1177
+            _race_v1177 = audit_race_balance_v1177(runtime=True)
+            print(f"RACES v1.17.7 RUNTIME: {_race_v1177['checks']} checks, "
+                  f"{_race_v1177['combos']} race/class pairs, "
+                  f"{_race_v1177['error_count']} errors")
+            if _race_v1177['error_count']:
+                for _error in _race_v1177['errors'][:60]:
+                    print('RACES ERROR: ' + _error)
+                raise SystemExit(1)
+            # v1.17.8: verify simultaneous combat output and SQLite queue saves.
+            from validation.stability_v1178 import audit_stability_v1178
+            _stable_v1178 = audit_stability_v1178()
+            print(f"STABILITY v1.17.8 RUNTIME: {_stable_v1178['checks']} checks, "
+                  f"{_stable_v1178['clients']} clients, "
+                  f"{_stable_v1178['error_count']} errors")
+            if _stable_v1178['error_count']:
+                for _issue in _stable_v1178['errors'][:50]:
+                    print('STABILITY ERROR: ' + _issue)
+                raise SystemExit(1)
+            # v1.18.0: read-only accessibility commands and history filters.
+            from validation.qol_v1180 import audit_qol_v1180
+            _qol_v1180 = audit_qol_v1180()
+            print(f"QUALITY OF LIFE v1.18.0 RUNTIME: {_qol_v1180['checks']} checks, "
+                  f"{_qol_v1180['error_count']} errors")
+            if _qol_v1180['error_count']:
+                raise RuntimeError('QOL: ' + '; '.join(_qol_v1180['errors']))
+            from validation.world_secrets_v1190 import audit_world_secrets_v1190
+            _secrets_v1190 = audit_world_secrets_v1190()
+            print(f"WORLD SECRETS v1.19.0 RUNTIME: {_secrets_v1190['checks']} checks, {_secrets_v1190['error_count']} errors")
+            if _secrets_v1190['error_count']:
+                raise RuntimeError('SECRETS: ' + '; '.join(_secrets_v1190['errors']))
+            from validation.great_world import audit_great_world_v1200
+            _great_world_v1200 = audit_great_world_v1200()
+            print(f"GREAT WORLD v1.20.0 RUNTIME: {_great_world_v1200['checks']} checks, {_great_world_v1200['error_count']} errors")
+            if _great_world_v1200['error_count']:
+                raise RuntimeError("GREAT WORLD v1.20.0: " + "; ".join(_great_world_v1200['errors']))
+
+            from validation.order_turnin_hotfix_v1201 import audit_order_turnin_hotfix_v1201
+            _order_hotfix_v1201 = audit_order_turnin_hotfix_v1201()
+            print(f"ORDER TURNIN v1.20.1 RUNTIME: {_order_hotfix_v1201['checks']} checks, {_order_hotfix_v1201['error_count']} errors")
+            if _order_hotfix_v1201['error_count']:
+                raise RuntimeError("ORDER TURNIN: " + "; ".join(_order_hotfix_v1201['errors']))
+            from validation.upgrade_v1193 import audit_upgrade_v1193
+            _upgrade_v1193 = audit_upgrade_v1193()
+            print(f"NAV/CAREER/PARTY v1.19.3 RUNTIME: {_upgrade_v1193['checks']} checks, {_upgrade_v1193['error_count']} errors")
+            if _upgrade_v1193['error_count']:
+                raise RuntimeError('UPGRADE: ' + '; '.join(_upgrade_v1193['errors']))
+            # v1.15.0: new loot and recipes must exist in the fully assembled runtime.
+            from systems.legendary_reborn import legendary_reborn_audit_v1150
+            from systems.equipment_crafting import CRAFT_RECIPES, JEWELCRAFT_RECIPES
+            from systems.professions import V03053_CRAFT_RECIPES
+            _legendary_v1150 = legendary_reborn_audit_v1150(
+                CRAFT_RECIPES, JEWELCRAFT_RECIPES, V03053_CRAFT_RECIPES
+            )
+            if _legendary_v1150["errors"]:
+                print("LEGENDARY REBORN ERRORS:", _legendary_v1150["errors"])
+                raise SystemExit(1)
+            print(f"LEGENDARY REBORN: {_legendary_v1150['checks']} checks, 0 errors")
             full = ns["FULL_GAME_PREDEPLOY_AUDIT_V0336"]
+            # v1.14.7: real native-runtime progression, save/reopen, helpers.
+            from validation.release_stability import audit_release_stability_runtime_v1147
+            from validation.profession_market_v1148 import audit_profession_market_v1148
+            from validation.profession_drops_v1149 import audit_profession_drops_v1149
+            drops = audit_profession_drops_v1149()
+            print(f"PROFESSION DROPS: {drops['checks']} checks; {drops['error_count']} errors")
+            if drops['error_count']:
+                for error in drops['errors']:
+                    print("DROP ERROR:", error)
+                raise SystemExit(1)
+            market = audit_profession_market_v1148()
+            print(f"PROFESSION MARKET RUNTIME: {market['checks']} checks, "
+                  f"{market['error_count']} errors; groups={market['groups']}")
+            for error in market['errors'][:60]:
+                print("PROFESSION MARKET ERROR: " + error)
+            if market['error_count']:
+                raise SystemExit(1)
+            stability = audit_release_stability_runtime_v1147(ns)
+            print(f"RELEASE STABILITY RUNTIME: {stability['checks']} checks, "
+                  f"{stability['error_count']} errors")
+            for error in stability['errors']:
+                print("RELEASE STABILITY ERROR: " + error)
+            if stability['error_count']:
+                raise SystemExit(1)
             print(
                 "LEGACY FULL GAME AUDIT v0.33.6: "
                 f"{full['error_count']} advisory findings, "

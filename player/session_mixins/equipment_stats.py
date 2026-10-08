@@ -253,6 +253,8 @@ class SessionEquipmentStatsMixin:
                 "dodge_pct": 0,
                 "max_hp_pct": 0,
                 "max_mana_pct": 0,
+                "lifesteal_percent": 0,
+                "mana_restore_percent": 0,
             }
             for row in self.equipped_item_rows():
                 item = ITEMS.get(row["item_id"])

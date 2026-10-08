@@ -312,6 +312,10 @@ class SessionBankingCharismaMixin:
                 )
                 return False
 
+            self.server.db.move_shop_purchase_basis_v1175(
+                self.account_id, item_id,
+                self.server.db.bank_purchase_lot_key_v1175(item_id), quantity,
+            )
             if not self.server.db.remove_item(
                 self.account_id, item_id, quantity
             ):
@@ -367,6 +371,11 @@ class SessionBankingCharismaMixin:
                 self.account_id, item_id, quantity
             ):
                 return False
+            self.server.db.move_shop_purchase_basis_v1175(
+                self.account_id,
+                self.server.db.bank_purchase_lot_key_v1175(item_id),
+                item_id, quantity,
+            )
             self.server.db.add_item(
                 self.account_id, item_id, quantity
             )

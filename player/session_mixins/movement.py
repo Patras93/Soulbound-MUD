@@ -201,7 +201,21 @@ class SessionMovementMixin:
                         )
                     member._party_follow_batch_save_v11123 = True
                     try:
-                        await member.move(direction)
+                        # Secret door is not a normal world exit. A follower may
+                        # use it only after discovering this very same floor.
+                        if direction == "secret" and ROOMS.get(target, {}).get("v1190_secret_role") == "chamber":
+                            from world.world_secrets_v1190 import secret_room_identity_v1190
+                            _, secret_kind, secret_floor = secret_room_identity_v1190(target)
+                            known = any(int(row["floor"]) == secret_floor for row in
+                                        member.server.db.instance_secret_rows(member.account_id, secret_kind))
+                            if not known:
+                                await member.send("Lider znalazł ukrytą komnatę. Najpierw odkryj sekret na tym piętrze komendą sekret.")
+                            elif member.combat_mob_key:
+                                await member.send("Jesteś w walce. Nie możesz wejść za liderem do sekretu.")
+                            else:
+                                await member.walk_room_transition("secret", target, guided=False, show_room=True)
+                        else:
+                            await member.move(direction)
                     finally:
                         member._party_follow_batch_save_v11123 = False
                         if party_ship_passage:
@@ -296,6 +310,12 @@ class SessionMovementMixin:
                 await self.send("Nie możesz iść w tym kierunku.")
                 return
             self.server.world.ensure_runtime_room(target)
+            if (ROOMS.get(self.character.room_id, {}).get("v1190_secret_role") == "chamber"
+                    and direction == "east"
+                    and any(bool(MOB_TEMPLATES.get(m.template_id, {}).get("v1190_secret_guard"))
+                            for m in self.server.world.room_mobs(self.character.room_id))):
+                await self.send("Przejścia do Archiwum Szeptów pilnuje strażnik. Najpierw go pokonaj.")
+                return
 
             if self.uoss_deep_dungeon_descent_blocked_v11331(
                 self.character.room_id, direction

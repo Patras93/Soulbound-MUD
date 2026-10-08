@@ -1,4 +1,5 @@
 from data import catalog_mutations as _catalog_mut
+from systems.equipment_crafting import mec_hybrid_extra_stats
 V021_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0210-ascension-world-tiers-mythic"
 V021_ASCENSION_MAX_RANK = 1000
 V021_WORLD_TIER_MAX = 10
@@ -1044,6 +1045,10 @@ def finalize_class_equipment_v03015():
         item["stats"] = {
             secondary_stat: secondary_amount,
             tertiary_stat: tertiary_amount,
+            # v1.17.2: the earlier Mec generator deliberately adds INT/WILL
+            # to its physical STR/DEX/CON baseline.  The final post-Generator
+            # pass must not erase those hybrid channels when rebuilding stats.
+            **(mec_hybrid_extra_stats(generated_budget) if class_name == "Mec" else {}),
         }
         # v0.61.2: pola pochodne, których gameplay nie odczytuje, nie są materializowane
         # dla dziesiątek tysięcy zwykłych części klasowego EQ.
@@ -1064,6 +1069,11 @@ def finalize_class_equipment_v03015():
             f"{labels[secondary_stat]} +{secondary_amount}, "
             f"{labels[tertiary_stat]} +{tertiary_amount}"
         )
+        if class_name == "Mec":
+            stat_text += (
+                f", Inteligencja +{item['stats']['intelligence']}"
+                f", Siła Woli +{item['stats']['willpower']}"
+            )
         profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
         defense = int(item.get("defense", 0) or 0)
         set_name = item.get("class_set_name") or "Klasowy"

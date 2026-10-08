@@ -167,15 +167,22 @@ class DatabaseProgressionMixin:
         ).fetchall()
 
     def skill_queue_enabled(self, account_id):
-        self.conn.execute(
-            "INSERT OR IGNORE INTO skill_queue_settings(account_id,enabled) VALUES(?,0)",
-            (account_id,),
-        )
-        self.conn.commit()
+        # v1.17.8: auto combat checks this in the skill rotation. Avoid a
+        # redundant INSERT OR IGNORE + COMMIT at every attempted skill.
         row = self.conn.execute(
             "SELECT enabled FROM skill_queue_settings WHERE account_id=?",
             (account_id,),
         ).fetchone()
+        if row is None:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO skill_queue_settings(account_id,enabled) VALUES(?,0)",
+                (account_id,),
+            )
+            self.conn.commit()
+            row = self.conn.execute(
+                "SELECT enabled FROM skill_queue_settings WHERE account_id=?",
+                (account_id,),
+            ).fetchone()
         return bool(row and int(row["enabled"]))
 
     def set_skill_queue_enabled(self, account_id, enabled):
@@ -187,15 +194,22 @@ class DatabaseProgressionMixin:
         self.conn.commit()
 
     def combat_log_mode(self, account_id):
-        self.conn.execute(
-            "INSERT OR IGNORE INTO combat_log_settings(account_id,mode) VALUES(?, 'normal')",
-            (account_id,),
-        )
-        self.conn.commit()
+        # v1.17.8: existing accounts need only a SELECT. Formerly every combat
+        # message performed INSERT OR IGNORE and COMMIT before reading the mode.
         row = self.conn.execute(
             "SELECT mode FROM combat_log_settings WHERE account_id=?",
             (account_id,),
         ).fetchone()
+        if row is None:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO combat_log_settings(account_id,mode) VALUES(?, 'normal')",
+                (account_id,),
+            )
+            self.conn.commit()
+            row = self.conn.execute(
+                "SELECT mode FROM combat_log_settings WHERE account_id=?",
+                (account_id,),
+            ).fetchone()
         mode = str(row["mode"] if row else "normal").lower()
         return mode if mode in ("concise", "normal", "full") else "normal"
 

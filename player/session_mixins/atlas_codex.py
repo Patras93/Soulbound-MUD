@@ -918,12 +918,13 @@ class SessionAtlasCodexMixin:
                 )
                 await self.send(
                     "Rzadkie warianty każdego gatunku: "
-                    "Albinos x2 wartości, Złoty okaz x4, "
-                    "Olbrzymi okaz x3, Pradawny okaz x8."
+                    "Albinos x3 wartości, Złoty okaz x8, "
+                    "Olbrzymi okaz x5, Pradawny okaz x15."
                 )
                 await self.send(
-                    "Szansa na rzadki wariant rośnie wraz z levelem "
-                    "Wędki: około 8 do 12 procent."
+                    "Od ok. 4 procent najprostszych wariantów; najlepsze wymagają "
+                    "odpowiedniego poziomu Wędki, Wędkarstwa i gatunku. "
+                    "Pradawny okaz ma maksymalnie 0,12 procent szansy."
                 )
                 return
 
@@ -937,11 +938,12 @@ class SessionAtlasCodexMixin:
                     chunk_size=20,
                 )
                 await self.send(
-                    "Rzadkie warianty: Bujna x2 wartości, "
-                    "Lśniąca x4, Pradawna x6, Legendarna x10."
+                    "Rzadkie warianty: Bujna x3 wartości, "
+                    "Lśniąca x7, Pradawna x12, Legendarna x20."
                 )
                 await self.send(
-                    "Szansa na wariant rośnie z levelem Sierpa."
+                    "Szansa na wariant zależy od poziomu Sierpa, Zielarstwa "
+                    "oraz jakości rośliny. Legendarna wymaga co najmniej poziomu 360."
                 )
                 return
 
@@ -952,11 +954,12 @@ class SessionAtlasCodexMixin:
                     chunk_size=20,
                 )
                 await self.send(
-                    "Rzadkie warianty drzew: Bujne x2 wartości, "
-                    "Pradawne x4, Kryształowe x6, Legendarne x10."
+                    "Rzadkie warianty drzew: Bujne x3 wartości, "
+                    "Pradawne x7, Kryształowe x12, Legendarne x20."
                 )
                 await self.send(
-                    "Szansa na wariant rośnie z levelem Piły."
+                    "Szansa na wariant zależy od Piły, Drwalstwa oraz jakości drewna. "
+                    "Legendarne wymaga co najmniej poziomu 360."
                 )
                 return
 
@@ -971,8 +974,8 @@ class SessionAtlasCodexMixin:
                     "Kryształowa x3, Legendarna x5 urobku."
                 )
                 await self.send(
-                    "Im wyższy level Kilofa, tym większa szansa na "
-                    "Bogate, Kryształowe i Legendarne żyły."
+                    "Szanse zależą od Kilofa, Górnictwa i głębokości. "
+                    "Legendarna żyła wymaga poziomu 180 i ma najwyżej 0,65 procent szansy."
                 )
                 return
 

@@ -22,6 +22,7 @@ from core.bootstrap_economy_professions import (
 from core.mines_threat import ITEMS
 from data.quests import QUESTS
 from core.progression_600 import CHARACTER_MAX_LEVEL, PROFESSION_MAX_LEVEL, TOOL_MAX_TIER
+from core.profession_batch_v1176 import profession_batch_effort_v1176
 from core.progression_resources import (
     FISH_RESOURCE_IDS,
     HERB_RESOURCE_IDS,
@@ -41,7 +42,7 @@ from network.protocol_gameplay_utils import (
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.crafting_quality import player_item_display_name_v0335
 from systems.equipment_crafting import MINING_STORAGE_IDS, RAW_GEM_IDS
-from systems.items_resources import FISH_STORAGE_IDS, HERB_STORAGE_IDS, ORE_STORAGE_IDS, WOOD_STORAGE_IDS
+from systems.items_resources import FISH_STORAGE_IDS, HERB_STORAGE_IDS, ORE_STORAGE_IDS, WOOD_STORAGE_IDS, profession_resource_market_value_v1148
 
 
 class SessionProfessionStorageMixin:
@@ -229,7 +230,7 @@ class SessionProfessionStorageMixin:
 
     def grant_profession_progress(
         self, profession, prof_xp, tool_type, tool_xp,
-        tool_progress=True, content_level=None
+        tool_progress=True, content_level=None, batch_count=1
     ):
             if not self.valid_tool_type(tool_type):
                 raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
@@ -312,6 +313,14 @@ class SessionProfessionStorageMixin:
                     * authored_tool_mult
                 )),
             )
+
+            # v1.17.6: a batch is still a single action, but its XP must not
+            # plateau merely because the authored XP ratio was capped. Apply
+            # effort after the generated baseline, with diminishing returns.
+            batch_effort = profession_batch_effort_v1176(batch_count)
+            if batch_effort > 1.0:
+                actual_prof_xp = max(0, int(round(actual_prof_xp * batch_effort)))
+                tool_xp = max(0, int(round(tool_xp * batch_effort)))
 
             actual_prof_xp=max(0,int(round(actual_prof_xp*(1.0+_guild_pct/100.0))))
             tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
@@ -465,6 +474,7 @@ class SessionProfessionStorageMixin:
                 "tool_level": int(tlevel),
                 "tool_progress": int(txp) if tool_progress else int(trow["xp"]),
                 "content_level": int(content_stage),
+                "batch_count": max(1, int(batch_count)),
             }
             return messages, plevel, tlevel
 
@@ -755,7 +765,9 @@ class SessionProfessionStorageMixin:
 
                 item = ITEMS.get(item_id, {})
                 # v0.19: wartość torby korzysta z tego samego generatora co realna sprzedaż.
-                total_silver += v0190_resource_sale_coins(item_id, item) * quantity
+                total_silver += profession_resource_market_value_v1148(
+                    item_id, item, category="ore" if container == "bag" else None
+                ) * quantity
 
             return {
                 "count": total_count,

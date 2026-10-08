@@ -144,10 +144,13 @@ class SessionExplorationProfessionsV1100Mixin:
         eligible = [row for row in V1100_ARCHAEOLOGY_FINDS if row[0] <= access]
         found_ids = self.server.db.collection_entry_ids(self.account_id, "archaeology_v1100")
         unseen = [row for row in eligible if row[1] not in found_ids]
-        if unseen and random.random() < 0.70:
-            find = random.choice(unseen)
-        else:
-            find = random.choice(eligible)
+        # v1.14.9: new discoveries remain interesting, but legendary and
+        # mythic relics are genuinely rare even with a maxed-out brush.
+        def _find_weight(row):
+            required = int(row[0])
+            rarity = 1.0 if required < 300 else (0.22 if required < 500 else 0.045)
+            return rarity * (1.4 if row[1] not in found_ids else 1.0)
+        find = random.choices(eligible, weights=[_find_weight(row) for row in eligible], k=1)[0]
 
         _required, item_id, name = find
         quantity = 1

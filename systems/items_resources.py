@@ -1,5 +1,6 @@
 from data import catalog_mutations as _catalog_mut
 import math
+from core.profession_drop_rates_v1149 import resource_variant_chances_v1149, mining_vein_chances_v1149
 import random
 ENDGAME_PROFESSION_ITEMS = {
     # Ryby endgame - Rzeka
@@ -659,6 +660,8 @@ MATERIAL_PROPERTY_NAMES = {
     "dodge_pct": "unik",
     "max_hp_pct": "maksymalne HP",
     "max_mana_pct": "maksymalna Mana",
+    "lifesteal_percent": "wysysanie życia przy ataku",
+    "mana_restore_percent": "odzyskiwanie Many przy ataku",
 }
 
 CORPSE_MATERIAL_ITEM_IDS = {}
@@ -1421,85 +1424,45 @@ def format_fish_weight(weight_g):
         return f"{weight_g / 1000.0:.2f} kg"
     return f"{weight_g} g"
 
-def _rare_variant_roll(
-    base_item_id,
-    category,
-    definitions,
-    tool_level,
-    base_chance,
-    max_extra_chance,
-):
-    tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
-    old_level = min(200, tool_level)
-    post_bonus = min(0.03, max(0, tool_level - 200) / 200.0 * 0.03)
-    chance = min(
-        0.25,
-        float(base_chance)
-        + (old_level / 200.0) * float(max_extra_chance)
-        + post_bonus,
-    )
-    if random.random() >= chance:
+def _rare_variant_roll(base_item_id, category, definitions, tool_level, profession_level=None):
+    if not base_item_id or base_item_id not in ITEMS:
         return base_item_id
+    base = ITEMS[base_item_id]
+    # Authored stage/actual resource tier gate premium variants in starter areas.
+    resource_level = int(base.get("generator_level") or base.get("min_tool_level") or 1)
+    rates = resource_variant_chances_v1149(category, tool_level, profession_level, resource_level)
+    roll = random.random()
+    total = sum(rates.values())
+    if roll >= total:
+        return base_item_id
+    # One draw, exclusive variants, no overlapping/jackpot duplication.
+    for key, chance in rates.items():
+        if key not in definitions:
+            continue
+        if roll < chance:
+            variant_id = rare_resource_variant_id(category, key, base_item_id)
+            return variant_id if variant_id in ITEMS else base_item_id
+        roll -= chance
+    return base_item_id
 
-    keys = list(definitions)
-    weights = [
-        int(definitions[key]["weight"])
-        for key in keys
-    ]
-    key = random.choices(keys, weights=weights, k=1)[0]
-    variant_id = rare_resource_variant_id(
-        category, key, base_item_id
-    )
-    return variant_id if variant_id in ITEMS else base_item_id
 
-def roll_fish_variant(base_item_id, tool_level):
-    return _rare_variant_roll(
-        base_item_id,
-        "fish",
-        FISH_RARE_VARIANTS,
-        tool_level,
-        0.08,
-        0.04,
-    )
+def roll_fish_variant(base_item_id, tool_level, profession_level=None):
+    return _rare_variant_roll(base_item_id, "fish", FISH_RARE_VARIANTS, tool_level, profession_level)
 
-def roll_wood_variant(base_item_id, tool_level):
-    return _rare_variant_roll(
-        base_item_id,
-        "wood",
-        WOOD_RARE_VARIANTS,
-        tool_level,
-        0.06,
-        0.06,
-    )
 
-def roll_herb_variant(base_item_id, tool_level):
-    return _rare_variant_roll(
-        base_item_id,
-        "herb",
-        HERB_RARE_VARIANTS,
-        tool_level,
-        0.08,
-        0.04,
-    )
+def roll_wood_variant(base_item_id, tool_level, profession_level=None):
+    return _rare_variant_roll(base_item_id, "wood", WOOD_RARE_VARIANTS, tool_level, profession_level)
 
-def roll_mining_vein(tool_level):
-    tool_level = max(1, min(TOOL_MAX_LEVEL, int(tool_level)))
-    old_level = min(200, tool_level)
-    post = max(0, tool_level - 200)
-    weights = {
-        "common": max(48.0, 82.0 - old_level * 0.10 - post * 0.035),
-        "rich": 14.0 + old_level * 0.04 + post * 0.020,
-        "crystal": 3.0 + old_level * 0.04 + post * 0.012,
-        "legendary": 1.0 + old_level * 0.02 + post * 0.008,
-    }
-    keys = tuple(weights)
-    key = random.choices(
-        keys,
-        weights=[weights[k] for k in keys],
-        k=1,
-    )[0]
-    result = dict(MINING_VEINS[key])
-    result["key"] = key
+
+def roll_herb_variant(base_item_id, tool_level, profession_level=None):
+    return _rare_variant_roll(base_item_id, "herb", HERB_RARE_VARIANTS, tool_level, profession_level)
+
+
+def roll_mining_vein(tool_level, profession_level=None, floor=None):
+    chances = mining_vein_chances_v1149(tool_level, profession_level, floor)
+    keys = tuple(chances)
+    key = random.choices(keys, weights=[chances[k] for k in keys], k=1)[0]
+    result = dict(MINING_VEINS[key]); result["key"] = key
     return result
 
 
@@ -1761,3 +1724,106 @@ CLASS_EQUIPMENT_SLOT_PROPERTY_SCALE = {
     "shoulders": 1.08, "belt": 1.05, "cloak": 0.92, "bracers": 0.95,
     "bracelet": 0.90, "accessory": 1.12, "relic": 1.20,
 }
+
+
+# v1.14.8: wspólny rynek skupu surowców, zachowujący indywidualną wartość
+# każdego gatunku ryby / rudy / drewna / rośliny. Nie modyfikuje katalogu
+# przedmiotów ani historycznego ekwipunku postaci.
+from functools import lru_cache as _resource_market_cache_v1148
+
+
+def _resource_market_authored_coins_v1148(item):
+    return max(0, int(item.get("sell_silver", 0) or 0)) + (        100 * max(0, int(item.get("sell_gold", 0) or 0))
+    ) + 100_000_000 * max(0, int(item.get("sell_mithril", 0) or 0))
+
+
+def _resource_market_base_v1148(category, base_id):
+    from core.progression_resources import (
+        v0190_resource_stage, v0190_resource_sale_coins,
+        v1138_resource_sale_base_coins,
+    )
+    base = ITEMS.get(base_id, {})
+    if not base:
+        return 1
+    stage = (
+        fish_unlock_level(base_id)
+        if category == "fish"
+        else v0190_resource_stage(base_id, base)
+    )
+    # Stary authored price i Generator pozostają dolnym ograniczeniem.
+    # Etap jest brany z rzeczywistej tabeli odblokowań, a nie z domysłów
+    # opartych tylko na nazwie ryby.
+    value = max(
+        1,
+        _resource_market_authored_coins_v1148(base),
+        int(v0190_resource_sale_coins(base_id, base)),
+        int(v1138_resource_sale_base_coins(stage)),
+    )
+    if category == "fish":
+        value = max(1, int(round(
+            value * v096_fish_price_scale(base_id)
+            * fish_trophy_value_multiplier_v1138(base_id)
+        )))
+    return value
+
+
+@_resource_market_cache_v1148(maxsize=5)
+def _resource_market_catalog_v1148(category):
+    """Z góry jednoznaczne ceny gatunków, przy podobnych cenach bez spłaszczeń.
+
+    Sortujemy według realnej wartości, więc korekta rozstrzyga tylko kolizje;
+    nie zmienia całej krzywej i nie osłabia legendarnych okazów.
+    """
+    categories = {
+        "fish": FISH_RESOURCE_IDS,
+        "ore": ORE_RESOURCE_IDS,
+        "wood": WOOD_RESOURCE_IDS,
+        "herb": HERB_RESOURCE_IDS,
+    }
+    ids = set(categories.get(category, ()))
+    if category == "ore":
+        # Surowe kamienie i geody również są częścią sakwy górnika.
+        from systems.equipment_crafting import MINING_STORAGE_IDS
+        ids.update(MINING_STORAGE_IDS)
+    values = [
+        (_resource_market_base_v1148(category, item_id), item_id)
+        for item_id in ids if item_id in ITEMS
+        and not ITEMS[item_id].get("rare_resource_variant")
+    ]
+    values.sort(key=lambda pair: (pair[0], pair[1]))
+    result = {}
+    previous = 0
+    for natural, item_id in values:
+        # Minimum 1 srebro różnicy, nawet dla tanich początkowych ryb.
+        # Ceny wciąż zbliżone do starej, gdy naturalna wycena już się różni.
+        assigned = max(natural, previous + 1)
+        result[item_id] = assigned
+        previous = assigned
+    return result
+
+
+def profession_resource_market_value_v1148(item_id, item=None, category=None):
+    """Kanoniczna cena skupu/szacowania zasobu w srebrze (100 = 1 złoto).
+
+    Rzadki okaz dziedziczy dokładnie raz cenę gatunku i mnożnik wariantu.
+    Przezroczysta dla zapisu SQLite i dla istniejących identyfikatorów.
+    """
+    item = item or ITEMS.get(item_id, {}) or {}
+    base_id = str(item.get("base_resource_id") or item_id)
+    if category is None:
+        if item_id in FISH_STORAGE_IDS or base_id in FISH_RESOURCE_IDS:
+            category = "fish"
+        elif item_id in ORE_STORAGE_IDS or base_id in ORE_RESOURCE_IDS:
+            category = "ore"
+        elif item_id in WOOD_STORAGE_IDS or base_id in WOOD_RESOURCE_IDS:
+            category = "wood"
+        elif item_id in HERB_STORAGE_IDS or base_id in HERB_RESOURCE_IDS:
+            category = "herb"
+        else:
+            category = "ore"  # surowe klejnoty/geody ze składu górniczego
+    catalog = _resource_market_catalog_v1148(category)
+    normal = catalog.get(base_id)
+    if normal is None:
+        normal = _resource_market_base_v1148(category, base_id)
+    variant_factor = max(1.0, float(item.get("rare_value_multiplier", 1) or 1))
+    return max(1, int(round(normal * variant_factor)))

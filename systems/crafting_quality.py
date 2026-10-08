@@ -4,6 +4,7 @@ from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
 from data.items import ITEMS
 from network.protocol_gameplay_utils import normalize_lookup_text
 from systems.infinite_equipment import ensure_infinite_equipment_variant
+from systems.legendary_reborn import apply_legendary_craft_perk_v1150
 
 from data import catalog_mutations as _catalog_mut
 import copy
@@ -62,6 +63,24 @@ def _scale_int_v03054(value,mult,minimum_if_positive=True):
     out=int(round(v*float(mult)))
     return max(v if minimum_if_positive else 0,out)
 
+def _scale_equipment_property_v1174(value, multiplier):
+    """Keep fractional equipment percentages when crafting a quality variant.
+
+    ``properties`` holds percentage *points* (e.g. lifesteal 0.75), not
+    integer stats.  Casting them to int discarded small real combat effects.
+    Preserve the original numeric type and do not weaken authored fractions.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return value
+    if value <= 0:
+        return value
+    if isinstance(value, int):
+        return _scale_int_v03054(value, multiplier)
+    if float(multiplier) <= 1.0:
+        return value
+    return max(float(value), round(float(value) * float(multiplier), 6))
+
+
 def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=None, mastery_level=1, *, variant_id=None, affix_amount=None):
     vid=variant_id or crafting_quality_variant_id_v03054(base_id,quality_key,crit_affix,mastery_level)
     if vid in ITEMS: return vid
@@ -76,8 +95,8 @@ def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=No
     data["craft_quality_v03054"]=quality_key
     data["craft_quality_name_v03054"]=q["name"]
     data["craft_critical_v03054"]=bool(crit_affix)
-    data["rarity"]=q["rarity"]
-    data["rarity_name"]=q["name"]
+    data["rarity"]="legendary" if base.get("legendary_reborn_v1150") else q["rarity"]
+    data["rarity_name"]="Legendarny" if base.get("legendary_reborn_v1150") else q["name"]
     # v1.13.14: fizyczny Attack i Magic Attack podlegają tej samej jakości.
     for key in ("defense","damage","min_damage","max_damage","attack","magic_attack","power"):
         if key in data: data[key]=_scale_int_v03054(data.get(key),mult)
@@ -89,8 +108,7 @@ def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=No
             stats[key]=_scale_int_v03054(val,mult)
     props=dict(data.get("properties") or {})
     for key,val in list(props.items()):
-        if isinstance(val,(int,float)):
-            props[key]=_scale_int_v03054(val,mult)
+        props[key]=_scale_equipment_property_v1174(val,mult)
     if crit_affix:
         amount=int(affix_amount if affix_amount is not None else crafting_critical_affix_amount_v03054(crit_affix,quality_key,mastery_level))
         stats[crit_affix]=int(stats.get(crit_affix,0) or 0)+amount
@@ -104,6 +122,7 @@ def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=No
     if crit_affix:
         extra += f" Krytyczny craft: {CRAFT_CRIT_AFFIX_NAMES_V03054.get(crit_affix,crit_affix)} +{data['craft_critical_affix_amount_v03054']}."
     data["desc"]=(old_desc+" "+extra).strip()
+    apply_legendary_craft_perk_v1150(data, vid, quality_key)
     data["price"]=base.get("price")
     _catalog_mut.catalog_assign(data, 'ITEMS', ITEMS, (vid,))
     return vid

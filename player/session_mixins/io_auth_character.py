@@ -32,7 +32,25 @@ import time
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: io_auth_character."""
 
+# v1.17.8: cache log verbosity on each session to keep rapid combat messages
+# from competing for SQLite during multi-player fights. A new account ID,
+# explicit setting change or a 30-second expiry refreshes the DB value.
+COMBAT_LOG_MODE_CACHE_SECONDS_V1178 = 30.0
+
 class SessionIOAuthCharacterMixin:
+    def combat_log_mode_cached_v1178(self):
+            account_id = self.account_id
+            if account_id is None:
+                return "normal"
+            now = time.monotonic()
+            cached = getattr(self, "_combat_log_mode_cache_v1178", None)
+            if (cached is not None and cached[0] == account_id
+                    and now - cached[2] < COMBAT_LOG_MODE_CACHE_SECONDS_V1178):
+                return cached[1]
+            mode = self.server.db.combat_log_mode(account_id)
+            self._combat_log_mode_cache_v1178 = (account_id, mode, now)
+            return mode
+
     def encode_session_text(self, value):
             value = str(value)
             try:
@@ -248,7 +266,7 @@ class SessionIOAuthCharacterMixin:
             ):
                 combat_detail = "normal"
             if combat_detail and self.account_id is not None:
-                mode = self.server.db.combat_log_mode(self.account_id)
+                mode = self.combat_log_mode_cached_v1178()
                 rank = {"concise": 0, "normal": 1, "full": 2}
                 needed = {"essential": 0, "normal": 1, "full": 2}.get(
                     str(combat_detail).lower(), 1
@@ -301,8 +319,19 @@ class SessionIOAuthCharacterMixin:
                 "normal": "normal", "normalny": "normal",
                 "full": "full", "pelny": "full", "pełny": "full",
             }
+            # v1.18.0: never hide combat history from screen reader users.
+            if raw in ("ostatnie", "historia", "last", "log") or raw.startswith(("ostatnie ", "historia ", "last ")):
+                parts = raw.split()
+                count = 10
+                if len(parts) > 1 and parts[1].isdigit():
+                    count = max(1, min(100, int(parts[1])))
+                await self.show_history_buffer(f"combat {count}")
+                return
+            if raw in ("pomoc", "help", "?"):
+                await self.send("combat concise — ważne zdarzenia; combat normal — zwykłe trafienia; combat full — szczegóły; combat ostatnie [1-100] — historia sesji.")
+                return
             if not raw:
-                mode = self.server.db.combat_log_mode(self.account_id)
+                mode = self.combat_log_mode_cached_v1178()
                 await self.send(
                     f"Combat Log: {mode}. Dostępne: combat concise, combat normal, combat full."
                 )
@@ -314,6 +343,7 @@ class SessionIOAuthCharacterMixin:
                 )
                 return
             self.server.db.set_combat_log_mode(self.account_id, mode)
+            self._combat_log_mode_cache_v1178 = (self.account_id, mode, time.monotonic())
             labels = {
                 "concise": "zwięzły — tylko ważne wydarzenia i ostrzeżenia",
                 "normal": "normalny — trafienia i skille bez najbardziej technicznych detali",
@@ -754,6 +784,7 @@ class SessionIOAuthCharacterMixin:
             self.server.party_invites.clear()
             self.server.party_protectors.clear()
             self.server.party_goals.clear()
+            self.server.party_routes_v1193.clear()
             self.server.party_ready_checks.clear()
             await self.send(f"ADMIN: konto {username} — usunięto postaci: {removed}. Konto zachowane.")
 
@@ -837,6 +868,7 @@ class SessionIOAuthCharacterMixin:
             self.server.party_invites.clear()
             self.server.party_protectors.clear()
             self.server.party_goals.clear()
+            self.server.party_routes_v1193.clear()
             self.server.party_ready_checks.clear()
             await self.send(f"ADMIN: serwerowy wipe zakończony. Usunięto postaci: {removed}. Konta zachowane.")
 

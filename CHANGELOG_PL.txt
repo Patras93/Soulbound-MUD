@@ -1,3 +1,185 @@
+Aktualna paczka: v1.20.2
+Soulbound v1.20.2 — SKLEP ZAKLINANIA / FOKUS RUNICZNY
+==============================================================================
+- Naprawiono regresję z rozdzielenia sklepów klasowych: po migracji Mag/Psionik
+  Komnata Arkanów traciła sklep Selene i nie można było kupić Fokusu Runicznego.
+- Komenda `list` / `shop` w Komnacie Arkanów pokazuje teraz Fokus Runiczny;
+  `kup 1` i `kup fokus runiczny` kupują narzędzie do Zaklinania.
+- Oddzielne sklepy EQ Maga i Psionika pozostają bez zmian. Selene sprzedaje
+  wyłącznie narzędzie profesji, a zaklinanie nadal odbywa się w tej komnacie.
+- Bez zmian SQLite, starych postaci, cen, EXP i dropów.
+
+Poprzednia paczka: v1.20.1
+Soulbound v1.20.1 — NAPRAWA ZAMÓWIENIA ODDAJ
+==============================================================================
+- Naprawiono IndexError w zamowienia oddaj: tabela SQLite crafting_orders_v0600 nie posiada required_level, który istniał tylko w ofercie w pamięci.
+- Zlecenia fizyczne, zbierackie i akcje profesji kończą się i wypłacają nagrody; działa 14 profesji.
+- Gotowe zamówienia przyjęte przed wydaniem hotfixa odzyskują towar/surowiec po nieudanym oddaniu w v1.20.0; tylko dla starszych przyjęć, najwyżej raz na cykl.
+- Nowe zamówienia nadal wymagają posiadania fizycznych towarów lub surowców; brak darmowego oddawania.
+- Testy SQLite: 14 specjalistów, naliczenie nagród, odliczanie produktów, wielokrotne oddanie, odzyskanie, ochrona świeżych zamówień i ograniczenie do właściwego NPC.
+- Bez zmian cen, ilości EXP, dropów, zdolności i struktur bazy. Bez wdrożenia Railway i operacji GitHub.
+
+Poprzednia paczka: v1.20.0
+Soulbound v1.20.0 — WIELKI ŚWIAT: CZTERY KRAINY
+==============================================================================
+- Rozdroże Czterech Wiatrów łączy nowy kontynent z istniejącym światem, bez nadpisywania już zajętych wyjść.
+- 77 nowych połączonych lokacji: po 16 nazwanych terenów, obozowisko, archiwum i arena bossa w każdym z 4 regionów oraz wspólny portal.
+- Ogrody Zorzy (Holy, etap 110), Burzowe Stepy (Electric, etap 235), Koralowe Urwiska (Water, etap 350), Mechaniczna Dolina (Arcane, etap 475).
+- Czterech bossów świata, 16 odmian normalnych mobów, 8 NPC i 12 trzyetapowych zadań. Bosowie mogą być atakowani solo lub drużynowo.
+- Cztery nowe relikty wyposażenia i cztery regionalne esencje. Skarbce umieszczono tylko w arenach bossów; 24h odnowienia.
+- Cztery dodatkowe godzinne wydarzenia walki, po jednym w każdym regionie. Wykorzystują istniejący system tymczasowych potworów i nie uruchamiają pułapek ani ataków automatycznych.
+- Dostępna dla NVDA komenda `krainy`, `krainy <nazwa>`, `krainy wydarzenia`; help wielki_swiat.
+- Dotychczasowe postacie, lochy, sekrety, profesje, ekonomia, a także Party 4.0 i Kariera, bez migracji SQLite.
+- Nie wdrażano na Railway ani nie wykonywano operacji na GitHubie.
+
+Wcześniejsza paczka: v1.19.3
+Soulbound v1.19.1–1.19.3 — BRAKUJĄCE AKTUALIZACJE JAKOŚCI ŻYCIA
+==============================================================================
+- 1.19.1 Nawigacja 2.0: `nawigacja status|krok|okolica|cel <nazwa>|druzyna`. Wykorzystuje realną mapę i dotychczasową trasę, tylko odczyt, bez teleportowania.
+- 1.19.2 Kariera: `kariera [status|walka|profesje|rekordy|postep]`; `osiagniecia postep`. Statystyki pochodzą z istniejących zapisów SQLite; progi kariery to wskazówki, nie nowe nagrody. Zachowano standardowe `osiagniecia`.
+- 1.19.3 Party 4.0: `druzyna raport`, `druzyna zbiorka`, `druzyna trasa <cel>|krok|off`. Cel trasy lidera widzą członkowie; każdy otrzymuje własny krok z bieżącej lokacji. Zmiana celu zeruje potwierdzenia gotowości. Stan jest sesyjny i przenosi się przy przekazaniu lidera.
+- Poprawiono powtórne wchodzenie do komnat sekretów 1.19.0: ogólne wydarzenia świata nie dodają już przypadkowych potworów do komnaty strażnika ani archiwum. Wszystkie istniejące skrzynie i zasady odrodzenia pozostały bez zmian.
+- Bez migracji SQLite, nowych nagród, zmian EXP, HP, walki, łupów ani cen. Sekrety świata 1.19.0 zachowane.
+- Komendy stanu nie wykonują ruchu; wszystkie blokady bossów/bram pozostają po stronie zwykłego ruchu.
+
+Aktualna paczka: v1.19.0
+Soulbound v1.19.0 — SEKRETY ŚWIATA / DUNGEON SECRETS
+==============================================================================
+- Rozbudowano istniejący system sekretów instancji: pierwsze użycie `sekret` na specjalnym piętrze zapisuje odkrycie jak dotąd; ponowne otwiera osobną ukrytą komnatę ze strażnikiem.
+- Specjalne piętra są ustalone przez dotychczasową mapę instancji. Komnaty i archiwa działają także po restarcie serwera dzięki deterministycznym identyfikatorom.
+- Nowy miniboss na bazie potworów danego piętra strzeże skrzyni. Skrzynia jest w komnacie bossa, a nie przy zejściu; po pokonaniu strażnika można ją otworzyć zwykłym poleceniem `otwórz skrzynię`. Odnawia się co 24 godziny na konto.
+- Za komnatą znajduje się Archiwum Szeptów z tajemniczym NPC. Wyjścia prowadzą wyłącznie do komnaty lub na to samo piętro; nie pozwalają omijać bossów.
+- W archiwum i ukrytych komnatach rubieży `sekret wydarzenie` sprawdza deterministyczne rzadkie zdarzenia dzienne. Nagroda najwyżej raz na postać i archiwum danego dnia, bez pułapek.
+- Dodano krótkie, dostępne dla NVDA polecenia `sekret trop`, `sekret lista`, `sekret pomoc` oraz aktualizację `help sekrety świata`.
+- Proceduralne sekretne komnaty rubieży zyskały tajemniczych NPC; zachowano ich dotychczasowe skrzynie i odkrycia. Nie wykonano migracji bazy, nie zmieniano cen, ogólnych skilli ani statystyk postaci.
+
+==============================================================================
+Aktualna paczka: v1.18.0
+Soulbound v1.18.0 — QUALITY OF LIFE / NVDA
+==============================================================================
+- Rozszerzono `gdzie`: bieżąca lokacja, strefa i prawdziwe kierunki; `gdzie cele` wyświetla dostępne cele prowadzenia w mieście. Użyj `trasa <cel>` lub `walk <cel>`.
+- Dodano `zdobycze [legendarne|epickie|rzadkie|wszystkie] [1-30]` oraz `zdobycze szukaj <tekst>`. Komenda czyta istniejącą, trwałą historię dropów, bez wymyślania zapisów dla starych znalezisk.
+- Dodano `prace`: jeden czytelny status aktywnego przetopu, autołowienia, górnictwa, drwalstwa, zielarstwa i kolejki skilli. Podczas przetopu pokazuje szacowane sekundy do końca i działa bez przerywania akcji.
+- `przetop status` pokazuje szacowany pozostały czas lub informację o finalizacji partii.
+- `combat ostatnie [1-100]` odczytuje widoczny bufor sesji NVDA; nie zmienia ustawienia Combat Log i nie modyfikuje zapisu walki.
+- Odświeżono `help komendy` i osobne tematy: `help gdzie`, `help zdobycze`, `help prace`, `help combatlog`.
+- Żadnych zmian obrażeń, EXP, dropów, cen, limitów ani istniejących danych graczy.
+
+==============================================================================
+Aktualna paczka: v1.17.8
+Soulbound v1.17.8 — FINAL STABILITY / WALKA WIELOOSOBOWA I SQLITE
+- Ograniczono zbędne operacje SQLite podczas walki: ustawienie Combat Log ma cache w aktywnej sesji (maks. 30 sekund), z natychmiastową aktualizacją po zmianie concise/normal/full i odświeżeniem po zmianie postaci.
+- Odczyt trybu Combat Log i włączenia automatycznej kolejki najpierw używa SELECT. INSERT i COMMIT wykonują się tylko przy tworzeniu brakującego ustawienia, nie przy każdym trafieniu i każdej próbie skilla.
+- Szybki i pełny audyt badają 4 symulowane sesje i 1600 komunikatów walki, natychmiastową zmianę trybu, odświeżenie cache, zachowanie historii combat i trwałość kolejki fizycznej/magicznej/Feedback w SQLite przy dwóch postaciach.
+- Brak zmian w balansie klas, nagrodach, dropach, progresji, czasie cooldownów, cenach i zapisach postaci. Nie oznacza to zastąpienia testu z rzeczywistymi graczami ani pomiaru RAM na Railway.
+
+Soulbound v1.17.7 — RASY 2.0 / AUDYT PASYWÓW I KOMPATYBILNOŚCI
+- Sprawdzono 14 ras i 196 kombinacji rasa/klasa: równe budżety startowe (50 punktów rasy; 69 z klasą i Charyzmą), początkowe HP/Mana i kompletność podpowiedzi klas.
+- Dodano test wartości i opisów wszystkich pasywów rasowych, w tym Smoka oraz historycznego zapisu rasy "Smoczy"; pełny audyt obejmuje realne metody postaci (obrażenia, redukcję, uniki, leczenie, EXP i profesje).
+- Poprawiono błędny komunikat redukcji wszystkich obrażeń: Cyborg nie jest już nazywany Krasnoludem; komunikat używa faktycznej rasy postaci.
+- Zachowano tożsamość ras, punkty startowe, dotychczasowe wartości pasywów, wymagania, EXP, ceny i nagrody. Nie narzucono wspólnego DPS rasom i nie dodano limitów statystyk.
+
+Soulbound v1.17.6 — PROFESJE 3.0 / AUDYT NAGRÓD I PRZETOPU HURTOWEGO
+- Audyt 14 profesji i 14 narzędzi: zgodność mappingu, czasów pracy, nagród profesji i narzędzia oraz monotoniczności XP dla trudniejszych materiałów i receptur na etapach 1, 30, 100, 200, 400 i 600.
+- Naprawiono przetop wszystko: wcześniej jedna pierwsza receptura określała poziom trudności całego pakietu. Teraz poziom jest średnią ważoną XP faktycznie przetopionych materiałów. Wysokiej klasy rudy wpływają na wynik nawet wtedy, gdy na liście wcześniej występuje zwykła ruda.
+- Zapobiegnięto spłaszczaniu nagród z wielkich partii: po obliczeniu XP Generatora przetop wszystko dodaje łagodny, rosnący bonus pracy zależny od liczby faktycznie ukończonych przetopów (8 sztuk x2, 64 sztuki x3 względem tej samej podstawy). Bez mnożenia EXP liniowo przez tysiące sztuk i bez sztywnego limitu wielkości partii.
+- Przetop wszystko pozostaje jedną akcją i jednym pakietem EXP. Zwykłe przetapianie jednej sztuki, ceny, sprzedaż, loot, poziomy 1-600, progi narzędzi, reset godzinnych zadań i kolejki automatyczne nie są zmieniane.
+- Dodano trwałe szybkie i pełne testy regresji; pełny uruchomiony świat sprawdza 14 profesji, a szybki test bazowy 8 z pozostałymi sześcioma ładowanymi dopiero podczas bootstrapu świata.
+
+Soulbound v1.17.5 — ECONOMY FINAL AUDIT / ANTYARBITRAŻ SKLEPOWY
+- Usunięto możliwość nieograniczonego zarobku przy zakupie z rabatem Charyzmy 75% i odsprzedaży za katalogowe 50% ceny. Rabat pozostaje bez zmian, a zwykłe, samodzielnie zdobyte łupy zachowują pełną wartość skupu.
+- SQLite przechowuje cenę faktycznie zapłaconą za sztuki kupione w sklepie. Odkup takiej sztuki nie przekracza jej ceny zakupu. Dotyczy zwykłej sprzedaży i komendy sell all; identyczny loot zdobyty w świecie nie jest objęty limitem.
+- Zapamiętana cena zakupu podąża za towarem podczas przekazywania innemu graczowi oraz wkładania i wyjmowania go z banku. Zużyte lub sprzedane sztuki usuwają odpowiednie wpisy kosztowe. Zwykłe ekwipunki starszych postaci nie są przepisywane ani resetowane.
+- Audyt: waluta 100 srebra = 1 złoto, 1 000 000 złota = 1 mithril; katalog 14 profesji, pełna oferta sklepów, ceny token-only, wycena przy różnych rabatach i test rzeczywistej bazy SQLite.
+- Bez obcinania nagród EXP, zarobków z profesji, rzadkiego lootu, wartości legendarnych materiałów i mocy EQ; bez nowej waluty i bez zmiany cen katalogowych.
+
+Soulbound v1.17.4 — EQUIPMENT BALANCE 4.0 / JAKOŚĆ CRAFTINGU
+- Audyt gotowego wyposażenia klasowego, legendarnych przedmiotów z bossów, pięciu legendarnych receptur, wariantów jakości i Rezonansu Głębi w uruchomionym świecie.
+- Naprawiono utratę ułamkowych właściwości w craftingu: 0,75% wysysania życia nie jest już obcinane do zera, a 1,5% odzysku Many nie jest redukowane do 1%. Jakość od zwykłej do legendarnej zachowuje dodatnie premie i poprawnie je zwiększa.
+- Dodano test ponownego odtworzenia wariantów craftq i deepq z zapisanych identyfikatorów, zgodności premiowanych EQ oraz ochrony autorskich reliktów i ich Wardów żywiołowych przed Generatorem.
+- Bez zmian w cenach, EXP, dropach, slotach, statystykach bazowych, możliwościach mieszania EQ i zapisach SQLite. Nie wprowadzano ograniczeń rozwoju postaci.
+
+Soulbound v1.17.3 — ULTIMATE COMBAT BALANCE / AUDYT SOLO, PARTY I SUPERBOSSÓW
+- Porównano katalog umiejętności wszystkich 14 klas na etapach 100, 200, 400 i 600. Role ofensywne, AoE i leczenie oceniane są oddzielnie, bez wymagania identycznych DPS.
+- Uruchomiono rzeczywistą funkcję Adaptive Combat na syntetycznych, równych profilach obrażeń i faktycznie wygenerowanym EQ: 1/2/4 graczy, zwykły mob/boss/superboss, 4 etapy rozwoju.
+- Dodano stałe kontrole skalowanego HP, wielokrotnych trafień, Haste i spójności rozmiaru party; model nie jest pełną symulacją umiejętności gracza ani żywego serwera.
+- Zweryfikowano prawdziwą turę trzech aktywnych najemników: nie dubluje się na cooldownie, obowiązuje limit 1,5% HP bossa i nie zastępuje helperów UOSS.
+- Nowy audyt szybki i runtime blokują wadliwy build. Brak zmian w rzeczywistych mnożnikach obrażeń, statystykach, cenach, EXP i zachowanych zapisach.
+
+Soulbound v1.17.2 — AUDYT BALANSU KLAS I EQ
+- 14 klas i 2563 skille/spelle: zweryfikowano kompletność, identyfikatory, progi 1–600, koszt Many i dostępność zdolności endgame. Nie zmieniano ręcznie dobrze działających mnożników obrażeń ani leczenia.
+- Naprawiono błąd finalizacji Generatora EQ: Mec tracił dodatkowe Inteligencję i Siłę Woli podczas nadpisywania statystyk na końcu bootstrapu. Teraz każda część jego klasowego EQ (także sety i relikty) zachowuje STR/DEX/CON/INT/WILL.
+- Automatyczny test sprawdza klasowe EQ wszystkich 14 klas na Biegłościach 1, 100, 200, 400 i 600, odrębność trzech stylów, kanały Attack/Magic Attack, rosnące budżety oraz Tech Set Meca.
+- Brak zmian w balansie XP, dropów, przeciwników, mercenaries, zapisach SQLite i istniejących przedmiotach w bazie. Korekta działa przez katalog przedmiotów ładowany przy starcie.
+
+SOULBOUND v1.17.1 — NAJEMNICY WSZYSTKICH KLAS + PALADYN
+- Tawerna oferuje po jednym najemniku na każdą z 14 klas gry: Wojownik, Berserker, Łotrzyk, Łowca, Mnich, Strażnik, Mag, Nekromanta, Kapłan, Czarownik, Druid, Psionik, Mec i Inżynier. Paladyn Seren pozostaje dodatkowym piętnastym najemnikiem.
+- Dotychczasowi Gareth, Elira, Vael, Riven, Seren i Morran pozostają. Riven jest teraz opisany jako Łowca; stara rola „lucznik” i istniejące kontrakty SQLite zachowują ważność.
+- Nowi najemnicy otrzymują własne nazwy ataków i style wsparcia: Druid leczy, Strażnik/Inżynier/Psionik mogą osłaniać, pozostałe klasy atakują fizycznie lub magicznie.
+- Limit maksymalnie 3 jednoczesnych kontraktów na 45 minut bez zmian. Koszt uwzględnia Charyzmę; tylko jedna akcja najemnika co 5 sekund; EXP/loot i UOSS Popoi/Primm pozostają bez zmian.
+- Audyt kompletności listy względem rzeczywistych klas, zachowania starego Łucznika, unikalności imion i akcji bojowych.
+
+SOULBOUND v1.17.0 — TAWERNA NAJEMNIKÓW
+- W istniejących karczmach można wynająć do 3 najemników jednocześnie na 45 minut: Gareth (Wojownik), Elira (Kapłanka), Vael (Mag), Riven (Łucznik), Seren (Paladyn), Morran (Nekromanta).
+- Komendy: najemnicy; najemnik wynajmij <imię>; najemnik status; najemnik zwolnij <imię|wszyscy>. Rabat Charyzmy; płatność przez wspólny portfel, zapis kontraktu w SQLite.
+- Najemnicy automatycznie walczą, leczą lub osłaniają drużynę. Jedna akcja najemnika na 5 sekund na postać; działania ofensywne ograniczone do 1,5% maks. HP wroga i nie kończą walki samodzielnie.
+- EXP, loot, naliczanie killi i zaliczanie questów nadal trafiają do graczy. Nie pojawiają się dodatkowe wrogie spawny. Istniejące pomocniki UOSS (Primm/Popoi itd.) pozostają niezależne; mogą walczyć obok najemników, bez podmiany wyboru UOSS.
+- Kontrakty wygasają i są usuwane; nie resetują się przy wylogowaniu i restarcie serwera. Zwolnienie nie zwraca opłaty za rozpoczętą usługę.
+
+SOULBOUND v1.16.0 — MONSTER AI 3.0 & ELITE MONSTERS 3.0
+- Zwykłe potwory magiczne i elity potrafią wybierać aktywne leczenie, krótkie wzmocnienie, 10-sekundową osłonę sojusznika oraz pojedynczego pomocnika.
+- Każdy mob wykonuje tylko jedną akcję AI w swojej turze, zamiast dublować wsparcie na wszystkich członkach drużyny. Cooldown 14 s, przywołania 24 s i najwyżej jeden pomocnik w starciu.
+- Wampiryczne elity wysysają HP tylko po rzeczywistym trafieniu (nie darmowo przed kontratakiem); lodowe elity używają żywiołu Ice i istniejących krótkich efektów chłodu.
+- Nekromanci oraz Przeklęte elity mogą raz w starciu przyzwać cień pokonanego sojusznika. Pomocnicy/odrodzeni nie przyznają dodatkowego EXP, lootu ani postępu questów, znikają po śmierci summonerów i nie wywołują następnych przywołań.
+- Buffy/osłony mają określony czas trwania, nie kumulują się, a stany AI resetują się przy respawnie. Skrypty autorskich bossów i superbossów nie zostały nadpisane.
+- Rozszerzono szybki predeploy o testy AI, cooldownów, ochrony bossów, wysysania HP i ograniczeń przywołań.
+
+SOULBOUND v1.15.1 — MONSTER MAGIC & FINITE STATUS EFFECTS
+- Zwykłe moby, elity i potwory w lochach otrzymują nazwy rzeczywistych czarów przypisane do 10 żywiołów (np. Ognista Kula, Inferno, Błyskawica, Zamieć, Pocisk Arkanów).
+- Trafiony cel może otrzymać krótki efekt: podpalenie/trucizna z ograniczoną liczbą impulsów, chłód spowalniający autoatak, jednorazowe porażenie/oślepienie, klątwę lub wysysanie Many.
+- Wszystkie efekty mają stałą długość 6–12 sekund. Bez odnawiania aktywnego statusu, maksymalnie dwa różne statusy naraz, co najmniej 12 sekund przerwy po wygaśnięciu przed ponownym nałożeniem tego samego statusu i 6 sekund globalnego odstępu.
+- Status nakłada się tylko po realnym trafieniu. Ward żywiołu zmniejsza szansę. Brak dotknięcia losowymi czarami autorskich superbossów UOSS.
+- Po zakończeniu walki, wycofaniu się lub śmierci stan jest czyszczony. Bez zapisu statusu do bazy, bez trwałych debuffów.
+- Uzupełniono predeploy o testy: czas trwania, brak odnawiania, limit jednego pominięcia akcji, czyszczenie stanu.
+
+SOULBOUND v1.15.0 — LEGENDARY LOOT & CRAFTING REBORN
+- Po pokonaniu mocnego bossa dodatkowe rzadkie losowanie Iskry Legendy, Pradawnego Serca Bossa lub unikatowego reliktu. Standardowe nagrody i sety nie zmienione.
+- Jedno losowanie na pokonanego bossa, nagroda dla wszystkich uczestników obecnej drużyny. Przedmioty z głębokich lochów zachowują Rezonans Głębi.
+- Nowe działające właściwości legendarnego wyposażenia: lifesteal przy autoataku, odzyskiwanie Many przy autoataku, odporności elementarne, damage, HP i obrona.
+- Pięć końcowych receptur Kowalstwa, Jubilerstwa, Stolarstwa i Krawiectwa (poziom 400/500) wymaga trudnych materiałów i specjalnych katalizatorów bossów.
+- Mistrzowski i Legendarny crafting daje dodatkową, odtwarzalną po restarcie specjalną właściwość; rzadkość bazowego legendarnego sprzętu pozostaje legendarna.
+- Bez resetu zapisów, bez sztucznego limitu statystyk i bez zmian szans profesji v1.14.9.
+
+Soulbound v1.14.9 — Balans dropów profesji
+
+- Rybactwo/Drwalstwo/Zielarstwo: osobne prawdopodobieństwa wariantów. Pradawne, kryształowe i legendarne wymagają zaawansowanego narzędzia, profesji oraz materiału z odpowiedniego etapu.
+- Górnictwo: legendarne żyły dopiero od odpowiedniej Biegłości, Kilofa i głębokości; szansa maksymalna ok. 0,65% zamiast ~8%. Spójniejsze proporcje zwykłych, bogatych i kryształowych żył.
+- Jakości klejnotów: perfekcyjna jakość wymaga rozwoju profesji i narzędzia, z rzadkim dropem nawet w endgame.
+- Geody: osobne szanse kamiennej/kryształowej/astralnej, zachowane progi miejsca i poziomu; astralna pozostaje wyjątkowa.
+- Wyjątkowe ryby, drewno i zioła są pojedynczymi znaleziskami: jackpot ilościowy i premia narzędzia nie klonują ich; XP jakości i ceny niezmienione.
+- Archeologia: wyższe relikty są rzeczywiście rzadsze po odblokowaniu; istniejące kolekcje i nagrody niezmienione.
+- Profesje o gwarantowanym wyniku (crafting, zaklinanie, gotowanie, kartografia itd.) nie są zamieniane w losowy drop: zachowują swoje receptury i wyniki.
+- Testy regresji losowań, progi jakości, predeploy; bez modyfikacji danych graczy.
+
+Soulbound v1.14.8 — Indywidualne ceny surowców profesji
+
+- Ryby, rudy, surowe klejnoty i geody, drewno oraz zioła są wyceniane według gatunku/rodzaju, etapu zdobywania i istniejącej bazowej wartości.
+- Gatunki o tej samej starej cenie katalogowej otrzymują różne, deterministyczne ceny skupu; obliczenia nie zmieniają nazw, ID ani zapisów materiałów graczy.
+- Rzadkie okazy ryb, drewna i ziół dziedziczą rzeczywistą wartość surowca i mnożnik wariantu dokładnie jeden raz. Rekiny i lewiatany zachowują podwyższoną wartość.
+- Skup pojedynczy, sprzedaż masowa i szacowanie wartości magazynów używają tego samego cennika w srebrze (100 srebra = 1 złoto).
+- Zachowane wcześniejsze progi ekonomii oraz osobne zasady sprzedaży EQ i wyrobów rzemieślniczych — bez sztucznego mnożenia złota przez crafting.
+- Fast predeploy i pełny audyt runtime: 3063 wyceny materiałów i rzadkich wariantów, 0 błędów; 89 raportów runtime, 0 błędów i ostrzeżeń między systemami. Paczka runtime bez .git/.github/__pycache__.
+
+Soulbound v1.14.7 — Final Stability & Gameplay Audit
+
+- Pełny historyczny audit 1.14.6 zakończony PASS (w tym 89 audytów runtime, zero cross-system warnings, lazy lochy, boss chest, Ocean, mob names).
+- Dodano automatyczne testy regresji progresji: progi EXP postaci, Biegłości i Soul od 101+, wielopoziomowy awans postaci i statystyk bez obcinania XP.
+- Dodano test na prawdziwej, jednorazowej bazie SQLite: podwójny awans Biegłości, zachowanie nadwyżki XP, ponowne otwarcie DB, PRAGMA foreign_key_check i integrity_check.
+- Dodano testy UOSS Helper 2.0 w złożonym runtime: Popoi wybiera Faerie Walnut przy niskiej Manie, nie działa dwukrotnie w jednej turze, przełącza się na ofensywę i zwalnia miejsce po walce.
+- Testy są podpięte do fast predeploy (6 szybkich kontroli) i full predeploy (testy wymagające kompletnego runtime). Nie używają produkcyjnego /data/soulbound.db.
+- Bez zmian w balansie EXP, AI, ekwipunku czy istniejących zapisach graczy. Soul Tier wymaga nadal Próby, zgodnie z wcześniejszą decyzją.
+- Pakiet czysty, bez .git/.github, __pycache__/.pyc; GitHub nieużywany.
+
 Soulbound v1.14.6 — Pomocnicy Superbossów 2.0 (wzorowani na UOSS)
 
 - Popoi: Air Blast, Earth Slide, Acid Storm, Vine Hell, Luna; Faerie Walnut przy niskiej Manie (źródłowe +20% MP).
@@ -99,7 +281,7 @@ Soulbound v1.13.59 - Mec Hybrid EQ + Stronger 101+ Progression
 - Wzrost jest wyraźnie odczuwalny już od 101, a okolice 599 nadal celują w około 1 bilion EXP na kolejny awans.
 - Statystyki pozostają bez limitu i ich koszt rośnie dalej ponad 600.
 
-Aktualna paczka: v1.14.6
+Aktualna paczka: v1.17.5
 
 Soulbound v1.13.58 — DYNAMIC XP AUDIT
 - Usunięto główną przyczynę płaskiego EXP: Generator Core nie ignoruje już authored/raw XP.

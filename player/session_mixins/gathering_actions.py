@@ -147,11 +147,13 @@ class SessionGatheringActionsMixin:
                 tool_level, habitat=habitat
             )
             item_id = roll_fish_variant(
-                base_item_id, tool_level
+                base_item_id, tool_level, profession_level
             )
             base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "fishing")
+            if item_id != base_item_id:
+                base_quantity = 1  # exceptional specimen: one find, not a bulk harvest
             gather_feature = self.current_infinite_gather_feature("fishing")
-            base_quantity += gather_feature["quantity_bonus"]
+            base_quantity += gather_feature["quantity_bonus"] if item_id == base_item_id else 0
             self.store_profession_resource(item_id, base_quantity)
             item = ITEMS[item_id]
             resource_quest_quantity = base_quantity
@@ -172,7 +174,7 @@ class SessionGatheringActionsMixin:
                 tool_tier_bonus_chance(tool_level)
                 + self.character.racial_profession_bonus_chance()
             )
-            if bonus_chance > 0 and random.random() < bonus_chance:
+            if bonus_chance > 0 and item_id == base_item_id and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
                 resource_quest_quantity += 1
                 await self.send(
@@ -182,7 +184,7 @@ class SessionGatheringActionsMixin:
 
             _o_kurde_gather_v11324 = gather_jackpot_v11324(
                 tool_level, profession_level, random.random()
-            )
+            ) if item_id == base_item_id else None
             _o_kurde_gather_xp_v11324 = 1.0
             if _o_kurde_gather_v11324:
                 _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))
@@ -381,8 +383,12 @@ class SessionGatheringActionsMixin:
                 await self.send("Nie udało się odnaleźć prawidłowego urobku dla tego poziomu kopalni.")
                 return
 
-            vein = roll_mining_vein(tool_level)
-            vein_quantity = int(vein["quantity"]) + gather_feature["quantity_bonus"]
+            vein = roll_mining_vein(
+                tool_level, profession_level, mine_floor_number(self.character.room_id)
+                if profession_dungeon_floor(self.character.room_id)[0] != "crystal_mine"
+                else max(1, int(profession_dungeon_floor(self.character.room_id)[1]) * 10)
+            )
+            vein_quantity = int(vein["quantity"]) + (gather_feature["quantity_bonus"] if vein["key"] != "legendary" else 0)
             self.store_profession_resource(item_id, vein_quantity)
             mined_resource_quantity = vein_quantity
             item = ITEMS[item_id]
@@ -402,7 +408,7 @@ class SessionGatheringActionsMixin:
                 tool_tier_bonus_chance(tool_level)
                 + self.character.racial_profession_bonus_chance()
             )
-            if bonus_chance > 0 and random.random() < bonus_chance:
+            if bonus_chance > 0 and vein["key"] != "legendary" and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
                 mined_resource_quantity += 1
                 await self.send(
@@ -412,7 +418,7 @@ class SessionGatheringActionsMixin:
 
             _o_kurde_gather_v11324 = gather_jackpot_v11324(
                 tool_level, profession_level, random.random()
-            )
+            ) if vein["key"] != "legendary" else None
             _o_kurde_gather_xp_v11324 = 1.0
             if _o_kurde_gather_v11324:
                 _o_kurde_extra_v11324 = max(1, int(mined_resource_quantity))
@@ -606,11 +612,13 @@ class SessionGatheringActionsMixin:
                 tool_level, self.character.room_id
             )
             item_id = roll_wood_variant(
-                base_item_id, tool_level
+                base_item_id, tool_level, profession_level
             )
             base_quantity = roll_profession_gather_quantity(tool_level, profession_level, "woodcutting")
+            if item_id != base_item_id:
+                base_quantity = 1  # exceptional specimen: one find, not a bulk harvest
             gather_feature = self.current_infinite_gather_feature("woodcutting")
-            base_quantity += gather_feature["quantity_bonus"]
+            base_quantity += gather_feature["quantity_bonus"] if item_id == base_item_id else 0
             self.store_profession_resource(item_id, base_quantity)
             resource_quest_quantity = base_quantity
             item = ITEMS[item_id]
@@ -631,7 +639,7 @@ class SessionGatheringActionsMixin:
                 tool_tier_bonus_chance(tool_level)
                 + self.character.racial_profession_bonus_chance()
             )
-            if bonus_chance > 0 and random.random() < bonus_chance:
+            if bonus_chance > 0 and item_id == base_item_id and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
                 resource_quest_quantity += 1
                 await self.send(
@@ -641,7 +649,7 @@ class SessionGatheringActionsMixin:
 
             _o_kurde_gather_v11324 = gather_jackpot_v11324(
                 tool_level, profession_level, random.random()
-            )
+            ) if item_id == base_item_id else None
             _o_kurde_gather_xp_v11324 = 1.0
             if _o_kurde_gather_v11324:
                 _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))
@@ -748,11 +756,13 @@ class SessionGatheringActionsMixin:
                 old_level, self.character.room_id
             )
             item_id = roll_herb_variant(
-                base_item_id, old_level
+                base_item_id, old_level, profession_level
             )
             base_quantity = roll_profession_gather_quantity(old_level, profession_level, "herbalism")
+            if item_id != base_item_id:
+                base_quantity = 1  # exceptional specimen: one find, not a bulk harvest
             gather_feature = self.current_infinite_gather_feature("herbalism")
-            base_quantity += gather_feature["quantity_bonus"]
+            base_quantity += gather_feature["quantity_bonus"] if item_id == base_item_id else 0
             self.store_profession_resource(item_id, base_quantity)
             resource_quest_quantity = base_quantity
             if item_id != base_item_id:
@@ -770,7 +780,7 @@ class SessionGatheringActionsMixin:
                 0.50,
                 tool_tier_bonus_chance(old_level) + self.character.racial_profession_bonus_chance()
             )
-            if bonus_chance > 0 and random.random() < bonus_chance:
+            if bonus_chance > 0 and item_id == base_item_id and random.random() < bonus_chance:
                 self.store_profession_resource(item_id, 1)
                 resource_quest_quantity += 1
                 await self.send(
@@ -781,7 +791,7 @@ class SessionGatheringActionsMixin:
 
             _o_kurde_gather_v11324 = gather_jackpot_v11324(
                 old_level, profession_level, random.random()
-            )
+            ) if item_id == base_item_id else None
             _o_kurde_gather_xp_v11324 = 1.0
             if _o_kurde_gather_v11324:
                 _o_kurde_extra_v11324 = max(1, int(resource_quest_quantity))

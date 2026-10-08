@@ -9,6 +9,10 @@ from systems.elite_variants import (
     elite_source_template_id_v11338,
     elite_variant_id_v11338,
 )
+from world.world_secrets_v1190 import (
+    create_world_secret_rooms_v1190, secret_room_identity_v1190,
+    attach_surface_secret_npc_v1190,
+)
 from world.uoss_superboss_world import (
     create_infinite_uoss_deep_dungeon_floor_definition_v11331,
     uoss_deep_dungeon_floor_number_v11331,
@@ -55,9 +59,14 @@ class MobState:
 # v0.29.0 - DYNAMIC WORLD EVENTS + BOSS/NEMESIS GENERATOR
 # ============================================================
 def v0290_active_world_events(now=None):
-    return dynamic_world_v029.active_events(
+    events = dynamic_world_v029.active_events(
         ROOMS, MOB_SPAWNS, MOB_TEMPLATES, str(V0250_WORLD_SEED), now=now
     )
+    # v1.20.0: use the EXISTING ephemeral event spawner for new regions.
+    # The module is imported lazily because this World module precedes its
+    # authored catalogs in the legacy bootstrap order.
+    from world.great_world import v1200_rotating_events
+    return tuple(events) + v1200_rotating_events(now)
 
 def v0290_event_for_room(room_id, now=None):
     room_id = str(room_id or "")
@@ -303,6 +312,62 @@ class World:
         self._last_refresh_at=0.0
         return add
 
+    def mob_templates_for_ai_v1160(self, mob):
+        return MOB_TEMPLATES.get(str(getattr(mob, "template_id", "")), {})
+
+    def spawn_monster_ai_add_v1160(self, parent, template_id, now=None):
+        """One unbankable, short-lived summon per encounter, using existing templates."""
+        import time as _time
+        now = _time.monotonic() if now is None else float(now)
+        if not parent or not parent.alive or not parent.engaged_by:
+            return None
+        current = [add for add in self.mobs.values()
+                   if getattr(add, "monster_ai_parent_v1160", None) == parent.key and add.alive]
+        if current:
+            return None
+        template = MOB_TEMPLATES.get(str(template_id), {})
+        if not template or any(template.get(f) for f in ("uoss_superboss", "boss", "world_boss", "training_dummy")):
+            return None
+        # Register a distinguishable, ephemeral display species. Attacking by name
+        # must not confuse the summoned shade with the original creature in NVDA.
+        summon_template_id = f"{template_id}__monster_ai_shade_v1160"
+        if summon_template_id not in MOB_TEMPLATES:
+            shade_template = dict(template)
+            shade_template["name"] = "Widmo " + " ".join(str(template.get("name", "Potwór")).split()[-2:])
+            shade_template["quest_target"] = ""
+            shade_template["elite_affix"] = ""
+            shade_template["boss_mechanic"] = ""
+            shade_template["ai_ephemeral_summon_v1160"] = True
+            _catalog_mut.catalog_assign(shade_template, "MOB_TEMPLATES", MOB_TEMPLATES, (summon_template_id,))
+        seq = int(getattr(parent, "monster_ai_add_sequence_v1160", 0) or 0) + 1
+        parent.monster_ai_add_sequence_v1160 = seq
+        add = MobState(
+            key=f"{parent.key}:ai_add:{seq}", room_id=parent.room_id,
+            template_id=summon_template_id, hp=max(1, int(template.get("max_hp", 1) * .4)),
+            engaged_by=parent.engaged_by, engaged_at=now,
+            home_room_id=parent.room_id,
+        )
+        add.monster_ai_parent_v1160 = parent.key
+        add.monster_ai_summoned_v1160 = True
+        add.v016_ephemeral = True
+        add.v016_expires_at = _time.time() + 120.0
+        self.mobs[add.key] = add
+        self._last_refresh_at = 0.0
+        return add
+
+    def clear_monster_ai_adds_v1160(self, parent):
+        removed = 0
+        for add in self.mobs.values():
+            if getattr(add, "monster_ai_parent_v1160", None) == parent.key and add.alive:
+                add.alive = False
+                add.engaged_by = None
+                add.respawn_at = float("inf")
+                add.v016_expires_at = __import__("time").time() - 1
+                removed += 1
+        if removed:
+            self._last_refresh_at = 0.0
+        return removed
+
     def engage_superboss_companions_v1144(self, boss_mob):
         """Culex crystals and Ruby tentacles already spawn in their arena.
 
@@ -545,6 +610,7 @@ class World:
             created_room, spawns = v0140_create_secret_room_definition(room_id)
         if not created_room:
             return False
+        attach_surface_secret_npc_v1190(created_room, ROOMS, NPCS)
         for spawn_room, template_id in spawns:
             self._register_runtime_spawn(spawn_room, template_id)
         _ROOM_THREAT_CACHE.pop(created_room, None)
@@ -590,6 +656,13 @@ class World:
         room_id = str(room_id or "")
         if room_id in ROOMS:
             self._generatorize_runtime_room(room_id)
+            # v1.19.3: generated secret chamber/archive have their own
+            # curated guardian and rare encounters. Generic world-event
+            # spawners are not valid here: repeated entrance previously
+            # produced extra enemies and could block guarded treasure.
+            # Rehydration at server start is handled by MOB_SPAWNS.
+            if ROOMS[room_id].get("v1190_secret_role") in ("chamber", "archive"):
+                return True
             self._ensure_v0290_event_spawns(room_id)
             self._ensure_v0140_event_spawn(room_id)
             self._ensure_v0160_encounters(room_id)
@@ -612,6 +685,33 @@ class World:
                 self._register_runtime_spawn(spawn_room, template_id)
             _ROOM_THREAT_CACHE.pop(created_room, None); _ZONE_THREAT_CACHE.clear()
             return True
+        # v1.19.0: rehydrate player position inside a secret chamber after restart.
+        secret = secret_room_identity_v1190(room_id)
+        if secret:
+            role, kind, floor = secret
+            if kind not in INSTANCE_MAP_DEFS or not instance_secret_name(kind, floor):
+                return False
+            parent = {
+                "crypt": crypt_floor_id, "mythic_crypt": mythic_crypt_floor_id,
+                "astral": astral_floor_id, "mythic_astral": mythic_astral_floor_id,
+                "giant": giant_fortress_floor_id, "mine": mine_floor_id,
+                "magitek": magitek_floor_id,
+            }.get(kind)
+            if parent is None and kind not in PROF_DUNGEON_PREFIXES:
+                return False
+            parent_id = (parent(floor) if parent else
+                         profession_dungeon_room_id(kind, floor))
+            if not self.ensure_runtime_room(parent_id):
+                return False
+            created, spawns = create_world_secret_rooms_v1190(
+                kind, floor, parent_id, ROOMS, TREASURE_CHESTS,
+                CHEST_COLLECTION_CATALOG, NPCS, MOB_SPAWNS, MOB_TEMPLATES)
+            if not created:
+                return False
+            for spawn_room, template_id in spawns:
+                self._register_runtime_spawn(spawn_room, template_id)
+            _ROOM_THREAT_CACHE.pop(created, None)
+            return room_id in ROOMS
         if self.ensure_hybrid_surface_room(room_id):
             self._generatorize_runtime_room(room_id); return True
         if self.ensure_v0180_special_room(room_id):
@@ -722,6 +822,16 @@ class World:
         live_counts = {}
         live_by_room = {}
         for mob_key, mob in self.mobs.items():
+            # Summons never outlive their summoner or leave a stale fight running.
+            parent_key = getattr(mob, "monster_ai_parent_v1160", None)
+            if parent_key:
+                parent = self.mobs.get(parent_key)
+                expired_add = now >= float(getattr(mob, "v016_expires_at", 0.0) or 0.0) > 0.0
+                if expired_add or not parent or not parent.alive or not parent.engaged_by:
+                    mob.alive = False
+                    mob.engaged_by = None
+                    mob.respawn_at = float("inf")
+                    mob.v016_expires_at = now - 1
             expires = max(
                 float(getattr(mob, "v016_expires_at", 0.0) or 0.0),
                 float(getattr(mob, "v029_expires_at", 0.0) or 0.0),
@@ -746,6 +856,14 @@ class World:
                     mob.engaged_by = None
                     mob.aoe_engaged_by = None
                     mob.combat_turn = 0
+                    for field in (
+                        "monster_ai_next_action_v1160", "monster_ai_empowered_until_v1160",
+                        "monster_ai_guard_until_v1160", "monster_ai_summon_used_v1160",
+                        "monster_ai_resurrect_used_v1160", "monster_ai_add_sequence_v1160",
+                        "monster_ai_raised_once_v1160", "monster_ai_lifesteal_turn_v1160",
+                    ):
+                        if hasattr(mob, field):
+                            delattr(mob, field)
                     mob.player_hits = 0
                     mob.phase_stage = 0
                     mob.engaged_at = 0.0

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fast Railway predeploy gate for Soulbound v1.13.52.
+"""Fast Railway predeploy gate for Soulbound v1.14.9.
 
 This is the normal deploy check.  It intentionally avoids assembling the full
 world/runtime.  Use predeploy_full.py when an exhaustive historical audit is
@@ -17,7 +17,7 @@ import traceback
 try:
     from storage.database import Database as _DatabaseImportSmoke
 except Exception as exc:
-    print(f"Soulbound v1.14.6 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
+    print(f"Soulbound v1.17.8 FAST PREDEPLOY FAILED: database import: {type(exc).__name__}: {exc}")
     traceback.print_exc()
     raise SystemExit(1)
 
@@ -79,7 +79,7 @@ try:
     )
 except Exception as exc:
     print(
-        "Soulbound v1.14.6 FAST PREDEPLOY FAILED: "
+        "Soulbound v1.17.8 FAST PREDEPLOY FAILED: "
         f"skill semantic import: {type(exc).__name__}: {exc}"
     )
     traceback.print_exc()
@@ -1819,6 +1819,19 @@ for _needle in (
         _semantic_errors.append(
             "profession sale jackpot regression: missing " + _needle
         )
+
+# v1.14.8: ceny czterech magazynów i ich podgląd muszą używać
+# jednego, niepodwójnie liczonego cennika.
+_storage_pricing_source = (_root / "player/session_mixins/profession_storage.py").read_text(encoding="utf-8")
+for _name, _source, _needle in (
+    ("sale", _sales_source, "return profession_resource_market_value_v1148("),
+    ("sale", _sales_source, "if item_id in profession_storage_ids:"),
+    ("storage", _storage_pricing_source, "total_silver += profession_resource_market_value_v1148("),
+    ("resources", _items_resource_source, "def profession_resource_market_value_v1148("),
+    ("resources", _items_resource_source, "_resource_market_catalog_v1148(category)"),
+):
+    if _needle not in _source:
+        _semantic_errors.append("resource market v1.14.8 regression: " + _name + " " + _needle)
 
 for _needle in (
     "TROFEUM WĘDKARSKIE",
@@ -3748,19 +3761,95 @@ except Exception as _exc_v11358:
         f"v1.13.58 dynamic XP audit crashed: {type(_exc_v11358).__name__}: {_exc_v11358}"
     )
 
+# v1.14.7: release smoke uses isolated math/contract checks; actual runtime
+# Character, helper actions and DB reopening are covered by predeploy_full.
+from validation.release_stability import audit_release_stability_v1147
+_stability_fast_v1147 = audit_release_stability_v1147()
+for _error in _stability_fast_v1147["errors"]:
+    _semantic_errors.append("release_stability: " + _error)
+
+# v1.17.2: cover the complete playable class roster and every authored skill.
+# Materialized EQ is checked in predeploy_full after the Generator final pass.
+from validation.class_balance_v1172 import audit_class_skill_balance_v1172
+_class_balance_v1172 = audit_class_skill_balance_v1172()
+for _error in _class_balance_v1172["errors"]:
+    _semantic_errors.append("class_balance_v1172: " + _error)
+
 if _semantic_errors:
-    print("Soulbound v1.14.6 FAST PREDEPLOY FAILED: semantic contracts")
+    print("Soulbound v1.17.8 FAST PREDEPLOY FAILED: semantic contracts")
     for _error in _semantic_errors:
         print(f"ERROR: {_error}")
     raise SystemExit(1)
 
 if audit["error_count"]:
-    print("Soulbound v1.14.6 FAST PREDEPLOY FAILED")
+    print("Soulbound v1.17.8 FAST PREDEPLOY FAILED")
     for error in audit["errors"]:
         print(f"ERROR: {error}")
     raise SystemExit(1)
 
-print("Soulbound v1.14.6 FAST PREDEPLOY PASS")
+# v1.14.9: deterministic profession drop-rate/quality/unlock gate audit.
+try:
+    from validation.profession_drops_v1149 import audit_profession_drops_v1149
+    _drops_v1149 = audit_profession_drops_v1149()
+    print(f"PROFESSION DROPS v1.14.9: {_drops_v1149['checks']} checks, {_drops_v1149['error_count']} errors")
+    if _drops_v1149['error_count']:
+        raise RuntimeError("; ".join(_drops_v1149['errors']))
+except Exception as _drops_exc_v1149:
+    print(f"Soulbound v1.17.8 FAST PREDEPLOY FAILED: profession drops: {_drops_exc_v1149}")
+    raise SystemExit(1)
+
+# v1.15.0: deterministic gameplay checks; no direct legacy mine import.
+from validation.legendary_reborn_v1150 import audit_legendary_reborn_fast_v1150
+_legendary_fast_v1150 = audit_legendary_reborn_fast_v1150()
+if _legendary_fast_v1150["error_count"]:
+    raise RuntimeError("LEGENDARY REBORN: " + "; ".join(_legendary_fast_v1150["errors"]))
+print(f"LEGENDARY REBORN FAST: {_legendary_fast_v1150['checks']} checks, 0 errors")
+
+# v1.15.1: no infinite monster statuses, cooldown or refresh stacking.
+from systems.monster_magic import monster_magic_audit_v1151
+_monster_magic_audit_v1151 = monster_magic_audit_v1151()
+if _monster_magic_audit_v1151["error_count"]:
+    raise RuntimeError("Monster magic audit: " + "; ".join(_monster_magic_audit_v1151["errors"]))
+print(f"MONSTER MAGIC v1.15.1: {_monster_magic_audit_v1151['checks']} checks PASS")
+
+from systems.monster_ai import monster_ai_audit_v1160
+_monster_ai_audit_v1160 = monster_ai_audit_v1160()
+if _monster_ai_audit_v1160["error_count"]:
+    raise RuntimeError("Monster AI 3.0: " + "; ".join(_monster_ai_audit_v1160["errors"]))
+print(f"MONSTER AI v1.16.0: {_monster_ai_audit_v1160['checks']} checks PASS")
+from validation.combat_balance_v1173 import audit_combat_balance_fast_v1173
+_combat_balance_v1173 = audit_combat_balance_fast_v1173()
+if _combat_balance_v1173["error_count"]:
+    raise RuntimeError("COMBAT BALANCE 1.17.3: " + "; ".join(_combat_balance_v1173["errors"]))
+print(f"COMBAT BALANCE v1.17.3 FAST: {_combat_balance_v1173['checks']} checks, "
+      f"{_combat_balance_v1173['classes']} classes, 0 errors")
+# v1.17.6: base-profession/tool timing, batch difficulty and bulk XP smoke.
+from validation.profession_balance_v1176 import audit_profession_balance_v1176
+_profession_fast_v1176 = audit_profession_balance_v1176()
+if _profession_fast_v1176["error_count"]:
+    raise RuntimeError("PROFESSIONS v1.17.6 FAST: " + "; ".join(_profession_fast_v1176["errors"]))
+print(f"PROFESSIONS v1.17.6 FAST: {_profession_fast_v1176['checks']} checks, "
+      f"{_profession_fast_v1176['error_count']} errors")
+# v1.17.7: 14 authored races x 14 classes, passive profile contracts.
+from validation.race_balance_v1177 import audit_race_balance_v1177
+_race_fast_v1177 = audit_race_balance_v1177()
+if _race_fast_v1177['error_count']:
+    raise RuntimeError('RACES v1.17.7: ' + '; '.join(_race_fast_v1177['errors']))
+print(f"RACES v1.17.7 FAST: {_race_fast_v1177['checks']} checks, "
+      f"{_race_fast_v1177['combos']} race/class combinations PASS")
+# v1.17.8: 4-client combat log burst and durable 3-channel SQLite queues.
+from validation.stability_v1178 import audit_stability_v1178
+_stability_v1178 = audit_stability_v1178()
+if _stability_v1178['error_count']:
+    raise RuntimeError('STABILITY v1.17.8: ' + '; '.join(_stability_v1178['errors']))
+print(f"STABILITY v1.17.8 FAST: {_stability_v1178['checks']} checks, "
+      f"{_stability_v1178['clients']} simulated clients, "
+      f"{_stability_v1178['messages']} messages PASS")
+
+print(f"CLASS BALANCE v1.17.2: {_class_balance_v1172['classes']} classes, "
+      f"{_class_balance_v1172['skills']} skills, "
+      f"{_class_balance_v1172['checks']} checks PASS")
+print(f"RELEASE STABILITY FAST: {_stability_fast_v1147['checks']} checks, 0 errors")
 print(
     "Semantic contracts: "
     f"{len(_semantic_audits)} audits PASS; AP runtime guards PASS"
@@ -3783,3 +3872,43 @@ if audit.get("warning_count"):
     for warning in audit.get("warnings", ())[:50]:
         print(f"WARNING: {warning}")
 print("Full historical audit remains available with: python predeploy_full.py")
+
+from validation.mercenary_contracts import mercenary_contract_audit_v1170
+_mercenary_audit_v1170 = mercenary_contract_audit_v1170()
+print(f"MERCENARY TAVERN: {_mercenary_audit_v1170['checks']} checks PASS")
+
+# v1.18.0: read-only accessibility commands, aliases, live smelt/gather status.
+from validation.qol_v1180 import audit_qol_v1180
+_qol_v1180 = audit_qol_v1180()
+if _qol_v1180['error_count']:
+    raise RuntimeError('QOL v1.18.0: ' + '; '.join(_qol_v1180['errors']))
+print(f"QUALITY OF LIFE v1.18.0 FAST: {_qol_v1180['checks']} checks PASS")
+
+# v1.19.0: deterministic secret checks in fast lane; full runtime covered by predeploy_full.py.
+from validation.world_secrets_v1190 import audit_world_secrets_v1190
+_secret_audit_v1190 = audit_world_secrets_v1190(runtime=False)
+if _secret_audit_v1190['error_count']:
+    raise RuntimeError('SECRETS v1.19.0: ' + '; '.join(_secret_audit_v1190['errors']))
+print(f"WORLD SECRETS v1.19.0 FAST: {_secret_audit_v1190['checks']} checks PASS")
+
+from validation.upgrade_v1193 import audit_upgrade_v1193
+_upgrade_v1193 = audit_upgrade_v1193()
+if _upgrade_v1193["error_count"]:
+    raise RuntimeError("UPGRADE v1.19.3: " + "; ".join(_upgrade_v1193["errors"]))
+print(f"NAV/CAREER/PARTY v1.19.3 FAST: {_upgrade_v1193['checks']} checks PASS")
+from validation.great_world import audit_great_world_v1200
+_great_world_v1200 = audit_great_world_v1200()
+if _great_world_v1200["error_count"]:
+    raise RuntimeError("GREAT WORLD v1.20.0: " + "; ".join(_great_world_v1200["errors"]))
+print(f"GREAT WORLD v1.20.0 FAST: {_great_world_v1200['checks']} checks PASS")
+from validation.order_turnin_hotfix_v1201 import audit_order_turnin_hotfix_v1201
+_order_hotfix = audit_order_turnin_hotfix_v1201()
+if _order_hotfix["error_count"]:
+    raise RuntimeError("ORDER TURNIN v1.20.1: " + "; ".join(_order_hotfix["errors"]))
+print(f"ORDER TURNIN v1.20.1 FAST: {_order_hotfix['checks']} checks PASS")
+from validation.enchanting_vendor_v1202 import audit_enchanting_vendor_v1202
+_enchanting_vendor = audit_enchanting_vendor_v1202()
+if _enchanting_vendor['error_count']:
+    raise RuntimeError('ENCHANTING VENDOR v1.20.2: ' + '; '.join(_enchanting_vendor['errors']))
+print(f"ENCHANTING VENDOR v1.20.2 FAST: {_enchanting_vendor['checks']} checks PASS")
+print("Soulbound v1.20.2 FAST PREDEPLOY PASS")

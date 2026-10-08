@@ -373,8 +373,30 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.14.6 - Pomocnicy UOSS 2.0"
+LATEST_CHANGES_TITLE = "Soulbound v1.20.2 - Sklep Zaklinania"
 LATEST_CHANGES = [
+    "v1.20.2: Kwatermistrzyni Selene znowu sprzedaje Fokus Runiczny w Komnacie Arkanów (`list` / `kup 1`); osobne sklepy Maga i Psionika pozostają bez zmian.",
+    "v1.20.1: Naprawiono `zamowienia oddaj` dla wszystkich 14 profesji; starsze, gotowe zamówienia po awarii v1.20.0 można odzyskać bez ponownego płacenia materiałami. Brak zmian ekonomii i balansu.",
+    "v1.20.0: Wielki Świat — 77 lokacji w 4 krainach, 4 bossów, 12 questów, 8 NPC, 8 przedmiotów, 4 prawdziwe godzinne wydarzenia i komenda krainy dla NVDA.",
+    "v1.19.3: Party 4.0 — raport zdrowia i many całej drużyny, zbiórka do lidera, wspólna trasa i osobny krok dla każdej postaci; bez teleportu i omijania bram.",
+    "v1.19.2: Kariera i osiągnięcia — wygodny odczyt zapisanych statystyk walki, profesji, rekordów i następnych progów. Osiagniecia postep bez dopisywania fikcyjnych odznak.",
+    "v1.19.1: Nawigacja 2.0 — status, najbliższy krok, wyjścia okolicy i czytelny cel trasy. Bez automatycznego omijania blokad lochów.",
+    "v1.19.0: Sekrety Świata — tajne komnaty na odkrytych piętrach instancji, minibossowie strzegący skarbca, Archiwa Szeptów z NPC i rzadkimi wydarzeniami. Sekret trop/lista/pomoc, bez pułapek i skrótów przez bossów.",
+    "v1.18.0: Quality of Life — gdzie pokazuje wyjścia i miejskie cele; zdobycze filtruje zapisaną historię dropów; prace wyświetla aktywne auto-profesje i postęp przetopu; combat ostatnie odczytuje bufor sesji. Nowe tematy pomocy, bez zmian balansu.",
+    "v1.17.8: Final Stability — w trakcie walki tryb Combat Log jest czytany z pamięci sesji (odświeżanie co 30 s, natychmiast po zmianie). Automatyczna kolejka skilli nie wywołuje zbędnych zapisów SQLite przy każdym sprawdzeniu. Bez zmian skilli, EXP i lootów.",
+    "v1.17.7: Rasy 2.0 — audyt 14 ras i 196 kombinacji rasa/klasa; poprawiono komunikat rasowej odporności Cyborga (nie jest już podpisany jako Krasnolud). Budżety startowe, obrażenia, EXP i pasywy bez nerfów.",
+    "v1.17.6: Profesje 3.0 — audyt XP i timerów wszystkich 14 profesji; przetop wszystko uwzględnia rzeczywistą wagę trudności wykonanych receptur, a nie pierwszą recepturę katalogu. Duże partie otrzymują rosnącą, malejącą premię za nakład pracy. Jeden przetop hurtowy nadal liczy się jako jedna akcja.",
+    "v1.17.5: Economy Final Audit — zakup z rabatem Charyzmy nie umożliwia nieskończonego zysku przy odsprzedaży. SQLite pamięta cenę faktycznie zapłaconą; loot i uczciwe zarobki nietknięte. Rejestr działa też dla banku i przekazania przedmiotu.",
+    "v1.17.4: Equipment Balance 4.0 — zachowane ułamkowe bonusy craftingu (np. lifesteal 0,75%), testy legendarnego EQ, wyboru stylów i Rezonansu Głębi. Bez zmian cen, EXP i dropów.",
+    "v1.17.3: Ultimate Combat Balance — symulacje 14 klas przy Biegłościach 100/200/400/600; rzeczywista funkcja Adaptive Combat przy 1/2/4 graczach oraz zwykłych mobach, bossach i superbossach. Test cooldownu najemników i limitu 1,5% HP. Nie zmieniono obrażeń, EXP ani balansu klas bez potwierdzonej regresji.",
+    "v1.17.2: Audyt 14 klas i 2563 umiejętności oraz pięciu progów klasowego EQ. Naprawiono nadpisywanie INT/WILL Meca przez końcowy Generator; 5 statystyk działa na każdym klasowym EQ i setach. Zabezpieczenie w pełnym predeploy, bez zmian obrażeń i XP.",
+    "v1.17.1: Tawerna oferuje 15 najemników: po jednym dla każdej z 14 klas oraz dodatkowego Paladyna. Każdy ma własny rodzaj ataku i rolę wsparcia, Riven reprezentuje Łowcę, a stary wynajem Łucznika zachowuje ważność. Limit 3 i pomocnicy UOSS bez zmian.",
+    "v1.17.0: w miejskich tawernach zatrudnisz do 3 najemników na 45 minut. Wojownik i Paladyn osłaniają, Kapłanka leczy, Mag/Łucznik/Nekromanta atakują. Oddzielny system od pomocników UOSS, rabat Charyzmy, umowy w SQLite, bez odbierania EXP i lootu.",
+    "v1.16.0: Monster AI 3.0 — potwory magiczne i elity leczą się, wzmacniają, osłaniają, przywołują; wampiryczne wysysają HP po trafieniu, lodowe mrożą, nekromanci i Przeklęte elity raz przywołują cień poległego. Efekty są krótkie, cooldowny obowiązują, pomocnicy nie dają nagród.",
+    "v1.15.1: moby używają nazwanych czarów wszystkich 10 żywiołów. Podpalenie, trucizna, spowolnienie, porażenie, klątwa i wysysanie Many trwają 6–12 sekund, nie stackują się, nie odnawiają i mają cooldown; znikają po walce.",
+    "v1.15.0: unikatowy legendarny loot bossów, Iskry Legendy i Pradawne Serca, receptury Kowalstwa, Jubilerstwa, Stolarstwa i Krawiectwa, rzeczywiste efekty EQ: wysysanie życia, Mana, odporności i bonusy wysokiej jakości craftu.",
+    "v1.14.9: szanse rzadkich ryb, drewna, ziół, żył górniczych, klejnotów i geod zależą od poziomu profesji i narzędzia; legendarne materiały nie wypadają początkującym; bonusy ilościowe nie powielają wyjątkowych znalezisk.",
+    "v1.14.8: indywidualne ceny ryb, rud, klejnotów, geod, drewna i ziół; rzadkie okazy mają prawidłowy mnożnik, a magazyny i skup pokazują tę samą wartość.",
     "v1.14.1: Zwykła i Mityczna Krypta mają unikalne nazwy głębokości i komnat bez numerów pięter w nazwach; numery pozostają tylko technicznie dla progresu, portali i komend.",
     "v1.14.0: Pustkowia Eteru — 76 nowych lokacji, trzy nieskończone dungeony, 8 nowych superbossów z 24h lockoutem oraz osobne żywioły Void/Holy/Shadow; Void i Shadow nie są już aliasem Dark.",
     "v1.13.62: hotfix komendy score — dodano brakujący import class_mastery_xp_to_next, dzięki czemu postęp Biegłości (aktualny EXP, wymagany EXP i brakujący EXP) wyświetla się bez błędu komendy.",
@@ -1316,7 +1338,8 @@ HELP_TOPICS = {
         "Drewno może być Bujne, Pradawne, Kryształowe albo Legendarne.",
         "Rośliny mogą być Bujne, Lśniące, Pradawne albo Legendarne.",
         "Rzadkie drewno i rośliny są osobnymi cenniejszymi okazami w magazynach profesji.",
-        "Szanse na rzadkie warianty poprawiają się wraz z levelem używanego narzędzia.",
+        "Szanse wariantów zależą od poziomu narzędzia, profesji i trudności surowca; warianty legendarne nie wypadają na początku gry.",
+        "Obfity zbiór, hotspot i bonus Tieru nie powielają wyjątkowych wariantów ani legendarnych żył.",
         "Questy zbierania kategorii liczą również rzadkie warianty.",
         "Hurtowa sprzedaż magazynów profesji (wszystko siatka/sakwa/stos/torba) obejmuje również rzadkie warianty; zwykłe sell all inventory sprzedaje tylko niezałożone EQ.",
     ],

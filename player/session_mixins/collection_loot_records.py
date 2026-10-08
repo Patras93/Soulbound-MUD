@@ -543,6 +543,11 @@ class SessionCollectionLootRecordsMixin:
             if normalized in ("geoda", "geode", "geode kamienna", "geoda kamienna", "geoda krysztalowa", "geoda kryształowa", "crystal geode", "stone geode", "geoda astralna", "astral geode"):
                 await self.open_geode(args)
                 return
+            if ROOMS.get(self.character.room_id, {}).get("v1190_secret_role") == "chamber":
+                if any(bool(MOB_TEMPLATES.get(m.template_id, {}).get("v1190_secret_guard"))
+                       for m in self.server.world.room_mobs(self.character.room_id)):
+                    await self.send("Skarbiec jest strzeżony. Pokonaj strażnika sekretu, aby otworzyć skrzynię.")
+                    return
             opened_at = self.server.db.treasure_chest_opened_at(
                 self.account_id, self.character.room_id
             )

@@ -7,6 +7,8 @@ element_wards. Player elemental skills keep using the mature Machine weakness
 resolver; this module adds consistent affinity, preview and chase-gear hooks.
 """
 
+from systems.monster_magic import monster_spell_name_v1151
+
 V11339_ELEMENTAL_COMBAT_VERSION = "1.13.39"
 
 V11339_ELEMENT_LABELS = {
@@ -185,7 +187,8 @@ def elemental_mob_attack_profile_v11339(template, roll, combat_turn=0):
         "label": V11339_ELEMENT_LABELS[element],
         "chance": chance,
         "damage_multiplier": float(spec["damage_multiplier"]),
-        "text": str(spec["text"]),
+        "text": f"{monster_spell_name_v1151(element, turn)}. {spec['text']}",
+        "spell_name": monster_spell_name_v1151(element, turn),
         "defense_channel": "magic",
     }
 

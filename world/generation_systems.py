@@ -1218,10 +1218,15 @@ HELP_TOPICS["sekrety_swiata"] = [
     "W części proceduralnych sektorów istnieje deterministyczny sekret. Komenda sekret odkrywa go osobno dla postaci.",
     "Po odkryciu wpisz sekret ponownie w tym samym sektorze, aby wejść do ukrytej komnaty ze skrzynią.",
     "Mapa Skarbu Rubieży może wskazać jeden nieodkryty sekret. Wpisz mapa skarbu, aby sprawdzić zapisane tropy.",
+    "Od v1.19.0 zapisany sekret instancji otwiera wejście do komnaty strażnika po ponownym użyciu komendy sekret.",
+    "W komnacie pokonaj mini-bossa, aby otworzyć skarbiec lub przejść na wschód do Archiwum Szeptów.",
+    "W archiwum spotkasz tajemniczego NPC i sprawdzisz rzadkie wydarzenie komendą sekret wydarzenie.",
+    "Komendy: sekret trop, sekret lista, sekret pomoc. Sekrety nie zawierają losowych pułapek i nie pozwalają omijać bossów pięter.",
 ]
 HELP_TOPIC_ALIASES.update({
     "wydarzenia": "wydarzenia_swiata", "eventy": "wydarzenia_swiata", "events": "wydarzenia_swiata",
     "mini lochy": "mini_lochy", "minilochy": "mini_lochy", "mini-lochy": "mini_lochy",
+    "sekret": "sekrety_swiata", "secret": "sekrety_swiata", "sekrety": "sekrety_swiata",
     "sekrety swiata": "sekrety_swiata", "sekrety świata": "sekrety_swiata", "mapy skarbow": "kartografia", "mapy skarbów": "kartografia",
 })
 

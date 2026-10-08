@@ -6,6 +6,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
 from events.contracts import PlayerDiedEvent
+from systems.monster_magic import monster_magic_clear_v1151
 from systems.combat_profile_records import (
     death_cause_text_v11341,
     record_combat_profile_v11341,
@@ -27,6 +28,7 @@ class SessionCombatSurvivalMixin:
                 self.server.release_all_engagements_for_session(self)
                 self.combat_mob_key = None
                 await self.stop_realtime_combat()
+                monster_magic_clear_v1151(self)
                 self.skill_guard = 0
                 self.skill_evade = False
                 self.skill_evade_lockout_until = 0.0
@@ -122,6 +124,7 @@ class SessionCombatSurvivalMixin:
                     await self.send(f"NEMESIS POWSTAJE: {_row['nemesis_name']}. Ranga {int(_row['rank'])}. Wpisz nemesis po odrodzeniu.")
                 self.combat_mob_key = None
                 await self.stop_realtime_combat()
+                monster_magic_clear_v1151(self)
                 self.skill_guard = 0
                 self.skill_evade = False
                 self.skill_evade_lockout_until = 0.0

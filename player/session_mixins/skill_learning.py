@@ -875,6 +875,9 @@ class SessionSkillLearningMixin:
                     ))
                 )
 
+            # Real 10-second monster ally guard: shared with normal hits and skills.
+            from systems.monster_ai import monster_ai_guard_damage_v1160
+            damage = monster_ai_guard_damage_v1160(mob, damage)
             elite_affix = template.get("elite_affix")
             if elite_affix == "armored" and damage > 0:
                 reduced = max(
@@ -1629,7 +1632,7 @@ class SessionSkillLearningMixin:
             )
             if racial_prevented > 0:
                 await self.send_combat(
-                    f"Rasowa odporność Krasnoluda redukuje trafienie o "
+                    f"Pasyw rasy {self.character.race} redukuje trafienie o "
                     f"{self.character.racial_damage_reduction_percent()} procent, "
                     f"czyli o {racial_prevented} obrażeń.",
                     "full",
@@ -1658,6 +1661,7 @@ class SessionSkillLearningMixin:
                 "damage": int(incoming),
             }
             self.current_hp -= incoming
+            self._monster_magic_last_hit_v1151 = True
             self._recap52_taken=int(getattr(self,"_recap52_taken",0))+max(0,int(incoming))
             if time.time() < float(getattr(mob,"v0319_air_anchor_until",0.0) or 0.0) and mob.alive:
                 anchor=max(1,int(getattr(mob,"v0319_air_anchor_power",1) or 1))

@@ -194,6 +194,12 @@ COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
  'gauntlets': 'gauntlets',
  'gauntlety': 'gauntlets',
  'gdzie': 'where',
+ 'zdobycze': 'treasures',
+ 'zdobycz': 'treasures',
+ 'treasures': 'treasures',
+ 'prace': 'tasks',
+ 'praca': 'tasks',
+ 'tasks': 'tasks',
  'gems': 'gems',
  'generator': 'globalgenerator',
  'generatorswiata': 'globalgenerator',
@@ -928,4 +934,15 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "zegluj": "sail", "żegluj": "sail", "sail": "sail",
     "skarby": "oceantreasure", "skarb": "oceantreasure", "treasuremap": "oceantreasure",
     "handelmorski": "oceantrade", "oceantrade": "oceantrade",
+})
+
+# v1.19.1-1.19.3: opt-in read-only navigation and career reports.
+COMMAND_ALIAS_DEFINITIONS.update({
+    "nawigacja": "navigation2", "nawigacja2": "navigation2", "navigation2": "navigation2",
+    "kariera": "career2", "kariera2": "career2", "career2": "career2",
+})
+
+# v1.20.0: small NVDA regional atlas for authored world expansion.
+COMMAND_ALIAS_DEFINITIONS.update({
+    "krainy": "greatworld", "wielkiswiat": "greatworld", "greatworld": "greatworld",
 })

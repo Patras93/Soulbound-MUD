@@ -33,6 +33,7 @@ from systems.items_resources import (
     economy_stage_anchor_v11314,
     fish_trophy_value_multiplier_v1138,
     v096_fish_price_scale,
+    profession_resource_market_value_v1148,
 )
 from world.economy_quests import V0863_MATERIAL_SALE_BASE_SILVER
 
@@ -47,17 +48,13 @@ V11314_ARMOR_RESALE_QUEST_FRACTION = {
 class SessionSalesMixin:
 
     def profession_resource_sale_value_v1138(self, item_id, item):
-            total = int(v0190_resource_sale_coins(item_id, item))
-            if item_id in FISH_STORAGE_IDS:
-                total = max(
-                    1,
-                    int(round(
-                        total
-                        * v096_fish_price_scale(item_id)
-                        * fish_trophy_value_multiplier_v1138(item_id)
-                    )),
-                )
-            return max(1, total)
+            # v1.14.8: jeden kanoniczny kurs wszystkich czterech profesji.
+            # fish_trophy_value_multiplier_v1138(item_id) i mnożnik rzadkiego
+            # okazu stosuje już sama funkcja rynku. NIE mnożyć drugi raz.
+            category = "ore" if item_id in MINING_STORAGE_IDS else None
+            return profession_resource_market_value_v1148(
+                item_id, item, category=category
+            )
 
     def generic_item_sale_allowed_here(self):
             # Zwykłe przedmioty można odsprzedawać w każdej lokacji z normalnym sklepem.
@@ -128,6 +125,16 @@ class SessionSalesMixin:
 
     def generic_item_sale_value(self, item_id, item):
             smith_cap = self.blacksmith_crafted_sale_cap_v0341(item_id, item)
+
+            # v1.14.8: zasoby wszystkich magazynów profesji sprzedawane tą
+            # samą wyceną niezależnie od starych sell_gold/sell_silver.
+            # Ta ścieżka obsługuje także sprzedaż masową i warianty rare.
+            profession_storage_ids = (
+                FISH_STORAGE_IDS | MINING_STORAGE_IDS | WOOD_STORAGE_IDS | HERB_STORAGE_IDS
+            )
+            if item_id in profession_storage_ids:
+                value = self.profession_resource_sale_value_v1138(item_id, item)
+                return {"silver": value, "gold": 0, "mithril": 0}
 
             # v1.13.30: Rezonans Głębi is a new physical item instance, not the
             # historical shop/sell contract of its base item. Always value it
@@ -495,7 +502,7 @@ class SessionSalesMixin:
                         container,units,content_level=content_level
                     )
 
-    def bulk_sell_rewards_for_rows(self, rows):
+    def bulk_sell_rewards_for_rows(self, rows, *, shop_purchase_basis=False):
             total_silver = 0
             total_gold = 0
             total_mithril = 0
@@ -517,9 +524,15 @@ class SessionSalesMixin:
 
                 total_units += quantity
                 total_types += 1
-                total_silver += silver * quantity
-                total_gold += gold * quantity
-                total_mithril += mithril * quantity
+                if shop_purchase_basis:
+                    normal = legacy_currency_to_coins(silver, gold, mithril)
+                    total_silver += self.server.db.shop_resale_total_v1175(
+                        self.account_id, item_id, quantity, normal
+                    )
+                else:
+                    total_silver += silver * quantity
+                    total_gold += gold * quantity
+                    total_mithril += mithril * quantity
 
             return {
                 "units": total_units,
@@ -735,7 +748,9 @@ class SessionSalesMixin:
                 )
                 return False
 
-            rewards = self.bulk_sell_rewards_for_rows(sell_rows)
+            rewards = self.bulk_sell_rewards_for_rows(
+                sell_rows, shop_purchase_basis=True
+            )
 
             for item_id, qty in sell_rows:
                 if not self.server.db.remove_item(
@@ -952,6 +967,13 @@ class SessionSalesMixin:
                     )
                     return
                 values = self.generic_item_sale_value(item_id, item)
+                normal = legacy_currency_to_coins(
+                    values["silver"], values["gold"], values["mithril"]
+                )
+                payout = self.server.db.shop_resale_total_v1175(
+                    self.account_id, item_id, 1, normal
+                )
+                values = {"silver": payout, "gold": 0, "mithril": 0}
                 if not self.server.db.remove_item(self.account_id, item_id, 1):
                     await self.send("Nie udało się sprzedać przedmiotu.")
                     return

@@ -1308,3 +1308,34 @@ HELP_TOPICS.update({
     "loothistory": "Loot History 2.0: drophistory [tekst] lub loothistory [tekst].",
     "nvda": "Presety dostępności: nvda <combat|social|system|all> <concise|normal|full>.",
 })
+
+# v1.18.0: help must agree with the registered read-only QoL commands.
+HELP_TOPICS["gdzie"] = ["gdzie — nazwa i strefa lokacji oraz prawdziwe kierunki wyjść.", "gdzie cele — lokalne cele w mieście; trasa <cel> planuje drogę, walk <cel> prowadzi do celu."]
+HELP_TOPICS["zdobycze"] = ["zdobycze — 10 ostatnich zapisanych łupów; zdobycze legendarne [1-30], zdobycze epickie, zdobycze rzadkie, zdobycze wszystkie [1-30].", "zdobycze szukaj <nazwa> — przeszukaj historię dropów; zdobycze nie obejmują materiałów bez zapisu w historii dropów."]
+HELP_TOPICS["prace"] = ["prace — jeden status aktualnego przetopu (pozostałe sekundy), automatycznego łowienia, kopania, drewna, ziół oraz zapisanej kolejki skilli.", "przetop status / przetop stop; kolejka lista; prowadz status. Nie obiecuje czasu kolejnego losowego zbioru."]
+HELP_TOPICS["combatlog"] = ["combat concise, combat normal, combat full — zakres komunikatów walki dla NVDA.", "combat ostatnie [1-100] — zobacz ostatnie widoczne komunikaty tej sesji bez zmiany trybu ani ponownego zapisu historii."]
+
+# v1.19.1-1.19.3: opt-in navigation, career and party coordination.
+HELP_TOPICS["nawigacja2"] = [
+    "Nawigacja 2.0: nawigacja status — lokacja, aktywne prowadzenie i zapamiętany cel.",
+    "nawigacja krok — jeden kolejny krok; nawigacja okolica — sąsiednie lokacje.",
+    "nawigacja cel <nazwa> — zaplanuj trasę; nawigacja druzyna — wspólny cel trasy.",
+    "Mapa pokazuje wyjścia, ale zamknięte bramy i bossowie nadal wymagają odblokowania.",
+]
+HELP_TOPICS["kariera2"] = [
+    "Kariera 2.0: kariera status / walka / profesje / rekordy / postep.",
+    "osiagniecia postep — następne informacyjne progi; osiagniecia — dotychczasowe odblokowania.",
+    "Statystyki pochodzą z zapisów postaci, a rekordy z zachowanych raportów walk.",
+    "Progi kariery nie przyznają automatycznych nagród ani osiągnięć.",
+]
+HELP_TOPICS["party4"] = [
+    "Party 4.0: druzyna raport — HP/Mana członków, status gotowości i lokacje.",
+    "druzyna zbiorka — liczba przejść do lidera dla każdego członka online.",
+    "druzyna trasa <cel> — lider ustawia trasę, druzyna trasa krok — osobny krok członka.",
+    "druzyna trasa off — tylko lider czyści trasę; bez teleportu i obchodzenia blokad.",
+]
+HELP_TOPIC_ALIASES.update({"nawigacja2":"nawigacja2", "kariera":"kariera2", "kariera2":"kariera2", "party4":"party4", "druzyna4":"party4"})
+if "nawigacja" in HELP_TOPICS:
+    HELP_TOPICS["nawigacja"].append("Rozszerzenie v1.19.1: nawigacja status, krok, okolica, cel <nazwa>. help nawigacja2.")
+if "druzyny" in HELP_TOPICS:
+    HELP_TOPICS["druzyny"].append("Party 4.0: raport, zbiorka, trasa <cel>/krok/off. help party4.")

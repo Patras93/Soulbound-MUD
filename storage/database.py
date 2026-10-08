@@ -16,6 +16,7 @@ from storage.db_progression import DatabaseProgressionMixin
 from storage.db_quests import DatabaseQuestMixin
 from storage.db_guilds import DatabaseGuildMixin
 from storage.db_crafting_extensions import DatabaseCraftingExtensionsMixin
+from storage.db_mercenaries import DatabaseMercenariesMixin
 
 
 
@@ -59,6 +60,7 @@ class _DeferredCommitConnection:
 
 
 class Database(
+    DatabaseMercenariesMixin,
     DatabaseCraftingExtensionsMixin,
     DatabaseSchemaMixin,
     DatabaseAccountsMixin,
@@ -84,3 +86,4 @@ class Database(
         self.create_schema()
         self.migrate_schema()
         self.install_crafting_extensions_schema()
+        self.create_mercenary_schema()

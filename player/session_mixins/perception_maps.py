@@ -2,6 +2,11 @@
 """Soulbound v0.30.51 Session mixin: perception_maps."""
 
 from core.progression_600 import soul_tier_title_for_class
+from datetime import datetime, timezone
+from world.world_secrets_v1190 import (
+    secret_room_id_v1190, secret_room_identity_v1190, world_secret_roll_v1190,
+    SECRET_ARCHIVISTS_V1190,
+)
 
 class SessionPerceptionMapsMixin:
     def visible_player_for_look(self, query):
@@ -729,7 +734,19 @@ class SessionPerceptionMapsMixin:
                 await self.send(f"Nieodkryte piętra w sektorze: {missing}. Ich szczegóły pozostają ukryte.")
             await self.send("Komendy: mapa; mapa instancje; mapa instancja <nazwa>; sekret / secret.")
 
-    async def discover_instance_secret(self):
+    async def discover_instance_secret(self, args=""):
+            # v1.19.0: czytelne podkomendy, bez zmiany starego odkrywania.
+            if str(args or "").strip():
+                await self.world_secrets_command_v1190(args)
+                return
+            inside = secret_room_identity_v1190(self.character.room_id)
+            if inside:
+                role, kind, floor = inside
+                if role == "archive":
+                    await self.send("Tajemniczy NPC czeka w archiwum. Wpisz rozmawiaj <imię> lub sekret wydarzenie. Wyjścia: zachód, dół.")
+                else:
+                    await self.send("Sekretna komnata strażnika. Skarbiec jest tutaj. Aby dostać się do archiwum, pokonaj strażnika i idź na wschód. W dół wrócisz na to samo piętro.")
+                return
             # v0.14.0: ta sama dostępna komenda obsługuje także sekrety powierzchni.
             surface = v0140_surface_secret_info(self.character.room_id)
             if surface:
@@ -761,7 +778,7 @@ class SessionPerceptionMapsMixin:
                 return
 
             if v0140_secret_room_identity(self.character.room_id):
-                await self.send("Jesteś już wewnątrz odkrytej sekretnej lokacji. Zejdź w dół, aby wrócić.")
+                await self.send("Jesteś w ukrytej komnacie rubieży. Możesz porozmawiać z tajemniczym NPC, sprawdzić sekret wydarzenie lub zejść w dół, aby wrócić.")
                 return
 
             kind, floor = instance_room_identity(self.character.room_id)
@@ -780,7 +797,68 @@ class SessionPerceptionMapsMixin:
                     await self.v0260_check_museum_rewards(announce=True)
                 await self.send(f"Odkrywasz sekret: {name}. Mapa instancji została zaktualizowana.")
             else:
-                await self.send(f"Ten sekret jest już zapisany na mapie: {name}.")
+                if self.combat_mob_key:
+                    await self.send("Najpierw zakończ walkę, aby przejść przez sekretne drzwi.")
+                    return
+                chamber = secret_room_id_v1190(kind, floor)
+                if not self.server.world.ensure_runtime_room(chamber):
+                    await self.send(f"Sekret zapisany, ale komnata jest chwilowo niedostępna: {name}.")
+                    return
+                await self.send(f"Otwierasz ukryte przejście: {name}. Wracasz na to samo piętro przez wyjście w dół.")
+                # Unrecognized direction avoids erroneously moving the party up
+                # an existing dungeon stair. Each player unlocks this secret.
+                await self.walk_room_transition("secret", chamber, guided=False, show_room=True)
+
+    async def world_secrets_command_v1190(self, args=""):
+            raw = self.normalize_description_query(str(args or "").strip())
+            inside = secret_room_identity_v1190(self.character.room_id)
+            if raw in ("pomoc", "help", "?", "komendy"):
+                await self.send("Sekrety: sekret (odkryj lub wejdź), sekret trop, sekret lista, sekret wydarzenie. W komnacie: otwórz skrzynię; w archiwum: rozmawiaj <imię>. Nie ma losowych pułapek.")
+                return
+            if raw in ("lista", "odkryte", "historia"):
+                found = []
+                for kind in INSTANCE_MAP_DEFS:
+                    for row in self.server.db.instance_secret_rows(self.account_id, kind):
+                        found.append((kind, int(row["floor"]), str(row["secret_name"])))
+                found.sort(key=lambda item: (item[0], item[1]))
+                await self.send(f"SEKRETY INSTANCJI: odkryto {len(found)}. Ostatnie 20 na liście:")
+                for kind, floor, name in found[-20:]:
+                    await self.send(f"{INSTANCE_MAP_DEFS[kind]['label']}, piętro {floor}: {name}.")
+                return
+            if raw in ("trop", "wskazowka", "wskazówka", "status"):
+                surface = v0140_surface_secret_info(self.character.room_id)
+                if surface:
+                    await self.send(f"TROP SEKRETU: {surface['name']}. Wpisz sekret, aby odkryć lub wejść.")
+                    return
+                if inside:
+                    await self.send("Jesteś w sekrecie świata. Wpisz sekret bez argumentów, aby poznać dostępne możliwości.")
+                    return
+                kind, floor = instance_room_identity(self.character.room_id)
+                name = instance_secret_name(kind, floor) if kind and floor is not None else None
+                await self.send(f"TROP SEKRETU: {name}. Wpisz sekret." if name else "W tej lokacji nie znajdujesz nowego tropu. Szukaj specjalnych pięter instancji i sekretów rubieży.")
+                return
+            if raw in ("wydarzenie", "event", "znalezisko"):
+                surface_room = v0140_secret_room_identity(self.character.room_id)
+                if (not inside or inside[0] != "archive") and not surface_room:
+                    await self.send("Rzadkich wydarzeń szukaj w Archiwum Szeptów lub w ukrytych komnatach rubieży.")
+                    return
+                today = datetime.now(timezone.utc).date()
+                room_id = self.character.room_id
+                if not world_secret_roll_v1190(room_id, today):
+                    await self.send("Archiwum dziś milczy. Nie ma tu aktywnego rzadkiego wydarzenia.")
+                    return
+                event_id = f"{room_id}:{today.isoformat()}"
+                if not self.server.db.add_collection_entry(self.account_id, "secret_events_v1190", event_id):
+                    await self.send("Odkryto już dzisiejszy ślad kronik w tym archiwum.")
+                    return
+                if "soul_shard" in ITEMS:
+                    self.server.db.add_item(self.account_id, "soul_shard", 1)
+                    await self.record_item_collection("soul_shard", source="Archiwum Szeptów", announce=True)
+                    await self.send("RZADKIE WYDARZENIE: odnajdujesz Odłamek Duszy. Trafił do ekwipunku.")
+                else:
+                    await self.send("RZADKIE WYDARZENIE: odkrywasz dawną inskrypcję. Zapisano odkrycie.")
+                return
+            await self.send("Nieznana opcja. Wpisz sekret pomoc.")
 
     async def show_map(self, args=""):
             raw = str(args or "").strip()

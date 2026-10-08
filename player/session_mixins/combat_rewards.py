@@ -25,6 +25,8 @@ from systems.equipment_crafting import (
     LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER,
 )
 from systems.drop_excitement import authored_drop_chance_v11329
+from systems.legendary_reborn import boss_legendary_roll_v1150
+from systems.infinite_equipment import infinite_equipment_variant_for_drop
 from systems.elemental_combat import mob_element_affinities_v11339
 from systems.milestone import dungeon_party_bonus_v0320
 from systems.combat_profile_records import record_combat_profile_v11341
@@ -170,6 +172,21 @@ class SessionCombatRewardsMixin:
                 # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
                 self.auto_queue_casting = False
                 template = MOB_TEMPLATES[mob.template_id]
+                # Encounter-only summons grant no duplicate XP/loot/quest credit.
+                if getattr(mob, "monster_ai_summoned_v1160", False):
+                    mob.alive = False
+                    mob.engaged_by = None
+                    mob.respawn_at = float("inf")
+                    mob.v016_expires_at = time.time() - 1
+                    for session in tuple(self.server.sessions):
+                        if session.combat_mob_key == mob.key:
+                            session.combat_mob_key = None
+                    await self.server.party_combat_broadcast(
+                        self, f"Przywołany {template['name']} rozpada się bez dodatkowych nagród.",
+                        detail="normal",
+                    )
+                    return
+                self.server.world.clear_monster_ai_adds_v1160(mob)
                 _nemesis_owner = int(template.get("v029_nemesis_owner_account_id", 0) or 0)
                 if _nemesis_owner:
                     _resolved = self.server.db.defeat_nemesis_v029(_nemesis_owner)
@@ -788,6 +805,24 @@ class SessionCombatRewardsMixin:
                                     await party_session.send(
                                         f"Drop: otrzymujesz {ITEMS[item_id]['name']}."
                                     )
+
+                # v1.15.0: independent and rare boss-relic/catalyst roll.
+                # One random result per killed boss, then identical for the local party.
+                if v0866_is_boss_template(template) or template.get("uoss_unique_superboss_key"):
+                    _legendary_id_v1150 = boss_legendary_roll_v1150(template)
+                    if _legendary_id_v1150:
+                        _legendary_id_v1150 = infinite_equipment_variant_for_drop(
+                            _legendary_id_v1150, template
+                        )
+                        for _winner in recipients:
+                            self.server.db.add_item(_winner.account_id, _legendary_id_v1150, 1)
+                            await _winner.record_item_collection(
+                                _legendary_id_v1150, source=template.get("name","Boss"), announce=True
+                            )
+                            await _winner.send(
+                                f"LEGENDARNY ŁUP: {ITEMS[_legendary_id_v1150]['name']}. "
+                                "Nagroda z bossa, niezależna od normalnego dropu."
+                            )
 
                 # v1.13.23: one independent, stage-scaled "o kurde" trophy roll.
                 # It never replaces authored drops and follows the same full-party

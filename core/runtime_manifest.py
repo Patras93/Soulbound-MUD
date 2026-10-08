@@ -58,6 +58,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'world/world_expansion_v.py',
  'world/dragon_world.py',
  'world/ocean_expansion.py',
+ 'world/great_world.py',
  'world/runtime_progression.py',
  'world/living_npcs.py',
  'world/world_state.py',
@@ -125,6 +126,7 @@ _RUNTIME_MODULES_ALL = ['core/bootstrap_economy_professions.py',
  'player/session_mixins/social_expansion.py',
  'player/session_mixins/courier_delivery.py',
  'player/session_mixins/progression_accessibility.py',
+ 'player/session_mixins/great_world.py',
  'player/session_mixins/professions.py',
  'player/session_mixins/tech_crafting.py',
  'player/session_mixins/crafting_expansion.py',
@@ -1106,4 +1108,13 @@ EXPLICIT_RUNTIME_EXPORTS["world/ocean_expansion.py"] = (
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/ocean.py"] = ("SessionOceanV1000Mixin",)
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/exploration_professions.py"] = (
     "V1100_ARCHAEOLOGY_FINDS", "SessionExplorationProfessionsV1100Mixin",
+)
+
+# v1.20.0 additions are explicit modules (no growing legacy compatibility lane).
+EXPLICIT_RUNTIME_EXPORTS["world/great_world.py"] = (
+    "V1200_WORLD_VERSION", "V1200_GATE", "V1200_REGIONS",
+    "V1200_REGIONAL_INDEX", "v1200_rotating_events",
+)
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/great_world.py"] = (
+    "SessionGreatWorldV1200Mixin",
 )
