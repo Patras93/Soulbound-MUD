@@ -260,8 +260,8 @@ def audit_party_support_runtime_v1173():
             first_msgs = len(messages)
             await session.mercenary_combat_turn_v1170(mob)
             progress = session.server.db.mercenary_progress_v1220(1, "mec")
-            if len(session.owner_messages) != 1 or session.owner_messages[0][1] != "essential":
-                raise AssertionError("mercenary owner did not receive one essential combat message")
+            if len(session.owner_messages) != 3 or any(msg[1] != "essential" for msg in session.owner_messages):
+                raise AssertionError("mercenary owner did not receive all three essential combat messages")
             return before, first_hp, first_msgs, mob.hp, len(messages), progress
         finally:
             MOB_TEMPLATES.pop(mob.template_id, None)
@@ -275,8 +275,8 @@ def audit_party_support_runtime_v1173():
     if not 3500 < before - first_hp <= before:
         errors.append("mercenary missing uncapped full owner power against boss")
     checks += 1
-    if first_msgs != 1 or msg_count != 1 or after != first_hp:
-        errors.append("three contracts generated more than one action in same cooldown")
+    if first_msgs != 3 or msg_count != 3 or after != first_hp:
+        errors.append("each contract must act once, then respect its own cooldown")
     checks += 1
     if not messages or "Vex" not in messages[0]:
         errors.append("mercenary round-robin first action not activated")

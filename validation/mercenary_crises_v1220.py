@@ -37,7 +37,7 @@ def validate_mercenary_crises_v1220():
     check('level50',mercenary_level(mercenary_xp_for_level(50))==50)
     check('unbounded', mercenary_level(10**14)>1000)
     check('level xp',mercenary_action_xp(100,200)>mercenary_action_xp(100,40))
-    check('attack cap',mercenary_attack_multiplier(1000,'szturm') < 1.40)
+    check('attack unbounded',mercenary_attack_multiplier(1000,'szturm') > mercenary_attack_multiplier(100,'szturm'))
     check('no contract',db.mercenary_specialize_v1220(1,'mag','szturm')=='not_hired')
     db.conn.execute('INSERT INTO mercenary_contracts VALUES(1,?,0)',('mag',));db.conn.commit()
     check('tactic level1 freely set',db.mercenary_specialize_v1220(1,'mag','szturm',owner_level=1)=='ok')

@@ -4028,3 +4028,13 @@ print('Soulbound v1.22.13 FAST PREDEPLOY PASS')
 # v1.22.13: friendships are account-wide across existing/future characters.
 from validation.friends_account_wide_v12213 import validate_friends_account_wide_v12213
 print(f'FRIENDS ACCOUNT WIDE v1.22.13: {validate_friends_account_wide_v12213()} checks PASS')
+
+# v1.22.14: uncapped leveling and independent combat actions for every hire.
+from validation.mercenary_unlimited_v12214 import validate_mercenary_unlimited_v12214
+print(f'MERCENARY UNLIMITED v1.22.14: {validate_mercenary_unlimited_v12214()} checks PASS')
+print('Soulbound v1.22.14 FAST PREDEPLOY PASS')
+
+# v1.23.0: seven non-destructive gameplay extensions.
+from validation.living_world_v1230 import audit_living_world_v1230
+print(f'LIVING WORLD v1.23.0: {audit_living_world_v1230()} checks PASS')
+print('Soulbound v1.23.0 FAST PREDEPLOY PASS')

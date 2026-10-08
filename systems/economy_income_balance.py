@@ -48,10 +48,15 @@ V1138_ACTIVITY_INCOME_MULTIPLIER = {
 
 def v1138_activity_income(stage: int, kind: str, difficulty: float = 1.0) -> int:
     """Shared payout floor for systems that bypass the normal quest finalizer."""
-    stage = max(1, min(V1124_ECONOMY_MAX_STAGE, int(stage or 1)))
+    stage = max(1, int(stage or 1))
     mult = float(V1138_ACTIVITY_INCOME_MULTIPLIER.get(str(kind), 1.0))
     difficulty = max(0.10, float(difficulty or 1.0))
-    return max(1, int(round(v1124_income_anchor(stage) * mult * difficulty)))
+    # Authored quest anchors stay exact. Repeating activities can reach
+    # effective economic stage >600 in infinite content without a flat payout.
+    anchor = v1124_income_anchor(min(stage, V1124_ECONOMY_MAX_STAGE))
+    if stage > V1124_ECONOMY_MAX_STAGE:
+        anchor = int(round(anchor * (stage / V1124_ECONOMY_MAX_STAGE) ** 0.85))
+    return max(1, int(round(anchor * mult * difficulty)))
 
 
 V1124_QUEST_KIND_MULTIPLIER = {

@@ -1,3 +1,29 @@
+Aktualna paczka: v1.23.0
+Soulbound v1.23.0 — ŻYJĄCY ŚWIAT I INTELIGENTNA WALKA
+- AI mobów: zwykłe potwory co kilka tur reagują taktycznie i potrafią osłaniać rannych towarzyszy; ataki żywiołowe korzystają z istniejących odporności oraz obrony magicznej.
+- Bossowie bez własnych skryptów przechodzą trzy fazy na progach 75%, 50%, 25% HP. Nie mają sztucznego ograniczenia obrażeń otrzymywanych od graczy. UOSS i ręcznie opracowane mechaniki pozostają bez zmian.
+- Najemnicy 3.0: inteligentniejsze leczenie i osłony w zagrożeniu, synergia fizycznych i magicznych najemników. Każdy ma osobny cykl walki, pełną potęgę właściciela wraz z EQ i bonus skalujący się bez sufitu.
+- Trzy nowe relikty legendarnych bossów: Amulet Nieposkromionej Potęgi, Korona Jedności Żywiołów, Pierścień Nieskończonej Odnowy. Przedmioty działają niezależnie od kompletowania całego setu.
+- Żyjący świat: dwie wędrujące karawany z prawdziwym zakupem towarów w bieżącym miejscu postoju. Aktywne rare, sekrety i wydarzenia regionalne zachowane.
+- Ekonomia: pieniądze za aktywności nie zatrzymują się na ekonomicznym etapie 600; ręcznie zaprojektowane poziomy, ceny, nagrody i przelicznik walut pozostają bez zmian.
+- Rozwój: najemnicy dalej rosną z pełną mocą; EQ z nieskończonych lochów zachowuje rezonans ponad etapem 600. Brak migracji SQLite.
+
+---
+Aktualna paczka: v1.22.14
+Soulbound v1.22.14 — NAJEMNICY BEZ SZTUCZNYCH LIMITÓW
+==============================================================================
+- Każdy zatrudniony najemnik ma własny cykl działania co 5 sekund.
+  Trzech najemników nie dzieli już jednego ataku ani wspólnego cooldownu.
+- Usunięto sufit +20% premii od poziomu właściciela: moc nadal rośnie
+  przy kolejnych poziomach i zwiększaniu skutecznych statystyk oraz EQ.
+- Nadal używają 100% skuteczniejszej ofensywy właściciela z jego pełnym EQ,
+  bez kary za inną klasę i bez limitu procentowego HP przeciwnika.
+- Każdy sam decyduje o ataku, leczeniu i osłonie. Zachowane typy obrażeń,
+  odporności, obrona bossów oraz rozliczanie zwycięstw i zadań drużynowych.
+- Bez zmian liczby kontraktów (do trzech), kosztów, trwałości wynajmu,
+  taktyk, poziomu i danych SQLite. Nie wymaga migracji bazy danych.
+- Pełna paczka gry z CHANGELOG_PL.txt i testami, bez raportów audytu.
+
 Aktualna paczka: v1.22.13
 Soulbound v1.22.13 — PELNA MOC NAJEMNIKOW, EQ I ZNAJOMI
 ==============================================================================

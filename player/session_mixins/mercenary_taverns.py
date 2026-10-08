@@ -199,7 +199,7 @@ class SessionMercenaryTavernsMixin:
                 await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3.")
                 return
             level = mercenary_owner_level_v1228(self.character)
-            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Moc zależy też od silniejszego ataku właściciela wraz z EQ. Taktyki zmienisz w każdej chwili: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
+            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna silniejsza moc właściciela i jego EQ; bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
             for row in active:
                 role = row["role"]
                 if role in MERCENARIES:
@@ -243,93 +243,114 @@ class SessionMercenaryTavernsMixin:
             await self.send("Ofertę i wynajem znajdziesz w miejskich tawernach. Status sprawdzisz wszędzie: najemnik status.")
             return
         level = max(1, int(getattr(self.character, "character_level", 1) or 1))
-        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Poziom każdego najemnika to twój poziom {level}, bez osobnego EXP; moc skaluje się z silniejszym atakiem fizycznym lub magicznym i twoim EQ.")
+        await self.send(f"TAWERNA NAJEMNIKÓW: do 3 najemników na stałe, jednorazowy koszt, osobny pomocnik UOSS. Poziom każdego najemnika to twój poziom {level}, bez osobnego EXP; moc rośnie bez sztucznego limitu wraz z poziomem, silniejszym atakiem fizycznym lub magicznym i pełnym EQ. Każdy walczy samodzielnie.")
         for role, spec in MERCENARIES.items():
             await self.send(f"{spec['name']} — {spec['role']}; {currency_price_text(price_silver(self.character,role))} po rabacie Charyzmy. Wpisz: najemnik wynajmij {spec['name']}.")
 
     async def mercenary_combat_turn_v1170(self, mob):
+        from systems.encounter_brain_v1230 import mercenary_combo_v1230
         if not self.character or self.current_hp <= 0 or not mob or not mob.alive or mob.room_id != self.character.room_id:
             return
         now = time.time()
-        if now < float(getattr(self,"_mercenary_next_action_v1170", 0.0)):
-            return
         contracts = self.server.db.mercenary_contracts(self.account_id, now)
-        role = pick_next_contract(contracts, getattr(self,"_mercenary_last_role_v1170",None), now)
-        if role is None:
+        # Every hired companion takes its own action. Previously a single shared
+        # five-second timer allowed only ONE of three companions to act at all.
+        roles = [row["role"] for row in contracts if row["role"] in MERCENARIES
+                 and (float(row["expires_at"]) <= 0 or float(row["expires_at"]) > now)]
+        if not roles:
             return
-        self._mercenary_next_action_v1170 = now + COOLDOWN
-        self._mercenary_last_role_v1170 = role
-        spec = MERCENARIES[role]
-        name = spec["name"]
-        party = self.server.party_sessions(self.account_id, same_room=self.character.room_id) or [self]
-        living = [p for p in party if getattr(p,"current_hp",0)>0 and getattr(p,"character",None)]
-        if not living:
-            return
-        weakest = min(living,key=lambda p: p.current_hp/max(1,p.max_hp()))
-        progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
-        merc_level = mercenary_owner_level_v1228(self.character)
-        tactic = mercenary_tactic(progress["specialization"])
-        message = None
-        experience_action = False
-        if role in ("kaplan", "paladyn", "druid") and weakest.current_hp < weakest.max_hp()*(.70 if role != "druid" else .60):
-            if superboss_healing_blocked_v11179(weakest):
-                message = f"{name} próbuje leczyć, ale blokada leczenia nie pozwala."
-            else:
+        next_actions = getattr(self, "_mercenary_next_actions_v12214", None)
+        if not isinstance(next_actions, dict):
+            next_actions = {}
+        # Limit state to existing contracts only (no DB writes; no stale timers).
+        next_actions = {role: next_actions.get(role, 0.0) for role in roles}
+        self._mercenary_next_actions_v12214 = next_actions
+        for role in roles:
+            if not mob.alive or mob.hp <= 0 or mob.room_id != self.character.room_id:
+                break
+            if now < next_actions[role]:
+                continue
+            next_actions[role] = now + COOLDOWN
+            spec = MERCENARIES[role]
+            name = spec["name"]
+            party = self.server.party_sessions(self.account_id, same_room=self.character.room_id) or [self]
+            living = [p for p in party if getattr(p,"current_hp",0)>0 and getattr(p,"character",None)]
+            if not living:
+                return
+            weakest = min(living,key=lambda p: p.current_hp/max(1,p.max_hp()))
+            progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
+            merc_level = mercenary_owner_level_v1228(self.character)
+            tactic = mercenary_tactic(progress["specialization"])
+            message = None
+            experience_action = False
+            # Healers adapt to boss pressure, then keep fighting when healing
+            # is prohibited; no wasted spell action or manual micro-management.
+            target_template = MOB_TEMPLATES.get(mob.template_id, {})
+            major_threat = bool(target_template.get('boss') or target_template.get('world_boss') or
+                                target_template.get('uoss_superboss') or target_template.get('crypt_boss') or
+                                target_template.get('mythic_crypt_boss'))
+            heal_threshold = (.89 if major_threat else (.78 if role != 'druid' else .68))
+            if role in ("kaplan", "paladyn", "druid") and (
+                    weakest.current_hp < weakest.max_hp() * heal_threshold and
+                    not superboss_healing_blocked_v11179(weakest)):
                 heal=min(max(0,weakest.max_hp()-weakest.current_hp), max(1,int(weakest.max_hp()*(.18 if role=="kaplan" else (.13 if role=="druid" else .11)))))
                 weakest.current_hp+=heal
                 message=f"{name} leczy {weakest.character.name}: +{heal} HP."
                 experience_action = True
-        elif role in ("wojownik", "paladyn", "straznik", "psionik", "inzynier") and (weakest.skill_guard <= 0):
-            guard=max(1,int(weakest.max_hp()*({"wojownik":.09, "paladyn":.06, "straznik":.13, "psionik":.08, "inzynier":.10}[role])))
-            weakest.skill_guard += guard
-            message=f"{name} osłania {weakest.character.name}: następny cios osłabiony o maksymalnie {guard}."
-            experience_action = True
-        defeated_by_mercenary = False
-        if message is None and mob.hp > 0:
-            magic = spec["attack_type"] == "magic"
-            # 100% real equipped offense: effective STR/INT, flat item power,
-            # equipment/rune damage-percent properties and active set bonuses.
-            # Use the owner's strongest channel even for cross-class hiring.
-            physical_eq = self.equipment_damage_multiplier("physical") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
-            magic_eq = self.equipment_damage_multiplier("magic") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
-            set_eq = self.total_set_damage_multiplier() if callable(getattr(self, "total_set_damage_multiplier", None)) else 1.0
-            power_base = mercenary_owner_full_power_v12213(
-                self.physical_power(), self.spell_power(), physical_eq, magic_eq, set_eq
-            )
-            # Every hire starts at FULL owner power (never an arbitrary 42%).
-            # Above-1.0 class multipliers still distinguish offensive roles.
-            power = max(1, int(power_base * max(1.0, float(spec["power"]))
-                               * mercenary_attack_multiplier(merc_level, tactic)))
-            template = MOB_TEMPLATES.get(mob.template_id, {})
-            power = await self.apply_boss_defense(mob, power)
-            power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
-            # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
-            # finish through the existing kill pipeline, including party credit.
-            damage = min(max(0, int(mob.hp)), max(1, int(power)))
-            mob.hp -= damage
-            technique = spec["ability"]
-            message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
-            experience_action = True
-            defeated_by_mercenary = mob.hp <= 0
-        if message:
-            # Tactics are freely selectable from level 1. Every mercenary keeps
-            # their own role ability; this small extra effect is player-configured.
-            if experience_action:
-                if tactic == "obrona":
-                    guard = max(1, int(weakest.max_hp() * .05))
-                    weakest.skill_guard += guard
-                    message += f" Dodatkowa osłona: {guard}."
-                elif tactic == "wsparcie" and weakest.current_hp < weakest.max_hp():
-                    heal = min(max(0, weakest.max_hp()-weakest.current_hp), max(1, int(weakest.max_hp() * .04)))
-                    if heal and not superboss_healing_blocked_v11179(weakest):
-                        weakest.current_hp += heal
-                        message += f" Dodatkowe leczenie: +{heal} HP."
-            # The owner is excluded from party_combat_broadcast by design.
-            # Tell the owner directly, even in concise NVDA combat mode;
-            # share the same action with party members in the same room.
-            await self.send_combat(message, detail="essential")
-            await self.server.party_combat_broadcast(self, message, detail="essential")
-            if defeated_by_mercenary:
-                await self.mob_defeated(mob)
-            # v1.22.8: no separate mercenary leveling or per-action SQLite writes.
-            # The hire follows the owner's level immediately, even after reconnect.
+            elif (role in ("wojownik", "paladyn", "straznik", "psionik", "inzynier")
+                  and weakest.skill_guard <= 0 and
+                  weakest.current_hp < weakest.max_hp() * (.90 if major_threat else .75)):
+                guard=max(1,int(weakest.max_hp()*({"wojownik":.09, "paladyn":.06, "straznik":.13, "psionik":.08, "inzynier":.10}[role])))
+                weakest.skill_guard += guard
+                message=f"{name} osłania {weakest.character.name}: następny cios osłabiony o maksymalnie {guard}."
+                experience_action = True
+            defeated_by_mercenary = False
+            if message is None and mob.hp > 0:
+                magic = spec["attack_type"] == "magic"
+                # 100% real equipped offense: effective STR/INT, flat item power,
+                # equipment/rune damage-percent properties and active set bonuses.
+                # Use the owner's strongest channel even for cross-class hiring.
+                physical_eq = self.equipment_damage_multiplier("physical") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
+                magic_eq = self.equipment_damage_multiplier("magic") if callable(getattr(self, "equipment_damage_multiplier", None)) else 1.0
+                set_eq = self.total_set_damage_multiplier() if callable(getattr(self, "total_set_damage_multiplier", None)) else 1.0
+                power_base = mercenary_owner_full_power_v12213(
+                    self.physical_power(), self.spell_power(), physical_eq, magic_eq, set_eq
+                )
+                # Every hire starts at FULL owner power (never an arbitrary 42%).
+                # Above-1.0 class multipliers still distinguish offensive roles.
+                power = max(1, int(power_base * max(1.0, float(spec["power"]))
+                                   * mercenary_attack_multiplier(merc_level, tactic)
+                                   * mercenary_combo_v1230(role, roles, MERCENARIES)))
+                template = MOB_TEMPLATES.get(mob.template_id, {})
+                power = await self.apply_boss_defense(mob, power)
+                power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
+                # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
+                # finish through the existing kill pipeline, including party credit.
+                damage = min(max(0, int(mob.hp)), max(1, int(power)))
+                mob.hp -= damage
+                technique = spec["ability"]
+                message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
+                experience_action = True
+                defeated_by_mercenary = mob.hp <= 0
+            if message:
+                # Tactics are freely selectable from level 1. Every mercenary keeps
+                # their own role ability; this small extra effect is player-configured.
+                if experience_action:
+                    if tactic == "obrona":
+                        guard = max(1, int(weakest.max_hp() * .05))
+                        weakest.skill_guard += guard
+                        message += f" Dodatkowa osłona: {guard}."
+                    elif tactic == "wsparcie" and weakest.current_hp < weakest.max_hp():
+                        heal = min(max(0, weakest.max_hp()-weakest.current_hp), max(1, int(weakest.max_hp() * .04)))
+                        if heal and not superboss_healing_blocked_v11179(weakest):
+                            weakest.current_hp += heal
+                            message += f" Dodatkowe leczenie: +{heal} HP."
+                # The owner is excluded from party_combat_broadcast by design.
+                # Tell the owner directly, even in concise NVDA combat mode;
+                # share the same action with party members in the same room.
+                await self.send_combat(message, detail="essential")
+                await self.server.party_combat_broadcast(self, message, detail="essential")
+                if defeated_by_mercenary:
+                    await self.mob_defeated(mob)
+                # v1.22.8: no separate mercenary leveling or per-action SQLite writes.
+                # The hire follows the owner's level immediately, even after reconnect.

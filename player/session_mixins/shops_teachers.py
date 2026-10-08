@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Shop, buying and teacher interactions."""
 from core.bootstrap_economy_professions import currency_price_text
+from world.generation_systems import v0160_traveler_room
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import re
@@ -33,7 +34,18 @@ class SessionShopsTeachersMixin:
             room_id = self.character.room_id
             class_names = CLASS_SHOP_CLASSES_BY_ROOM.get(room_id)
             if not class_names:
-                return list(SHOPS.get(room_id, ()))
+                offers = list(SHOPS.get(room_id, ()))
+                # Moving merchants offer their own existing, correctly priced
+                # goods only while standing in this exact room.
+                for npc_id, stock in (
+                    ('v1230_caravan_aurora', ('lucky_charm', 'healing_potion', 'leather_vest')),
+                    ('v1230_caravan_smith', ('iron_helmet', 'iron_guard', 'forge_charm', 'iron_gauntlets')),
+                ):
+                    if v0160_traveler_room(npc_id) == room_id:
+                        for item_id in stock:
+                            if item_id in ITEMS and item_id not in offers:
+                                offers.append(item_id)
+                return offers
 
             selected = list(class_names)
             query = normalize_lookup_text(class_filter or "")

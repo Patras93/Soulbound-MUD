@@ -1589,6 +1589,16 @@ _catalog_mut.catalog_assign(tuple(f"v016_frontier_oath_{i}" for i in range(1,7))
 
 # Wędrujący NPC. Ich trasa jest deterministyczna i zmienia punkt co 15 minut.
 V016_TRAVELERS = {
+    "v1230_caravan_aurora": {
+        "name":"Karawana Reliktów Aurory", "faction":"cartographers",
+        "dialogue":"Moja karawana sprzedaje wyposażenie i zaopatrzenie na kolejnych przystankach. Sklep działa, kiedy jestem w tej lokacji.",
+        "route":("market","north_gate",v0130_gateway_id("meadow"),"v016_cartographers_square"),
+    },
+    "v1230_caravan_smith": {
+        "name":"Karawana Kuźni Zorzy", "faction":"miners",
+        "dialogue":"Wędruję między kuźniami i górskimi szlakami. Gdy tu jestem, otwórz sklep i obejrzyj dostępne przedmioty.",
+        "route":("forge",v0130_gateway_id("mountain"),"v016_miners_square","market"),
+    },
     "v016_traveler_neria": {
         "name":"Kupczyni Neria", "faction":"waters",
         "dialogue":"Podróżuję między Rynkiem, portem i Przystanią Bractwa Wód. Zbieram wieści o połowach i eventach.",

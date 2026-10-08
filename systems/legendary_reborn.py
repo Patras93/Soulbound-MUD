@@ -56,6 +56,23 @@ LEGENDARY_FORGE = {
 
 # Loot-only relics with distinct active equipment effects.
 CHASE_RELICS = {
+    "leg1230_amulet_potegi": {
+        "name":"Amulet Nieposkromionej Potęgi", "type":"armor", "slot":"necklace", "defense":170,
+        "stats":{"strength":280,"intelligence":280,"constitution":190},
+        "properties":{"all_damage_pct":18,"max_hp_pct":12}, "element_wards":{"void":0.12}, "sockets":4,
+    },
+    "leg1230_korona_synergii": {
+        "name":"Korona Jedności Żywiołów", "type":"armor", "slot":"head", "defense":160,
+        "stats":{"dexterity":220,"willpower":260,"constitution":220},
+        "properties":{"physical_damage_pct":13,"magic_damage_pct":13,"dodge_pct":7},
+        "element_wards":{"fire":0.10,"ice":0.10,"lightning":0.10}, "sockets":4,
+    },
+    "leg1230_pierscien_odnowy": {
+        "name":"Pierścień Nieskończonej Odnowy", "type":"armor", "slot":"ring", "defense":190,
+        "stats":{"constitution":340,"intelligence":170,"strength":170},
+        "properties":{"lifesteal_percent":3.5,"mana_restore_percent":2.5,"all_damage_pct":8},
+        "element_wards":{"shadow":0.15}, "sockets":4,
+    },
     "leg115_relikt_wampira": {
         "name":"Relikt Krwawej Gwiazdy", "type":"armor", "slot":"charm", "defense":90,
         "stats":{"strength":110,"dexterity":110,"constitution":110},

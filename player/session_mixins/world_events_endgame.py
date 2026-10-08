@@ -1136,3 +1136,8 @@ class SessionWorldEventsEndgameMixin:
                 )
             await self.send("Wszystkie eventy są opcjonalne. Żaden mob nie zaczyna walki sam.")
             await self.show_dynamic_events_v029()
+            await self.send("KARAWANY: Wędrujący kupcy zmieniają lokalizację co 15 minut. Oferta jest dostępna przez komendę sklep, gdy karawana stoi obok.")
+            for npc_id, data in V016_TRAVELERS.items():
+                if npc_id.startswith('v1230_caravan_'):
+                    caravan_room = v0160_traveler_room(npc_id, now)
+                    await self.send(f"{data['name']}: {ROOMS.get(caravan_room, {}).get('name', caravan_room)}.")

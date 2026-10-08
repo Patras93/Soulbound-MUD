@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.13 - Pelna moc najemnikow, EQ i znajomi"
+LATEST_CHANGES_TITLE = "Soulbound v1.23.0 - Zyjacy swiat i inteligentna walka"
 LATEST_CHANGES = [
+    "v1.23.0: Inteligencja mobow 2.0, 3 fazy zwyklych bossow, autonomiczni najemnicy z lepsza ochrona i leczeniem, synergie magiczne/fizyczne, 3 nowe relikty, 2 prawdziwie wedrujace karawany z oferta sklepu oraz dochody z aktywnosci skaluja sie rowniez po etapie 600. Zachowane skrypty UOSS, brak nowych limitow zadawanych obrazen, starych kontraktow lub migracji zapisow.",
+    "v1.22.14: Kazdy najemnik wykonuje wlasna akcje co 5 sekund zamiast dzielic cooldown trojki. Bonus za poziom nie konczy sie na 20 procentach. Pelna moc statystyk i EQ wlasciciela, bez limitu procentowego HP celu; wlasne skille, leczenie i oslony. Bez zmian w zapisach i kontraktach.",
     "v1.22.13: Znajomi przypisani do kont, z automatycznym widokiem nowych postaci po akceptacji zaproszenia. Najemnicy otrzymuja 100 procent silniejszej mocy wlasciciela wraz ze statystykami, plaskimi oraz procentowymi bonusami EQ, runami i setami. Bez limitow procentowych HP; moga konczyc walke z prawidlowym zaliczeniem nagrod.",
     "v1.22.12: Tablica Lowcow: bos/boss, wspolne przyjecie przez lidera, postep z walk i prawidlowy odbior nagrod. Najemnicy: moc EQ i klasy wplywa na obrazenia, z roznymi limitami dla zwyklych potworow, elit i bossow.",
     "v1.22.11: najemnik skille [imie] - NVDA-czytelny podglad prawdziwych atakow, leczenia i oslon 15 najemnikow, rowniez przed wynajmem. Najemnicy autonomicznie wybieraja akcje podczas walki; nie ma recznego wydawania skilli. Bez zmian skalowania, poziomow, kosztow i EXP.",

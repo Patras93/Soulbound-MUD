@@ -24,6 +24,7 @@ from systems.elite_variants import (
     elite_enemy_action_multiplier_v11338,
     elite_regen_amount_v11338,
 )
+from systems.encounter_brain_v1230 import boss_tactics_phase_v1230, tactical_element_v1230, ordinary_tactics_v1230
 from systems.monster_ai import (
     monster_ai_plan_v1160, monster_ai_execute_v1160,
     monster_ai_eligible_v1160, monster_ai_necromancer_v1160,
@@ -678,6 +679,21 @@ class SessionCombatRealtimeMixin:
                                             self, _ai_text_v1160, detail="essential"
                                         )
                                         continue
+                                # Ordinary mobs have a separate rare support turn;
+                                # authored boss AI and specialist logic stay intact.
+                                _ordinary_text_v1230 = ordinary_tactics_v1230(
+                                    self.server.world, enemy_mob, _ai_template_v1160
+                                )
+                                if _ordinary_text_v1230:
+                                    await self.server.party_combat_broadcast(
+                                        self, _ordinary_text_v1230, detail="essential"
+                                    )
+                                    continue
+                                # Phase transitions affect only this mob's offense.
+                                # UOSS and manually scripted bosses are excluded.
+                                _phase_1230 = boss_tactics_phase_v1230(enemy_mob, _ai_template_v1160)
+                                if _phase_1230:
+                                    await self.server.party_combat_broadcast(self, _phase_1230, detail="essential")
                                 _sonata_rounds=max(
                                     0,int(getattr(enemy_mob,"v11196_mec_sonata_rounds",0) or 0)
                                 )
@@ -707,6 +723,9 @@ class SessionCombatRealtimeMixin:
                                     _elemental_template_v1160,
                                     random.random(),
                                     getattr(enemy_mob, "combat_turn", 0),
+                                )
+                                _elemental_attack_v11339 = tactical_element_v1230(
+                                    enemy_mob, _elemental_template_v1160, _elemental_attack_v11339
                                 )
                                 # Elemental special replaces the old flavor spike for
                                 # this action so two independent burst multipliers do

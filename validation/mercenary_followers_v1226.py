@@ -151,7 +151,8 @@ def validate_mercenary_followers_v1226():
     assert any("essential: " in m and ("Vael" in m or "Seren" in m)
                for m in first.messages)
     checks += 1
-    assert len(calls) == 1 and calls[0][2] == "essential"
+    assert len(calls) == 2 and all(call[2] == "essential" for call in calls)
+    assert any("Vael" in call[1] for call in calls) and any("Seren" in call[1] for call in calls)
     checks += 1
     assert db.exp == 0  # v1.22.8: combat does not award independent EXP.
     checks += 1

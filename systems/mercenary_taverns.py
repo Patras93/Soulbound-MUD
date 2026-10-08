@@ -142,5 +142,5 @@ def mercenary_skill_lines_v12211(role):
             f"ochrona do {_MERCENARY_GUARD_V12211[role]}% maksymalnego HP "
             "wybranego sojusznika, jeśli nie ma już osłony."
         )
-    lines.append("Najemnik sam wybiera atak, leczenie lub osłonę w walce; gracz nie wydaje poleceń użycia skilli.")
+    lines.append("Najemnik sam wybiera atak, leczenie lub osłonę w walce; gracz nie wydaje poleceń użycia skilli. Każdy z wynajętych najemników działa osobno, a bonus za poziom właściciela nie ma górnego limitu. Wspólna walka najemników fizycznych i magicznych daje im premię współpracy. Leczący i obrońcy reagują na stan HP i zagrożenie od bossa.")
     return lines

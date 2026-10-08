@@ -89,7 +89,7 @@ def validate_mercenary_owner_level_v1228():
             assert 'EXP 999999999' not in '\n'.join(owner.messages)
             checks += 2
             owner.messages.clear()
-            owner._mercenary_next_action_v1170 = 0
+            owner._mercenary_next_actions_v12214 = {}
             mob_type.hp = 100000
             await owner.mercenary_combat_turn_v1170(mob_type)
             assert mob_type.hp < 100000 and owner.messages

@@ -46,7 +46,11 @@ def _max_hp(mob, template):
 
 def monster_ai_attack_multiplier_v1160(mob, now=None):
     now = time.monotonic() if now is None else float(now)
-    return 1.18 if now < float(getattr(mob, "monster_ai_empowered_until_v1160", 0) or 0) else 1.0
+    if now >= float(getattr(mob, "monster_ai_empowered_until_v1160", 0) or 0):
+        return 1.0
+    # v1.23: each ordinary boss phase has a distinct offensive escalation;
+    # the player's own damage never receives an artificial cap.
+    return max(1.18, float(getattr(mob, "v1230_phase_attack_multiplier", 1.0) or 1.0))
 
 
 def monster_ai_guard_damage_v1160(mob, damage, now=None):
@@ -90,7 +94,8 @@ def monster_ai_plan_v1160(mob, template, live_allies, dead_allies=(), now=None):
         return {"kind": "summon", "target": mob}
     guards = [a for a in engaged if a.key != mob.key and not getattr(a, "monster_ai_summoned_v1160", False)
               and now >= float(getattr(a, "monster_ai_guard_until_v1160", 0) or 0)]
-    if guards and (affix in ("armored", "regenerating") or caster):
+    if guards and (affix in ("armored", "regenerating") or caster or
+                   any(a.hp < _max_hp(a, MOB_TEMPLATES.get(a.template_id, {})) * .75 for a in guards)):
         return {"kind": "guard", "target": guards[0]}
     if now >= float(getattr(mob, "monster_ai_empowered_until_v1160", 0) or 0):
         return {"kind": "buff", "target": mob}

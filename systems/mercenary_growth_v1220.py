@@ -23,14 +23,17 @@ def mercenary_xp_for_level(level):
 
 def mercenary_action_xp(owner_level, foe_level, boss=False):
     enemy = max(1, int(foe_level)); owner = max(1, int(owner_level))
-    return min(2500, 18 + enemy // 3 + min(owner, enemy) // 6 + (enemy // 4 if boss else 0))
+    # Legacy XP helper is unused by permanent hires; keep it uncapped for compatibility.
+    return 18 + enemy // 3 + min(owner, enemy) // 6 + (enemy // 4 if boss else 0)
 
 def mercenary_tactic(stored):
     return str(stored or "automatyczna") if str(stored or "automatyczna") in TACTICS else "automatyczna"
 
 def mercenary_attack_multiplier(level, tactic):
     # Level follows owner; no talent milestones or separately earned bonuses.
-    bonus = min(0.20, max(0, int(level) - 1) * 0.002)
+    # v1.22.14: no artificial 20% ceiling. Each owner's level continues
+    # contributing to hire strength, even above the original milestones.
+    bonus = max(0, int(level) - 1) * 0.002
     if mercenary_tactic(tactic) == "szturm":
         bonus += 0.08
     return 1.0 + bonus
