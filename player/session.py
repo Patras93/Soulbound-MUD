@@ -39,6 +39,7 @@ from player.session_mixins.upgrade_v1193 import SessionUpgradeV1193Mixin
 from player.session_mixins.great_world import SessionGreatWorldV1200Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
+from player.session_mixins.password_recovery_v1222 import SessionPasswordRecoveryV1222Mixin
 
 
 class Session(
@@ -79,6 +80,7 @@ class Session(
     SessionUpgradeV1193Mixin,
     SessionGreatWorldV1200Mixin,
     SessionCommandRegistryMixin,
+    SessionPasswordRecoveryV1222Mixin,
     SessionCommandLoopMixin
 ):
     """Player session composed from focused subsystem mixins."""

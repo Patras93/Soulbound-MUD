@@ -13,6 +13,33 @@ def create_core_schema(self):
                         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                     );
 
+        CREATE TABLE IF NOT EXISTS password_recovery_v1222 (
+            account_id INTEGER NOT NULL,
+            kind TEXT NOT NULL CHECK(kind IN ('backup', 'admin')),
+            code_hash TEXT NOT NULL,
+            expires_at INTEGER NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            issued_at INTEGER NOT NULL,
+            PRIMARY KEY(account_id, kind),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
+        -- v1.22.3: only successfully verified email addresses can recover accounts.
+        CREATE TABLE IF NOT EXISTS account_emails_v1223 (
+            account_id INTEGER PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+            verified_at INTEGER NOT NULL,
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS email_password_reset_v1223 (
+            account_id INTEGER PRIMARY KEY,
+            token_hash TEXT NOT NULL,
+            issued_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS account_characters (
                         master_account_id INTEGER NOT NULL,
                         character_account_id INTEGER NOT NULL UNIQUE,

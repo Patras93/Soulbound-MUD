@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """Admin commands, wipe and unlock helpers."""
 
+from core.bootstrap_economy_professions import ADMIN_ACCOUNT_NAMES
+from network.account_email_v1223 import smtp_ready_v1223, send_code_v1223
+import smtplib
+from core.classes_skills import ROOMS
+from core.mines_threat import ITEMS
 from network.protocol_gameplay_utils import (
     BOSS_CHEST_OPENED_CATEGORY_V11332,
     _boss_floor_chest_spec,
@@ -30,6 +35,8 @@ class SessionAdminToolsMixin:
                 await self.send("admin heal / administrator ulecz — pełne HP i Mana.")
                 await self.send("admin goto <room_id> / administrator teleport <room_id> — teleport testowy.")
                 await self.send("admin give <item_id> [ilość] / administrator daj <item_id> [ilość].")
+                await self.send("admin haslo reset <login> - jednorazowy kod do prywatnego przekazania właścicielowi konta.")
+                await self.send("admin haslo wyslij <login> - wyślij kod resetowania na zweryfikowany e-mail.")
                 await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
                 await self.send("wipe wszystkie postacie POTWIERDZAM / wipe all characters CONFIRM.")
                 await self.send("Wipe usuwa postacie i ich progres, ale NIE usuwa kont/loginów/haseł.")
@@ -46,6 +53,42 @@ class SessionAdminToolsMixin:
                 return
             parts = raw.split()
             first = self.normalize_description_query(parts[0]) if parts else ""
+            if first in ("haslo", "hasło", "password"):
+                if len(parts) != 3 or self.normalize_description_query(parts[1]) not in ("reset", "kod", "wyslij"):
+                    await self.send("Użycie: admin haslo reset <login> / admin haslo wyslij <login>.")
+                    return
+                if self.normalize_description_query(parts[1]) == "wyslij":
+                    if not smtp_ready_v1223():
+                        await self.send("SMTP nie jest skonfigurowany.")
+                        return
+                    issued = self.server.db.issue_email_reset_v1223(parts[2])
+                    if issued is None:
+                        await self.send("Nie wysłano kodu: brak zweryfikowanego e-maila, limit lub konto nie istnieje.")
+                        return
+                    aid, recipient, code = issued
+                    try:
+                        await send_code_v1223(recipient, "reset", code)
+                    except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
+                        self.server.db.revoke_email_reset_v1223(aid)
+                        await self.send("Błąd SMTP. Kod nie został wysłany.")
+                        return
+                    await self.send("Wysłano kod resetowania do właściciela konta. Starego hasła nie wysyłamy.")
+                    return
+                target = self.server.db.master_account_by_name(parts[2])
+                if not target:
+                    await self.send("Nie można wygenerować kodu resetowania dla tego konta.")
+                    return
+                code = self.server.db.issue_password_recovery_v1222(target["id"], "admin")
+                if code is None:
+                    await self.send("Odczekaj co najmniej minutę przed ponownym wygenerowaniem kodu.")
+                    return
+                await self.send(
+                    f"Kod jednorazowy dla konta {target['username']}: {code}. "
+                    "Ważny 15 minut. Przekaż go prywatnie zweryfikowanemu właścicielowi. "
+                    "Nie wysłano go automatycznie; starego hasła nie można odczytać.",
+                    history_store=False,
+                )
+                return
             if first in ("goto", "teleport", "idz", "idź"):
                 target = " ".join(parts[1:]).strip()
                 room_id = target if target in ROOMS else self.find_room(target)

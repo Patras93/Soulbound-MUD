@@ -29,6 +29,15 @@ from network.protocol_gameplay_utils import (
 from player.character import Character
 
 import time
+import secrets
+import hmac
+import hashlib
+import sqlite3
+import smtplib
+from network.account_email_v1223 import (
+    normalized_email_v1223, smtp_ready_v1223, send_code_v1223,
+    allow_verification_send_v1223,
+)
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: io_auth_character."""
 
@@ -440,6 +449,7 @@ class SessionIOAuthCharacterMixin:
                 await self.send("1. Zaloguj się")
                 await self.send("2. Utwórz nowe konto")
                 await self.send("3. Wyjdź")
+                await self.send("4. Odzyskaj hasło (kod lub zweryfikowany e-mail)")
                 await self.send(
                     f"Jedno konto może mieć do {MAX_CHARACTERS_PER_ACCOUNT} postaci."
                 )
@@ -456,8 +466,97 @@ class SessionIOAuthCharacterMixin:
                 elif normalized in ("3", "quit", "exit", "wyjdz", "wyjscie"):
                     await self.close_from_main_menu()
                     return False
+                elif normalized in ("4", "odzyskaj", "odzyskaj haslo", "odzyskaj hasło", "reset", "forgot"):
+                    await self.recover_password_from_login_v1222()
                 else:
-                    await self.send("Nieprawidłowa opcja. Wybierz 1, 2 albo 3.")
+                    await self.send("Nieprawidłowa opcja. Wybierz 1, 2, 3 albo 4.")
+
+    async def recover_password_from_login_v1222(self):
+            await self.send("ODZYSKIWANIE HASŁA")
+            method = await self.ask("1. Kod zapasowy/administratora; 2. E-mail. Wybierz: ")
+            if method is None:
+                return
+            if normalize_lookup_text(method) in ("2", "email", "e mail", "mail"):
+                await self.recover_password_by_email_v1223()
+                return
+            if normalize_lookup_text(method) not in ("1", "kod", "code"):
+                await self.send("Nieznana opcja.")
+                return
+            username = await self.ask("Login konta (0 anuluje): ")
+            if username is None or username.strip() == "0":
+                return
+            code = await self.ask("Kod odzyskiwania: ")
+            if code is None:
+                return
+            password = await self.ask("Nowe hasło (10-256 znaków): ")
+            if password is None:
+                return
+            confirm = await self.ask("Powtórz nowe hasło: ")
+            if confirm is None:
+                return
+            if len(password) < 10 or len(password) > 256 or password != confirm:
+                await self.send("Hasła są różne albo mają nieprawidłową długość. Niczego nie zmieniono.")
+                return
+            changed = self.server.db.reset_password_with_code_v1222(username, code, password)
+            if not changed:
+                await self.send("Nie udało się zresetować hasła. Kod może być błędny, wygasły lub zużyty.")
+                return
+            row = self.server.db.master_account_by_name(username)
+            if row is not None:
+                # Invalidate any existing sessions for a changed password.
+                for active in list(self.server.sessions):
+                    if active is self or getattr(active, "master_account_id", None) != int(row["id"]):
+                        continue
+                    await active.send("Hasło konta zostało zmienione. Połącz się ponownie.")
+                    await active.close()
+            await self.send("Hasło zostało zmienione. Zaloguj się nowym hasłem. Postacie i EQ zachowano.")
+
+    async def close_password_reset_sessions_v1223(self, username):
+        row = self.server.db.master_account_by_name(username)
+        if row is None:
+            return
+        for active in list(self.server.sessions):
+            if active is self or getattr(active, "master_account_id", None) != int(row["id"]):
+                continue
+            await active.send("Hasło konta zostało zmienione. Połącz się ponownie.")
+            await active.close()
+
+    async def recover_password_by_email_v1223(self):
+        username = await self.ask("Login konta (0 anuluje): ")
+        if username is None or username.strip() == "0":
+            return
+        issued = None
+        if smtp_ready_v1223():
+            issued = self.server.db.issue_email_reset_v1223(username)
+            if issued is not None:
+                account_id, email, code = issued
+                try:
+                    await send_code_v1223(email, "reset", code)
+                except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
+                    self.server.db.revoke_email_reset_v1223(account_id)
+                    await self.send("Wysłanie wiadomości nie powiodło się. Spróbuj później lub poproś administratora o kod.")
+                    return
+        else:
+            await self.send("Odzyskiwanie przez e-mail jest niedostępne. Administrator musi skonfigurować SMTP.")
+            return
+        await self.send("Jeżeli konto ma zweryfikowany adres i nie obowiązuje limit, wysłano kod resetowania. Sprawdź pocztę.")
+        code = await self.ask("Kod z wiadomości (0 anuluje): ")
+        if code is None or code.strip() == "0":
+            return
+        password = await self.ask("Nowe hasło (10-256 znaków): ")
+        if password is None:
+            return
+        confirm = await self.ask("Powtórz nowe hasło: ")
+        if confirm is None:
+            return
+        if not 10 <= len(password) <= 256 or password != confirm:
+            await self.send("Hasła są różne lub mają nieprawidłową długość.")
+            return
+        if not self.server.db.reset_password_by_email_v1223(username, code, password):
+            await self.send("Nie udało się zmienić hasła. Kod jest błędny, wygasły lub już zużyty.")
+            return
+        await self.close_password_reset_sessions_v1223(username)
+        await self.send("Hasło zmienione. Zaloguj się ponownie. Postacie i wyposażenie zachowano.")
 
     async def do_login(self):
             username = await self.ask("Nazwa konta: ")
@@ -1004,10 +1103,10 @@ class SessionIOAuthCharacterMixin:
                     continue
                 break
             while True:
-                password = await self.ask("Hasło, minimum 6 znaków: ")
+                password = await self.ask("Hasło, minimum 10 znaków: ")
                 if password is None:
                     return False
-                if len(password) < 6:
+                if len(password) < 10:
                     await self.send("Hasło jest za krótkie.")
                     continue
                 confirm = await self.ask("Powtórz hasło: ")
@@ -1017,9 +1116,51 @@ class SessionIOAuthCharacterMixin:
                     await self.send("Hasła się różnią.")
                     continue
                 break
-            self.master_account_id = self.server.db.create_account(username, password)
+            if not smtp_ready_v1223():
+                await self.send("Rejestracja e-mail wymaga konfiguracji SMTP przez administratora Railway. Konto nie zostało utworzone.")
+                return False
+            email = await self.ask("Adres e-mail do potwierdzenia (0 anuluje): ")
+            if email is None or email.strip() == "0":
+                return False
+            email = normalized_email_v1223(email)
+            if email is None:
+                await self.send("Nieprawidłowy adres e-mail. Spróbuj ponownie od menu.")
+                return False
+            if self.server.db.email_taken_v1223(email):
+                await self.send("Adres e-mail jest już powiązany z innym kontem.")
+                return False
+            peer = self.writer.get_extra_info("peername") if getattr(self, "writer", None) else None
+            peer_ip = peer[0] if isinstance(peer, tuple) and peer else None
+            if not allow_verification_send_v1223(email, peer_ip):
+                await self.send("Limit wysyłki kodów. Spróbuj ponownie za 15 minut.")
+                return False
+            code = secrets.token_hex(4).upper()  # Eight ASCII characters, easy for NVDA.
+            started = time.monotonic()
+            try:
+                await send_code_v1223(email, "register", code)
+            except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
+                await self.send("Nie udało się wysłać kodu. Konto nie zostało utworzone.")
+                return False
+            await self.send("Wysłano kod na podany adres. Ważny przez 10 minut; do 5 prób.")
+            verified = False
+            for _ in range(5):
+                entered = await self.ask("Kod potwierdzenia e-mail (0 anuluje): ")
+                if entered is None or entered.strip() == "0" or time.monotonic() - started > 600:
+                    break
+                if hmac.compare_digest(entered.strip().upper(), code):
+                    verified = True
+                    break
+                await self.send("Nieprawidłowy kod.")
+            if not verified:
+                await self.send("Nie potwierdzono adresu. Konto nie zostało utworzone.")
+                return False
+            try:
+                self.master_account_id = self.server.db.create_account_verified_email_v1223(username, password, email)
+            except (sqlite3.IntegrityError, ValueError):
+                await self.send("Nie można utworzyć konta: login lub adres e-mail są już zajęte.")
+                return False
             self.account_id = None
-            await self.send("Konto utworzone.")
+            await self.send("Konto utworzone, adres e-mail zweryfikowany.")
             await self.send(
                 f"Na tym koncie możesz utworzyć maksymalnie {MAX_CHARACTERS_PER_ACCOUNT} postaci."
             )

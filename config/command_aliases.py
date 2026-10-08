@@ -947,3 +947,15 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "legendarnewyprawy": "legendaryexpeditions1210", "wyprawylegendarne": "legendaryexpeditions1210", "legendaryexpeditions": "legendaryexpeditions1210",
     "krainy": "greatworld", "wielkiswiat": "greatworld", "greatworld": "greatworld",
 })
+
+# v1.22.2: authenticated generation of personal password backup codes.
+COMMAND_ALIAS_DEFINITIONS.update({
+    "odzyskaj": "accountrecovery", "odzyskajhaslo": "accountrecovery",
+    "accountrecovery": "accountrecovery", "recoverycode": "accountrecovery",
+})
+
+# v1.22.3: verified account e-mail for recovery (not in-game mail).
+COMMAND_ALIAS_DEFINITIONS.update({
+    "konto": "accountemail", "emailkonto": "accountemail",
+    "kontoemail": "accountemail", "accountemail": "accountemail",
+})

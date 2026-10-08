@@ -293,6 +293,8 @@ COMMAND_REGISTRY = {
     'attack': ('attack', (COMMAND_TEXT,), {}),
     'flee': ('flee', (), {}),
     'unlock': ('unlock_context', (COMMAND_TEXT,), {}),
+    'accountrecovery': ('account_recovery_command_v1222', (COMMAND_TEXT,), {}),
+    'accountemail': ('account_email_command_v1223', (COMMAND_TEXT,), {}),
     'admin': ('admin_command', (COMMAND_TEXT,), {}),
     'wipe': ('wipe_command', (COMMAND_TEXT,), {}),
 }

@@ -3969,4 +3969,7 @@ print(f"CRAFT NAME CLEAN v1.21.4: {_name_gate_v1214['checks']} checks PASS")
 from validation.mercenary_crises_v1220 import validate_mercenary_crises_v1220
 _count_v1220 = validate_mercenary_crises_v1220()
 print(f"MERCENARIES 2.0 + WORLD CRISES v1.22.0: {_count_v1220} checks PASS")
-print('Soulbound v1.22.1 FAST PREDEPLOY PASS')
+from validation.account_email_v1223 import audit_account_email_v1223
+_checks_v1223 = audit_account_email_v1223()
+print(f"ACCOUNT EMAIL v1.22.3: {_checks_v1223} checks PASS")
+print('Soulbound v1.22.3 FAST PREDEPLOY PASS')

@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.1 - Poprawka pelnego audytu najemnikow"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.3 - Konta z weryfikacja e-mail"
 LATEST_CHANGES = [
+    "v1.22.3: Rejestracja z potwierdzeniem e-mail, przypisywanie e-mail do starych kont oraz reset kodem z poczty. Wymagana bezpieczna konfiguracja SMTP Railway.",
+    "v1.22.2: Odzyskiwanie hasła konta kodem zapasowym gracza lub 15-minutowym kodem resetu od administratora. Bez odczytu starych haseł, bez zmian postaci i EQ.",
     "v1.22.1: Poprawka testu walki druzynowej po dodaniu EXP najemnikow. Bez zmian balansu, walki i istniejacych zapisow postaci.",
     "v1.22.0: Najemnicy zdobywaja wlasne EXP i poziomy podczas walki, trzy specjalizacje od poziomu 10 oraz umiejetnosci na progach 25 i 50; staly najem i skalowanie do EQ bez zmian. Cztery wieloetapowe wydarzenia swiata w nowych krainach: inwazja, oblezenie, ratunek i kryzys, postep dla kazdego uczestnika party, dzienne nagrody.",
     "v1.21.3: Najemnicy licza moc ataku od silniejszej efektywnej mocy fizycznej lub magicznej wlasciciela (razem z EQ), niezaleznie od typu najemnika. Ich typ obrazen, mnozniki, cooldown i limit boss damage nie ulegly zmianie.",

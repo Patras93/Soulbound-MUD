@@ -1395,3 +1395,33 @@ HELP_TOPICS["wielkie_wydarzenia"] = [
     "kryzys status — szczegóły. Dzienna zmiana o 00:00 UTC; brak pułapek i obowiązkowej drużyny.",
 ]
 HELP_TOPIC_ALIASES.update({"kryzys": "wielkie_wydarzenia", "kryzysy": "wielkie_wydarzenia", "worldcrises":"wielkie_wydarzenia"})
+
+# v1.22.2: account recovery workflow, no plaintext forgotten passwords.
+HELP_TOPICS["odzyskaj_haslo"] = [
+    "Przed utratą dostępu: zaloguj się i wpisz odzyskaj haslo kod. Zapisz kod poza grą.",
+    "Po utracie hasła: menu główne -> 4. Odzyskaj hasło; podaj login, kod i nowe hasło.",
+    "Bez zapisanego kodu poproś administratora o admin haslo reset <login>.",
+    "Kod administratora wygasa po 15 minutach, kod zapasowy po 365 dniach. Oba są jednorazowe.",
+    "Starego hasła nie da się odczytać. Kodu nie wysyłamy automatycznie ani na świat, ani pocztą gry.",
+]
+HELP_TOPIC_ALIASES.update({"odzyskaj": "odzyskaj_haslo", "odzyskajhaslo": "odzyskaj_haslo",
+                           "reset_hasla": "odzyskaj_haslo", "passwordrecovery": "odzyskaj_haslo"})
+
+
+# v1.22.3: verified account email and secure code-only recovery.
+HELP_TOPICS["konto_email"] = [
+    "Nowe konto: w menu głównym wybierz 2, podaj login, hasło i e-mail, a następnie kod otrzymany pocztą.",
+    "Na starym koncie: konto email ustaw albo emailkonto ustaw — potwierdź hasło i nowy adres kodem z poczty.",
+    "Aby zobaczyć status: konto email lub emailkonto. Adres e-mail jest prywatny.",
+    "Odzyskanie dostępu: menu główne, opcja 4, następnie 2 (kod na zweryfikowany e-mail).",
+    "Administrator: admin haslo wyslij <login> wysyła kod resetowania na zweryfikowany adres; nie wysyła starego hasła.",
+    "Poczta wymaga konfiguracji SMTP przez właściciela serwera; reset e-mail ma ważność 15 minut i 5 prób.",
+]
+HELP_TOPIC_ALIASES.update({"konto": "konto_email", "emailkonto": "konto_email", "kontoemail": "konto_email", "email": "konto_email"})
+HELP_TOPICS["odzyskaj_haslo"] = [
+    "Po utracie hasła: menu główne > 4. Wybierz 1 dla kodu zapasowego lub administratora, 2 dla kodu wysłanego na potwierdzony e-mail.",
+    "E-mail przypiszesz po zalogowaniu komendą konto email ustaw. Bez potwierdzonego adresu reset e-mail nie zadziała.",
+    "Przed utratą dostępu można utworzyć zapasowy kod: odzyskaj haslo kod i zapisać go prywatnie.",
+    "Administrator: admin haslo reset <login> (kod prywatny) lub admin haslo wyslij <login> (kod na e-mail).",
+    "Reset ustawia nowe hasło; nie ujawnia starego. Po resecie pozostałe kody zostają unieważnione.",
+]

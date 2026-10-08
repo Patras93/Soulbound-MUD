@@ -3,6 +3,8 @@
 
 import secrets
 import time
+import hashlib
+import hmac
 
 from core.bootstrap_economy_professions import (
     MAX_CHARACTERS_PER_ACCOUNT, STARTING_GOLD, STARTING_MITHRIL, STARTING_SILVER,
@@ -12,6 +14,197 @@ from core.classes_skills import class_starting_stats_for
 from storage.db_shared import hash_password
 
 class DatabaseAccountsMixin:
+    def issue_password_recovery_v1222(self, account_id, kind, *, now=None):
+        """Only called by an authenticated owner or a whitelisted administrator.
+
+        Returns a plaintext bearer code exactly once; SQLite stores only its hash.
+        """
+        if kind not in ("backup", "admin"):
+            raise ValueError("Invalid recovery type")
+        account_id = int(account_id)
+        now = int(time.time() if now is None else now)
+        row = self.conn.execute("SELECT id FROM accounts WHERE id=?", (account_id,)).fetchone()
+        if row is None or self.is_character_profile(account_id):
+            return None
+        previous = self.conn.execute(
+            "SELECT issued_at FROM password_recovery_v1222 WHERE account_id=? AND kind=?",
+            (account_id, kind),
+        ).fetchone()
+        if previous is not None and now - int(previous["issued_at"]) < 60:
+            return None
+        code = secrets.token_hex(16).upper()  # 128-bit token, safe to type with NVDA.
+        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
+        expires = now + (15 * 60 if kind == "admin" else 365 * 24 * 3600)
+        self.conn.execute(
+            "INSERT INTO password_recovery_v1222(account_id,kind,code_hash,expires_at,attempts,issued_at) "
+            "VALUES(?,?,?,?,0,?) ON CONFLICT(account_id,kind) DO UPDATE SET "
+            "code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,issued_at=excluded.issued_at",
+            (account_id, kind, digest, expires, now),
+        )
+        self.conn.commit()
+        return code
+
+    def reset_password_with_code_v1222(self, username, code, new_password, *, now=None):
+        """Atomically redeem a one-time code, revoke others, rotate password salt."""
+        now = int(time.time() if now is None else now)
+        if not isinstance(new_password, str) or len(new_password) < 10 or len(new_password) > 256:
+            return False
+        code = str(code or "").strip().upper().replace("-", "")
+        if len(code) != 32 or any(ch not in "0123456789ABCDEF" for ch in code):
+            return False
+        target = self.master_account_by_name(str(username or "").strip())
+        if target is None:
+            return False
+        account_id = int(target["id"])
+        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
+        # BEGIN IMMEDIATE prevents competing redemption from consuming the same code.
+        self.conn.execute("BEGIN IMMEDIATE")
+        try:
+            records = self.conn.execute(
+                "SELECT kind,code_hash,expires_at,attempts FROM password_recovery_v1222 "
+                "WHERE account_id=?", (account_id,),
+            ).fetchall()
+            valid = any(
+                int(row["expires_at"]) >= now and int(row["attempts"]) < 5
+                and hmac.compare_digest(str(row["code_hash"]), digest)
+                for row in records
+            )
+            if not valid:
+                self.conn.execute(
+                    "UPDATE password_recovery_v1222 SET attempts=attempts+1 "
+                    "WHERE account_id=? AND expires_at>=? AND attempts<5",
+                    (account_id, now),
+                )
+                self.conn.commit()
+                return False
+            salt, password_hash = hash_password(new_password)
+            self.conn.execute(
+                "UPDATE accounts SET password_salt=?,password_hash=? WHERE id=?",
+                (salt, password_hash, account_id),
+            )
+            self.conn.execute("DELETE FROM password_recovery_v1222 WHERE account_id=?", (account_id,))
+            self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (account_id,))
+            self.conn.commit()
+            return True
+        except BaseException:
+            self.conn.rollback()
+            raise
+
+    def verified_account_email_v1223(self, account_id):
+        row = self.conn.execute(
+            "SELECT email FROM account_emails_v1223 WHERE account_id=?", (int(account_id),)
+        ).fetchone()
+        return str(row["email"]) if row else None
+
+    def email_taken_v1223(self, email):
+        return self.conn.execute(
+            "SELECT 1 FROM account_emails_v1223 WHERE email=? COLLATE NOCASE", (email,)
+        ).fetchone() is not None
+
+    def create_account_verified_email_v1223(self, username, password, email):
+        """Create the login and its verified email atomically, never orphan a login."""
+        from network.account_email_v1223 import normalized_email_v1223
+        email = normalized_email_v1223(email)
+        if email is None:
+            raise ValueError("Nieprawidlowy email")
+        salt, digest = hash_password(password)
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT INTO accounts(username,password_salt,password_hash) VALUES(?,?,?)",
+                (username, salt, digest),
+            )
+            self.conn.execute(
+                "INSERT INTO account_emails_v1223(account_id,email,verified_at) VALUES(?,?,?)",
+                (cur.lastrowid, email, int(time.time())),
+            )
+        return cur.lastrowid
+
+    def attach_verified_email_v1223(self, account_id, email):
+        from network.account_email_v1223 import normalized_email_v1223
+        email = normalized_email_v1223(email)
+        if email is None or self.is_character_profile(account_id):
+            raise ValueError("Nieprawidlowy email lub konto techniczne")
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO account_emails_v1223(account_id,email,verified_at) VALUES(?,?,?) "
+                "ON CONFLICT(account_id) DO UPDATE SET email=excluded.email, "
+                "verified_at=excluded.verified_at",
+                (int(account_id), email, int(time.time())),
+            )
+            # Old mailbox must not be able to redeem a pending reset after change.
+            self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (int(account_id),))
+
+    def issue_email_reset_v1223(self, username, *, now=None):
+        """Hash-only stored token and per-account rate limit. Plaintext sent once."""
+        target = self.master_account_by_name(str(username or "").strip())
+        if target is None:
+            return None
+        account_id = int(target["id"])
+        email = self.verified_account_email_v1223(account_id)
+        if not email:
+            return None
+        now = int(time.time() if now is None else now)
+        prev = self.conn.execute(
+            "SELECT issued_at FROM email_password_reset_v1223 WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+        if prev is not None and now - int(prev["issued_at"]) < 300:
+            return None
+        code = secrets.token_hex(8).upper()
+        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
+        self.conn.execute(
+            "INSERT INTO email_password_reset_v1223(account_id,token_hash,issued_at,expires_at,attempts) "
+            "VALUES(?,?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET "
+            "token_hash=excluded.token_hash,issued_at=excluded.issued_at,"
+            "expires_at=excluded.expires_at,attempts=0",
+            (account_id, digest, now, now + 900),
+        )
+        self.conn.commit()
+        return account_id, email, code
+
+    def revoke_email_reset_v1223(self, account_id):
+        self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (int(account_id),))
+        self.conn.commit()
+
+    def reset_password_by_email_v1223(self, username, code, new_password, *, now=None):
+        if not isinstance(new_password, str) or not 10 <= len(new_password) <= 256:
+            return False
+        code = str(code or "").strip().upper()
+        if len(code) != 16 or any(c not in "0123456789ABCDEF" for c in code):
+            return False
+        target = self.master_account_by_name(str(username or "").strip())
+        if target is None:
+            return False
+        account_id = int(target["id"])
+        now = int(time.time() if now is None else now)
+        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
+        self.conn.execute("BEGIN IMMEDIATE")
+        try:
+            row = self.conn.execute(
+                "SELECT token_hash,expires_at,attempts FROM email_password_reset_v1223 WHERE account_id=?",
+                (account_id,),
+            ).fetchone()
+            valid = (row is not None and int(row["expires_at"]) >= now
+                     and int(row["attempts"]) < 5
+                     and hmac.compare_digest(str(row["token_hash"]), digest))
+            if not valid:
+                self.conn.execute(
+                    "UPDATE email_password_reset_v1223 SET attempts=attempts+1 "
+                    "WHERE account_id=? AND expires_at>=? AND attempts<5",
+                    (account_id, now),
+                )
+                self.conn.commit()
+                return False
+            salt, ph = hash_password(new_password)
+            self.conn.execute("UPDATE accounts SET password_salt=?,password_hash=? WHERE id=?", (salt, ph, account_id))
+            self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (account_id,))
+            self.conn.execute("DELETE FROM password_recovery_v1222 WHERE account_id=?", (account_id,))
+            self.conn.commit()
+            return True
+        except BaseException:
+            self.conn.rollback()
+            raise
+
     def account_name(self, account_id):
         row = self.conn.execute(
             "SELECT username FROM accounts WHERE id=?", (int(account_id),)

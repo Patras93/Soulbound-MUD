@@ -1,3 +1,42 @@
+Aktualna paczka: v1.22.3
+Soulbound v1.22.3 — ZWERYFIKOWANY E-MAIL KONT I RESET HASŁA
+==============================================================================
+- Rejestracja nowego konta wymaga potwierdzenia adresu e-mail 8-znakowym kodem,
+  ważnym 10 minut i z limitem pięciu prób. Konto powstaje dopiero po potwierdzeniu.
+- Starsze konta: konto email ustaw / emailkonto ustaw — potwierdzenie hasłem,
+  kodem na nowy e-mail i zapis w istniejącej bazie bez utraty postaci.
+- Menu główne > 4 > 2 — reset hasła kodem wysłanym na zweryfikowany e-mail.
+- admin haslo wyslij <login> — wysyła kod resetowania na zweryfikowany e-mail.
+  Admin nie widzi hasła ani kodu; dotychczasowe admin haslo reset pozostaje.
+- Tokeny resetu przechowywane jako SHA-256, 15 minut ważności, 5 prób,
+  5 minut odstępu między wysyłkami. Reset odwołuje pozostałe kody.
+- Wymaga konfiguracji bezpiecznego SMTP w zmiennych środowiskowych Railway:
+  SOULBOUND_SMTP_HOST, SOULBOUND_SMTP_PORT (587), SOULBOUND_SMTP_USER,
+  SOULBOUND_SMTP_PASSWORD, SOULBOUND_SMTP_FROM,
+  SOULBOUND_SMTP_MODE=starttls (alternatywnie ssl i port 465).
+- Bez konfiguracji SMTP logowanie starych kont działa, ale rejestracja z
+  weryfikacją e-mail i reset e-mail nie działają (bez fałszywej aktywacji).
+- Bez resetowania zapisów postaci, bez raportów audytów w ZIP.
+
+Poprzednia paczka: v1.22.2
+Aktualna paczka: v1.22.2
+Soulbound v1.22.2 — ODZYSKIWANIE HASLA
+==============================================================================
+- Gracz po zalogowaniu: odzyskaj haslo kod — tworzy jednorazowy zapasowy kod
+  do zapisania poza gra (wazny 365 dni; ponowne wygenerowanie uniewaznia stary).
+- Menu glowne: 4. Odzyskaj haslo — login, kod, nowe haslo (min. 10 znakow).
+- Administrator na whiteliscie: admin haslo reset <login> — tworzy 15-minutowy
+  jednorazowy kod i przekazuje go uprawnionemu administratorowi do prywatnego
+  dostarczenia zweryfikowanemu wlascicielowi konta.
+- Nie ma automatycznej wysylki e-mail: konto nie ma zweryfikowanych adresow.
+  Nie mozna odczytac ani wyslac poprzedniego hasla.
+- Kody w bazie SQLite sa tylko hashowane; do 5 nieudanych prob; jeden aktywny
+  kod danego typu na konto; 60 s przerwy przed ponownym wydaniem.
+- Po poprawnym resecie oba kody sa uniewazniane, a inne sesje konta rozlaczane.
+- Brak utraty postaci, walut, EQ i profesji; bez resetowania wolumenu Railway.
+- Pelna paczka z CHANGELOG_PL.txt bez raportow audytow.
+
+Poprzednia paczka: v1.22.1
 Aktualna paczka: v1.22.1
 Soulbound v1.22.1 — RAILWAY FULL AUDIT / NAJEMNICY 2.0 HOTFIX
 ==============================================================================
