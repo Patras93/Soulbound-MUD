@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """Static Soulbound catalog. Data only; gameplay logic lives elsewhere."""
 NPCS = {
+    "soul_hunter_master_v1225": {
+        "name": "Mistrzyni Łowców Aria", "room": "soul_hunter_board_v1225",
+        "dialogue": "Zwykłe potwory, elity i bossowie. Każdy kontrakt odnawia się po określonym czasie. Wpisz lowcy.",
+        "v1225_city_service": True,
+    },
     "fisher_tomas": {
         "name": "Rybak Borys", "room": "fish_market",
         "rank_profession": "Wędkarstwo",

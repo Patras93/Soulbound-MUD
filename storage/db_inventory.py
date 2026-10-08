@@ -930,3 +930,150 @@ class DatabaseInventoryMixin:
             "SELECT * FROM crafting_mastery_v03054 WHERE account_id=? ORDER BY profession,category",
             (int(account_id),),
         ).fetchall()
+
+    def transfer_bank_v1225(self, sender_id, recipient_login, *, silver=0, item_id=None, quantity=0):
+        """Transfer money between master vaults or bank items between characters.
+
+        The SAVEPOINT covers both debit and credit; failed transfers never lose funds.
+        """
+        from core.bootstrap_economy_professions import legacy_currency_to_coins
+        from core.mines_threat import is_character_bound_item
+        from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL
+        sender_master = int(self.master_account_for_character(sender_id))
+        recipient = self.master_account_by_name(str(recipient_login).strip())
+        if recipient is None:
+            return 'recipient'
+        receiver_master = int(recipient['id'])
+        if sender_master == receiver_master:
+            return 'self'
+        is_item = item_id is not None
+        amount, units = int(silver), int(quantity)
+        if not is_item and (amount <= 0 or amount > CURRENCY_SQLITE_SAFE_TOTAL):
+            return 'invalid'
+        if is_item and (units <= 0 or units > 9999 or is_character_bound_item(str(item_id))):
+            return 'invalid'
+        conn = self.conn
+        conn.execute('SAVEPOINT transfer_bank_v1225')
+        try:
+            if is_item:
+                dest_row=conn.execute('SELECT character_account_id FROM account_characters WHERE master_account_id=? ORDER BY slot LIMIT 1',(receiver_master,)).fetchone()
+                dest_char=int(dest_row[0]) if dest_row else receiver_master
+                source_char=int(sender_id)
+                item_id=str(item_id)
+                source=conn.execute('SELECT quantity FROM bank_items WHERE account_id=? AND item_id=?',(source_char,item_id)).fetchone()
+                dest=conn.execute('SELECT quantity FROM bank_items WHERE account_id=? AND item_id=?',(dest_char,item_id)).fetchone()
+                if source is None or int(source[0])<units: result='funds'
+                elif dest is not None and int(dest[0])+units>CURRENCY_SQLITE_SAFE_TOTAL: result='limit'
+                else:
+                    conn.execute('UPDATE bank_items SET quantity=quantity-? WHERE account_id=? AND item_id=?',(units,source_char,item_id))
+                    conn.execute('DELETE FROM bank_items WHERE account_id=? AND item_id=? AND quantity=0',(source_char,item_id))
+                    conn.execute('INSERT INTO bank_items(account_id,item_id,quantity) VALUES(?,?,?) ON CONFLICT(account_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity',(dest_char,item_id,units))
+                    # Preserve the real shop cost basis on transferred goods.
+                    lot='__bank_v1175__:'+item_id
+                    remaining=units
+                    for paid,have in conn.execute('SELECT paid_silver,quantity FROM shop_purchase_lots_v1175 WHERE account_id=? AND item_id=? ORDER BY paid_silver',(source_char,lot)).fetchall():
+                        n=min(remaining,int(have))
+                        if n<=0: break
+                        conn.execute('DELETE FROM shop_purchase_lots_v1175 WHERE account_id=? AND item_id=? AND paid_silver=?',(source_char,lot,int(paid)))
+                        if int(have)>n:
+                            conn.execute('INSERT INTO shop_purchase_lots_v1175(account_id,item_id,paid_silver,quantity) VALUES(?,?,?,?)',(source_char,lot,int(paid),int(have)-n))
+                        conn.execute('INSERT INTO shop_purchase_lots_v1175(account_id,item_id,paid_silver,quantity) VALUES(?,?,?,?) ON CONFLICT(account_id,item_id,paid_silver) DO UPDATE SET quantity=quantity+excluded.quantity',(dest_char,lot,int(paid),n))
+                        remaining-=n
+                    result='ok'
+            else:
+                for master in (sender_master,receiver_master):
+                    conn.execute('INSERT OR IGNORE INTO bank_balances(account_id,silver,gold,mithril) VALUES(?,0,0,0)',(master,))
+                balance1=conn.execute('SELECT silver,gold,mithril FROM bank_balances WHERE account_id=?',(sender_master,)).fetchone()
+                balance2=conn.execute('SELECT silver,gold,mithril FROM bank_balances WHERE account_id=?',(receiver_master,)).fetchone()
+                start=legacy_currency_to_coins(*balance1)
+                finish=legacy_currency_to_coins(*balance2)
+                if start<amount: result='funds'
+                elif finish+amount>CURRENCY_SQLITE_SAFE_TOTAL: result='limit'
+                else:
+                    conn.execute('UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?',(start-amount,sender_master))
+                    conn.execute('UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?',(finish+amount,receiver_master))
+                    result='ok'
+            if result=='ok':
+                conn.execute('INSERT INTO bank_transfers_v1225(sender_id,receiver_id,kind,item_id,quantity) VALUES(?,?,?,?,?)',(sender_master,receiver_master,'item' if is_item else 'money',str(item_id) if is_item else '',units if is_item else amount))
+                conn.execute('RELEASE SAVEPOINT transfer_bank_v1225')
+                conn.commit()
+            else:
+                conn.execute('ROLLBACK TO SAVEPOINT transfer_bank_v1225')
+                conn.execute('RELEASE SAVEPOINT transfer_bank_v1225')
+            return result
+        except BaseException:
+            conn.execute('ROLLBACK TO SAVEPOINT transfer_bank_v1225')
+            conn.execute('RELEASE SAVEPOINT transfer_bank_v1225')
+            raise
+
+    def bank_transfer_history_v1225(self, account_id, limit=10):
+        master=int(self.master_account_for_character(account_id))
+        return self.conn.execute("""SELECT t.*,s.username sender_name,r.username receiver_name
+            FROM bank_transfers_v1225 t
+            JOIN accounts s ON s.id=t.sender_id
+            JOIN accounts r ON r.id=t.receiver_id
+            WHERE t.sender_id=? OR t.receiver_id=? ORDER BY t.id DESC LIMIT ?""",(master,master,max(1,min(20,int(limit))))).fetchall()
+
+    def hunter_state_v1225(self, account_id, tier):
+        return self.conn.execute('SELECT * FROM hunter_contracts_v1225 WHERE account_id=? AND tier=?',(int(account_id),tier)).fetchone()
+
+    def hunter_accept_v1225(self, account_id, tier, target_id, needed, reward_silver, now):
+        account_id=int(account_id)
+        self.conn.execute('SAVEPOINT hunter_accept_v1225')
+        try:
+            old=self.hunter_state_v1225(account_id,tier)
+            if old and old['state'] in ('active','ready'):
+                result='active'
+            elif old and int(old['ready_after'])>int(now):
+                result='cooldown'
+            else:
+                self.conn.execute("INSERT INTO hunter_contracts_v1225(account_id,tier,target_id,needed,progress,reward_silver,state,ready_after) VALUES(?,?,?,?,0,?,'active',0) ON CONFLICT(account_id,tier) DO UPDATE SET target_id=excluded.target_id, needed=excluded.needed,progress=0,reward_silver=excluded.reward_silver,state='active',ready_after=0",(account_id,tier,str(target_id),int(needed),int(reward_silver)))
+                result='ok'
+            self.conn.execute('RELEASE SAVEPOINT hunter_accept_v1225')
+            self.conn.commit()
+            return result
+        except Exception:
+            self.conn.execute('ROLLBACK TO SAVEPOINT hunter_accept_v1225')
+            self.conn.execute('RELEASE SAVEPOINT hunter_accept_v1225')
+            raise
+
+    def hunter_kill_v1225(self, account_id, mob_template_id):
+        changed=[]
+        for row in self.conn.execute("SELECT tier,progress,needed FROM hunter_contracts_v1225 WHERE account_id=? AND target_id=? AND state='active'",(int(account_id),str(mob_template_id))).fetchall():
+            count=min(int(row['needed']),int(row['progress'])+1)
+            self.conn.execute("UPDATE hunter_contracts_v1225 SET progress=?,state=? WHERE account_id=? AND tier=? AND state='active'",(count,'ready' if count >= int(row['needed']) else 'active',int(account_id),row['tier']))
+            changed.append((row['tier'],count,int(row['needed'])))
+        if changed:self.conn.commit()
+        return changed
+
+    def hunter_claim_v1225(self, account_id, tier, now, cooldown):
+        """Mark bounty complete and deposit reward in same SQLite transaction."""
+        master=int(self.master_account_for_character(account_id))
+        self.conn.execute('SAVEPOINT hunter_claim_v1225')
+        try:
+            row=self.hunter_state_v1225(account_id,tier)
+            if not row or row['state']!='ready':
+                result=0
+            else:
+                reward=int(row['reward_silver'])
+                self.conn.execute('INSERT OR IGNORE INTO bank_balances(account_id,silver,gold,mithril) VALUES(?,0,0,0)',(master,))
+                balance=self.conn.execute('SELECT silver,gold,mithril FROM bank_balances WHERE account_id=?',(master,)).fetchone()
+                from core.bootstrap_economy_professions import legacy_currency_to_coins,CURRENCY_SQLITE_SAFE_TOTAL
+                total=legacy_currency_to_coins(*balance)
+                if reward<=0 or total+reward>CURRENCY_SQLITE_SAFE_TOTAL:
+                    result=-1
+                else:
+                    self.conn.execute('UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?',(total+reward,master))
+                    self.conn.execute("UPDATE hunter_contracts_v1225 SET state='cooldown',ready_after=? WHERE account_id=? AND tier=? AND state='ready'",(int(now)+int(cooldown),int(account_id),tier))
+                    result=reward
+            if result>0:
+                self.conn.execute('RELEASE SAVEPOINT hunter_claim_v1225')
+                self.conn.commit()
+            else:
+                self.conn.execute('ROLLBACK TO SAVEPOINT hunter_claim_v1225')
+                self.conn.execute('RELEASE SAVEPOINT hunter_claim_v1225')
+            return result
+        except Exception:
+            self.conn.execute('ROLLBACK TO SAVEPOINT hunter_claim_v1225')
+            self.conn.execute('RELEASE SAVEPOINT hunter_claim_v1225')
+            raise

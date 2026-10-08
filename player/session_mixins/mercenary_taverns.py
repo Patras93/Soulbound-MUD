@@ -9,6 +9,91 @@ from systems.mercenary_growth_v1220 import (SPECIALIZATIONS, mercenary_level, me
     mercenary_action_xp, mercenary_attack_multiplier, mercenary_unlocked)
 
 class SessionMercenaryTavernsMixin:
+    def nearby_mercenaries_v1226(self):
+        """Visible followers share their owner's room; they are not spawnable mobs.
+
+        Read the persisted contracts instead of copying NPCs into the world,
+        so a hire survives reconnects and never duplicates after a restart.
+        """
+        if not self.character:
+            return []
+        room_id = self.character.room_id
+        visible = []
+        for owner in tuple(self.server.sessions):
+            if (getattr(owner, "closed", False) or
+                    not getattr(owner, "character", None) or
+                    owner.character.room_id != room_id or
+                    getattr(owner, "account_id", None) is None):
+                continue
+            for row in self.server.db.mercenary_contracts(owner.account_id):
+                role = row["role"]
+                if role in MERCENARIES:
+                    visible.append((owner, role, MERCENARIES[role]))
+        return visible
+
+    def visible_mercenary_for_look_v1226(self, query):
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+        choices = []
+        for owner, role, spec in self.nearby_mercenaries_v1226():
+            names = (spec["name"], spec["role"])
+            if wanted in {self.normalize_description_query(name) for name in names}:
+                choices.append((owner, role, spec))
+        return choices[0] if len(choices) == 1 else None
+
+    async def handle_hunters_v1225(self, raw=""):
+        """NVDA-first bounty board in Soul City; no changes to legacy bounties."""
+        if not self.character:
+            return
+        offers = {
+            'zwykle': ('goblin', 6, 15000, 3600, 'Zwykłe polowanie'),
+            'elitarne': ('v028_region_01_elite', 4, 140000, 4*3600, 'Elitarne polowanie'),
+            'boss': ('goblin_warchief', 1, 2000000, 24*3600, 'Polowanie na bossa'),
+        }
+        text = str(raw or '').strip().lower()
+        parts=text.split()
+        action=parts[0] if parts else 'lista'
+        tier=parts[1] if len(parts)>1 else ''
+        aliases={'zwykłe':'zwykle','zwykly':'zwykle','elita':'elitarne','elitarne':'elitarne','bossy':'boss','bossowie':'boss'}
+        tier=aliases.get(tier,tier)
+        now=int(time.time())
+        if action in ('', 'lista','list','pomoc','help'):
+            await self.send('TABLICA ŁOWCÓW NAGRÓD. Zlecenia odnawiają się osobno dla każdego gracza.')
+            for key,(mob_id,needed,reward,cooldown,label) in offers.items():
+                entry=self.server.db.hunter_state_v1225(self.account_id,key)
+                state=(f"{entry['progress']}/{entry['needed']}; {entry['state']}" if entry else 'dostępne')
+                await self.send(f"{key}: {label}, cel {MOB_TEMPLATES[mob_id]['name']} x{needed}. Nagroda {reward} srebra. Odnowienie {cooldown//3600} godz. Status: {state}.")
+            await self.send('W sali: lowcy przyjmij zwykle, lowcy przyjmij elitarne, lowcy przyjmij boss; lowcy status; lowcy odbierz zwykle.')
+            return
+        if action in ('status','stan'):
+            for key,(mob_id,needed,reward,cooldown,label) in offers.items():
+                row=self.server.db.hunter_state_v1225(self.account_id,key)
+                if not row: await self.send(f'{key}: nieprzyjęte.');continue
+                remaining=max(0,int(row['ready_after'])-now)
+                await self.send(f"{key}: {row['progress']}/{row['needed']}, {row['state']}" + (f", odnowienie za {remaining//60} minut" if remaining else '') + '.')
+            return
+        if tier not in offers:
+            await self.send('Podaj kategorię: zwykle, elitarne lub boss.');return
+        mob_id,needed,reward,cooldown,label=offers[tier]
+        if action not in ('przyjmij','rozpocznij','odbierz','nagroda'):
+            await self.send('Użycie: lowcy przyjmij <zwykle|elitarne|boss>, lowcy status, lowcy odbierz <kategoria>.');return
+        if self.character.room_id!='soul_hunter_board_v1225':
+            await self.send('Odbieranie i przyjmowanie zleceń tylko w Sali Łowców Nagród: Plac Dusz, północny wschód, wschód.');return
+        if action in ('przyjmij','rozpocznij'):
+            result=self.server.db.hunter_accept_v1225(self.account_id,tier,mob_id,needed,reward,now)
+            await self.send({'ok':f'Przyjęto {label}. Cel: {MOB_TEMPLATES[mob_id]["name"]} x{needed}.',
+                'active':'Masz już aktywne lub ukończone zlecenie. Wpisz lowcy status.',
+                'cooldown':'Zlecenie jeszcze się odnawia. Wpisz lowcy status.'}.get(result,'Błąd zlecenia.'))
+            return
+        result=self.server.db.hunter_claim_v1225(self.account_id,tier,now,cooldown)
+        if result>0:
+            await self.send(f'Zlecenie rozliczone. Nagroda {result} srebra wpłynęła do Banku Dusz. Następne za {cooldown//3600} godz.')
+        elif result==-1:
+            await self.send('Przekroczony limit salda banku. Zwolnij miejsce przed odbiorem nagrody.')
+        else:
+            await self.send('Zlecenie nie jest gotowe lub nagroda została już odebrana.')
+
     async def handle_mercenaries_v1170(self, args=""):
         if not self.character:
             return
@@ -178,7 +263,11 @@ class SessionMercenaryTavernsMixin:
                     if heal and not superboss_healing_blocked_v11179(weakest):
                         weakest.current_hp += heal
                         message += f" Pomocne uzdrowienie: +{heal} HP."
-            await self.server.party_combat_broadcast(self, message, detail="normal")
+            # The owner is excluded from party_combat_broadcast by design.
+            # Tell the owner directly, even in concise NVDA combat mode;
+            # share the same action with party members in the same room.
+            await self.send_combat(message, detail="essential")
+            await self.server.party_combat_broadcast(self, message, detail="essential")
             if experience_action:
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 foe_level = template.get("level", template.get("generator_level", 1)) or 1

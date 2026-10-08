@@ -323,8 +323,53 @@ class SessionInventoryEquipmentMixin:
                     f"{self.item_runtime_description(str(row['item_id']), item)}{bound_text}"
                 )
 
+    async def inspect_equipped_v1225(self, query):
+            rows = self.server.db.equipment(self.account_id)
+            if not rows:
+                await self.send("Nie masz założonego dodatkowego wyposażenia.")
+                return
+            key = normalize_lookup_text(str(query or "").strip())
+            matches = []
+            for index, row in enumerate(rows, 1):
+                item_id = str(row["item_id"])
+                item = ITEMS.get(item_id) or ensure_crafting_quality_variant_v0332(item_id)
+                slot = str(row["slot"])
+                labels = {"head":"glowa", "body":"korpus", "hands":"dlonie",
+                    "legs":"nogi", "feet":"stopy", "shield":"tarcza", "ring":"pierscien",
+                    "necklace":"naszyjnik", "charm":"talizman", "cloak":"peleryna",
+                    "shoulders":"naramienniki", "belt":"pas", "bracers":"karwasze",
+                    "board":"board", "relic":"relikt"}
+                name = str(item.get("name", item_id)) if item else item_id
+                candidates = {str(index), normalize_lookup_text(slot),
+                    normalize_lookup_text(labels.get(slot, slot)), normalize_lookup_text(name),
+                    normalize_lookup_text(item_id)}
+                if key in candidates or (len(key)>2 and key in normalize_lookup_text(name)):
+                    matches.append((index, row, item, name))
+            if not matches:
+                await self.send("Nie masz takiego przedmiotu na sobie. Wpisz eq, aby poznać sloty, lub eq info po wszystkie bonusy.")
+                return
+            if len(matches)>1:
+                await self.send("Znaleziono kilka założonych przedmiotów: " + "; ".join(
+                    f"{n}. {row['slot']}: {name}" for n,row,item,name in matches) + ". Podaj numer z listy eq.")
+                return
+            n,row,item,name = matches[0]
+            await self.send(f"EQ INFO: pozycja {n}, slot {row['slot']}. {name}.")
+            if not item:
+                await self.send("Brak danych katalogowych tego przedmiotu.")
+                return
+            await self.send(self.format_item_description(str(row['item_id']),item))
+            level = self.server.db.equipment_upgrade_level_v03042(self.account_id,row['item_id'])
+            if level:
+                await self.send(f"Ulepszenie Kowalstwa: +{level}. Premia obrony z ulepszenia: +{v03042_upgrade_defense_bonus(item,level)}.")
+            if item.get('slot') in ('ring','necklace'):
+                await self.send(self.jewelry_socket_text(str(row['slot']),str(row['item_id']),item))
+            await self.send("Przedmiot pozostaje założony. Nic nie zostało zmienione.")
+
     async def equipment(self, mode=""):
             mode = self.normalize_description_query(mode)
+            if mode.startswith('info ') or mode.startswith('szczegoly ') or mode.startswith('szczegóły '):
+                await self.inspect_equipped_v1225(mode.split(' ',1)[1])
+                return
             if mode in ("auto", "automatycznie", "najlepsze", "best"):
                 await self.auto_equip_best_v03040()
                 return
@@ -449,7 +494,7 @@ class SessionInventoryEquipmentMixin:
 
             if not detailed:
                 await self.send(
-                    f"Łączna obrona fizyczna: {self.defense()}. Wpisz eq info po bonusy, sety i sockety."
+                    f"Łączna obrona fizyczna: {self.defense()}. Wpisz eq info po bonusy i sety albo eq info 1 po opis założonego przedmiotu."
                 )
                 return
 

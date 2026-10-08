@@ -219,7 +219,7 @@ class SessionHelpSystemMixin:
                 "craft / stworz / wytworz receptura - rzemiosło z rud i drewna",
                 "cook / gotuj receptura - przygotuj potrawę z ryb",
                 "inventory / i - zwykły ekwipunek",
-                "equipment / eq - szybkie EQ zawsze pokazuje też Broń Duszy; eq info - Soul XP, pełne bonusy, sockety i aktywne sety",
+                "equipment / eq - szybkie EQ zawsze pokazuje też Broń Duszy; eq info - Soul XP, pełne bonusy, sockety i aktywne sety; eq info 1 lub eq info glowa - opis konkretnej założonej części",
                 "sety / sety info / sety <klasa> - zestawy klasowe 2/4/6/8 dla 14 klas",
                 "help loot_krypty - rarity, losowe statystyki i sety Krypty; help loot - globalne dropy; help zrodla_eq - role źródeł EQ; help gamefeel - rzadkie momenty nagród",
                 "equip / załóż przedmiot albo slot - m.in. hełm, zbroja, rękawice, nogi, buty, tarcza, naramienniki, pas, peleryna, karwasze, bransoleta, kolczyki, relikt, pierścienie, talizmany, akcesoria i naszyjnik",

@@ -305,6 +305,11 @@ class SessionCombatRewardsMixin:
                     fight_duration_ms=fight_duration_ms,
                 ))
 
+                # v1.22.5: genuine kills advance the hunter board for each
+                # eligible present player independently (including party members).
+                for session in recipients:
+                    session.server.db.hunter_kill_v1225(session.account_id, mob.template_id)
+
                 # v1.22.0: every same-room participant advances their own
                 # active crisis on genuine regional victories. Never on summons.
                 if template.get("v1200_region"):

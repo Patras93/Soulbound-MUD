@@ -1,4 +1,31 @@
-Aktualna paczka: v1.22.4
+Aktualna paczka: v1.22.6
+Soulbound v1.22.6 — NAJEMNICY WIDOCZNI I WALCZĄCY
+==============================================================================
+- Wynajęci najemnicy są widoczni przy swoich właścicielach w opisie lokacji
+  (`look` / `l`), również dla innych graczy w tej samej lokacji.
+- `l Seren`, `l Vael` itd. pokazuje klasę, poziom i specjalizację najemnika.
+- Wiadomość akcji najemnika w walce trafia do właściciela i członków drużyny.
+  Poprzednio była wysyłana tylko innym członkom party (bez właściciela).
+- Najemnicy nie są kopią NPC w świecie: chodzą razem z właścicielem i nie
+  rozmnażają się po restarcie. Zatrudnienie i rozwój zachowane w SQLite.
+- Bez zmian obrażeń, EXP, kosztów zatrudnienia i limitu trzech najemników.
+
+Soulbound v1.22.5 — WIELKA TAWERNA, BANK DUSZ I ŁOWCY NAGRÓD
+==============================================================================
+- Wielka Tawerna Najemników: Plac Dusz, kierunek północny wschód. 15 najemników,
+  stały wynajem, dotychczasowe ceny i limit trzech zachowane.
+- Sala Łowców Nagród: z tawerny na wschód. Zlecenia zwykłe, elitarne i bossowie;
+  ich konkretne cele istnieją w świecie. Komendy: lowcy; lowcy przyjmij zwykle;
+  lowcy status; lowcy odbierz zwykle. Rozliczenie osobne dla każdego gracza.
+- Bank Dusz na Rynku: stare skrytki i wpłaty bez zmian. Nowe przelewy:
+  bank przelej LOGIN 100 zlota, bank wyslij item LOGIN PRZEDMIOT ILOSC,
+  bank historia. Przelewy wyłącznie ze skrytki, atomowe i z historią.
+- Zlecenia odnowią się po 1/4/24 godzinach (zwykłe/elitarne/boss).
+- EQ INFO: eq info 1, eq info glowa lub eq info <nazwa> pokazuje opis i ulepszenia
+  aktualnie założonej części wyposażenia bez jej zdejmowania.
+- Bez zmian cen najemników, balansu postaci, starych zleceń i zapisów.
+- Pełna gra i changelog; bez raportów AUDYT_*.txt.
+
 Soulbound v1.22.4 — ADMIN TOOLS 2.0
 ==============================================================================
 - Nowe admin help: kategorie graczy, serwera, świata i diagnostyki postaci.

@@ -23,6 +23,11 @@ V0560_HOURLY_COOLDOWN = 60 * 60
 
 # Existing inns already placed by World Expansion I/II.
 V0560_TAVERNS = {
+    "capital": {
+        "room": "soul_mercenary_tavern_v1225", "zone": "Miasto Dusz",
+        "tavern": "Wielka Tawerna Najemników", "npc_id": "innkeeper_orian_hourly_v1225",
+        "npc": "Karczmarz Orian", "categories": ("fish", "ore"), "enemy": "bandit",
+    },
     "birch": {
         "room": "birch_inn", "zone": "Brzozowy Trakt",
         "tavern": "Karczma Pod Białą Korą", "npc_id": "innkeeper_mirael",
@@ -75,6 +80,7 @@ _CATEGORY_INFO = {
 # Conservative town stage hints.  They only scale the fixed hourly rewards;
 # they do not gate acceptance, in keeping with Soulbound's no-global-level-gate rule.
 _TOWN_STAGE = {
+    "Miasto Dusz": 75,
     "Brzozowy Trakt": 35,
     "Żelazne Bramy": 75,
     "Twierdza Popiołu": 150,

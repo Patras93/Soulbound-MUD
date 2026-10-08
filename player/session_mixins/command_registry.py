@@ -20,6 +20,7 @@ COMMAND_REGISTRY = {
     'guildexam': ('guild_exam', (COMMAND_TEXT,), {}),
     'guildbounty': ('guild_bounty', (COMMAND_TEXT,), {}),
     'bounty': ('handle_bounty', (COMMAND_TEXT,), {}),
+    'hunters1225': ('handle_hunters_v1225', (COMMAND_TEXT,), {}),
     'legendarycontracts': ('handle_legendary_contracts_v022', (COMMAND_TEXT,), {}),
     'worldprojects': ('show_world_projects_v022', (COMMAND_TEXT,), {}),
     'worldproject': ('handle_world_project_v022', (COMMAND_TEXT,), {}),
@@ -371,7 +372,7 @@ REST_SAFE_COMMANDS = {
     "toolinfo_carpentry", "toolinfo_enchanting", "toolinfo_archaeology", "toolinfo_cartography", "jewelcraftinginfo", "gems",
     "gemsockets", "tiers", "location", "route", "guide", "recipes", "inventory", "equipment", "shop",
     "teachers", "quests", "charisma", "multiclass", "back", "dungeonexit", "progress", "exploration",
-    "achievements", "titles", "title", "collection", "bosscodex", "bounty", "drophistory", "lootfilter",
+    "achievements", "titles", "title", "collection", "bosscodex", "bounty", "hunters1225", "drophistory", "lootfilter",
     "regionprogress", "combatlog", "lifetime", "historybuffer", "treasures", "tasks", "navigation2", "career2", "greatworld", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "friends", "ignore", "unignore", "afk",
     "whois", "mail", "postal", "cityreputation", "board", "lfg", "newbieprotect", "house", "records", "inspect", "inspectprivacy",
@@ -388,7 +389,7 @@ GUIDE_SAFE_COMMANDS = {
     "worldquest", "superbosses", "superboss", "deepdungeon", "deepelevator", "pomocnik", "artifacts", "biomesets", "factionstories", "season", "expeditions", "transport",
     "greatruins", "legendaryevents", "endless", "megadungeons", "gauntlets", "mythicbosses", "archaeology", "cartography", "cartographyworld",
     "artifactupgrade", "endgamegoals", "collection", "museum", "prestige", "bosscodex", "leaderboards",
-    "bounty", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords",
+    "bounty", "hunters1225", "chronicle", "legendarycontracts", "worldprojects", "worldproject", "fishrecords",
     "drophistory", "combatlog", "lifetime", "historybuffer", "treasures", "tasks", "navigation2", "career2", "greatworld", "fishjournal", "say", "gossip", "newbie",
     "trade", "channels", "mentor", "tell", "reply", "friends", "postal", "cityreputation", "craftbox", "craftmastery",
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
@@ -399,6 +400,9 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
         _canonical, _handler, source="player/session_mixins/command_registry.py",
         help_topic=_canonical, kind="session",
     )
+
+for _alias in ("lowcy", "łowcy", "tablicalowcow", "hunterboard"):
+    COMMAND_CATALOG.add_alias(_alias, "hunters1225", source="player/session_mixins/command_registry.py")
 
 for _alias in ("mercenary", "mercenaries", "tawerna"):
     COMMAND_CATALOG.add_alias(_alias, "najemnik" if _alias == "mercenary" else "najemnicy", source="player/session_mixins/command_registry.py")

@@ -90,6 +90,7 @@ class Database(
         self.install_crafting_extensions_schema()
         self.create_mercenary_schema()
         self.create_world_crises_schema_v1220()
+        self.create_city_services_schema_v1225()
         # v1.22.4: persistent but minimal admin diagnostics; no passwords or tokens.
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS admin_actions_v1224 (
@@ -106,6 +107,27 @@ class Database(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 command TEXT NOT NULL, duration_ms INTEGER NOT NULL
+            );
+        """)
+        self.conn.commit()
+
+    def create_city_services_schema_v1225(self):
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS bank_transfers_v1225 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER NOT NULL, receiver_id INTEGER NOT NULL,
+                kind TEXT NOT NULL, item_id TEXT NOT NULL DEFAULT '',
+                quantity INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(sender_id) REFERENCES accounts(id),
+                FOREIGN KEY(receiver_id) REFERENCES accounts(id)
+            );
+            CREATE TABLE IF NOT EXISTS hunter_contracts_v1225 (
+                account_id INTEGER NOT NULL, tier TEXT NOT NULL,
+                target_id TEXT NOT NULL, needed INTEGER NOT NULL,
+                progress INTEGER NOT NULL DEFAULT 0, reward_silver INTEGER NOT NULL,
+                state TEXT NOT NULL DEFAULT 'active', ready_after INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(account_id,tier),
+                FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
             );
         """)
         self.conn.commit()

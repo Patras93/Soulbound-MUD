@@ -3995,4 +3995,8 @@ for _marker_v1224 in ("admin_errors_v1224", "admin_actions_v1224", "admin_slow_c
     if _marker_v1224 not in _db_source_v1224:
         raise RuntimeError("ADMIN TOOLS 2.0 missing DB migration: " + _marker_v1224)
 print("ADMIN TOOLS v1.22.4: 13 safety-contract checks PASS")
-print('Soulbound v1.22.4 FAST PREDEPLOY PASS')
+from admin.city_services_fast_v1225 import city_services_fast_v1225
+print(f'CITY SERVICES v1.22.5: {city_services_fast_v1225()} checks PASS')
+from validation.mercenary_followers_v1226 import validate_mercenary_followers_v1226
+print(f'MERCENARY FOLLOWERS v1.22.6: {validate_mercenary_followers_v1226()} checks PASS')
+print('Soulbound v1.22.6 FAST PREDEPLOY PASS')

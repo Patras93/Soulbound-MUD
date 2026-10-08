@@ -104,6 +104,9 @@ def audit_mercenary_scaling_v1213():
         def mob_effective_max_hp_v11330(self, mob):
             return 2000000
 
+        async def send_combat(self, message, detail='essential'):
+            self.messages.append(message)
+
         async def broadcast(self, origin, message, detail='normal'):
             self.messages.append(message)
 

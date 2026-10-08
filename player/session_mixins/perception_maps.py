@@ -300,6 +300,18 @@ class SessionPerceptionMapsMixin:
                     await self.look_at_player(player)
                     return
 
+                mercenary = self.visible_mercenary_for_look_v1226(query)
+                if mercenary:
+                    owner, role, spec = mercenary
+                    progress = self.server.db.mercenary_progress_v1220(owner.account_id, role)
+                    from systems.mercenary_growth_v1220 import mercenary_level
+                    await self.send(
+                        f"{spec['name']}, {spec['role']}, poziom {mercenary_level(progress['xp'])}. "
+                        f"Najemnik towarzyszy postaci {owner.character.name}. "
+                        f"Specjalizacja: {progress['specialization'] or 'brak'}."
+                    )
+                    return
+
                 npc = self.visible_npc_for_look(query)
                 if npc:
                     npc_id, npc_data = npc
@@ -378,6 +390,15 @@ class SessionPerceptionMapsMixin:
             if npcs:
                 await self.send(
                     "NPC: " + ", ".join(npcs) + "."
+                )
+
+            followers = self.nearby_mercenaries_v1226()
+            if followers:
+                await self.send(
+                    "Najemnicy tutaj: " + ", ".join(
+                        f"{spec['name']} ({spec['role']}, przy {owner.character.name})"
+                        for owner, role, spec in followers
+                    ) + "."
                 )
 
             mobs = self.server.world.room_mobs(

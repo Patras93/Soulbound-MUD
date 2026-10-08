@@ -373,8 +373,11 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.22.4 - Admin Tools 2.0"
+LATEST_CHANGES_TITLE = "Soulbound v1.22.6 - Najemnicy widoczni i walczacy"
 LATEST_CHANGES = [
+    "v1.22.6: Najemnicy wynajęci na stałe są widoczni przy właścicielu (look/l, l IMIĘ); właściciel i drużyna widzą ich działania podczas walki także w zwięzłym trybie NVDA. Bez zmian balansu i zapisów.",
+    "v1.22.5: eq info NUMER lub SLOT pokazuje dane założonej części bez zdejmowania.",
+    "v1.22.5: Wielka Tawerna Najemników przy Placu Dusz (15 stałych najemników); Bank Dusz z przelewami pieniędzy i przedmiotów oraz historią; Tablica Łowców Nagród z trzema stopniami, celami i odnawianiem. Zachowany stary bank, bounty i kontrakty.",
     "v1.22.4: Admin Tools 2.0 - komendy graczy, świata, zapisy błędów, kopie SQLite i historia działań; potwierdzanie zmian na postaciach.",
     "v1.22.3: Rejestracja z potwierdzeniem e-mail, przypisywanie e-mail do starych kont oraz reset kodem z poczty. Wymagana bezpieczna konfiguracja SMTP Railway.",
     "v1.22.2: Odzyskiwanie hasła konta kodem zapasowym gracza lub 15-minutowym kodem resetu od administratora. Bez odczytu starych haseł, bez zmian postaci i EQ.",

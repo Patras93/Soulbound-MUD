@@ -211,6 +211,7 @@ def audit_party_support_runtime_v1173():
             self.skill_guard = 1  # A guard is already active: test offensive turn.
             self._mercenary_next_action_v1170 = 0.0
             self._mercenary_last_role_v1170 = None
+            self.owner_messages = []
             contracts = [
                 {"role": role, "expires_at": time.time() + 60}
                 for role in ("mec", "mag", "druid")
@@ -220,6 +221,9 @@ def audit_party_support_runtime_v1173():
                 party_sessions=lambda _account, same_room=None: [self],
                 party_combat_broadcast=self._broadcast,
             )
+
+        async def send_combat(self, message, detail="essential"):
+            self.owner_messages.append((message, detail))
 
         async def _broadcast(self, _session, message, detail="normal"):
             messages.append(message)
@@ -256,6 +260,8 @@ def audit_party_support_runtime_v1173():
             first_msgs = len(messages)
             await session.mercenary_combat_turn_v1170(mob)
             progress = session.server.db.mercenary_progress_v1220(1, "mec")
+            if len(session.owner_messages) != 1 or session.owner_messages[0][1] != "essential":
+                raise AssertionError("mercenary owner did not receive one essential combat message")
             return before, first_hp, first_msgs, mob.hp, len(messages), progress
         finally:
             MOB_TEMPLATES.pop(mob.template_id, None)

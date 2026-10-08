@@ -4,7 +4,17 @@ ROOMS = {
     "square": {
         "zone": "Miasto Dusz", "name": "Plac Dusz",
         "desc": "Centralny plac osady. Nad kamienną fontanną płonie błękitny ogień.",
-        "exits": {"north": "north_street", "south": "south_street", "east": "market", "west": "temple"},
+        "exits": {"north": "north_street", "south": "south_street", "east": "market", "west": "temple", "northeast": "soul_mercenary_tavern_v1225"},
+    },
+    "soul_mercenary_tavern_v1225": {
+        "zone": "Miasto Dusz", "name": "Wielka Tawerna Najemników",
+        "desc": "Wielka sala przy Placu Dusz. Przy stołach czekają najemnicy wszystkich piętnastu specjalizacji. Na wschodzie mieści się Tablica Łowców Nagród. Wynajem działa na dotychczasowych zasadach.",
+        "exits": {"southwest": "square", "east": "soul_hunter_board_v1225"},
+    },
+    "soul_hunter_board_v1225": {
+        "zone": "Miasto Dusz", "name": "Sala Łowców Nagród",
+        "desc": "Drewniana tablica zawiera trzy odnawialne polowania: zwykłe potwory, elity i bossów. Wpisz lowcy, aby poznać zlecenia. Po wyjściu na zachód wrócisz do Wielkiej Tawerny.",
+        "exits": {"west": "soul_mercenary_tavern_v1225"},
     },
     "temple": {
         "zone": "Miasto Dusz", "name": "Świątynia Odrodzenia",

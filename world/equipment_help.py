@@ -1350,6 +1350,7 @@ HELP_TOPICS["najemnicy"] = [
     "najemnicy — pokazuje ofertę piętnastu najemników i aktualne ceny, jeśli jesteś w tawernie.",
     "najemnik wynajmij <imię> — zatrudnij wybraną postać, np. najemnik wynajmij Seren.",
     "najemnik status — lista najemników zatrudnionych na stałe; działa w dowolnym miejscu.",
+    "look / l pokazuje wynajętych najemników obok właściciela; l Seren lub l Vael pokazuje szczegóły. Ataki najemników są widoczne w logu walki.",
     "najemnik odeslij <imię> — odeślij wskazanego najemnika; najemnik odeslij wszyscy — odeślij wszystkich. Działa również zwolnij.",
     "Możesz mieć najwyżej 3 wynajętych najemników bez limitu czasu."
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
@@ -1425,3 +1426,25 @@ HELP_TOPICS["odzyskaj_haslo"] = [
     "Administrator: admin haslo reset <login> (kod prywatny) lub admin haslo wyslij <login> (kod na e-mail).",
     "Reset ustawia nowe hasło; nie ujawnia starego. Po resecie pozostałe kody zostają unieważnione.",
 ]
+
+# v1.22.5: short NVDA help for both new commands and equipment inspection.
+HELP_TOPICS['lowcy'] = [
+    'Sala Łowców Nagród w Mieście Dusz: Plac Dusz, północny wschód do tawerny, potem wschód.',
+    'lowcy: lista. lowcy status: postęp; lowcy przyjmij zwykle|elitarne|boss: przyjęcie kontraktu.',
+    'lowcy odbierz zwykle|elitarne|boss: odbiór po wykonaniu. Nagroda trafia do Banku Dusz.',
+    'Liczą się rzeczywiste zabójstwa konkretnego rodzaju przeciwnika, także zaliczone uczestnikom drużyny.',
+    'Zwykłe polowanie odnawia się po 1 godzinie, elitarne po 4 godzinach, boss po 24 godzinach.',
+]
+HELP_TOPIC_ALIASES.update({'tablica_lowcow':'lowcy', 'hunterboard':'lowcy', 'łowcy':'lowcy'})
+HELP_TOPICS['bank'] = [
+    'Bank Dusz na Rynku: bank, bank wplac, bank wyplac, bank wloz i bank wyjmij.',
+    'Przelew ze skrytki: bank przelej LOGIN 100 zlota. Możesz użyć srebra, zlota lub mithril.',
+    'Przesłanie przedmiotu ZE SKRYTKI: bank wyslij item LOGIN PRZEDMIOT [ILOSC].',
+    'Historia: bank historia. Przelewy są atomowe i nie pobierają środków przy błędzie.',
+]
+HELP_TOPICS['eq_info'] = [
+    'eq: wykaz założonego wyposażenia. eq info: pełny raport wszystkich bonusów.',
+    'eq info 1: szczegóły pierwszego przedmiotu z listy; eq info glowa: szczegóły hełmu.',
+    'eq info pancerz srebrny: znajdź założony przedmiot po nazwie, bez zdejmowania.',
+]
+HELP_TOPIC_ALIASES.update({'eqinfo':'eq_info', 'equippedinfo':'eq_info'})

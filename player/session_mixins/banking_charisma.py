@@ -166,7 +166,7 @@ class SessionBankingCharismaMixin:
                 "bank wyplac <ile> [srebra|zlota|mithril], "
                 "bank wplac wszystko, bank wyplac wszystko, "
                 "bank wloz <przedmiot> [ile], "
-                "bank wyjmij <przedmiot> [ile]."
+                "bank wyjmij <przedmiot> [ile]; bank przelej LOGIN ILOSC [waluta]; bank wyslij item LOGIN PRZEDMIOT [ILOSC]; bank historia."
             )
 
     async def bank_deposit_currency(self, amount, currency):
@@ -417,6 +417,41 @@ class SessionBankingCharismaMixin:
             rest = parts[1] if len(parts) > 1 else ""
             normalized_rest = normalize_lookup_text(rest)
 
+            if action in ("historia", "history"):
+                await self.send("BANK DUSZ - HISTORIA PRZELEWOW")
+                for row in self.server.db.bank_transfer_history_v1225(self.account_id, 15):
+                    what = currency_reading_text(row['quantity'],0,0) if row['kind']=='money' else f"{ITEMS.get(row['item_id'],{}).get('name',row['item_id'])} x{row['quantity']}"
+                    await self.send(f"{row['created_at']}: {row['sender_name']} -> {row['receiver_name']}: {what}.")
+                return
+            if action in ("przelej", "transfer"):
+                tokens=rest.split()
+                if len(tokens) not in (2,3) or not tokens[1].isdigit():
+                    await self.send("Użycie: bank przelej LOGIN ILOSC [srebra|zlota|mithril].")
+                    return
+                currency=self.normalize_bank_currency(tokens[2]) if len(tokens)==3 else 'silver'
+                if not currency:
+                    await self.send("Nieznana waluta. Użyj srebra, zlota lub mithril.")
+                    return
+                amount=self.bank_amount_to_silver(int(tokens[1]),currency)
+                if amount<=0:
+                    await self.send("Kwota musi być dodatnia."); return
+                result=self.server.db.transfer_bank_v1225(self.account_id,tokens[0],silver=amount)
+                await self.send("Przelew wykonany: " + currency_reading_text(amount,0,0) + f" do {tokens[0]}." if result=='ok' else "Przelew odrzucony: " + {"recipient":"Nie znaleziono loginu.","self":"Nie można przesyłać do siebie.","funds":"Za mało środków w banku.","limit":"Przekroczony limit salda.","invalid":"Nieprawidłowa kwota."}.get(result,"Nieudana operacja."))
+                return
+            if action in ("wyslij", "przeslij"):
+                words=rest.split(maxsplit=2)
+                if len(words)<3 or normalize_lookup_text(words[0])!='item':
+                    await self.send("Użycie: bank wyslij item LOGIN NAZWA [ILOSC]."); return
+                login, item_text=words[1],words[2]
+                item_query,qty=self.split_bank_item_quantity(item_text)
+                owned={str(row['item_id']): ITEMS.get(row['item_id'],{'name':str(row['item_id'])}) for row in self.server.db.bank_items(self.account_id)}
+                match=find_by_name(owned,item_query)
+                if not match:
+                    await self.send("W skrytce nie ma takiego przedmiotu.");return
+                item_id,item=match
+                result=self.server.db.transfer_bank_v1225(self.account_id,login,item_id=item_id,quantity=qty)
+                await self.send(f"Przekazano {item['name']} x{qty} do {login}." if result=='ok' else "Przekazanie odrzucone: " + {"recipient":"Nie znaleziono loginu.","self":"Nie można wysłać do siebie.","funds":"Za mało sztuk w skrytce.","limit":"Limit skrytki.","invalid":"Przedmiot chroniony lub błędna liczba."}.get(result,"Nieudana operacja."))
+                return
             if action in ("wplac", "deposit"):
                 if normalized_rest == "wszystko":
                     deposited_any = False
@@ -497,7 +532,7 @@ class SessionBankingCharismaMixin:
                 "Użycie: bank; bank wplac 100 srebra; bank wplac 5 zlota; bank wplac 1 mithril; "
                 "bank wyplac 100 srebra; bank wplac wszystko; "
                 "bank wyplac wszystko; bank wloz <przedmiot> [ile]; "
-                "bank wyjmij <przedmiot> [ile]."
+                "bank wyjmij <przedmiot> [ile]; bank przelej LOGIN ILOSC [waluta]; bank wyslij item LOGIN PRZEDMIOT [ILOSC]; bank historia."
             )
 
     async def show_money(self):
