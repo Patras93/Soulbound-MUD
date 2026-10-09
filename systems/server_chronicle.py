@@ -192,6 +192,17 @@ def _db_v03811_record_kill(self, account_id, actor_name, template_id, participan
     canonical = MOB_TEMPLATES.get(canonical_id, template)
     actual_name = str(template.get("name") or canonical.get("name") or template_id)
     actor_phrase, grouped = _v03811_actor_phrase(actor_name, participants)
+    legend_rank = str(template.get('elite_legend_rank_v1250', '') or '')
+    if legend_rank in ('legendary', 'mythic'):
+        from datetime import date
+        self.add_server_chronicle_event_v03811(
+            "legendary_mob",
+            f"{actor_phrase} pokonał {'mitycznego' if legend_rank == 'mythic' else 'legendarnego'} przeciwnika: {actual_name}.",
+            account_id=account_id, actor_name=actor_name,
+            subject_id=canonical_id, subject_name=actual_name,
+            importance=4 if legend_rank == 'mythic' else 3,
+            event_key=f"legend1250:{account_id}:{template_id}:{date.today().isoformat()}",
+        )
     first = self.claim_server_legend_key_v03811("first_kill:" + str(canonical_id))
     importance = _v03811_kill_importance(template)
 
@@ -318,7 +329,7 @@ V03811_CHRONICLE_FILTERS = {
     "zabicie": ("first_kill",),
     "kills": ("first_kill",),
     "firstkills": ("first_kill",),
-    "bossy": ("world_boss",),
+    "bossy": ("world_boss", "legendary_mob"),
     "worldbossy": ("world_boss",),
     "worldbosses": ("world_boss",),
     "ryby": ("fish_record",),
@@ -328,13 +339,14 @@ V03811_CHRONICLE_FILTERS = {
     "projects": ("world_project",),
     "dropy": ("exceptional_drop",),
     "drops": ("exceptional_drop",),
-    "legendy": ("first_kill", "world_boss", "fish_record", "world_project", "exceptional_drop"),
-    "legends": ("first_kill", "world_boss", "fish_record", "world_project", "exceptional_drop"),
+    "legendy": ("first_kill", "world_boss", "legendary_mob", "fish_record", "world_project", "exceptional_drop"),
+    "legends": ("first_kill", "world_boss", "legendary_mob", "fish_record", "world_project", "exceptional_drop"),
 }
 
 V03811_CHRONICLE_LABELS = {
     "first_kill": "PIERWSZE ZABICIE",
     "world_boss": "WORLD BOSS",
+    "legendary_mob": "LEGENDARNY PRZECIWNIK",
     "fish_record": "REKORD POŁOWU",
     "world_project": "PROJEKT ŚWIATA",
     "exceptional_drop": "WYJĄTKOWY DROP",

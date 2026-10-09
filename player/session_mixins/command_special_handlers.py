@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from core.command_catalog import COMMAND_LOOP_BREAK
 from network.protocol_gameplay_utils import normalize_lookup_text
+from core.mine_tunnels import mine_direction, HORIZONTAL_MINE_DIRECTIONS
 
 
 class SessionCommandSpecialHandlersMixin:
@@ -79,13 +80,42 @@ class SessionCommandSpecialHandlersMixin:
             await self.fish()
 
     async def command_mine_v0490(self, args):
-        mode = str(args or "").strip().lower()
-        if mode in ("on", "start", "1"):
-            await self.set_auto_mining(True)
-        elif mode in ("off", "stop", "0"):
+        mode = str(args or '').strip().lower()
+        parts = mode.split(maxsplit=1)
+        if parts and parts[0] in ('on', 'start', '1'):
+            direction = mine_direction(parts[1]) if len(parts) > 1 else None
+            if len(parts) > 1 and direction is None:
+                await self.send('Nie znam kierunku. Użyj: north, south, east, west, northeast, northwest, southeast, southwest, up, down.')
+                return
+            await self.set_auto_mining(True, direction=direction)
+        elif mode in ('off', 'stop', '0'):
             await self.set_auto_mining(False)
         elif mode:
-            await self.send("Użycie: mine, mine on, mine off, kop on albo kop off.")
+            direction = mine_direction(mode)
+            if direction is None:
+                await self.send('Kierunki kopania: north, south, east, west, northeast, northwest, southeast, southwest, up, down; także: prawo, lewo, góra, dół.')
+            elif direction == 'up':
+                from core.mine_tunnels import mine_tunnel_coords
+                if mine_tunnel_coords(self.character.room_id, self.account_id) is None:
+                    await self.send('Kopanie kierunkowe jest dostępne na piętrach Kopalni Głębinowej.')
+                else:
+                    await self.move('up')
+            elif direction in HORIZONTAL_MINE_DIRECTIONS:
+                from core.mine_tunnels import mine_tunnel_coords
+                pos = mine_tunnel_coords(self.character.room_id, self.account_id)
+                if pos is None:
+                    await self.send('Wybierz piętro Kopalni Głębinowej, aby drążyć własne chodniki.')
+                elif self.server.db.mine_tunnel_target_v1251(self.account_id, *pos, direction):
+                    await self.move(direction)
+                else:
+                    await self.mine(direction=direction)
+            else:
+                from core.progression_resources import mine_floor_number
+                floor = mine_floor_number(self.character.room_id)
+                if (floor is not None and floor < self.mine_progress()['max_floor_unlocked']):
+                    await self.move('down')
+                else:
+                    await self.mine(direction=direction)
         else:
             await self.mine()
 

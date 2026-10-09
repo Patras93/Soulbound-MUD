@@ -43,6 +43,7 @@ from systems.items_resources import (
 from world.generation_systems import v0140_gather_event_bonus, v0150_environment_bonus
 
 from events.contracts import ResourceGatheredEvent
+from core.mine_tunnels import mine_tunnel_coords, HORIZONTAL_MINE_DIRECTIONS, MINE_DIRECTION_LABELS
 
 class SessionGatheringActionsMixin:
 
@@ -341,7 +342,11 @@ class SessionGatheringActionsMixin:
                     f"{tool_tier_name('fishing', new_tool_level)}."
                 )
 
-    async def mine(self, from_auto=False):
+    async def mine(self, from_auto=False, direction=None):
+            if direction in HORIZONTAL_MINE_DIRECTIONS and mine_tunnel_coords(
+                self.character.room_id, self.account_id) is None:
+                await self.send('Boczne chodniki można drążyć tylko wewnątrz Kopalni Głębinowej.')
+                return
             if self.combat_mob_key:
                 await self.send("Nie możesz wydobywać podczas walki.")
                 return
@@ -551,6 +556,47 @@ class SessionGatheringActionsMixin:
                 )
 
             floor = mine_floor_number(self.character.room_id)
+            if floor is not None and direction in HORIZONTAL_MINE_DIRECTIONS:
+                pos = mine_tunnel_coords(self.character.room_id, self.account_id)
+                if pos is None:
+                    return
+                level, x, y = pos
+                result = self.server.db.mine_tunnel_hit_v1251(
+                    self.account_id, level, x, y, direction)
+                if result['opened']:
+                    if result['new']:
+                        from core.mine_world_v1260 import geology_v1260
+                        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
+                        dx,dy = HORIZONTAL_MINE_DIRECTIONS[direction]
+                        nx,ny=x+dx,y+dy
+                        geo=geology_v1260(level,nx,ny)
+                        discovery=self.server.db.mine_discover_v1260(
+                            self.account_id,level,nx,ny,self.character.name)
+                        if discovery['new']:
+                            await self.send(f'ODKRYCIE KOPALNI: {geo["name"]}. {geo["description"]}')
+                        if discovery['global_first'] and geo['kind'] in ('rare_ore','vault','ruins','chamber'):
+                            await self.send('LEGENDARNE ODKRYCIE: jako pierwszy odkrywasz tę komnatę!')
+                            if hasattr(self.server.db,'add_server_chronicle_event_v03811'):
+                                self.server.db.add_server_chronicle_event_v03811(
+                                    'odkrycie', f'{self.character.name} jako pierwszy odkrył {geo["name"]} '
+                                    f'na poziomie {level}, X={nx}, Y={ny}.',
+                                    account_id=self.account_id,actor_name=self.character.name,
+                                    subject_id=f'mine:{level}:{nx}:{ny}',subject_name=geo['name'],importance=3,
+                                    event_key=f'mine:first:{level}:{nx}:{ny}')
+                    await self.send(
+                        f'PRZEBITY CHODNIK: {MINE_DIRECTION_LABELS[direction]}. '
+                        f'Otwierasz przejście na poziomie {level}.')
+                    # Movement uses the same validation as any other passage;
+                    # when auto-digging we must NOT cancel the running task.
+                    if from_auto and self.auto_mining:
+                        await self.move(direction, preserve_auto_mining=True)
+                    else:
+                        await self.move(direction)
+                else:
+                    await self.send(
+                        f'Ściana {MINE_DIRECTION_LABELS[direction]}: '
+                        f"{result['hits']} z {result['required_hits']} uderzeń.")
+                return
             if floor is not None:
                 wall = self.server.db.add_mine_wall_hit(
                     self.account_id, floor
@@ -561,9 +607,12 @@ class SessionGatheringActionsMixin:
                         f"Przebijasz ścianę w dół! "
                         f"Odblokowano Kopalnię - poziom {unlocked}."
                     )
-                    if from_auto and self.auto_mining:
-                        descended = await self.auto_mine_descend_if_unlocked()
-                        if not descended:
+                    if (from_auto and self.auto_mining) or direction == 'down':
+                        descended = await self.auto_mine_descend_if_unlocked() if from_auto else False
+                        if direction == 'down' and not from_auto:
+                            await self.move('down')
+                            descended = True
+                        if not descended and from_auto:
                             await self.send(
                                 "Ściana jest przebita, ale auto-kopanie "
                                 "nie może bezpiecznie zejść w dół."

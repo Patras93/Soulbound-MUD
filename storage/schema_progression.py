@@ -59,6 +59,64 @@ def create_progression_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        CREATE TABLE IF NOT EXISTS mine_tunnel_cells_v1251 (
+                        account_id INTEGER NOT NULL,
+                        floor INTEGER NOT NULL,
+                        x INTEGER NOT NULL,
+                        y INTEGER NOT NULL,
+                        PRIMARY KEY(account_id, floor, x, y),
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
+        CREATE TABLE IF NOT EXISTS mine_tunnel_walls_v1251 (
+                        account_id INTEGER NOT NULL,
+                        floor INTEGER NOT NULL,
+                        x INTEGER NOT NULL,
+                        y INTEGER NOT NULL,
+                        direction TEXT NOT NULL,
+                        hits INTEGER NOT NULL DEFAULT 0,
+                        required_hits INTEGER NOT NULL,
+                        PRIMARY KEY(account_id, floor, x, y, direction),
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
+        CREATE TABLE IF NOT EXISTS mine_discoveries_v1260 (
+            account_id INTEGER NOT NULL, floor INTEGER NOT NULL,
+            x INTEGER NOT NULL, y INTEGER NOT NULL,
+            discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(account_id, floor, x, y),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS mine_first_discoveries_v1260 (
+            floor INTEGER NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL,
+            account_id INTEGER NOT NULL, actor_name TEXT NOT NULL,
+            discovered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(floor, x, y)
+        );
+
+        CREATE TABLE IF NOT EXISTS mine_claimed_v1260 (
+            account_id INTEGER NOT NULL, floor INTEGER NOT NULL,
+            x INTEGER NOT NULL, y INTEGER NOT NULL,
+            PRIMARY KEY(account_id, floor, x, y),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS mercenary_memory_v1260 (
+            account_id INTEGER NOT NULL, role TEXT NOT NULL, species TEXT NOT NULL,
+            attempts_json TEXT NOT NULL, success_json TEXT NOT NULL,
+            PRIMARY KEY(account_id, role, species),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS grand_expeditions_v1260 (
+            account_id INTEGER PRIMARY KEY,
+            cycle INTEGER NOT NULL DEFAULT 1,
+            stage INTEGER NOT NULL DEFAULT 0,
+            completed INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS class_progress (
                         account_id INTEGER NOT NULL,
                         class_name TEXT NOT NULL,

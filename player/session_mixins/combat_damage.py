@@ -5,6 +5,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import math
 import random
+import sys
 
 from core.progression_600 import CHARACTER_MAX_LEVEL
 from core.player_math import (
@@ -43,15 +44,101 @@ class SessionCombatDamageMixin:
 
     def adaptive_member_dps_v11330(self, member):
                 try:
-                    per_action = max(1.0, float(member.consider_player_expected_hit()))
+                    try:
+                        raw_hit = member.consider_player_expected_hit()
+                    except OverflowError:
+                        # Never substitute 1 DPS for a player with huge stats.
+                        raw_hit = max(member.physical_power(), member.spell_power())
                     hits = max(1, int(member.basic_attack_hit_count_v11196()))
                     interval = max(0.35, float(member.player_action_interval_v11154()))
-                    # consider() intentionally omits some late Soul Weapon/skill layers.
-                    # A modest factor keeps the scaler ahead of auto-queue burst without
-                    # turning normal mobs into pure HP walls.
+                    if isinstance(raw_hit, int) and raw_hit.bit_length() > 950:
+                        from core.large_number_math import rounded_product, decimal_value
+                        return max(1, rounded_product(raw_hit, hits, 1.30,
+                                   decimal_value(1) / decimal_value(interval)))
+                    per_action = max(1.0, float(raw_hit))
                     return max(1.0, per_action * hits * 1.30 / interval)
                 except Exception:
                     return 1.0
+
+    def adaptive_member_mercenary_dps_v1261(self, member):
+                """Projected DPS of active hires, using the same five-second owner action
+                model as real mercenary combat. Never consumes a turn or writes to DB.
+                """
+                owner = getattr(member, "character", None)
+                server = getattr(member, "server", None)
+                db = getattr(server, "db", None)
+                if owner is None or db is None or not callable(getattr(db, "mercenary_contracts", None)):
+                    return 0.0
+                from systems.mercenary_taverns import (
+                    COOLDOWN, MERCENARIES, mercenary_owner_real_action_power_v1231,
+                )
+                from systems.mercenary_growth_v1220 import mercenary_attack_multiplier, mercenary_tactic
+                import time
+                now_mono = time.monotonic()
+                cache = getattr(member, "_adaptive_mercenary_dps_cache_v1261", None)
+                if cache and now_mono - cache[0] < 0.8:
+                    return cache[1]
+                contracts = db.mercenary_contracts(member.account_id)
+                now = time.time()
+                # The player action estimator includes real equipped damage, hit
+                # series and haste. The hire executes independently every COOLDOWN.
+                try:
+                    try:
+                        hit = member.consider_player_expected_hit()
+                    except OverflowError:
+                        hit = max(member.physical_power(), member.spell_power())
+                    baseline = max(1, hit, member.physical_power(), member.spell_power())
+                    action_power = mercenary_owner_real_action_power_v1231(member, baseline)
+                except (AttributeError, TypeError, ValueError, OverflowError):
+                    return 0.0
+                owner_level = max(1, int(getattr(owner, "character_level", 1) or 1))
+                projected = 0.0
+                for row in contracts:
+                    role = str(row["role"])
+                    spec = MERCENARIES.get(role)
+                    if not spec:
+                        continue
+                    expires = float(row["expires_at"] or 0)
+                    if expires > 0 and expires <= now:
+                        continue
+                    tactic = "automatyczna"
+                    if callable(getattr(db, "mercenary_progress_v1220", None)):
+                        progress = db.mercenary_progress_v1220(member.account_id, role)
+                        tactic = mercenary_tactic(progress["specialization"])
+                    # Support roles heal/guard on some turns. Never count those
+                    # as simultaneous extra attacks when estimating encounter HP.
+                    availability = 0.78 if role in ("kaplan", "paladyn", "druid", "straznik") else 1.0
+                    multiplier = mercenary_attack_multiplier(owner_level, tactic)
+                    if isinstance(action_power, int) and action_power.bit_length() > 950:
+                        from core.large_number_math import rounded_product, decimal_value
+                        contribution = rounded_product(action_power,
+                            decimal_value(1) / decimal_value(COOLDOWN),
+                            max(1.0, float(spec["power"])), multiplier, availability)
+                        if not isinstance(projected, int):
+                            projected = int(projected)
+                        projected += contribution
+                    else:
+                        projected += (action_power / COOLDOWN) * max(1.0, float(spec["power"])) * multiplier * availability
+                projected = max(0.0, projected)
+                member._adaptive_mercenary_dps_cache_v1261 = (now_mono, projected)
+                return projected
+
+    def adaptive_party_dps_v1261(self, members):
+                return sum(
+                    self.adaptive_member_dps_v11330(member)
+                    + self.adaptive_member_mercenary_dps_v1261(member)
+                    for member in members
+                )
+
+    def adaptive_mob_has_active_fighters_v1261(self, mob):
+                """No downscaling while ANY player is still fighting this mob."""
+                for session in getattr(self.server, "sessions", ()):
+                    if (getattr(session, "combat_mob_key", None) == mob.key
+                            and not getattr(session, "closed", False)
+                            and getattr(session, "current_hp", 0) > 0
+                            and getattr(getattr(session, "character", None), "room_id", None) == mob.room_id):
+                        return True
+                return False
 
     def mob_effective_max_hp_v11330(self, mob, template=None):
                 if mob is None:
@@ -74,10 +161,7 @@ class SessionCombatDamageMixin:
                     return None
 
                 members = self.adaptive_party_members_v11330(mob)
-                party_dps = sum(
-                    self.adaptive_member_dps_v11330(member)
-                    for member in members
-                )
+                party_dps = self.adaptive_party_dps_v1261(members)
                 base_max = max(1, int(template.get("max_hp", 1) or 1))
                 target_max = adaptive_target_max_hp_v11330(
                     base_max, party_dps, template
@@ -87,18 +171,36 @@ class SessionCombatDamageMixin:
                     int(getattr(mob, "adaptive_max_hp_v11330", 0) or base_max),
                 )
 
-                # Never shrink an active fight when a member leaves or loses buffs.
+                # Active combat may only expand to accommodate additional
+                # teammates. An abandoned encounter must not keep the maximum HP
+                # left behind by an entirely different (stronger) party.
+                active_fighters = self.adaptive_mob_has_active_fighters_v1261(mob)
                 if target_max > old_max:
                     damage_already_done = max(0, old_max - max(0, int(mob.hp)))
                     mob.hp = max(1, target_max - damage_already_done)
                     old_max = target_max
+                elif target_max < old_max and not active_fighters:
+                    # Preserve health *fraction* to prevent healing exploits and
+                    # keep any real battle damage when a new player takes over.
+                    # Exact integer arithmetic avoids float overflow and
+                    # preserves the fraction even for enormous mob HP.
+                    remaining_hp = min(old_max, max(0, int(mob.hp)))
+                    mob.hp = max(1, min(target_max,
+                        (target_max * remaining_hp + old_max - 1) // old_max))
+                    old_max = target_max
 
                 mob.adaptive_max_hp_v11330 = old_max
-                mob.adaptive_hp_multiplier_v11330 = round(
-                    old_max / float(base_max), 6
-                )
+                # Diagnostic floats are bounded by IEEE-754, but the actual
+                # HP stays an unrestricted Python integer.
+                try:
+                    mob.adaptive_hp_multiplier_v11330 = round(old_max / base_max, 6)
+                except OverflowError:
+                    mob.adaptive_hp_multiplier_v11330 = sys.float_info.max
                 mob.adaptive_party_size_v11330 = len(members)
-                mob.adaptive_party_dps_v11330 = round(float(party_dps), 3)
+                try:
+                    mob.adaptive_party_dps_v11330 = round(float(party_dps), 3)
+                except OverflowError:
+                    mob.adaptive_party_dps_v11330 = sys.float_info.max
                 mob.adaptive_rank_v11330 = adaptive_combat_rank_v11330(template)
                 mob.adaptive_reward_multiplier_v11330 = (
                     adaptive_reward_multiplier_v11330(base_max, old_max)
@@ -413,10 +515,7 @@ class SessionCombatDamageMixin:
                 """Preview encounter-local Adaptive Combat without starting or mutating combat."""
                 members = self.adaptive_party_members_v11330(mob)
                 party_size = max(1, len(members))
-                party_dps = sum(
-                    self.adaptive_member_dps_v11330(member)
-                    for member in members
-                )
+                party_dps = self.adaptive_party_dps_v1261(members)
 
                 base_max_hp = max(1, int(template.get("max_hp", 1) or 1))
                 projected_max_hp = adaptive_target_max_hp_v11330(

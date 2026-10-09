@@ -74,7 +74,22 @@ def audit_world_secrets_v1190(runtime=True):
             chamber_room = server.ROOMS.get(chamber, {})
             archive_room = server.ROOMS.get(archive, {})
             check(chamber_room.get("exits") == {"down": parent_id, "east": archive}, f"chamber routes {kind}")
-            check(archive_room.get("exits") == {"west": chamber, "down": parent_id}, f"archive returns to same floor {kind}")
+            # v1.25: some archives also have a north passage to a guarded vault.
+            # Check the old routes unchanged, plus only the explicitly expected vault.
+            archive_exits = archive_room.get("exits") or {}
+            check(archive_exits.get("west") == chamber and archive_exits.get("down") == parent_id,
+                  f"archive returns to same floor {kind}")
+            vault = secret_room_id_v1190(kind, floor, "vault")
+            vault_expected = floor >= 10 and (floor // 10) % 4 == 3
+            if vault_expected:
+                check(archive_exits.get("north") == vault and set(archive_exits) == {"west", "down", "north"},
+                      f"vault reachable from archive {kind}")
+                vault_room = server.ROOMS.get(vault, {})
+                check(vault_room.get("exits") == {"south": archive}, f"vault can return to archive {kind}")
+                check(server.TREASURE_CHESTS.get(vault, {}).get("respawn") == 86400,
+                      f"vault has guarded treasure {kind}")
+            else:
+                check(set(archive_exits) == {"west", "down"}, f"archive has no surprise exits {kind}")
             check(server.TREASURE_CHESTS.get(chamber, {}).get("respawn") == 86400, f"guarded chest {kind}")
             check(chamber not in server.TREASURE_CHESTS or archive not in server.TREASURE_CHESTS, f"no extra chest in archive {kind}")
             npcs = [npc for npc in server.NPCS.values() if npc.get("room") == archive]

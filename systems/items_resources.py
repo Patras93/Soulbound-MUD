@@ -1826,4 +1826,9 @@ def profession_resource_market_value_v1148(item_id, item=None, category=None):
     if normal is None:
         normal = _resource_market_base_v1148(category, base_id)
     variant_factor = max(1.0, float(item.get("rare_value_multiplier", 1) or 1))
-    return max(1, int(round(normal * variant_factor)))
+    from systems.market_dynamics_v1250 import market_demand_v1250
+    # Dynamic demand changes the *base resource* quote once. A rare variant
+    # multiplies that displayed quote afterwards so variants remain worth
+    # exactly their advertised multiple (and NPC sale audits remain valid).
+    adjusted_base = max(1, int(round(normal * market_demand_v1250(category))))
+    return max(1, int(round(adjusted_base * variant_factor)))

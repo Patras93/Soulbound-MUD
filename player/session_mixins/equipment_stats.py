@@ -41,9 +41,18 @@ def moogle_board_current_bonus_v10010(character_level):
 
 class SessionEquipmentStatsMixin:
     def equipped_item_rows(self):
-            return list(self.server.db.equipment(self.account_id))
+            cache = getattr(self, "_read_only_equipment_cache_v1262", None)
+            if cache is not None and "equipped_rows" in cache:
+                return list(cache["equipped_rows"])
+            rows = list(self.server.db.equipment(self.account_id))
+            if cache is not None:
+                cache["equipped_rows"] = tuple(rows)
+            return rows
 
     def soul_weapon_relic_rows_v11179(self):
+            cache = getattr(self, "_read_only_equipment_cache_v1262", None)
+            if cache is not None and "relic_rows" in cache:
+                return list(cache["relic_rows"])
             level=int(getattr(self.character,"character_level",1) or 1)
             rows=[]
             for item_id,item in ITEMS.items():
@@ -54,7 +63,10 @@ class SessionEquipmentStatsMixin:
                 if int(item.get("required_level",0) or 0)>level:
                     continue
                 rows.append((item_id,item))
-            return sorted(rows,key=lambda row:(str(row[1].get("name","")).lower(),row[0]))
+            result = sorted(rows,key=lambda row:(str(row[1].get("name","")).lower(),row[0]))
+            if cache is not None:
+                cache["relic_rows"] = tuple(result)
+            return result
 
     def active_soul_weapon_relic_v11176(self):
             rows=self.soul_weapon_relic_rows_v11179()
@@ -154,6 +166,9 @@ class SessionEquipmentStatsMixin:
 
 
     def equipment_bonus_totals(self):
+            cache = getattr(self, "_read_only_equipment_cache_v1262", None)
+            if cache is not None and "bonuses" in cache:
+                return dict(cache["bonuses"])
             totals = {
                 "strength": 0,
                 "dexterity": 0,
@@ -224,10 +239,15 @@ class SessionEquipmentStatsMixin:
             class_stats = self.class_set_stat_bonus_totals()
             for stat, amount in class_stats.items():
                 totals[stat] += int(amount)
+            if cache is not None:
+                cache["bonuses"] = dict(totals)
             return totals
 
     def equipment_flat_power_totals_v11187(self):
             """Źródłowe płaskie Power z EQ: Attack/Magic Attack/Defense/Magic Defense/Weapon Power."""
+            cache = getattr(self, "_read_only_equipment_cache_v1262", None)
+            if cache is not None and "flat_power" in cache:
+                return dict(cache["flat_power"])
             totals = {"attack": 0, "magic_attack": 0, "magic_defense": 0, "weapon_power": 0}
             for row in self.equipped_item_rows():
                 item = ITEMS.get(row["item_id"], {})
@@ -241,9 +261,14 @@ class SessionEquipmentStatsMixin:
                 totals["magic_attack"] += int(_relic.get("magic_attack", 0) or 0)
                 totals["magic_defense"] += int(_relic.get("magic_defense", 0) or 0)
                 totals["weapon_power"] += int(_relic.get("weapon_power", 0) or 0)
+            if cache is not None:
+                cache["flat_power"] = dict(totals)
             return totals
 
     def equipment_property_totals(self):
+            cache = getattr(self, "_read_only_equipment_cache_v1262", None)
+            if cache is not None and "properties" in cache:
+                return dict(cache["properties"])
             totals = {
                 "physical_damage_pct": 0,
                 "magic_damage_pct": 0,
@@ -268,6 +293,8 @@ class SessionEquipmentStatsMixin:
                     for _prop,_amount in (_rune.get("rune_properties") or {}).items():
                         if _prop in totals:
                             totals[_prop] += float(_amount)
+            if cache is not None:
+                cache["properties"] = dict(totals)
             return totals
 
     def equipment_mp_cost_multiplier_v11176(self):

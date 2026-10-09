@@ -103,7 +103,17 @@ class SessionCommandLoopMixin:
                 continue
 
             _perf_started_v0718 = time.perf_counter()
-            dispatched = await self.dispatch_registered_command(command, args)
+            # v1.26.2: cache immutable EQ readouts only for the duration of a
+            # single read-only STATY request. Never carry these values into
+            # combat, crafting, equipping, or another command.
+            _read_only_stats_v1262 = command == "stats"
+            if _read_only_stats_v1262:
+                self._read_only_equipment_cache_v1262 = {}
+            try:
+                dispatched = await self.dispatch_registered_command(command, args)
+            finally:
+                if _read_only_stats_v1262:
+                    self.__dict__.pop("_read_only_equipment_cache_v1262", None)
             _perf_elapsed_v0718 = time.perf_counter() - _perf_started_v0718
             if _perf_elapsed_v0718 >= 0.25:
                 print(

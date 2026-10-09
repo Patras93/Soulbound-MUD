@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Auto gathering, profession views and gathering loot."""
 # v0.44.0: explicit dependencies; no compatibility-global injection.
+from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
 import asyncio
 import random
 from core.bootstrap_economy_professions import (
@@ -175,6 +176,7 @@ class SessionGatheringMixin:
             )
     async def stop_auto_mining(self, announce=True, immediate=True):
             self.auto_mining = False
+            self.auto_mine_direction_v1251 = None
             task = self.auto_mining_task
             if immediate:
                 self.auto_mining_task = None
@@ -217,9 +219,36 @@ class SessionGatheringMixin:
                             "Auto-kopanie zatrzymane: nie stoisz w miejscu wydobycia."
                         )
                         break
-                    if await self.auto_mine_descend_if_unlocked():
+                    direction = getattr(self, 'auto_mine_direction_v1251', None)
+                    if direction == 'up':
+                        from core.progression_resources import mine_floor_number
+                        floor = mine_floor_number(self.character.room_id)
+                        if floor is None or floor <= 1:
+                            await self.send('Kopalnia: osiągnięto najwyższe piętro. Auto-kopanie zatrzymane.')
+                            break
+                        old = self.character.room_id
+                        await self.move('up', preserve_auto_mining=True)
+                        if self.character.room_id == old:
+                            await self.send('Nie można przejść wyżej. Auto-kopanie zatrzymane.')
+                            break
                         continue
-                    await self.mine(from_auto=True)
+                    if direction is None or direction == 'down':
+                        if await self.auto_mine_descend_if_unlocked():
+                            continue
+                    if direction in HORIZONTAL_MINE_DIRECTIONS:
+                        from core.mine_tunnels import mine_tunnel_coords
+                        pos = mine_tunnel_coords(self.character.room_id, self.account_id)
+                        if pos is None:
+                            await self.send('Auto-kopanie boczne wymaga piętra Kopalni Głębinowej.')
+                            break
+                        if self.server.db.mine_tunnel_target_v1251(self.account_id, *pos, direction):
+                            old = self.character.room_id
+                            await self.move(direction, preserve_auto_mining=True)
+                            if self.character.room_id == old:
+                                await self.send('Przejście niedostępne. Auto-kopanie zatrzymane.')
+                                break
+                            continue
+                    await self.mine(from_auto=True, direction=direction)
             except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal auto-action task cancellation
                 pass
             except Exception as exc:
@@ -237,12 +266,20 @@ class SessionGatheringMixin:
                     pass
             finally:
                 self.auto_mining = False
+                self.auto_mine_direction_v1251 = None
                 if self.auto_mining_task is asyncio.current_task():
                     self.auto_mining_task = None
-    async def set_auto_mining(self, enabled):
+    async def set_auto_mining(self, enabled, direction=None):
             if enabled:
+                from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
+                if direction in HORIZONTAL_MINE_DIRECTIONS:
+                    from core.mine_tunnels import mine_tunnel_coords
+                    if mine_tunnel_coords(self.character.room_id, self.account_id) is None:
+                        await self.send('Najpierw wejdź na poziom Kopalni Głębinowej.')
+                        return
                 if self.auto_mining:
-                    await self.send("Auto-kopanie jest już włączone.")
+                    self.auto_mine_direction_v1251 = direction
+                    await self.send('Zmieniono kierunek auto-kopania na: ' + (direction or 'down') + '.')
                     return
                 if self.combat_mob_key:
                     await self.send(
@@ -268,16 +305,25 @@ class SessionGatheringMixin:
                     await self.stop_auto_woodcutting(announce=False)
                 if self.auto_herbalism or self.auto_herbalism_task:
                     await self.stop_auto_herbalism(announce=False)
+                self.auto_mine_direction_v1251 = direction
                 self.auto_mining = True
                 self.auto_mining_task = asyncio.create_task(
                     self.auto_mining_loop()
                 )
-                await self.send(
-                    "Auto-kopanie włączone. Jeśli jesteś w części wejściowej Kopalni Głębinowej, "
-                    "automat sam zejdzie przez Wejście, Tunel i Komnatę na poziom 1 Kopalni Głębinowej. "
-                    "Potem po przebiciu każdej ściany sam schodzi na następny odblokowany poziom. "
-                    "Wpisz kop off albo mine off, aby je zatrzymać."
-                )
+                if direction and direction != 'down':
+                    await self.send(
+                        f'Auto-kopanie włączone: {direction}. '
+                        'Automat będzie drążyć wybrany kierunek, a po przebiciu '
+                        'przejścia przesunie się do następnego chodnika. '
+                        'Wpisz kop off, aby zatrzymać.'
+                    )
+                else:
+                    await self.send(
+                        'Auto-kopanie włączone: schodzenie w dół. '
+                        'Z części wejściowej automat dociera do piętra 1; '
+                        'po przebiciu ściany schodzi na następne piętro. '
+                        'Wpisz kop off albo mine off, aby zatrzymać.'
+                    )
                 return
             if not self.auto_mining and not self.auto_mining_task:
                 await self.send("Auto-kopanie jest już wyłączone.")

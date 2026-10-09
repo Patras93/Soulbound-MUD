@@ -85,7 +85,7 @@ class SessionHelpSystemMixin:
     def help_commands(self):
             lines = [
                 "help / pomoc - kategorie pomocy; help [temat] / pomoc [temat] - wybrany temat; help tematy / topics - pełna lista",
-                "changes / zmiany / changelog - pokaż najnowsze zmiany",
+                "changes / zmiany / changelog - ostatnie zmiany (do 20 linii); zmiany 50 / 100; zmiany wszystkie - pełna historia",
                 "progress / postep - pełne podsumowanie: Level, Biegłość, Soul, profesje, reputacje, osiągnięcia, tytuły i eksploracja; progress region - bieżący region",
                 "braki / gaps / missing - konkretne liczby brakujące do następnego Levelu, Soul Tieru, poziomów profesji, rozbudowy Gildii i pełnych kolekcji; pokazuje też aktywne cele",
                 "historia / history / lifetime - trwała Historia postaci: walki, questy, kontrakty, profesje, zbiory, eksploracja i Bestiariusz",
@@ -272,15 +272,27 @@ class SessionHelpSystemMixin:
             lines.extend("- " + line for line in LATEST_CHANGES)
             return lines
 
-    async def show_latest_changes(self):
-            await self.send("PEŁNA HISTORIA ZMIAN SOULBOUND")
-            await self.send(
-                "Najnowsze wersje są na górze. Poniżej znajduje się "
-                "cały dostępny CHANGELOG_PL.txt."
-            )
-            for line in self.full_changelog_lines():
+    async def show_latest_changes(self, args=""):
+            """NVDA: bounded default output; the complete history stays opt-in."""
+            argument = normalize_lookup_text(str(args or "").strip())
+            full = argument in ("wszystkie", "calosc", "całość", "all", "pelne", "pełne", "full")
+            if argument.isdigit() and len(argument) <= 4:
+                limit = max(1, min(100, int(argument)))
+            else:
+                limit = 20
+            lines = self.full_changelog_lines()
+            if full:
+                await self.send("PEŁNA HISTORIA ZMIAN SOULBOUND")
+                await self.send("Wysyłam całą historię na Twoje życzenie. Może być bardzo długa.")
+                selected = lines
+            else:
+                await self.send(f"OSTATNIE ZMIANY SOULBOUND — {limit} pierwszych wierszy")
+                selected = lines[:limit]
+            for line in selected:
                 if line.strip():
                     await self.send(line)
+            if not full and len(lines) > len(selected):
+                await self.send("Więcej: zmiany 50 lub zmiany 100. Pełna historia: zmiany wszystkie.")
 
     def all_skill_help_entries(self):
             entries = []

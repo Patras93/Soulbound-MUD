@@ -342,6 +342,14 @@ class SessionPerceptionMapsMixin:
                 f"{room['name']}. Strefa: {room['zone']}."
             )
             await self.send(room["desc"])
+            from core.mine_tunnels import mine_tunnel_coords, MINE_DIRECTION_LABELS
+            mine_pos_v1251 = mine_tunnel_coords(self.character.room_id, self.account_id)
+            if mine_pos_v1251:
+                opened_v1251 = self.server.db.mine_tunnel_directions_v1251(
+                    self.account_id, *mine_pos_v1251)
+                if opened_v1251:
+                    await self.send('Twoje wykopane kierunki: ' +
+                        ', '.join(MINE_DIRECTION_LABELS[d] for d in opened_v1251) + '.')
             # A ship is visible while its owner is present in a port or at sea.
             if hasattr(self, "ocean_port_name_v1000") and self.ocean_port_name_v1000(self.character.room_id):
                 owned_accounts = {

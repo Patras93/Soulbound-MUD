@@ -260,6 +260,9 @@ class SessionMercenaryTavernsMixin:
 
     async def mercenary_combat_turn_v1170(self, mob):
         from systems.encounter_brain_v1230 import mercenary_combo_v1230
+        from systems.mercenary_memory_v1250 import (
+            memory_choice_v1250, memory_effect_v1250, memory_learn_v1250,
+        )
         from systems.mercenary_specialists_v1240 import (
             specialist_attack_v1240, specialist_support_on_strike_v1240,
         )
@@ -342,11 +345,20 @@ class SessionMercenaryTavernsMixin:
                     mob, self.account_id, role, spec["attack_type"], merc_level, now,
                     boss=major_threat, max_hp_hint=target_template.get("max_hp", 0),
                 )
+                # v1.25: per-species memory chooses and trains one of the three
+                # existing class techniques; owner damage still drives each action.
+                target_species_v1250 = str(target_template.get('elite_base_template')
+                    or target_template.get('base_template') or mob.template_id)
+                memory_move_v1250, memory_idx_v1250, memory_key_v1250 = memory_choice_v1250(
+                    self, role, target_species_v1250, specialist_technique,
+                    int(getattr(mob, 'combat_turn', 0) or 0))
+                specialist_technique = memory_move_v1250
+                memory_factor_v1250 = memory_effect_v1250(role, memory_idx_v1250, target_template)
                 # No arbitrary 42%, damage ceiling or downgrade for support roles.
                 power = max(1, int(power_base * max(1.0, float(spec["power"]))
                                    * mercenary_attack_multiplier(merc_level, tactic)
                                    * mercenary_combo_v1230(role, roles, MERCENARIES)
-                                   * specialist_factor))
+                                   * specialist_factor * memory_factor_v1250))
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 power = await self.apply_boss_defense(mob, power)
                 # Same world-tier damage rule used by the owner's normal hits.
@@ -356,7 +368,10 @@ class SessionMercenaryTavernsMixin:
                 power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
                 # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
                 # finish through the existing kill pipeline, including party credit.
-                damage = min(max(0, int(mob.hp)), max(1, int(power)))
+                hp_before_memory_v1250 = max(0, int(mob.hp))
+                damage = min(hp_before_memory_v1250, max(1, int(power)))
+                memory_learn_v1250(self, memory_key_v1250, memory_idx_v1250,
+                                   damage, power_base, hp_before_memory_v1250)
                 mob.hp -= damage
                 technique = specialist_technique
                 message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."

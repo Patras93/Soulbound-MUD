@@ -752,7 +752,7 @@ def mine_floor_id(floor):
     return f"mine_floor_{int(floor)}"
 
 def mine_floor_number(room_id):
-    match = re.fullmatch(r"mine_floor_(\d+)(?:_r\d+)?", str(room_id or ""))
+    match = re.fullmatch(r"mine_floor_(\d+)(?:_r\d+|_dig_\d+_[pm]\d+_[pm]\d+)?", str(room_id or ""))
     if not match:
         return None
     floor = int(match.group(1))

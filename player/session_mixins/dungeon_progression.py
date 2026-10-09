@@ -10,6 +10,7 @@ from core.classes_skills import ORE_ATLAS_LEVELS, ORE_MINE_FLOOR_MINIMUMS, ROOMS
 from core.mines_threat import ITEMS
 from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
 from core.progression_resources import MINE_MIN_FLOOR, ORE_ATLAS_ALL, mine_floor_id, mine_floor_number
+from core.mine_tunnels import mine_tunnel_coords, MINE_DIRECTION_LABELS
 from systems.crafting_quality import player_item_display_name_v0335
 from systems.dungeons_regions import (
     ASTRAL_MIN_FLOOR,
@@ -458,6 +459,72 @@ class SessionDungeonProgressionMixin:
 
             return self.character.room_id == target
 
+    async def command_mineinfo_v1260(self, args):
+        from core.mine_world_v1260 import geology_v1260, mine_map_lines_v1260, mine_route_v1260
+        from core.mine_tunnels import mine_tunnel_coords, MINE_DIRECTION_LABELS
+        mode = str(args or '').strip().casefold()
+        if mode not in ('mapa','map','gdzie','where','droga','route','skarb','skarbiec','vault','wyprawa'):
+            if not mode:
+                await self.show_mine_info()
+            else:
+                await self.send('Komendy: kopalnia, kopalnia mapa, kopalnia gdzie, kopalnia droga, kopalnia skarb.')
+            return
+        pos = mine_tunnel_coords(self.character.room_id, self.account_id)
+        if pos is None:
+            await self.send('Te komendy działają wewnątrz Kopalni Głębinowej. Dojście: prowadz kopalnia.')
+            return
+        floor,x,y=pos
+        cells=self.server.db.mine_tunnel_cells_v1260(self.account_id,floor)
+        geo=geology_v1260(floor,x,y)
+        if mode in ('gdzie','where'):
+            await self.send(f'KOPALNIA: piętro {floor}, X={x}, Y={y}. Odkrycie: {geo["name"]}. '
+                            f'Około {max(abs(x),abs(y))} kroków od centralnego szybu w linii prostej.')
+        elif mode in ('mapa','map'):
+            for line in mine_map_lines_v1260(cells,floor,(x,y)):
+                await self.send(line)
+        elif mode in ('droga','route'):
+            route=mine_route_v1260(cells,(x,y))
+            if route is None:
+                await self.send('Brak odkrytego połączenia z centralnym szybem na tym piętrze.')
+            elif not route:
+                await self.send('Jesteś przy centralnym szybie. W górę: up; w dół: down.')
+            else:
+                await self.send(f'DROGA DO SZYBU: {len(route)} kroków. ' +
+                                ', '.join(MINE_DIRECTION_LABELS[d] for d in route) + '. ' +
+                                'Możesz przejść je kolejno komendą walk lub kierunkami.')
+        elif mode in ('skarb','skarbiec','vault'):
+            if geo['kind'] not in ('vault','chamber','ruins','rare_ore'):
+                await self.send('Tutaj nie ma skarbca ani reliktów do odebrania.')
+                return
+            if self.server.db.mine_claimed_v1260(self.account_id,floor,x,y):
+                await self.send('To odkrycie zostało już przez ciebie odebrane.')
+                return
+            if geo['has_guardian'] and any(m.alive for m in self.server.world.room_mobs(self.character.room_id)
+                   if __import__('systems.content_registry',fromlist=['MOB_TEMPLATES']).MOB_TEMPLATES.get(m.template_id,{}).get('mine_guard_v1260')):
+                await self.send('Skarbca pilnuje Strażnik Głębin. Pokonaj go, zanim odbierzesz łupy.')
+                return
+            # All loot is stored using the native profession casket and wallet.
+            # The durable claim prevents duplication after deployment/relogin.
+            if not self.server.db.mine_claim_v1260(self.account_id,floor,x,y):
+                await self.send('Skarb został już odebrany.')
+                return
+            from core.mine_world_v1260 import discovery_mineral_reward_v1260
+            from core.mines_threat import ITEMS
+            mineral=discovery_mineral_reward_v1260(geo)
+            material_text=''
+            if mineral:
+                item_id, amount=mineral
+                if item_id in ITEMS:
+                    self.server.db.add_item(self.account_id,item_id,amount)
+                    material_text=f' Rzadki zasób: {amount} x {ITEMS[item_id]["name"]}.'
+            self.character.gold += geo['reward_gold']
+            self.server.db.save_character(self.character)
+            await self.send(f'ODKRYCIE O KURDE: {geo["name"]}! Zdobywasz {geo["reward_gold"]} złota.'
+                            + material_text + ' Skarb jest jednorazowy i zapisany na stałe.')
+        else:
+            await self.send('Wielkie wyprawy: zobacz wyprawy oraz legendarne wyprawy; '
+                            'twoje postępy kopalniane są zapisane na stałe.')
+
     async def show_mine_info(self):
             """Czytelny status Kopalni Głębinowej dla NVDA."""
             progress = self.mine_progress()
@@ -471,7 +538,19 @@ class SessionDungeonProgressionMixin:
 
             await self.send("KOPALNIA GŁĘBINOWA")
             if floor is not None:
-                await self.send(f"Położenie: poziom {floor}.")
+                pos = mine_tunnel_coords(room_id, self.account_id)
+                if pos:
+                    await self.send(f'Położenie: poziom {floor}, chodnik X={pos[1]}, Y={pos[2]}.')
+                    available = self.server.db.mine_tunnel_directions_v1251(self.account_id, *pos)
+                    await self.send('Własne odkryte przejścia: ' + (
+                        ', '.join(MINE_DIRECTION_LABELS[d] for d in available) if available else 'brak') + '.')
+                else:
+                    await self.send(f"Położenie: poziom {floor}.")
+                await self.send('Kopanie kierunkowe: kop north/south/east/west, '
+                                'kop northeast/northwest/southeast/southwest, kop up/down. '
+                                'Po polsku: kop północ, kop południe, kop prawo, kop lewo, kop góra, kop dół. '
+                                'Automat: kop on north (lub wybrany kierunek), zatrzymanie: kop off. '
+                                'Mapa: kopalnia mapa; pozycja: kopalnia gdzie; powrót: kopalnia droga; skarby: kopalnia skarb.')
             elif room_id in approach_names:
                 await self.send(f"Położenie: {approach_names[room_id]}.")
             else:

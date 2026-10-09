@@ -28,6 +28,13 @@ class _DeferredCommitConnection:
         object.__setattr__(self, "_defer_depth", 0)
         object.__setattr__(self, "_commit_pending", False)
 
+    def __enter__(self):
+        self._connection.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return self._connection.__exit__(exc_type, exc, tb)
+
     def __getattr__(self, name):
         return getattr(self._connection, name)
 

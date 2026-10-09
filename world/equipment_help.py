@@ -990,6 +990,9 @@ def configure_v0856_help_categories():
     HELP_TOPICS["gornictwo"] = [
         "Górnictwo ma progresję 1-600; jego level skraca czas kopania do ustalonego minimum. Kilof rozwija się osobno 1-600 i odblokowuje lepsze rudy/żyły oraz bonus urobku.",
         "kop wykonuje pojedyncze wydobycie; kop on i kop off sterują auto-kopaniem.",
+        "Od v1.25.1 możesz drążyć we wszystkich kierunkach: kop north, south, east, west, northeast, northwest, southeast, southwest, up, down.",
+        "Polskie odpowiedniki: kop północ, południe, prawo, lewo, góra, dół. kop on north automatycznie drąży w tym kierunku; kop off zatrzymuje.",
+        "Boczne chodniki są trwałe i przypisane do postaci; ich uderzenia i położenie zostają po restarcie na trwałym volume SQLite.",
         "Kopalnia Głębinowa nie ma końca; ściany mają losową liczbę uderzeń zapisywaną dla postaci. Zasobowa moc głębokości zatrzymuje się na progresji 400.",
         "kop on może wystartować już w ręcznej części Kryształowej Jaskini: automat sam dochodzi w dół do poziomu 1, a potem schodzi po każdym przebiciu ściany.",
         "Rudy progresji 220-600 wymagają jednocześnie odpowiedniego levelu Kilofa i co najmniej odpowiadającego mu poziomu Kopalni Głębinowej.",

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tavern mercenaries independent of UOSS summon/helper selection."""
 import time
+from core.large_number_math import decimal_value, rounded_product
 
 # Prices in gold, 100 silver per gold. Roles remain distinct by design.
 # Each player class has one hireable mercenary; Paladin stays as a bonus role.
@@ -93,10 +94,12 @@ def mercenary_owner_full_power_v12213(physical_power, magic_power,
     channel, so cross-class hires are not penalised or double-count the equipment.
     The mercenary still chooses its own physical/magical attack type.
     """
-    physical = max(1, int(physical_power)) * max(0.0, float(physical_equipment_multiplier))
-    magical = max(1, int(magic_power)) * max(0.0, float(magic_equipment_multiplier))
-    return max(1, int(round(max(physical, magical) *
-                            max(0.0, float(set_damage_multiplier)))))
+    physical = rounded_product(max(1, int(physical_power)),
+                               max(0, decimal_value(physical_equipment_multiplier)))
+    magical = rounded_product(max(1, int(magic_power)),
+                              max(0, decimal_value(magic_equipment_multiplier)))
+    return max(1, rounded_product(max(physical, magical),
+                                  max(0, decimal_value(set_damage_multiplier))))
 
 
 def mercenary_owner_real_action_power_v1231(owner, legacy_power, cadence=COOLDOWN):
@@ -113,12 +116,12 @@ def mercenary_owner_real_action_power_v1231(owner, legacy_power, cadence=COOLDOW
     the strongest complete offensive channel regardless of owner's build.
     Nothing here changes owner's HP, mana, cooldowns, skills or saved contracts.
     """
-    baseline = max(1.0, float(legacy_power))
+    baseline = max(1, int(legacy_power))
     estimator = getattr(owner, "consider_player_expected_hit", None)
     if not callable(estimator):
-        return max(1, int(round(baseline)))
+        return baseline
     try:
-        hit = max(1.0, float(estimator()))
+        hit = max(1, decimal_value(estimator()))
         # Player expected hit includes Soul Power, effective-stat build growth,
         # class/race, EQ, set, party synergies and expected ordinary criticals.
         # Soul Weapon mastery + traits modify the real hit AFTER player_damage.
@@ -132,8 +135,8 @@ def mercenary_owner_real_action_power_v1231(owner, legacy_power, cadence=COOLDOW
             int(getattr(character, "soul_tier", 1) or 1),
             str(getattr(character, "class_name", "") or ""),
         )
-        hit *= (1.0 + float(mastery.get("damage_percent", 0)) / 100.0)
-        hit *= (1.0 + float(traits.get("damage_percent", 0)) / 100.0)
+        mastery_multiplier = 1 + decimal_value(mastery.get("damage_percent", 0)) / 100
+        trait_multiplier = 1 + decimal_value(traits.get("damage_percent", 0)) / 100
         # Every owner series has Speed/Haste hits. Every hired ally deals the
         # equivalent in its OWN five-second turn: no shared companion cooldown,
         # no speed ceiling, no invented fixed damage amount.
@@ -142,12 +145,14 @@ def mercenary_owner_real_action_power_v1231(owner, legacy_power, cadence=COOLDOW
         interval_fn = getattr(owner, "player_action_interval_v11154", None)
         interval = float(interval_fn()) if callable(interval_fn) else float(cadence)
         interval = max(0.05, interval)
-        owner_actions = max(1.0, float(cadence) / interval)
-        return max(1, int(round(max(baseline, hit) * hits * owner_actions)))
+        owner_actions = max(1, decimal_value(cadence) / decimal_value(interval))
+        return max(1, rounded_product(max(decimal_value(baseline), hit),
+                                      mastery_multiplier, trait_multiplier, hits,
+                                      owner_actions))
     except (AttributeError, TypeError, ValueError, OverflowError, KeyError):
         # Synthetic legacy test sessions / older character state retain the
         # proven old full-equipment damage; never drop combat on a missing field.
-        return max(1, int(round(baseline)))
+        return baseline
 
 
 def mercenary_follow_notice_v12210(names):

@@ -87,7 +87,7 @@ def ordinary_tactics_v1230(world, mob, template, now=None):
               if candidate is not mob and getattr(candidate, 'alive', False)
               and candidate.room_id == mob.room_id and candidate.engaged_by == mob.engaged_by
               and not getattr(candidate, 'monster_ai_summoned_v1160', False)]
-    injured = [ally for ally in allies if ally.hp < .65 * max(1, int(
+    injured = [ally for ally in allies if ally.hp * 100 < 65 * max(1, int(
                getattr(ally, 'adaptive_max_hp_v11330', 0) or
                MOB_TEMPLATES.get(ally.template_id, {}).get('max_hp', 1) or 1))]
     name = template.get('name', mob.template_id)

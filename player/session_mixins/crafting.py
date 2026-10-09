@@ -19,6 +19,7 @@ from core.mines_threat import ITEMS, TOOL_SHOP_ROOMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text, roll_crafting_xp
 from systems.content_registry import NPCS
 from systems.game_feel_rewards import craft_inspiration_v11324
+from systems.market_dynamics_v1250 import material_grade_v1250, material_quality_upgrade_v1250
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.crafting_quality import (
     CRAFT_CRIT_AFFIX_NAMES_V03054,
@@ -431,10 +432,28 @@ class SessionCraftingMixin:
             quality_key = crafting_quality_roll_v03054(
                 profession_level, old_tool_level, mastery_before
             )
+            # v1.25: valuable ingredients can promote the final craft by one
+            # actual tier, using the existing quality item ID and equipment stats.
+            material_ids_v1250 = tuple(recipe.get('ingredients') or ())
+            material_ids_v1250 += tuple(recipe.get('distinct_ingredient_pool') or ())
+            material_ids_v1250 += tuple(recipe.get('pooled_ingredient_pool') or ())
+            grade_v1250 = material_grade_v1250(material_ids_v1250, ITEMS)
+            quality_key = material_quality_upgrade_v1250(
+                quality_key, grade_v1250, random.random())
+            # v1.26: a genuine cooperation chain: levels of mining, smithing,
+            # enchanting and archaeology add a chance to refine rare materials.
+            # Uses the same authored crafted-quality variants; no duplicate EQ.
+            if grade_v1250 >= 2:
+                from systems.craft_chain_v1260 import craft_chain_bonus_v1260
+                chain_levels = [int(r['level']) for r in self.server.db.conn.execute(
+                    'SELECT level FROM professions WHERE account_id=? AND profession IN '
+                    '(?,?,?,?)', (self.account_id,'Górnictwo','Kowalstwo','Zaklinanie','Archeologia'))]
+                quality_key = craft_chain_bonus_v1260(
+                    quality_key, grade_v1250, chain_levels, random.random())
             critical_chance = crafting_critical_chance_v03054(
                 profession_level, mastery_before
             )
-            critical_craft = random.random() < critical_chance
+            critical_craft = random.random() < min(.25, critical_chance + .0075 * grade_v1250)
             crafted_output_id, critical_affix = crafting_quality_output_v03054(
                 output_id, quality_key, critical_craft, mastery_before
             )

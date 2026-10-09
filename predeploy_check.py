@@ -3637,16 +3637,18 @@ if "session.character.add_soul_xp(" in _combat_rewards_source_v11350:
     _semantic_errors.append("v1.13.50 combat Soul XP gateway regression: direct Character.add_soul_xp bypass returned")
 
 
-# v1.13.52: PRZETOP MAX must continue from primary ore/material into Salvage.
+# v1.26.1: PRZETOP MAX must never silently combine ore and Salvage.
+# Older v1.13.52 continuation assertions are deliberately superseded.
 _smelt_source_v11352 = (_root / "player/session_mixins/crafting_expansion.py").read_text(encoding="utf-8")
-for _needle_v11352 in (
-    'fallback_rid = SALVAGE_SMELT_FALLBACK_V03113.get(primary_rec.get("output"))',
-    'queue.append((fallback_rid, fallback_rec, fallback_n, "Salvage"))',
+for _needle_v1261 in (
+    'queue.append((primary_rid, primary_rec, primary_n, "wybrany surowiec"))',
     'while local_done < target:',
     'if self.max_recipe_crafts_v03114(recipe) <= 0:',
 ):
-    if _needle_v11352 not in _smelt_source_v11352:
-        _semantic_errors.append("v1.13.52 smelt max continuation regression: missing " + _needle_v11352)
+    if _needle_v1261 not in _smelt_source_v11352:
+        _semantic_errors.append("v1.26.1 smelt MAX scoped material regression: missing " + _needle_v1261)
+if 'queue.append((fallback_rid, fallback_rec' in _smelt_source_v11352:
+    _semantic_errors.append("v1.26.1 smelt MAX unexpectedly includes Salvage fallback")
 
 
 # v1.13.53: Hall-of-Fame v0.37.0 XP hooks must transparently forward modern kwargs.
@@ -4044,4 +4046,30 @@ from validation.mercenary_real_damage_v1231 import validate_mercenary_real_damag
 print(f'MERCENARY REAL DAMAGE v1.23.1: {validate_mercenary_real_damage_v1231()} checks PASS')
 from validation.mercenary_specialists_v1240 import validate_mercenary_specialists_v1240
 print(f'MERCENARY SPECIALISTS v1.24.0: {validate_mercenary_specialists_v1240()} checks PASS')
-print('Soulbound v1.24.0 FAST PREDEPLOY PASS')
+from validation.v1250_features import audit_v1250
+print(f'SOULBOUND v1.25: {audit_v1250()} feature checks PASS')
+print('Soulbound v1.25.0 FAST PREDEPLOY PASS')
+from validation.mine_persistence_v1250 import audit_mine_persistence_v1250
+print(f'MINE PERSISTENCE v1.25.0: {audit_mine_persistence_v1250()} checks PASS')
+
+# v1.25.1: directional mine persistence, aliases, owner isolation.
+from validation.mine_directions_v1251 import audit_mine_directions_v1251
+print(f'MINE DIRECTIONS v1.25.1: {audit_mine_directions_v1251()} checks PASS')
+
+# v1.26.0: persistent geology, NVDA maps, first discoveries, expedition and economy.
+from validation.v1260_features import audit_v1260
+print(f'SOULBOUND v1.26.0: {audit_v1260()} checks PASS')
+print('Soulbound v1.26.0 FAST PREDEPLOY PASS')
+
+# v1.26.1: targeted mercenary-aware HP, encounter handoff, rewards and scoped MAX smelting.
+from validation.v1261_balance_smelt import audit_v1261
+print(f'SOULBOUND v1.26.1 BALANCE + SMELT: {audit_v1261()} checks PASS')
+print('Soulbound v1.26.1 FAST PREDEPLOY PASS')
+
+# v1.26.3: protect uncapped HP arithmetic and encounter handoffs.
+from validation.v1263_uncapped_hp import audit_v1263
+print(f"SOULBOUND v1.26.3 UNCAPPED HP: {audit_v1263()} checks PASS")
+
+# v1.26.4: huge combat arithmetic, autonomous hires and five UOSS boss phase suites.
+from validation.v1264_final_math import audit_v1264
+print(f"SOULBOUND v1.26.4 MATH AND BOSSES: {audit_v1264()} checks PASS")

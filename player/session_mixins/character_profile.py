@@ -233,7 +233,7 @@ class SessionCharacterProfileMixin:
                 return
 
             await self.send("STATY INFO")
-            await self.send("Soulbound nie ma levelu ani XP postaci. Każda statystyka rozwija się osobno.")
+            await self.send("Postać posiada własny poziom i EXP. Każda statystyka ma dodatkowo niezależny licznik EXP.")
             stat_rows = (
                 ("strength", "Siła", c.strength, self.effective_strength(), bonuses["strength"]),
                 ("dexterity", "Zręczność", c.dexterity, self.effective_dexterity(), bonuses["dexterity"]),

@@ -20,7 +20,8 @@ class MudServer:
         for _item_id in self.db.persisted_infinite_equipment_item_ids_v11330():
             if ensure_infinite_equipment_variant(_item_id):
                 self.infinite_equipment_restored_v11330 += 1
-        self.mine_startup_reset = self.db.reset_mine_for_server_start()
+        # v1.25.0: deploy/restart must NOT collapse the mine or teleport miners.
+        self.mine_startup_state = self.db.mine_startup_status()
         self.world = World()
         self.sessions = set()
         self.parties = {}

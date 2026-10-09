@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from data import catalog_mutations as _catalog_mut
 
-SECRET_ROOM_PATTERN_V1190 = re.compile(r"^v1190_(chamber|archive)_([a-z_]+)_(\d+)$")
+SECRET_ROOM_PATTERN_V1190 = re.compile(r"^v1190_(chamber|archive|vault)_([a-z_]+)_(\d+)$")
 SECRET_GUARD_NAMES_V1190 = (
     "Strażnik Zapomnianych Pieczęci",
     "Widmowy Kustosz Skarbca",
@@ -28,7 +28,7 @@ SECRET_ARCHIVISTS_V1190 = (
 
 
 def secret_room_id_v1190(kind, floor, role="chamber"):
-    if role not in ("chamber", "archive"):
+    if role not in ("chamber", "archive", "vault"):
         raise ValueError("Unknown world-secret room type")
     return f"v1190_{role}_{kind}_{int(floor)}"
 
@@ -128,7 +128,53 @@ def create_world_secret_rooms_v1190(kind, floor, parent, rooms, chests, chest_ca
         _catalog_mut.catalog_assign({"name": name, "room": archive, "dialogue": dialogue},
                                     'NPCS', npcs, (npc_id,))
     guard = world_secret_guard_template_v1190(kind, floor, parent, spawns, mobs)
-    return chamber, ((chamber, guard),) if guard else ()
+    additional_spawns = []
+    # v1.25: a fraction of existing scripted secret floors contains a further,
+    # boss-guarded treasury. Secret floors use e.g. 317/337/367/387, never
+    # multiples of five; choose by their ten-floor index instead.
+    if floor >= 10 and (floor // 10) % 4 == 3:
+        vault = secret_room_id_v1190(kind, floor, 'vault')
+        if vault not in rooms:
+            _catalog_mut.catalog_assign({
+                "zone": f"Sekret: {zone}",
+                "name": f"Zakazany Skarbiec — {zone}",
+                "desc": "W zapieczętowanej komnacie odkrywasz dawny skarbiec i ślady zapomnianych receptur. Powrót prowadzi na południe. Nie ma pułapek.",
+                "exits": {"south": archive},
+                "generated_on_demand": True, "v1190_secret_role": "vault",
+                "v1190_secret_parent": parent, "recommended_mastery": room_stage,
+            }, 'ROOMS', rooms, (vault,))
+        archive_room = rooms[archive]
+        if 'north' not in archive_room.get('exits', {}):
+            exits = dict(archive_room.get('exits') or {})
+            exits['north'] = vault
+            _catalog_mut.catalog_assign(exits, 'ROOMS', rooms, (archive, 'exits'))
+        if vault not in chests:
+            chests[vault] = {
+                "name": f"Skarbiec Zapomnianych Mistrzów — {zone}",
+                "respawn": 86400,
+                "base_pool": ("soul_shard", "soul_elixir", "mithril_ore"),
+                "set_pool": (),
+            }
+        chest_catalog[vault] = chests[vault]['name']
+        vault_guard = world_secret_guard_template_v1190('vault_' + kind, floor, parent, spawns, mobs)
+        if vault_guard:
+            # Separate guardian per vault; remains a real miniboss of its room.
+            vault_template = mobs[vault_guard]
+            if not vault_template.get('v1250_vault_guard'):
+                # Keep each generated guardian name short, pronounceable and unique
+                # across floors. Dynamic mobs are generated after the startup
+                # name-cleanup pass, so names must already satisfy NVDA audits.
+                digest = hashlib.sha256(f"{kind}:{floor}:vault".encode()).digest()
+                consonants, vowels = "bcdfghjklmnprstvz", "aeiouy"
+                unique = "".join(consonants[digest[i] % len(consonants)] +
+                                 vowels[digest[i + 1] % len(vowels)]
+                                 for i in range(0, 10, 2)).capitalize()
+                vault_template['name'] = f"Strażnik Receptur {unique}"
+                vault_template['max_hp'] = max(1, int(vault_template['max_hp'] * 1.6))
+                vault_template['damage'] = max(1, int(vault_template['damage'] * 1.25))
+                vault_template['v1250_vault_guard'] = True
+            additional_spawns.append((vault, vault_guard))
+    return chamber, (((chamber, guard),) if guard else ()) + tuple(additional_spawns)
 
 
 def attach_surface_secret_npc_v1190(room_id, rooms, npcs):

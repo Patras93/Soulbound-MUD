@@ -373,8 +373,14 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.24.0 - Najemnicy 4.0, specjalizacje klasowe"
+LATEST_CHANGES_TITLE = "Soulbound v1.26.4 - audyt matematyki i superbossów"
 LATEST_CHANGES = [
+    "v1.26.4: Audyt matematyki i superbossów. Zabezpieczono mnożniki obrażeń, pamięć najemników i DPS drużyny przed przepełnieniem przy bardzo dużych wartościach. Bez osłabienia postaci, bez zmian kopalni i zapisów.",
+    "v1.26.3: HP przeciwników bez sztucznego sufitu 9 biliardów. Bezpieczne obliczanie przy ogromnym DPS, rosnące logarytmicznie nagrody i dokładny transfer HP po zmianie przeciwnika; moc graczy i najemników bez zmian.",
+    "v1.26.2: Stabilizacja. STATY/STATUS nie powtarzają kosztownych odczytów EQ w obrębie jednej komendy. Zmiany pokazują ostatnie 20 linii, zmiany wszystkie — pełną historię. Poprawiono opis poziomu i EXP postaci. Dodatkowe testy obciążenia, bossów, auto-pętli i zapisów; bez zmiany obrażeń, nagród i logowania.",
+    "v1.26.1: Potwory skalują HP także do samodzielnych najemników każdej osoby w party. Po zakończeniu walki HP zmienia się do siły kolejnej drużyny, ale nigdy w trakcie aktywnej walki. Nagrody rosną łagodnie bez sufitu 3x. Przetop max żelazo zużywa tylko rudę żelaza, Salvage osobną komendą.",
+    "v1.26.0: Geologia i odkrycia Kopalni 4.0, tekstowa mapa i droga do szybu, strzeżone skarbce, trwałe pierwsze odkrycia. Najemnicy pamiętają skuteczne ataki po restarcie. Dodatkowa synergia profesji, adaptacja wrogów i wieloetapowa Wielka Wyprawa.",
+    "v1.25.1: Kopanie we wszystkich kierunkach z trwałymi chodnikami na piętrach Kopalni Głębinowej. kop north/south/east/west, NE/NW/SE/SW, up/down; polskie aliasy. kop on <kierunek> drąży kolejne odnogi; SQLite pamięta każdą przebitą ścianę po deployu.",
     "v1.24.0: Najemnicy 4.0 - 15 automatycznych specjalizacji klasowych, sytuacyjne warianty skilli, reagowanie na bossow i oslabione cele, lancuchy fizyczno-magiczne w ramach kontraktow, dodatkowa ochrona i leczenie przy atakach. Pelna realna moc oraz tempo wlasciciela nadal bez sztucznych limitow. Bez sterowania skillami, nowego EXP i zmian baz SQLite.",
     "v1.23.1: Najemnicy biorą realną ofensywę i tempo gracza: Broń Duszy, krzywa statystyk, klasa i rasa, EQ, sety, krytyki, serie Speed/Haste oraz wielokrotne akcje w 5 sekund. Bez kar klasowych i sztucznego limitu obrażeń; zachowane AI, kontrakty, obrona bossów i world tier.",
     "v1.23.0: Inteligencja mobow 2.0, 3 fazy zwyklych bossow, autonomiczni najemnicy z lepsza ochrona i leczeniem, synergie magiczne/fizyczne, 3 nowe relikty, 2 prawdziwie wedrujace karawany z oferta sklepu oraz dochody z aktywnosci skaluja sie rowniez po etapie 600. Zachowane skrypty UOSS, brak nowych limitow zadawanych obrazen, starych kontraktow lub migracji zapisow.",
@@ -1111,7 +1117,8 @@ HELP_TOPICS = {
     "przetop": [
         "przetop <metal, ruda albo płyty> przetapia surowiec na właściwą sztabkę.",
         "4 Stalowe Płyty z Pancerza ze Szkatułki można przetopić w 1 Sztabkę Stali: przetop płyty / smelt plates.",
-        "v0.31.13: przetop <metal> najpierw pobiera zwykłą rudę, a gdy jej brakuje automatycznie sprawdza Szkatułkę -> Salvage. Dwa zgodne fragmenty salvage dają 1 sztabkę.",
+        "Przetop max <metal> zużywa TYLKO wybrany surowiec. Aby przetopić Salvage, użyj jawnie: przetop max odłamki żelaza. Przetop wszystko nadal obejmuje wszystkie dostępne źródła.",
+        "Pojedyncze przetop <metal> może awaryjnie wykorzystać Salvage, jeśli brakuje zwykłej rudy. Dwa zgodne fragmenty Salvage dają 1 sztabkę.",
         "v0.31.15: każda udana receptura nalicza aktywne questy craftingowe; Salvage/Salvage 3.0/Tech Salvage dają Kowalstwo XP bez sztucznego nabijania Młota.",
         "Komenda korzysta z istniejących receptur Kowalstwa i nie omija wymagań.",
         "Musisz mieć Młot Rzemieślniczy, odpowiedni level Kowalstwa, wymagany Tier Młota, składniki i stać przy właściwej kuźni.",

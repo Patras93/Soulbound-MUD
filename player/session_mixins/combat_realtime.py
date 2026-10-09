@@ -25,6 +25,7 @@ from systems.elite_variants import (
     elite_regen_amount_v11338,
 )
 from systems.encounter_brain_v1230 import boss_tactics_phase_v1230, tactical_element_v1230, ordinary_tactics_v1230
+from systems.monster_ecology_v1250 import ecology_turn_v1250, adaptive_skills_v1250, adaptive_defense_v1250, adaptive_cadence_v1250
 from systems.monster_ai import (
     monster_ai_plan_v1160, monster_ai_execute_v1160,
     monster_ai_eligible_v1160, monster_ai_necromancer_v1160,
@@ -679,6 +680,18 @@ class SessionCombatRealtimeMixin:
                                             self, _ai_text_v1160, detail="essential"
                                         )
                                         continue
+                                # v1.25: species ecology support uses this mob's own action.
+                                _ecology_v1250 = ecology_turn_v1250(
+                                    self.server.world, enemy_mob, _ai_template_v1160)
+                                if _ecology_v1250:
+                                    await self.server.party_combat_broadcast(
+                                        self, _ecology_v1250, detail="essential")
+                                    continue
+                                _adaptive_guard_v1250 = adaptive_defense_v1250(enemy_mob, _ai_template_v1160)
+                                if _adaptive_guard_v1250:
+                                    await self.server.party_combat_broadcast(
+                                        self, _adaptive_guard_v1250, detail="essential")
+                                    continue
                                 # Ordinary mobs have a separate rare support turn;
                                 # authored boss AI and specialist logic stay intact.
                                 _ordinary_text_v1230 = ordinary_tactics_v1230(
@@ -1031,6 +1044,10 @@ class SessionCombatRealtimeMixin:
                                         * _adaptive_enemy_mult_v11330
                                         * _elite_enemy_mult_v11338
                                         * monster_ai_attack_multiplier_v1160(enemy_mob)
+                                        * adaptive_skills_v1250(
+                                            enemy_mob, _enemy_template,
+                                            getattr(enemy_mob, 'adaptive_party_dps_v11330', 0),
+                                            _enemy_template.get('damage', 1))
                                         * _elemental_enemy_mult_v11339
                                         * monster_magic_incoming_multiplier_v1151(target_session)
                                     )
@@ -1122,7 +1139,8 @@ class SessionCombatRealtimeMixin:
                                             detail="normal",
                                         )
 
-                            next_enemy = time.monotonic() + self.combat_enemy_interval
+                            next_enemy = time.monotonic() + adaptive_cadence_v1250(
+                                enemy_mobs, MOB_TEMPLATES, self.combat_enemy_interval)
                             if self.current_hp <= 0:
                                 break
 

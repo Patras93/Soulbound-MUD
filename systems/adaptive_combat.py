@@ -6,6 +6,7 @@ targets from the actual local party and the actual player being hit.
 """
 
 import math
+from decimal import Decimal, ROUND_CEILING, localcontext
 
 V11330_ADAPTIVE_COMBAT_VERSION = "1.13.30"
 
@@ -69,27 +70,47 @@ def adaptive_combat_rank_v11330(template):
 def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template):
     """Target enough HP for several seconds of the current party's real output."""
     base = max(1, int(base_max_hp or 1))
-    dps = max(1.0, float(party_dps or 1.0))
+    # Use decimal, not a floating-point product: massive player/mercenary DPS
+    # must never overflow to inf or fall back to a hard HP ceiling.
+    raw_dps = Decimal(str(party_dps or 1))
+    if not raw_dps.is_finite():
+        raise ValueError("Encounter DPS must be finite")
+    dps = max(Decimal(1), raw_dps)
     rank = adaptive_combat_rank_v11330(template)
-    seconds = float(V11330_TARGET_FIGHT_SECONDS[rank])
-    target = max(base, int(math.ceil(dps * seconds)))
-    # v1.13.38: an Armored/Vampiric/etc. elite may deliberately extend the
-    # reviewed elite fight target without bypassing Adaptive Combat.
-    elite_hp_multiplier = max(
-        1.0, float((template or {}).get("elite_hp_multiplier_v11338", 1.0) or 1.0)
-    )
-    target = max(base, int(math.ceil(target * elite_hp_multiplier)))
-    # Python can handle larger ints, but keeping a very high sanity ceiling avoids
-    # accidental runaway values while remaining effectively uncapped for gameplay.
-    return min(target, 9_000_000_000_000_000)
+    seconds = Decimal(str(V11330_TARGET_FIGHT_SECONDS[rank]))
+    elite_multiplier = Decimal(str(
+        (template or {}).get("elite_hp_multiplier_v11338", 1.0) or 1.0
+    ))
+    if not elite_multiplier.is_finite():
+        raise ValueError("Elite HP multiplier must be finite")
+    elite_multiplier = max(Decimal(1), elite_multiplier)
+    with localcontext() as ctx:
+        ctx.prec = max(40, len(dps.as_tuple().digits) + 18)
+        target = max(base, int((dps * seconds).to_integral_value(rounding=ROUND_CEILING)))
+        # Apply the elite extension to the full target, including authored HP.
+        target = max(base, int(
+            (Decimal(target) * elite_multiplier).to_integral_value(rounding=ROUND_CEILING)
+        ))
+    return target
+
 
 
 def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
-    """Modest anti-sponge compensation; party full-reward rules stay unchanged."""
-    base = max(1.0, float(base_max_hp or 1))
-    scaled = max(base, float(scaled_max_hp or base))
-    ratio = max(1.0, scaled / base)
-    return round(min(3.0, 1.0 + 0.25 * math.log2(ratio)), 4)
+    """Diminishing, uncapped compensation for actual extra combat effort.
+
+    Logarithmic growth avoids exponential economy inflation; unlike the former
+    3x ceiling, harder fights continue improving the reward. No changes to the
+    no-party-penalty and other independent reward rules.
+    """
+    base = max(1, int(base_max_hp or 1))
+    scaled = max(base, int(scaled_max_hp or base))
+    if scaled == base:
+        return 1.0
+    # log2(huge_int) is supported by Python without converting the integer
+    # to float first; dividing huge ints would overflow at ~1e308.
+    log_ratio = max(0.0, math.log2(scaled) - math.log2(base))
+    return round(1.0 + 0.5 * log_ratio, 4)
+
 
 
 def adaptive_target_incoming_fraction_v11330(template, party_size=1):
@@ -119,7 +140,7 @@ def adaptive_combat_audit_v11330():
         errors.append("boss/party incoming pressure does not exceed solo normal pressure")
     if adaptive_reward_multiplier_v11330(1000, 1000) != 1.0:
         errors.append("base reward multiplier must remain 1.0")
-    if not 1.0 < adaptive_reward_multiplier_v11330(1000, 16000) <= 3.0:
+    if not 1.0 < adaptive_reward_multiplier_v11330(1000, 16000) < 4.0:
         errors.append("adaptive reward multiplier out of bounds")
 
     # v1.13.37 production tuning matrix. Simulate local parties of 1-4 with

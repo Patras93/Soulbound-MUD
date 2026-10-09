@@ -15,6 +15,7 @@ from core.mines_threat import (
 from core.progression_600 import CHARACTER_MAX_LEVEL
 from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
+from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS, mine_tunnel_coords, mine_tunnel_identity, mine_tunnel_room_id
 from systems.content_registry import MOB_TEMPLATES
 from systems.mercenary_taverns import MERCENARIES, mercenary_follow_notice_v12210
 from world.uoss_superboss_world import (
@@ -257,6 +258,8 @@ class SessionMovementMixin:
                     commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
                 )
                 await self.register_uoss_deep_dungeon_visit_v11331(target)
+                if callable(getattr(self, "grand_expedition_visit_v1260", None)):
+                    await self.grand_expedition_visit_v1260(target)
                 if hasattr(self, "ocean_contract_step_v1001"):
                     contract_event = self.ocean_contract_step_v1001(old, target)
                     if contract_event == "started":
@@ -300,7 +303,7 @@ class SessionMovementMixin:
                     # jeden commit po całym kroku zamiast osobnego fsync dla każdego.
                     self.server.db.conn.commit()
 
-    async def move(self, direction):
+    async def move(self, direction, preserve_auto_mining=False):
             if self.resting or self.rest_task:
                 await self.stop_rest(
                     announce=True, reason="ruszasz się"
@@ -308,7 +311,7 @@ class SessionMovementMixin:
             if self.auto_fishing or self.auto_fishing_task:
                 await self.stop_auto_fishing(announce=False)
                 await self.send("Auto-łowienie wyłączone z powodu ruchu.")
-            if self.auto_mining or self.auto_mining_task:
+            if (self.auto_mining or self.auto_mining_task) and not preserve_auto_mining:
                 await self.stop_auto_mining(announce=False)
                 await self.send("Auto-kopanie wyłączone z powodu ruchu.")
             if self.auto_woodcutting or self.auto_woodcutting_task:
@@ -320,7 +323,19 @@ class SessionMovementMixin:
             if self.combat_mob_key:
                 await self.send("Jesteś w walce. Najpierw użyj flee albo pokonaj przeciwnika.")
                 return
-            target = ROOMS[self.character.room_id]["exits"].get(direction)
+            # Directional, player-owned tunnels take precedence over old procedural
+            # side-rooms; never leak one miner's passages to another account.
+            identity = mine_tunnel_identity(self.character.room_id)
+            if identity is not None and identity[1] != self.account_id:
+                await self.send("To nie jest twój chodnik kopalniany.")
+                return
+            tunnel_coords = mine_tunnel_coords(self.character.room_id, self.account_id)
+            personal_target = None
+            if tunnel_coords and direction in HORIZONTAL_MINE_DIRECTIONS:
+                floor, x, y = tunnel_coords
+                personal_target = self.server.db.mine_tunnel_target_v1251(
+                    self.account_id, floor, x, y, direction)
+            target = personal_target or ROOMS[self.character.room_id]["exits"].get(direction)
             if not target:
                 await self.send("Nie możesz iść w tym kierunku.")
                 return

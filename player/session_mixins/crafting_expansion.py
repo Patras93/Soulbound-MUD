@@ -929,22 +929,12 @@ class SessionCraftingExpansionV03114Mixin:
             primary_rid, primary_rec = found
             queue = []
 
-            # v1.13.52: PRZETOP MAX ma wyczerpać cały dostępny materiał,
-            # a nie tylko źródło wybrane przy starcie komendy. Najpierw
-            # przetapiamy świeżą rudę/materiał, a po jej wyczerpaniu automatycznie
-            # przechodzimy na odpowiadający materiał Salvage. To naprawia przypadek
-            # „przetop max żelazo/iron”: jedna świeża Ruda żelaza była przetapiana,
-            # po czym zadanie kończyło się mimo dostępnych Odłamków Żelaza.
+            # v1.26.1: An explicit MAX metal only consumes that one recipe's
+            # material. Salvage must be explicitly named, e.g. "max odłamki żelaza".
+            # "przetop wszystko" remains an intentionally separate all-source mode.
             primary_n = self.max_recipe_crafts_v03114(primary_rec)
             if primary_n > 0:
-                queue.append((primary_rid, primary_rec, primary_n, "ruda/material"))
-
-            fallback_rid = SALVAGE_SMELT_FALLBACK_V03113.get(primary_rec.get("output"))
-            fallback_rec = CRAFT_RECIPES.get(fallback_rid) if fallback_rid else None
-            if fallback_rec and fallback_rid != primary_rid:
-                fallback_n = self.max_recipe_crafts_v03114(fallback_rec)
-                if fallback_n > 0:
-                    queue.append((fallback_rid, fallback_rec, fallback_n, "Salvage"))
+                queue.append((primary_rid, primary_rec, primary_n, "wybrany surowiec"))
 
             if not queue:
                 await self.send("Brak materiału do przetopienia.")

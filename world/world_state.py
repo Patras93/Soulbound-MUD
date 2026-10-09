@@ -3,6 +3,9 @@ from core.bootstrap_economy_professions import SILVER_PER_GOLD
 from core.mines_threat import v0866_room_threat_profile
 from systems.items_resources import economy_stage_anchor_v11314
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
+from systems.elite_legends_v1250 import (
+    legendary_roll_v1250, legend_variant_id_v1250, build_legendary_v1250,
+)
 from systems.elite_variants import (
     build_elite_variant_template_v11338,
     elite_roll_affix_v11338,
@@ -165,6 +168,15 @@ class World:
             return template_id
         source_id = elite_source_template_id_v11338(template_id, current)
         source = MOB_TEMPLATES.get(source_id, current)
+        # v1.25 rarer tiers roll before ordinary elite affixes; one variant per spawn.
+        legend_rank = legendary_roll_v1250(source)
+        if legend_rank:
+            legend_id = legend_variant_id_v1250(source_id, legend_rank)
+            if legend_id not in MOB_TEMPLATES:
+                clone = build_legendary_v1250(source_id, source, legend_rank)
+                _catalog_mut.catalog_assign(clone, "MOB_TEMPLATES", MOB_TEMPLATES, (legend_id,))
+                v0190_apply_combat_template(MOB_TEMPLATES[legend_id])
+            return legend_id
         affix = elite_roll_affix_v11338(source)
         if not affix:
             return source_id
@@ -654,6 +666,57 @@ class World:
 
     def ensure_runtime_room(self, room_id):
         room_id = str(room_id or "")
+        # Private, mined-out chambers are recreated deterministically after deploy.
+        from core.mine_tunnels import mine_tunnel_identity
+        tunnel = mine_tunnel_identity(room_id)
+        if tunnel is not None and room_id not in ROOMS:
+            floor, account_id, x, y = tunnel
+            base_id = mine_floor_id(floor)
+            if not self.ensure_runtime_room(base_id):
+                return False
+            base = ROOMS[base_id]
+            from core.mine_world_v1260 import geology_v1260
+            geo = geology_v1260(floor, x, y)
+            gather = dict(base.get('infinite_gather_feature', {}) or {})
+            if geo['bonus_quantity']:
+                gather['quantity_bonus'] = int(gather.get('quantity_bonus',0) or 0) + geo['bonus_quantity']
+                gather['xp_mult'] = max(1.,float(gather.get('xp_mult',1.) or 1.)) * (1 + min(2.,geo['richness']/5.))
+                gather['label'] = geo['name']
+            _catalog_mut.catalog_assign({
+                'zone': 'Kopalnia Głębinowa',
+                'name': f'Kopalnia - poziom {floor}, chodnik ({x}, {y})',
+                'desc': f"{geo['description']} Wykopana przez górnika odnoga na poziomie {floor}. Kierunki: kopalnia mapa, kopalnia droga.",
+                'exits': {
+                    'up': 'crystal_chamber' if floor == 1 else mine_floor_id(floor - 1),
+                    'down': mine_floor_id(floor + 1),
+                },
+                'procedural_infinite': True,
+                'generated_on_demand': True,
+                'mine_tunnel_owner_v1251': account_id,
+                'infinite_gather_feature': gather,
+                'mine_geology_v1260':geo['kind'],
+            }, 'ROOMS', ROOMS, (room_id,))
+            if geo['has_guardian']:
+                # A real killable boss guarding a one-time treasure; combat and
+                # loot still use the native Soulbound systems.
+                guard_id = f'mine_guard_v1260_{floor}_{geo["distance"]}'
+                if guard_id not in MOB_TEMPLATES:
+                    import copy
+                    guard = copy.deepcopy(MOB_TEMPLATES['goblin_warchief'])
+                    guard.update({
+                        'name':f'Strażnik Skarbca Głębin, poziom {floor}',
+                        'boss': True, 'world_boss': False,
+                        'max_hp':max(300,int((floor+geo['distance'])*120)),
+                        'damage':max(8,int(floor*2.5)),
+                        'gold':max(10,int(floor * geo['richness'] * 10)),
+                        'soul_reward':max(1000, int(floor * geo['richness']*120)),
+                        'stat_reward':max(200,int(floor*geo['richness']*50)),
+                        'quest_target':None,
+                        'mine_guard_v1260':True,
+                    })
+                    _catalog_mut.catalog_assign(guard, 'MOB_TEMPLATES', MOB_TEMPLATES, (guard_id,))
+                self._register_runtime_spawn(room_id,guard_id)
+            return True
         if room_id in ROOMS:
             self._generatorize_runtime_room(room_id)
             # v1.19.3: generated secret chamber/archive have their own
@@ -661,7 +724,7 @@ class World:
             # spawners are not valid here: repeated entrance previously
             # produced extra enemies and could block guarded treasure.
             # Rehydration at server start is handled by MOB_SPAWNS.
-            if ROOMS[room_id].get("v1190_secret_role") in ("chamber", "archive"):
+            if ROOMS[room_id].get("v1190_secret_role") in ("chamber", "archive", "vault"):
                 return True
             self._ensure_v0290_event_spawns(room_id)
             self._ensure_v0140_event_spawn(room_id)

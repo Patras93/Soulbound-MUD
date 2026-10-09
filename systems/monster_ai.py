@@ -77,7 +77,7 @@ def monster_ai_plan_v1160(mob, template, live_allies, dead_allies=(), now=None):
         if getattr(ally, "monster_ai_summoned_v1160", False):
             continue
         cap = _max_hp(ally, template if ally.key == mob.key else MOB_TEMPLATES.get(ally.template_id, template))
-        if ally.hp < cap * .58:
+        if ally.hp * 100 < cap * 58:
             injured.append((ally.hp / cap, ally))
     caster = template.get("damage_type") == "magic" or monster_ai_necromancer_v1160(template)
     affix = str(template.get("elite_affix") or "")
@@ -95,7 +95,7 @@ def monster_ai_plan_v1160(mob, template, live_allies, dead_allies=(), now=None):
     guards = [a for a in engaged if a.key != mob.key and not getattr(a, "monster_ai_summoned_v1160", False)
               and now >= float(getattr(a, "monster_ai_guard_until_v1160", 0) or 0)]
     if guards and (affix in ("armored", "regenerating") or caster or
-                   any(a.hp < _max_hp(a, MOB_TEMPLATES.get(a.template_id, {})) * .75 for a in guards)):
+                   any(a.hp * 100 < _max_hp(a, MOB_TEMPLATES.get(a.template_id, {})) * 75 for a in guards)):
         return {"kind": "guard", "target": guards[0]}
     if now >= float(getattr(mob, "monster_ai_empowered_until_v1160", 0) or 0):
         return {"kind": "buff", "target": mob}
@@ -114,7 +114,7 @@ def monster_ai_execute_v1160(world, mob, template, plan, now=None):
     text = ""
     if kind == "heal" and target.alive:
         cap = _max_hp(target, target_template)
-        amount = min(max(0, cap - target.hp), max(1, int(cap * .18)))
+        amount = min(max(0, cap - target.hp), max(1, (cap * 18) // 100))
         if amount:
             target.hp += amount
             text = f"{name} rzuca Uzdrowienie: {target_name} odzyskuje {amount} HP."
@@ -148,7 +148,7 @@ def monster_ai_lifesteal_v1160(mob, template, damage, now=None):
     if int(getattr(mob, "monster_ai_lifesteal_turn_v1160", -1)) == turn:
         return 0
     cap = _max_hp(mob, template)
-    amount = min(max(0, cap - mob.hp), max(1, int(damage * .25)), max(1, int(cap * .04)))
+    amount = min(max(0, cap - mob.hp), max(1, int(damage * .25)), max(1, (cap * 4) // 100))
     mob.monster_ai_lifesteal_turn_v1160 = turn
     mob.hp += amount
     return amount

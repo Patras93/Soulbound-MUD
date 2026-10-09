@@ -18,6 +18,9 @@ EVENT_KINDS = (
     ("mini_hunt", "Łowy na czempiona", "mini", 1),
     ("boss_manifestation", "Manifestacja Bossa", "world_boss", 1),
     ("roaming_elites", "Wędrująca elita", "elite", 2),
+    ("city_assault", "Atak na szlak do miasta", "elite", 3),
+    ("siege", "Oblężenie szlaku", "mini", 2),
+    ("rescue_caravan", "Wyprawa ratunkowa karawany", "rare", 2),
 )
 
 BOSS_MECHANICS = (
@@ -81,7 +84,7 @@ def active_events(rooms: dict, mob_spawns, mob_templates: dict, world_seed: str,
     result = []
     used = set()
     for index in range(EVENT_COUNT):
-        kind, title, rank, count = EVENT_KINDS[index % len(EVENT_KINDS)]
+        kind, title, rank, count = EVENT_KINDS[(slot + index) % len(EVENT_KINDS)]
         rng = random.Random(_hash_int(world_seed, "v029-event", slot, index, kind))
         choices = [row for row in eligible if row[0] not in used] or eligible
         room_id, meta = choices[rng.randrange(len(choices))]

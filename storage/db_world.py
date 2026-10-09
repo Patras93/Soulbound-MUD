@@ -229,34 +229,192 @@ class DatabaseWorldMixin:
             "unlocked_floor": unlocked_floor,
         }
 
-    def reset_mine_for_server_start(self):
-        """v0.30.35: reset Kopalni Głębinowej przy każdym starcie procesu/deployu.
+    def mine_tunnel_exists_v1251(self, account_id, floor, x, y):
+        if int(x) == 0 and int(y) == 0:
+            return True  # Central mine room was always available.
+        return self.conn.execute(
+            "SELECT 1 FROM mine_tunnel_cells_v1251 WHERE account_id=? AND floor=? AND x=? AND y=?",
+            (int(account_id), int(floor), int(x), int(y)),
+        ).fetchone() is not None
 
-        Reset dotyczy wyłącznie wspólnego stanu przejścia Kopalni: odblokowanej
-        głębokości oraz postępu bieżącej ściany. Nie dotyka Górnictwa, Kilofa,
-        surowców, EQ, questów ani żadnej progresji postaci. Postacie zapisane
-        wewnątrz dynamicznych pięter są przenoszone do wejścia, żeby po resecie
-        nie pozostawały poniżej ponownie zamkniętej ściany.
-        """
-        progress_rows = int(self.conn.execute(
-            "SELECT COUNT(*) AS n FROM mine_progress"
-        ).fetchone()["n"] or 0)
-        moved_rows = int(self.conn.execute(
-            "SELECT COUNT(*) AS n FROM characters WHERE room_id LIKE 'mine_floor_%'"
-        ).fetchone()["n"] or 0)
+    def mine_tunnel_target_v1251(self, account_id, floor, x, y, direction):
+        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS, mine_tunnel_room_id
+        delta = HORIZONTAL_MINE_DIRECTIONS.get(direction)
+        if delta is None or not self.mine_tunnel_exists_v1251(account_id, floor, x, y):
+            return None
+        nx, ny = x + delta[0], y + delta[1]
+        if not self.mine_tunnel_exists_v1251(account_id, floor, nx, ny):
+            return None
+        return mine_tunnel_room_id(floor, account_id, nx, ny)
+
+    def mine_tunnel_hit_v1251(self, account_id, floor, x, y, direction):
+        """One real mining action advances one persistent wall; never deletes old tunnels."""
+        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS, mine_tunnel_room_id
+        account_id, floor, x, y = map(int, (account_id, floor, x, y))
+        if direction not in HORIZONTAL_MINE_DIRECTIONS:
+            raise ValueError('invalid horizontal mine direction')
+        if floor < MINE_MIN_FLOOR or not self.mine_tunnel_exists_v1251(account_id, floor, x, y):
+            raise ValueError('mine tunnel origin not available')
+        dx, dy = HORIZONTAL_MINE_DIRECTIONS[direction]
+        nx, ny = x + dx, y + dy
+        target = mine_tunnel_room_id(floor, account_id, nx, ny)
+        if self.mine_tunnel_exists_v1251(account_id, floor, nx, ny):
+            return {'hits': 0, 'required_hits': 0, 'opened': True, 'new': False, 'target': target}
+        row = self.conn.execute(
+            "SELECT hits,required_hits FROM mine_tunnel_walls_v1251 "
+            "WHERE account_id=? AND floor=? AND x=? AND y=? AND direction=?",
+            (account_id, floor, x, y, direction),
+        ).fetchone()
+        hits = int(row['hits']) if row else 0
+        required = int(row['required_hits']) if row else roll_mine_wall_hits_required(floor)
+        hits += 1
+        if hits >= required:
+            self.conn.execute(
+                "INSERT OR IGNORE INTO mine_tunnel_cells_v1251(account_id,floor,x,y) VALUES(?,?,?,?)",
+                (account_id, floor, nx, ny),
+            )
+            self.conn.execute(
+                "DELETE FROM mine_tunnel_walls_v1251 WHERE account_id=? AND floor=? AND x=? AND y=? AND direction=?",
+                (account_id, floor, x, y, direction),
+            )
+            self.conn.commit()
+            return {'hits': hits, 'required_hits': required, 'opened': True, 'new': True, 'target': target}
         self.conn.execute(
-            "UPDATE mine_progress SET max_floor_unlocked=?, wall_hits=0, wall_required_hits=0",
-            (MINE_MIN_FLOOR,),
-        )
-        self.conn.execute(
-            "UPDATE characters SET room_id='crystal_chamber' WHERE room_id LIKE 'mine_floor_%'"
+            "INSERT INTO mine_tunnel_walls_v1251 "
+            "(account_id,floor,x,y,direction,hits,required_hits) VALUES(?,?,?,?,?,?,?) "
+            "ON CONFLICT(account_id,floor,x,y,direction) DO UPDATE SET hits=excluded.hits, required_hits=excluded.required_hits",
+            (account_id, floor, x, y, direction, hits, required),
         )
         self.conn.commit()
+        return {'hits': hits, 'required_hits': required, 'opened': False, 'new': False, 'target': target}
+
+    def mine_tunnel_directions_v1251(self, account_id, floor, x, y):
+        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
+        return tuple(direction for direction in HORIZONTAL_MINE_DIRECTIONS
+                     if self.mine_tunnel_target_v1251(account_id, floor, x, y, direction))
+
+    def mine_tunnel_cells_v1260(self, account_id, floor):
+        rows = self.conn.execute(
+            'SELECT x, y FROM mine_tunnel_cells_v1251 WHERE account_id=? AND floor=?',
+            (int(account_id), int(floor))).fetchall()
+        return [(0, 0)] + [(int(row['x']),int(row['y'])) for row in rows]
+
+    def mine_discover_v1260(self, account_id, floor, x, y, name):
+        """Exactly-once local + global discoveries, in one SQLite transaction."""
+        account_id, floor, x, y = map(int, (account_id,floor,x,y))
+        with self.conn:
+            local = self.conn.execute(
+                'INSERT OR IGNORE INTO mine_discoveries_v1260(account_id,floor,x,y) '
+                'VALUES(?,?,?,?)', (account_id,floor,x,y)).rowcount > 0
+            global_first = False
+            if local:
+                global_first = self.conn.execute(
+                    'INSERT OR IGNORE INTO mine_first_discoveries_v1260('
+                    'floor,x,y,account_id,actor_name) VALUES(?,?,?,?,?)',
+                    (floor,x,y,account_id,str(name or 'Górnik')[:120])).rowcount > 0
+        return {'new':local,'global_first':global_first}
+
+    def mine_claim_v1260(self, account_id, floor, x, y):
+        """One-time vault/relic award, made durable before payout."""
+        with self.conn:
+            return self.conn.execute(
+                'INSERT OR IGNORE INTO mine_claimed_v1260(account_id,floor,x,y) '
+                'VALUES(?,?,?,?)',tuple(map(int,(account_id,floor,x,y)))).rowcount > 0
+
+    def mine_claimed_v1260(self, account_id, floor, x, y):
+        return self.conn.execute(
+            'SELECT 1 FROM mine_claimed_v1260 WHERE account_id=? AND floor=? AND x=? AND y=?',
+            tuple(map(int,(account_id,floor,x,y)))).fetchone() is not None
+
+    def mercenary_memory_read_v1260(self, account_id, role, species):
+        import json
+        row = self.conn.execute(
+            'SELECT attempts_json,success_json FROM mercenary_memory_v1260 '
+            'WHERE account_id=? AND role=? AND species=?',
+            (int(account_id),str(role),str(species)[:160])).fetchone()
+        if not row:
+            return None
+        try:
+            attempts = json.loads(row['attempts_json']); success = json.loads(row['success_json'])
+            if len(attempts)==len(success)==3 and all(int(i)>=0 for i in attempts):
+                return {'attempts':[int(i) for i in attempts],
+                        'success':[float(i) for i in success]}
+        except (ValueError,TypeError,IndexError):
+            return None
+        return None
+
+    def mercenary_memory_save_v1260(self, account_id, role, species, values):
+        import json
+        with self.conn:
+            self.conn.execute('INSERT INTO mercenary_memory_v1260('
+                'account_id,role,species,attempts_json,success_json) VALUES(?,?,?,?,?) '
+                'ON CONFLICT(account_id,role,species) DO UPDATE SET '
+                'attempts_json=excluded.attempts_json,success_json=excluded.success_json',
+                (int(account_id),str(role),str(species)[:160],
+                 json.dumps(values['attempts']),json.dumps(values['success'])))
+
+    def grand_expedition_start_v1260(self, account_id):
+        row=self.conn.execute('SELECT cycle,completed FROM grand_expeditions_v1260 WHERE account_id=?',
+                              (int(account_id),)).fetchone()
+        if row and not row['completed']:
+            return False
+        cycle = int(row['cycle'])+1 if row else 1
+        with self.conn:
+            self.conn.execute('INSERT INTO grand_expeditions_v1260(account_id,cycle,stage,completed) '
+                'VALUES(?,?,0,0) ON CONFLICT(account_id) DO UPDATE SET '
+                'cycle=excluded.cycle,stage=0,completed=0',(int(account_id),cycle))
+        return True
+
+    def grand_expedition_state_v1260(self, account_id):
+        row=self.conn.execute('SELECT cycle,stage,completed FROM grand_expeditions_v1260 '
+                              'WHERE account_id=?',(int(account_id),)).fetchone()
+        return dict(row) if row else None
+
+    def grand_expedition_visit_v1260(self, account_id, category):
+        """Stages: city -> ocean -> dungeon -> mine; grant at most once per step."""
+        kinds=('city','ocean','dungeon','mine')
+        with self.conn:
+            row=self.conn.execute('SELECT stage,completed FROM grand_expeditions_v1260 '
+                                  'WHERE account_id=?',(int(account_id),)).fetchone()
+            if not row or row['completed'] or row['stage']>=len(kinds):
+                return None
+            stage=int(row['stage'])
+            if str(category)!=kinds[stage]:
+                return None
+            self.conn.execute('UPDATE grand_expeditions_v1260 SET stage=? WHERE account_id=?',
+                              (stage+1,int(account_id)))
+        return stage+1
+
+    def grand_expedition_claim_v1260(self, account_id):
+        with self.conn:
+            row=self.conn.execute('SELECT cycle FROM grand_expeditions_v1260 '
+                'WHERE account_id=? AND stage=4 AND completed=0',(int(account_id),)).fetchone()
+            if not row:
+                return None
+            self.conn.execute('UPDATE grand_expeditions_v1260 SET completed=1 '
+                              'WHERE account_id=?',(int(account_id),))
+        return int(row['cycle'])
+
+    def mine_startup_status(self):
+        """v1.25.0: informational startup snapshot; NEVER reset mining progress.
+
+        The mine is persistent per character/account: unlocked depth, partial
+        wall progress, and current room survive routine process restarts and
+        Railway deployments as long as the configured SQLite DB is on a
+        persistent volume.  Do not modify either table during bootstrap.
+        """
+        progress = self.conn.execute(
+            """SELECT COUNT(*) AS accounts, COALESCE(MAX(max_floor_unlocked), 1) AS max_depth
+               FROM mine_progress"""
+        ).fetchone()
+        characters = self.conn.execute(
+            "SELECT COUNT(*) AS miners FROM characters WHERE room_id LIKE 'mine_floor_%'"
+        ).fetchone()
         return {
-            "progress_rows_reset": progress_rows,
-            "characters_moved_to_entrance": moved_rows,
-            "max_floor_unlocked": MINE_MIN_FLOOR,
-            "wall_hits": 0,
+            "accounts_with_mine_progress": int(progress["accounts"] or 0),
+            "max_floor_unlocked": max(MINE_MIN_FLOOR, int(progress["max_depth"] or 1)),
+            "characters_inside_mine": int(characters["miners"] or 0),
+            "persistent": True,
         }
 
     def mark_room_discovered(self, account_id, room_id):

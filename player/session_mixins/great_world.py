@@ -48,6 +48,62 @@ class SessionGreatWorldV1200Mixin:
                 return
         await self.send("Nie znam takiej krainy. Wpisz krainy, aby przeczytać nazwy.")
 
+    async def market_quotes_command_v1260(self, args=''):
+        from systems.market_quotes_v1260 import market_quotes_v1260
+        for line in market_quotes_v1260():
+            await self.send(line)
+
+    async def grand_expedition_v1260(self, args=''):
+        from systems.grand_expedition_v1260 import STAGES
+        mode=str(args or '').strip().casefold()
+        db=self.server.db
+        if mode in ('start','rozpocznij','przyjmij'):
+            started=db.grand_expedition_start_v1260(self.account_id)
+            await self.send('WIELKA WYPRAWA: start. Trasa: miasto, ocean, loch, kopalnia. '
+                            'Solo i drużynowo, normalne przejścia.' if started else
+                            'Wielka wyprawa jest już aktywna. Wpisz wielkawyprawa postep.')
+            return
+        state=db.grand_expedition_state_v1260(self.account_id)
+        if not state:
+            await self.send('WIELKA WYPRAWA: brak aktywnej wyprawy. Komenda: wielkawyprawa start.')
+            return
+        stage=int(state['stage'])
+        if mode in ('odbierz','nagroda','claim'):
+            if stage<4 or state['completed']:
+                await self.send('Nagroda niedostępna. Wpisz wielkawyprawa postep.')
+                return
+            cycle=db.grand_expedition_claim_v1260(self.account_id)
+            if cycle is None:
+                await self.send('Ta nagroda została już odebrana.')
+                return
+            level=max(1,int(getattr(self.character,'character_level',1) or 1))
+            payout=max(1000,int((level + 25)**2 * (1 + cycle*.1)))
+            self.character.gold += payout
+            db.save_character(self.character)
+            await self.send(f'WIELKA WYPRAWA UKOŃCZONA! Nagroda: {payout} złota. '
+                            'Możesz rozpocząć kolejną wielkawyprawa start.')
+            return
+        await self.send(f'WIELKA WYPRAWA: cykl {state["cycle"]}, {stage} z 4 etapów zaliczonych.')
+        if state['completed']:
+            await self.send('Ukończona. Wpisz wielkawyprawa start, aby rozpocząć kolejną.')
+        elif stage>=4:
+            await self.send('Wszystkie etapy gotowe. Wpisz wielkawyprawa odbierz.')
+        else:
+            await self.send(f'Następny etap: {STAGES[stage][1]} Wykonuj zwykłe przejścia; '
+                            'postęp zapisuje się automatycznie.')
+
+    async def grand_expedition_visit_v1260(self, room_id):
+        from systems.grand_expedition_v1260 import expedition_region_v1260, STAGES
+        from core.classes_skills import ROOMS
+        category=expedition_region_v1260(room_id,ROOMS.get(room_id,{}))
+        if not category:
+            return
+        stage=self.server.db.grand_expedition_visit_v1260(self.account_id,category)
+        if stage:
+            await self.send(f'WIELKA WYPRAWA: etap {stage} z 4 zaliczony! '
+                            + ('Możesz użyć wielkawyprawa odbierz.' if stage==4
+                               else f'Następny cel: {STAGES[stage][1]}'))
+
     async def legendary_expeditions_v1210(self, args=""):
         """NVDA-safe read-only status of real quests and traversable expeditions."""
         if not self.character:

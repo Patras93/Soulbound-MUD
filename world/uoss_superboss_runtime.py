@@ -355,12 +355,13 @@ def superboss_phase_v11137(template, mob):
     if not superboss_key_from_template_v11135(template) or not mob or not mob.alive:
         return None
     maximum = max(1, int(getattr(mob, "adaptive_max_hp_v11330", 0) or template.get("max_hp", 1) or 1))
-    fraction = max(0.0, float(mob.hp) / maximum)
-    if fraction <= 0.15:
+    # Compare exact integer proportions: huge uncapped HP cannot overflow float.
+    remaining = max(0, int(mob.hp))
+    if remaining * 100 <= maximum * 15:
         return 3
-    if fraction <= 0.40:
+    if remaining * 100 <= maximum * 40:
         return 2
-    if fraction <= 0.75:
+    if remaining * 100 <= maximum * 75:
         return 1
     return 0
 

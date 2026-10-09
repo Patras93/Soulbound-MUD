@@ -1,3 +1,93 @@
+Aktualna paczka: v1.26.4 — OSTATECZNY AUDYT MATEMATYKI I BOSSÓW (2026-10-09)
+
+SOULBOUND v1.26.4 — BEZPIECZNA ARYTMETYKA NAJEMNIKÓW / AUDYT
+- Naprawiono OverflowError przy przenoszeniu ekstremalnie wysokich obrażeń właściciela na najemników oraz przy pełnym skalowaniu ich EQ.
+- Pamięć bojowa najemników wylicza skuteczność bez konwersji wielkich liczb całkowitych do float.
+- Wyliczanie DPS gracza i jego trzech najemników dla adaptacyjnego HP nie gubi olbrzymich obrażeń przez przepełnienie float.
+- Zwykłe obrażenia, czas akcji, ustawienia najemników, kopalnia i portfel pozostają niezmienione.
+- Dodano 105 testów regresyjnych matematyki i faz pięciu superbossów (testy mechanik, nie pełne bitwy).
+- Testy uruchomienia serwera wykonywano wyłącznie na oddzielnej testowej bazie SQLite.
+
+Aktualna paczka: v1.26.3 — SKALOWANIE HP BEZ SUFITU (2026-10-09)
+- Usunięty twardy limit 9 biliardów HP w adaptacyjnym skalowaniu potworów.
+- Obliczanie docelowego HP używa matematyki Decimal: brak przepełnienia mnożenia DPS × czas walki przy ekstremalnych wartościach.
+- Mnożnik nagród rośnie logarytmicznie, liczony bez zamiany ogromnych liczb HP na float.
+- Leczenie i fazy bossów obliczają procent HP na liczbach całkowitych (również ponad zakresem float).
+- Zmiana przeciwnika na słabszego nadal zachowuje proporcję HP, bez niebezpiecznego dzielenia float.
+- Zachowane obrażenia graczy i najemników, mechaniki bossów, kopalnia i jej zapisy, logowanie do Świątyni Odrodzenia.
+- Ochronne ograniczenia finalnych kwot walut/EXP w pozostałych modułach nie zostały zmienione; to osobny kontrakt bazy/ekonomii.
+
+Aktualna paczka: v1.26.2 — FINAL STABILITY (2026-10-09)
+- Optymalizacja odczytów EQ w komendach staty/status; pamięć podręczna tylko w czasie jednej komendy, bez wpływu na walkę i aktualizacje EQ.
+- Staty info: poprawna informacja o poziomie i EXP postaci.
+- Zmiany: limit 20 wierszy dla NVDA; zmiany 50/100 i zmiany wszystkie dla pełnego przeglądu.
+- Audyty: 4 klientów / 12 najemników, superbossowie, pętle, SQLite, NVDA.
+- Logowanie nadal przenosi postać do Świątyni Odrodzenia; tunele i zapisane postępy zostają.
+- Nie zmieniono balansu obrażeń, mnożników najemników ani dropu.
+
+Aktualna paczka: v1.26.1 — BALANS I PRZETOP MAX
+- Naprawa skalowania HP potworów do łącznego DPS postaci i wszystkich aktywnych najemników drużyny.
+- Przy zmianie walczących między starciami potwór dostosowuje HP do nowego gracza; w trwającej walce HP nie maleje od zmian składu.
+- Nagrody za podwyższoną wytrzymałość potworów rosną logarytmicznie bez limitu 3x; ekonomia chroniona malejącą dynamiką premii.
+- przetop max żelazo zużywa wyłącznie rudę żelaza, NIE materiały Salvage.
+- przetop max odłamki żelaza: jawne przetapianie odzyskanych fragmentów; przetop wszystko bez zmian.
+- Bez zmian w sile i obrażeniach graczy/najemników, kontraktach i zapisach postaci.
+
+Aktualna paczka: v1.26.0 — WIELKIE ODKRYCIA
+- Kopalnia 4.0: deterministyczne żyły rud, podziemne jeziora, jaskinie, ruiny,
+  ukryte komnaty, rzadkie minerały i skarbce; nie zmieniają się po restarcie.
+- Geologia 2.0: bogactwo zasobów rośnie z głębokością i odległością od szybu;
+  źródło urobku ma wpływ na ilość i XP (korzysta z istniejących rud).
+  Skarbiec daje też prawdziwą rudę z katalogu rzemieślniczego odpowiednią do głębokości.
+- NVDA: kopalnia mapa, kopalnia gdzie, kopalnia droga, kopalnia skarb.
+- Strzeżone skarbce: unikalni strażnicy z natywną walką i jednorazowe nagrody.
+- Odkrycia i pierwszeństwo odkrycia zapisuje trwały SQLite, także po deployu.
+- Profesje 4.0: rzeczywiste poziomy Górnictwa, Kowalstwa, Zaklinania,
+  Archeologii oraz jakość materiałów zwiększają szansę klasy istniejącego craftu.
+- Potwory reagują w trakcie długiej walki na szybkie serie drużyny;
+  żadne obrażenia graczy ani najemników nie są obcinane.
+- Najemnicy zapisują wyuczone techniki przeciw gatunkom w SQLite;
+  po wylogowaniu doświadczenia nie znikają.
+- Wielka Wyprawa: miasto, ocean, loch i kopalnia; komenda wielkawyprawa,
+  automatyczny postęp, osobna trwała nagroda i kolejne cykle.
+- Ekonomia 4.0: dynamiczny handel v1.25 zachowany (popyt co 6 godzin),
+  rzadkie zasoby utrzymują premie za jakość, nowa komenda notowania/cenyrynku
+  podaje rzeczywiste bieżące mnożniki skupu czterech rodzajów surowców.
+- Starsze postacie, przebite korytarze, ściany i systemy v1.25.1 zachowane.
+
+Aktualna paczka: v1.25.1
+- KOPALNIA W KAŻDYM KIERUNKU: kop north/south/east/west, NE/NW/SE/SW,
+  kop up/down, polskie aliasy prawo/lewo/góra/dół.
+- Kopanie boczne tworzy nowe, trwałe chodniki na tym samym piętrze;
+  osobny postęp przebijania każdej ściany jest zapisywany w SQLite.
+- Zwykłe kop i kop on zachowują klasyczne wydobycie i schodzenie w dół.
+  kop on <kierunek> umożliwia autonomiczne drążenie poziomych galerii.
+- Wykopane przejścia i położenie postaci pozostają po deployu; kopalnia
+  pokazuje współrzędne i dostępne odkryte przejścia czytelnie dla NVDA.
+
+Aktualna paczka: v1.25.0
+- KOPALNIA TRWAŁA: deploy / restart serwera nie zeruje przebitych pięter ani
+  postępu ściany i nie teleportuje postaci z kopalni do wejścia.
+  Zapisy mine_progress oraz room_id postaci pozostają w SQLite na volume.
+  Uwaga: stare postępy już skasowane przez wcześniejszy reset wymagają kopii zapasowej.
+Soulbound v1.25.0 — POTWORY 3.0, NAJEMNICY 5.0, ŻYJĄCY ŚWIAT
+- Zachowania gatunkowe: drapieżniki stadne, smoki, nieumarli, czarujący i taktycy.
+  Nowe akcje odbywają się zamiast podstawowego ciosu, nie jako darmowe dodatkowe ataki.
+- Adaptacyjna presja i techniki wroga zależne od siły drużyny; ochrona początkujących
+  przed gwałtownymi skokami. Wcześniejsze skalowanie HP, obrażeń i nagród pozostaje.
+- Najemnicy 5.0 zapamiętują skuteczność trzech własnych technik wobec gatunków
+  w obrębie sesji, eksplorują i dobierają je samodzielnie. Pełna moc EQ zostaje.
+- Oprócz istniejących elit mogą pojawić się bardzo rzadkie legendarne i mityczne
+  warianty normalnych mobów z wyższymi nagrodami i lepszym lootem.
+- Rotujące najazdy, oblężenia szlaków i wyprawy ratunkowe karawan korzystają
+  z mechanizmu wydarzeń świata, bez tworzenia farmy przy bezpiecznych NPC.
+- Jakość craftu i wartość sprzedaży zasobów: patrz dodatki poniżej.
+- Co część specjalnych pięter sekretnych powstaje dodatkowy strzeżony skarbiec z materiałami; nie ma pułapek ani skrótów poza bossów.
+- Kronika zapisuje też pokonania legendarnych i mitycznych wariantów potworów.
+- Bez zmian sufitów obrażeń postaci i najemników, limitu trzech kontraktów,
+  istniejących zapisów oraz mechanik superbossów UOSS.
+
+---
 Aktualna paczka: v1.24.0
 Soulbound v1.24.0 — NAJEMNICY 4.0: WŁASNE SPECJALIZACJE
 - Każda z 15 postaci ma własną automatyczną specjalizację klasową i trzy techniki

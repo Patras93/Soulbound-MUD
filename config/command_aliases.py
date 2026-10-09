@@ -959,3 +959,9 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "konto": "accountemail", "emailkonto": "accountemail",
     "kontoemail": "accountemail", "accountemail": "accountemail",
 })
+
+# v1.26.0: solo/party multi-region expedition.
+COMMAND_ALIAS_DEFINITIONS.update({'wielkawyprawa':'grandex1260', 'wielkiewyprawy':'grandex1260', 'grandexpedition':'grandex1260'})
+
+# v1.26.0: NVDA-friendly commodity demand.
+COMMAND_ALIAS_DEFINITIONS.update({'notowania':'marketquotes1260','cenyrynku':'marketquotes1260','marketquotes':'marketquotes1260'})

@@ -123,7 +123,8 @@ def register_crafting_quality_variant_v03054(base_id, quality_key, crit_affix=No
         extra += f" Krytyczny craft: {CRAFT_CRIT_AFFIX_NAMES_V03054.get(crit_affix,crit_affix)} +{data['craft_critical_affix_amount_v03054']}."
     data["desc"]=(old_desc+" "+extra).strip()
     apply_legendary_craft_perk_v1150(data, vid, quality_key)
-    data["price"]=base.get("price")
+    source_price = base.get("price")
+    data["price"] = max(1, int(round(source_price * mult))) if isinstance(source_price, (int, float)) and source_price > 0 else source_price
     _catalog_mut.catalog_assign(data, 'ITEMS', ITEMS, (vid,))
     return vid
 
