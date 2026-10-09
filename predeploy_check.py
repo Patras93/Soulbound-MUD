@@ -4056,3 +4056,16 @@ _audit_v1380 = _run_great_audit_v1380()
 print(f"GREAT AUDIT v1.38.0: {_audit_v1380['checks']} checks, {_audit_v1380['error_count']} errors")
 if _audit_v1380['error_count']:
     raise SystemExit('v1.38.0: ' + '; '.join(_audit_v1380['errors'][:20]))
+
+# v1.40.1: preserve reward rates, tools and previous saves; raise only needed XP from 100.
+from validation.profession_xp_v1401 import run_profession_xp_regression_v1401 as _run_profession_xp_regression_v1401
+_prof_v1401 = _run_profession_xp_regression_v1401()
+assert not _prof_v1401['errors'], _prof_v1401['errors'][:20]
+print(f"PROFESSION XP v1.40.1: {_prof_v1401['checks']} checks PASS; requirement rises from level 100")
+
+# v1.40.2: all 14 tools share the smooth late-game profession curve;
+# rewards, actions, saved levels and XP must remain unchanged.
+from validation.tool_xp_v1402 import run_tool_xp_regression_v1402 as _run_tool_xp_regression_v1402
+_tool_v1402 = _run_tool_xp_regression_v1402()
+assert not _tool_v1402['errors'], _tool_v1402['errors'][:20]
+print(f"TOOL XP v1.40.2: {_tool_v1402['checks']} checks PASS; 14 tools from level 100")

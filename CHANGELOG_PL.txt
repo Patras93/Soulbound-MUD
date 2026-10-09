@@ -1,3 +1,34 @@
+Soulbound v1.40.2 — NARZEDZIA: WYMAGANY EXP OD POZIOMU 100
+Aktualna paczka: v1.40.2 (2026-10-10)
+=====================================================
+- Zmieniono WYŁĄCZNIE wymagany EXP do następnego poziomu 14 narzędzi.
+- Poziomy 1–100: wymagania IDENTYCZNE jak w v1.40.1.
+- Wymagania rosną płynnie, tą samą krzywą co profesje:
+  150 x1,12; 200 x1,30; 300 x1,80; 400 x2,60; 500 x4;
+  600 x6; 700 x8,5; 799 x12.
+- Kilof pozostaje trudniejszy: zachowano wcześniejszy mnożnik x2.
+- Nie ruszano EXP otrzymywanego za pracę, questy i nagrody, ani istniejących
+  poziomów, EXP, użyć narzędzi, zapisów SQLite, dropu lub ekonomii.
+- Narzędzia zachowują szybkość pracy; wędka nadal 3 sekundy minimum.
+- Wprowadzono walidację wszystkich 14 narzędzi na każdym poziomie 1–800
+  oraz test zgodności krzywej wymagań z profesjami.
+- Brak migracji danych graczy i brak modyfikacji istniejącej bazy.
+
+Soulbound v1.40.1 — PROFESJE: LAGODNY WZROST WYMAGANEGO EXP OD 100
+Aktualna paczka: v1.40.1 (2026-10-10)
+=====================================================
+- Zmieniono WYŁĄCZNIE wymagania EXP do następnego poziomu wszystkich 14 profesji.
+- Na poziomach 1–100 wymagania są IDENTYCZNE jak w 1.40.0.
+- Płynny dodatkowy mnożnik: 150 x1,12; 200 x1,30; 300 x1,80; 400 x2,60;
+  500 x4,00; 600 x6,00; 700 x8,50; 799 x12,00. Bez skoku przy 100.
+- Zachowano poprzednie różnice między profesjami: Wędkarstwo x4,
+  Drwalstwo/Zielarstwo x2,5, pozostałe x2 (mnożnik przed nową krzywą).
+- Nie zmieniono nagród EXP za żadną czynność lub quest, dropu, cen,
+  zapisanych poziomów i EXP postaci, profesji i narzędzi ani tempa pracy.
+- Wędkarstwo nadal może wykonywać akcję co 3 sekundy.
+- Nowa funkcja obliczeniowa + test regresji na każdym poziomie 1–800 dla 14 profesji.
+- Nie wymaga migracji ani modyfikacji istniejących danych SQLite.
+
 Soulbound v1.40.0 — STABILNOŚĆ WALKI I NAGRÓD
 Aktualna paczka: v1.40.0 (2026-10-10)
 =====================================================

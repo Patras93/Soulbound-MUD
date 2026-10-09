@@ -373,8 +373,12 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.40.0 - STABILNOSC WALKI I NAGROD"
+LATEST_CHANGES_TITLE = "Soulbound v1.40.2 - NARZEDZIA: EXP OD POZIOMU 100"
 LATEST_CHANGES = [
+    "v1.40.2: wszystkie 14 narzedzi ma plynnie wyzsze wymagania EXP od poziomu 100, identyczna krzywa jak profesje (150 x1.12, 200 x1.30, 400 x2.60, 600 x6, 799 x12).",
+    "Kilof zachowuje swoj mnoznik x2. Nagrody EXP, wypracowane poziomy i XP, drop, oraz czas akcji bez zmian. Wedka nadal minimum 3 sekundy.",
+    "v1.40.1: od poziomu profesji 100 zaczyna plynnie rosnac wymagany EXP: x1.12 przy 150, x1.30 przy 200, x2.60 przy 400, x6 przy 600, x12 przy 799.",
+    "Nagrody EXP, juz zdobyte poziomy i XP, drop, ceny oraz czas narzedzi bez zmian; wedka nadal min. 3 s.",
     "v1.40.0: ochrona przed podwojnym rozliczeniem tego samego zabojstwa przy rownoleglym AoE, ataku i najemnikach; testy 24 pomocnikow, wygaszania i ponownego odrodzenia bossa.",
     "Nowa bramka validation/v1400_combat_stability.py w predeploy; bez zmian nagrod EXP, obrazen, profesji i danych graczy.",
     "v1.39.0: test 4 wirtualnych graczy, zapisow SQLite, profesji, ekwipunku i skalowania walki. Wyniki: validation/v1390_world_stress.py. Balans i zapisy bez zmian.",

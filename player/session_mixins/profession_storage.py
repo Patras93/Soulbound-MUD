@@ -6,6 +6,8 @@ from core.bootstrap_economy_professions import currency_price_text
 from config.balance import (
     PROFESSION_XP_REQUIREMENT_MULTIPLIERS,
     TOOL_XP_REQUIREMENT_MULTIPLIERS,
+    profession_xp_requirement_v1401,
+    tool_xp_requirement_v1402,
 )
 from core.bootstrap_economy_professions import (
     PROFESSION_XP_GAIN_MULTIPLIER,
@@ -57,8 +59,7 @@ class SessionProfessionStorageMixin:
             if level >= max_level:
                 return 0
             base = v0190_requirement("profession", level)
-            multiplier = float(PROFESSION_XP_REQUIREMENT_MULTIPLIERS.get(str(profession), 1.0))
-            return max(1, int(round(base * multiplier)))
+            return profession_xp_requirement_v1401(base, profession, level)
 
     def tool_xp_to_next(self, level, tool_type=None):
             max_level = tool_max_level(tool_type)
@@ -66,8 +67,7 @@ class SessionProfessionStorageMixin:
                 return 0
 
             base = v0190_requirement("tool", level)
-            multiplier = float(TOOL_XP_REQUIREMENT_MULTIPLIERS.get(str(tool_type), 1.0))
-            return max(1, int(round(base * multiplier)))
+            return tool_xp_requirement_v1402(base, tool_type, level)
 
     def valid_tool_type(self, tool_type):
             return tool_type in (

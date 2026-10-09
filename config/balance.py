@@ -83,9 +83,68 @@ PROFESSION_XP_REQUIREMENT_MULTIPLIERS = {
     "Archeologia": 2.0,
     "Kartografia": 2.0,
 }
+# v1.40.2: preserve historical per-tool difficulty (the pickaxe x2).
+# Every tool now gets the SAME late-game requirement curve as its profession,
+# but tool XP grants, actions, speeds and saved progression remain unchanged.
 TOOL_XP_REQUIREMENT_MULTIPLIERS = {
     "mining": 2.0,
 }
+
+# v1.40.1: dodatkowy, LAGODNY od 100 poziomu, rosnacy prog
+# tylko WYMAGANEGO EXP profesji. Nie dotyka EXP z czynnosci, nagrod,
+# dropu, czasu narzedzi, istniejacych poziomow ani zapisanego postepu.
+# Progi sa ciagle (interpolacja liniowa): nie ma skoku przy 100.
+# Jednostka: punkty bazowe. 10000 = x1.00.
+PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401 = (
+    (100, 10000),    # bez zmian do 100 wlacznie
+    (150, 11200),    # x1.12
+    (200, 13000),    # x1.30
+    (300, 18000),    # x1.80
+    (400, 26000),    # x2.60
+    (500, 40000),    # x4.00
+    (600, 60000),    # x6.00
+    (700, 85000),    # x8.50
+    (799, 120000),   # x12.00
+)
+
+
+def profession_late_requirement_points_v1401(level: int) -> int:
+    """Monotonic, continuous multiplier of required EXP, never earned EXP."""
+    level = int(level)
+    if level <= 100:
+        return 10000
+    previous_level, previous_points = PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[0]
+    for next_level, next_points in PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[1:]:
+        if level <= next_level:
+            span = next_level - previous_level
+            # Integer interpolation, deterministic on every Python runtime.
+            return previous_points + ((level - previous_level) * (next_points - previous_points)) // span
+        previous_level, previous_points = next_level, next_points
+    return PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[-1][1]
+
+
+def profession_xp_requirement_v1401(base: int, profession: str | None, level: int) -> int:
+    """Canonical next-level EXP, preserving existing profession modifiers."""
+    old_requirement = max(1, int(round(
+        int(base) * float(PROFESSION_XP_REQUIREMENT_MULTIPLIERS.get(str(profession), 1.0))
+    )))
+    points = profession_late_requirement_points_v1401(level)
+    # Exact historical value at <=100; round half-up for later progression.
+    return old_requirement if points == 10000 else max(1, (old_requirement * points + 5000) // 10000)
+
+
+# v1.40.2: synchronize TOOLS with the smooth late-game profession
+# requirement curve introduced in v1.40.1. The formula only changes the
+# amount needed for the NEXT tool level; it never edits character records.
+# Keep the exact historical rounding for levels <=100 and the pickaxe x2.
+def tool_xp_requirement_v1402(base: int, tool_type: str | None, level: int) -> int:
+    """Next-level required tool EXP, not an EXP reward calculation."""
+    original = max(1, int(round(
+        int(base) * float(TOOL_XP_REQUIREMENT_MULTIPLIERS.get(str(tool_type), 1.0))
+    )))
+    points = profession_late_requirement_points_v1401(level)
+    return original if points == 10000 else max(1, (original * points + 5000) // 10000)
+
 
 # v0.50.3: final combat pressure applied after all historical world/dungeon
 # layers. Difficulty rises much more than rewards so tougher content does not

@@ -28,7 +28,7 @@ def run_great_audit_v1380():
         SOUL_MAX_LEVEL, SKILL_MAX_LEVEL, SOUL_WEAPON_MASTERY_MAX_LEVEL,
         TOOL_MAX_LEVEL, TOOL_MAX_TIER, SOUL_MAX_TIER,
     )
-    check(VERSION == '1.40.0', 'runtime version 1.40.0')
+    check(VERSION == '1.40.2', 'runtime version 1.40.2')
     for axis, limit in (
         ('character', CHARACTER_MAX_LEVEL), ('class', CLASS_MASTERY_MAX_LEVEL),
         ('profession', PROFESSION_MAX_LEVEL), ('soul', SOUL_MAX_LEVEL),
@@ -84,7 +84,9 @@ def run_great_audit_v1380():
             {'generator_level': 800}, axis, 1234, 150) == 1234,
             f'{axis}: open-world XP touched')
 
-    from config.balance import PROFESSION_XP_REQUIREMENT_MULTIPLIERS
+    from config.balance import (
+        PROFESSION_XP_REQUIREMENT_MULTIPLIERS, profession_xp_requirement_v1401,
+    )
     from core.profession_timing import (
         TOOL_ACTION_BASE_SECONDS, TOOL_ACTION_MIN_SECONDS,
         profession_action_seconds,
@@ -99,7 +101,9 @@ def run_great_audit_v1380():
     for profession in PROFESSIONS_V1370:
         prev = 0
         for level in (1, 2, 10, 50, 100, 200, 400, 600, 799):
-            needed = round(v0190_requirement("profession", level) * PROFESSION_XP_REQUIREMENT_MULTIPLIERS[profession])
+            needed = profession_xp_requirement_v1401(
+                v0190_requirement("profession", level), profession, level
+            )
             check(needed >= prev and needed > 0,
                   f'{profession}: XP requirement at {level}')
             prev = needed

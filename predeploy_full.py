@@ -20,6 +20,14 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        from validation.profession_xp_v1401 import run_profession_xp_regression_v1401
+        _xp_v1401 = run_profession_xp_regression_v1401()
+        assert not _xp_v1401['errors'], _xp_v1401['errors'][:20]
+        print(f"PROFESSION XP v1.40.1: {_xp_v1401['checks']} checks PASS")
+        from validation.tool_xp_v1402 import run_tool_xp_regression_v1402
+        _tools_v1402 = run_tool_xp_regression_v1402()
+        assert not _tools_v1402['errors'], _tools_v1402['errors'][:20]
+        print(f"TOOL XP v1.40.2: {_tools_v1402['checks']} checks PASS")
         from validation.v1380_great_audit import run_great_audit_v1380
         _v1380 = run_great_audit_v1380()
         assert _v1380['error_count'] == 0, _v1380['errors']
