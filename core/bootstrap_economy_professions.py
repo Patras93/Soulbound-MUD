@@ -8,7 +8,7 @@ Wieloosobowy tekstowy MUD TCP/Telnet dla MUSHclienta/Mudleta.
 Najważniejsze zasady projektu:
 - postać ma generowany Level 1-400 i XP postaci,
 - każda z sześciu statystyk ma własny automatyczny EXP i własny próg,
-- liczbowy balans gry jest wyliczany przez Generator Core; nazwy, progi, wymagania i semantyka są ręcznie projektowane,
+- balans liczbowy pochodzi z jawnych wzorów, a katalogi i wymagania są autorskie,
 - Broń Duszy ma osobny Soul Level 1-400,
 - Soul Tier 1-40 odblokowuje się osobno,
 - wszystkie trwałe dane gracza są zapisywane w SQLite.
@@ -33,12 +33,12 @@ from typing import Optional
 from config.balance import BLACKSMITH_QUEST_COOLDOWN_SECONDS, QUEST_REPEAT_COOLDOWN_SECONDS
 
 # v0.40.0: formerly embedded runtime engines are real importable modules.
-from core import generator_core as generator_core_v027
+from core import balance_math
 from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "1.28.2"
+VERSION = "1.28.5"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20

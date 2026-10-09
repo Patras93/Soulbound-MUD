@@ -177,7 +177,7 @@ def audit(runtime):
     ocean_contract_rewards = [
         offer[4] for offer in ocean_probe.ocean_trade_offers_v1000()
     ]
-    generator = runtime.generator_core_v027
+    generator = runtime.balance_math
     progression = {}
     for stage in (1, 50, 100, 200, 300, 400, 500, 600):
         sample = {}

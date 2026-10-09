@@ -7,7 +7,7 @@ import random
 from core.bootstrap_economy_professions import (
     PROFESSION_RANK_NAMES,
     TOOL_TIER_NAMES,
-    generator_core_v027,
+    balance_math,
     profession_for_tool_type,
     profession_max_level,
     profession_max_rank,
@@ -1034,7 +1034,7 @@ class SessionGatheringMixin:
                 "sea": tuple(SEA_FISH_ATLAS),
                 "ocean": tuple(OCEAN_FISH_ATLAS),
             }.get(habitat, ())
-            return generator_core_v027.resource_pool(
+            return balance_math.resource_pool(
                 habitat_ids, ITEMS, access_level, f"fishing:{habitat or 'unknown'}"
             )
 
@@ -1073,7 +1073,7 @@ class SessionGatheringMixin:
             pool = self.fishing_ecology_pool(tool_level, habitat=habitat, room_id=room_id)
             if not pool:
                 return None
-            weights = generator_core_v027.resource_weights(
+            weights = balance_math.resource_weights(
                 pool, ITEMS, tool_level, f"fishing:{habitat}:{room_id}"
             )
             preferred = FISHING_ECOLOGY_PREFERRED_IDS.get(room_id) or set()
@@ -1288,15 +1288,15 @@ class SessionGatheringMixin:
                     if item.get("type") == "gem_raw" and not item.get("gem_quality")
                 )
                 type(self).mining_gem_drop._base_gems_v0717 = base_gems
-            pool = generator_core_v027.resource_pool(
+            pool = balance_math.resource_pool(
                 base_gems, ITEMS, effective, f"gems:{room_id}"
             )
             gem_skill = min(tool_level, profession_level)
             chance = min(0.18, 0.035 + 0.11 * (gem_skill / float(PROFESSION_MAX_LEVEL)))
-            chance *= 0.85 + 0.30 * generator_core_v027.stable_unit(f"gems:{room_id}")
+            chance *= 0.85 + 0.30 * balance_math.stable_unit(f"gems:{room_id}")
             if not pool or random.random() >= chance:
                 return None
-            weights = generator_core_v027.resource_weights(pool, ITEMS, effective, f"gems:{room_id}")
+            weights = balance_math.resource_weights(pool, ITEMS, effective, f"gems:{room_id}")
             base_id = random.choices(pool, weights=weights, k=1)[0]
             quality = roll_mined_gem_quality(tool_level, profession_level)
             if quality and quality != "normal":
@@ -1312,12 +1312,12 @@ class SessionGatheringMixin:
             effective = tool_tier_access_level(tool_level)
             if dungeon == "ancient_forest":
                 effective = min(effective, max(1, int(dungeon_floor) * 10))
-            pool = generator_core_v027.resource_pool(
+            pool = balance_math.resource_pool(
                 tuple(WOOD_RESOURCE_IDS), ITEMS, effective, f"wood:{room_id}"
             )
             if not pool:
                 return None
-            weights = generator_core_v027.resource_weights(pool, ITEMS, effective, f"wood:{room_id}")
+            weights = balance_math.resource_weights(pool, ITEMS, effective, f"wood:{room_id}")
             return random.choices(pool, weights=weights, k=1)[0]
 
     def herbalism_loot(self, tool_level, room_id=None):
@@ -1327,10 +1327,10 @@ class SessionGatheringMixin:
             effective = tool_tier_access_level(tool_level)
             if dungeon == "alchemy_garden":
                 effective = min(effective, max(1, int(dungeon_floor) * 10))
-            pool = generator_core_v027.resource_pool(
+            pool = balance_math.resource_pool(
                 tuple(HERB_RESOURCE_IDS), ITEMS, effective, f"herb:{room_id}"
             )
             if not pool:
                 return None
-            weights = generator_core_v027.resource_weights(pool, ITEMS, effective, f"herb:{room_id}")
+            weights = balance_math.resource_weights(pool, ITEMS, effective, f"herb:{room_id}")
             return random.choices(pool, weights=weights, k=1)[0]

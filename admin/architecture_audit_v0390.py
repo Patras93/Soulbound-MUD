@@ -41,7 +41,7 @@ def architecture_stabilization_audit_v0390():
         errors.append("bootstrap still contains embedded runtime source blobs")
 
     for rel in (
-        "core/generator_core.py",
+        "core/balance_math.py",
         "world/topology_generator.py",
         "world/dynamic_world_generator.py",
         "world/logic_validator.py",

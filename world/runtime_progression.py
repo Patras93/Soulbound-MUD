@@ -155,15 +155,15 @@ V022_WORLD_PROJECTS = {
     },
 }
 for _idx,(_pkey,_spec) in enumerate(V022_WORLD_PROJECTS.items(),1):
-    _stage=generator_core_v027.stage_from_index(_idx,len(V022_WORLD_PROJECTS))
+    _stage=balance_math.stage_from_index(_idx,len(V022_WORLD_PROJECTS))
     _spec["stage"]=_stage
-    _spec["min_points"]=generator_core_v027.generated_count(_stage,"world-project-points:"+_pkey,200,5000)
+    _spec["min_points"]=balance_math.generated_count(_stage,"world-project-points:"+_pkey,200,5000)
     _requirements={}
     for _cat in _spec.pop("categories"):
         if _cat=="coins":
-            _requirements[_cat]=generator_core_v027.system_cost(_stage,"world-project:"+_pkey,20000.0)
+            _requirements[_cat]=balance_math.system_cost(_stage,"world-project:"+_pkey,20000.0)
         else:
-            _requirements[_cat]=generator_core_v027.generated_count(_stage,f"world-project:{_pkey}:{_cat}",2500,100000)
+            _requirements[_cat]=balance_math.generated_count(_stage,f"world-project:{_pkey}:{_cat}",2500,100000)
     _spec["requirements"]=_requirements
 
 V022_PROJECT_CATEGORY_LABELS={"wood":"drewno","ore":"rudy i minerały","fish":"ryby","herbs":"zioła","coins":"waluta"}
@@ -181,10 +181,10 @@ def v022_project_reward(project_key):
     stage=int(spec["stage"])
     complexity=2.0 + len(spec.get("requirements",{})) * 0.75 + stage/160.0
     return {
-        "character_xp": generator_core_v027.axis_gain("character",stage,complexity),
-        "class_xp": generator_core_v027.axis_gain("class",stage,complexity),
-        "soul_xp": generator_core_v027.axis_gain("soul",stage,complexity),
-        "coins": min(CURRENCY_SQLITE_SAFE_TOTAL,generator_core_v027.system_reward(stage,"world-project:"+project_key,complexity*3.0)),
+        "character_xp": balance_math.axis_gain("character",stage,complexity),
+        "class_xp": balance_math.axis_gain("class",stage,complexity),
+        "soul_xp": balance_math.axis_gain("soul",stage,complexity),
+        "coins": min(CURRENCY_SQLITE_SAFE_TOTAL,balance_math.system_reward(stage,"world-project:"+project_key,complexity*3.0)),
     }
 
 V022_LEGENDARY_KINDS=("kill","boss","worldboss","fish","gather","explore")
@@ -193,20 +193,20 @@ V022_LEGENDARY_LABELS={
     "fish":"Legendarna Wyprawa Rybacka","gather":"Kontrakt Wielkiego Zbioru","explore":"Ekspedycja Kartograficzna",
 }
 
-V027_LEGENDARY_MIN_MASTERY = 1 + int(generator_core_v027.stable_unit("legendary-contract-unlock") * 399)
+V027_LEGENDARY_MIN_MASTERY = 1 + int(balance_math.stable_unit("legendary-contract-unlock") * 399)
 
 def v022_legendary_contract_offer(kind, stage):
     stage=max(V027_LEGENDARY_MIN_MASTERY,min(CLASS_MASTERY_MAX_LEVEL,int(stage or V027_LEGENDARY_MIN_MASTERY)))
-    base=generator_core_v027.generated_count(stage,"legendary:"+kind,30,300)
+    base=balance_math.generated_count(stage,"legendary:"+kind,30,300)
     divisors={"kill":1,"boss":12,"worldboss":35,"fish":1,"gather":1,"explore":2}
     needed=max(1,int(round(base/divisors.get(kind,1))))
-    complexity=2.5 + (stage/120.0) + generator_core_v027.stable_unit("legendary-complexity:"+kind)*2.0
+    complexity=2.5 + (stage/120.0) + balance_math.stable_unit("legendary-complexity:"+kind)*2.0
     return {
         "kind":kind,"label":f"{V022_LEGENDARY_LABELS[kind]}: {needed}","needed":needed,"stage":stage,
-        "reward_character_xp":generator_core_v027.axis_gain("character",stage,complexity),
-        "reward_class_xp":generator_core_v027.axis_gain("class",stage,complexity),
-        "reward_soul_xp":generator_core_v027.axis_gain("soul",stage,complexity),
-        "reward_coins":min(CURRENCY_SQLITE_SAFE_TOTAL,generator_core_v027.system_reward(stage,"legendary:"+kind,complexity*2.0)),
+        "reward_character_xp":balance_math.axis_gain("character",stage,complexity),
+        "reward_class_xp":balance_math.axis_gain("class",stage,complexity),
+        "reward_soul_xp":balance_math.axis_gain("soul",stage,complexity),
+        "reward_coins":min(CURRENCY_SQLITE_SAFE_TOTAL,balance_math.system_reward(stage,"legendary:"+kind,complexity*2.0)),
     }
 
 def v022_fish_rarity_score(item_id):
@@ -329,7 +329,7 @@ V028_BIOMES = {
 
 def _v028_pick(seq, key):
     seq = tuple(seq)
-    return seq[int(generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:{key}") * len(seq)) % len(seq)]
+    return seq[int(balance_math.stable_unit(f"{V028_WORLD_SEED}:{key}") * len(seq)) % len(seq)]
 
 
 def _v028_connect(a, direction, b, reverse):
@@ -345,15 +345,15 @@ def _v028_build_regions():
     if "cartographer_house" not in ROOMS:
         return
     # Deterministic biome permutation; no region carries a hand-authored level.
-    biome_order = sorted(V028_BIOMES, key=lambda key: generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:biome:{key}"))
+    biome_order = sorted(V028_BIOMES, key=lambda key: balance_math.stable_unit(f"{V028_WORLD_SEED}:biome:{key}"))
     gate_ids=[]
     for index in range(1, V028_REGION_COUNT + 1):
-        stage = generator_core_v027.stage_from_index(index, V028_REGION_COUNT)
+        stage = balance_math.stage_from_index(index, V028_REGION_COUNT)
         biome_key = biome_order[(index - 1) % len(biome_order)]
         theme = V028_BIOMES[biome_key]
         gate_id=f"v028_region_gate_{index:02d}"; gate_ids.append(gate_id)
-        width=4 + int(generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:{index}:w") > .52)
-        height=4 + int(generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:{index}:h") > .52)
+        width=4 + int(balance_math.stable_unit(f"{V028_WORLD_SEED}:{index}:w") > .52)
+        height=4 + int(balance_math.stable_unit(f"{V028_WORLD_SEED}:{index}:h") > .52)
         max_distance=max(1,(width-1)+(height-1))
         zone=f"Proceduralny Region: {theme['label']}"
         _catalog_mut.catalog_assign({
@@ -387,7 +387,7 @@ def _v028_build_regions():
                 if y>0:
                     below=_v028_region_room_id(index,x,y-1)
                     must_connect=(x==0)
-                    extra=generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:edge:{index}:{x}:{y}")>.47
+                    extra=balance_math.stable_unit(f"{V028_WORLD_SEED}:edge:{index}:{x}:{y}")>.47
                     if must_connect or extra:
                         _v028_connect(below,"north",rid,"south")
         entry=_v028_region_room_id(index,0,0)
@@ -396,7 +396,7 @@ def _v028_build_regions():
 
         # Secrets are side rooms chosen by seed, never the entry or boss room.
         secret_candidates=[rid for rid in room_ids if rid not in (entry,boss_room)]
-        secret_candidates.sort(key=lambda rid: generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:secret:{rid}"), reverse=True)
+        secret_candidates.sort(key=lambda rid: balance_math.stable_unit(f"{V028_WORLD_SEED}:secret:{rid}"), reverse=True)
         secret_ids=[]
         for sn,base in enumerate(secret_candidates[:2],1):
             sid=f"v028_region_{index:02d}_secret_{sn:02d}"; secret_ids.append(sid)
@@ -410,7 +410,7 @@ def _v028_build_regions():
         # Real gathering locations are generated from biome semantics.
         resource_rooms=[]
         for rid in room_ids:
-            if generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:resource:{rid}")>.66:
+            if balance_math.stable_unit(f"{V028_WORLD_SEED}:resource:{rid}")>.66:
                 _v0130_apply_resources(rid,{"resources":theme["resources"]}); resource_rooms.append(rid)
         if not resource_rooms:
             _v0130_apply_resources(entry,{"resources":theme["resources"]}); resource_rooms=[entry]
@@ -446,19 +446,19 @@ def _v028_build_regions():
         # Seeded spawn layout: normal population everywhere, one Elite, one Rare and final boss.
         non_boss=[rid for rid in room_ids if rid!=boss_room]
         for rid in non_boss:
-            pick=int(generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:spawn:{rid}")*len(normal_ids))%len(normal_ids)
+            pick=int(balance_math.stable_unit(f"{V028_WORLD_SEED}:spawn:{rid}")*len(normal_ids))%len(normal_ids)
             MOB_SPAWNS.append((rid,normal_ids[pick]))
-            if generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:spawn2:{rid}")>.74:
+            if balance_math.stable_unit(f"{V028_WORLD_SEED}:spawn2:{rid}")>.74:
                 MOB_SPAWNS.append((rid,normal_ids[(pick+1)%len(normal_ids)]))
-        elite_room=sorted(non_boss,key=lambda rid:generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:elite:{rid}"),reverse=True)[0]
-        rare_room=sorted([rid for rid in non_boss if rid!=elite_room],key=lambda rid:generator_core_v027.stable_unit(f"{V028_WORLD_SEED}:rare:{rid}"),reverse=True)[0]
+        elite_room=sorted(non_boss,key=lambda rid:balance_math.stable_unit(f"{V028_WORLD_SEED}:elite:{rid}"),reverse=True)[0]
+        rare_room=sorted([rid for rid in non_boss if rid!=elite_room],key=lambda rid:balance_math.stable_unit(f"{V028_WORLD_SEED}:rare:{rid}"),reverse=True)[0]
         MOB_SPAWNS.extend(((elite_room,elite_id),(rare_room,rare_id),(boss_room,boss_id)))
 
         # Three generated quests per region. Their levels/rewards are recalculated by the final Core pass.
         guide_id=f"v028_region_{index:02d}_guide"; guide_name=f"Przewodnik {theme['label']}"
         q1=f"v028_region_{index:02d}_hunt"; q2=f"v028_region_{index:02d}_elite_quest"; q3=f"v028_region_{index:02d}_boss_quest"
         _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Czystka","giver":guide_name,"kind":"kill",
-            "target":f"v028_region_{index:02d}_threat","needed":generator_core_v027.generated_count(stage,f"v028:{index}:hunt",8,18),
+            "target":f"v028_region_{index:02d}_threat","needed":balance_math.generated_count(stage,f"v028:{index}:hunt",8,18),
             "description":f"Pokonaj zagrożenia wygenerowanego regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q1,))
         _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Elita","giver":guide_name,"kind":"kill",
             "target":f"v028_region_{index:02d}_elite_target","needed":1,"requires_quest":q1,
@@ -910,7 +910,12 @@ V03024_MANUAL_QUEST_REWARD_MARKING = apply_manual_quest_currency_rewards_v03024(
 # Ten przebieg jest wykonywany dopiero po zbudowaniu WSZYSTKICH statycznych
 # i proceduralnie pre-generowanych rejestrów treści.
 # ============================================================
-GENERATOR_CORE_AUDIT = generator_core_v027.apply_generator_core(globals())
+# v1.28.3: static legacy numeric defaults; no procedural generator writes.
+from core.catalog_fallback_v1283 import apply_catalogue_defaults_v1283
+CATALOG_DEFAULTS_AUDIT_V1283 = apply_catalogue_defaults_v1283(globals())
+from core.catalog_validation import validate_catalog
+CATALOG_VALIDATION_AUDIT = validate_catalog(globals())
+BALANCE_MATH_VERSION = balance_math.BALANCE_MATH_VERSION
 
 # v0.31.3: Moogle Board jest specjalnym rasowym Boardem Cyborga.
 # Generator Core nie może nadpisywać jego skalowania z Biegłością Meca.

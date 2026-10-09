@@ -119,7 +119,7 @@ def generated_name(base_name: str, seed: str, role: str = "event") -> str:
     return f"{epithet} {base_name}"
 
 
-def build_event_template(event: dict, index: int, mob_templates: dict, generator_core, world_seed: str):
+def build_event_template(event: dict, index: int, mob_templates: dict, balance_curves, world_seed: str):
     bases = tuple(event.get("base_templates") or ())
     if not bases:
         return None, None
@@ -162,7 +162,7 @@ def build_event_template(event: dict, index: int, mob_templates: dict, generator
             if rank == "world_boss":
                 data["world_boss"] = True
                 data["v029_world_boss"] = True
-    generator_core.runtime_mob_balance(template_id, data, stage, rank=rank)
+    balance_curves.runtime_mob_balance(template_id, data, stage, rank=rank)
     mob_templates[template_id] = data
     return template_id, data
 
@@ -172,7 +172,7 @@ def nemesis_name(base_name: str, account_id: int, player_name: str, rank: int) -
     return generated_name(base_name, seed, "nemesis")
 
 
-def build_nemesis_template(record, mob_templates: dict, generator_core):
+def build_nemesis_template(record, mob_templates: dict, balance_curves):
     base_id = str(record["base_template_id"])
     base = mob_templates.get(base_id)
     if not isinstance(base, dict):
@@ -211,6 +211,6 @@ def build_nemesis_template(record, mob_templates: dict, generator_core):
         data["elite_affix_text"] = f"Nemesis rangi {rank_no}: {text}"
     else:
         data["rare_mob"] = True
-    generator_core.runtime_mob_balance(template_id, data, stage, rank=rank)
+    balance_curves.runtime_mob_balance(template_id, data, stage, rank=rank)
     mob_templates[template_id] = data
     return template_id, data

@@ -325,7 +325,7 @@ class SessionForgeGuildsMixin:
                 await self.send(f"Kuźnia: ulepszenie +{target} wymaga także {ITEMS[forge3_id]['name']} x1. Użyj refine.")
                 return
 
-            action_seconds = generator_core_v027.profession_action_seconds("crafting", smithing_level)
+            action_seconds = balance_math.profession_action_seconds("crafting", smithing_level)
             await self.send(
                 f"Haldor rozpoczyna ulepszanie: {item['name']} +{current} -> +{target}. "
                 f"Czas pracy: {action_seconds} sekund. Nie ma ryzyka zniszczenia ani cofnięcia ulepszenia."
@@ -692,7 +692,7 @@ class SessionForgeGuildsMixin:
             cid=int(clan_id); base=f"player_guild_estate_{cid}"
             hall=self.server.db.guild_hall_v0927(cid); hall_level=int(hall["hall_level"])
             _catalog_mut.catalog_assign({"zone":f"Siedziba Gildii {guild_name}","name":f"Siedziba Gildii {guild_name}, poziom {hall_level}","desc":f"Prywatna Siedziba Gildii {guild_name}. Poziom Siedziby {hall_level}/10. Rozbudowa budynków jest osobna i tańsza od rozbudowy głównej Siedziby.","exits":{"south":"square"},"guild_hall_level":hall_level}, 'ROOMS', ROOMS, (base,))
-            generator_core_v027.runtime_room_level(base,ROOMS[base],ROOMS)
+            balance_math.runtime_room_level(base,ROOMS[base],ROOMS)
             mapping=(("forge_level","east","forge","Kuźnia Gildii"),("treasury_level","west","treasury","Skarbiec Gildii"),("library_level","up","library","Biblioteka Gildii"),("training_level","down","training","Sala Treningowa Gildii"))
             for field,direction,key,label in mapping:
                 lvl=int(hall[field] or 0)
@@ -701,7 +701,7 @@ class SessionForgeGuildsMixin:
                 _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (base, "exits", direction))
                 back={"east":"west","west":"east","up":"down","down":"up"}[direction]
                 _catalog_mut.catalog_assign({"zone":f"Siedziba Gildii {guild_name}","name":f"{label}, poziom {lvl}","desc":f"{label} rozwinięta do poziomu {lvl}/10. Pomieszczenie należy wyłącznie do Gildii {guild_name}.","exits":{back:base},"guild_hall_level":lvl}, 'ROOMS', ROOMS, (rid,))
-                generator_core_v027.runtime_room_level(rid,ROOMS[rid],ROOMS)
+                balance_math.runtime_room_level(rid,ROOMS[rid],ROOMS)
                 npc_specs={
                     "forge": ("Mistrz Kuźni Gildii", "Obsługuje Salvage, Reforge i runy bez konieczności wracania do miejskiej Kuźni."),
                     "treasury": ("Kwatermistrz Gildii", "Pilnuje wspólnego banku przedmiotów i skarbca pieniędzy."),

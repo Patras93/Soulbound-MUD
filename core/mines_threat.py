@@ -1067,7 +1067,7 @@ def v0866_template_explicit_floor_power(template):
     level = template.get("generator_level")
     if level is not None:
         return max(1, min(CHARACTER_MAX_LEVEL, int(level)))
-    semantic = generator_core_v027.semantic_floor_level(template)
+    semantic = balance_math.semantic_floor_level(template)
     return max(1, min(CHARACTER_MAX_LEVEL, int(semantic))) if semantic is not None else None
 
 def v0866_mob_progression_power(template):

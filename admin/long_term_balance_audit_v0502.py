@@ -12,7 +12,7 @@ from config.balance import (
     STAT_XP_REWARD_MULTIPLIER,
     TOOL_XP_REQUIREMENT_MULTIPLIERS,
 )
-from core import generator_core as generator_core_v027
+from core import balance_math
 from core.progression_resources import cap_single_level_xp_gain_v11342
 from player.character import Character
 
@@ -24,13 +24,13 @@ def _effective_stat_actions(level: int) -> float:
         strength=level,
     )
     threshold = Character.stat_growth_threshold_for(dummy, "strength")
-    if level <= generator_core_v027.MAX_LEVEL:
-        gain = generator_core_v027.axis_gain("stat", level, 1.0)
+    if level <= balance_math.MAX_LEVEL:
+        gain = balance_math.axis_gain("stat", level, 1.0)
     else:
-        anchor_gain = generator_core_v027.axis_gain(
-            "stat", generator_core_v027.MAX_LEVEL, 1.0
+        anchor_gain = balance_math.axis_gain(
+            "stat", balance_math.MAX_LEVEL, 1.0
         )
-        gain = generator_core_v027.uncapped_stat_xp_gain(anchor_gain, level)
+        gain = balance_math.uncapped_stat_xp_gain(anchor_gain, level)
     effective_gain = float(gain) * float(STAT_XP_REWARD_MULTIPLIER)
     return float(threshold) / max(1.0, effective_gain)
 
@@ -65,35 +65,35 @@ def long_term_balance_audit_v0502():
 
     targets = {
         "character": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["character"]
+            balance_math.AXIS_TARGET_ACTIONS["character"]
             * CHARACTER_XP_REQUIREMENT_MULTIPLIER
         ),
         "class": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["class"]
+            balance_math.AXIS_TARGET_ACTIONS["class"]
             * CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER
         ),
         "soul": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["soul"]
+            balance_math.AXIS_TARGET_ACTIONS["soul"]
             * SOUL_XP_REQUIREMENT_MULTIPLIER
         ),
         "soul_weapon_mastery": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["skill"]
+            balance_math.AXIS_TARGET_ACTIONS["skill"]
             * SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER
         ),
-        "skill": int(generator_core_v027.AXIS_TARGET_ACTIONS["skill"]),
-        "profession": int(generator_core_v027.AXIS_TARGET_ACTIONS["profession"]),
-        "tool": int(generator_core_v027.AXIS_TARGET_ACTIONS["tool"]),
+        "skill": int(balance_math.AXIS_TARGET_ACTIONS["skill"]),
+        "profession": int(balance_math.AXIS_TARGET_ACTIONS["profession"]),
+        "tool": int(balance_math.AXIS_TARGET_ACTIONS["tool"]),
         "stat": int(round(
-            generator_core_v027.AXIS_TARGET_ACTIONS["stat"]
+            balance_math.AXIS_TARGET_ACTIONS["stat"]
             * STAT_XP_REQUIREMENT_MULTIPLIER
             / max(0.000001, float(STAT_XP_REWARD_MULTIPLIER))
         )),
         "mining_profession": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["profession"]
+            balance_math.AXIS_TARGET_ACTIONS["profession"]
             * PROFESSION_XP_REQUIREMENT_MULTIPLIERS["Górnictwo"]
         ),
         "pickaxe": int(
-            generator_core_v027.AXIS_TARGET_ACTIONS["tool"]
+            balance_math.AXIS_TARGET_ACTIONS["tool"]
             * TOOL_XP_REQUIREMENT_MULTIPLIERS["mining"]
         ),
     }
@@ -139,7 +139,7 @@ def long_term_balance_audit_v0502():
     }:
         errors.append(f"single-level combat cap regression: {cap_samples}")
 
-    steps = max(1, int(generator_core_v027.MAX_LEVEL) - 1)
+    steps = max(1, int(balance_math.MAX_LEVEL) - 1)
     actions_to_600 = {
         "character": targets["character"] * steps,
         "class": targets["class"] * steps,
@@ -170,7 +170,7 @@ def long_term_balance_audit_v0502():
 
     # Character Level itself still gives no hidden offensive stat power.
     level_power_contribution = (
-        generator_core_v027.character_attribute_power(600, 1) - 1
+        balance_math.character_attribute_power(600, 1) - 1
     )
     expected_stat_points_during_character_path = (
         actions_to_600["character"] / float(targets["stat"])

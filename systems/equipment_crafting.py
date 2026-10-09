@@ -390,10 +390,36 @@ def class_equipment_base_stats_text(class_name, legacy_amount, slot=None, style_
     return ", ".join(parts)
 
 
+# Trwałe, fabularne nazwy 80 rang EQ. Numery istnieją wyłącznie
+# w ID i wymaganiu biegłości; tekst przedmiotu jest nazwą własną.
+_CLASS_EQUIPMENT_EPITHETS = (
+    "Żelaznego Świtu", "Srebrnego Zmierzchu", "Złotej Gwiazdy", "Ognistego Serca",
+    "Północnego Wiatru", "Kamiennej Straży", "Księżycowego Blasku", "Lodowego Płomienia",
+    "Szmaragdowej Bramy", "Rubinowego Tronu", "Cichej Burzy", "Szeptu Otchłani",
+    "Zorzy Bohaterów", "Wiecznej Warty", "Smoczej Korony", "Krwawego Księżyca",
+    "Sądu Przodków", "Straży Horyzontu", "Gwiazd Niebios", "Przysięgi Feniksa",
+    "Duchowego Ostrza", "Korony Morza", "Żaru Odkupienia", "Kręgu Run",
+    "Nieskończonych Ścieżek", "Lustrzanego Nieba", "Zaginionej Kuźni", "Nocnej Straży",
+    "Wielkiego Przebudzenia", "Bursztynowej Pieczęci", "Słonecznego Bastionu", "Czarnych Skrzydeł",
+    "Świetlistego Przypływu", "Władcy Gromów", "Wiecznego Rezonansu", "Ognistej Przystani",
+    "Błękitnego Sztandaru", "Kryształowego Serca", "Ostatniego Świtu", "Pieczęci Kosmosu",
+    "Pradawnej Nawałnicy", "Tronu Cieni", "Miedzianej Komety", "Milczącego Słońca",
+    "Pierwszej Gwiazdy", "Płonącego Echa", "Miecza Wędrowca", "Serca Galaktyki",
+    "Szafirowego Dominium", "Białego Pioruna", "Stalowej Furii", "Harmonii Dusz",
+    "Tajemnicy Głębin", "Oka Wszechświata", "Płomienia Nieśmiertelnych", "Łez Tytanów",
+    "Wschodzącego Feniksa", "Niebiańskiej Pieśni", "Niezłomnej Pieczęci", "Absolutu Duszy",
+    "Wiatru Przeznaczenia", "Runicznej Nocy", "Wielkiej Konstelacji", "Jutra Bogów",
+    "Królewskiego Przesilenia", "Serca Otchłani", "Niebieskiej Komety", "Dziedzictwa Gwiazd",
+    "Pamięci Starożytnych", "Sądu Galaktyk", "Wieczystej Zorzy", "Władzy Nad Czasem",
+    "Przekroczonej Granicy", "Ciszy Przed Burzą", "Bramy Wieczności", "Gwiezdnego Dziedzictwa",
+    "Ostatniej Przysięgi", "Woli Wszechświata", "Potęgi Nieskończoności", "Tronu Przyszłości",
+)
+
 def _class_equipment_tier_label(required_mastery):
-    if required_mastery <= 1:
-        return "Biegłość 1"
-    return f"Biegłość {required_mastery}"
+    level = max(1, int(required_mastery))
+    if level <= 1:
+        return "Początku Drogi"
+    return _CLASS_EQUIPMENT_EPITHETS[min(79, level // 10 - 1)]
 
 
 def _class_equipment_rarity_name(required_mastery):
@@ -540,7 +566,7 @@ def _register_class_equipment_shops():
                         "name": (
                             f"{slot_name} {style_name}"
                             if required_mastery == 1
-                            else f"{slot_name} {style_name} +{required_mastery}"
+                            else f"{slot_name} {style_name} {_class_equipment_tier_label(required_mastery)}"
                         ),
                         "type": "armor",
                         "slot": slot,

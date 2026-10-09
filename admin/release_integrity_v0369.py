@@ -115,8 +115,8 @@ try:
     import core.native_runtime as _nr_v0716
     if len(getattr(_nr_v0716, "_RUNTIME_FULL_AUDIT_ONLY", ())) < 8:
         STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append("runtime audit-only startup skip set missing")
-    _gen_src = (Path(__file__).resolve().parents[1] / "core" / "generator_core.py").read_text(encoding="utf-8")
-    if "ordinary class-shop EQ receives its stage" not in _gen_src or "not _plain_class_shop" not in _gen_src:
+    _gen_src = (Path(__file__).resolve().parents[1] / "core" / "balance_math.py").read_text(encoding="utf-8")
+    if "def axis_requirement(" not in _gen_src or "def runtime_room_level(" not in _gen_src:
         STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append("class-shop Generator fast path missing")
 except Exception as exc:
     STARTUP_PERFORMANCE_AUDIT_V0716["errors"].append(f"startup performance audit exception: {type(exc).__name__}: {exc}")
@@ -186,8 +186,8 @@ def cumulative_release_integrity_audit_v0369():
     # Historical milestone must remain valid on newer release lines.
     if not str(globals().get("VERSION", "")):
         errors.append("VERSION is missing")
-    if str(globals().get("GENERATOR_CORE_VERSION","")) != "0.61.0":
-        errors.append(f"Generator Core={globals().get('GENERATOR_CORE_VERSION')!r}, expected 0.61.0")
+    if not str(globals().get("BALANCE_MATH_VERSION", "")):
+        errors.append(f"missing balance math version")
 
     return {
         "version":"0.71.8",

@@ -546,13 +546,13 @@ def boss_key_for_template(template):
     return None
 
 def roll_profession_gather_quantity(tool_level, profession_level, kind):
-    return generator_core_v027.gather_quantity(
+    return balance_math.gather_quantity(
         str(kind), tool_level, profession_level, random.random()
     )
 
 def roll_crafting_xp(base_value, variance=0.15):
     # variance is kept only for API compatibility; Generator Core owns the spread.
-    return generator_core_v027.crafting_xp_roll(base_value, random.random())
+    return balance_math.crafting_xp_roll(base_value, random.random())
 
 def v1138_boss_chest_gold_anchor(power):
     # v1.13.63: tower chests continue scaling beyond progression 600.
@@ -1023,12 +1023,12 @@ V0926_GUILD_PERMISSION_LABELS = {
 def _v0926_legacy_guild_anchor_400():
     # v0.35.11 używało Generator Core MAX_LEVEL=400 jako kotwicy kosztu.
     # Wyliczamy tę samą wartość bez zależności od nowego globalnego capu 600.
-    old_max = int(generator_core_v027.MAX_LEVEL)
+    old_max = int(balance_math.MAX_LEVEL)
     try:
-        generator_core_v027.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
-        return generator_core_v027.system_cost(V0926_GUILD_PREVIOUS_CAP, "guild-level", 300.0)
+        balance_math.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
+        return balance_math.system_cost(V0926_GUILD_PREVIOUS_CAP, "guild-level", 300.0)
     finally:
-        generator_core_v027.MAX_LEVEL = old_max
+        balance_math.MAX_LEVEL = old_max
 
 def v0926_guild_upgrade_cost(current_level):
     """Koszt rozwoju Gildii 1-600; poziomy 1-400 zachowują balans v0.35.11."""
@@ -1037,13 +1037,13 @@ def v0926_guild_upgrade_cost(current_level):
         return 0
     if level < V0926_GUILD_LEGACY_MAX_LEVEL:
         # To mapowanie było historycznie liczone w przestrzeni 1-400.
-        old_max = int(generator_core_v027.MAX_LEVEL)
+        old_max = int(balance_math.MAX_LEVEL)
         try:
-            generator_core_v027.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
-            stage=generator_core_v027.stage_from_index(level+1,V0926_GUILD_LEGACY_MAX_LEVEL)
-            return generator_core_v027.system_cost(stage,"guild-level",300.0)
+            balance_math.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
+            stage=balance_math.stage_from_index(level+1,V0926_GUILD_LEGACY_MAX_LEVEL)
+            return balance_math.system_cost(stage,"guild-level",300.0)
         finally:
-            generator_core_v027.MAX_LEVEL = old_max
+            balance_math.MAX_LEVEL = old_max
     anchor=_v0926_legacy_guild_anchor_400()
     if level <= V0926_GUILD_PREVIOUS_CAP:
         extension=(float(level)/float(V0926_GUILD_LEGACY_MAX_LEVEL))**2.0
@@ -1057,7 +1057,7 @@ def v0926_guild_bonus_percent(level):
     """Bonus Gildii 1-600; 1-400 identyczne z v0.35.11, potem dalszy wzrost."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
-        return generator_core_v027.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
+        return balance_math.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
     if level <= V0926_GUILD_PREVIOUS_CAP:
         progress=(level-V0926_GUILD_LEGACY_MAX_LEVEL)/(V0926_GUILD_PREVIOUS_CAP-V0926_GUILD_LEGACY_MAX_LEVEL)
         return min(23,11+int(round(12*(progress**0.90))))
@@ -1084,15 +1084,15 @@ def v0927_guild_hall_upgrade_cost(current_level):
     level=max(1,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 1)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
-    stage=generator_core_v027.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
-    return generator_core_v027.system_cost(stage,"guild-hall",500.0)
+    stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
+    return balance_math.system_cost(stage,"guild-hall",500.0)
 
 def v0927_guild_building_upgrade_cost(current_level):
     level=max(0,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 0)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
-    stage=generator_core_v027.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
-    return generator_core_v027.system_cost(stage,"guild-building",150.0)
+    stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
+    return balance_math.system_cost(stage,"guild-building",150.0)
 
 # Tożsamość kontraktów jest treścią; cele, nagrody i cooldown wylicza Generator Core.
 V0927_GUILD_CONTRACTS = {
@@ -1102,16 +1102,16 @@ V0927_GUILD_CONTRACTS = {
 }
 for _contract_id,_contract in V0927_GUILD_CONTRACTS.items():
     _kind=_contract["kind"]
-    _stage=1+int(generator_core_v027.stable_unit("guild-contract:"+_contract_id)*399)
+    _stage=1+int(balance_math.stable_unit("guild-contract:"+_contract_id)*399)
     _contract["generator_level"]=_stage
     if _kind=="kills":
-        _contract["need"]=generator_core_v027.generated_count(_stage,_contract_id,40,120)
+        _contract["need"]=balance_math.generated_count(_stage,_contract_id,40,120)
     elif _kind=="bosses":
-        _contract["need"]=generator_core_v027.generated_count(_stage,_contract_id,3,10)
+        _contract["need"]=balance_math.generated_count(_stage,_contract_id,3,10)
     else:
-        _contract["need"]=generator_core_v027.generated_count(_stage,_contract_id,10,35)
-    _contract["reward"]=generator_core_v027.system_reward(_stage,"guild-contract:"+_contract_id,max(4.0,_contract["need"]*.65))
-    _contract["cooldown"]=generator_core_v027.generated_cooldown_seconds(_stage,"guild-contract:"+_contract_id,3600,21600)
+        _contract["need"]=balance_math.generated_count(_stage,_contract_id,10,35)
+    _contract["reward"]=balance_math.system_reward(_stage,"guild-contract:"+_contract_id,max(4.0,_contract["need"]*.65))
+    _contract["cooldown"]=balance_math.generated_cooldown_seconds(_stage,"guild-contract:"+_contract_id,3600,21600)
 
 def v0927_guild_contract_ready_text(ready_at):
     now=int(time.time()); ready=max(0,int(ready_at or 0)-now)

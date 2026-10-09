@@ -11,7 +11,7 @@ import re
 import secrets
 import unicodedata
 
-from core import generator_core as generator_core_v027
+from core import balance_math
 from data.items import ITEMS
 
 
@@ -80,7 +80,7 @@ def is_craft_material_storage_item(item_id):
 def v0926_guild_bonus_percent(level):
     level = max(1, min(V0926_GUILD_MAX_LEVEL, int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
-        return generator_core_v027.guild_bonus_percent(
+        return balance_math.guild_bonus_percent(
             level, V0926_GUILD_LEGACY_MAX_LEVEL
         )
     if level <= V0926_GUILD_PREVIOUS_CAP:
@@ -108,26 +108,26 @@ V0927_GUILD_CONTRACTS = {
 for _contract_id, _contract in V0927_GUILD_CONTRACTS.items():
     _kind = _contract["kind"]
     _stage = 1 + int(
-        generator_core_v027.stable_unit("guild-contract:" + _contract_id) * 399
+        balance_math.stable_unit("guild-contract:" + _contract_id) * 399
     )
     _contract["generator_level"] = _stage
     if _kind == "kills":
-        _contract["need"] = generator_core_v027.generated_count(
+        _contract["need"] = balance_math.generated_count(
             _stage, _contract_id, 40, 120
         )
     elif _kind == "bosses":
-        _contract["need"] = generator_core_v027.generated_count(
+        _contract["need"] = balance_math.generated_count(
             _stage, _contract_id, 3, 10
         )
     else:
-        _contract["need"] = generator_core_v027.generated_count(
+        _contract["need"] = balance_math.generated_count(
             _stage, _contract_id, 10, 35
         )
-    _contract["reward"] = generator_core_v027.system_reward(
+    _contract["reward"] = balance_math.system_reward(
         _stage,
         "guild-contract:" + _contract_id,
         max(4.0, _contract["need"] * 0.65),
     )
-    _contract["cooldown"] = generator_core_v027.generated_cooldown_seconds(
+    _contract["cooldown"] = balance_math.generated_cooldown_seconds(
         _stage, "guild-contract:" + _contract_id, 3600, 21600
     )

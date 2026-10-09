@@ -12,7 +12,7 @@ import hashlib
 import math
 import re
 
-from core.generator_core import axis_gain, quest_currency_for_stage
+from core.balance_math import axis_gain, quest_currency_for_stage
 
 from data.catalogs import ITEMS, MOB_TEMPLATES, NPCS, QUESTS, ROOMS
 from data.catalog_mutations import catalog_assign

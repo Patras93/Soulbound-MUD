@@ -7,14 +7,14 @@ from core.mines_threat import COMMAND_ALIASES
 from player.session_mixins.banking_charisma import GOLD_PER_MITHRIL, SILVER_PER_GOLD, SILVER_PER_MITHRIL
 from player.session_mixins.crafting import ALCHEMY_RECIPES, COOK_RECIPES
 from player.session_mixins.crafting_expansion import CRAFT_RECIPES, ITEMS
-from player.session_mixins.gathering import TOOL_TIER_THRESHOLDS, generator_core_v027
+from player.session_mixins.gathering import TOOL_TIER_THRESHOLDS, balance_math
 from player.session_mixins.museum_bounty import TOOL_PROFESSION_MAP
 from player.session_mixins.professions import JEWELCRAFT_RECIPES, ROOMS, TOOL_MAX_TIER, V03053_CRAFT_RECIPES
 from player.session_mixins.quest_npc import PROFESSION_RANK_NAMES
 from player.session_mixins.skill_learning import CLASSES, CLASS_SKILLS, MOB_TEMPLATES, QUESTS
 from systems.economy_audit_v03060 import ECONOMY_AUDIT_V03060
 from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
-from world.runtime_progression import GENERATOR_CORE_AUDIT
+from world.runtime_progression import CATALOG_VALIDATION_AUDIT
 
 
 def full_systems_audit_v03062():
@@ -55,14 +55,14 @@ def full_systems_audit_v03062():
     check('quests_present', bool(QUESTS), len(QUESTS))
 
     # Generator / XP axes
-    axes=generator_core_v027.AXIS_TARGET_ACTIONS
+    axes=balance_math.AXIS_TARGET_ACTIONS
     check('profession_target_50', axes.get('profession')==50, axes.get('profession'))
     check('tool_target_65', axes.get('tool')==65, axes.get('tool'))
     check('stat_target_60', axes.get('stat')==60, axes.get('stat'))
     for axis in ('class','soul','skill','profession','tool','stat'):
-        vals=[generator_core_v027.axis_requirement(axis,l) for l in (1,10,50,100,200,400,600)]
+        vals=[balance_math.axis_requirement(axis,l) for l in (1,10,50,100,200,400,600)]
         check(f'xp_monotonic_{axis}', all(b>a for a,b in zip(vals,vals[1:])), vals)
-    check('generator_core', not GENERATOR_CORE_AUDIT.get('error_count'), GENERATOR_CORE_AUDIT.get('errors'))
+    check('catalogue_validation', not CATALOG_VALIDATION_AUDIT.get('error_count'), CATALOG_VALIDATION_AUDIT.get('errors'))
 
     # Economy
     check('currency_silver_gold', SILVER_PER_GOLD==100, SILVER_PER_GOLD)
@@ -88,7 +88,7 @@ def full_systems_audit_v03062():
     expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie","archaeology":"Archeologia","cartography_profession":"Kartografia"}
     check('professions_14', len(PROFESSION_RANK_NAMES)==14, len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
-    check('tool_tiers_60', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==60, len(TOOL_TIER_THRESHOLDS))
+    check('tool_tiers_80', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==80, len(TOOL_TIER_THRESHOLDS))
 
     # Help/commands/language
     virtual={'tematy','komendy','wszystko','kategorie'}

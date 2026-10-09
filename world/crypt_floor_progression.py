@@ -97,7 +97,7 @@ def _v03610_apply_crypt_threat(template):
         )
     except Exception:
         stage = max(1, int(floor))
-    rank = generator_core_v027.mob_rank(template)
+    rank = balance_math.mob_rank(template)
     authored_hp = max(
         1,
         int(template.get("_v1138_authored_max_hp", template.get("max_hp", 1)) or 1),
@@ -106,8 +106,8 @@ def _v03610_apply_crypt_threat(template):
         1,
         int(template.get("_v1138_authored_damage", template.get("damage", 1)) or 1),
     )
-    generator_hp = generator_core_v027.mob_hp(stage, rank)
-    generator_damage = generator_core_v027.mob_damage(stage, rank)
+    generator_hp = balance_math.mob_hp(stage, rank)
+    generator_damage = balance_math.mob_damage(stage, rank)
     base_hp = max(authored_hp, generator_hp)
     base_damage = max(authored_damage, generator_damage)
 

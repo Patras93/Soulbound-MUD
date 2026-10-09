@@ -10,7 +10,7 @@ from config.balance import (
     STAT_XP_REWARD_MULTIPLIER,
     TOOL_XP_REQUIREMENT_MULTIPLIERS,
 )
-from core import generator_core as generator_core_v027
+from core import balance_math
 from core.progression_resources import (
     character_xp_to_next,
     class_mastery_xp_to_next,
@@ -59,29 +59,29 @@ def progression_pace_audit_v0501():
     dummy = SessionProfessionStorageMixin.__new__(SessionProfessionStorageMixin)
     samples = (1, 10, 100, 300, 599)
     for level in samples:
-        char_base = generator_core_v027.axis_requirement("character", level)
+        char_base = balance_math.axis_requirement("character", level)
         if character_xp_to_next(level) != int(round(char_base * 4.0)):
             errors.append(f"character requirement mismatch at level {level}")
 
-        class_base = generator_core_v027.axis_requirement("class", level)
+        class_base = balance_math.axis_requirement("class", level)
         if class_mastery_xp_to_next(level) != int(round(class_base * 3.0)):
             errors.append(f"class requirement mismatch at level {level}")
 
-        soul_base = generator_core_v027.axis_requirement("soul", level)
+        soul_base = balance_math.axis_requirement("soul", level)
         if soul_xp_to_next(level) != int(round(soul_base * 3.0)):
             errors.append(f"soul requirement mismatch at level {level}")
 
-        skill_base = generator_core_v027.axis_requirement("skill", level)
+        skill_base = balance_math.axis_requirement("skill", level)
         if soul_weapon_mastery_xp_to_next(level) != int(round(skill_base * 3.0)):
             errors.append(f"soul weapon mastery requirement mismatch at level {level}")
 
-        prof_base = generator_core_v027.axis_requirement("profession", level)
+        prof_base = balance_math.axis_requirement("profession", level)
         if dummy.profession_xp_to_next(level, "Górnictwo") != int(round(prof_base * 2.0)):
             errors.append(f"mining profession requirement mismatch at level {level}")
         if dummy.profession_xp_to_next(level, "Wędkarstwo") != prof_base:
             errors.append(f"non-mining profession changed at level {level}")
 
-        tool_base = generator_core_v027.axis_requirement("tool", level)
+        tool_base = balance_math.axis_requirement("tool", level)
         if dummy.tool_xp_to_next(level, "mining") != int(round(tool_base * 2.0)):
             errors.append(f"pickaxe requirement mismatch at level {level}")
         if dummy.tool_xp_to_next(level, "fishing") != tool_base:
@@ -89,17 +89,17 @@ def progression_pace_audit_v0501():
 
     # Effective equal-stage pace before race/guild/event bonuses.
     expected_actions = {
-        "character": generator_core_v027.AXIS_TARGET_ACTIONS["character"] * 4,
-        "class": generator_core_v027.AXIS_TARGET_ACTIONS["class"] * 3,
-        "soul": generator_core_v027.AXIS_TARGET_ACTIONS["soul"] * 3,
-        "soul_weapon_mastery": generator_core_v027.AXIS_TARGET_ACTIONS["skill"] * 3,
+        "character": balance_math.AXIS_TARGET_ACTIONS["character"] * 4,
+        "class": balance_math.AXIS_TARGET_ACTIONS["class"] * 3,
+        "soul": balance_math.AXIS_TARGET_ACTIONS["soul"] * 3,
+        "soul_weapon_mastery": balance_math.AXIS_TARGET_ACTIONS["skill"] * 3,
         "stat": int(round(
-            generator_core_v027.AXIS_TARGET_ACTIONS["stat"]
+            balance_math.AXIS_TARGET_ACTIONS["stat"]
             * STAT_XP_REQUIREMENT_MULTIPLIER
             / STAT_XP_REWARD_MULTIPLIER
         )),
-        "mining_profession": generator_core_v027.AXIS_TARGET_ACTIONS["profession"] * 2,
-        "pickaxe": generator_core_v027.AXIS_TARGET_ACTIONS["tool"] * 2,
+        "mining_profession": balance_math.AXIS_TARGET_ACTIONS["profession"] * 2,
+        "pickaxe": balance_math.AXIS_TARGET_ACTIONS["tool"] * 2,
     }
     if expected_actions != {
         "character": 72,

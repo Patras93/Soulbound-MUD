@@ -9,6 +9,7 @@ harder than ordinary open-world combat.
 
 from config.balance import V0503_DIFFICULTY_PRESSURE
 from systems.infinite_equipment import infinite_coin_multiplier
+from systems.dungeon_experience_v1285 import dungeon_kill_xp_v1285
 
 V0386_GLOBAL_DIFFICULTY_VERSION = "0.38.6"
 
@@ -118,7 +119,7 @@ def _v0386_rank(template):
     if template.get("elite_affix") or template.get("elite") or raw == "elite":
         return "elite"
     try:
-        generated = str(generator_core_v027.mob_rank(template) or "normal")
+        generated = str(balance_math.mob_rank(template) or "normal")
         if generated in _V0386_RANK_HP:
             return generated
     except Exception as exc:
@@ -266,8 +267,8 @@ def v0190_apply_combat_template(template):
     _rank_floor = _v0386_rank(result)
     _stage_floor = max(1, min(int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600), _v0386_stage(result)))
     try:
-        _canon_hp = int(generator_core_v027.mob_hp(_stage_floor, _rank_floor))
-        _canon_dmg = int(generator_core_v027.mob_damage(_stage_floor, _rank_floor))
+        _canon_hp = int(balance_math.mob_hp(_stage_floor, _rank_floor))
+        _canon_dmg = int(balance_math.mob_damage(_stage_floor, _rank_floor))
         result["max_hp"] = max(int(result.get("max_hp", 1) or 1), _canon_hp)
         result["base_max_hp"] = int(result["max_hp"])
         result["damage"] = max(int(result.get("damage", 1) or 1), _canon_dmg)
@@ -324,10 +325,10 @@ def v0190_combat_reward(template, kind):
     stage = max(1, min(int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600), _v0386_stage(template)))
     try:
         if str(kind) == "coins":
-            canonical = int(generator_core_v027.currency_for_stage(stage, rank))
+            canonical = int(balance_math.currency_for_stage(stage, rank))
         else:
             axis = {"class": "class", "soul": "soul", "stat": "stat", "character": "character"}.get(str(kind))
-            canonical = int(generator_core_v027.axis_gain(axis, stage, generator_core_v027.RANK_REWARD.get(rank, 1.0))) if axis else 0
+            canonical = int(balance_math.axis_gain(axis, stage, balance_math.RANK_REWARD.get(rank, 1.0))) if axis else 0
         base = max(base, canonical)
     except Exception as exc:
         print(f"DIFFICULTY_REWARD_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
@@ -351,7 +352,8 @@ def v0190_combat_reward(template, kind):
         # Magitek is excluded by the helper because its authored silver already
         # scales directly with uncapped floor/depth.
         factor *= infinite_coin_multiplier(template)
-    return min(V019_SAFE_INT, max(0, int(round(base * factor))))
+    reward = min(V019_SAFE_INT, max(0, int(round(base * factor))))
+    return dungeon_kill_xp_v1285(template, str(kind), reward)
 
 
 v0190_combat_reward._global_difficulty_overdrive_v0386 = True

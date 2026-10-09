@@ -1109,7 +1109,7 @@ for _needle in _troll_reward_needles:
         )
 
 # v1.13.10: Generator Core is a fallback, not an unconditional overwrite layer.
-_generator_source = (_root / "core/generator_core.py").read_text(encoding="utf-8")
+
 _equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
 _items_resource_source = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
 _dungeon_source = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
@@ -1124,27 +1124,8 @@ _courier_source = (_root / "player/session_mixins/courier_delivery.py").read_tex
 _exploration_progress_source = (_root / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
 _ocean_session_source = (_root / "player/session_mixins/ocean.py").read_text(encoding="utf-8")
 _generation_systems_source = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
-for _needle in (
-    "def _write_record_numeric_fallback(",
-    "def _write_nested_numeric_fallback(",
-    "Authored combat/reward/economy values are design decisions.",
-    "has_authored_sale = any(",
-    "preserve_none=True",
-    '"""Attach stage and fill only genuinely missing item numeric fields."""',
-    '"""Attach stage and fill only skill numbers that authored content omitted."""',
-):
-    if _needle not in _generator_source:
-        _semantic_errors.append("generator restraint regression: missing " + _needle)
-for _forbidden in (
-    "authored_numeric = {",
-    "authored_nested = {",
-    "QUEST_CURRENCY_ANCHORS = (",
-    "def _economy_anchor_value(",
-):
-    if _forbidden in _generator_source:
-        _semantic_errors.append(
-            "Generator cleanup regression: stale pattern remains " + _forbidden
-        )
+
+
 for _needle in (
     "def equipment_progression_budget_v1138(level):",
     "(50, 38)", "(100, 100)", "(200, 240)", "(600, 1200)",
@@ -1196,14 +1177,7 @@ if '"_v0362_recommended_room_floor" in gsrc' in _audits_source_v11312:
     _semantic_errors.append(
         "terrain threat audit regression: obsolete wrapper-name release gate"
     )
-for _needle in (
-    'recommended = int(room.get("recommended_mastery", 0) or 0)',
-    'lvl = max(lvl, recommended)',
-):
-    if _needle not in _generator_source:
-        _semantic_errors.append(
-            "terrain recommended mastery floor regression: missing " + _needle
-        )
+
 
 # v1.13.29 hotfix: the historical party-drop audit must validate the
 # single shared roll contract after authored_drop_chance_v11329 transforms
@@ -1602,8 +1576,8 @@ for _label, _source in (
     for _needle in (
         'template.get("_v1138_authored_max_hp"',
         'template.get("_v1138_authored_damage"',
-        "generator_core_v027.mob_hp(stage, rank)",
-        "generator_core_v027.mob_damage(stage, rank)",
+        "balance_math.mob_hp(stage, rank)",
+        "balance_math.mob_damage(stage, rank)",
         "base_hp = max(authored_hp, generator_hp)",
         "base_damage = max(authored_damage, generator_damage)",
     ):
@@ -1674,44 +1648,9 @@ _character_source_v11315 = (_root / "player/character.py").read_text(encoding="u
 _classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="utf-8")
 _progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
 
-for _needle in (
-    'return authored_character_hp_base(character_level, constitution)',
-    'return authored_character_mana_base(character_level, intelligence, willpower)',
-    'return authored_class_passive_profile(class_name)',
-    'return authored_race_passive_profile(race_name)',
-    'GENERATOR_TOP_LEVEL_VALUE_WHITELIST = frozenset({\n    "EXP_AREA_TARGET_POWER",\n})',
-    '_write_record_numeric_fallback("QUESTS", q, "character_xp_reward"',
-    '_write_record_numeric_fallback("QUESTS", q, "reward_soul_xp"',
-    '_write_record_numeric_fallback("QUESTS", q, "reward_stat_progress"',
-    '_write_record_numeric_fallback(table_name, recipe, "profession_xp", xp)',
-    'has_authored_currency = any(',
-    'protected.append(("CLASSES", _freeze_semantic(ns.get("CLASSES", ()))))',
-    '"SOUL_TIER_POWER_BONUSES", "SOUL_TIER_CLASS_BONUS_PERCENT"',
-    '"CLASS_SET_BONUSES",',
-    "def authored_reward_snapshot(ns: dict) -> dict:",
-    'audit["authored_rewards_preserved"] = authored_rewards_ok',
-    "def authored_rewards_preserved(ns: dict, before: dict) -> bool:",
-    "def authored_reward_differences(ns: dict, before: dict) -> list[str]:",
-    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
-    "authored_rewards_ok = not authored_reward_differences_v11330",
-    "Generator Core cannot mutate authored CLASS_SET_BONUSES",
-    "Generator Core cannot mutate authored CLASSES Soul Weapon bases",
-    'if field in q and int(q.get(field, 0) or 0) < 0:',
-):
-    if _needle not in _generator_source:
-        _semantic_errors.append(
-            "Generator authored-authority regression: missing " + _needle
-        )
 
-for _forbidden in (
-    "    _generate_soul(ns)\n",
-    "    _generate_class_race_numeric(ns)\n",
-    "    _generate_class_set_bonuses(ns)\n",
-):
-    if _forbidden in _generator_source:
-        _semantic_errors.append(
-            "Generator still mutates authored progression: " + _forbidden.strip()
-        )
+
+
 
 for _needle in (
     'AUTHORED_CLASS_PASSIVE_PROFILES = {',
@@ -1740,10 +1679,10 @@ for _needle in (
         )
 
 for _forbidden in (
-    "generator_core_v027.character_hp_base(",
-    "generator_core_v027.character_mana_base(",
-    "generator_core_v027.class_passive_profile(",
-    "generator_core_v027.race_passive_profile(",
+    "balance_math.character_hp_base(",
+    "balance_math.character_mana_base(",
+    "balance_math.class_passive_profile(",
+    "balance_math.race_passive_profile(",
 ):
     if _forbidden in _character_source_v11315:
         _semantic_errors.append(
@@ -1761,8 +1700,8 @@ for _needle in (
         )
 
 for _forbidden in (
-    "generator_core_v027.MAX_LEVEL",
-    "generator_core_v027.GENERATOR_VERSION",
+    "balance_math.MAX_LEVEL",
+    "balance_math.GENERATOR_VERSION",
     "_v0362_original_graph_room_levels",
     "_v0362_original_runtime_room_level",
 ):
@@ -1770,15 +1709,7 @@ for _forbidden in (
         _semantic_errors.append(
             "progression_600 monkey-patch regression: " + _forbidden
         )
-for _needle in (
-    "MAX_LEVEL = 600",
-    'recommended = int(room.get("recommended_mastery", 0) or 0)',
-    "lvl = max(lvl, recommended)",
-):
-    if _needle not in _generator_source:
-        _semantic_errors.append(
-            "Generator canonical 1-600/recommended-floor regression: missing " + _needle
-        )
+
 
 for _needle in ('baseline_key = f"_v1138_authored_{key}"', "procedural_no_limit", '"world_boss": 3.00'):
     if _needle not in _runtime_progression_source:
@@ -1966,14 +1897,14 @@ for _needle in (
         _semantic_errors.append("equipment/player math wiring regression: missing " + _needle)
 
 for _forbidden in (
-    "generator_core_v027.character_hp_base(",
-    "generator_core_v027.character_mana_base(",
-    "generator_core_v027.character_attribute_power(",
-    "generator_core_v027.speed_from_dexterity(",
-    "generator_core_v027.critical_chance_from_dexterity(",
-    "generator_core_v027.critical_multiplier(",
-    "generator_core_v027.physical_defense_base(",
-    "generator_core_v027.magic_defense_base(",
+    "balance_math.character_hp_base(",
+    "balance_math.character_mana_base(",
+    "balance_math.character_attribute_power(",
+    "balance_math.speed_from_dexterity(",
+    "balance_math.critical_chance_from_dexterity(",
+    "balance_math.critical_multiplier(",
+    "balance_math.physical_defense_base(",
+    "balance_math.magic_defense_base(",
 ):
     if _forbidden in _equipment_stats_source:
         _semantic_errors.append("equipment still depends on Generator player math: " + _forbidden)
@@ -1985,12 +1916,12 @@ for _source_name, _source in (
     ("character", _character_source_v11315),
 ):
     for _forbidden in (
-        "generator_core_v027.character_attribute_power(",
-        "generator_core_v027.character_offensive_build_multiplier(",
-        "generator_core_v027.speed_from_dexterity(",
-        "generator_core_v027.basic_attack_hits_from_speed(",
-        "generator_core_v027.uncapped_stat_xp_gain(",
-        "generator_core_v027.mec_vmax_duration_seconds(",
+        "balance_math.character_attribute_power(",
+        "balance_math.character_offensive_build_multiplier(",
+        "balance_math.speed_from_dexterity(",
+        "balance_math.basic_attack_hits_from_speed(",
+        "balance_math.uncapped_stat_xp_gain(",
+        "balance_math.mec_vmax_duration_seconds(",
     ):
         if _forbidden in _source:
             _semantic_errors.append(
@@ -2010,7 +1941,7 @@ for _needle in (
 
 if "authored_profession_action_seconds" not in _gathering_source_v11316:
     _semantic_errors.append("gathering does not use authored profession timing")
-if "generator_core_v027.profession_action_seconds(" in _gathering_source_v11316:
+if "balance_math.profession_action_seconds(" in _gathering_source_v11316:
     _semantic_errors.append("gathering still uses Generator profession timing")
 
 for _needle in (
@@ -2025,22 +1956,10 @@ for _needle in (
 _combat_realtime_source_v11317 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
 _admin_audits_source_v11317 = (_root / "admin/audits.py").read_text(encoding="utf-8")
 _help_refresh_source_v11318 = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
-for _needle in (
-    "from core.economy_curve import (",
-    'economy_lane_amount(level, "mob_currency"',
-    'economy_lane_amount(level, "item_price"',
-    'economy_lane_amount(level, "resource_sale"',
-    "economy_stage_anchor(level) * work_mult * repeat_mult * identity_mult",
-    "has_authored_sale = any(",
-    "_write_nested_numeric_fallback(",
-):
-    if _needle not in _generator_source:
-        _semantic_errors.append("Generator v1.13.17 cleanup regression: missing " + _needle)
 
-if '_write_record_numeric("CLASS_SKILLS", skill, "cooldown"' in _generator_source:
-    _semantic_errors.append("skill fallback regression: cooldown is still directly overwritten")
-if "authored_numeric = {" in _generator_source:
-    _semantic_errors.append("item/skill snapshot-restore regression returned")
+
+
+
 
 for _needle in (
     'f"Trafiasz {_actual_hits} razy po {_per_hit_damage} obrażeń. Łącznie {damage}. "',
@@ -2054,16 +1973,16 @@ for _source_name, _source in (
     ("admin/audits.py", _admin_audits_source_v11317),
     ("admin/help_refresh.py", _help_refresh_source_v11318),
 ):
-    if "GENERATOR_CORE_VERSION !=" in _source:
+    if "BALANCE_MATH_VERSION !=" in _source:
         _semantic_errors.append(
             f"{_source_name}: Generator version must not be a release gate"
         )
-    if "GENERATOR_CORE_VERSION ==" in _source:
+    if "BALANCE_MATH_VERSION ==" in _source:
         _semantic_errors.append(
             f"{_source_name}: Generator version must not be a release gate"
         )
 for _needle in (
-    '"generator_version": str(GENERATOR_CORE_VERSION)',
+    '"generator_version": str(BALANCE_MATH_VERSION)',
 ):
     if _needle not in _admin_audits_source_v11317:
         _semantic_errors.append(
@@ -2075,8 +1994,7 @@ for _needle in (
         )
 
 
-if re.search(r'GENERATOR_VERSION\s*=\s*["\']0\.\d+\.\d+["\']', _generator_source) is None:
-    _semantic_errors.append("Generator version declaration missing")
+
 # The declaration above is informational. No audit is allowed to depend on its value.
 
 for _needle in (
@@ -2394,7 +2312,7 @@ try:
         STAT_XP_REQUIREMENT_MULTIPLIER as _stat_req_mult,
         STAT_XP_REWARD_MULTIPLIER as _stat_reward_mult,
     )
-    from core.generator_core import AXIS_TARGET_ACTIONS as _axis_target_actions
+    from core.balance_math import AXIS_TARGET_ACTIONS as _axis_target_actions
     _effective_stat_actions = (
         float(_axis_target_actions["stat"])
         * float(_stat_req_mult)
@@ -2564,25 +2482,11 @@ for _needle in (
             "startup safety regression: full semantic audit is coupled to historical runtime modules"
         )
 
-_generator_source_v11330 = (_root / "core/generator_core.py").read_text(
-    encoding="utf-8"
-)
-for _needle in (
-    'def _generate_soul(ns: dict) -> None:',
-    'def _generate_class_set_bonuses(ns: dict) -> None:',
-    'def _generate_class_race_numeric(ns: dict) -> None:',
-    'Generator Core cannot mutate authored CLASS_SET_BONUSES',
-    'Generator Core cannot mutate authored CLASSES Soul Weapon bases',
-    'return {"quests": quests, "recipes": recipes, "skills": skills}',
-    'skill_fields = tuple(sorted(NUMERIC_SKILL_FIELDS - {"generator_level"}))',
-    'for field in skill_fields',
-    'def authored_reward_differences(ns: dict, before: dict) -> list[str]:',
-    'Generator Core changed pre-existing authored quest/recipe/skill numeric values',
-):
-    if _needle not in _generator_source_v11330:
-        _semantic_errors.append(
-            "Generator ownership regression: missing " + _needle
-        )
+
+
+
+
+
 
 _economy_source_v11330 = (_root / "systems/economy_income_balance.py").read_text(
     encoding="utf-8"
@@ -4071,3 +3975,16 @@ print(f"SOULBOUND v1.26.3 UNCAPPED HP: {audit_v1263()} checks PASS")
 # v1.26.4: huge combat arithmetic, autonomous hires and five UOSS boss phase suites.
 from validation.v1264_final_math import audit_v1264
 print(f"SOULBOUND v1.26.4 MATH AND BOSSES: {audit_v1264()} checks PASS")
+
+# v1.28.4: actual removal of the legacy catalogue generator is a deploy contract.
+from core import balance_math as _balance_v1284
+from core.catalog_validation import validate_catalog as _validate_v1284
+if (_root / "core/generator_core.py").exists():
+    _semantic_errors.append("retired Generator Core file unexpectedly returned")
+if _balance_v1284.MAX_LEVEL != 800:
+    _semantic_errors.append("balance curve max level changed from 800")
+for _name in ("axis_requirement", "axis_gain", "mob_hp", "mob_damage", "runtime_room_level", "runtime_mob_balance"):
+    if not callable(getattr(_balance_v1284, _name, None)):
+        _semantic_errors.append("missing balance helper: " + _name)
+if not callable(_validate_v1284):
+    _semantic_errors.append("missing read-only catalogue validator")

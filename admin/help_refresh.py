@@ -3,20 +3,20 @@
 
 # ============================================================
 # v0.27.1 - FINAL HELP/ATLAS TRUTH LAYER
-# Pomoce nie przechowują kopii liczb balansu. Opisują Generator Core, a komendy
+# Pomoce nie przechowują kopii liczb balansu. Opisują dawny Generator Core, a komendy
 # szczegółowe (skill info, atlas, con, score) czytają aktualne wygenerowane dane.
 # ============================================================
 def refresh_generator_help_v0271():
     HELP_TOPICS["podstawy"] = [
-        "Soulbound v0.27.1 używa Generator Core jako jedynego źródła aktywnego balansu.",
+        "Soulbound v0.27.1 używa dawny Generator Core jako jedynego źródła aktywnego balansu.",
         "Level postaci, Biegłość, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia mają zakres 1-400. Sześć statystyk bazowych nie ma twardego limitu.",
         "Najważniejsze komendy startowe: look, exits, hp, score, staty, dusza, eq, quest, atlas i help.",
         "k <mob> rozpoczyna walkę realtime; con <mob> pokazuje wygenerowaną ocenę przeciwnika bez walki.",
-        "Nowa zawartość dziedziczy liczby z Generator Core zamiast wymagać ręcznego balansowania.",
+        "Nowa zawartość dziedziczy liczby z dawny Generator Core zamiast wymagać ręcznego balansowania.",
     ]
     HELP_TOPICS["score"] = [
         "score pokazuje Level postaci i EXP, aktywne klasy i Biegłość, Soul Level/Tier i Soul Weapon Mastery, HP, Manę, statystyki, portfel i lokację.",
-        "Ocena siły postaci i terenu działa w tej samej skali Generator Core 1-400.",
+        "Ocena siły postaci i terenu działa w tej samej skali dawny Generator Core 1-400.",
         "Wartości terenu wynikają z wygenerowanych lokacji i realnych spawnów, a nie ze starej ręcznej tabeli.",
     ]
     HELP_TOPICS["statystyki"] = [
@@ -24,45 +24,45 @@ def refresh_generator_help_v0271():
         "Statystyki nie mają twardego limitu. Każda ma własny EXP i wygenerowany próg rosnący także powyżej 400; nie rozdzielasz punktów ręcznie.",
         "v1.13.42: każde źródło stat EXP nadal dostaje globalnie x4 przed bonusem rasy i Gildii, ale wymagany EXP do kolejnego punktu ma teraz mnożnik x4 dla długoterminowej progresji.",
         "Dla równorzędnego zwykłego źródła generator celuje teraz efektywnie w około 60 akcji na kolejny punkt każdej statystyki; rare, minibossy, bossy, questy i x2 EXP nadal przyspieszają postęp.",
-        "Powyżej 400 Generator Core skaluje wymagany EXP i nagrodę statystyczną z zachowaniem jakości źródła: endgame pozostaje opłacalny, a słabe moby nie stają się dobrym farmem.",
+        "Powyżej 400 dawny Generator Core skaluje wymagany EXP i nagrodę statystyczną z zachowaniem jakości źródła: endgame pozostaje opłacalny, a słabe moby nie stają się dobrym farmem.",
         "Level postaci, wyposażenie, rasa, klasa i statystyki wspólnie wpływają na parametry bojowe.",
         "staty info pokazuje bazę, wartość efektywną, bieżący EXP do następnego punktu i bonusy wyposażenia.",
     ]
     HELP_TOPICS["dusza"] = [
         f"Broń Duszy ma Soul Level 1-{SOUL_MAX_LEVEL} i {SOUL_MAX_TIER} Tierów.",
-        "Progi Tierów, moc, bonusy i wymagania Prób są generowane z jednej krzywej Generator Core.",
+        "Progi Tierów, moc, bonusy i wymagania Prób są generowane z jednej krzywej dawny Generator Core.",
         "Soul Level jest osobną osią od Levelu postaci, Biegłości klasy i Skill Levelu. Soul Weapon Mastery 1-400 rozwija wyłącznie zwykły atak Broni Duszy i zdobywa XP tylko za jego trafienia.",
         "dusza info pokazuje aktualne progi i stan Prób; po spełnieniu warunków użyj unlock.",
     ]
     HELP_TOPICS["aoe"] = [
         "Skille i spelle obszarowe trafiają dostępne cele zgodnie z wygenerowanym rodzajem umiejętności.",
-        "Odblokowanie 1-400, cooldown i bazowa moc pochodzą z Generator Core. Koszt Many dotyczy wyłącznie umiejętności klas magicznych; klasy fizyczne nie zużywają Many.",
+        "Odblokowanie 1-400, cooldown i bazowa moc pochodzą z dawny Generator Core. Koszt Many dotyczy wyłącznie umiejętności klas magicznych; klasy fizyczne nie zużywają Many.",
         "Własny Skill Level 1-400 dalej skaluje końcową moc umiejętności po jej odblokowaniu.",
         "Pełne aktualne wartości: help <nazwa skilla> albo skill info <nazwa>.",
     ]
     HELP_TOPICS["umiejetnosci"] = [
         "Każda z 14 klas ma wygenerowaną linię skilli/spelli rozłożoną po Biegłości 1-400.",
         "Skill Level każdej poznanej umiejętności ma zakres 1-400 i korzysta z jednej wygenerowanej krzywej mocy/cooldownu.",
-        "Damage, heal, guard, drain, boost i cooldown są wyliczane przez Generator Core z rodzaju i etapu umiejętności. Mana jest zasobem klas magicznych; skille klas fizycznych mają koszt Many równy 0.",
+        "Damage, heal, guard, drain, boost i cooldown są wyliczane przez dawny Generator Core z rodzaju i etapu umiejętności. Mana jest zasobem klas magicznych; skille klas fizycznych mają koszt Many równy 0.",
     ]
     HELP_TOPICS["profesje"] = [
         "Osiem profesji oraz osiem odpowiadających narzędzi rozwijają się 1-400.",
-        "EXP, progi, czasy akcji, zasoby, ich odblokowania, ceny i receptury pochodzą z Generator Core.",
+        "EXP, progi, czasy akcji, zasoby, ich odblokowania, ceny i receptury pochodzą z dawny Generator Core.",
         "Nowy zasób albo receptura po dodaniu do rejestru otrzymuje etap z powiązań i wygenerowane wymagania; nie wymaga ręcznej liczby levelu.",
         "Narzędzia nie mają trwałości i nie psują się.",
     ]
     HELP_TOPICS["tempo_profesji"] = [
         "Czas każdej aktywności profesyjnej jest generowany z typu narzędzia i poziomu profesji 1-400.",
         "Nie istnieje osobna ręcznie ustawiona dawna krzywa; jeden wzór obsługuje całą progresję.",
-        "Komendy informacji o narzędziu pokazują aktualny czas wyliczony przez Generator Core.",
+        "Komendy informacji o narzędziu pokazują aktualny czas wyliczony przez dawny Generator Core.",
     ]
     HELP_TOPICS["narzedzia200"] = [
-        "Narzędzia mają zakres 1-400, a ich Tiery są rozłożone automatycznie przez Generator Core.",
+        "Narzędzia mają zakres 1-400, a ich Tiery są rozłożone automatycznie przez dawny Generator Core.",
         "Tool XP, progi Tierów i bonusy nie wymagają osobnej tabeli dla każdego levelu.",
         "Narzędzia nie mają durability.",
     ]
     HELP_TOPICS["wiecej_ryb"] = [
-        "Gatunki ryb są rozłożone przez Generator Core po progresji Wędki 1-400.",
+        "Gatunki ryb są rozłożone przez dawny Generator Core po progresji Wędki 1-400.",
         "atlas ryby pokazuje bieżący wygenerowany próg każdego gatunku; łowisko wykorzystuje tę samą wartość.",
         "Dodanie nowego gatunku nie wymaga ręcznego ustawiania ceny ani progu.",
     ]
@@ -72,7 +72,7 @@ def refresh_generator_help_v0271():
         "Ręczne stare HP/damage nie jest źródłem aktywnego balansu.",
     ]
     HELP_TOPICS["soul_xp_bloki"] = [
-        "Soul XP 1-400 korzysta z jednej krzywej Generator Core.",
+        "Soul XP 1-400 korzysta z jednej krzywej dawny Generator Core.",
         "Nagroda i wymagany próg są wyliczane z aktualnego etapu; nie ma osobnego historycznego bloku dawnych poziomów.",
     ]
     HELP_TOPICS["progresja400"] = [
@@ -82,24 +82,24 @@ def refresh_generator_help_v0271():
     ]
     HELP_TOPICS["questy_kowalstwa_1_200"] = [
         "Zlecenia Kowalstwa korzystają z wygenerowanego etapu wymaganych materiałów i produktów.",
-        "Wymagany poziom, Profession XP, Tool XP, Character XP i pieniądze są liczone przez Generator Core.",
+        "Wymagany poziom, Profession XP, Tool XP, Character XP i pieniądze są liczone przez dawny Generator Core.",
     ]
     HELP_TOPICS["questy_gotowania_1_200"] = [
         "Zlecenia Gotowania korzystają z wygenerowanego etapu potraw i składników 1-400.",
-        "Wymagania i nagrody są pobierane z Generator Core, nie z dawnej ręcznej drabinki.",
+        "Wymagania i nagrody są pobierane z dawny Generator Core, nie z dawnej ręcznej drabinki.",
     ]
     HELP_TOPICS["questy_mikstur_orina"] = [
         "Zlecenia Alchemii korzystają z wygenerowanego etapu mikstur i składników 1-400.",
-        "Wymagania i nagrody są pobierane z Generator Core.",
+        "Wymagania i nagrody są pobierane z dawny Generator Core.",
     ]
     for topic in ("balans 0865", "balans 0866", "balans 0874"):
         if topic in HELP_TOPICS:
             HELP_TOPICS[topic] = [
                 "To historyczny opis dawnego wydania i nie opisuje aktywnego balansu v0.27.1.",
-                "Aktualny balans pochodzi z Generator Core; główne osie mają zakres 1-400, a statystyki są nielimitowane. Wpisz help generator.",
+                "Aktualny balans pochodzi z dawny Generator Core; główne osie mają zakres 1-400, a statystyki są nielimitowane. Wpisz help generator.",
             ]
     HELP_TOPICS["atlas_kompletny"] = [
-        "Atlasy ryb, rud, drewna i ziół pokazują ręcznie zaprojektowane progi; Generator Core ich nie nadpisuje.",
+        "Atlasy ryb, rud, drewna i ziół pokazują ręcznie zaprojektowane progi; dawny Generator Core ich nie nadpisuje.",
         "Zmiana balansu liczbowego generatora nie zmienia wymagań ani kolejności odblokowania zasobów.",
         "Użyj atlas ryby, atlas rudy, atlas drewno albo atlas ziola; szczegóły zasobu pokazują jego aktualny wygenerowany próg.",
     ]
@@ -120,41 +120,40 @@ def refresh_generator_help_v0271():
     HELP_TOPICS["kartografia"] = cartography
 
     HELP_TOPICS["generator"] = [
-        f"Generator Core {GENERATOR_CORE_VERSION} działa w trybie NUMERIC-ONLY: zarządza tylko liczbami balansu.",
-        f"Po starcie waliduje {GENERATOR_CORE_AUDIT['mobs']} mobów, {GENERATOR_CORE_AUDIT['items']} przedmiotów, {GENERATOR_CORE_AUDIT['quests']} questów, {GENERATOR_CORE_AUDIT['skills']} skilli/spelli, {GENERATOR_CORE_AUDIT['recipes']} receptur i {GENERATOR_CORE_AUDIT['rooms']} lokacji.",
-        "Może wyliczać HP, damage, EXP, ceny, nagrody, drop-rate, cooldown, koszt many, siłę efektów, czasy i inne wartości liczbowe.",
-        "Nie może zmieniać nazw, ID, progów odblokowania, wymagań EQ, struktury questów/receptur, kluczy statystyk, klasowej tożsamości EQ, atlasów, gate'ów terenu ani opisów.",
-        "Bazowe statystyki rasy/klasy są ręcznie projektowane. Skill unlock 1/10/20...400, Soul Milestones, progi profesji/narzędzi i wymagania zawartości są chronione przed Generatorem.",
-        f"Semantic Guard: {'PASS' if GENERATOR_CORE_AUDIT.get('semantic_preserved') else 'FAIL'}. Generator nie może wystartować po zmianie chronionej semantyki.",
+        "Od v1.28.4 Generator Core został całkowicie usunięty.",
+        f"Aktualny katalog danych jest tylko walidowany: {CATALOG_VALIDATION_AUDIT['mobs']} mobów, {CATALOG_VALIDATION_AUDIT['items']} przedmiotów, {CATALOG_VALIDATION_AUDIT['quests']} zadań, {CATALOG_VALIDATION_AUDIT['skills']} skilli.",
+        "Wzory balansu są w osobnych modułach; nie nadpisują katalogów skilli, EQ ani questów.",
+        "Statystyki bez limitu, poziomy postaci i rozwoju do 800.",
     ]
+
     HELP_TOPICS["hp_bossow_lochow"] = [
         "Bossowie lochów nie korzystają już z ręcznego wzoru HP na piętro.",
-        "Generator Core wyznacza etap z piętra/rodzaju lochu, a następnie liczy HP, damage, EXP i walutę z rangi bossa oraz wspólnej krzywej 1-400.",
+        "Krzywe balansu wyznaczają etap z piętra/rodzaju lochu, a następnie liczy HP, damage, EXP i walutę z rangi bossa oraz wspólnej krzywej 1-400.",
         "Nieskończone piętra powyżej zakresu progresji są bezpiecznie domykane do etapu 400 zamiast tworzyć niekontrolowany power creep.",
         "consider pokazuje aktualne wartości wygenerowane przez ten sam system.",
     ]
     HELP_TOPICS["quest"] = [
         "quest pokazuje aktywny dziennik; quest list <NPC> pokazuje ofertę, quest accept <numer> przyjmuje zadanie, quest info pokazuje szczegóły, a oddaj quest kończy gotowe zadanie.",
-        "Generator Core nie tworzy ani nie zmienia wymagań questów. Globalnej blokady Character Level na questy nie ma; obowiązują tylko ręcznie zaprojektowane wymagania danego zadania.",
+        "dawny Generator Core nie tworzy ani nie zmienia wymagań questów. Globalnej blokady Character Level na questy nie ma; obowiązują tylko ręcznie zaprojektowane wymagania danego zadania.",
         "Każdy nowo przyjęty cel zaczyna od 0/x i liczy wyłącznie zdarzenia wykonane po przyjęciu.",
         "Po wykonaniu celu dziennik pokazuje: ZAKTUALIZOWANO — GOTOWE DO ODDANIA.",
-        "EXP, Soul XP, Stat XP, Profession/Tool XP i pieniądze z questów są liczone przez Generator Core z etapu i nakładu pracy.",
+        "EXP, Soul XP, Stat XP, Profession/Tool XP i pieniądze z questów są liczone przez dawny Generator Core z etapu i nakładu pracy.",
     ]
     HELP_TOPICS["receptury"] = [
         "receptury pokazuje wygenerowane przepisy; receptury craft, cook, alchemia i jubilerstwo filtrują listę.",
-        "Progi profesji/narzędzia, składniki, ilości i produkty receptur są ręcznie zaprojektowane i Generator Core ich nie zmienia.",
+        "Progi profesji/narzędzia, składniki, ilości i produkty receptur są ręcznie zaprojektowane i dawny Generator Core ich nie zmienia.",
         "Generator wylicza tylko liczbowy balans receptury, np. Profession XP, Tool XP i wewnętrzny generator_level używany do balansu.",
     ]
     HELP_TOPICS["sklepy"] = [
         "shop / sklep / list / lista pokazuje numerowaną ofertę: numer, nazwa i aktualna wygenerowana cena.",
         "shop info <numer> / sklep info <numer> pokazuje pełny opis, statystyki, wymagania, cenę po rabacie oraz porównanie z aktualnie założonym EQ przed zakupem.",
         "kup <numer> lub kup <numer> <ilość> kupuje pozycję z listy; nadal można kupować także po nazwie.",
-        "Ceny przedmiotów pochodzą z Generator Core i są liczone w jednej bazowej walucie; nowe przedmioty nie wymagają ręcznego wpisywania ceny.",
+        "Ceny przedmiotów pochodzą z dawny Generator Core i są liczone w jednej bazowej walucie; nowe przedmioty nie wymagają ręcznego wpisywania ceny.",
         "Założone EQ i Character-Bound pozostają chronione przy sprzedaży.",
     ]
     HELP_TOPICS["atlas"] = [
         "atlas pokazuje ręcznie zaprojektowane progi ryb, rud, drewna, ziół i innych zasobów.",
-        "Generator Core może balansować wartości ekonomiczne i wydajność zasobów, ale nie zmienia progów atlasu ani miejsc odblokowania.",
+        "dawny Generator Core może balansować wartości ekonomiczne i wydajność zasobów, ale nie zmienia progów atlasu ani miejsc odblokowania.",
     ]
 
 refresh_generator_help_v0271()
@@ -180,7 +179,7 @@ def refresh_help_v03010():
         "Questy NIE mają globalnej blokady Levelu postaci. Możesz przyjąć zadanie niezależnie od Character Levelu, o ile spełniasz jego rzeczywiste wymagania fabularne, Soul lub profesyjne.",
         "Każdy nowo przyjęty cel zaczyna od 0/x i liczy wyłącznie zdarzenia wykonane po przyjęciu.",
         "Po wykonaniu celu dziennik oznacza zadanie jako GOTOWE DO ODDANIA; zadania zbierackie pokazują też realny stan wymaganych przedmiotów.",
-        "Nagrody EXP, Soul, statystyk, profesji i narzędzi korzystają z Generator Core; podczas eventu x2 EXP są podwajane.",
+        "Nagrody EXP, Soul, statystyk, profesji i narzędzi korzystają z dawny Generator Core; podczas eventu x2 EXP są podwajane.",
     ]
     HELP_TOPICS["quest"] = list(quest_help)
     HELP_TOPICS["questy"] = list(quest_help)
@@ -226,10 +225,10 @@ def refresh_help_v03010():
         "k <mob> / atakuj <mob> rozpoczyna walkę realtime. uciekaj / flee ręcznie wycofuje z walki.",
         "wimpy set <1-99> ustawia automatyczną ucieczkę przy wybranym procencie HP; wimpy off wyłącza.",
         "combatlog concise, normal albo full ustawia szczegółowość komunikatów walki dla NVDA.",
-        "Skille, kolejki, buffy, guardy, uniki, krytyki, drużyna i Generator Core działają na bieżących danych postaci.",
+        "Skille, kolejki, buffy, guardy, uniki, krytyki, drużyna i dawny Generator Core działają na bieżących danych postaci.",
     ]
     HELP_TOPICS["podstawy"] = [
-        "Soulbound v0.30.11 używa Generator Core jako źródła aktywnego balansu; bazowe statystyki rasy i klasy pozostają stałe i nie są losowane przez generator.",
+        "Soulbound v0.30.11 używa dawny Generator Core jako źródła aktywnego balansu; bazowe statystyki rasy i klasy pozostają stałe i nie są losowane przez generator.",
         "Level postaci, Biegłość, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia mają progresję 1-400; sześć statystyk bazowych rozwija się automatycznie.",
         "Najważniejsze komendy: help, look/l/sp, exits, hp, level/lvl, xp, score, staty, dusza, eq, quest, walk/prowadz oraz / do Świątyni.",
         "k <mob> rozpoczyna walkę; con <mob> ocenia przeciwnika; wimpy set 50 może automatycznie wycofać postać przy niskim HP.",
@@ -239,7 +238,7 @@ def refresh_help_v03010():
         "Zwykła Krypta ma rozgałęzione piętra i bossów blokujących zejście na wybranych poziomach.",
         "walk krypta dół prowadzi z dowolnego pokoju bieżącego piętra przed zejście na następne piętro. Samo zejście wykonujesz ręcznie.",
         "portal pokazuje odblokowane checkpointy Krypty; mapa w instancji pokazuje odkrycie bieżącego sektora.",
-        "Krypta korzysta z Generator Core i może tworzyć dalsze piętra dynamicznie.",
+        "Krypta korzysta z dawny Generator Core i może tworzyć dalsze piętra dynamicznie.",
     ]
 
     # Usuń z dostępnych tematów pomocy najbardziej szkodliwe historyczne zdania,
@@ -376,7 +375,7 @@ HELP_TOPICS.setdefault("generator", []).append(
 )
 
 # v0.30.14 - FULL RECIPE TEXT CONSISTENCY PASS
-# Generator Core przelicza progi i ilości składników. Starsze opisy były
+# dawny Generator Core przelicza progi i ilości składników. Starsze opisy były
 # ręcznie wpisane i mogły po generacji podawać inny level/ilość niż realna
 # receptura. Od tej wersji liczby widoczne dla gracza są synchronizowane z
 # aktywną definicją runtime.
@@ -486,6 +485,16 @@ V03016_EQ_MASTERY_EPITHETS = {
     590: "Apogeum",
     600: "Absolutu Duszy",
 }
+
+# v1.28.3: final authored names for every milestone 610-800.
+# Keep the historical 1-600 names, and legacy item aliases, unchanged.
+from systems.equipment_crafting import _class_equipment_tier_label as _class_tier_epithet_v1283
+_historical_epithets_v1283 = set(V03016_EQ_MASTERY_EPITHETS.values())
+for _level_v1283 in range(610, 801, 10):
+    _epithet_v1283 = _class_tier_epithet_v1283(_level_v1283)
+    if _epithet_v1283 in _historical_epithets_v1283:
+        _epithet_v1283 = f"Nowej Ery {_epithet_v1283}"
+    V03016_EQ_MASTERY_EPITHETS[_level_v1283] = _epithet_v1283
 
 V03016_ARTIFACT_EPITHETS = {
     2: "Przebudzenia",
@@ -687,7 +696,7 @@ LATEST_CHANGES = [
 ]
 
 # v0.30.14 - FULL GAME CROSS-SYSTEM AUDIT
-# Ten audyt celowo działa po Generator Core i po wszystkich późnych patchach.
+# Ten audyt celowo działa po dawny Generator Core i po wszystkich późnych patchach.
 # Sprawdza nie tylko pojedyncze rekordy, ale też relacje pomiędzy systemami.
 def full_game_audit_v03014():
     errors = []
@@ -700,7 +709,7 @@ def full_game_audit_v03014():
 
     # Wbudowane audyty muszą być czyste.
     for audit_name in (
-        "GENERATOR_CORE_AUDIT", "WORLD_TOPOLOGY_AUDIT", "WORLD_LOGIC_AUDIT",
+        "CATALOG_VALIDATION_AUDIT", "WORLD_TOPOLOGY_AUDIT", "WORLD_LOGIC_AUDIT",
         "FULL_WORLD_TOPOLOGY_AUDIT_V03013", "EQUIPMENT_NAME_AUDIT_V03016", "CLASS_EQ_IDENTITY_AUDIT_V03016",
     ):
         audit = globals().get(audit_name, {}) or {}
@@ -894,8 +903,8 @@ def full_game_audit_v03014():
                 f"HELP alias target missing {alias}:{target}")
 
     # Wszystkie główne krzywe progresji 1-600 muszą być monotoniczne.
-    for axis in generator_core_v027.AXIS_CURVES:
-        values = [generator_core_v027.axis_requirement(axis, level) for level in range(1, PROGRESSION_MAX_LEVEL + 1)]
+    for axis in balance_math.AXIS_CURVES:
+        values = [balance_math.axis_requirement(axis, level) for level in range(1, PROGRESSION_MAX_LEVEL + 1)]
         require(all(b >= a for a, b in zip(values, values[1:])),
                 f"nonmonotonic progression axis {axis}")
 
@@ -920,7 +929,7 @@ def full_game_audit_v03014():
 
 FULL_GAME_AUDIT_V03014 = full_game_audit_v03014()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
-# v0.30.14: końcowy audyt po przejściu Generator Core.
+# v0.30.14: końcowy audyt po przejściu dawny Generator Core.
 V03014_SKILL_NAME_AUDIT = _v03014_skill_name_audit()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("skille", []).append(
@@ -970,16 +979,16 @@ def full_combat_scaling_audit_v03015():
                     errors.append(f"{class_name}/{skill.get('id')}: invalid branch scale={actual}")
             elif expected is not None and actual != expected:
                 errors.append(f"{class_name}/{skill.get('id')}: scale={actual} expected={expected}")
-    base = generator_core_v027.character_mana_base(100, 50, 50)
-    int_plus = generator_core_v027.character_mana_base(100, 60, 50)
-    wil_plus = generator_core_v027.character_mana_base(100, 50, 60)
+    base = balance_math.character_mana_base(100, 50, 50)
+    int_plus = balance_math.character_mana_base(100, 60, 50)
+    wil_plus = balance_math.character_mana_base(100, 50, 60)
     if int_plus <= base or wil_plus <= base:
         errors.append("INT/WIL does not increase mana")
     if int_plus - base != wil_plus - base:
         errors.append("INT/WIL mana contribution is not equal")
     return {
         "version": "0.30.19",
-        "generator_version": str(GENERATOR_CORE_VERSION),
+        "generator_version": str(BALANCE_MATH_VERSION),
         "offensive_skills_checked": checked,
         "skill_scales_normalized": V03015_SKILL_SCALES_NORMALIZED,
         "mana_base": base,
@@ -1121,7 +1130,7 @@ PROGRESSION_COMBAT_AUDIT_V03017 = progression_combat_audit_v03017()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
 HELP_TOPICS.setdefault("skille", []).extend([
     "Większość klas zachowuje siatkę 1, 10, 20...400 z minimum 3 skillami na próg; źródłowe umiejętności mogą dodawać kolejne. Inżynier i Mec mają autorskie progi wynikające z ich projektów klasowych.",
-    "Generator Core nie rozciąga już 123 skilli po przypadkowych poziomach 1-400; zachowuje zaprojektowane progi Biegłości.",
+    "dawny Generator Core nie rozciąga już 123 skilli po przypadkowych poziomach 1-400; zachowuje zaprojektowane progi Biegłości.",
 ])
 HELP_TOPICS.setdefault("walka", []).extend([
     "v0.30.17: zwykły autoatak jest jawnym atakiem twoją Bronią Duszy; komunikat podaje nazwę broni i klasową technikę.",
@@ -1135,7 +1144,7 @@ LATEST_CHANGES_TITLE = "Soulbound v0.30.17 - Soul Weapon Combat + Skill Grid + C
 LATEST_CHANGES = [
     "Broń Duszy jest jawną aktywną bronią autoataku; każda z 14 klas ma własną technikę ataku, a Soul Power pozostaje rdzeniem obrażeń.",
     "Broń Duszy wykonuje wyłącznie zwykły atak bronią. Skille i spelle są uruchamiane jako osobne zdolności i nie są opisywane jako ataki wykonywane przez broń. Ich dotychczasowe skalowanie obrażeń pozostaje bez zmian.",
-    "Naprawiono Generator Core: 123 skille na klasę nie są już rozciągane po losowych progach. Każda klasa ma dokładnie 3 skille na 1, 10, 20...400.",
+    "Naprawiono dawny Generator Core: 123 skille na klasę nie są już rozciągane po losowych progach. Każda klasa ma dokładnie 3 skille na 1, 10, 20...400.",
     "Sloty auto kolejki zależą od Character Level: 10 na Levelu 1, 11 na 10, 20 na 100, 30 na 200, 50 na 400.",
     "Brak wipe; ID skilli, nauczone umiejętności i zapisane kolejki pozostają kompatybilne.",
 ]
@@ -1373,7 +1382,7 @@ def refresh_help_truth_v11197():
     ]
 
     HELP_TOPICS["generator"] = [
-        "Generator Core i warstwa progresji 600 są źródłem bieżących wartości balansu tam, gdzie system korzysta z generowanych danych.",
+        "dawny Generator Core i warstwa progresji 600 są źródłem bieżących wartości balansu tam, gdzie system korzysta z generowanych danych.",
         "Główne osie progresji kończą się na 600; bazowe statystyki postaci nie mają twardego limitu.",
         "Dokładne liczby sprawdzaj przez komendy runtime: con, score, staty info, skill info, eq info, atlas i receptury.",
         "HELP nie powinien kopiować historycznych limitów 400 ani zwykłych cooldownów skilli.",
@@ -1884,3 +1893,12 @@ def help_surface_audit_v11197():
 
 HELP_SURFACE_AUDIT_V11197 = help_surface_audit_v11197()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
+# v1.28.3: replace obsolete user-facing Generator help with current ownership.
+HELP_TOPICS["generator"] = [
+    "Od Soulbound v1.28.4 Generator Core jest całkowicie usunięty z kodu gry.",
+    "Nie tworzy ani nie nadpisuje EQ, skilli, potworów, questów, receptur, klas i poziomów.",
+    "Obliczenia poziomów i balansu są w core/balance_math.py, a katalogi mają jawne, autorskie dane.",
+    "Wcześniejsze stałe uzupełnienia liczbowe: data/catalogue_numeric_defaults_v1283.json.",
+    "Statystyki nadal rosną bez limitu; poziomy rozwoju do 800. Nieskończone lochy i kopalnia pozostają proceduralne.",
+    "Katalog jest walidowany bez zapisu przez core/catalog_validation.py; pełny predeploy sprawdza integralność gry.",
+]

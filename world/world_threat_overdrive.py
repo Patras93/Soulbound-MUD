@@ -105,7 +105,7 @@ def _terrain_scaled_template_v0384(self, room_id, template_id):
     except Exception:
         base_stage = 1
     stage = max(stage, base_stage)
-    rank = str(generator_core_v027.mob_rank(resolved) or "normal")
+    rank = str(balance_math.mob_rank(resolved) or "normal")
     nemesis = bool(resolved.get("v029_nemesis_owner_account_id") or resolved.get("nemesis"))
     mult = world_threat_multipliers_v0384(stage, rank, nemesis=nemesis)
 

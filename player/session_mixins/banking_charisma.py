@@ -10,7 +10,7 @@ from core.bootstrap_economy_professions import (
     SILVER_PER_MITHRIL,
     V019_SAFE_INT,
     currency_reading_text,
-    generator_core_v027,
+    balance_math,
     legacy_currency_to_coins,
 )
 from core.mines_threat import ITEMS, is_character_bound_item
@@ -59,7 +59,7 @@ class SessionBankingCharismaMixin:
             value = max(1, int(sale_value_silver or 0))
             units = max(1, int(units or 1))
             level = max(1, int(self.character.charisma))
-            normal_stat_gain = generator_core_v027.axis_gain("stat", level, 1.0)
+            normal_stat_gain = balance_math.axis_gain("stat", level, 1.0)
             value_factor = max(0.50, min(4.0, 0.55 + math.log10(value + 10) * 0.28))
             bulk_factor = max(1.0, min(1.8, 1.0 + math.log2(units + 1) * 0.08))
             gain = int(round(max(2.0, normal_stat_gain * 0.12 * value_factor * bulk_factor)))

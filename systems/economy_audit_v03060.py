@@ -27,7 +27,7 @@ def _v03060_stage(record):
 
 def _v03060_quest_cap(quest):
     stage = _v03060_stage(quest)
-    base = int(generator_core_v027.currency_for_stage(stage, "normal"))
+    base = int(balance_math.currency_for_stage(stage, "normal"))
     kind = str(quest.get("kind") or "").lower()
     needed = max(1, int(quest.get("needed", 1) or 1))
     if kind == "world_boss": mult = 24.0
@@ -55,7 +55,7 @@ def _v03060_quest_cap(quest):
 
 def _v03060_sell_cap(item):
     stage = _v03060_stage(item)
-    base = int(generator_core_v027.currency_for_stage(stage, "normal"))
+    base = int(balance_math.currency_for_stage(stage, "normal"))
     typ = str(item.get("type") or "").lower()
     if typ in ("gem", "gem_raw"): mult = 8.0
     elif typ == "geode": mult = 6.0
@@ -126,16 +126,16 @@ def v0927_guild_hall_upgrade_cost(current_level):
     level=max(1,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 1)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
-    stage=generator_core_v027.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
-    return generator_core_v027.system_cost(stage,"guild-hall",50.0)
+    stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
+    return balance_math.system_cost(stage,"guild-hall",50.0)
 
 
 def v0927_guild_building_upgrade_cost(current_level):
     level=max(0,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 0)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
-    stage=generator_core_v027.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
-    return generator_core_v027.system_cost(stage,"guild-building",15.0)
+    stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
+    return balance_math.system_cost(stage,"guild-building",15.0)
 
 
 def economy_audit_summary_v03060():

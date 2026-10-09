@@ -10,7 +10,7 @@ from config.balance import (
 from core.bootstrap_economy_professions import (
     PROFESSION_XP_GAIN_MULTIPLIER,
     currency_reading_text,
-    generator_core_v027,
+    balance_math,
     profession_max_level,
     profession_max_rank,
     profession_rank,
@@ -456,7 +456,7 @@ class SessionProfessionStorageMixin:
                     )
 
             _char_stage=max(1,min(CHARACTER_MAX_LEVEL,max(plevel,tlevel)))
-            _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.35)
+            _char_gain=balance_math.axis_gain("character",_char_stage,0.35)
             messages.extend(
                 self.add_character_xp_with_event(
                     _char_gain,
@@ -573,7 +573,7 @@ class SessionProfessionStorageMixin:
                 )
 
             _char_stage=max(1,min(CHARACTER_MAX_LEVEL,level))
-            _char_gain=generator_core_v027.axis_gain("character",_char_stage,0.25)
+            _char_gain=balance_math.axis_gain("character",_char_stage,0.25)
             messages.extend(
                 self.add_character_xp_with_event(
                     _char_gain,

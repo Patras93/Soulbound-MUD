@@ -1590,11 +1590,11 @@ def v0863_is_boss_template(template):
     )
 
 def v0863_critical_chance_from_dexterity(dexterity):
-    return generator_core_v027.critical_chance_from_dexterity(dexterity)
+    return balance_math.critical_chance_from_dexterity(dexterity)
 
 
 def v0865_dodge_chance_from_dexterity(dexterity):
-    return generator_core_v027.dodge_from_dexterity(dexterity)
+    return balance_math.dodge_from_dexterity(dexterity)
 
 
 def v0863_execute_threshold(template):

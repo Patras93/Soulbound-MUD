@@ -53,7 +53,14 @@ def _tool_names(prefix):
     stages=("Ucznia","Miedzi","Żelaza","Srebra","Złota","Hartowany","Precyzji","Kryształu","Kobaltu","Mistrza","Runiczny","Smoczy","Obsydianu","Astralny","Gwiezdny","Pustki","Otchłani","Eternium","Mityczny","Wieczny")
     extra=("Przebudzenia","Transcendencji","Horyzontu","Niebiański","Pierwotny","Echa","Korony","Serca Świata","Nieskończony","Pradawny","Zorzy","Smoczej Mocy","Tajemnicy","Gwiezdnego Rdzenia","Wieczności","Korony Świata","Przeznaczenia","Ponadczasowy","Końca","Absolutu")
     extended=("Ponadprzestrzeni","Gwiezdnego Tronu","Wiecznego Echa","Serca Otchłani","Korony Gwiazd","Sądu Horyzontu","Nieskończonego Pulsu","Kosmicznej Pieczęci","Pradawnego Rezonansu","Świtu Absolutu","Drogi Wybranych","Oka Wszechświata","Wiecznej Iskry","Transcendentnego Znaku","Głosu Nieskończoności","Ostatecznego Horyzontu","Duszy Kosmosu","Korony Wieczności","Apogeum","Absolutnej Pełni")
-    return tuple(f"{prefix} {x}" for x in stages+extra+extended)
+    final=("Pradawnego Blasku", "Niebiańskiego Kowadła", "Wiecznych Dróg",
+           "Łez Komety", "Serca Żywiołów", "Głosu Otchłani",
+           "Tronu Smoka", "Ognia Pierworodnych", "Wiatru Galaktyk",
+           "Szmaragdowej Zorzy", "Tarczy Słońca", "Kręgu Nieskończoności",
+           "Rzeki Gwiazd", "Świętej Kuźni", "Korony Burz",
+           "Pamięci Przodków", "Żaru Wieczności", "Szeptu Światów",
+           "Ostatniej Gwiazdy", "Nowego Świtu")
+    return tuple(f"{prefix} {x}" for x in stages+extra+extended+final)
 TOOL_TIER_NAMES["tailoring"]=_tool_names("Zestaw Krawiecki")
 TOOL_TIER_NAMES["leatherworking"]=_tool_names("Nóż Garbarski")
 TOOL_TIER_NAMES["carpentry"]=_tool_names("Narzędzia Ciesielskie")

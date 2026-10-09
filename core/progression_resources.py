@@ -1,7 +1,7 @@
 import math
 import random
 import re
-from core import generator_core as generator_core_v027
+from core import balance_math
 from core.player_math import (
     skill_level_power,
     skill_cooldown_factor,
@@ -83,51 +83,51 @@ def v0190_log_curve(value, anchors):
     raw = max(1, int(round(float(value))))
     # Real 1-600 axes keep their stage. Short ordinal systems (e.g. ranks 1-10)
     # are stretched through the same 1-600 Generator Core space.
-    stage = generator_core_v027.clamp(raw, 1, CHARACTER_MAX_LEVEL) if maximum >= 300 else generator_core_v027.stage_from_index(raw, max(1, maximum))
+    stage = balance_math.clamp(raw, 1, CHARACTER_MAX_LEVEL) if maximum >= 300 else balance_math.stage_from_index(raw, max(1, maximum))
 
     exact = {
-        "V019_CLASS_REQ": lambda: generator_core_v027.axis_requirement("class", stage),
-        "V019_SOUL_REQ": lambda: generator_core_v027.axis_requirement("soul", stage),
-        "V019_SKILL_REQ": lambda: generator_core_v027.axis_requirement("skill", stage),
-        "V019_PROF_REQ": lambda: generator_core_v027.axis_requirement("profession", stage),
-        "V019_TOOL_REQ": lambda: generator_core_v027.axis_requirement("tool", stage),
-        "V019_STAT_REQ": lambda: generator_core_v027.axis_requirement("stat", stage),
-        "V019_SKILL_GAIN": lambda: generator_core_v027.axis_gain("skill", stage),
-        "V019_PROF_GAIN": lambda: generator_core_v027.axis_gain("profession", stage),
-        "V019_TOOL_GAIN": lambda: generator_core_v027.axis_gain("tool", stage),
-        "V019_CLASS_KILL_NORMAL": lambda: generator_core_v027.axis_gain("class", stage, 1.0),
-        "V019_CLASS_KILL_BOSS": lambda: generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD["boss"]),
-        "V019_SOUL_KILL_NORMAL": lambda: generator_core_v027.axis_gain("soul", stage, 1.0),
-        "V019_SOUL_KILL_BOSS": lambda: generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD["boss"]),
-        "V019_STAT_KILL_NORMAL": lambda: generator_core_v027.axis_gain("stat", stage, 1.0),
-        "V019_STAT_KILL_BOSS": lambda: generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD["boss"]),
-        "V019_COIN_KILL_NORMAL": lambda: generator_core_v027.currency_for_stage(stage, "normal"),
-        "V019_COIN_KILL_BOSS": lambda: generator_core_v027.currency_for_stage(stage, "boss"),
-        "V019_HP_NORMAL": lambda: generator_core_v027.mob_hp(stage, "normal"),
-        "V019_DAMAGE_NORMAL": lambda: generator_core_v027.mob_damage(stage, "normal"),
-        "V019_QUEST_COIN": lambda: generator_core_v027.system_reward(stage, "quest"),
-        "V019_ECONOMY_SINK": lambda: generator_core_v027.system_cost(stage, "economy"),
-        "V019_RESOURCE_SALE": lambda: generator_core_v027.resource_sale_for_stage(stage),
+        "V019_CLASS_REQ": lambda: balance_math.axis_requirement("class", stage),
+        "V019_SOUL_REQ": lambda: balance_math.axis_requirement("soul", stage),
+        "V019_SKILL_REQ": lambda: balance_math.axis_requirement("skill", stage),
+        "V019_PROF_REQ": lambda: balance_math.axis_requirement("profession", stage),
+        "V019_TOOL_REQ": lambda: balance_math.axis_requirement("tool", stage),
+        "V019_STAT_REQ": lambda: balance_math.axis_requirement("stat", stage),
+        "V019_SKILL_GAIN": lambda: balance_math.axis_gain("skill", stage),
+        "V019_PROF_GAIN": lambda: balance_math.axis_gain("profession", stage),
+        "V019_TOOL_GAIN": lambda: balance_math.axis_gain("tool", stage),
+        "V019_CLASS_KILL_NORMAL": lambda: balance_math.axis_gain("class", stage, 1.0),
+        "V019_CLASS_KILL_BOSS": lambda: balance_math.axis_gain("class", stage, balance_math.RANK_REWARD["boss"]),
+        "V019_SOUL_KILL_NORMAL": lambda: balance_math.axis_gain("soul", stage, 1.0),
+        "V019_SOUL_KILL_BOSS": lambda: balance_math.axis_gain("soul", stage, balance_math.RANK_REWARD["boss"]),
+        "V019_STAT_KILL_NORMAL": lambda: balance_math.axis_gain("stat", stage, 1.0),
+        "V019_STAT_KILL_BOSS": lambda: balance_math.axis_gain("stat", stage, balance_math.RANK_REWARD["boss"]),
+        "V019_COIN_KILL_NORMAL": lambda: balance_math.currency_for_stage(stage, "normal"),
+        "V019_COIN_KILL_BOSS": lambda: balance_math.currency_for_stage(stage, "boss"),
+        "V019_HP_NORMAL": lambda: balance_math.mob_hp(stage, "normal"),
+        "V019_DAMAGE_NORMAL": lambda: balance_math.mob_damage(stage, "normal"),
+        "V019_QUEST_COIN": lambda: balance_math.system_reward(stage, "quest"),
+        "V019_ECONOMY_SINK": lambda: balance_math.system_cost(stage, "economy"),
+        "V019_RESOURCE_SALE": lambda: balance_math.resource_sale_for_stage(stage),
     }
     if identity in exact:
         return min(V019_SAFE_INT, max(1, int(exact[identity]())))
     upper = identity.upper()
     if "HP" in upper:
-        result = generator_core_v027.mob_hp(stage, "boss" if "BOSS" in upper else "normal")
+        result = balance_math.mob_hp(stage, "boss" if "BOSS" in upper else "normal")
     elif "DAMAGE" in upper or "DMG" in upper:
-        result = generator_core_v027.mob_damage(stage, "boss" if "BOSS" in upper else "normal")
+        result = balance_math.mob_damage(stage, "boss" if "BOSS" in upper else "normal")
     elif "REQ" in upper or "COST" in upper:
-        result = generator_core_v027.system_cost(stage, identity)
+        result = balance_math.system_cost(stage, identity)
     elif "SALE" in upper:
-        result = generator_core_v027.resource_sale_for_stage(stage)
+        result = balance_math.resource_sale_for_stage(stage)
     else:
-        result = generator_core_v027.system_reward(stage, identity)
+        result = balance_math.system_reward(stage, identity)
     return min(V019_SAFE_INT, max(1, int(result)))
 
 
 def v0190_requirement(kind, level):
     # v0.27.0: Generator Core jest jedynym źródłem krzywych progresji.
-    return generator_core_v027.axis_requirement(kind, int(level))
+    return balance_math.axis_requirement(kind, int(level))
 
 def v0190_scaled_gain(raw, level, kind, typical_raw):
     """Generated axis gain that still respects authored/content difficulty.
@@ -146,7 +146,7 @@ def v0190_scaled_gain(raw, level, kind, typical_raw):
     authored_ratio = raw / typical
     authored_mult = math.sqrt(max(0.01, authored_ratio))
     authored_mult = max(0.60, min(4.00, authored_mult))
-    generated = generator_core_v027.axis_gain(kind, int(level), 1.0)
+    generated = balance_math.axis_gain(kind, int(level), 1.0)
     return max(1, int(round(generated * authored_mult)))
 
 # Centralny generator walki i ekonomii v0.19.0.
@@ -204,12 +204,12 @@ def v0190_mob_rank(template):
 def v0190_generated_combat_reward(template, kind):
     template = template or {}
     stage = max(1, min(CHARACTER_MAX_LEVEL, int(template.get("generator_level", template.get("v019_stage", 1)) or 1)))
-    rank = str(template.get("generator_rank") or generator_core_v027.mob_rank(template))
-    intensity = generator_core_v027.RANK_REWARD.get(rank, 1.0)
+    rank = str(template.get("generator_rank") or balance_math.mob_rank(template))
+    intensity = balance_math.RANK_REWARD.get(rank, 1.0)
     if kind == "coins":
-        return generator_core_v027.currency_for_stage(stage, rank)
+        return balance_math.currency_for_stage(stage, rank)
     axis = {"class": "class", "soul": "soul", "stat": "stat", "character": "character"}[kind]
-    return generator_core_v027.axis_gain(axis, stage, intensity)
+    return balance_math.axis_gain(axis, stage, intensity)
 
 def v0190_combat_reward(template, kind):
     # v0.27.0: brak max(stara, wygenerowana). Ręczne liczby nie wygrywają.
@@ -227,7 +227,7 @@ def v0190_apply_combat_template(template):
         return template
     stage = template.get("generator_level")
     if stage is None:
-        stage = generator_core_v027.semantic_floor_level(template)
+        stage = balance_math.semantic_floor_level(template)
     if stage is None:
         for key in ("elite_base_template", "rare_base_template", "base_template", "template_id"):
             base = template.get(key)
@@ -236,19 +236,19 @@ def v0190_apply_combat_template(template):
                 if stage is not None:
                     break
     if stage is None:
-        stage = 1 + int(generator_core_v027.stable_unit(str(template.get("name", "mob"))) * 399)
+        stage = 1 + int(balance_math.stable_unit(str(template.get("name", "mob"))) * 399)
     stage = max(1, min(CHARACTER_MAX_LEVEL, int(stage)))
-    rank = generator_core_v027.mob_rank(template)
+    rank = balance_math.mob_rank(template)
     template["generator_level"] = stage
     template["v019_stage"] = stage
 
     generated = {
-        "max_hp": generator_core_v027.mob_hp(stage, rank),
-        "damage": generator_core_v027.mob_damage(stage, rank),
-        "character_xp_reward": generator_core_v027.axis_gain("character", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
-        "class_xp_reward": generator_core_v027.axis_gain("class", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
-        "soul_reward": generator_core_v027.axis_gain("soul", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
-        "stat_reward": generator_core_v027.axis_gain("stat", stage, generator_core_v027.RANK_REWARD.get(rank,1.0)),
+        "max_hp": balance_math.mob_hp(stage, rank),
+        "damage": balance_math.mob_damage(stage, rank),
+        "character_xp_reward": balance_math.axis_gain("character", stage, balance_math.RANK_REWARD.get(rank,1.0)),
+        "class_xp_reward": balance_math.axis_gain("class", stage, balance_math.RANK_REWARD.get(rank,1.0)),
+        "soul_reward": balance_math.axis_gain("soul", stage, balance_math.RANK_REWARD.get(rank,1.0)),
+        "stat_reward": balance_math.axis_gain("stat", stage, balance_math.RANK_REWARD.get(rank,1.0)),
     }
 
     # Procedural no-limit floors have separate depth curves. Their temporary
@@ -295,7 +295,7 @@ def v0190_apply_combat_template(template):
         had_currency = any(key in template for key in currency_keys)
         template["_v1138_authored_currency"] = tuple(
             int(template.get(key, 0) or 0) for key in currency_keys
-        ) if had_currency else (int(generator_core_v027.currency_for_stage(stage, rank)), 0, 0)
+        ) if had_currency else (int(balance_math.currency_for_stage(stage, rank)), 0, 0)
     template["silver"], template["gold"], template["mithril"] = template["_v1138_authored_currency"]
 
     # v0.36.2 terrain clones remain a deliberate generated layer, but start
@@ -338,12 +338,12 @@ def v0190_quest_currency_reward(quest):
         return max(0, int(quest.get("reward_silver", 0) or 0))
     stage = v0190_quest_stage(quest)
     workload = max(1.0, min(8.0, math.sqrt(max(1, int(quest.get("needed",1) or 1)))))
-    return int(round(generator_core_v027.currency_for_stage(stage) * max(2.0, workload) * (.72 if quest.get("repeatable") else 1.0)))
+    return int(round(balance_math.currency_for_stage(stage) * max(2.0, workload) * (.72 if quest.get("repeatable") else 1.0)))
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}
     stage = v0190_quest_stage(quest)
-    generated_base = generator_core_v027.axis_gain("stat", stage, 2.0)
+    generated_base = balance_math.axis_gain("stat", stage, 2.0)
 
     # v1.13.42: ręczna/stara nagroda może być większa, ale nie może już
     # obniżyć questa wysokiego Tieru do płaskiej wartości z dawnych danych.
@@ -386,7 +386,7 @@ def v0190_quest_stat_reward(quest):
 def v0190_quest_soul_reward(quest):
     quest = quest or {}
     stage = v0190_quest_stage(quest)
-    generated = generator_core_v027.axis_gain("soul", stage, 2.0)
+    generated = balance_math.axis_gain("soul", stage, 2.0)
     if quest.get("generator_level") is not None:
         return max(generated, max(0, int(quest.get("reward_soul_xp", 0) or 0)))
     return generated
@@ -402,7 +402,7 @@ def v0522_combat_quest_class_reward(quest):
     needed = max(1, int(quest.get("needed", 1) or 1))
     workload = max(1.0, min(8.0, math.sqrt(needed)))
     repeat_mult = .72 if quest.get("repeatable") else 1.0
-    return generator_core_v027.axis_gain("class", stage, workload * repeat_mult)
+    return balance_math.axis_gain("class", stage, workload * repeat_mult)
 
 
 def v0522_is_profession_quest(quest):
@@ -423,7 +423,7 @@ def v0522_is_profession_quest(quest):
 def v0270_quest_character_reward(quest):
     quest = quest or {}
     stage = v0190_quest_stage(quest)
-    generated = generator_core_v027.axis_gain("character", stage, 2.0)
+    generated = balance_math.axis_gain("character", stage, 2.0)
     if quest.get("generator_level") is not None:
         return max(generated, max(1, int(quest.get("character_xp_reward", 1) or 1)))
     return generated
@@ -431,7 +431,7 @@ def v0270_quest_character_reward(quest):
 def v0190_economy_sink(stage, category="generic"):
     stage=max(1,min(CHARACTER_MAX_LEVEL,int(stage)))
     mult={"skill":1.0,"equipment":0.60,"service":0.35,"generic":1.0}.get(category,1.0)
-    return min(V019_SAFE_INT,max(1,int(round(generator_core_v027.item_price_for_stage(stage)*mult))))
+    return min(V019_SAFE_INT,max(1,int(round(balance_math.item_price_for_stage(stage)*mult))))
 
 def v0190_resource_stage(item_id, item=None):
     """Poziom ekonomiczny surowca 1-600 z Generator Core."""
@@ -509,7 +509,7 @@ def v0190_resource_sale_coins(item_id, item=None):
     mult = max(1.0, float(item.get("rare_value_multiplier", 1.0) or 1.0))
     # v1.13.8: old Generator Core prices were useful as fallback, but became
     # tiny relative to the current quest/EQ economy. Keep the larger of both.
-    generated = generator_core_v027.resource_sale_for_stage(stage, mult)
+    generated = balance_math.resource_sale_for_stage(stage, mult)
     progression = int(round(v1138_resource_sale_base_coins(stage) * mult))
     return max(1, generated, progression)
 
@@ -1458,7 +1458,7 @@ def mining_ore_weights(resource_ids, effective_level, context="mining"):
         # Około 10-20% dla świeżego zasobu przy zwykłych progach 1-200;
         # stare rudy nigdy nie spadają do zera.
         freshness = 0.20 + 8.0 / ((1.0 + age / 20.0) ** 1.50)
-        affinity = 0.92 + 0.16 * generator_core_v027.stable_unit(
+        affinity = 0.92 + 0.16 * balance_math.stable_unit(
             f"{context}:{item_id}:mining-affinity"
         )
         result.append(max(0.05, freshness * affinity))

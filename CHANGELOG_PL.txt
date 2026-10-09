@@ -1,3 +1,27 @@
+Soulbound v1.28.5 — EXP PIĘTER / GRIND 800 (2026-10-09)
+- Zwiększono o 30% EXP z walk na wczesnych piętrach lochów, bez zmian w otwartym świecie.
+- Od poziomu 101 nagrody postaci, klas i Soul z kolejnych pięter nadążają za rosnącym wymaganym EXP; późne poziomy nadal wymagają dziesiątek lub setek zabitych mobów.
+- Osobne wysokie nagrody dla bossów; istniejące wyższe nagrody pozostają nietknięte.
+- Dotyczy Krypt, Mitycznych Krypt, Wież Astralnych, Mitycznych Wież, Magiteku i Twierdz z jawnym piętrem.
+- Nagrody UOSS source_xp_exact, waluta, EQ, questy, poziomy 800 i baza postaci bez zmian. Bez Generator Core.
+
+Soulbound v1.28.4 — KONIEC GENERATOR CORE (2026-10-09)
+- Usunięto fizycznie core/generator_core.py. Żadne moduły gry nie importują już starego generatora.
+- Wzory progresji, ekonomii i walki przeniesiono do core/balance_math.py.
+- Walidacja zawartości jest odczytowa (core/catalog_validation.py); brak przebudowy katalogów EQ, klas, skilli i questów.
+- Dynamiczne lochy, podziemia i przeciwnicy zachowują swoje istniejące mechaniki.
+- Zachowano poziom 800, statystyki bez limitu, ID i zapisy SQLite.
+
+Soulbound v1.28.3 — Stałe katalogi zamiast Generator Core i unikalne nazwy EQ
+- Usunięto modyfikowanie katalogów gry przez dawny Generator Core podczas uruchamiania.
+- Dawne brakujące wartości liczbowe przeniesiono do jawnego pliku data/catalogue_numeric_defaults_v1283.json, z zachowaniem autorskich wartości.
+- Pozostawiono tylko biblioteczne funkcje matematyczne używane przez inne moduły: nie tworzą ani nie zmieniają mobów, skilli, EQ czy questów.
+- Uzupełniono obsługę progresji 1-800 w kontrolach wdrożenia oraz nazwach narzędzi i katalogach surowców.
+- Unikalne nazwy klasowego EQ dla progów 610-800, bez liczbowych dopisków. Dawne nazwy są aliasami; wszystkie ID pozostają bez zmian.
+- Nie zmieniono statystyk postaci, istniejących zapisów, mechanik bossów ani struktury SQLite.
+- Full predeploy (Railway): 89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami.
+- Windows BAT, awaryjne logi, Dockerfile i zgodność Railway pozostają bez zmian.
+
 Soulbound v1.28.2 — Naprawa Prób Broni Duszy i bossów Krypty
 - Przy tworzeniu pięter 1-200 Krypty generator zachowuje ręcznie zaprojektowane imiona bossów zamiast zastępować je Władcami Nieskończonej Krypty.
 - Tier 13: piętro 120 -> Królowa Otchłannej Krypty, jej zabicie zalicza próbę.
@@ -25,7 +49,7 @@ Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
 - Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
 - Wydanie dla Railway i Windows, bez raportów audytu.
 
-Aktualna paczka: v1.28.2 — POMOCNICY BOSSÓW I EXP (2026-10-09)
+Aktualna paczka: v1.28.5 — EXP PIĘTER, BEZ GENERATOR CORE (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.

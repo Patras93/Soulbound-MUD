@@ -46,7 +46,7 @@ def _v0368_apply_crypt_threat(template):
     # authored baseline and Generator Core so hand-tuned bosses are never
     # nerfed, while old weak templates cannot make the dungeon easier than the
     # open-world curve it is explicitly supposed to exceed.
-    rank = generator_core_v027.mob_rank(template)
+    rank = balance_math.mob_rank(template)
     authored_hp = max(
         1,
         int(template.get("_v1138_authored_max_hp", template.get("max_hp", 1)) or 1),
@@ -55,8 +55,8 @@ def _v0368_apply_crypt_threat(template):
         1,
         int(template.get("_v1138_authored_damage", template.get("damage", 1)) or 1),
     )
-    generator_hp = generator_core_v027.mob_hp(stage, rank)
-    generator_damage = generator_core_v027.mob_damage(stage, rank)
+    generator_hp = balance_math.mob_hp(stage, rank)
+    generator_damage = balance_math.mob_damage(stage, rank)
     base_hp = max(authored_hp, generator_hp)
     base_damage = max(authored_damage, generator_damage)
 
@@ -262,7 +262,7 @@ def crypt_party_rebalance_audit_v0368():
         if not reg or not boss:
             errors.append(f"missing ordinary crypt checkpoint {floor}")
             continue
-        canonical_hp = generator_core_v027.mob_hp(min(CHARACTER_MAX_LEVEL, floor), "normal")
+        canonical_hp = balance_math.mob_hp(min(CHARACTER_MAX_LEVEL, floor), "normal")
         if int(reg.get("max_hp", 0) or 0) <= canonical_hp * 2:
             errors.append(f"crypt regular floor {floor} still too weak: {reg.get('max_hp')} <= {canonical_hp*2}")
         if int(boss.get("max_hp", 0) or 0) <= int(reg.get("max_hp", 0) or 0) * 8:

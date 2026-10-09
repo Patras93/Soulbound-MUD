@@ -12,7 +12,7 @@ def main():
 
 # v0.30.18 — Generator Core Numeric-Only semantic guard.
 def generator_numeric_only_audit_v03018():
-    audit = GENERATOR_CORE_AUDIT or {}
+    audit = CATALOG_VALIDATION_AUDIT or {}
     errors = []
     if not audit.get("numeric_only"):
         errors.append("Generator Core numeric_only flag missing")
@@ -64,7 +64,7 @@ LATEST_CHANGES = [
 # v0.30.19 - GENERATOR CORE EXPLICIT NUMERIC WRITE WHITELIST
 # ============================================================
 def generator_whitelist_audit_v03019():
-    audit = GENERATOR_CORE_AUDIT or {}
+    audit = CATALOG_VALIDATION_AUDIT or {}
     whitelist = audit.get("whitelist_audit") or {}
     errors = []
     if not audit.get("numeric_only"):
@@ -88,7 +88,7 @@ def generator_whitelist_audit_v03019():
             errors.append("whitelist missing tables: " + ", ".join(missing))
     return {
         "version": "0.30.19",
-        "generator_version": str(GENERATOR_CORE_VERSION),
+        "generator_version": str(BALANCE_MATH_VERSION),
         "whitelist_enforced": bool(audit.get("whitelist_enforced")),
         "whitelist_passed": bool(audit.get("whitelist_passed")),
         "semantic_preserved": bool(audit.get("semantic_preserved")),
@@ -366,7 +366,7 @@ def full_release_integrity_audit_v03022():
 
     # Every previously active release gate must still be clean.
     audit_names=(
-        "GENERATOR_CORE_AUDIT", "GENERATOR_WHITELIST_AUDIT_V03019",
+        "CATALOG_VALIDATION_AUDIT", "GENERATOR_WHITELIST_AUDIT_V03019",
         "WORLD_TOPOLOGY_AUDIT", "WORLD_LOGIC_AUDIT",
         "FULL_WORLD_TOPOLOGY_AUDIT_V03013", "FULL_GAME_AUDIT_V03014",
         "FULL_COMBAT_SCALING_AUDIT_V03015", "AGGRO_CLEANUP_AUDIT_V03015",
@@ -736,7 +736,7 @@ def full_release_integrity_audit_v03025():
         errors.append("world logic warnings present")
     return {
         "version": "0.30.25",
-        "generator_version": str(GENERATOR_CORE_VERSION),
+        "generator_version": str(BALANCE_MATH_VERSION),
         "base_release_gate": previous.get("version", "v0.30.22"),
         "profession_tool_xp": PROFESSION_TOOL_XP_AUDIT_V03025.get("error_count") == 0,
         "world_logic": WORLD_LOGIC_AUDIT.get("error_count") == 0,
@@ -948,7 +948,7 @@ def gameplay_flow_audit_v03026():
 
     return {
         "version": "0.30.26",
-        "generator_version": str(GENERATOR_CORE_VERSION),
+        "generator_version": str(BALANCE_MATH_VERSION),
         "recipes_checked": recipe_count,
         "wood_recipes_fixed": len(V03026_WOOD_RECIPES),
         "tool_tiers": TOOL_MAX_TIER,
@@ -2128,12 +2128,12 @@ def profession_carryover_audit_v03039():
     for label, ids in groups.items():
         previous = set()
         for level in thresholds:
-            pool = tuple(generator_core_v027.resource_pool(ids, ITEMS, level, f"audit:{label}"))
+            pool = tuple(balance_math.resource_pool(ids, ITEMS, level, f"audit:{label}"))
             pool_checks += 1
             current = set(pool)
             if not previous.issubset(current):
                 errors.append(f"{label}: zasób zniknął przy Tierze dla levelu {level}")
-            weights = generator_core_v027.resource_weights(pool, ITEMS, level, f"audit:{label}")
+            weights = balance_math.resource_weights(pool, ITEMS, level, f"audit:{label}")
             if len(weights) != len(pool):
                 errors.append(f"{label}: niezgodna liczba wag na levelu {level}")
             for item_id, weight in zip(pool, weights):
@@ -2146,8 +2146,8 @@ def profession_carryover_audit_v03039():
 
     # Specjalne łowisko nie może wycinać gatunków ze zwykłej kumulacyjnej puli.
     forest_pref = set(FISHING_ECOLOGY_PREFERRED_IDS.get("forest_stream") or ())
-    river_low = set(generator_core_v027.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[0], "audit:forest"))
-    river_high = set(generator_core_v027.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[-1], "audit:forest"))
+    river_low = set(balance_math.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[0], "audit:forest"))
+    river_high = set(balance_math.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[-1], "audit:forest"))
     if not river_low.issubset(river_high):
         errors.append("forest_stream: wcześniejsze ryby nie są podzbiorem późniejszej puli")
     if forest_pref and not (forest_pref & river_high):
@@ -3056,7 +3056,7 @@ def full_game_predeploy_audit_v0336():
     }
     if set(PROFESSION_RANK_NAMES) != _expected_professions_v1112:
         err('profession_catalog_mismatch', tuple(sorted(PROFESSION_RANK_NAMES)), tuple(sorted(_expected_professions_v1112)))
-    if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=60: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
+    if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=80: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
 
     # 9d) Deep quest target/dependency validation for every quest.
     valid_kill_targets=set(MOB_TEMPLATES)
@@ -3245,8 +3245,9 @@ def full_game_predeploy_audit_v0336():
         err('mithril_currency_unlock_too_early',_mithril_chance_79)
     if not (0.0049 <= _mithril_chance_80 <= 0.0051):
         err('mithril_currency_level80_chance',_mithril_chance_80)
-    if not (0.0199 <= _mithril_chance_600 <= 0.0201):
-        err('mithril_currency_level600_chance',_mithril_chance_600)
+    _mithril_chance_800=mining_mithril_currency_chance(800,800,800)
+    if not (0.0199 <= _mithril_chance_800 <= 0.0201):
+        err('mithril_currency_level800_chance',_mithril_chance_800)
     metrics['mithril_currency_chance_level80']=_mithril_chance_80
     metrics['mithril_currency_chance_level400']=_mithril_chance_400
     metrics['mithril_currency_chance_level600']=_mithril_chance_600
@@ -3342,26 +3343,27 @@ def full_game_predeploy_audit_v0336():
 
     # 10b) v0.35.3 Soul Weapon Mastery + Main Menu Exit gate.
     try:
-        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 600:
+        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 800:
             err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
         _m1=soul_weapon_mastery_bonuses(1)
         _m200=soul_weapon_mastery_bonuses(200)
         _m400=soul_weapon_mastery_bonuses(400)
         _m600=soul_weapon_mastery_bonuses(600)
+        _m800=soul_weapon_mastery_bonuses(800)
         if any(float(_m1.get(k,0) or 0) != 0.0 for k in ('damage_percent','crit_chance','crit_damage_percent','boss_damage_percent','echo_chance')):
             err('soul_weapon_mastery_level1_not_neutral',_m1)
         if not (0.0099 <= float(_m200.get('echo_chance',0) or 0) <= 0.0101):
             err('soul_weapon_mastery_echo_200',_m200.get('echo_chance'))
-        if abs(float(_m600.get('damage_percent',0))-8.0)>0.0001:
-            err('soul_weapon_mastery_damage_600',_m600.get('damage_percent'))
-        if abs(float(_m600.get('crit_chance',0))-0.02)>0.000001:
-            err('soul_weapon_mastery_crit_600',_m600.get('crit_chance'))
-        if abs(float(_m600.get('crit_damage_percent',0))-12.0)>0.0001:
-            err('soul_weapon_mastery_crit_damage_600',_m600.get('crit_damage_percent'))
-        if abs(float(_m600.get('boss_damage_percent',0))-5.0)>0.0001:
-            err('soul_weapon_mastery_boss_600',_m600.get('boss_damage_percent'))
-        if abs(float(_m600.get('echo_chance',0))-0.05)>0.000001:
-            err('soul_weapon_mastery_echo_600',_m600.get('echo_chance'))
+        if abs(float(_m800.get('damage_percent',0))-8.0)>0.0001:
+            err('soul_weapon_mastery_damage_800',_m600.get('damage_percent'))
+        if abs(float(_m800.get('crit_chance',0))-0.02)>0.000001:
+            err('soul_weapon_mastery_crit_800',_m600.get('crit_chance'))
+        if abs(float(_m800.get('crit_damage_percent',0))-12.0)>0.0001:
+            err('soul_weapon_mastery_crit_damage_800',_m600.get('crit_damage_percent'))
+        if abs(float(_m800.get('boss_damage_percent',0))-5.0)>0.0001:
+            err('soul_weapon_mastery_boss_800',_m600.get('boss_damage_percent'))
+        if abs(float(_m800.get('echo_chance',0))-0.05)>0.000001:
+            err('soul_weapon_mastery_echo_800',_m600.get('echo_chance'))
         _basic_body=(_ROOT/'player/session_mixins/combat_realtime.py').read_text(encoding='utf-8')
         if 'grant_soul_weapon_mastery_hit_xp' not in _basic_body:
             err('soul_weapon_mastery_missing_basic_attack_xp')
@@ -4006,7 +4008,7 @@ def progression_600_and_leader_disband_audit_v0360():
             errors.append(f"{name}: {detail or 'FAIL'}")
 
     caps={
-        "generator": int(getattr(generator_core_v027,"MAX_LEVEL",0) or 0),
+        "generator": int(getattr(balance_math,"MAX_LEVEL",0) or 0),
         "character": int(CHARACTER_MAX_LEVEL),
         "class_mastery": int(CLASS_MASTERY_MAX_LEVEL),
         "skill": int(SKILL_MAX_LEVEL),
@@ -4017,14 +4019,14 @@ def progression_600_and_leader_disband_audit_v0360():
         "guild": int(V0926_GUILD_MAX_LEVEL),
     }
     metrics["caps"]=caps
-    check("all_main_caps_600", all(v==600 for v in caps.values()), caps)
-    check("soul_tiers_60", int(SOUL_MAX_TIER)==60 and len(SOUL_TIER_THRESHOLDS)==60 and int(SOUL_TIER_THRESHOLDS[-1])==600)
-    check("tool_tiers_60", int(TOOL_MAX_TIER)==60 and len(TOOL_TIER_THRESHOLDS)==60 and int(TOOL_TIER_THRESHOLDS[-1])==600)
-    check("profession_rank_cap_600", int(PROFESSION_RANK_THRESHOLDS[-1])==600)
+    check("all_main_caps_800", all(v==800 for k,v in caps.items() if k != "guild") and caps["guild"] == 600, caps)
+    check("soul_tiers_80", int(SOUL_MAX_TIER)==80 and len(SOUL_TIER_THRESHOLDS)==80 and int(SOUL_TIER_THRESHOLDS[-1])==800)
+    check("tool_tiers_80", int(TOOL_MAX_TIER)==80 and len(TOOL_TIER_THRESHOLDS)==80 and int(TOOL_TIER_THRESHOLDS[-1])==800)
+    check("profession_rank_cap_800", int(PROFESSION_RANK_THRESHOLDS[-1])==800)
     check("profession_count_14", len(PROFESSION_RANK_NAMES)>=14, len(PROFESSION_RANK_NAMES))
-    check("all_tool_name_tables_60", all(len(tuple(v))>=60 for v in TOOL_TIER_NAMES.values()), {k:len(tuple(v)) for k,v in TOOL_TIER_NAMES.items()})
+    check("all_tool_name_tables_80", all(len(tuple(v))>=80 for v in TOOL_TIER_NAMES.values()), {k:len(tuple(v)) for k,v in TOOL_TIER_NAMES.items()})
 
-    grid=(1,*range(10,601,10))
+    grid=(1,*range(10,801,10))
     skill_errors=[]
     for class_name,rows in CLASS_SKILLS.items():
         unlocks=[int(row.get("unlock",0) or 0) for row in rows]
@@ -4032,15 +4034,15 @@ def progression_600_and_leader_disband_audit_v0360():
         # Generator Core guarantees the 183-skill base grid through 600.
         # Source-authored abilities may legally extend that catalogue, so the
         # release contract is a minimum rather than an exact total.
-        if len(rows)<183 or min(unlocks or [0])!=1 or max(unlocks or [0])!=600:
+        if len(rows)<243 or min(unlocks or [0])!=1 or max(unlocks or [0])!=800:
             skill_errors.append(f"{class_name}:{len(rows)}:{min(unlocks or [0])}-{max(unlocks or [0])}")
         if class_name not in ("Mec","Inżynier") and any(counts[level]<3 for level in grid):
             skill_errors.append(f"{class_name}:grid")
-    check("skill_grid_183_per_class", not skill_errors, skill_errors[:10])
+    check("skill_grid_243_per_class", not skill_errors, skill_errors[:10])
     metrics["classes"]=len(CLASS_SKILLS)
     metrics["skills_total"]=sum(len(v) for v in CLASS_SKILLS.values())
 
-    check("class_equipment_to_600", int(CLASS_EQUIPMENT_MASTERY_LEVELS[-1])==600)
+    check("class_equipment_to_800", int(CLASS_EQUIPMENT_MASTERY_LEVELS[-1])==800)
 
     # v0.36.0: każdy kolejny Tier klasowego EQ ma realnie inny, rosnący
     # budżet podstawowych statów. Chroni szczególnie niskie progi
@@ -4076,11 +4078,11 @@ def progression_600_and_leader_disband_audit_v0360():
           all(None not in row and row==sorted(set(row)) and len(row)==4 for row in low_tier_budgets.values()),
           low_tier_budgets)
 
-    check("endgame_resources_to_600",
-          any(int(level)==600 for level,_ in ENDGAME_ORE_UNLOCKS)
-          and any(int(level)==600 for level,_ in ENDGAME_WOOD_UNLOCKS)
-          and any(int(level)==600 for level,_ in ENDGAME_HERB_UNLOCKS))
-    check("soul_trials_41_60", all(tier in SOUL_TRIAL_QUEST_IDS for tier in range(41,61)))
+    check("endgame_resources_to_800",
+          any(int(level)==800 for level,_ in ENDGAME_ORE_UNLOCKS)
+          and any(int(level)==800 for level,_ in ENDGAME_WOOD_UNLOCKS)
+          and any(int(level)==800 for level,_ in ENDGAME_HERB_UNLOCKS))
+    check("soul_trials_41_80", all(tier in SOUL_TRIAL_QUEST_IDS for tier in range(41,81)))
     check("guild_bonus_legacy_preserved",
           v0926_guild_bonus_percent(100)==11 and v0926_guild_bonus_percent(200)==15
           and v0926_guild_bonus_percent(300)==19 and v0926_guild_bonus_percent(400)==23
@@ -4255,7 +4257,7 @@ def terrain_threat_rebalance_audit_v0362():
         # The recommended mastery floor is now native to Generator Core's
         # runtime_room_level(), so old _v0362 marker/name checks are obsolete.
         _probe_room={"recommended_mastery":137}
-        _probe_stage=generator_core_v027.runtime_room_level(
+        _probe_stage=balance_math.runtime_room_level(
             "__audit_v0362_recommended_floor__", _probe_room, {}
         )
         check(

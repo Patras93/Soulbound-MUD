@@ -227,7 +227,7 @@ class World:
             base_stage = int(template.get("generator_level", 1) or 1)
         except Exception:
             base_stage = 1
-        rank = generator_core_v027.mob_rank(template)
+        rank = balance_math.mob_rank(template)
         is_terrain_rank = rank in ("normal", "elite", "rare")
         needs_room_clone = stage > base_stage
         needs_terrain_boost = is_terrain_rank and stage >= 50
@@ -242,7 +242,7 @@ class World:
             clone["base_template"] = str(template.get("base_template") or template_id)
             clone["terrain_runtime_clone_v0362"] = True
             clone["terrain_room_stage_v0362"] = runtime_stage
-            generator_core_v027.runtime_mob_balance(runtime_id, clone, runtime_stage, rank=rank)
+            balance_math.runtime_mob_balance(runtime_id, clone, runtime_stage, rank=rank)
             if is_terrain_rank and runtime_stage >= 50:
                 # Level 50 ~= 1.5x HP, 100 = 2x, 200 = 3x, 300+ = 4x.
                 # Damage rises more gently: +5% at 50, +10% at 100,
@@ -494,7 +494,7 @@ class World:
                     created.append(existing)
                     continue
                 template_id, _ = dynamic_world_v029.build_event_template(
-                    event, index, MOB_TEMPLATES, generator_core_v027, str(V0250_WORLD_SEED)
+                    event, index, MOB_TEMPLATES, balance_math, str(V0250_WORLD_SEED)
                 )
                 if not template_id:
                     continue
@@ -529,7 +529,7 @@ class World:
         existing = next((m for m in self.mobs.values() if int(MOB_TEMPLATES.get(m.template_id, {}).get("v029_nemesis_owner_account_id", 0) or 0) == account_id and m.alive), None)
         if existing:
             return existing
-        template_id, _ = dynamic_world_v029.build_nemesis_template(record, MOB_TEMPLATES, generator_core_v027)
+        template_id, _ = dynamic_world_v029.build_nemesis_template(record, MOB_TEMPLATES, balance_math)
         if not template_id:
             return None
         mob = MobState(
@@ -686,7 +686,7 @@ class World:
     def _generatorize_runtime_room(self, room_id):
         room=ROOMS.get(str(room_id or ""))
         if isinstance(room,dict):
-            generator_core_v027.runtime_room_level(str(room_id),room,ROOMS)
+            balance_math.runtime_room_level(str(room_id),room,ROOMS)
             return True
         return False
 

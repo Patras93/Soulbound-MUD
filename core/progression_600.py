@@ -204,7 +204,7 @@ for _tool_type, _names in list(TOOL_TIER_NAMES.items()):
 # Zasoby i receptury zachowują historyczne ID *_400_* dla zgodności save'ów,
 # ale zmienna obejmuje od teraz całą linię 220-600.
 PROGRESSION_400_LEVELS = tuple(range(220, 801, 20))
-_new_levels = tuple(range(420, 601, 20))
+_new_levels = tuple(range(420, 801, 20))
 ENDGAME_ORE_UNLOCKS = tuple(ENDGAME_ORE_UNLOCKS) + tuple((level, f"ore_400_{level}") for level in _new_levels)
 ENDGAME_WOOD_UNLOCKS = tuple(ENDGAME_WOOD_UNLOCKS) + tuple((level, f"wood_400_{level}") for level in _new_levels)
 ENDGAME_HERB_UNLOCKS = tuple(ENDGAME_HERB_UNLOCKS) + tuple((level, f"herb_400_{level}") for level in _new_levels)
