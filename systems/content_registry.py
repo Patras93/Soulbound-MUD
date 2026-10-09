@@ -373,13 +373,17 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.28.5 - EXP pięter / grind 800"
+LATEST_CHANGES_TITLE = "Soulbound v1.28.7 - SCORE i opisy poziomów 800"
 LATEST_CHANGES = [
-    "v1.28.5: O 30% więcej EXP z walk na wczesnych piętrach obsługiwanych lochów, bez zmian w otwartym świecie.",
-    "Od poziomu 101 nagrody EXP postaci, klasy i Duszy w lochach uwzględniają wymagania awansu; głębsze piętra pozostają wymagające.",
-    "Bossowie mają osobne minimalne nagrody EXP, a wyższe istniejące wartości zostają zachowane.",
-    "v1.28.4: Generator Core został usunięty; dedykowane wzory w core/balance_math.py zachowują ręcznie zaprojektowany balans.",
-    "Poziom 800, nielimitowane statystyki, najemnicy, skalowanie drużyn i istniejące zapisy pozostają bez zmian.",
+    "v1.28.7: SCORE nie pokazuje już fałszywej progresji 1-600 ani nieistniejącego Generator Core; potwierdza limity 800.",
+    "Zaktualizowano dusza info i pomoc podstawy / score / level / xp / dusza. EXP, skalowanie i skrzynie z v1.28.6 bez zmian.",
+    "v1.28.6: Naprawiono skrzynie checkpointów w Kryptach, Mitycznych Kryptach i pozostałych piętrowych lochach: tylko komnata bossa, bez cofania do lądowania.",
+    "Po zabiciu bossa skrzynia zostaje ponownie odblokowana. Działa skrzynia / chest / odklucz; po otwarciu znika dla nagrodzonych graczy.",
+    "v1.28.6: Koniec wielopoziomowych awansów za zwykłego moba na głębokim piętrze.",
+    "EXP z lochów zależy od poziomu otrzymującej go postaci, klasy lub Duszy, a nie od poziomu pokonanego potwora.",
+    "Grind pozostaje długoterminowy: zwykli przeciwnicy dają mały stały postęp, bossowie znacznie więcej.",
+    "Drużyna, najemnicy, elity i event x2 nadal działają. Zachowano wymagania EXP 1-800.",
+    "Otwarty świat, zadania i źródłowe nagrody UOSS nie zostały zmienione. Generator Core pozostaje usunięty.",
 ]
 
 HELP_TOPIC_ALIASES = {

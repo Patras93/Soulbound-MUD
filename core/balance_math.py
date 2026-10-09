@@ -45,7 +45,7 @@ from core.character_resources import (
     race_passive_text_pl as authored_race_passive_text_pl,
 )
 
-BALANCE_MATH_VERSION = "1.28.5"
+BALANCE_MATH_VERSION = "1.28.6"
 MAX_LEVEL = 800
 SAFE_INT = 9_000_000_000_000_000_000
 

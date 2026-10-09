@@ -3131,7 +3131,7 @@ for _source, _label, _needles in (
         "combat_rewards",
         (
             "single_level_cap=False",
-            "pełny EXP z zabicia jest rozliczany bez limitu jednego awansu.",
+            "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie.",
         ),
     ),
 ):
@@ -3988,3 +3988,11 @@ for _name in ("axis_requirement", "axis_gain", "mob_hp", "mob_damage", "runtime_
         _semantic_errors.append("missing balance helper: " + _name)
 if not callable(_validate_v1284):
     _semantic_errors.append("missing read-only catalogue validator")
+
+# v1.28.6: per-recipient dungeon XP must not reintroduce the level-600
+# mob requirement as a floor for level-100 characters.
+from systems.dungeon_experience_v1285 import dungeon_kill_xp_audit_v1285 as _xp_audit_v1286
+_xp_result_v1286 = _xp_audit_v1286()
+if not _xp_result_v1286["ok"]:
+    raise RuntimeError("v1.28.6 dungeon XP contract: " + repr(_xp_result_v1286["failures"]))
+print("SOULBOUND v1.28.6 DUNGEON XP: recipient levels, rank bonus, world/UOSS guard PASS")

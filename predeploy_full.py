@@ -458,6 +458,17 @@ def main():
             if chest_errors:
                 raise SystemExit(1)
 
+            # v1.28.6: do not silently regress dynamic Crypt boss chests after
+            # the legacy spawn registry is pruned or compacted.
+            from validation.chest_floor_v1286 import check_dynamic_boss_chests_v1286
+            _chest_v1286 = check_dynamic_boss_chests_v1286(ns)
+            print(f"DYNAMIC BOSS CHESTS v1.28.6: {_chest_v1286['checks']} checks, "
+                  f"{_chest_v1286['error_count']} errors")
+            for issue in _chest_v1286['errors'][:50]:
+                print('DYNAMIC CHEST ERROR: ' + issue)
+            if _chest_v1286['error_count']:
+                raise SystemExit(1)
+
             from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
             mob_names = audit_mob_display_names_v11129(server)
             print(

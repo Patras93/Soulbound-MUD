@@ -25,6 +25,7 @@ from systems.equipment_crafting import (
     LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER,
 )
 from systems.drop_excitement import authored_drop_chance_v11329
+from systems.dungeon_experience_v1285 import dungeon_recipient_xp_v1286
 from systems.legendary_reborn import boss_legendary_roll_v1150
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
 from systems.elemental_combat import mob_element_affinities_v11339
@@ -409,6 +410,13 @@ class SessionCombatRewardsMixin:
                                 boss_kind, cleared_floor
                             ),
                         )
+                        # NVDA: explicit chest notice even if player has the
+                        # boss room's map message scrolled away in combat log.
+                        await session.send(
+                            f'Skrzynia Bossa, piętro {cleared_floor}: '
+                            'jest w komnacie pokonanego bossa. '
+                            'Przeszukaj ciało, weź klucz i wpisz odklucz.'
+                        )
                         first_clear = self.server.db.mark_boss_floor_cleared(
                             session.account_id, boss_kind, cleared_floor
                         )
@@ -540,9 +548,8 @@ class SessionCombatRewardsMixin:
                             + currency_reading_text(silver, gold, mithril) + "."
                         )
 
-                    # v0.19: Global Progression & Reward Generator.
-                    # Duże nagrody nie są przycinane procentowym capem. Długość gry
-                    # kontrolują rosnące wymagania EXP oraz kosztów.
+                    # v1.28.6: dungeon XP is normalized per recipient, AFTER
+                    # party/adaptive bonuses. Long-term requirements stay intact.
                     xp_profile=session.dynamic_kill_xp_profile(template,room_id=session.character.room_id)
                     # v0.23.0: NIE podbijamy mnożnika do minimum 1.0. To był błąd,
                     # przez który słabsze moby nigdy nie traciły EXP podczas farmy.
@@ -625,10 +632,40 @@ class SessionCombatRewardsMixin:
                             )),
                         ),
                     )
+                    # v1.28.6: prevent 10+ levels from a single deep-floor
+                    # kill. Use this player's REAL level (and active class
+                    # levels), not the killed mob's depth, for each XP axis.
+                    # Non-dungeon and exact UOSS source XP are unchanged.
+                    _double_factor_v1286 = max(1.0, float(session.apply_double_xp(1000)) / 1000.0)
+                    _mentor_factor_v1286 = 1.0 + max(0.0, float(session.mentor_bonus_percent_v03050())) / 100.0
+                    _guild_factor_v1286 = 1.0 + max(0.0, float(session.guild_bonus_percent_v0926())) / 100.0
+                    _active_classes_v1286 = session.active_class_names()
+                    _class_level_v1286 = min(
+                        (session.class_mastery_level(_name) for _name in _active_classes_v1286),
+                        default=1,
+                    )
+                    # Class XP splits evenly between active classes, so use
+                    # the lowest class requirement to protect multiclass alts.
+                    class_xp_reward = dungeon_recipient_xp_v1286(
+                        template, "class", class_xp_reward, _class_level_v1286,
+                        combat_multiplier=xp_mult,
+                        downstream_multiplier=_double_factor_v1286 * _mentor_factor_v1286 * _guild_factor_v1286,
+                    )
+                    soul_xp_reward = dungeon_recipient_xp_v1286(
+                        template, "soul", soul_xp_reward, session.character.soul_level,
+                        combat_multiplier=xp_mult,
+                        downstream_multiplier=_double_factor_v1286 * _mentor_factor_v1286,
+                    )
+                    character_xp_reward = dungeon_recipient_xp_v1286(
+                        template, "character", character_xp_reward,
+                        session.character.character_level,
+                        combat_multiplier=xp_mult,
+                        downstream_multiplier=_double_factor_v1286,
+                    )
                     reward_model_text = (
                         f"UOSS source EXP exact na wszystkie osie: {source_xp}"
                         if uoss_full_progression_source_xp_exact
-                        else "Generator v0.19 + dynamiczny EXP v0.23"
+                        else "Balans EXP po walce + korekta poziomu odbiorcy w lochach"
                     )
                     await session.send_combat(
                         f"{reward_model_text}: etap {v0190_mob_stage(template)}, "
@@ -638,7 +675,7 @@ class SessionCombatRewardsMixin:
                         f"elite reward x{_elite_reward_mult_v11338:.2f}; "
                         f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
                         f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; "
-                        "pełny EXP z zabicia jest rozliczany bez limitu jednego awansu.",
+                        "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie.",
                         detail="full",
                     )
                     await session.grant_class_xp(

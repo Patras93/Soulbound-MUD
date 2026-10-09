@@ -543,6 +543,13 @@ class SessionCollectionLootRecordsMixin:
             if normalized in ("geoda", "geode", "geode kamienna", "geoda kamienna", "geoda krysztalowa", "geoda kryształowa", "crystal geode", "stone geode", "geoda astralna", "astral geode"):
                 await self.open_geode(args)
                 return
+            # v1.28.6: the intuitive Polish 'skrzynia' / 'chest' command
+            # must also work for a boss chest. Historically this handler only
+            # searched ordinary TREASURE_CHESTS and wrongly told players there
+            # was no chest while the boss's locked chest was right here.
+            if self.boss_floor_chest_here() is not None:
+                await self.unlock_boss_floor_chest()
+                return
             if ROOMS.get(self.character.room_id, {}).get("v1190_secret_role") == "chamber":
                 if any(bool(MOB_TEMPLATES.get(m.template_id, {}).get("v1190_secret_guard"))
                        for m in self.server.world.room_mobs(self.character.room_id)):

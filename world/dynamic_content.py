@@ -1030,6 +1030,17 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
         else:
             regular_ids.append(tid)
 
+    # v1.28.6: Boss chest has a stable, O(1) authoritative room location.
+    # In v0.11 lazy dungeons, pregenerated MOB_SPAWNS are removed and rebuilt
+    # only when a player arrives. Chests must NEVER depend on whether the
+    # historical spawn list happens to contain the current boss at query time.
+    # The marker only exists on actual boss checkpoints, never on regular floors.
+    if boss_ids:
+        _catalog_mut.catalog_assign(final_room, 'ROOMS', ROOMS,
+                                    (canonical_room, 'v1286_boss_chest_room'))
+        _catalog_mut.catalog_assign(canonical_room, 'ROOMS', ROOMS,
+                                    (final_room, 'v1286_boss_chest_parent'))
+
     # Przy statycznych piętrach przenieś bossów z lądowania do sali wyjściowej.
     if not runtime and boss_ids:
         moved = set(boss_ids)

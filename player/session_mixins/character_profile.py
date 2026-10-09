@@ -99,7 +99,7 @@ class SessionCharacterProfileMixin:
             await self.send(await self.active_effects_status_text_v11331())
 
     async def show_character_level(self):
-            """Krótki Poziom postaci 1-600, niezależny od Soul Levelu."""
+            """Krótki poziom postaci 1-800, niezależny od Soul Levelu."""
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
                 await self.send(f"Poziom postaci: {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
@@ -125,7 +125,7 @@ class SessionCharacterProfileMixin:
             )
 
     async def show_score(self):
-            """Czytelne podsumowanie wszystkich osi Generator Core."""
+            """Czytelne podsumowanie rzeczywistej progresji postaci i Duszy."""
             c = self.character
             active_classes = self.active_class_names()
             room = ROOMS.get(c.room_id, {})
@@ -184,7 +184,7 @@ class SessionCharacterProfileMixin:
                 await self.send(
                     f"Orientacyjna siła progresji: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
                 )
-            await self.send("Wszystkie główne osie progresji 1-600 korzystają z Generator Core.")
+            await self.send(f"Główne poziomy postaci, Biegłości i Duszy rozwijają się do {CHARACTER_MAX_LEVEL}. Statystyki bazowe pozostają bez limitu. Generator Core został usunięty.")
 
     async def show_stats(self, mode=""):
             mode = self.normalize_description_query(mode)
@@ -360,9 +360,9 @@ class SessionCharacterProfileMixin:
                 return
 
             await self.send("DUSZA INFO")
-            await self.send("Soul Level jest osobnym rozwojem Broni Duszy 1-600. Nie jest levelem postaci.")
+            await self.send(f"Soul Level jest osobnym rozwojem Broni Duszy 1-{SOUL_MAX_LEVEL}. Nie jest levelem postaci.")
             await self.send("Soul Level zatrzymuje się na progu następnego Tieru. Dalszy Soul XP rusza dopiero po ukończeniu Próby i użyciu unlock.")
-            await self.send("Stare progi skilli do 200 odblokuje Biegłość właściwej klasy; sama Biegłość rozwija się do 600, nie Soul Level.")
+            await self.send(f"Skille klasowe odblokowuje Biegłość właściwej klasy, rozwijająca się do {CLASS_MASTERY_MAX_LEVEL}. Soul Level rozwija Broń Duszy osobno.")
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
@@ -370,7 +370,7 @@ class SessionCharacterProfileMixin:
             if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                 await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}. XP wpada tylko za zwykłe trafienia Bronią Duszy.")
             else:
-                await self.send("Mastery XP: maksimum. Soul Weapon Mastery 600.")
+                await self.send(f"Mastery XP: maksimum. Soul Weapon Mastery {SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
             _mastery = c.soul_weapon_mastery_bonus()
             await self.send(
                 f"Premie Mastery: +{_mastery['damage_percent']:.1f}% obrażeń podstawowego ataku; "
@@ -389,7 +389,7 @@ class SessionCharacterProfileMixin:
                     await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
                     await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
             else:
-                await self.send("Soul XP: maksimum. Soul Level 600.")
+                await self.send(f"Soul XP: maksimum. Soul Level {SOUL_MAX_LEVEL}.")
             await self.send(f"Bonus klasowy Broni Duszy: {c.soul_weapon_class_bonus_text()}.")
             trait = soul_weapon_trait_for_tier_v11193(c.soul_tier, c.class_name)
             totals = soul_weapon_trait_totals_v11193(c.soul_tier, c.class_name)

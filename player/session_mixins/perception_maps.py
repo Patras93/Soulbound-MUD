@@ -451,7 +451,7 @@ class SessionPerceptionMapsMixin:
                 _has_key = self.server.db.item_qty(self.account_id, _key) > 0
                 await self.send(
                     f"Skrzynia bossowa: {boss_floor_chest_name(_kind, _floor)}. "
-                    + ("Masz klucz. Wpisz unlock albo odklucz." if _has_key else "Zamknięta. Klucz wypada z ciała bossa tego piętra.")
+                    + ("Masz klucz. Wpisz skrzynia lub odklucz." if _has_key else "Zamknięta. Klucz wypada z ciała bossa tego piętra.")
                 )
 
             corpses = self.server.world.room_corpses(

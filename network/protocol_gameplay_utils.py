@@ -77,7 +77,7 @@ HELP_TOPICS["boss_chests"] = [
     "Skrzynia Bossa stoi od razu w dokładnym pokoju bossa checkpointu. Nie pojawia się przy zejściu ani w innych pokojach tego samego piętra.",
     "Właściwy Klucz Bossa jest gwarantowany w ciele pokonanego bossa danego checkpointu.",
     "Bez właściwego klucza skrzynia pozostaje zamknięta.",
-    "Solo: unlock / odklucz / odblokuj zużywa twój klucz i otwiera skrzynię.",
+    "Solo: skrzynia / chest / unlock / odklucz / odblokuj zużywa twój klucz i otwiera skrzynię.",
     "Drużyna: skrzynię otwiera lider. Każdy członek tej samej drużyny stojący przy bossie dostaje własny roll złota i przedmiotów z jednego wspólnego otwarcia.",
     "Po wspólnym otwarciu skrzynia znika dla nagrodzonej drużyny/postaci i nie może zostać otwarta drugi raz z zapasowym kluczem.",
     "Skrzynia wraca dopiero po kolejnym prawidłowym zabiciu tego bossa; restart ani deploy nie przywraca już otwartej skrzyni.",
@@ -428,6 +428,33 @@ def boss_floor_chest_room_id(kind, floor):
         return fallback
 
     boss_flag, floor_key = boss_meta
+    # v1.28.6: authoritative room marker from v0100_expand_instance_floor.
+    # Dynamic floor spawns may be pruned/rehydrated independently of room map.
+    canonical = ROOMS.get(fallback, {})
+    marked_room = str(canonical.get('v1286_boss_chest_room', '') or '')
+    if (marked_room in ROOMS and
+            ROOMS[marked_room].get('v1286_boss_chest_parent') == fallback):
+        return marked_room
+
+    # Self-heal already-expanded floors without the new marker (e.g. loaded
+    # from a historical runtime map). All subrooms carry numeric position.
+    if canonical.get('v0100_instance_kind') == kind:
+        best = ''
+        for index in range(1, 100):
+            candidate_id = f'{fallback}_r{index:02d}'
+            candidate = ROOMS.get(candidate_id)
+            if candidate is None:
+                break
+            if (candidate.get('v0100_instance_kind') == kind
+                    and int(candidate.get('v0100_floor', 0) or 0) == floor
+                    and int(candidate.get('v0100_floor_room', 0) or 0) > 1):
+                best = candidate_id
+        if best:
+            # Backfill so subsequent 'look' calls stay O(1).
+            canonical['v1286_boss_chest_room'] = best
+            ROOMS[best]['v1286_boss_chest_parent'] = fallback
+            return best
+
     for spawn_room, template_id in reversed(MOB_SPAWNS):
         template = MOB_TEMPLATES.get(template_id, {})
         if not template.get(boss_flag):
@@ -438,6 +465,9 @@ def boss_floor_chest_room_id(kind, floor):
             continue
         if template_floor == floor:
             return str(spawn_room)
+    # Boss checkpoint chests are never at the landing after expansion.
+    if any(f'{fallback}_r{n:02d}' in ROOMS for n in (1, 2)):
+        return ''
     return fallback
 
 

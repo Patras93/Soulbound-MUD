@@ -1,3 +1,20 @@
+Soulbound v1.28.7 — SCORE 800 / AKTUALNE OPISY POSTACI (2026-10-09)
+- Poprawiono końcowy komunikat score: rzeczywista progresja do 800 zamiast historycznego 1-600 i wzmianki o usuniętym Generator Core.
+- Poprawiono dusza info i teksty pomocy podstawy, score, level, xp oraz dusza; limity pobierane z istniejących stałych w komendach.
+- Nie zmieniono krzywych EXP, walki, najemników, skrzyń ani danych graczy. Nie przywrócono Generator Core.
+
+Soulbound v1.28.6 — WYRÓWNANY EXP I SKRZYNIE BOSSÓW KRYPT (2026-10-09)
+- Skrzynie bossowe w zwykłych i Mitycznych Kryptach (i pozostałych lochach checkpointowych) rozpoznają bezpośrednio końcową komnatę bossa po dynamicznym wygenerowaniu piętra.
+- Stabilne przypisanie skrzyni do komnaty, bez polegania wyłącznie na chwilowym MOB_SPAWNS; skrzynia nie przenosi się na wejście.
+- Po zabiciu bossa pojawia się czytelny komunikat dla NVDA o skrzyni i kluczu. Komendy skrzynia / chest oraz odklucz działają także przy skrzyni bossa; po otwarciu znika do kolejnego prawidłowego killa.
+- Wymagania EXP 1-800 pozostają bez zmian — długi, ale osiągalny grind.
+- Naprawiono v1.28.5: minimalne nagrody nie są już liczone z wymagań Levelu potwora.
+- EXP postaci, klasy i Duszy z zabicia w lochu jest wyrównywany osobno do poziomu odbiorcy, po premiach drużyny i skalowania trudności.
+- Premie elit i bossów pozostają odczuwalne; wysokie piętra dają premię za ryzyko, lecz nie 11 poziomów za zwykłego moba.
+- Event x2, bonus gildii, mentor i wiele aktywnych klas mają uwzględnione zabezpieczenie przed skokiem kilku poziomów.
+- Nie zmieniono otwartego świata, walut, lootów, questów, EXP statystyk bez limitu ani dokładnych źródłowych XP UOSS.
+- Brak Generator Core i migracji bazy danych. Railway/Windows bez zmian.
+
 Soulbound v1.28.5 — EXP PIĘTER / GRIND 800 (2026-10-09)
 - Zwiększono o 30% EXP z walk na wczesnych piętrach lochów, bez zmian w otwartym świecie.
 - Od poziomu 101 nagrody postaci, klas i Soul z kolejnych pięter nadążają za rosnącym wymaganym EXP; późne poziomy nadal wymagają dziesiątek lub setek zabitych mobów.
@@ -49,7 +66,7 @@ Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
 - Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
 - Wydanie dla Railway i Windows, bez raportów audytu.
 
-Aktualna paczka: v1.28.5 — EXP PIĘTER, BEZ GENERATOR CORE (2026-10-09)
+Aktualna paczka: v1.28.7 — SCORE 800, BEZ GENERATOR CORE (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.

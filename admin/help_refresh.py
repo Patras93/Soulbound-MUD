@@ -1279,8 +1279,8 @@ HELP_TOPICS.setdefault("podstawy", []).append(
 # ============================================================
 def refresh_help_truth_v11197():
     HELP_TOPICS["podstawy"] = [
-        "Soulbound v1.11.97: główna progresja postaci działa w zakresie 1-600. Statystyki bazowe nie mają twardego limitu.",
-        "Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się do 600.",
+        "Główna progresja postaci działa w zakresie 1-800. Statystyki bazowe nie mają twardego limitu.",
+        "Level postaci, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się do 800.",
         "Soulbound ma 14 klas i 14 profesji. Szczegóły: help klasy, help profesje, help umiejetnosci, help ekwipunek.",
         "Najważniejsze komendy startowe: help, look/l, exits, hp, score, staty, dusza, eq, quest, atlas, prowadz/walk.",
         "k <mob> / atakuj <mob> rozpoczyna walkę realtime; con <mob> ocenia przeciwnika bez rozpoczynania walki.",
@@ -1299,19 +1299,19 @@ def refresh_help_truth_v11197():
 
     HELP_TOPICS["score"] = [
         "score pokazuje Level postaci, EXP, aktywne klasy i Biegłość, Duszę, HP/Manę, statystyki, portfel, EQ i bieżący teren.",
-        "Level postaci i główne osie progresji kończą się na 600; statystyki bazowe pozostają bez twardego limitu.",
+        "Poziom postaci, Biegłość klas, Soul Level i Mastery, skille, profesje oraz narzędzia mają limit 800; statystyki bazowe są bez limitu. Generator Core został usunięty.",
         "con <mob> jest właściwą komendą do bieżącej oceny konkretnego przeciwnika.",
     ]
 
     HELP_TOPICS["level"] = [
-        "level / lvl pokazuje Level postaci 1-600, aktualny EXP i dokładnie ile brakuje do następnego Levelu.",
-        "Na Levelu 600 komenda informuje o osiągniętym maksimum.",
+        "level / lvl pokazuje Level postaci 1-800, aktualny EXP i dokładnie ile brakuje do następnego Levelu.",
+        "Na Levelu 800 komenda informuje o osiągniętym maksimum.",
         "Biegłość klasy, Soul Level, Skill Level, profesje i narzędzia są osobnymi osiami progresji.",
     ]
 
     HELP_TOPICS["xp"] = [
         "xp pokazuje aktualny Character XP oraz ile brakuje do następnego Levelu postaci.",
-        "Character Level ma zakres 1-600. Na 600 osiąga maksimum.",
+        "Character Level ma zakres 1-800. Na 800 osiąga maksimum.",
         "Event x2 EXP obejmuje Character, Class, Soul, Skill, stat, profession i tool XP; eventxp pokazuje status eventu.",
     ]
 
@@ -1344,10 +1344,10 @@ def refresh_help_truth_v11197():
     ]
 
     HELP_TOPICS["dusza"] = [
-        "Broń Duszy ma Soul Level 1-600 oraz osobną Soul Weapon Mastery 1-600.",
-        "Soul Weapon Mastery rozwija zwykły autoatak Broni Duszy; skille klasowe rozwijają własny Skill Level 1-600.",
+        "Broń Duszy ma Soul Level 1-800 oraz osobną Soul Weapon Mastery 1-800.",
+        "Soul Weapon Mastery rozwija zwykły autoatak Broni Duszy; skille klasowe rozwijają własny Skill Level 1-800.",
         "Zwykły atak Broni Duszy działa w każdej rundzie walki niezależnie od auto-kolejki. Skill z kolejki może wykonać się w tej samej rundzie i nie zabiera ataku Broni Duszy.",
-        "System Soul Tierów został rozszerzony razem z progresją do 600; dusza info pokazuje bieżący Tier, wymagania, Próby i następny cel.",
+        "System Soul Tierów obejmuje progresję do 800; dusza info pokazuje bieżący Tier, wymagania, Próby i następny cel.",
         "Relikty Broni Duszy są wybierane przez relic / relikt; EQ i aktywny relikt wpływają na realne parametry walki.",
     ]
 
@@ -1388,12 +1388,12 @@ def refresh_help_truth_v11197():
         "HELP nie powinien kopiować historycznych limitów 400 ani zwykłych cooldownów skilli.",
     ]
     HELP_TOPICS["progresja600"] = [
-        "Aktualna główna progresja Soulbound to 1-600: Character Level, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia.",
+        "Aktualna główna progresja Soulbound to 1-800: Character Level, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia.",
         "Statystyki bazowe są rozwijane bez twardego limitu.",
         "Historyczne nazwy wewnętrzne zawierające 400 mogą pozostać dla kompatybilności save'ów i ID, ale nie oznaczają aktualnego limitu gracza.",
     ]
     HELP_TOPICS["progresja400"] = [
-        "To historyczna nazwa starszej warstwy progresji. Aktualna gra używa progresji 1-600.",
+        "To historyczna nazwa starszej warstwy progresji. Aktualna gra używa progresji 1-800.",
         "Wpisz help progresja600, aby usłyszeć bieżące zasady.",
     ]
 
@@ -1520,14 +1520,20 @@ def help_truth_audit_v11197():
         "podstawy", "score", "level", "xp", "umiejetnosci", "skille",
         "kolejka", "dusza", "profesje", "generator",
     )
+    current_800 = {"podstawy", "score", "level", "xp", "dusza"}
     for name in canonical_600:
         text = topic_text(name)
         if not text:
             errors.append(f"HELP {name}: empty")
         if "1-400" in text or "1–400" in text:
             errors.append(f"HELP {name}: stale 1-400 limit")
-        if "1-600" not in text and "600" not in text:
-            errors.append(f"HELP {name}: missing current 600 progression")
+        if name in current_800:
+            if "800" not in text:
+                errors.append(f"HELP {name}: missing current 800 progression")
+            if "1-600" in text or "Na Levelu 600" in text:
+                errors.append(f"HELP {name}: obsolete 600 cap")
+        elif "1-600" not in text and "600" not in text:
+            errors.append(f"HELP {name}: missing expected legacy topic coverage")
 
     professions = topic_text("profesje")
     if "14 profesji" not in professions:
