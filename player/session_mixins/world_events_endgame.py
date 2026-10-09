@@ -545,7 +545,7 @@ class SessionWorldEventsEndgameMixin:
                 if c["points"]<int(spec["min_points"]): await self.send(f"Do nagrody potrzeba osobistego wkładu {spec['min_points']} pkt. Masz {c['points']}."); return
                 if not self.server.db.mark_world_project_reward_claimed_v022(key,self.account_id): await self.send("Nagroda jest już odebrana."); return
                 reward=v022_project_reward(key)
-                project_stage=max(1,min(600,int(spec.get("stage",1) or 1)))
+                project_stage=max(1,min(800,int(spec.get("stage",1) or 1)))
                 [
                     await self.send(_m)
                     for _m in self.add_character_xp_with_event(
@@ -630,7 +630,7 @@ class SessionWorldEventsEndgameMixin:
             if raw in ("odbierz","claim"):
                 if not active or int(active.get('progress',0))<int(active.get('needed',1)): await self.send("Legendarny kontrakt nie jest gotowy do odebrania."); return
                 legendary_stage=max(
-                    1,min(600,int(active.get("stage",1) or 1))
+                    1,min(800,int(active.get("stage",1) or 1))
                 )
                 [
                     await self.send(_m)

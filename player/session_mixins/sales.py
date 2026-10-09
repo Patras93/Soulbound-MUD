@@ -467,7 +467,7 @@ class SessionSalesMixin:
                 total += quantity
             if total<=0:
                 return 1
-            return max(1,min(600,int(round(weighted/float(total)))))
+            return max(1,min(800,int(round(weighted/float(total)))))
 
     def profession_sale_units_for_rows(self, rows):
             totals = {"net": 0, "bag": 0, "woodpile": 0, "herbbag": 0}
@@ -731,6 +731,9 @@ class SessionSalesMixin:
                 if item.get("type") != "armor":
                     skipped += qty
                     continue
+                if self.item_is_protected_v1280(item_id):
+                    skipped += qty
+                    continue
                 if is_character_bound_item(item_id):
                     skipped += qty
                     continue
@@ -816,6 +819,8 @@ class SessionSalesMixin:
                 item_id = row["item_id"]
                 item = ITEMS.get(item_id)
                 if not item or not self.generic_item_is_sellable(item_id, item):
+                    continue
+                if self.item_is_protected_v1280(item_id):
                     continue
                 free_qty = max(
                     0, int(row["quantity"]) - self.equipped_quantity_of_item(item_id)
@@ -921,6 +926,9 @@ class SessionSalesMixin:
                 )
                 return
             item_id, item = found
+            if self.item_is_protected_v1280(item_id):
+                await self.send("Ten przedmiot jest chroniony. Użyj: odchron <nazwa EQ>.")
+                return
 
             if self.market_buyer_rejects_item(item_id, item):
                 await self.send(

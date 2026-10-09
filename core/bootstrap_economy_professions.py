@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "1.27.0"
+VERSION = "1.28.2"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -294,12 +294,12 @@ def stat_quality_label(value):
     if value <= 19999: return "absolutnie"
     return "poza skalą"
 
-SOUL_MAX_LEVEL = 400
+SOUL_MAX_LEVEL = 800
 SOUL_TIER_THRESHOLDS = (
     1, 10, 20, 25, 35, 45, 60, 70, 80, 90,
     100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
-) + tuple(range(210, 601, 10))
-SOUL_MAX_TIER = 40
+) + tuple(range(210, 801, 10))
+SOUL_MAX_TIER = 80
 
 # Pierwsze pięć progów zachowane jako aliasy kompatybilności.
 TIER2_LEVEL = SOUL_TIER_THRESHOLDS[1]
@@ -334,22 +334,22 @@ SOUL_TRIAL_QUEST_IDS = {
 SOUL_TIER_POWER_BONUSES = (
     0, 4, 8, 12, 18, 24, 30, 34, 38, 42,
     46, 50, 55, 60, 65, 70, 75, 80, 85, 100,
-) + tuple(102 + i * 2 for i in range(20))
+) + tuple(102 + i * 2 for i in range(60))
 SOUL_TIER_CLASS_BONUS_PERCENT = (
     5, 7, 8, 10, 12, 13, 15, 16, 17, 18,
     19, 19, 20, 21, 22, 23, 24, 24, 25, 30,
-) + tuple(30 + (i + 1) // 2 for i in range(20))
+) + tuple(30 + (i + 1) // 2 for i in range(60))
 # v0.9.0: specjalizacja Łotrzyka nie może marnować progresji na hard capie
 # 35% uniku. Sam Soul Weapon daje teraz maks. +5 pp uniku; pozostała część
 # jego budżetu specjalizacji przechodzi w umiarkowane obrażenia fizyczne.
 SOUL_TIER_DODGE_BONUS = (
     0.01, 0.01, 0.015, 0.015, 0.02, 0.02, 0.025, 0.025, 0.03, 0.03,
     0.03, 0.035, 0.035, 0.04, 0.04, 0.04, 0.045, 0.045, 0.05, 0.05,
-) + (0.05,) * 20
+) + (0.05,) * 60
 SOUL_TIER_GUARDIAN_REDUCTION = (
     3, 4, 5, 6, 7, 8, 9, 9, 10, 10,
     11, 11, 12, 12, 13, 13, 14, 14, 15, 18,
-) + tuple(18 + (i + 1) // 2 for i in range(20))
+) + tuple(18 + (i + 1) // 2 for i in range(60))
 
 # v0.34.1: Weapon Traits per class. Każda klasa ma własny profil cech
 # Broni Duszy na Soul Tierach 1-40. Cechy są pasywne i dotyczą wyłącznie
@@ -363,6 +363,20 @@ _SOUL_TRAIT_BASE_NAMES = (
     "Astralny Płomień", "Otchłań", "Nieskończoność", "Krew Gwiazd", "Ostateczność",
     "Przeznaczenie", "Absolut", "Kosmos", "Nieśmiertelność", "Sąd",
     "Apoteoza", "Wieczyste Oko", "Echo Absolutu", "Serce", "Korona Duszy",
+)
+
+_SOUL_TRAIT_BASE_NAMES += (
+    "Przekroczenie", "Gwiezdny Tron", "Echo Wieczności", "Serce Otchłani",
+    "Korona Gwiazd", "Sąd Horyzontu", "Nieskończony Puls", "Pieczęć Kosmosu",
+    "Pradawny Rezonans", "Świt Absolutu", "Droga Przeznaczenia", "Oko Wszechświata",
+    "Wieczna Iskra", "Transcendentny Znak", "Głos Nieskończoności", "Ostateczny Horyzont",
+    "Dusza Kosmosu", "Korona Wieczności", "Apogeum", "Absolut Duszy",
+    "Gwiezdna Przystań", "Wieczny Szept", "Żelazna Galaktyka", "Przysięga Otchłani",
+    "Ryk Nieskończoności", "Słoneczna Korona", "Domena Czasu", "Sąd Pradawnych",
+    "Droga Niebios", "Rdzeń Wszechświata", "Żywa Przestrzeń", "Korona Przeznaczenia",
+    "Ostatnia Iskra", "Gwiezdne Dziedzictwo", "Gniew Tysiąca Słońc",
+    "Przebudzenie Świata", "Brama Wiecznego Świtu", "Kres Ciemności",
+    "Serce Nieba", "Tron Nieskończonej Duszy",
 )
 
 # effect, base value. Poszczególne klasy mają inne cykle, więc ich Broń Duszy
@@ -547,9 +561,9 @@ def currency_price_text(silver=0, gold=0, mithril=0):
     return f"{head},{cents:02d} złota" if cents else f"{head} złota"
 
 
-PROFESSION_MAX_LEVEL = 600
-BLACKSMITHING_MAX_LEVEL = 600
-JEWELCRAFTING_MAX_LEVEL = 600
+PROFESSION_MAX_LEVEL = 800
+BLACKSMITHING_MAX_LEVEL = 800
+JEWELCRAFTING_MAX_LEVEL = 800
 
 # v1.13.42: profesje awansowały zbyt wolno względem reszty gry.
 # Wszystkie realne źródła Profession XP przechodzą przez ten mnożnik:
@@ -567,7 +581,7 @@ PARTY_AUTO_HEAL_THRESHOLD = 0.85
 PROFESSION_RANK_THRESHOLDS = (
     1, 15, 30, 45, 60, 75, 90,
     100, 120, 140, 160, 180, 200,
-) + tuple(range(220, 601, 20))
+) + tuple(range(220, 801, 20))
 PROFESSION_MAX_RANK = len(PROFESSION_RANK_THRESHOLDS)
 BLACKSMITHING_MAX_RANK = PROFESSION_MAX_RANK
 BLACKSMITHING_RANK_THRESHOLDS = PROFESSION_RANK_THRESHOLDS
@@ -644,6 +658,13 @@ _PROFESSION_600_RANK_SUFFIXES = (
     "Mistrz Otchłannego Serca", "Mistrz Korony Gwiazd",
     "Mistrz Horyzontu Absolutu", "Mistrz Kosmicznego Szlaku",
     "Mistrz Wieczności", "Mistrz Apogeum", "Arcymistrz Absolutu",
+)
+_PROFESSION_600_RANK_SUFFIXES += (
+    "Władca Głębin", "Arcymistrz Astralny", "Strażnik Wiecznego Ognia",
+    "Mistrz Żywego Metalu", "Mistrz Nieskończonych Szlaków",
+    "Arcymistrz Pradawnej Kuźni", "Mistrz Serca Gwiazd",
+    "Legenda Złotego Horyzontu", "Mistrz Wiecznych Żywiołów",
+    "Arcymistrz Nowej Ery",
 )
 for _profession_name, _names in list(PROFESSION_RANK_NAMES.items()):
     PROFESSION_RANK_NAMES[_profession_name] = tuple(_names) + tuple(
@@ -811,18 +832,18 @@ PROFESSION_NPC_RANK_REACTION_ALIASES = {
     "specialist_herbalism": "herbalist_liora",
 }
 
-TOOL_MAX_LEVEL = 600
-TOOL_MAX_TIER = 60
+TOOL_MAX_LEVEL = 800
+TOOL_MAX_TIER = 80
 # Progi 1-200 pozostają dokładnie takie jak wcześniej. 201-400 dopisuje
 # kolejne Tiery co 10 leveli bez przesuwania starych odblokowań.
 TOOL_TIER_THRESHOLDS = (
     1, 10, 20, 30, 40, 50, 60, 70, 80, 90,
     100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
-) + tuple(range(210, 601, 10))
+) + tuple(range(210, 801, 10))
 TOOL_TIER_BONUS_CHANCES = (
     0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18,
     0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.37, 0.40,
-) + tuple(round(min(0.80, 0.40 + step * 0.01), 2) for step in range(1, 41))
+) + tuple(round(min(0.80, 0.40 + step * 0.01), 2) for step in range(1, 61))
 
 if len(TOOL_TIER_THRESHOLDS) != TOOL_MAX_TIER:
     raise RuntimeError(
@@ -1221,6 +1242,14 @@ _V11343_TOOL_STEMS = {
     "alchemy": "Moździerz",
     "jewelcrafting": "Szczypce",
 }
+_V11343_TOOL_TIER_SUFFIXES_41_60 += (
+    "Podziemnego Króla", "Echa Atlantydy", "Czarnej Gwiazdy", "Wiecznej Magmy",
+    "Przedwiecznych Szlaków", "Kosmicznej Kuźni", "Płomieni Świata",
+    "Głębi Wieczności", "Pierwotnego Światła", "Nowej Ery",
+    "Astralnej Burzy", "Zorzy Północy", "Ognistego Tronu",
+    "Żywej Kryształowej Skały", "Dawnych Mistrzów", "Ostatniego Słońca",
+    "Przebudzonej Ziemi", "Nieskończonej Drogi", "Korony Przyszłości", "Ostatecznego Przebudzenia",
+)
 for _tool_type, _stem in _V11343_TOOL_STEMS.items():
     TOOL_TIER_NAMES[_tool_type] = tuple(TOOL_TIER_NAMES[_tool_type][:40]) + tuple(
         f"{_stem} {suffix}" for suffix in _V11343_TOOL_TIER_SUFFIXES_41_60

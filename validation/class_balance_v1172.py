@@ -30,8 +30,8 @@ def audit_class_skill_balance_v1172():
             errors.append(f'{class_name}: incomplete active/endgame skills')
         if len(ids) != len(set(ids)):
             errors.append(f'{class_name}: duplicate skill IDs')
-        if any(int(s.get('unlock', 0) or 0) > 600 for s in rows):
-            errors.append(f'{class_name}: skill unlock exceeds mastery 600')
+        if any(int(s.get('unlock', 0) or 0) > 800 for s in rows):
+            errors.append(f'{class_name}: skill unlock exceeds mastery 800')
         if any(int(effective_skill_mana_cost(s, class_name)) < 0 for s in rows):
             errors.append(f'{class_name}: negative mana cost')
         report[class_name] = {

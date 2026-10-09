@@ -30,23 +30,23 @@ def resource_variant_chances_v1149(category, tool_level, profession_level=None, 
     Professions lacking an explicit level (legacy tooling) retain tool-based
     progression; actual gathering always supplies both values.
     """
-    tool = max(1, min(600, int(tool_level)))
-    prof = tool if profession_level is None else max(1, min(600, int(profession_level)))
+    tool = max(1, min(800, int(tool_level)))
+    prof = tool if profession_level is None else max(1, min(800, int(profession_level)))
     stage = min(tool, prof)
-    resource = max(1, min(600, int(resource_level)))
+    resource = max(1, min(800, int(resource_level)))
     rates = {}
     for key, (unlock, minimum_resource, base, maximum) in RESOURCE_VARIANT_CHANCES_V1149[category].items():
         if stage < unlock or resource < minimum_resource:
             continue
         progress = (stage - unlock) / max(1, 600 - unlock)
-        rates[key] = base + (maximum - base) * progress
+        rates[key] = min(maximum, base + (maximum - base) * progress)
     return rates
 
 
 
 def mining_vein_chances_v1149(tool_level, profession_level=None, floor=None):
-    tool = max(1, min(600, int(tool_level)))
-    prof = tool if profession_level is None else max(1, min(600, int(profession_level)))
+    tool = max(1, min(800, int(tool_level)))
+    prof = tool if profession_level is None else max(1, min(800, int(profession_level)))
     power = min(tool, prof)
     stage = min(power, max(1, int(floor or 1)))
     # Legendary veins no longer spawn for beginners. Even at 600: <=0.65%.
@@ -60,7 +60,7 @@ def mining_vein_chances_v1149(tool_level, profession_level=None, floor=None):
 
 def mined_gem_quality_chances_v1149(tool_level, profession_level):
     # Both mining mastery and pickaxe are necessary for a perfect gemstone.
-    power = min(max(1, int(tool_level)), max(1, int(profession_level)), 600)
+    power = min(max(1, int(tool_level)), max(1, int(profession_level)), 800)
     perfect = 0.0 if power < 240 else 0.0005 + (power - 240) / 360.0 * 0.0065
     excellent = 0.0 if power < 100 else 0.003 + (power - 100) / 500.0 * 0.042
     pure = 0.0 if power < 40 else 0.01 + (power - 40) / 560.0 * 0.12
@@ -70,9 +70,9 @@ def mined_gem_quality_chances_v1149(tool_level, profession_level):
 
 
 def mining_geode_chances_v1149(tool_level, profession_level, floor):
-    tool = max(1, min(600, int(tool_level)))
-    prof = max(1, min(600, int(profession_level)))
-    floor = max(1, min(600, int(floor or 1)))
+    tool = max(1, min(800, int(tool_level)))
+    prof = max(1, min(800, int(profession_level)))
+    floor = max(1, min(800, int(floor or 1)))
     power = min(tool, prof)
     result = {}
     if power >= 20 and floor >= 10:

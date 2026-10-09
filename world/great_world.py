@@ -285,7 +285,7 @@ def v1200_rotating_events(now=None):
         title=V1200_EVENT_NAMES[(slot+index)%len(V1200_EVENT_NAMES)]
         events.append({"type":f"v1200_{key}_{kind}","title":f"{name}: {title}",
                        "rank":kind,"count":2 if kind in ("normal","elite") else 1,
-                       "room_id":room_id,"stage":max(1,min(600,stage+(number//4)*16)),
+                       "room_id":room_id,"stage":max(1,min(800,stage+(number//4)*16)),
                        "base_templates":(f"v1200_{key}_mob_{(number%4)+1}",),
                        "slot":slot,"token":f"v1200:{slot}:{key}:{room_id}:{kind}",
                        "expires_at":(slot+1)*3600})

@@ -98,6 +98,9 @@ class SessionForgeGuildsMixin:
                 return
 
             item_id, item = found
+            if self.item_is_protected_v1280(item_id):
+                await self.send("To EQ jest chronione przed rozkładaniem. Użyj: odchron <nazwa EQ>.")
+                return
             if self.free_equipment_quantity(item_id) <= 0:
                 await self.send("Ta sztuka jest aktualnie założona. Najpierw ją zdejmij albo rozłóż inną wolną kopię.")
                 return

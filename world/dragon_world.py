@@ -134,7 +134,7 @@ def _dragon_mob(mob_id, name, stage, zone_target, *, magic=False, rank="normal",
          drops=None, mechanic=None, mechanic_text=None):
     if mob_id in MOB_TEMPLATES:
         raise RuntimeError(f"v1.13.0 duplicate dragon mob id: {mob_id}")
-    stage = max(1, min(600, int(stage)))
+    stage = max(1, min(800, int(stage)))
     rank_mult = {
         "normal": 1.0,
         "rare": 1.9,
@@ -206,7 +206,7 @@ def _dragon_quest_currency(stage, needed):
     aligned with the normal quest-income target without delegating reward
     ownership to Generator Core or a later runtime finalizer.
     """
-    stage = max(1, min(600, int(stage)))
+    stage = max(1, min(800, int(stage)))
     needed = max(1, int(needed))
     workload = 1.0 + min(0.54, 0.06 * (needed - 1))
     return max(
@@ -219,7 +219,7 @@ def _dragon_quest(qid, name, giver, target, needed, description, stage, stat_xp,
            *, requires=None, reward_items=None):
     if qid in QUESTS:
         raise RuntimeError(f"v1.13.0 duplicate dragon quest id: {qid}")
-    stage = max(1, min(600, int(stage)))
+    stage = max(1, min(800, int(stage)))
     needed = max(1, int(needed))
     payload = {
         "name": name,
@@ -452,19 +452,19 @@ for key, zone, stage, names, desc, normal_a, normal_b, rare_spec, mini_spec, mat
         drops={MAT_SCALE: 0.20, material: 0.10},
     )
     rare = _dragon_mob(
-        rare_spec[0], rare_spec[1], min(600, stage + 10), target,
+        rare_spec[0], rare_spec[1], min(800, stage + 10), target,
         magic=rare_spec[2], rank="rare",
         drops={MAT_SCALE: 0.65, material: 0.45},
     )
     mini = _dragon_mob(
-        mini_spec[0], mini_spec[1], min(600, stage + 20), target,
+        mini_spec[0], mini_spec[1], min(800, stage + 20), target,
         magic=mini_spec[2], rank="mini",
         drops={MAT_SCALE: 0.90, material: 0.70, "soul_shard": 0.55},
     )
     lord = None
     if lord_spec:
         lord = _dragon_mob(
-            lord_spec[0], lord_spec[1], min(600, stage + 25), target,
+            lord_spec[0], lord_spec[1], min(800, stage + 25), target,
             magic=lord_spec[2], rank="world_boss",
             drops={MAT_SCALE: 1.0, material: 1.0, "soul_shard": 1.0, "soul_elixir": 0.45},
             mechanic=lord_spec[3], mechanic_text=lord_spec[4],

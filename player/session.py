@@ -39,10 +39,12 @@ from player.session_mixins.upgrade_v1193 import SessionUpgradeV1193Mixin
 from player.session_mixins.great_world import SessionGreatWorldV1200Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
+from player.session_mixins.item_protection_v1280 import SessionItemProtectionV1280Mixin
 from player.session_mixins.password_recovery_v1222 import SessionPasswordRecoveryV1222Mixin
 
 
 class Session(
+    SessionItemProtectionV1280Mixin,
     SessionCoreProgressionMixin,
     SessionIOAuthCharacterMixin,
     SessionEquipmentStatsMixin,

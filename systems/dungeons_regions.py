@@ -295,7 +295,7 @@ for _floor, (_item_id, _name, _defense, _affix, _amount) in BOSS_RELICS.items():
         "affix": _affix,
         "affix_amount": _scaled_amount,
         "boss_relic_floor": _floor,
-        "source_progression_stage": min(600, int(_floor)),
+        "source_progression_stage": min(800, int(_floor)),
         "equipment_identity_source": "crypt_boss",
         "equipment_identity_role": "unique_relic",
         "equipment_identity_label": (
@@ -396,7 +396,7 @@ def _boss_source_stage_v11327(template):
         if value > 0:
             explicit.append(value)
     if explicit:
-        return max(1, min(600, max(explicit)))
+        return max(1, min(800, max(explicit)))
 
     proxies = [1]
     for key, divisor in (("stat_reward", 4), ("class_xp_reward", 50)):
@@ -406,7 +406,7 @@ def _boss_source_stage_v11327(template):
             proxy = 0
         if proxy > 0:
             proxies.append(proxy)
-    return max(1, min(600, max(proxies)))
+    return max(1, min(800, max(proxies)))
 
 
 def _named_unique_property_v11327(affix, stage):
@@ -548,7 +548,7 @@ def crypt_variant_id(base_item_id, rarity_key, affix_key):
     return f"{base_item_id}__{rarity_key}__{affix_key}"
 
 def crypt_affix_amount(tier, rarity_key, affix_key):
-    mastery = max(1, min(600, int(tier) * 10))
+    mastery = max(1, min(800, int(tier) * 10))
     budget = equipment_progression_budget_v1138(mastery)
     scale = {
         "common": 0.16,
@@ -590,7 +590,7 @@ def build_crypt_loot_variants():
         base_item["rarity_name"] = "Zwykły"
         base_item["crypt_set_tier"] = tier
         base_item["crypt_base_item"] = base_item_id
-        base_item["source_progression_stage"] = max(1, min(600, tier * 10))
+        base_item["source_progression_stage"] = max(1, min(800, tier * 10))
         base_item["affix"] = None
         base_item["affix_amount"] = 0
         base_item["equipment_identity_source"] = "crypt"
@@ -607,7 +607,7 @@ def build_crypt_loot_variants():
                 variant_id = crypt_variant_id(
                     base_item_id, rarity_key, affix_key
                 )
-                mastery = max(1, min(600, tier * 10))
+                mastery = max(1, min(800, tier * 10))
                 budget = equipment_progression_budget_v1138(mastery)
                 rarity_power = {
                     "common": 0.03,
@@ -718,7 +718,7 @@ V11329_CRYPT_END_WEIGHTS = {
 
 
 def crypt_rarity_weights_v11329(is_boss=False, mastery=1):
-    mastery = max(1, min(600, int(mastery or 1)))
+    mastery = max(1, min(800, int(mastery or 1)))
     progress = ((mastery - 1) / 599.0) ** 0.80
     weight_key = "boss_weight" if is_boss else "regular_weight"
     end_key = "boss" if is_boss else "regular"

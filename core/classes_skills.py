@@ -2017,6 +2017,11 @@ _POST200_SKILL_STAGES = (
     (500, "Korona Gwiazd"), (520, "Sąd Horyzontu"),
     (540, "Kosmiczny Szlak"), (560, "Wieczność"),
     (580, "Apogeum"), (600, "Absolut Duszy"),
+    (620, "Płomień Nowej Ery"), (640, "Sąd Żywych Gwiazd"),
+    (660, "Korona Nieskończonych Ścieżek"), (680, "Brama Wiecznej Chwały"),
+    (700, "Pradawne Dziedzictwo"), (720, "Oko Niebiańskich Władców"),
+    (740, "Tron Wiecznej Potęgi"), (760, "Ostatnie Przebudzenie"),
+    (780, "Dziedzictwo Kosmicznej Duszy"), (800, "Absolut Przyszłości"),
 )
 _POST200_CLASS_NOUN = {
     "Wojownik":"Wojownika", "Berserker":"Berserkera", "Łotrzyk":"Łotrzyka",
@@ -2271,6 +2276,16 @@ _V03014_SKILL_TITLES = (
     "Wieczna Iskra", "Transcendentny Znak", "Głos Nieskończoności",
     "Ostateczny Horyzont", "Dusza Kosmosu", "Korona Wieczności", "Apogeum", "Absolut Duszy",
 )
+_V03014_SKILL_TITLES += (
+    "Sąd Przebudzonych", "Łuna Nowej Ery", "Tron Północnych Gwiazd",
+    "Wieczna Przystań", "Zew Siedmiu Światów", "Żywy Kryształ",
+    "Wicher Przeznaczenia", "Serce Pradawnych", "Złoty Brzask",
+    "Pieczęć Odrodzenia", "Gniew Wiecznej Zorzy", "Śpiew Galaktyk",
+    "Korona Tysiąca Bram", "Brama Nowej Duszy", "Ognisty Horyzont",
+    "Przysięga Nieśmiertelnych", "Wieczny Ślad", "Pradawny Próg",
+    "Wrota Nieskończoności", "Zwycięstwo Nowej Ery",
+)
+
 
 _V03014_SKILL_FAMILIES = {
     "Berserker": {
@@ -2416,6 +2431,14 @@ def _v0310_build_tech_class_skills():
         "Głos Nieskończonej Sieci", "Ostateczny Horyzont Techniki", "Dusza Kosmicznej Maszyny",
         "Korona Wiecznego Rdzenia", "Apogeum Techniki", "Absolut Maszyny",
     )
+    tech_stage_titles += (
+        "Przebudzenie Maszyny", "Niebiański Układ", "Płomień Syntezy", "Gwiezdne Odrodzenie",
+        "Wieczny Mechanizm", "Kosmiczny Pulsator", "Rdzeń Świetlistych Bram", "Astralny Przekaźnik",
+        "Złote Przebudzenie", "Maszyna Przeznaczenia", "Prąd Wiecznej Ery",
+        "Nieskończone Sploty", "Sąd Gigantów", "Serce Nowej Techniki",
+        "Niebiański Rezonator", "Pamięć Tysiąca Światów", "Korona Nowego Nieba",
+        "Pradawny Puls", "Absolutna Synteza", "Tron Żywej Maszyny",
+    )
     stage_title_by_level = {level: tech_stage_titles[idx] for idx, level in enumerate(levels)}
     for cname,prefix,special,generic in (("Mec","mec",mec_special,generic_mec),("Inżynier","engineer",eng_special,generic_eng)):
         rows=[]
@@ -2468,7 +2491,7 @@ def _v0319_install_full_mec_kit():
         # Support
         ("Cure Beam",1,"heal",100,"support","cure_beam","Single-target healing beam available from the start. Willpower and Skill Level increase healing. Support Effect increases healing and removes Blind and Poison."),
         ("Hypno Flash",16,"damage",300,"support","hypno_flash","Attempts to put one enemy to Sleep. Will and Skill Level improve accuracy and duration; the Mec support weapon improves hit chance. Sleep is Cleanseable and Extendable."),
-        ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable. Soulbound UOSS Super Bosses are immune to Jammer Stop."),
+        ("Jammer",32,"damage",750,"support","jammer","Attempts to Stop one enemy, or all enemies while the Mec support weapon is active. Will and Skill Level improve accuracy and duration; mechanical enemies are easier to affect. Stop is Cleanseable and Extendable. Soulbound bosses and minibosses are immune to Jammer Stop."),
         ("Heal Beam",54,"heal",1000,"support","heal_beam","Significant Willpower-based healing. Normally heals one target; Support Effect heals the entire local party for an enhanced amount."),
         ("Logic Bomb",92,"damage",1200,"support","logic_bomb","Attempts to infect one enemy with Paralyze, Silence and Slow. With the Mec support weapon it also attempts Blind, Curse and Immobilize. Will and Skill Level improve accuracy and duration; Machine targets are easier to affect."),
         ("V-MAX",130,"boost",2000,"support","vmax","Will-influenced core overdrive: Protect, Shell, Haste, Regen, Preach, Praise, Permanence; changes several Mec skills. When it ends, Overheat is prevented while the Mec's Soul Weapon remains the active support weapon."),
@@ -4162,6 +4185,29 @@ def _v03014_unique_generated_skill_names():
 
 
 V03014_SKILLS_RENAMED, V03014_OLD_NAME_ALIASES = _v03014_unique_generated_skill_names()
+
+# v1.28.0: replace generated placeholder numbers on high Warrior masteries
+# without changing spell IDs, mechanics or previous command aliases.
+def _v1280_warrior_high_mastery_names():
+    titles = {level: _V03014_SKILL_TITLES[i] for i, level in enumerate(_V0922_MASTERY_LEVELS)}
+    updated = 0
+    for sk in CLASS_SKILLS["Wojownik"]:
+        sid = str(sk.get("id", ""))
+        match = re.search(r"^v0922_warrior_grid_(\d+)_(\d+)$", sid)
+        if not match or int(match.group(1)) <= 600:
+            continue
+        level, number = int(match.group(1)), int(match.group(2))
+        prefixes = ("Zamach Odpowiedzi", "Przecięcie Gardy", "Przysięga")
+        prefix = prefixes[(number-1) % 3]
+        name = f"{prefix}: {titles[level]} Wojownika"
+        old = sk.get("name", "")
+        sk["aliases"] = list(dict.fromkeys(list(sk.get("aliases") or ()) + [str(old), name]))
+        sk["name"] = name
+        updated += 1
+    return updated
+
+V1280_WARRIOR_NAMES = _v1280_warrior_high_mastery_names()
+
 
 
 def _v03014_skill_name_audit():

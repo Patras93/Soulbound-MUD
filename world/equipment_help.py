@@ -738,13 +738,13 @@ def configure_soul_trials_v0261():
     if q19:
         q19["description"] = (
             "Pokonaj Cesarza Upiorów na piętrze 180 Krypty, a następnie wróć do Kapłana Elora. "
-            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 60."
+            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 80."
         )
     q20 = QUESTS.get(SOUL_TRIAL_QUEST_IDS.get(20), {})
     if q20:
         q20["description"] = (
             "Pokonaj Władcę Dwustu Pięter na kamieniu milowym piętra 200 Krypty i wróć do Kapłana Elora. "
-            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-60 prowadzą przez progresję 201-600."
+            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-80 prowadzą przez progresję 201-800."
         )
 
 configure_soul_trials_v0261()
@@ -881,7 +881,7 @@ def configure_v0856_help_refresh():
     HELP_TOPICS["dusza"] = [
         "dusza pokazuje krótki stan Broni Duszy: Soul Level, Tier, Soul XP, moc i następny cel.",
         "dusza info pokazuje pełne progi Tierów 1-40 oraz stan Prób Broni Duszy potrzebnych do dalszej progresji.",
-        "Kolejne Tiery do 40 wymagają odpowiedniego Soul Levelu i właściwego odblokowania; progi 1-200 zachowują wcześniejsze Próby, a 201-600 kontynuują progresję endgame.",
+        "Kolejne Tiery do 80 wymagają odpowiedniego Soul Levelu i właściwego odblokowania; progi 1-200 zachowują wcześniejsze Próby, a 201-800 kontynuują progresję endgame.",
         "Soul Level ma zakres 1-600 i rozwija Broń Duszy; nie jest levelem postaci. Soul Weapon Mastery ma osobny zakres 1-600 i rozwija wyłącznie zwykły atak broni.",
         "Skille/spelle klasowe zachowują stare progi odblokowania do 200, a Biegłość właściwej klasy rozwija się 1-600, nie Soul Level.",
         "Po osiągnięciu progu wpisz quest list Kapłan Elor, przyjmij właściwą Próbę, wykonaj cel, oddaj quest i użyj unlock.",

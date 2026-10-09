@@ -18,12 +18,12 @@ def profession_batch_content_level_v1176(stages_and_weights):
         weight = max(0, int(weight))
         if not weight:
             continue
-        stage = max(1, min(600, int(stage)))
+        stage = max(1, min(800, int(stage)))
         total_weight += weight
         weighted_stage += stage * weight
     if not total_weight:
         return 1
-    return max(1, min(600, (weighted_stage + total_weight - 1) // total_weight))
+    return max(1, min(800, (weighted_stage + total_weight - 1) // total_weight))
 
 
 def profession_batch_effort_v1176(crafts):

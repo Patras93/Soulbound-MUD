@@ -172,19 +172,61 @@ class SessionCombatRewardsMixin:
                 # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
                 self.auto_queue_casting = False
                 template = MOB_TEMPLATES[mob.template_id]
-                # Encounter-only summons grant no duplicate XP/loot/quest credit.
-                if getattr(mob, "monster_ai_summoned_v1160", False):
+                # v1.28.1: all actual killed encounter helpers reward XP, but
+                # never gold, items, boss lockouts or repeatable quest kills.
+                _summon_kill_v1281 = bool(
+                    getattr(mob, "monster_ai_summoned_v1160", False)
+                    or getattr(mob, "uoss_summon_parent_v1144", None)
+                    or template.get("uoss_superboss_add")
+                )
+                if _summon_kill_v1281:
+                    if getattr(mob, "summon_xp_awarded_v1281", False) or not mob.alive:
+                        return
+                    # Mark before awaiting progression or broadcasts: simultaneous
+                    # kill callbacks cannot collect this summon twice.
+                    mob.summon_xp_awarded_v1281 = True
                     mob.alive = False
                     mob.engaged_by = None
-                    mob.respawn_at = float("inf")
-                    mob.v016_expires_at = time.time() - 1
-                    for session in tuple(self.server.sessions):
-                        if session.combat_mob_key == mob.key:
-                            session.combat_mob_key = None
-                    await self.server.party_combat_broadcast(
-                        self, f"Przywołany {template['name']} rozpada się bez dodatkowych nagród.",
-                        detail="normal",
-                    )
+                    if getattr(mob, "v016_ephemeral", False):
+                        mob.respawn_at = float("inf")
+                        mob.v016_expires_at = time.time() - 1
+                    else:
+                        mob.respawn_at = time.time() + mob_respawn_seconds(template)
+                    for _participant in tuple(self.server.sessions):
+                        if _participant.combat_mob_key == mob.key:
+                            _participant.combat_mob_key = None
+                    recipients = self.server.party_sessions(
+                        self.account_id, same_room=self.character.room_id
+                    ) or [self]
+                    _base_xp_v1281 = min(V019_SAFE_INT, max(
+                        1, int(template.get("source_xp", 0) or 0),
+                        max(1, int(template.get("level", 1) or 1)) * 400,
+                    ))
+                    for session in sorted(recipients, key=lambda s: s.character.name.lower()):
+                        _xp_v1281 = min(V019_SAFE_INT, max(1, int(_base_xp_v1281)))
+                        _xp_v1281 = session.apply_double_xp(_xp_v1281)
+                        for _stat in session.character.STAT_PROGRESS_FIELDS:
+                            for _msg in session.character.add_stat_progress(
+                                _xp_v1281, targets=(_stat,), single_level_cap=False,
+                            ):
+                                await session.send(_msg)
+                        await session.grant_combat_soul_xp_v11350(
+                            _xp_v1281, content_level=v0190_mob_stage(template),
+                            content_scaled=True,
+                        )
+                        await session.grant_class_xp(
+                            _xp_v1281, single_level_cap=False,
+                            content_level=v0190_mob_stage(template), content_scaled=True,
+                        )
+                        for _msg in session.add_character_xp_with_event(
+                            _xp_v1281, single_level_cap=False,
+                            content_level=v0190_mob_stage(template), content_scaled=True,
+                        ):
+                            await session.send(_msg)
+                        await session.send(
+                            f"Pokonujesz pomocnika: {template['name']}. "
+                            f"EXP +{_xp_v1281} (postać, klasa, Soul i rozwój statystyk)."
+                        )
                     return
                 self.server.world.clear_monster_ai_adds_v1160(mob)
                 _nemesis_owner = int(template.get("v029_nemesis_owner_account_id", 0) or 0)

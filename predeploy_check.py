@@ -118,16 +118,16 @@ try:
         TOOL_MAX_LEVEL as _tool_max_600_v11343,
         TOOL_MAX_TIER as _tool_tier_max_600_v11343,
     )
-    if int(_bootstrap_prof_max_v11343("Kowalstwo")) != 600:
+    if int(_bootstrap_prof_max_v11343("Kowalstwo")) != 800:
         _semantic_errors.append("profession progression regression: bootstrap cap is not 600")
-    if int(_bootstrap_tool_max_v11343("crafting")) != 600:
+    if int(_bootstrap_tool_max_v11343("crafting")) != 800:
         _semantic_errors.append("tool progression regression: bootstrap cap is not 600")
     if int(_bootstrap_prof_rank_max_v11343("Kowalstwo")) != int(_profession_rank_max_600_v11343):
         _semantic_errors.append("profession rank regression: bootstrap and progression_600 disagree")
-    if int(_bootstrap_tool_tier_v11343(600)) != int(_tool_tier_max_600_v11343):
+    if int(_bootstrap_tool_tier_v11343(800)) != int(_tool_tier_max_600_v11343):
         _semantic_errors.append("tool tier regression: level 600 does not reach the final tier")
-    if int(_profession_max_600_v11343) != 600 or int(_tool_max_600_v11343) != 600:
-        _semantic_errors.append("progression_600 profession/tool caps changed unexpectedly")
+    if int(_profession_max_600_v11343) != 800 or int(_tool_max_600_v11343) != 800:
+        _semantic_errors.append("progression_800 profession/tool caps changed unexpectedly")
     for _tool_type_v11343 in (
         "tailoring", "leatherworking", "carpentry", "enchanting",
         "archaeology", "cartography_profession",
@@ -819,9 +819,7 @@ _jammer_skill_source_v11331 = (
     _root / "core/classes_skills.py"
 ).read_text(encoding="utf-8")
 for _needle in (
-    '_jam_template.get("uoss_unique_superboss_key")',
-    '_jam_template.get("uoss_superboss_key")',
-    '_jam_template.get("uoss_superboss")',
+    "boss_jammer_immune_v1281(_jam_template)",
     "jest odporny na Stop",
     "_jammer_immune",
 ):

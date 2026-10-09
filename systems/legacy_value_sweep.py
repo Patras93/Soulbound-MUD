@@ -104,7 +104,7 @@ def shop_money_price_v11325(item) -> int:
         if value > 0:
             stage_candidates.append(value)
     stage = max(stage_candidates) if stage_candidates else 1
-    stage = max(1, min(600, stage))
+    stage = max(1, min(800, stage))
 
     equipment_like = bool(
         item.get("type") in {"armor", "soul_weapon_relic"}
@@ -150,7 +150,7 @@ def legacy_explicit_sale_floor_v11325(item_id, item) -> int:
     if item_type not in {"loot", "armor"}:
         return 0
 
-    stage = max(1, min(600, int(v0190_resource_stage(item_id, item) or 1)))
+    stage = max(1, min(800, int(v0190_resource_stage(item_id, item) or 1)))
     rarity = str(item.get("rarity") or "common").strip().lower()
 
     if item_type == "loot":

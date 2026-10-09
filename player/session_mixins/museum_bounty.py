@@ -449,22 +449,22 @@ class SessionMuseumBountyMixin:
             row=dict(entry or {})
             stored=max(0,int(row.get("stage",0) or 0))
             if stored>0:
-                return max(1,min(600,stored))
+                return max(1,min(800,stored))
             kind=str(row.get("kind") or "")
             target=str(row.get("target") or "")
             if kind=="kill" and target in MOB_TEMPLATES:
-                return max(1,min(600,v0190_mob_stage(MOB_TEMPLATES[target])))
+                return max(1,min(800,v0190_mob_stage(MOB_TEMPLATES[target])))
             if kind in ("mine","fish","wood","herb"):
                 tool_type={
                     "mine":"mining","fish":"fishing",
                     "wood":"woodcutting","herb":"herbalism",
                 }[kind]
-                return max(1,min(600,self.profession_level_for_tool(tool_type)))
+                return max(1,min(800,self.profession_level_for_tool(tool_type)))
             fallback=max(
                 int(getattr(self.character,"soul_level",1) or 1),
                 int(self.highest_active_class_mastery() or 1),
             )
-            return max(1,min(600,fallback))
+            return max(1,min(800,fallback))
 
     def normalize_bounty_kill_entry_v0387(self, entry):
             """Return one clean, canonical bounty entry without technical mob names."""

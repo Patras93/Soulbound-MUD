@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 
-CHARACTER_RESOURCE_MAX_LEVEL = 600
+CHARACTER_RESOURCE_MAX_LEVEL = 800
 
 AUTHORED_CLASS_PASSIVE_PROFILES = {
     "Wojownik": {"kind": "physical_damage", "value": 0.10},
@@ -64,7 +64,7 @@ def _character_resource_level_scale(
         progress = (level - 1) / float(max(1, reference_level - 1))
         return 1.0 + (max(1.0, float(reference_scale)) - 1.0) * (progress ** 1.05)
     post = (level - reference_level) / float(
-        max(1, CHARACTER_RESOURCE_MAX_LEVEL - reference_level)
+        max(1, 600 - reference_level)
     )
     return max(1.0, float(reference_scale)) * (
         1.0 + max(0.0, float(post_reference_growth)) * (post ** 0.90)

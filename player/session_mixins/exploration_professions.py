@@ -219,7 +219,7 @@ class SessionExplorationProfessionsV1100Mixin:
             ),
         )
         access = tool_tier_access_level(tool_level)
-        effective = max(1, min(600, max(stage, access // 2)))
+        effective = max(1, min(800, max(stage, access // 2)))
         profession_xp = max(25, 40 + effective * (2 if is_new else 1))
         tool_xp = max(20, 30 + effective)
 

@@ -57,6 +57,9 @@ class SessionCraftingExpansionV03114Mixin:
         if not found:
             return await SessionForgeGuildsMixin.salvage_equipment_v0925(self,args)
         iid,item=found
+        if self.item_is_protected_v1280(iid):
+            await self.send("Przedmiot chroniony przed rozkładaniem. Użyj: odchron <nazwa EQ>.")
+            return
         if not self.consume_recipe_item(iid,1):
             await self.send("Nie udało się pobrać przedmiotu do rozkładania EQ."); return
         outputs=SALVAGE3_V03114[iid]
@@ -131,7 +134,7 @@ class SessionCraftingExpansionV03114Mixin:
             equipped_skipped += equipped
             if free_qty <= 0:
                 continue
-            if bulk_protected(item_id, item):
+            if self.item_is_protected_v1280(item_id) or bulk_protected(item_id, item):
                 protected_skipped += free_qty
                 continue
             armor_plan.append((item_id, item, free_qty))
@@ -140,6 +143,8 @@ class SessionCraftingExpansionV03114Mixin:
         # Armor z tego rejestru trafia już przez standardową ścieżkę wyżej.
         extended_plan = []
         for item_id, recipe_outputs in SALVAGE3_V03114.items():
+            if self.item_is_protected_v1280(item_id):
+                continue
             item = ITEMS.get(item_id, {})
             if item.get("type") == "armor":
                 continue

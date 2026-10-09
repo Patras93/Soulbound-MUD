@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.27.0 - Przygody, Najemnicy i Cosmic Rave V-MAX"
+LATEST_CHANGES_TITLE = "Soulbound v1.28.2 - Proby Duszy i Bossowie Krypty"
 LATEST_CHANGES = [
+    "v1.28.2: Próby Duszy Tier 2-80 sprawdzone. Boss piętra 120 to Królowa Otchłannej Krypty, piętra 180 to Cesarz Upiorów; generator zachowuje nazwy i zaliczanie zadań także dla pięter 150 i 200. Poprawiono nieaktualne opisy Tieru 80.",
+    "v1.28.1: Black Rabite przyzywa Greater Demony wielokrotnie. Inni bossowie mają własnych strażników; za zabitych pomocników drużyna otrzymuje EXP bez podwójnego lootu i zaliczeń. Wszyscy bossowie i minibossowie są odporni na Jammer Stop, również w AoE.",
     "v1.26.5: Nazwy Krypty pokazują numer piętra, 72 komnaty Katakumb mają odrębne nazwy i opisy, bez zmiany przejść, bossów i zapisów.",
     "v1.26.4: Audyt matematyki i superbossów. Zabezpieczono mnożniki obrażeń, pamięć najemników i DPS drużyny przed przepełnieniem przy bardzo dużych wartościach. Bez osłabienia postaci, bez zmian kopalni i zapisów.",
     "v1.26.3: HP przeciwników bez sztucznego sufitu 9 biliardów. Bezpieczne obliczanie przy ogromnym DPS, rosnące logarytmicznie nagrody i dokładny transfer HP po zmianie przeciwnika; moc graczy i najemników bez zmian.",
@@ -3014,3 +3016,9 @@ HELP_TOPIC_ALIASES.update({
     "reputacja kurierow": "reputacja_kurierow", "reputacja kurierów": "reputacja_kurierow", "kurier reputacja": "reputacja_kurierow", "courier reputation": "reputacja_kurierow",
     "reputacja gildii klasowej": "reputacja_gildii_klasowej", "gildia reputacja": "reputacja_gildii_klasowej", "class guild reputation": "reputacja_gildii_klasowej",
 })
+
+HELP_TOPICS["ochronaeq"] = [
+    "Ochrona EQ: chron <pełna nazwa>, odchron <pełna nazwa>, chron lista.",
+    "Chronione przedmioty są pomijane przez sprzedaj wszystko i salvage wszystko; zwykła sprzedaż i salvage również odmawiają.",
+    "Blokada obejmuje wszystkie egzemplarze tego samego item_id i zostaje po restarcie/deployu.",
+]

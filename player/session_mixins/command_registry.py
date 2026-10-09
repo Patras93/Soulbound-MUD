@@ -239,6 +239,8 @@ COMMAND_REGISTRY = {
     'location': ('show_location', (), {}),
     'mineinfo': ('command_mineinfo_v1260', (COMMAND_TEXT,), {}),
     'sell': ('sell_command', (COMMAND_TEXT,), {}),
+    'protecteq': ('protect_item_v1280', (COMMAND_TEXT,), {}),
+    'unprotecteq': ('unprotect_item_v1280', (COMMAND_TEXT,), {}),
     'recipes': ('show_recipes', (COMMAND_TEXT,), {}),
     'smelt': ('smelt_item_v03114', (COMMAND_TEXT,), {}),
     'materialconversion': ('material_conversion_v03114', (), {}),

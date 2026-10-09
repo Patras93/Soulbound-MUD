@@ -14,7 +14,7 @@ V11324_GAME_FEEL_VERSION = "1.13.24"
 
 def _clamp_stage(value) -> int:
     try:
-        return max(1, min(600, int(value or 1)))
+        return max(1, min(800, int(value or 1)))
     except (TypeError, ValueError, OverflowError):
         return 1
 

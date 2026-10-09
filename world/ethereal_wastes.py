@@ -154,7 +154,7 @@ def create_ethereal_floor_v1140(kind, floor):
     rid=ethereal_floor_id_v1140(kind,floor)
     prev=spec["gate"] if floor==1 else ethereal_floor_id_v1140(kind,floor-1)
     nxt=ethereal_floor_id_v1140(kind,floor+1)
-    stage=min(600, 180 + floor*6)
+    stage=min(800, 180 + floor*6)
     depth=1.0 + floor*0.045 + (floor//10)*0.15
     boss=(floor%10==0)
     ROOMS.setdefault(rid, {

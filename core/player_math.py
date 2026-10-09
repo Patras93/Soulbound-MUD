@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 
 PLAYER_MATH_MAX_LEVEL = 600
+PLAYER_PROGRESSION_CAP_V1280 = 800
 SAFE_INT = 9_000_000_000_000_000_000
 STAT_XP_CURVE = (100.0, 29.0, 1.70)
 
@@ -112,7 +113,7 @@ def basic_attack_hits_from_dexterity(
 
 
 def mec_vmax_duration_seconds(skill_level: int, willpower: int) -> int:
-    level = _clamp(int(skill_level or 1), 1, PLAYER_MATH_MAX_LEVEL)
+    level = _clamp(int(skill_level or 1), 1, PLAYER_PROGRESSION_CAP_V1280)
     willpower = max(1, int(willpower or 1))
     progress = (level - 1) / float(max(1, PLAYER_MATH_MAX_LEVEL - 1))
     skill_seconds = 200.0 + 400.0 * (progress ** 0.82)
@@ -167,7 +168,7 @@ def magic_defense_base(character_level: int, willpower: int) -> int:
 
 
 def skill_level_power(level: int) -> float:
-    level = _clamp(int(level or 1), 1, PLAYER_MATH_MAX_LEVEL)
+    level = _clamp(int(level or 1), 1, PLAYER_PROGRESSION_CAP_V1280)
     return round(
         1.0
         + 3.0
@@ -177,7 +178,7 @@ def skill_level_power(level: int) -> float:
 
 
 def skill_cooldown_factor(level: int) -> float:
-    level = _clamp(int(level or 1), 1, PLAYER_MATH_MAX_LEVEL)
+    level = _clamp(int(level or 1), 1, PLAYER_PROGRESSION_CAP_V1280)
     reduction = (
         0.50
         * ((level - 1) / (PLAYER_MATH_MAX_LEVEL - 1)) ** 0.90

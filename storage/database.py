@@ -117,6 +117,12 @@ class Database(
                 command TEXT NOT NULL, duration_ms INTEGER NOT NULL
             );
         """)
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS protected_inventory_v1280 (
+                account_id INTEGER NOT NULL, item_id TEXT NOT NULL,
+                PRIMARY KEY (account_id, item_id)
+            )
+        """)
         self.conn.commit()
 
     def create_city_services_schema_v1225(self):

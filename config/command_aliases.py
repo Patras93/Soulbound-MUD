@@ -5,7 +5,7 @@ Edit aliases here; handlers and state policy live in player/session_mixins/comma
 The mapping preserves the exact final alias behavior of v0.48.0.
 """
 
-COMMAND_ALIAS_DEFINITIONS = {'accept': 'questaccept',
+COMMAND_ALIAS_DEFINITIONS = {'chron': 'protecteq', 'chronione': 'protecteq', 'ochron': 'protecteq', 'blokuj': 'protecteq', 'odchron': 'unprotecteq', 'protecteq': 'protecteq', 'unprotecteq': 'unprotecteq','accept': 'questaccept',
  'achievement': 'achievements',
  'achievements': 'achievements',
  'admin': 'admin',

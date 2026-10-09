@@ -515,9 +515,16 @@ def superboss_source_ability_v11162(template, mob):
     key=superboss_key_from_template_v11135(template)
     if turn<=0:
         return None
+    # Black Rabite has no per-fight summon limit. The turn-based cadence
+    # prevents an infinite loop inside a single action without capping the
+    # number of Greater Demons in a long fight.
+    if key=="black_rabite" and turn>=2 and (turn-2)%3==0:
+        return "Summon Greater Demon"
+    if key=="serpentarius" and turn>=4 and (turn-4)%7==0:
+        return "Summon Zodiac Sentinel"
+    if key=="yiazmat" and turn>=4 and (turn-4)%7==0:
+        return "Summon Dragon Guardian"
     if not getattr(mob,"uoss_summon_used_v1144",False):
-        if key=="black_rabite" and turn>=2:
-            return "Summon Greater Demon"
         if key=="emerald_weapon" and turn>=3:
             return "Open Eye"
         if key=="odin" and turn>=4:
@@ -547,6 +554,10 @@ def superboss_source_summons_v11162(session, template, mob, ability_name):
     summons=()
     if key=="black_rabite" and name=="Summon Greater Demon":
         summons=("uoss_add_greater_demon_v11156",)
+    elif key=="serpentarius" and name=="Summon Zodiac Sentinel":
+        summons=("uoss_add_zodiac_sentinel_v11156",)
+    elif key=="yiazmat" and name=="Summon Dragon Guardian":
+        summons=("uoss_add_dragon_guardian_v11156",)
     elif key=="emerald_weapon" and name=="Open Eye":
         summons=(f"uoss_add_{random.choice(('emerald_white_eye','emerald_blue_eye','emerald_red_eye'))}_v11156",)
     elif str(getattr(mob,"template_id",""))=="uoss_add_emerald_red_eye_v11156" and name=="Emerald Torpedo":

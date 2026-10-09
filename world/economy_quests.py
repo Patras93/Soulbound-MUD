@@ -944,6 +944,15 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     if is_crypt_boss_floor(floor):
         boss_id = f"crypt_boss_{floor}"
         bname, mechanic, mechanic_text = _infinite_crypt_boss_profile(floor)
+        # v1.28.2: lazy generation also creates floors 1-200 after their
+        # static rooms are compacted. Those floors MUST retain the authored
+        # boss identity and the legacy Soul Trial kill-tag; otherwise floor
+        # 120 becomes a generic lord and Tier 13 cannot be completed.
+        authored_crypt_boss = floor <= CRYPT_PREGENERATED_MAX_FLOOR and floor in CRYPT_BOSS_NAMES
+        if authored_crypt_boss:
+            bname = CRYPT_BOSS_NAMES[floor]
+            mechanic = CRYPT_BOSS_MECHANICS[floor]
+            mechanic_text = CRYPT_BOSS_MECHANIC_TEXT[floor]
         boss = {
             "name": bname,
             "max_hp": max(1, int(round(floor * 1000 * mult))),
@@ -957,7 +966,10 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "class_xp_reward": max(1, int(round((3000 + floor * 160) * mult))),
             "soul_reward": max(1, int(round((600 + floor * 20) * mult))),
             "drops": {"soul_shard": 1.0, "soul_elixir": min(0.50, 0.15 + econ * 0.003)},
-            "quest_target": None,
+            "quest_target": (
+                CRYPT_TRIAL_TARGETS.get(floor) if authored_crypt_boss
+                else f"crypt_boss_{floor}"
+            ),
             "crypt_floor": floor,
             "crypt_boss": True,
             "boss_mechanic": mechanic,
@@ -966,7 +978,11 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             "corpse_equipment_guaranteed": 3,
         }
         boss["template_id"] = boss_id
-        apply_milestone_boss_identity(boss, "crypt", floor)
+        # Milestone titles are procedural identities. Do not replace
+        # handcrafted boss names such as Wladca Bezdennych Katakumb at 150
+        # or Wladca Dwustu Pieter at 200; the trials name those bosses.
+        if not authored_crypt_boss:
+            apply_milestone_boss_identity(boss, "crypt", floor)
         _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
         _configure_dynamic_corpse_material(boss)
         _ensure_dynamic_boss_key("crypt", floor)

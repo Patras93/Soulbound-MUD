@@ -22,7 +22,7 @@ GUIDE_CITY_HUBS_V0522["Miasto Dusz"] = "square"
 # v1.00.20: Courier Guild progression extended from the legacy 1-400 cap
 # to the current long-form 1-600 progression. Existing thresholds stay intact.
 COURIER_REPUTATION_MIN_V0530 = 1
-COURIER_REPUTATION_MAX_V0530 = 600
+COURIER_REPUTATION_MAX_V0530 = 800
 
 COURIER_RANKS_V0530 = (
     # reputation, rank/title, payout bonus
@@ -38,6 +38,10 @@ COURIER_RANKS_V0530 = (
     (500, "Herold Szlaków",     0.66),
     (550, "Marszałek Szlaków",  0.75),
     (600, "Legenda Szlaków",    0.85),
+    (650, "Strażnik Wiecznej Drogi", 0.90),
+    (700, "Władca Szlaków", 0.95),
+    (750, "Herold Nieskończoności", 1.00),
+    (800, "Legenda Wszystkich Dróg", 1.10),
 )
 
 # v0.54.0: package classes are completely risk-free. They differ by unlock
@@ -185,7 +189,7 @@ COURIER_CITY_ROOM_TO_NAME_V0530 = {
 # v1.00.20: reputacja poszczególnych miast rozszerzona z 1-400 do 1-600.
 # Dostawy i lokalne questy nadal budują ją niezależnie od Gildii Kurierów.
 CITY_REPUTATION_MIN_V0710 = 1
-CITY_REPUTATION_MAX_V0710 = 600
+CITY_REPUTATION_MAX_V0710 = 800
 CITY_REPUTATION_RANKS_V0710 = (
     (1, "Przybysz", 0.00),
     (40, "Znajomy Miasta", 0.02),
@@ -198,6 +202,10 @@ CITY_REPUTATION_RANKS_V0710 = (
     (500, "Strażnik Dziedzictwa", 0.16),
     (550, "Symbol Miasta", 0.18),
     (600, "Wieczna Legenda Miasta", 0.20),
+    (650, "Wielki Obrońca Miasta", 0.22),
+    (700, "Strażnik Wiecznych Murów", 0.24),
+    (750, "Arcylegenda Miasta", 0.26),
+    (800, "Symbol Nieśmiertelnego Miasta", 0.28),
 )
 
 

@@ -1802,15 +1802,11 @@ class SessionCombatSkillsMixin:
                             _jammer_immune=0
                             for _jam_target in targets:
                                 _jam_template=MOB_TEMPLATES[_jam_target.template_id]
-                                _jam_superboss=bool(
-                                    _jam_template.get("uoss_unique_superboss_key")
-                                    or _jam_template.get("uoss_superboss_key")
-                                    or _jam_template.get("uoss_superboss")
-                                )
-                                if _jam_superboss:
+                                from systems.boss_companions_v1281 import boss_jammer_immune_v1281
+                                if boss_jammer_immune_v1281(_jam_template):
                                     _jammer_immune+=1
                                     await self.send(
-                                        f"Jammer: {_jam_template['name']} jest Super Bossem "
+                                        f"Jammer: {_jam_template['name']} jest bossem "
                                         "i jest odporny na Stop."
                                     )
                                     if _jam_target.engaged_at<=0:

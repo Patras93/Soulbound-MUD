@@ -70,7 +70,7 @@ def _eligible_rooms(rooms: dict, mob_spawns, mob_templates: dict):
         if template.get("auto_aggro") is True:
             # Still valid; world policy will force generated variants to passive.
             pass
-        stage = max(1, min(600, int(room.get("generator_level", room.get("recommended_mastery", 1)) or 1)))
+        stage = max(1, min(800, int(room.get("generator_level", room.get("recommended_mastery", 1)) or 1)))
         by_room.setdefault(str(room_id), {"stage": stage, "templates": []})["templates"].append(str(template_id))
     return [(rid, meta) for rid, meta in by_room.items() if meta["templates"]]
 
@@ -107,7 +107,7 @@ def active_events(rooms: dict, mob_spawns, mob_templates: dict, world_seed: str,
 
 def _rank_stage(stage: int, rank: str) -> int:
     offsets = {"normal": 0, "elite": 4, "rare": 8, "mini": 14, "boss": 20, "world_boss": 26}
-    return max(1, min(600, int(stage) + offsets.get(str(rank), 0)))
+    return max(1, min(800, int(stage) + offsets.get(str(rank), 0)))
 
 
 def generated_name(base_name: str, seed: str, role: str = "event") -> str:
@@ -186,7 +186,7 @@ def build_nemesis_template(record, mob_templates: dict, generator_core):
         rank = "mini"
     else:
         rank = "rare"
-    stage = max(1, min(600, int(record["level"])))
+    stage = max(1, min(800, int(record["level"])))
     template_id = f"v029_nemesis_{int(record['account_id'])}_{rank_no}_{hashlib.sha1(base_id.encode()).hexdigest()[:8]}"
     if template_id in mob_templates:
         return template_id, mob_templates[template_id]

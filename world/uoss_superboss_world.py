@@ -283,6 +283,9 @@ _SOURCE_ROOMS_V11160 = {
 # Exact summoned/companion combatants belonging to sourced encounters.
 _SOURCE_ADDS_V11156 = {
  "greater_demon":{"name":"Greater Demon","level":175,"max_hp":325000,"max_mp":65000,"source_xp":300000,"source_xp_exact":True,"parent":"black_rabite","location":"Black Rabite","abilities":(),"elements":("Fire","Dark")},
+ # New Soulbound encounter adds for the remaining unique superbosses.
+ "zodiac_sentinel":{"name":"Strażnik Zodiaku","level":230,"max_hp":375000,"max_mp":90000,"source_xp":380000,"source_xp_exact":True,"parent":"serpentarius","location":"Serpentarius","abilities":("Poison Frog","Necrotic Energy"),"elements":("Dark",)},
+ "dragon_guardian":{"name":"Smoczy Strażnik Yiazmata","level":245,"max_hp":460000,"max_mp":50000,"source_xp":450000,"source_xp_exact":True,"parent":"yiazmat","location":"Yiazmat","abilities":("Rake","Ice Breath"),"elements":("Ice","Wind")},
  "culex_wind_crystal":{"name":"Wind Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Earth",),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Wind","Lightning"),"abilities":("Petal Blast","Electroshock","Static Electricity","Light Beam")},
  "culex_water_crystal":{"name":"Water Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Fire",),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Water","Ice"),"abilities":("Diamond Saw","Ice Rock","Blizzard","Crystal")},
  "culex_fire_crystal":{"name":"Fire Crystal","level":130,"max_hp":100000,"max_mp":20000,"source_xp":74000,"source_xp_exact":True,"parent":"culex","weak":("Ice","Water"),"resist":("Weapon","Magic"),"immune":("Status_all",),"absorb":("Fire",),"abilities":("Corona","Flame","Flame Wall","Mega Drain")},

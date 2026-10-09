@@ -32,7 +32,7 @@ from core.progression_resources import (
     ENDGAME_FISH_UNLOCKS,
 )
 
-PROGRESSION_MAX_LEVEL = 600
+PROGRESSION_MAX_LEVEL = 800
 
 # Generator Core od v0.64.0 ma własny kanoniczny zakres 1-600.
 # progression_600 nie monkey-patchuje już jego globali.
@@ -49,8 +49,8 @@ _SKILL_POWER_600_POINTS_V11196 = {
     level: skill_level_power(level)
     for level in (1, 100, 200, 300, 400, 500, 600)
 }
-if SKILL_MAX_LEVEL != 600:
-    raise RuntimeError(f"Skill Level audit failed: expected cap 600, got {SKILL_MAX_LEVEL}")
+if SKILL_MAX_LEVEL != 800:
+    raise RuntimeError(f"Skill Level audit failed: expected cap 800, got {SKILL_MAX_LEVEL}")
 if abs(_SKILL_POWER_600_POINTS_V11196[1] - 1.0) > 0.000001:
     raise RuntimeError("Skill Level audit failed: Level 1 power must be 1.0x")
 if abs(_SKILL_POWER_600_POINTS_V11196[600] - 4.0) > 0.000001:
@@ -64,13 +64,13 @@ SOUL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 
 # Broń Duszy: stare Tiery 1-40 zostają w tych samych miejscach, 41-60
 # kontynuują co 10 poziomów od 410 do 600.
-SOUL_TIER_THRESHOLDS = tuple(SOUL_TIER_THRESHOLDS[:40]) + tuple(range(410, 601, 10))
+SOUL_TIER_THRESHOLDS = tuple(SOUL_TIER_THRESHOLDS[:40]) + tuple(range(410, 801, 10))
 SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
-SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142 + i * 2 for i in range(20))
-SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i // 2 for i in range(20))
-SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,) * 20
-SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29 + i // 2 for i in range(20))
-SOUL_TRIAL_QUEST_IDS.update({tier: f"soul_tier_{tier:02d}_trial" for tier in range(41, 61)})
+SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142 + i * 2 for i in range(40))
+SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i // 2 for i in range(40))
+SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,) * 40
+SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29 + i // 2 for i in range(40))
+SOUL_TRIAL_QUEST_IDS.update({tier: f"soul_tier_{tier:02d}_trial" for tier in range(41, 81)})
 
 # Weapon Traits 41-60: unikalne nazwy, ten sam klasowy cykl efektów.
 _SOUL_TRAIT_BASE_NAMES_41_60 = (
@@ -80,7 +80,14 @@ _SOUL_TRAIT_BASE_NAMES_41_60 = (
     "Wieczna Iskra", "Transcendentny Znak", "Głos Nieskończoności", "Ostateczny Horyzont",
     "Dusza Kosmosu", "Korona Wieczności", "Apogeum", "Absolut Duszy",
 )
-_SOUL_TRAIT_BASE_NAMES = tuple(_SOUL_TRAIT_BASE_NAMES) + _SOUL_TRAIT_BASE_NAMES_41_60
+_SOUL_TRAIT_BASE_NAMES = tuple(_SOUL_TRAIT_BASE_NAMES[:40]) + _SOUL_TRAIT_BASE_NAMES_41_60 + (
+    "Gwiezdna Przystań", "Wieczny Szept", "Żelazna Galaktyka", "Przysięga Otchłani",
+    "Ryk Nieskończoności", "Słoneczna Korona", "Domena Czasu", "Sąd Pradawnych",
+    "Droga Niebios", "Rdzeń Wszechświata", "Żywa Przestrzeń", "Korona Przeznaczenia",
+    "Ostatnia Iskra", "Gwiezdne Dziedzictwo", "Gniew Tysiąca Słońc",
+    "Przebudzenie Świata", "Brama Wiecznego Świtu", "Kres Ciemności",
+    "Serce Nieba", "Tron Nieskończonej Duszy",
+)
 SOUL_TIER_TRAITS_BY_CLASS = {}
 for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
     _rows = {}
@@ -133,7 +140,7 @@ _SOUL_TIER_TITLE_AUDIT = [
 PROFESSION_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 BLACKSMITHING_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 JEWELCRAFTING_MAX_LEVEL = PROGRESSION_MAX_LEVEL
-PROFESSION_RANK_THRESHOLDS = tuple(PROFESSION_RANK_THRESHOLDS[:23]) + tuple(range(420, 601, 20))
+PROFESSION_RANK_THRESHOLDS = tuple(PROFESSION_RANK_THRESHOLDS[:23]) + tuple(range(420, 801, 20))
 PROFESSION_MAX_RANK = len(PROFESSION_RANK_THRESHOLDS)
 BLACKSMITHING_MAX_RANK = PROFESSION_MAX_RANK
 BLACKSMITHING_RANK_THRESHOLDS = PROFESSION_RANK_THRESHOLDS
@@ -143,6 +150,13 @@ _PROFESSION_600_RANK_SUFFIXES = (
     "Mistrz Otchłannego Serca", "Mistrz Korony Gwiazd", "Mistrz Horyzontu Absolutu",
     "Mistrz Kosmicznego Szlaku", "Mistrz Wieczności", "Mistrz Apogeum", "Arcymistrz Absolutu",
 )
+_PROFESSION_600_RANK_SUFFIXES += (
+    "Władca Głębin", "Arcymistrz Astralny", "Strażnik Wiecznego Ognia",
+    "Mistrz Żywego Metalu", "Mistrz Nieskończonych Szlaków",
+    "Arcymistrz Pradawnej Kuźni", "Mistrz Serca Gwiazd",
+    "Legenda Złotego Horyzontu", "Mistrz Wiecznych Żywiołów",
+    "Arcymistrz Nowej Ery",
+)
 for _profession_name, _names in list(PROFESSION_RANK_NAMES.items()):
     _base = tuple(_names[:23])
     PROFESSION_RANK_NAMES[_profession_name] = _base + tuple(
@@ -150,10 +164,10 @@ for _profession_name, _names in list(PROFESSION_RANK_NAMES.items()):
     )
 
 TOOL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
-TOOL_TIER_THRESHOLDS = tuple(TOOL_TIER_THRESHOLDS[:40]) + tuple(range(410, 601, 10))
+TOOL_TIER_THRESHOLDS = tuple(TOOL_TIER_THRESHOLDS[:40]) + tuple(range(410, 801, 10))
 TOOL_MAX_TIER = len(TOOL_TIER_THRESHOLDS)
 TOOL_TIER_BONUS_CHANCES = tuple(TOOL_TIER_BONUS_CHANCES[:40]) + tuple(
-    round(min(0.80, 0.60 + step * 0.01), 2) for step in range(1, 21)
+    round(min(0.80, 0.60 + step * 0.01), 2) for step in range(1, 41)
 )
 _TOOL_600_SUFFIXES = (
     "Przekroczenia", "Gwiezdnego Tronu", "Wiecznego Echa", "Serca Otchłani",
@@ -161,6 +175,14 @@ _TOOL_600_SUFFIXES = (
     "Pradawnego Rezonansu", "Świtu Absolutu", "Przeznaczenia", "Oka Wszechświata",
     "Wiecznej Iskry", "Transcendentnego Znaku", "Głosu Nieskończoności",
     "Ostatecznego Horyzontu", "Duszy Kosmosu", "Korony Wieczności", "Apogeum", "Absolutu",
+)
+_TOOL_600_SUFFIXES += (
+    "Podziemnego Króla", "Echa Atlantydy", "Czarnej Gwiazdy", "Wiecznej Magmy",
+    "Przedwiecznych Szlaków", "Kosmicznej Kuźni", "Płomieni Świata",
+    "Głębi Wieczności", "Pierwotnego Światła", "Nowej Ery",
+    "Astralnej Burzy", "Zorzy Północy", "Ognistego Tronu",
+    "Żywej Kryształowej Skały", "Dawnych Mistrzów", "Ostatniego Słońca",
+    "Przebudzonej Ziemi", "Nieskończonej Drogi", "Korony Przyszłości", "Ostatecznego Przebudzenia",
 )
 for _tool_type, _names in list(TOOL_TIER_NAMES.items()):
     _base = tuple(_names[:40])
@@ -181,7 +203,7 @@ for _tool_type, _names in list(TOOL_TIER_NAMES.items()):
 
 # Zasoby i receptury zachowują historyczne ID *_400_* dla zgodności save'ów,
 # ale zmienna obejmuje od teraz całą linię 220-600.
-PROGRESSION_400_LEVELS = tuple(range(220, 601, 20))
+PROGRESSION_400_LEVELS = tuple(range(220, 801, 20))
 _new_levels = tuple(range(420, 601, 20))
 ENDGAME_ORE_UNLOCKS = tuple(ENDGAME_ORE_UNLOCKS) + tuple((level, f"ore_400_{level}") for level in _new_levels)
 ENDGAME_WOOD_UNLOCKS = tuple(ENDGAME_WOOD_UNLOCKS) + tuple((level, f"wood_400_{level}") for level in _new_levels)

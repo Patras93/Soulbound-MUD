@@ -25,6 +25,7 @@ from systems.elite_variants import (
     elite_regen_amount_v11338,
 )
 from systems.encounter_brain_v1230 import boss_tactics_phase_v1230, tactical_element_v1230, ordinary_tactics_v1230
+from systems.boss_companions_v1281 import boss_companion_due_v1281
 from systems.monster_ecology_v1250 import ecology_turn_v1250, adaptive_skills_v1250, adaptive_defense_v1250, adaptive_cadence_v1250
 from systems.monster_ai import (
     monster_ai_plan_v1160, monster_ai_execute_v1160,
@@ -650,6 +651,23 @@ class SessionCombatRealtimeMixin:
                                         )
                                         if _logic_expires_after_action:
                                             enemy_mob.v11196_logic_bomb_effects=set()
+                                        continue
+                                # Every non-unique boss can call a distinct guardian.
+                                # This replaces one attack action and runs only once
+                                # for the owner, never once per party target.
+                                _boss_template_v1281 = MOB_TEMPLATES[enemy_mob.template_id]
+                                if boss_companion_due_v1281(enemy_mob, _boss_template_v1281) and not (
+                                    _logic_active and "silence" in _logic_effects
+                                ):
+                                    _guardian_v1281 = self.server.world.spawn_boss_companion_v1281(enemy_mob)
+                                    if _guardian_v1281:
+                                        enemy_mob.boss_last_summon_turn_v1281 = enemy_mob.combat_turn
+                                        await self.server.party_combat_broadcast(
+                                            self,
+                                            f"{_boss_template_v1281['name']} przyzywa "
+                                            f"{MOB_TEMPLATES[_guardian_v1281.template_id]['name']}!",
+                                            detail="essential",
+                                        )
                                         continue
                                 # AI support is one mob action, not a second attack
                                 # against every party member. Authored bosses are exempt.

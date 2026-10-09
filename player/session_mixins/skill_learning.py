@@ -701,7 +701,7 @@ class SessionSkillLearningMixin:
                     stages.append(int(self.highest_active_class_mastery()))
                 except (TypeError,ValueError):
                     stages.append(1)
-            return max(1,min(600,max(stages)))
+            return max(1,min(800,max(stages)))
 
     async def grant_skill_use_xp(self, skill):
             current=self.skill_progress_data(skill)

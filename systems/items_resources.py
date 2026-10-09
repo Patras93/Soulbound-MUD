@@ -109,6 +109,11 @@ _PROGRESSION_400_NAMES = {
     480: "Serca Otchłani", 500: "Korony Gwiazd", 520: "Sądu Horyzontu",
     540: "Kosmicznego Szlaku", 560: "Wieczności",
     580: "Apogeum", 600: "Absolutu Duszy",
+    620: "Nowej Ery", 640: "Żywych Gwiazd", 660: "Wiecznych Szlaków",
+    680: "Otwartej Bramy", 700: "Pradawnego Dziedzictwa",
+    720: "Niebiańskich Władców", 740: "Wiecznej Potęgi",
+    760: "Ostatecznego Przebudzenia", 780: "Kosmicznej Duszy",
+    800: "Absolutu Przyszłości",
 }
 _FISH_400_LABELS = {
     "river": "Rzeczny Wędrowiec", "lake": "Jeziorny Strażnik",
@@ -120,23 +125,23 @@ for _level in PROGRESSION_400_LEVELS:
     _catalog_mut.catalog_assign({
         "name": f"Ruda {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Ruda progresji 201-600. Kilof level {_level}+.",
+        "desc": f"Ruda progresji 201-800. Kilof level {_level}+.",
     }, 'ITEMS', ITEMS, (f"ore_400_{_level}",))
     _catalog_mut.catalog_assign({
         "name": f"Pień {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Drewno progresji 201-600. Piła level {_level}+.",
+        "desc": f"Drewno progresji 201-800. Piła level {_level}+.",
     }, 'ITEMS', ITEMS, (f"wood_400_{_level}",))
     _catalog_mut.catalog_assign({
         "name": f"Ziele {_suffix}", "type": "resource", "price": None,
         "sell_gold": _sell,
-        "desc": f"Zioło progresji 201-600. Sierp level {_level}+.",
+        "desc": f"Zioło progresji 201-800. Sierp level {_level}+.",
     }, 'ITEMS', ITEMS, (f"herb_400_{_level}",))
     for _habitat, _label in _FISH_400_LABELS.items():
         _catalog_mut.catalog_assign({
             "name": f"{_label} {_suffix}", "type": "resource", "price": None,
             "sell_gold": _sell,
-            "desc": f"Ryba progresji 201-600. Wędka level {_level}+.",
+            "desc": f"Ryba progresji 201-800. Wędka level {_level}+.",
         }, 'ITEMS', ITEMS, (f"fish_400_{_habitat}_{_level}",))
 
 _register_world_resource_items()
@@ -174,7 +179,7 @@ from core.economy_curve import (
 
 def class_equipment_shop_price_v11314(level, slot_base_price):
     """Cena klasowego EQ jako znaczący, ale osiągalny wydatek."""
-    level = max(1, min(600, int(level or 1)))
+    level = max(1, min(800, int(level or 1)))
     base_price = max(1, int(slot_base_price or 1))
     slot_factor = max(0.55, min(1.65, base_price / 130.0))
     target = int(round(
@@ -187,12 +192,12 @@ def class_equipment_shop_price_v11314(level, slot_base_price):
 # Źródła mają różne profile, ale sprzęt z tego samego etapu nie może dzielić
 # przepaść typu "sklep 30 statów, drop 3 staty".
 def equipment_progression_budget_v1138(level):
-    level = max(1, min(600, int(level or 1)))
+    level = max(1, min(800, int(level or 1)))
     anchors = (
         (1, 9), (10, 14), (20, 19), (30, 25), (40, 31),
         (50, 38), (60, 48), (70, 58), (80, 70), (90, 82),
         (100, 100), (150, 160), (200, 240), (300, 420),
-        (400, 650), (500, 900), (600, 1200),
+        (400, 650), (500, 900), (600, 1200), (700, 1500), (800, 1850),
     )
     if level <= anchors[0][0]:
         return anchors[0][1]
@@ -206,12 +211,12 @@ def equipment_progression_budget_v1138(level):
 
 
 def equipment_defense_step_v1138(level):
-    level = max(1, min(600, int(level or 1)))
+    level = max(1, min(800, int(level or 1)))
     anchors = (
         (1, 0), (10, 1), (20, 2), (30, 3), (40, 4),
         (50, 5), (60, 6), (70, 7), (80, 8), (90, 9),
         (100, 10), (150, 14), (200, 18), (300, 26),
-        (400, 34), (500, 42), (600, 50),
+        (400, 34), (500, 42), (600, 50), (700, 60), (800, 70),
     )
     if level <= anchors[0][0]:
         return anchors[0][1]
@@ -328,6 +333,7 @@ _BLACKSMITH_400_LABELS = {
     540: "Kosmicznego Szlaku", 560: "Wieczności",
     580: "Apogeum", 600: "Absolutu Duszy",
 }
+_BLACKSMITH_400_LABELS.update({level: _PROGRESSION_400_NAMES[level] for level in PROGRESSION_400_LEVELS if level > 600})
 BLACKSMITH_TIERS += tuple(
     {
         "key": f"p400_{level}",
@@ -361,7 +367,7 @@ BLACKSMITH_MASTERWORK_PROPERTY = {
 
 
 def _blacksmith_masterwork_profile_v1138(level, slot):
-    level = max(1, min(600, int(level or 1)))
+    level = max(1, min(800, int(level or 1)))
     base_budget = equipment_progression_budget_v1138(level)
     stat_budget = max(2, int(round(base_budget * 0.65)))
     first, second = BLACKSMITH_MASTERWORK_STAT_PROFILE[slot]

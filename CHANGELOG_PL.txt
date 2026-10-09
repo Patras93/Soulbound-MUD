@@ -1,4 +1,31 @@
-Aktualna paczka: v1.27.0 — BOSSOWIE, NAJEMNICY, PODZIEMIA I COSMIC RAVE V-MAX (2026-10-09)
+Soulbound v1.28.2 — Naprawa Prób Broni Duszy i bossów Krypty
+- Przy tworzeniu pięter 1-200 Krypty generator zachowuje ręcznie zaprojektowane imiona bossów zamiast zastępować je Władcami Nieskończonej Krypty.
+- Tier 13: piętro 120 -> Królowa Otchłannej Krypty, jej zabicie zalicza próbę.
+- Tier 19: piętro 180 -> Cesarz Upiorów, jego zabicie zalicza próbę.
+- Pozostałe Tiery 2-80 zachowują unikalne quest ID i wymagane cele. Bossowie pięter 150 i 200 także mają nazwy zgodne z zadaniami.
+- Wysokie piętra 210-800 zachowują proceduralnych bossów, ich generowanie i zaliczanie Tierów.
+- Zaktualizowano historyczne opisy ostatnich prób do Tieru 80. Nie zmieniono postępu istniejących postaci, obrażeń ani nagród.
+- Paczka nadal obsługuje Railway i Windows; brak raportów audytu w ZIP.
+
+Soulbound v1.28.1 — Bossowie, ich pomocnicy, EXP i odporność na Jammer
+- Black Rabite: Greater Demony mogą być przyzywane wielokrotnie, co 3 tury bez limitu liczby przywołań w walce.
+- Serpentarius: Strażnicy Zodiaku; Yiazmat: Smoczy Strażnicy. Pozostali bossowie mogą przywołać własnych, nazwanych strażników.
+- Zabicie przywołanego pomocnika daje EXP postaci, klasy, Soul i rozwijanych statystyk dla obecnej drużyny.
+- Nie ma podwójnego naliczania EXP, lootu, questów ani waluty za samych pomocników.
+- Przywołani strażnicy znikają po śmierci swojego bossa. Nie zmieniono mocy graczy i najemników.
+- Jammer Stop nie zatrzymuje bossów ani minibossów, także z aktywnym Support Effect i w obszarze AoE. Na zwykłe potwory działa jak dotąd.
+- Zachowane poziomy 800, ochrona EQ, Windows launcher i Railway; baza SQLite bez migracji.
+- Pliki audytów nie są dodawane do paczki.
+
+Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
+- Główne poziomy rozwoju postaci, klas, skilli, Soul, profesji i narzędzi do 800.
+- Oryginalne umiejętności wszystkich 14 klas zachowane, nowe progi 610-800 otrzymują unikalne nazwy.
+- Statystyki atrybutów bez zmian i bez sztucznego limitu.
+- Ochrona EQ: chron <nazwa>, odchron <nazwa>, chron lista. Trwale zapisana w SQLite.
+- Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
+- Wydanie dla Railway i Windows, bez raportów audytu.
+
+Aktualna paczka: v1.28.2 — POMOCNICY BOSSÓW I EXP (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.

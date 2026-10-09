@@ -139,7 +139,7 @@ class SessionRuntimeStateMixin:
             return min(V019_SAFE_INT, amount * int(state["multiplier"]))
 
     def progression_content_multiplier_v11342(self, content_level):
-            stage=max(1,min(600,int(content_level or 1)))
+            stage=max(1,min(800,int(content_level or 1)))
             return 1.0 + (stage-1)/599.0
 
     def scale_progression_xp_v11342(

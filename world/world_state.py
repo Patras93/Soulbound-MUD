@@ -122,7 +122,7 @@ def treasure_chest_economy_stage_v11314(room_id):
             flush=True,
         )
         target = fallback
-    return max(1, min(600, max(fallback, target)))
+    return max(1, min(800, max(fallback, target)))
 
 
 class World:
@@ -322,6 +322,60 @@ class World:
         add.uoss_summon_parent_v1144=boss_mob.key
         self.mobs[key]=add
         self._last_refresh_at=0.0
+        return add
+
+    def spawn_boss_companion_v1281(self, boss_mob):
+        """Spawn a temporary guardian tied to a real boss, with XP on defeat."""
+        from systems.boss_companions_v1281 import boss_guardian_identity_v1281
+        if not boss_mob or not boss_mob.alive or not boss_mob.engaged_by:
+            return None
+        parent_template = MOB_TEMPLATES.get(boss_mob.template_id, {})
+        if not parent_template or parent_template.get("uoss_unique_superboss_key"):
+            return None
+        # A generic boss may replace slain helpers, but does not accumulate an
+        # arbitrarily large live army over a long, unattended encounter.
+        if any(add.alive and getattr(add, "monster_ai_parent_v1160", None) == boss_mob.key
+               for add in self.mobs.values()):
+            return None
+        tid = f"{boss_mob.template_id}__boss_guardian_v1281"
+        if tid not in MOB_TEMPLATES:
+            name, damage_type = boss_guardian_identity_v1281(parent_template)
+            parent_level = max(1, int(parent_template.get("level", 1) or 1))
+            authored_hp = max(1, int(parent_template.get("max_hp", 1) or 1))
+            reward = max(500, parent_level * 400,
+                         int(parent_template.get("source_xp", 0) or 0) // 8)
+            guardian_hp = max(100, authored_hp // 5)
+            parent_stage = max(1, min(800, int(parent_template.get("v019_stage") or
+                                           parent_template.get("generator_level") or
+                                           parent_level)))
+            guardian = {
+                "name": name, "level": parent_level, "max_hp": guardian_hp,
+                "base_max_hp": guardian_hp, "max_mp": 0,
+                "v019_stage": parent_stage, "generator_level": parent_stage,
+                "damage": max(1, int(parent_template.get("damage", 10) or 10) // 3),
+                "damage_type": damage_type, "silver": 0, "gold": 0, "mithril": 0,
+                "source_xp": reward, "source_xp_exact": True,
+                "character_xp_reward": 0, "class_xp_reward": 0,
+                "soul_reward": 0, "stat_reward": 0, "drops": {},
+                "quest_target": None, "stationary_mob": True, "auto_aggro": False,
+                "boss_companion_v1281": True,
+            }
+            _catalog_mut.catalog_assign(guardian, "MOB_TEMPLATES", MOB_TEMPLATES, (tid,))
+        seq = int(getattr(boss_mob, "boss_add_seq_v1281", 0) or 0) + 1
+        boss_mob.boss_add_seq_v1281 = seq
+        cap = max(100, int(getattr(boss_mob, "adaptive_max_hp_v11330", 0) or
+                           parent_template.get("max_hp", 100) or 100) // 5)
+        add = MobState(
+            key=f"{boss_mob.key}:boss_guard:{seq}", room_id=boss_mob.room_id,
+            template_id=tid, hp=cap, engaged_by=boss_mob.engaged_by,
+            engaged_at=time.monotonic(), home_room_id=boss_mob.room_id,
+        )
+        add.monster_ai_parent_v1160 = boss_mob.key
+        add.monster_ai_summoned_v1160 = True
+        add.v016_ephemeral = True
+        add.v016_expires_at = time.time() + 1800
+        self.mobs[add.key] = add
+        self._last_refresh_at = 0.0
         return add
 
     def mob_templates_for_ai_v1160(self, mob):
