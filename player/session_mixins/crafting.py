@@ -481,6 +481,14 @@ class SessionCraftingMixin:
                 legendary=(quality_key == "legendary"),
             )
             mastery_after = crafting_mastery_level_v03054(mastery_after_row["actions"])
+            if quality_key == "legendary" and hasattr(self.server.db, 'add_server_chronicle_event_v03811'):
+                self.server.db.add_server_chronicle_event_v03811(
+                    'mistrzowski_craft',
+                    f'{self.character.name} stworzył legendarny przedmiot: '
+                    f'{ITEMS.get(crafted_output_id, ITEMS.get(output_id, {})).get("name", crafted_output_id)}.',
+                    account_id=self.account_id, actor_name=self.character.name,
+                    subject_id=output_id, subject_name=ITEMS.get(output_id,{}).get('name',output_id),
+                    importance=3, event_key=f'legendary:craft:{self.account_id}:{output_id}')
             self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
             self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_quantity)
             self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)

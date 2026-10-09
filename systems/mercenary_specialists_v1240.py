@@ -102,3 +102,43 @@ def specialist_support_on_strike_v1240(role, weakest, damage, major_threat, heal
             weakest.skill_guard += value
             return f"Awaryjna osłona {weakest.character.name}: {value}."
     return ''
+
+
+# v1.27.0: personality and companionship chatter; never controls the player.
+_MERC_VOICES_V1270 = {
+ 'wojownik':'Trzymam linię!', 'berserker':'Nie ustępuję!', 'lotrzyk':'Widzę lukę w obronie.',
+ 'lucznik':'Mam cel na oku.', 'mnich':'Spokój prowadzi mój cios.',
+ 'straznik':'Nikt nie przejdzie!', 'mag':'Żywioły odpowiadają.',
+ 'nekromanta':'Cienie słuchają.', 'kaplan':'Światło nas ochroni.',
+ 'czarownik':'Klątwa nabiera mocy.', 'druid':'Natura jest z nami.',
+ 'psionik':'Wyczuwam twój zamiar.', 'mec':'Protokół bojowy gotowy.',
+ 'inzynier':'Kalibruję osłony.', 'paladyn':'Przysięga trwa.'}
+
+def mercenary_voice_v1270(role, sequence, combo='', boss=False):
+    """Deterministic, low-noise flavor every 6th strike (boss: every 4th)."""
+    interval = 4 if boss else 6
+    if int(sequence) % interval != 0:
+        return ''
+    line = _MERC_VOICES_V1270.get(role, '')
+    if not line: return ''
+    if combo: line += ' Razem z towarzyszem wykonamy kombinację!'
+    return line
+
+
+PREFERRED_COMBOS_V1270 = {
+    frozenset(('mag','wojownik')): ('Lodowa szczelina i stal', 1.09),
+    frozenset(('druid','nekromanta')): ('Zatrute korzenie i Żniwa', 1.10),
+    frozenset(('kaplan','paladyn')): ('Przysięga Światła', 1.08),
+    frozenset(('inzynier','mec')): ('Rezonans mechanizmów', 1.12),
+    frozenset(('lotrzyk','lucznik')): ('Zasadzka Cieni', 1.10),
+    frozenset(('psionik','mnich')): ('Rezonans umysłu i dłoni', 1.08),
+    frozenset(('straznik','berserker')): ('Bastion Furii', 1.10),
+}
+
+def mercenary_preferred_combo_v1270(role, others):
+    """Automatic duo synergy; additive above existing owner DPS, not a damage cap."""
+    for other in others:
+        pair = frozenset((role, other))
+        if pair in PREFERRED_COMBOS_V1270:
+            return PREFERRED_COMBOS_V1270[pair]
+    return '', 1.0

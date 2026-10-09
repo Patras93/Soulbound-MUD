@@ -1802,6 +1802,23 @@ def _resource_market_catalog_v1148(category):
     return result
 
 
+@_resource_market_cache_v1148(maxsize=32)
+def _resource_market_quote_catalog_v1270(category, demand):
+    """Ensure distinct NPC prices after a six-hour market demand adjustment.
+
+    Demand below 100% can round adjacent base prices to the same silver value.
+    The existing authored order is retained and tied quotes gain only 1 silver.
+    """
+    catalogue = _resource_market_catalog_v1148(category)
+    quotes = {}
+    last = 0
+    for item_id, base_price in sorted(catalogue.items(), key=lambda r: (r[1], r[0])):
+        candidate = max(1, int(round(base_price * demand)))
+        last = max(candidate, last + 1)
+        quotes[item_id] = last
+    return quotes
+
+
 def profession_resource_market_value_v1148(item_id, item=None, category=None):
     """Kanoniczna cena skupu/szacowania zasobu w srebrze (100 = 1 złoto).
 
@@ -1830,5 +1847,10 @@ def profession_resource_market_value_v1148(item_id, item=None, category=None):
     # Dynamic demand changes the *base resource* quote once. A rare variant
     # multiplies that displayed quote afterwards so variants remain worth
     # exactly their advertised multiple (and NPC sale audits remain valid).
-    adjusted_base = max(1, int(round(normal * market_demand_v1250(category))))
+    demand = market_demand_v1250(category)
+    # Apply rounding while keeping resource prices unique within a category;
+    # rare variants multiply the final base quote exactly once.
+    adjusted_base = _resource_market_quote_catalog_v1270(category, demand).get(base_id)
+    if adjusted_base is None:
+        adjusted_base = max(1, int(round(normal * demand)))
     return max(1, int(round(adjusted_base * variant_factor)))

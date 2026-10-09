@@ -493,7 +493,7 @@ class SessionDungeonProgressionMixin:
                                 ', '.join(MINE_DIRECTION_LABELS[d] for d in route) + '. ' +
                                 'Możesz przejść je kolejno komendą walk lub kierunkami.')
         elif mode in ('skarb','skarbiec','vault'):
-            if geo['kind'] not in ('vault','chamber','ruins','rare_ore'):
+            if geo['kind'] not in ('vault','chamber','ruins','rare_ore','lost_city','ancient_kingdom','giant_cavern'):
                 await self.send('Tutaj nie ma skarbca ani reliktów do odebrania.')
                 return
             if self.server.db.mine_claimed_v1260(self.account_id,floor,x,y):

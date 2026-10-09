@@ -865,6 +865,10 @@ class SessionAtlasCodexMixin:
                 await self.send("Dropy: " + "; ".join(drops) + ".")
             else:
                 await self.send("Dropy specjalne: brak stałych wpisów; nadal może wystąpić materiałowe EQ z ciała zgodnie z siłą przeciwnika.")
+            # Legendary bestiary: progressively reveal real authored combat data.
+            from systems.adventure_codex_v1270 import bestiary_knowledge_v1270
+            for text in bestiary_knowledge_v1270(template, int(row['kills'])):
+                await self.send(text)
             if template.get("boss_mechanic_text"):
                 await self.send("Mechanika: " + str(template["boss_mechanic_text"]))
 

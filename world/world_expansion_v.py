@@ -206,8 +206,87 @@ _cat_names = (
     ("Katakumby Plugastwa", "Korytarz Plugastwa", "Ściany pokrywa czarna maź, a stare ossuaria pulsują skażeniem."),
     ("Gniazdo Pod Kośćmi", "Tunel Gniazda", "Tunele są wygryzione pod fundamentami. Kości, futro i świątynne płyty tworzą jedno olbrzymie siedlisko."),
 )
+# Nazwy komnat pozostają stałe dla zapisanych identyfikatorów lokacji.
+# 24 odrębne pomieszczenia na każdym z trzech pięter, bez etykiet typu
+# "Korytarz 1", "Korytarz 2". Zmiana nie narusza przejść ani questów.
+_CATACOMB_CHAMBERS_V1265 = (
+    (
+        "Próg Rozbitych Sarkofagów", "Sala Wyschniętych Wieńców",
+        "Galeria Zgasłych Lamp", "Nisza Zapomnianego Skryby",
+        "Korytarz Pokruszonych Płyt", "Komnata Głuchych Dzwonów",
+        "Krużganek Kamiennych Twarzy", "Archiwum Nagrobnych Imion",
+        "Sala Pyłu i Pajęczyn", "Kaplica Złamanej Pieczęci",
+        "Przejście Milczących Strażników", "Ossuarium Popielnych Kości",
+        "Galeria Pustych Sarkofagów", "Zimna Cela Pokutników",
+        "Komnata Wygasłych Kadzideł", "Rozpadlina Grobowych Płyt",
+        "Sala Kościanych Chorągwi", "Tunel Starych Procesji",
+        "Przedsionek Kamiennej Maski", "Skryptorium Martwych",
+        "Zawalona Kaplica", "Sala Ostatniego Czuwania",
+        "Korytarz Cichej Modlitwy", "Komnata Kościożercy",
+    ),
+    (
+        "Próg Czarnego Ossuarium", "Korytarz Chorego Echa",
+        "Galeria Zaropiałych Rzeźb", "Sala Zatrutej Studni",
+        "Komnata Krwawych Inskrypcji", "Kaplica Zgniłych Relikwii",
+        "Przesmyk Skażonych Kości", "Archiwum Zarazy",
+        "Cela Szeptów Choroby", "Grobowiec Rozpadłych Bandaży",
+        "Galeria Trujących Oparów", "Przedsionek Martwej Matrony",
+        "Sala Lepkiego Kamienia", "Krużganek Zatęchłych Całunów",
+        "Jama Ciemnego Śluzu", "Ossuarium Czarnych Łez",
+        "Kaplica Gasnących Zniczy", "Komnata Skażonego Ołtarza",
+        "Tunel Zarazy", "Sala Spękanych Fiol",
+        "Grobowiec Pokutnych Uzdrowicieli", "Korytarz Czerwonego Pyłu",
+        "Sala Złamanych Kadzi", "Sanktuarium Matrony Zarazy",
+    ),
+    (
+        "Próg Bezimiennego Gniazda", "Tunel Cmentarnych Korzeni",
+        "Jama Pradawnych Szczurów", "Galeria Zjedzonych Tablic",
+        "Komnata Ślepych Nor", "Ossuarium Splątanych Kości",
+        "Korytarz Kamiennych Pazurów", "Sala Podgryzionych Kolumn",
+        "Rozpadlina Pod Fundamentami", "Legowisko Białych Cieni",
+        "Tunele Odrzuconych Szczel", "Zatopiona Komora Futra",
+        "Przedsionek Starej Królowej", "Jaskinia Świątynnych Ruin",
+        "Korytarz Podziemnych Tropów", "Sala Kościanego Pyłu",
+        "Kaplica Porwanego Sztandaru", "Grota Prastarych Śladów",
+        "Nora Zapomnianych Pokoleń", "Komnata Szczurzych Totemów",
+        "Sala Wyszczerbionych Kłów", "Tunel Królewskiej Straży",
+        "Przedsionek Gniazda", "Tron Króla Gniazda",
+    ),
+)
+_CATACOMB_DETAILS_V1265 = (
+    "Kamienne ślady wskazują drogę przez najstarsze groby.",
+    "Ciszę przecina echo odległych kroków.",
+    "Ściany noszą ślady dawnych obrzędów.",
+    "Pod stopami chrzęszczą popękane płyty.",
+    "Chłodne powietrze napływa z bocznych nisz.",
+    "Na podłodze widać ślady czegoś ciężkiego.",
+    "Rzeźby zostały uszkodzone przez czas.",
+    "Słabe echo wraca z głębszych korytarzy.",
+    "W kurzu zachowały się dawne znaki.",
+    "Kamień pachnie wilgocią i starym kadzidłem.",
+    "Spękane płyty ukrywają dawne inskrypcje.",
+    "Z ciemności dobiega odgłos poruszanych kości.",
+    "Wzdłuż ścian ciągną się opuszczone nisze.",
+    "Sufit podpierają zużyte kolumny.",
+    "Ziemia nosi ślady podziemnych wędrówek.",
+    "Wąskie przejście prowadzi między filarami.",
+    "Wyryte symbole dawno utraciły znaczenie.",
+    "W zakamarkach zostały fragmenty dawnego wyposażenia.",
+    "Echo zdradza obecność większej sali.",
+    "Ciemne kąty przesłaniają dalszy widok.",
+    "Ściany są naznaczone pradawnymi pęknięciami.",
+    "Nad wejściem wisi skruszony znak ostrzegawczy.",
+    "Za kolejnym zakrętem czuć niepokojącą obecność.",
+    "To ostatnia komnata piętra, w której czai się strażnik.",
+)
+
 for floor, (zone, room_name, desc) in enumerate(_cat_names, 1):
     rooms = _v0900_grid(f"catacomb_f{floor}", zone, 4, 6, room_name, desc, v0900_catacomb=True, v0900_floor=floor)
+    for index, rid in enumerate(rooms):
+        chamber = _CATACOMB_CHAMBERS_V1265[floor - 1][index]
+        catalog_set_path("ROOMS", ROOMS, (rid, "name"), f"Katakumby, piętro {floor}: {chamber}")
+        catalog_set_path("ROOMS", ROOMS, (rid, "desc"),
+                         f"{zone}. Piętro {floor} z 3. {desc} {_CATACOMB_DETAILS_V1265[index]}")
     CATACOMB_LEVELS_V0900[floor] = tuple(rooms)
     if floor == 1:
         direction = _v0900_first_free_direction("temple_basement_deep_nest", ("down",))
@@ -397,7 +476,7 @@ for city_index, city in enumerate(_city_names, 1):
 # ===========================================================================
 HELP_TOPICS.setdefault("katakumby", []).extend([
     "Katakumby pod Piwnicą zaczynają się w Głębokim Gnieździe Piwnicy Świątyni.",
-    "Mają 3 poziomy po 24 pomieszczenia: Górne Katakumby, Katakumby Plugastwa i Gniazdo Pod Kośćmi.",
+    "Mają 3 piętra po 24 różne komnaty: Górne Katakumby, Katakumby Plugastwa i Gniazdo Pod Kośćmi. Każda lokacja podaje numer piętra.",
     "Badacz Kael prowadzi sześcioczęściową linię zadań zakończoną bossem Król Gniazda.",
 ])
 HELP_TOPICS.setdefault("lochy archipelagu", []).extend([

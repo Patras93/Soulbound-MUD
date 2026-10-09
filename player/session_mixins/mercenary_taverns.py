@@ -265,6 +265,7 @@ class SessionMercenaryTavernsMixin:
         )
         from systems.mercenary_specialists_v1240 import (
             specialist_attack_v1240, specialist_support_on_strike_v1240,
+            mercenary_voice_v1270, mercenary_preferred_combo_v1270,
         )
         if not self.character or self.current_hp <= 0 or not mob or not mob.alive or mob.room_id != self.character.room_id:
             return
@@ -354,11 +355,14 @@ class SessionMercenaryTavernsMixin:
                     int(getattr(mob, 'combat_turn', 0) or 0))
                 specialist_technique = memory_move_v1250
                 memory_factor_v1250 = memory_effect_v1250(role, memory_idx_v1250, target_template)
+                # Preferred role pairs cooperate automatically; no micromanagement.
+                duo_name_v1270, duo_mult_v1270 = mercenary_preferred_combo_v1270(
+                    role, (other for other in roles if other != role))
                 # No arbitrary 42%, damage ceiling or downgrade for support roles.
                 power = max(1, int(power_base * max(1.0, float(spec["power"]))
                                    * mercenary_attack_multiplier(merc_level, tactic)
                                    * mercenary_combo_v1230(role, roles, MERCENARIES)
-                                   * specialist_factor * memory_factor_v1250))
+                                   * specialist_factor * memory_factor_v1250 * duo_mult_v1270))
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 power = await self.apply_boss_defense(mob, power)
                 # Same world-tier damage rule used by the owner's normal hits.
@@ -377,6 +381,13 @@ class SessionMercenaryTavernsMixin:
                 message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
                 if chain_reaction:
                     message += f" {chain_reaction}."
+                if duo_name_v1270 and int(getattr(mob, 'combat_turn', 0) or 0) % 4 == 0:
+                    message += f" Kombinacja: {duo_name_v1270}."
+                voice = mercenary_voice_v1270(
+                    role, int(getattr(mob, 'combat_turn', 0) or 0),
+                    chain_reaction, major_threat)
+                if voice:
+                    message += f" {name}: {voice}"
                 # Protection/healing can support an attack rather than costing
                 # an additional damage turn. Anti-heal is always respected.
                 support_text = specialist_support_on_strike_v1240(

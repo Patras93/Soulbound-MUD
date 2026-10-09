@@ -342,6 +342,15 @@ class SessionPerceptionMapsMixin:
                 f"{room['name']}. Strefa: {room['zone']}."
             )
             await self.send(room["desc"])
+            from systems.adventure_codex_v1270 import dungeon_floor_event_v1270
+            from core.mines_threat import crypt_floor_number, mythic_crypt_floor_number
+            _crypt_floor_v1270 = crypt_floor_number(self.character.room_id)
+            _mythic_floor_v1270 = mythic_crypt_floor_number(self.character.room_id)
+            _event_v1270 = dungeon_floor_event_v1270(
+                _mythic_floor_v1270 or _crypt_floor_v1270 or 0,
+                'Mityczna Krypta' if _mythic_floor_v1270 else 'Krypta')
+            if _event_v1270:
+                await self.send('ODKRYCIE PIĘTRA: ' + _event_v1270)
             from core.mine_tunnels import mine_tunnel_coords, MINE_DIRECTION_LABELS
             mine_pos_v1251 = mine_tunnel_coords(self.character.room_id, self.account_id)
             if mine_pos_v1251:

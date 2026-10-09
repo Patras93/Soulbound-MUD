@@ -254,6 +254,15 @@ class SessionCombatRewardsMixin:
                     for session in recipients:
                         if mark_superboss_clear_v11135(session.server.db, session.account_id, _uoss_key):
                             _first_clear_sessions.append(session)
+                            if hasattr(session.server.db, 'add_server_chronicle_event_v03811'):
+                                session.server.db.add_server_chronicle_event_v03811(
+                                    'pierwszy_superboss',
+                                    f'{session.character.name} pokonał {template.get("name", _uoss_key)}!',
+                                    account_id=session.account_id,
+                                    actor_name=session.character.name,
+                                    subject_id=_uoss_key,
+                                    subject_name=template.get('name', _uoss_key), importance=4,
+                                    event_key=f'superboss:first:{session.account_id}:{_uoss_key}')
                         _personal = superboss_personal_reward_v11135(
                             session.server.db, session.account_id, _uoss_key
                         )

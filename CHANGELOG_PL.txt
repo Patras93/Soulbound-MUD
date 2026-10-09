@@ -1,3 +1,27 @@
+Aktualna paczka: v1.27.0 — BOSSOWIE, NAJEMNICY, PODZIEMIA I COSMIC RAVE V-MAX (2026-10-09)
+
+SOULBOUND v1.27.0
+- Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.
+- Cosmic Rave z aktywnym V-MAX: polski komunikat po serii z liczbą trafień, łącznymi obrażeniami i liczbą pokonanych. Zwykła wersja nie nazywa się V-MAX.
+- Imiona czterech Kwatermistrzów Kontraktów Legendarnych Wypraw, bez zmiany identyfikatorów NPC i kontraktów.
+- Najemnicy 7.0: charakterystyczne komentarze klasowe w walce bez ręcznego wydawania poleceń; zachowane pełne obrażenia i pamięć taktyk.
+- Kopalnia 5.0: opuszczone miasta, głębinowe królestwa, podziemne rzeki i olbrzymie jaskinie; deterministyczne współrzędne i trwały postęp.
+- Legendarny Bestiariusz: faktyczne żywioły po 3 pokonaniach, techniki po 8, mistrzostwo rozpoznania po 20.
+- Bossowie: indywidualne komunikaty faz dla opisanych rodzin bossów; nie zmieniono oryginalnych skryptów UOSS.
+- Profesje: legendarne połowy zapisują się w kronice; dotychczasowe odmiany surowców i jakość craftingu pozostają.
+- Lochy: opisowe odkrycia w nieskończonych piętrach, bez pułapek.
+- Zachowane logi awaryjnego uruchamiania Windows, Railway, SQLite i aktualne zapisy.
+- Raporty audytu pozostają POZA paczką gry.
+
+Aktualna paczka: v1.26.5 — NAZWY PIĘTER KRYPT I KATAKUMB (2026-10-09)
+
+SOULBOUND v1.26.5 — CZYTELNE PIĘTRA DLA NVDA
+- Krypta Nieskończona i Mityczna Krypta: nazwa lokacji wprost pokazuje numer piętra.
+- Katakumby pod Piwnicą: 72 odrębne, klimatyczne nazwy komnat na trzech piętrach, zamiast kolejnych numerowanych korytarzy.
+- Każda komnata katakumb podaje numer piętra i własny opis otoczenia.
+- Nie zmieniono identyfikatorów lokacji, układu przejść, bossów, zadań, łupów ani zapisów postaci.
+- Windowsowy launcher, awaryjne logi i predeploy zachowane.
+
 Aktualna paczka: v1.26.4 — OSTATECZNY AUDYT MATEMATYKI I BOSSÓW (2026-10-09)
 
 SOULBOUND v1.26.4 — BEZPIECZNA ARYTMETYKA NAJEMNIKÓW / AUDYT

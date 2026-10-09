@@ -262,6 +262,11 @@ class SessionGatheringActionsMixin:
                     self.account_id, "fish_record_updates", 1
                 )
             if fish_species_rarity(species_id) == "legendary":
+                if hasattr(self.server.db, 'add_server_chronicle_event_v03811'):
+                    self.server.db.add_server_chronicle_event_v03811(
+                        'rzadki_polow', f'{self.character.name} złowił legendarny okaz: {ITEMS[species_id]["name"]}.',
+                        account_id=self.account_id, actor_name=self.character.name,
+                        subject_id=species_id, subject_name=ITEMS[species_id]['name'], importance=3)
                 self.server.db.add_lifetime_stat(
                     self.account_id, "legendary_fish_caught", resource_quest_quantity
                 )
@@ -574,7 +579,7 @@ class SessionGatheringActionsMixin:
                             self.account_id,level,nx,ny,self.character.name)
                         if discovery['new']:
                             await self.send(f'ODKRYCIE KOPALNI: {geo["name"]}. {geo["description"]}')
-                        if discovery['global_first'] and geo['kind'] in ('rare_ore','vault','ruins','chamber'):
+                        if discovery['global_first'] and geo['kind'] in ('rare_ore','vault','ruins','chamber','lost_city','ancient_kingdom','giant_cavern'):
                             await self.send('LEGENDARNE ODKRYCIE: jako pierwszy odkrywasz tę komnatę!')
                             if hasattr(self.server.db,'add_server_chronicle_event_v03811'):
                                 self.server.db.add_server_chronicle_event_v03811(

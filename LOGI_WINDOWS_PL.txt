@@ -1,0 +1,34 @@
+SOULBOUND - WINDOWS: LOGI TAKZE W PRZYPADKU NIEUDANEGO STARTU
+
+1. Rozpakuj cala paczke gry do folderu, np. D:\Soulbound-MUD.
+2. Uruchom Start-Soulbound-Windows.bat; Python 3.12 lub nowszy jest wymagany.
+   Twoj Python 3.14 powinien zostac znaleziony przez py -3 lub python.
+3. W folderze gry pojawia sie podfolder logs:
+   logs\start.log    - proba uruchomienia, brak Pythona lub plikow, kod zakonczenia
+   logs\serwer.log   - wszystkie komunikaty serwera (stdout i stderr)
+   logs\bledy.log    - komunikaty bledow, wyjatki, fatalne problemy startu
+   logs\serwer.log.1 ... .5 i logs\bledy.log.1 ... .5 - rotowane kopie
+4. Gdy folder gry jest tylko do odczytu i nie mozna tam utworzyc logs,
+   launcher probuje uzyc %TEMP%\Soulbound-MUD-logs. Sciezka wyswietli sie w konsoli.
+5. Gdy brakuje Pythona, server.py lub host_windows.py lub start_windows_bootstrap.py, blad trafia do
+   start.log i bledy.log, o ile system pozwala zapisac pliki na dysku.
+   Wczesny blad przed uruchomieniem Pythona nie wymaga zadnych bibliotek.
+6. Gdy Python lub sam launcher sie wywali, zobacz start.log i bledy.log.
+   Guard start_windows_bootstrap.py zapisze traceback nawet przy bledzie skladni
+   host_windows.py, zanim ten zdazy zainicjowac wlasne logowanie.
+   Gdy uruchomil sie serwer i wystapil wyjatek, szczegoly sa w serwer.log
+   i w wiekszosci przypadkow takze bledy.log.
+7. Domyslny port: TCP 4000. Zmienne SOULBOUND_PORT, SOULBOUND_HOST,
+   SOULBOUND_DB pozwalaja zmienic port, adres i sciezke bazy.
+8. Serwer nie restartuje sie automatycznie po bledzie: najpierw zbierz logi.
+9. Przy migracji z Railway wykonaj osobna kopie bazy SQLite z Railway Volume.
+   Sam ZIP kodu gry NIE zawiera Twoich postaci, kopalni i najemnikow.
+   Nie nadpisuj obecnej bazy soulbound.db podczas kolejnych aktualizacji.
+10. Folder logs jest lokalny i NIE jest dodawany do paczki ZIP.
+    Logi moga zawierac dane uzytkownikow - nie publikuj ich bez sprawdzenia.
+
+Logowanie NIE zadziala, jesli system nie pozwala utworzyc zadnego pliku
+(np. pelny dysk, zablokowany dostep), albo gdy awaria nastapi, zanim
+Windows zdazy uruchomic skrypt BAT. Wtedy sprawdz komunikat w konsoli.
+Logi Windows nie sa logami Railway. Bledy build/deploy Railway sa
+widoczne osobno w panelu Railway -> Logs.

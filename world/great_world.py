@@ -304,6 +304,10 @@ V1210_EXPEDITIONS = (
     ("coral", "Pieśń Zatopionej Korony", "Strażnik Raf", "Królowa Bezdennych Mórz", "water", "Perła Głębokich Raf"),
     ("clock", "Ostatnia Godzina", "Mechaniczny Inkwizytor", "Wieczny Chronomanta", "arcane", "Zębatka Wieczności"),
 )
+V1270_QUARTERMASTERS = {
+    "aurora": "Kwatermistrzyni Arlena Świt", "thunder": "Kwatermistrz Borin Grom",
+    "coral": "Kwatermistrzyni Neris Fala", "clock": "Kwatermistrz Kael Zegar",
+}
 V1210_EXPEDITION_INDEX = {}
 V1210_REGISTERED = False
 
@@ -415,7 +419,7 @@ def v1210_register_expeditions():
             "dialogue":f"Poznałem dzieje wyprawy {title}. Wróć do Mistrza po dalsze zadania."
         },"NPCS",NPCS,(witness_id,))
         catalog_assign({
-            "name":f"Kwatermistrz Kontraktów {spec['name']}","room":rooms[2],
+            "name":V1270_QUARTERMASTERS[key],"room":rooms[2],
             "quest":bounty_id,
             "dialogue":"Przyjmuję odnawialne, godzinne kontrakty mistrzowskie na Szlaku Próby. "
                        "Ukończ je solo albo z drużyną i odbierz nagrodę tutaj."
@@ -441,7 +445,7 @@ def v1210_register_expeditions():
                 quest_data['requires_quest']=quest_ids[j-1]
             catalog_assign(quest_data,"QUESTS",QUESTS,(qid,))
         catalog_assign({
-            "name":f"Kontrakt mistrzowski: {title}","giver":f"Kwatermistrz Kontraktów {spec['name']}",
+            "name":f"Kontrakt mistrzowski: {title}","giver":V1270_QUARTERMASTERS[key],
             "kind":"kill","target":scout,"needed":7,
             "description":"Pokonaj 7 zwiadowców w Szlaku Próby. Odnowienie po godzinie.",
             "reward_gold":0,"reward_mithril":0,"reward_silver":stage*500,

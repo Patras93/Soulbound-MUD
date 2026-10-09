@@ -37,7 +37,9 @@ def boss_tactics_phase_v1230(mob, template, now=None):
     labels = ('', 'mobilizuje się i zmienia rytm ataku',
               'przechodzi do kontrataku i wzmacnia ofensywę',
               'walczy desperacko i uderza ze zdwojoną determinacją')
-    return f"{template.get('name', 'Boss')}: FAZA {target_stage}/3 — {labels[target_stage]}."
+    from systems.adventure_codex_v1270 import boss_phase_identity_v1270
+    unique = boss_phase_identity_v1270(template, target_stage)
+    return f"{template.get('name', 'Boss')}: FAZA {target_stage}/3 — {unique or labels[target_stage]}."
 
 
 def tactical_element_v1230(mob, template, current_profile=None):
@@ -53,11 +55,23 @@ def tactical_element_v1230(mob, template, current_profile=None):
         return current_profile
     if mob_element_affinities_v11339(template):
         return None  # Authored element choices win.
+    if any(template.get(flag) for flag in PROTECTED_FLAGS):
+        return None
     turn = max(0, int(getattr(mob, 'combat_turn', 0) or 0))
     if turn < 4 or turn % 4:
         return None
     digest = hashlib.sha256(str(mob.template_id).encode('utf-8')).digest()
     element = _ELEMENTS[(digest[0] + turn // 4) % len(_ELEMENTS)]
+    if any(template.get(flag) for flag in _BOSS_FLAGS):
+        name = str(template.get('name','')).casefold()
+        if 'dragon' in name or 'smok' in name:
+            element = 'fire'
+        elif 'nekrom' in name or 'lich' in name:
+            element = 'dark'
+        elif 'burz' in name or 'grom' in name:
+            element = 'lightning'
+        elif 'zorz' in name or 'świat' in name:
+            element = 'holy'
     spec = V11339_ELEMENT_ATTACKS[element]
     return {'element': element, 'label': V11339_ELEMENT_LABELS[element],
             'damage_multiplier': spec['damage_multiplier'],

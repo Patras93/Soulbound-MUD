@@ -5,7 +5,7 @@ v1.14.3 rules:
 - no floor/level digits in mob display names;
 - no duplicated adjacent words;
 - no stacked procedural rank noise;
-- ordinary runtime mob names are kept to at most three readable words;
+- authored creature identities stay intact (including four-or-more-word names);
 - NEMESIS marker remains deliberate and may use its em-dash presentation.
 """
 from __future__ import annotations
@@ -63,12 +63,9 @@ def clean_mob_display_name_v1142(name: str) -> str:
         words = [w for i, w in enumerate(words) if i == keep or i not in rank_positions]
         words = _dedupe_adjacent(words)
 
-    if len(words) > 3:
-        # Preserve a rank when present, then the two most identity-bearing tail words.
-        rank = next((w for w in words if w.casefold() in _RANK_WORDS), None)
-        tail = words[-2:]
-        words = ([rank] if rank and rank.casefold() not in {x.casefold() for x in tail} else []) + tail
-        words = words[-3:]
+    # Do not truncate authored creature names to three words.  Otherwise
+    # "Szkielet w Stalowym Kirysie" loses "Szkielet", and names made unique
+    # by a procedural suffix can lose "Upiór" or another creature identity.
 
     return " ".join(words).strip() or "Przeciwnik"
 
@@ -137,20 +134,18 @@ def _unique_runtime_mob_names_v1143(mob_templates: dict) -> int:
 
         words = name.split()
         qualifier = _mob_qualifier_v1143(str(mob_id))
-        # Keep two identity-bearing words and one semantic variant marker.
-        identity = words[-2:] if len(words) >= 2 else words[-1:]
-        candidate_words = _dedupe_adjacent([qualifier] + identity)
-        candidate = " ".join(candidate_words[-3:]).strip()
+        # Keep the WHOLE creature identity while making duplicate variants
+        # unique. Never replace "Upiór Martwego Dzwonu" with "Martwego Dzwonu".
+        identity = words
+        candidate = " ".join(_dedupe_adjacent([qualifier] + identity)).strip()
         if candidate.casefold() in used:
             code = _mob_code_word_v1143(str(mob_id))
-            head = identity[-1:] if identity else ["Przeciwnik"]
-            candidate = " ".join(_dedupe_adjacent([qualifier] + head + [code])[-3:]).strip()
+            candidate = " ".join(_dedupe_adjacent([qualifier] + identity + [code])).strip()
         salt = 0
         while candidate.casefold() in used:
             salt += 1
             code = _mob_code_word_v1143(f"{mob_id}:{salt}")
-            head = identity[-1:] if identity else ["Przeciwnik"]
-            candidate = " ".join(_dedupe_adjacent([qualifier] + head + [code])[-3:]).strip()
+            candidate = " ".join(_dedupe_adjacent([qualifier] + identity + [code])).strip()
         template["name"] = candidate
         used.add(candidate.casefold())
         renamed += 1
@@ -172,7 +167,7 @@ def normalize_runtime_mob_names_v1142(mob_templates: dict) -> dict:
         after = clean_mob_display_name_v1142(before)
         if any(ch.isdigit() for ch in before) and not any(ch.isdigit() for ch in after):
             digits_removed += 1
-        if len(before_words) > 3 and len(after.split()) <= 3:
+        if len(before_words) > len(after.split()):
             long_removed += 1
         if any(a.casefold() == b.casefold() for a, b in zip(before_words, before_words[1:])):
             duplicate_removed += 1
@@ -181,7 +176,7 @@ def normalize_runtime_mob_names_v1142(mob_templates: dict) -> dict:
             changed += 1
     uniqueness_renamed = _unique_runtime_mob_names_v1143(mob_templates)
     return {
-        "version": "1.14.3",
+        "version": "1.27.0",
         "changed": changed,
         "digits_removed": digits_removed,
         "long_names_compacted": long_removed,
@@ -204,8 +199,6 @@ def audit_runtime_mob_names_v1142(mob_templates: dict) -> dict:
         if "NEMESIS" not in name.upper():
             if any(ch.isdigit() for ch in name):
                 errors.append(f"{mob_id}: digit in display name: {name}")
-            if len(name.split()) > 3:
-                errors.append(f"{mob_id}: overlong display name: {name}")
             words = name.split()
             if any(a.casefold() == b.casefold() for a, b in zip(words, words[1:])):
                 errors.append(f"{mob_id}: repeated word: {name}")

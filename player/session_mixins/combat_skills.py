@@ -1463,6 +1463,7 @@ class SessionCombatSkillsMixin:
                         # Source Base AP never enters damage. The authored Mec AoE core
                         # is driven by Soulbound stats/EQ/Soul Power + Skill Level + protocol.
                         base=0; total=0; defeated=[]; seen=set()
+                        _cosmic_hits_v1270=0
                         _mec_damage_type = self.offensive_skill_damage_type_v11190(skill)
                         mult=(
                             skill_power
@@ -1592,6 +1593,8 @@ class SessionCombatSkillsMixin:
                             )
                             note=(note or "")+_reaction_note_v11339
                             target.hp-=damage; total+=damage
+                            if special=="cosmic_rave" and vmax:
+                                _cosmic_hits_v1270+=1
                             _crit_note=" KRYTYK." if crit else ""
                             _vmax_note=" V-MAX." if special=="shoot_all" and vmax else ""
                             _flying_note=(
@@ -1609,7 +1612,14 @@ class SessionCombatSkillsMixin:
                             seen.add(helper_target.key)
                             defeated.append(helper_target)
                         await self.grant_skill_use_xp(skill)
-                        await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
+                        if special=="cosmic_rave" and vmax:
+                            await self.send(
+                                f"Atakujesz Cosmic Rave V-MAX: "
+                                f"{_cosmic_hits_v1270} trafień, zadajesz łącznie {total} obrażeń. "
+                                f"Pokonani: {len(defeated)}."
+                            )
+                        else:
+                            await self.send(f"{skill['name']}: łączne obrażenia {total}, pokonani {len(defeated)}.")
                         for target in defeated:
                             await self.mob_defeated(target)
                         if special=="dispose" and _dispose_feedback_self_damage:

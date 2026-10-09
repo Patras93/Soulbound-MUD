@@ -160,14 +160,15 @@ def crypt_floor_display_name(floor, mythic=False):
             "Krypta Bezimiennych", "Sala Sarkofagów", "Korytarz Kości",
         )
     title = titles[(max(1, int(floor)) - 1) % len(titles)]
-    return f"{title} {token}"
+    prefix = "Mityczna Krypta" if mythic else "Krypta"
+    return f"{prefix}, piętro {max(1, int(floor))}: {title} {token}"
 
 def crypt_subroom_display_name(label, floor, room_index, mythic=False):
     # 64 miejsc na piętro daje osobny, niepowtarzalny kod dla każdego pokoju.
     key = (max(1, int(floor)) - 1) * 64 + max(1, int(room_index))
     token = _crypt_unique_word(key)
     prefix = "Mityczna " if mythic and not str(label).startswith("Mityczna") else ""
-    return f"{prefix}{label} {token}"
+    return f"Piętro {max(1, int(floor))}: {prefix}{label} {token}"
 
 
 CRYPT_RARITIES = {

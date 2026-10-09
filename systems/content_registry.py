@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.26.4 - audyt matematyki i superbossów"
+LATEST_CHANGES_TITLE = "Soulbound v1.27.0 - Przygody, Najemnicy i Cosmic Rave V-MAX"
 LATEST_CHANGES = [
+    "v1.26.5: Nazwy Krypty pokazują numer piętra, 72 komnaty Katakumb mają odrębne nazwy i opisy, bez zmiany przejść, bossów i zapisów.",
     "v1.26.4: Audyt matematyki i superbossów. Zabezpieczono mnożniki obrażeń, pamięć najemników i DPS drużyny przed przepełnieniem przy bardzo dużych wartościach. Bez osłabienia postaci, bez zmian kopalni i zapisów.",
     "v1.26.3: HP przeciwników bez sztucznego sufitu 9 biliardów. Bezpieczne obliczanie przy ogromnym DPS, rosnące logarytmicznie nagrody i dokładny transfer HP po zmianie przeciwnika; moc graczy i najemników bez zmian.",
     "v1.26.2: Stabilizacja. STATY/STATUS nie powtarzają kosztownych odczytów EQ w obrębie jednej komendy. Zmiany pokazują ostatnie 20 linii, zmiany wszystkie — pełną historię. Poprawiono opis poziomu i EXP postaci. Dodatkowe testy obciążenia, bossów, auto-pętli i zapisów; bez zmiany obrażeń, nagród i logowania.",

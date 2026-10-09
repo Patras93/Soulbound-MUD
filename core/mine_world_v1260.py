@@ -18,6 +18,10 @@ FEATURES = {
     'vault': ('Strzeżony skarbiec', 'Odkrywasz skarbiec, którego pilnuje podziemny strażnik.'),
     'rare_ore': ('Legendarna żyła minerałów', 'Kryształy nieznanego pochodzenia połyskują w ścianie.'),
     'rock': ('Kamienny chodnik', 'Zwykła skała. Mogą tu jednak przebiegać nowe żyły.'),
+    'lost_city': ('Opuszczone podziemne miasto', 'Słyszysz echo dawnych ulic i sal wykutych w skale.'),
+    'underground_river': ('Rzeka Bezgwiezdna', 'Podziemny nurt omija naturalne filary skalne.'),
+    'ancient_kingdom': ('Królestwo Głębin', 'Kamienne inskrypcje przypominają o nieznanej cywilizacji.'),
+    'giant_cavern': ('Jaskinia Tysiąca Ech', 'Przed tobą ogromna pieczara o własnym mikroklimacie.'),
 }
 
 def geology_v1260(floor, x, y):
@@ -33,6 +37,14 @@ def geology_v1260(floor, x, y):
         kind = 'rock'
     elif choice < 85 and floor >= 15 and distance >= 3:
         kind = 'vault'
+    elif floor >= 55 and distance >= 5 and 8500 <= choice < 8575:
+        kind = 'ancient_kingdom'
+    elif floor >= 35 and distance >= 4 and 8575 <= choice < 8700:
+        kind = 'lost_city'
+    elif floor >= 25 and distance >= 3 and 8700 <= choice < 8900:
+        kind = 'underground_river'
+    elif floor >= 20 and distance >= 3 and 8900 <= choice < 9130:
+        kind = 'giant_cavern'
     elif choice < 200 and floor >= 12:
         kind = 'rare_ore'
     elif choice < 540:
@@ -51,10 +63,10 @@ def geology_v1260(floor, x, y):
     richness = 1.0 + math.log1p(floor)/8.0 + math.log1p(distance)/5.0
     richness *= 1.0 + digest[4] / 255.0 * 0.22
     resource_bonus = {'rock':0, 'lake':0, 'cave':1, 'ore_vein':2,
-                      'ruins':2, 'chamber':3, 'vault':4, 'rare_ore':5}[kind]
+                      'ruins':2, 'chamber':3, 'vault':4, 'rare_ore':5, 'lost_city':4, 'underground_river':2, 'ancient_kingdom':6, 'giant_cavern':3}[kind]
     reward = max(1, int((floor + distance + 10) * richness *
                         {'rock':.5,'lake':.5,'cave':1,'ore_vein':1.3,
-                         'ruins':2.2,'chamber':3,'vault':8,'rare_ore':4.5}[kind]))
+                         'ruins':2.2,'chamber':3,'vault':8,'rare_ore':4.5,'lost_city':5,'underground_river':2,'ancient_kingdom':9,'giant_cavern':3}[kind]))
     return {'kind':kind, 'name':FEATURES[kind][0], 'description':FEATURES[kind][1],
             'floor':floor, 'x':x, 'y':y, 'distance':distance,
             'richness':richness, 'bonus_quantity':resource_bonus,
@@ -99,7 +111,7 @@ def mine_map_lines_v1260(cells, floor, start, max_rooms=40):
 
 def discovery_mineral_reward_v1260(geo):
     """Award a real, authored ore (usable/sellable in existing professions)."""
-    if geo['kind'] not in ('vault','rare_ore','chamber','ruins'):
+    if geo['kind'] not in ('vault','rare_ore','chamber','ruins','lost_city','ancient_kingdom','giant_cavern'):
         return None
     floor=int(geo['floor']); distance=int(geo['distance'])
     grade=floor + distance // 4
