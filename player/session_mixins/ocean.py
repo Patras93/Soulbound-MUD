@@ -50,7 +50,19 @@ class SessionOceanV1000Mixin:
 
     def ocean_ship_level_v1000(self, key):
         row = self.ocean_ship_row_v1000()
-        return int(row[key]) if key in ("hull", "sails", "cargo", "navigation") else 0
+        if key not in ("hull", "sails", "cargo", "navigation"):
+            return 0
+        base = int(row[key])
+        # v1.32.0: ship classes built in the port add capability, while
+        # preserving every Ocean 2.0 ship module and all voyage progress.
+        try:
+            self._econ_v1320()
+            extra = self.server.db.conn.execute(
+                "SELECT ship_class FROM shipyard_fleet_v1320 WHERE account_id=?",
+                (self.account_id,)).fetchone()
+            return base + (max(0, int(extra["ship_class"]) - 1) if extra else 0)
+        except (AttributeError, KeyError):
+            return base
 
     def ocean_port_name_v1000(self, room_id):
         for _key, (rid, label) in PORTS.items():
@@ -81,6 +93,21 @@ class SessionOceanV1000Mixin:
                 f"Rejsy {row['voyages']}, głębinowe połowy {row['deep_catches']}, skarby {row['treasures']}."
             )
             await self.send("Ulepszanie: statek ulepsz kadlub|zagle|ladownia|nawigacja.")
+            # Class-built vessels extend actual sailing capability without
+            # resetting modules or old voyages. Accessible plain-text report.
+            self._econ_v1320()
+            vessel=self.server.db.conn.execute(
+                "SELECT ship_class FROM shipyard_fleet_v1320 WHERE account_id=?",
+                (self.account_id,)).fetchone()
+            tier=int(vessel["ship_class"]) if vessel else 0
+            if tier:
+                await self.send(
+                    f"STOCZNIA: {('zwykły','bryg','fregata','galeon')[min(3,tier)]}. "
+                    f"Skuteczne kadłub {self.ocean_ship_level_v1000('hull')}, "
+                    f"żagle {self.ocean_ship_level_v1000('sails')}, "
+                    f"ładownia {self.ocean_ship_level_v1000('cargo')}, "
+                    f"nawigacja {self.ocean_ship_level_v1000('navigation')}."
+                )
             return
         if args in ("kup", "buy"):
             if owned:

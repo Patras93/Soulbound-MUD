@@ -60,6 +60,14 @@ class SessionGatheringActionsMixin:
             chance = min(0.005, 0.0008 + 0.000012 * min(int(tool_level), int(profession_level)))
             if random.random() >= chance:
                 return False
+            # v1.30.0: więcej różnorodności trofeów bez zwiększania częstości dropu.
+            variant_pool={
+                'fishing':('v12811_leviathan_pearl','v1300_ocean_fish'),
+                'mining':('v12811_worldheart_core','v1300_deep_ore','v1300_mystery_gem'),
+                'woodcutting':('v12811_eternal_timber','v1300_lost_wood'),
+                'herbalism':('v12811_phoenix_bloom','v1300_ancient_herb'),
+            }
+            item_id=random.choice(variant_pool.get(profession,(item_id,)))
             self.server.db.add_item(self.account_id, item_id, 1)
             await self.record_item_collection(item_id, source=f"Legendarne odkrycie: {profession}", announce=True)
             await self.send(f"O KURDE — WIELKIE ODKRYCIE! {ITEMS[item_id]['name']} x1. "

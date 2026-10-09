@@ -15,6 +15,13 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'ery': ('show_six_eras_v1310', (COMMAND_TEXT,), {}),
+    'dziedzictwo': ('soul_legacy_v1330', (COMMAND_TEXT,), {}),
+    'imperium': ('imperial_command_v1320', (COMMAND_TEXT,), {}),
+    'armia': ('army_command_v1320', (COMMAND_TEXT,), {}),
+    'oblezenie': ('siege_command_v1320', (COMMAND_TEXT,), {}),
+    'aukcja': ('auction_command_v1320', (COMMAND_TEXT,), {}),
+    'stocznia': ('shipyard_command_v1320', (COMMAND_TEXT,), {}),
     'classguild': ('show_guild', (COMMAND_TEXT,), {}),
     'guildquest': ('guild_class_quest', (COMMAND_TEXT,), {}),
     'guildexam': ('guild_exam', (COMMAND_TEXT,), {}),
@@ -399,6 +406,10 @@ GUIDE_SAFE_COMMANDS = {
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
 }
 
+DOWNED_SAFE_COMMANDS.add('ery')
+REST_SAFE_COMMANDS.add('ery')
+GUIDE_SAFE_COMMANDS.add('ery')
+
 for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     COMMAND_CATALOG.register_handler(
         _canonical, _handler, source="player/session_mixins/command_registry.py",
@@ -427,6 +438,11 @@ for _alias in ("resp", "respi", "respawn"):
     )
 for _alias in ("kryzys", "kryzysy", "duzewydarzenia", "worldcrises"):
     COMMAND_CATALOG.add_alias(_alias, "wielkiewydarzenia", source="player/session_mixins/command_registry.py")
+for _alias,_target in (('oblężenie','oblezenie'),('army','armia'),('auction','aukcja'),('shipyard','stocznia'),('empire','imperium')):
+    COMMAND_CATALOG.add_alias(_alias,_target,source='player/session_mixins/command_registry.py')
+for _alias in ('wielkieery', 'sixeras', 'sixeras1310'):
+    COMMAND_CATALOG.add_alias(_alias, 'ery', source='player/session_mixins/command_registry.py')
+
 for _canonical in DOWNED_SAFE_COMMANDS | REST_SAFE_COMMANDS | GUIDE_SAFE_COMMANDS:
     COMMAND_CATALOG.set_policy(
         _canonical,

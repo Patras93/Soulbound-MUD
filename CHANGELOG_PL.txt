@@ -1,3 +1,66 @@
+Soulbound v1.33.2 — Ewolucje Klas i Rada Starożytnych
+Aktualna paczka: v1.33.2 (2026-10-09)
+- Zróżnicowane efekty ewolucji skilli: ofensywa, leczenie, ochrona, automatyczne boosty i Regen; wykorzystanie już zapisanych poziomów.
+- Uniki, pasywki i narzędzia nadal mają swoje istniejące mechaniki; nie dodajemy sztucznych cooldownów ani losowych efektów.
+- Wspólna arena dwóch Starożytnych: razem angażują się do walki, leczą partnera co cztery akcje i wykonują wzmocnione uderzenia co pięć akcji.
+- Sanktuarium Smoka Korony Burz: wschód, potem północ. Pozostałe areny i bossowie UOSS bez zmian.
+- Brak Generator Core. Bez migracji bazy, zmian progów EXP ani zapisów graczy.
+
+Soulbound v1.33.0 — Potęga Dusz i Starożytnych
+Aktualna paczka: v1.33.0 — Potęga Dusz i Starożytnych (2026-10-09)
+- Skille: trzy automatyczne ewolucje przy Skill Level i Soul Level >=100, 300 i 600; dodatkowa moc +4/+8/+12 procent w kanonicznej formule skilli. Wszystkie poznane skille zachowane.
+- Broń Duszy: rezonans +2/+4/+6 procent zwykłego ataku od Soul Weapon Mastery 150/350/600. Bez zmian EXP, limitu i szybkości walki.
+- Czterej Starożytni Sześciu Er: fazy i indywidualna rotacja żywiołów; specjalne Echa oraz Rozdarcia w ich kontratakach. Przywołanie dotychczasowych realnych pomocników pozostaje bez limitu.
+- Komendy dziedzictwo / dziedzictwo skille / dziedzictwo starozytni; czytelny dla NVDA opis postępu i wymagań.
+- Bez Generator Core, bez migracji SQLite i bez zmian starych rekordów postaci. Mechaniki superbossów UOSS pozostają odrębne.
+
+Soulbound v1.32.1 — Wielkie Oblężenia, Licytacje i Flota
+Aktualna paczka: v1.32.1 — Wielkie Oblężenia, Licytacje i Flota (2026-10-09)
+- Trzy etapy strategicznych oblężeń: brama, dziedziniec, cytadela. Decyzje rozkazów: natarcie, ostrzał, magia i osłona; rzeczywiste straty jednostek; kontrola terenu i przerwy po bitwie.
+- Stara składnia komendy oblężenia pozostaje dostępna, ale rozpoczyna kampanię strategiczną zamiast automatycznego zdobycia twierdzy.
+- Licytacje czasowe 1/6/12/24/48 h: bezpieczny depozyt przedmiotów i pieniędzy, minimalne przebicie oferty, zwroty przez aukcja odbierz, zakończenie przez aukcja rozlicz.
+- Stocznia: dowolna liczba zbudowanych statków, aktywny statek wybierany w porcie, nazwy okrętów, osobny kadłub, żagle, ładownia i nawigacja; stary statek migrowany bez utraty rejsów.
+- SQLite: nowe tabele wyłącznie addytywne, przejrzyste komendy tekstowe dla NVDA. Brak Generator Core.
+- EXP i wymagania awansu, statystyki, najemnicy, zadania klasowe, skrzynie bossów i dotychczasowe postacie bez zmiany.
+
+Soulbound v1.32.0 — Prawdziwe Imperia i Gospodarka
+Aktualna paczka: v1.32.0 — Prawdziwe Imperia i Gospodarka (2026-10-09)
+- Armie gildii: rekrutowanie wojowników, łuczników i magów ze skarbca gildii.
+- Oblężenia czterech twierdz, utrata jednostek, czterogodzinne przegrupowanie; stan terenu zapisuje się w SQLite.
+- Mury twierdz: finansowane przez lidera zwycięskiej gildii, rosnąca obrona.
+- Aukcja między graczami: listowanie, kupowanie, anulowanie, depozyt przedmiotów i rozliczenie dla offline'owego sprzedawcy.
+- Stocznia 3.0: bryg, fregata i galeon; rzemieślnicze materiały i trwałe wzmocnienia starego statku Ocean 2.0.
+- Pomoc tekstowa imperium/armia/oblezenie/aukcja/stocznia. Transakcje i stan w dodatkowych tabelach.
+- Nie zmieniono EXP postaci, profesji, czasu łowienia, najemników, Generator Core ani zapisów istniejących kont.
+
+Soulbound v1.31.0 — SZEŚĆ ER (ROZSZERZENIE ŚWIATA)
+Aktualna paczka: v1.31.0 — SZEŚĆ ER (2026-10-09)
+==============================================================================
+- Era Imperiów: cztery szlaki twierdz, wojska i dowódcy, kontrakty oraz reputacja.
+- Wojna Wymiarów: trzy nowe krainy, własne walki i materiały.
+- Wielka Era Odkrywców: trzy wyspy z Portu Trzech Rejsów, sklepy i morskie bossy.
+- Świat Graczy: dzielnica handlowa; istniejące domy, gildie i handel bez resetu.
+- Przebudzenie Starożytnych: czterech nowych superbossów z fazami.
+- Dziedzictwo Dusz: 5-zadaniowa saga, nagroda Relikt Dziedzictwa Dusz.
+- Bez generator_core.py, bez zmiany istniejącego schematu zapisów i progów EXP.
+
+Soulbound v1.30.1 — KRAINA ORKÓW + BOSOWIE PRZYZYWAJĄ POMOCNIKÓW (2026-10-09)
+Aktualna paczka: v1.30.1 — KRAINA ORKÓW + PRZYZWANIA (2026-10-09)
+- Kraina Orków Gor-Khaz: 24 ręcznie opisane połączone lokacje, przejście z Zaginionego Kontynentu, kupcy, tawerna, NPC, questy, bossowie i material do legendarnej Korony Czterech Klanów.
+- Pierwszy strażnik pojawia się po rozpoczęciu walki z normalnym bossem, a kolejne fale po trzech jego akcjach; bez limitu liczby żywych przywołań.
+- Reset stanu przywołań po respawnie. Bez zmian niezależnych skryptów UOSS.
+- Bez zmian czasu Wędkarstwa i wymaganego XP profesji z v1.30.0. Generator Core nie wraca.
+
+Soulbound v1.30.0 — ERA PRZEBUDZENIA (2026-10-09)
+Aktualna paczka: v1.30.0 — ERA PRZEBUDZENIA (2026-10-09)
+- Trzy nowe ręcznie zaprojektowane krainy: 72 lokacje, 24 NPC, sklepy, tawerny, bossowie i zadania.
+- Wojny królestw rotujące co 3 godziny i reputacje; kontrakty i ceny zmieniane co 6 godzin.
+- Trzy superbossy, nowe trofea, trzy legendarne korony i saga krain.
+- Obozy ekspedycyjne przy każdym setnym piętrze w nieskończonych lochach, powstające leniwie.
+- Wymagania EXP Wędkarstwa x4; Drwalstwo/Zielarstwo x2,5; pozostałe profesje x2 (Górnictwo bez zmian).
+- Czas łowienia (minimum 3 sekundy) i zdobywane nagrody EXP pozostają bez zmian.
+- Generator Core nadal usunięty.
+
 Soulbound v1.28.12 — LEGENDARNI PRZECIWNICY, MIASTA POD KRYPTAMI, MISTRZOWSKIE RZEMIOSŁO, WYDARZENIA I KRONIKA (2026-10-09)
 
 - Cztery podziemne miasta, po siedem normalnych pokoi, wejścia na piętrach Krypt 50/100/200 i Mitycznej Krypty 100. Brak skrótów piętrowych i losowych pułapek.
@@ -106,7 +169,7 @@ Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
 - Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
 - Wydanie dla Railway i Windows, bez raportów audytu.
 
-Aktualna paczka: v1.28.12 — LEGENDY / MIASTA / ARCYDZIEŁA / WYDARZENIA / KRONIKA (2026-10-09)
+Poprzednia paczka: v1.28.12 — LEGENDY / MIASTA / ARCYDZIEŁA / WYDARZENIA / KRONIKA (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.
@@ -121,7 +184,7 @@ SOULBOUND v1.27.0
 - Zachowane logi awaryjnego uruchamiania Windows, Railway, SQLite i aktualne zapisy.
 - Raporty audytu pozostają POZA paczką gry.
 
-Aktualna paczka: v1.26.5 — NAZWY PIĘTER KRYPT I KATAKUMB (2026-10-09)
+Poprzednia paczka: v1.26.5 — NAZWY PIĘTER KRYPT I KATAKUMB (2026-10-09)
 
 SOULBOUND v1.26.5 — CZYTELNE PIĘTRA DLA NVDA
 - Krypta Nieskończona i Mityczna Krypta: nazwa lokacji wprost pokazuje numer piętra.

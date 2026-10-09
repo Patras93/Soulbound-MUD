@@ -14,7 +14,7 @@ _BOSS_MARKERS = (
 )
 
 
-def boss_companion_due_v1281(mob, template):
+def boss_companion_due_v1281(mob, template, opening=False):
     if not mob or not getattr(mob, "alive", False) or not getattr(mob, "engaged_by", None):
         return False
     if any(template.get(flag) for flag in (
@@ -29,7 +29,12 @@ def boss_companion_due_v1281(mob, template):
             or template.get('elite_legend_rank_v1250')):
         return False
     turn = int(getattr(mob, "combat_turn", 0) or 0)
-    return turn >= 4 and (turn - 4) % 7 == 0 and int(getattr(mob, "boss_last_summon_turn_v1281", -1)) != turn
+    if opening:
+        # First wave starts with combat: strong parties may kill before turn four.
+        return not bool(getattr(mob, 'boss_opening_summoned_v1301', False))
+    # More guardians every three enemy actions, with no cap on live summons.
+    return (turn >= 3 and turn % 3 == 0
+            and int(getattr(mob, "boss_last_summon_turn_v1281", -1)) != turn)
 
 
 def boss_guardian_identity_v1281(template):

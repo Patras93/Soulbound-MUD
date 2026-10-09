@@ -744,6 +744,27 @@ class World:
         self._last_refresh_at=0.0
         return True
 
+    def _ensure_awakening_war_event_v1300(self, room_id):
+        from systems.era_awakening_v1300 import active_kingdom_war_v1300
+        event=active_kingdom_war_v1300()
+        if event['room_id'] != str(room_id):
+            return False
+        key=f"v1300:war:{event['slot']}:{event['region']}"
+        if key in self.mobs:
+            return True
+        template_id=event['template_id']
+        if template_id not in MOB_TEMPLATES:
+            return False
+        v0190_apply_combat_template(MOB_TEMPLATES[template_id])
+        mob=MobState(key=key,room_id=str(room_id),template_id=template_id,
+            hp=int(MOB_TEMPLATES[template_id]['max_hp']),home_room_id=str(room_id),
+            next_wander_at=event['expires_at'])
+        mob.v016_ephemeral=True
+        mob.v029_expires_at=event['expires_at']
+        self.mobs[key]=mob
+        self._last_refresh_at=0.0
+        return True
+
     def ensure_runtime_room(self, room_id):
         room_id = str(room_id or "")
         # Private, mined-out chambers are recreated deterministically after deploy.
@@ -798,6 +819,7 @@ class World:
                 self._register_runtime_spawn(room_id,guard_id)
             return True
         if room_id in ROOMS:
+            self._ensure_awakening_war_event_v1300(room_id)
             self._ensure_city_world_event_v12812(room_id)
             self._generatorize_runtime_room(room_id)
             # v1.19.3: generated secret chamber/archive have their own
@@ -935,6 +957,11 @@ class World:
         _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (created_room, "generated_on_demand"))
         from systems.underground_cities_v12812 import attach_city_v12812
         attach_city_v12812(created_room, ROOMS)
+        # Ręcznie zaprojektowany obóz przy co setnym faktycznym piętrze.
+        from systems.era_awakening_v1300 import attach_expedition_v1300
+        expedition_new_v1300 = []
+        attach_expedition_v1300(created_room, ROOMS, MOB_TEMPLATES, expedition_new_v1300)
+        spawns.extend(expedition_new_v1300)
         self._generatorize_runtime_room(created_room)
         # v0.10.0: każde dynamicznie tworzone piętro dostaje ten sam duży,
         # wielopokojowy układ co ręcznie przygotowana część instancji.
@@ -1002,6 +1029,9 @@ class World:
                     mob.engaged_by = None
                     mob.aoe_engaged_by = None
                     mob.combat_turn = 0
+                    mob.boss_opening_summoned_v1301 = False
+                    mob.boss_last_summon_turn_v1281 = -1
+                    mob.boss_add_seq_v1281 = 0
                     for field in (
                         "monster_ai_next_action_v1160", "monster_ai_empowered_until_v1160",
                         "monster_ai_guard_until_v1160", "monster_ai_summon_used_v1160",

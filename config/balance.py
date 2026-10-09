@@ -64,8 +64,24 @@ SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER = 3.0
 # instead of the previous ~15, without making loot/reward text feel smaller.
 STAT_XP_REQUIREMENT_MULTIPLIER = 4.0
 STAT_XP_REWARD_MULTIPLIER = 4.0
+# v1.30.0: tylko podniesienie progow XP, bez zmiany sekund ani dropu.
+# Szybkie lowienie (nawet 3s na polow) ma wyzszy prog, kazda inna
+# profesja dostaje dluzsza sciezke rozwoju. Postepy sa zachowane.
 PROFESSION_XP_REQUIREMENT_MULTIPLIERS = {
+    "Wędkarstwo": 4.0,
     "Górnictwo": 2.0,
+    "Drwalstwo": 2.5,
+    "Zielarstwo": 2.5,
+    "Kowalstwo": 2.0,
+    "Gotowanie": 2.0,
+    "Alchemia": 2.0,
+    "Jubilerstwo": 2.0,
+    "Krawiectwo": 2.0,
+    "Garbarstwo": 2.0,
+    "Stolarstwo": 2.0,
+    "Zaklinanie": 2.0,
+    "Archeologia": 2.0,
+    "Kartografia": 2.0,
 }
 TOOL_XP_REQUIREMENT_MULTIPLIERS = {
     "mining": 2.0,

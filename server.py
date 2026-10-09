@@ -46,6 +46,10 @@ from systems.underground_cities_v12812 import register_rewards_v12812, install_c
 from systems.equipment_crafting import SHOP_SELLERS
 register_rewards_v12812(ITEMS)
 install_cities_v12812(ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+from systems.era_awakening_v1300 import install_awakening_v1300
+install_awakening_v1300(ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+from systems.six_eras_v1310 import install_six_eras_v1310
+SIX_ERAS_V1310 = install_six_eras_v1310(ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 
 # v1.14.3: final runtime mob names are normalized only after every world
 # module/generator has registered its templates. This keeps NVDA output short

@@ -26,6 +26,8 @@ from systems.elite_variants import (
 )
 from systems.encounter_brain_v1230 import boss_tactics_phase_v1230, tactical_element_v1230, ordinary_tactics_v1230
 from systems.boss_companions_v1281 import boss_companion_due_v1281
+from systems.soul_ancients_v1330 import weapon_resonance_percent
+from systems.soul_evolutions_v1332 import council_allies
 from systems.monster_ecology_v1250 import ecology_turn_v1250, adaptive_skills_v1250, adaptive_defense_v1250, adaptive_cadence_v1250
 from systems.monster_ai import (
     monster_ai_plan_v1160, monster_ai_execute_v1160,
@@ -83,7 +85,49 @@ class SessionCombatRealtimeMixin:
                     return
                 if self.combat_task and not self.combat_task.done():
                     return
+                # Opening summons happen before the player's first realtime hit.
+                # This also covers skill/AoE engagements routed through this method.
+                if getattr(mob, 'engaged_by', None):
+                    await self.boss_summon_wave_v1301(mob, opening=True)
                 self.combat_task = asyncio.create_task(self.realtime_combat_loop())
+
+    async def boss_summon_wave_v1301(self, mob, opening=False):
+        """Spawn one real helper once at engagement, then unlimited regular waves."""
+        template = MOB_TEMPLATES.get(getattr(mob, 'template_id', ''), {})
+        if opening and getattr(mob, 'engaged_by', None):
+            # Shared arena: partners join before the player's first hit/skill.
+            for ally in council_allies(
+                self.server.world.room_mobs(mob.room_id), mob.room_id, mob
+            ):
+                if not getattr(ally, 'engaged_by', None):
+                    ally.engaged_by = mob.engaged_by
+                    ally.aoe_engaged_by = mob.engaged_by
+                    ally.engaged_at = time.monotonic()
+                    ally.combat_turn = 0
+                    ally.boss_opening_summoned_v1301 = False
+                    await self.server.party_combat_broadcast(
+                        self, f"Rada Starożytnych: {MOB_TEMPLATES[ally.template_id]['name']} dołącza do bitwy!",
+                        detail='essential',
+                    )
+        if not boss_companion_due_v1281(mob, template, opening=opening):
+            return False
+        # Mark the opening before any awaited broadcast (party-safe).
+        if opening:
+            mob.boss_opening_summoned_v1301 = True
+        add = self.server.world.spawn_boss_companion_v1281(mob)
+        if add is None:
+            if opening:
+                mob.boss_opening_summoned_v1301 = False
+            return False
+        mob.boss_last_summon_turn_v1281 = int(getattr(mob, 'combat_turn', 0) or 0)
+        await self.server.party_combat_broadcast(
+            self, f"{template.get('name', 'Boss')} przyzywa "
+            f"{MOB_TEMPLATES[add.template_id]['name']}!"
+            + (" Uzdrowiciel przywraca część HP bossa."
+               if MOB_TEMPLATES[add.template_id].get('boss_guardian_role_v12811') == 'uzdrowiciel' else ""),
+            detail='essential',
+        )
+        return True
 
     async def grant_soul_weapon_mastery_hit_xp(self, mob=None):
                 if (
@@ -264,7 +308,7 @@ class SessionCombatRealtimeMixin:
                 # supplies a canonical mastery modifier, do not fabricate one here.
                 # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
                 mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
-                damage = max(0, int(round(damage * (1.0 + mastery["damage_percent"] / 100.0))))
+                damage = max(0, int(round(damage * (1.0 + (mastery["damage_percent"] + weapon_resonance_percent(self.character.soul_weapon_mastery_level)) / 100.0))))
                 # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
                 # Broni Duszy. Nie modyfikują skilli ani spelli.
                 trait_totals = soul_weapon_trait_totals_v11193(self.character.soul_tier, self.character.class_name)
@@ -652,25 +696,9 @@ class SessionCombatRealtimeMixin:
                                         if _logic_expires_after_action:
                                             enemy_mob.v11196_logic_bomb_effects=set()
                                         continue
-                                # Every non-unique boss can call a distinct guardian.
-                                # This replaces one attack action and runs only once
-                                # for the owner, never once per party target.
-                                _boss_template_v1281 = MOB_TEMPLATES[enemy_mob.template_id]
-                                if boss_companion_due_v1281(enemy_mob, _boss_template_v1281) and not (
-                                    _logic_active and "silence" in _logic_effects
-                                ):
-                                    _guardian_v1281 = self.server.world.spawn_boss_companion_v1281(enemy_mob)
-                                    if _guardian_v1281:
-                                        enemy_mob.boss_last_summon_turn_v1281 = enemy_mob.combat_turn
-                                        await self.server.party_combat_broadcast(
-                                            self,
-                                            f"{_boss_template_v1281['name']} przyzywa "
-                                            f"{MOB_TEMPLATES[_guardian_v1281.template_id]['name']}!"
-                                            + (" Uzdrowiciel przywraca część HP bossa."
-                                               if MOB_TEMPLATES[_guardian_v1281.template_id].get("boss_guardian_role_v12811") == "uzdrowiciel"
-                                               else ""),
-                                            detail="essential",
-                                        )
+                                # Follow-up waves are real mobs with no alive-count limit.
+                                if not (_logic_active and "silence" in _logic_effects):
+                                    if await self.boss_summon_wave_v1301(enemy_mob):
                                         continue
                                 # AI support is one mob action, not a second attack
                                 # against every party member. Authored bosses are exempt.
@@ -1301,6 +1329,8 @@ class SessionCombatRealtimeMixin:
                     if not mob.engaged_by:
                         mob.engaged_by = self.character.name
                     mob.combat_turn = 0
+                    mob.boss_opening_summoned_v1301 = False
+                    mob.boss_last_summon_turn_v1281 = -1
                     mob.phase_stage = 0
                     mob.uoss_ability_announced_turn_v1145 = -1
                     # A fresh encounter cannot inherit last fight's helper debuffs.

@@ -37,6 +37,10 @@ from player.session_mixins.world_crises_v1220 import SessionWorldCrisesV1220Mixi
 from player.session_mixins.quality_of_life_v1180 import SessionQualityOfLifeV1180Mixin
 from player.session_mixins.upgrade_v1193 import SessionUpgradeV1193Mixin
 from player.session_mixins.great_world import SessionGreatWorldV1200Mixin
+from player.session_mixins.six_eras_v1310 import SessionSixErasV1310Mixin
+from player.session_mixins.soul_ancients_v1330 import SessionSoulAncientsV1330Mixin
+from player.session_mixins.imperial_economy_v1320 import SessionImperialEconomyV1320Mixin
+from player.session_mixins.imperial_economy_v1321 import SessionImperialEconomyV1321Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
 from player.session_mixins.item_protection_v1280 import SessionItemProtectionV1280Mixin
@@ -44,6 +48,7 @@ from player.session_mixins.password_recovery_v1222 import SessionPasswordRecover
 
 
 class Session(
+    SessionImperialEconomyV1321Mixin,
     SessionItemProtectionV1280Mixin,
     SessionCoreProgressionMixin,
     SessionIOAuthCharacterMixin,
@@ -81,6 +86,9 @@ class Session(
     SessionQualityOfLifeV1180Mixin,
     SessionUpgradeV1193Mixin,
     SessionGreatWorldV1200Mixin,
+    SessionSoulAncientsV1330Mixin,
+    SessionSixErasV1310Mixin,
+    SessionImperialEconomyV1320Mixin,
     SessionCommandRegistryMixin,
     SessionPasswordRecoveryV1222Mixin,
     SessionCommandLoopMixin

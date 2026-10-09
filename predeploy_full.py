@@ -21,6 +21,25 @@ def main():
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
         try:
+            from validation.era_awakening_v1300 import audit_awakening_v1300
+            _awakening = audit_awakening_v1300(server.ROOMS, server.NPCS, server.SHOPS,
+                server.MOB_TEMPLATES, server.MOB_SPAWNS, server.QUESTS, server.ITEMS)
+            print(f"ERA PRZEBUDZENIA v1.30.1: {_awakening['checks']} checks, "
+                  f"{_awakening['authored_rooms']} authored rooms, "
+                  f"{_awakening['error_count']} errors")
+            if _awakening['error_count']:
+                raise SystemExit('ERA PRZEBUDZENIA: ' + '; '.join(_awakening['errors'][:30]))
+            from validation.orc_boss_summon_v1301 import audit_orc_summons_v1301
+            _orc = audit_orc_summons_v1301(server.ROOMS, server.MOB_TEMPLATES, server.MOB_SPAWNS, server.NPCS, server.QUESTS)
+            print(f"ORC KINGDOM & SUMMONS v1.30.1: {_orc['checks']} checks, {_orc['error_count']} errors")
+            if _orc['error_count']:
+                raise SystemExit('ORC SUMMONS: ' + '; '.join(_orc['errors']))
+            from validation.six_eras_v1310 import audit_six_eras_v1310
+            _six = audit_six_eras_v1310(server.ROOMS, server.NPCS, server.SHOPS,
+                server.MOB_TEMPLATES, server.MOB_SPAWNS, server.QUESTS, server.ITEMS)
+            print(f'SIX ERAS v1.31.0: {_six["checks"]} checks, {_six["rooms"]} rooms, {_six["error_count"]} errors')
+            if _six['error_count']:
+                raise SystemExit('SIX ERAS: ' + '; '.join(_six['errors'][:25]))
             ns = vars(server)
             from validation.final_stability_v1203 import audit_final_stability_v1203
             _final = audit_final_stability_v1203()
@@ -490,6 +509,35 @@ def main():
                 print('CLASS QUEST CADENCE ERROR: ' + issue)
             if _class_quest_1289['error_count']:
                 raise SystemExit(1)
+
+            # v1.33.0: check resolved runtime templates and wired Session commands.
+            from systems.soul_ancients_v1330 import ANCIENT_STYLES, audit as _soul_audit
+            from player.session import Session as _SessionV1330
+            from player.session_mixins.command_registry import COMMAND_REGISTRY as _reg1330
+            _soul_audit()
+            assert _reg1330['dziedzictwo'][0] == 'soul_legacy_v1330'
+            assert callable(getattr(_SessionV1330, 'soul_legacy_v1330', None))
+            for _ancient_id in ANCIENT_STYLES:
+                _ancient_template = server.MOB_TEMPLATES.get(_ancient_id, {})
+                assert _ancient_template.get('ancient_avatar_v1330'), _ancient_id
+                assert _ancient_template.get('world_boss'), _ancient_id
+                assert any(mob_id == _ancient_id for _room, mob_id in server.MOB_SPAWNS), _ancient_id
+            print('SOUL AND ANCIENTS v1.33.0 RUNTIME: four Ancient bosses, command and skill rules PASS')
+            # Two separate Ancient entities share a true combat room.
+            from systems.soul_evolutions_v1332 import audit as _evo_audit, council_allies
+            _evo_audit()
+            _council='v1332_ancients_council_arena'
+            assert server.ROOMS[_council]['exits']['south']=='v1332_ancients_council_entry'
+            assert server.ROOMS['v1310_anc_sky_sanctum']['exits']['east']=='v1332_ancients_council_entry'
+            assert {tid for room,tid in server.MOB_SPAWNS if room==_council} == {
+                'v1310_anc_deep_boss','v1310_anc_sky_boss'
+            }
+            assert callable(getattr(_SessionV1330, 'boss_summon_wave_v1301', None))
+            assert callable(getattr(_SessionV1330, 'boss_attack_profile', None))
+            print('CLASS EVOLUTIONS / ANCIENT COUNCIL v1.33.2: authored shared arena and hooks PASS')
+            from validation.soul_council_v1332 import audit_council_combat_v1332
+            _council_runtime = audit_council_combat_v1332()
+            print(f"ANCIENT COUNCIL v1.33.2 REAL COMBAT: {_council_runtime['checks']} checks, 2 active bosses, true guardian and ally heal PASS")
 
             from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
             mob_names = audit_mob_display_names_v11129(server)

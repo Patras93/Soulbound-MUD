@@ -3996,3 +3996,23 @@ _xp_result_v1286 = _xp_audit_v1286()
 if not _xp_result_v1286["ok"]:
     raise RuntimeError("v1.28.6 dungeon XP contract: " + repr(_xp_result_v1286["failures"]))
 print("SOULBOUND v1.28.6 DUNGEON XP: recipient levels, rank bonus, world/UOSS guard PASS")
+
+# v1.32.1: real SQLite regression tests are a required Railway deploy contract.
+import unittest as _unittest_v1321
+from validation.regression_imperial_v1321 import Imperial1321Tests as _Imperial1321Tests
+_suite_v1321 = _unittest_v1321.defaultTestLoader.loadTestsFromTestCase(_Imperial1321Tests)
+_result_v1321 = _unittest_v1321.TextTestRunner(verbosity=0).run(_suite_v1321)
+if not _result_v1321.wasSuccessful():
+    raise RuntimeError('Soulbound v1.32.1: failed real SQLite auction/siege/fleet regression tests')
+print('IMPERIAL v1.32.1: 9 transaction, siege and fleet tests PASS')
+
+# v1.33.0: Soul evolution and four Ancient styles are deterministic and
+# require no migrations. Keep their thresholds as an explicit deploy contract.
+from systems.soul_ancients_v1330 import audit as _audit_soul_1330
+_soul1330 = _audit_soul_1330()
+print(f'SOUL AND ANCIENTS v1.33.0 FAST PASS: {_soul1330}')
+
+# v1.33.2: compile-time integration checks for class roles and authored council.
+from systems.soul_evolutions_v1332 import audit as _audit_evo_1332
+_evo_1332 = _audit_evo_1332()
+print(f'CLASS EVOLUTIONS v1.33.2 FAST PASS: {_evo_1332}')

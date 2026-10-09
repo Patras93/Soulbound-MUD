@@ -373,8 +373,34 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.28.12 - LEGENDY, MIASTA, ARCYDZIELA, WYDARZENIA I KRONIKA"
+LATEST_CHANGES_TITLE = "Soulbound v1.33.2 - EWOLUCJE KLAS I RADA STAROŻYTNYCH"
 LATEST_CHANGES = [
+    'v1.33.2: ewolucje zależne od rodzaju skilla: obrażenia, leczenie, obszarówki, guard, regen i automatyczne boosty. Nie zmieniamy zapisów ani limitów.',
+    'Rada Starożytnych: wspólna arena Smoka Korony Burz i Olbrzyma Pierwszych Kuźni, pomoc sojusznika w walce, uzdrawianie i koordynowane ciosy.',
+    'Dojście: Sanktuarium Smoka, wschód, północ. Komenda dziedzictwo skille pokazuje specjalizację każdego poznanego skilla.', 
+    'v1.33.0: trzy automatyczne ewolucje poznanych skilli klasowych zależne od Skill Level i Soul Level, bez resetów postaci.',
+    'Broń Duszy: dodatkowy rezonans zwykłego ataku za biegłość 150/350/600, bez zmieniania XP lub szybkości ataku.',
+    'Czterej Starożytni: indywidualne rotacje żywiołów, Echo Pradawnych, Rozdarcie Starożytnych; realni pomocnicy bez limitu.',
+    'Komendy: dziedzictwo, dziedzictwo skille, dziedzictwo starozytni. Czytelne komunikaty pod NVDA.',
+
+    "v1.32.1: Wieloetapowe oblężenia twierdz: brama, dziedziniec, cytadela; taktyczne rozkazy i straty; stara komenda szybkiego oblężenia zachowana.",
+    "Licytacje czasowe z zabezpieczeniem ofert: 1/6/12/24/48 godzin. Przebite oferty zwracane do aukcja odbierz. Rozliczanie przenosi przedmiot i pieniądze atomowo.",
+    "Stocznia: flota wielu statków, własne poziomy modułów na każdym statku, nadawanie nazw i zmiana aktywnego statku w porcie. Zapis Ocean 2.0 zachowany.",
+    "v1.32.0: Armie gildii, oblężenia i mury zdobywanych twierdz, giełda aukcyjna z depozytem, statki bryg/fregata/galeon z własną stocznią.",
+    "Komendy: imperium, armia, oblezenie, aukcja, stocznia. Kupno i sprzedaż także offline; odbiór zapłaty przez aukcja odbierz.",
+    "Bez resetów kont, bez Generator Core, bez ruszania dotychczasowych poziomów, EXP i tras Ocean 2.0.",
+    "v1.31.0: Cztery imperia z twierdzami, trzy wymiary, trzy nowe wyspy, dzielnica graczy, cztery sanktuaria Starożytnych i pięć prób Dziedzictwa Dusz.",
+    "Nowe ręcznie opisane lokacje, NPC, sklepy, zadania z trwałym postępem, bossowie, materiały i Relikt Dziedzictwa Dusz. Bez resetu postaci.",
+    "Handel, domy i twierdze gildii nadal korzystają z istniejących komend i zapisów; nie ma Generator Core.",
+    "v1.30.1: Kraina Orków Gor-Khaz: 24 własne lokacje, NPC klanów, handel, tawerna, zadania, orcze patrole, arena, król i legendarne materiały.",
+    "Naprawa przywoływania: boss przyzywa pierwszego strażnika już po rozpoczęciu walki, potem co trzy akcje bez limitu liczby żywych pomocników.",
+    "Strażnicy po respawnie bossa są resetowani; specjalne skrypty superbossów UOSS działają niezależnie.",
+    "v1.30.0: Podziemne Królestwo, Podniebny Archipelag i Zaginiony Kontynent: 72 ręcznie opisane lokacje, sklepy, tawerny, NPC i bossowie.",
+    "Wojny: aktywny najazd co 3 godziny, walka i obrona miast zwiększają reputację frakcji i stolic.",
+    "Trzy nowe superbossy i strażnicy cytadel: mechaniki faz, pomocnicy i wyjątkowe materiały.",
+    "Profesje: wyższe wymagania XP (Wędkarstwo x4; pozostałe 2-2,5), bez zmiany czasu łowienia, narzędzi i zróżnicowanych nagród.",
+    "Trzy nowe korony z legendarnych materiałów; żywy rynek ma ceny kontraktów zmieniające się co 6 godzin.",
+    "Ekspedycje: obozy i strażnicy dokładani na żądanie co 100 pięter bez końca w kryptach, wieżach i Deep Dungeon.",
     "v1.28.12: 4 podziemne miasta z 7 połączonymi salami, działającą tawerną najemników, kupcem, kuźnią, archiwistą, powtarzalnym zadaniem i prawdziwym bossem.",
     "W archiwach: Kronika Podziemi — 6 powiązanych zadań przez krypty, wyspy, Ocean i kopalnię, finał z legendarnym medalionem.",
     "Legendarne i Mityczne zwykłe potwory mają własne techniki oraz bardzo rzadkie trofea w ciele.",
@@ -494,6 +520,11 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
+    "imperium": ["imperium — kontrolowane przez gildie twierdze i ich obrona.", "imperium mury <kod> potwierdz — lider rozbudowuje zdobyte mury ze skarbca."],
+    "armia": ["armia — siła i skład armii twojej gildii.", "armia rekrutuj <wojownik/lucznik/mag> <ilość> potwierdz — finansowanie ze skarbca; bez całkowitego limitu oddziałów."],
+    "oblezenie": ["oblezenie <kod> rozpocznij potwierdz — lider gildii rozpoczyna trzyetapową bitwę u bramy lub posterunku twierdzy.", "oblezenie <kod> status; oblezenie <kod> rozkaz natarcie/ostrzal/magia/oslona; oblezenie <kod> odwrot potwierdz.", "Brama sprzyja natarciu, dziedziniec ostrzałowi, cytadela magii. Do 24 rozkazów, utrata jednostek, odpoczynek 4 godziny.", "Stara komenda oblezenie <kod> potwierdz rozpoczyna teraz bitwę trzyetapową. Przejścia świata pozostają otwarte."],
+    "aukcja": ["aukcja — 30 najnowszych ofert kup teraz i licytacji. aukcja moje — twoje oferty.", "aukcja wystaw <przedmiot> <ilość> <cena> — cena stała; aukcja licytacja <przedmiot> <ilość> <cena startowa> <1/6/12/24/48 godzin> — licytacja czasowa.", "aukcja licytuj <nr> <kwota> — blokuje pieniądze w depozycie. aukcja rozlicz [nr] — zakończenie po upływie czasu.", "aukcja kup <nr>; aukcja anuluj <nr>; aukcja odbierz — wypłata, również zwrot przebitej oferty. Anulowanie licytacji możliwe tylko przed pierwszą ofertą.", "Chronione, przypisane i założone EQ nie może zostać sprzedane."],
+    "stocznia": ["stocznia lub stocznia flota — lista posiadanych statków, typów i osobnych modułów.", "stocznia buduj bryg/fregata/galeon potwierdz — kolejny statek we flocie (w porcie), z wykorzystaniem surowców.", "stocznia wybierz <nr> — zmiana aktywnego statku w porcie. stocznia nazwij <nr> <nazwa> — zmiana nazwy.", "Moduły kadłuba, żagli, ładowni i nawigacji pozostają przy każdym statku; dawne rejsy Ocean 2.0 nie są resetowane."],
     "historia": [
         "historia / history / lifetime - trwała Historia postaci zapisywana osobno dla każdego slotu postaci.",
         "Walka: zwycięstwa, wszystkie zabite moby, bossowie, rare moby i śmierci.",
@@ -2679,4 +2710,12 @@ for _alias, _topic in {
     'wydarzenia podziemi':'najazdy świata',
 }.items():
     HELP_TOPIC_ALIASES.setdefault(_alias, _topic)
+
+
+HELP_TOPICS['ery'] = [
+    'SZEŚĆ ER: ery imperia, ery wymiary, ery odkrywcy, ery gracze, ery starozytni, ery dusze.',
+    'Rozpocznij wyprawy bez teleportów: w grze działa normalny ruch po kierunkach.',
+    'Przy NPC wpisz quest list oraz quest przyjmij. Siedziby gildii: gildia siedziba, domy: house.',
+    'W nowych lokacjach dostępne są sklep, kontrakty, bossowie, artefakty i dalsze zadania.',
+]
 

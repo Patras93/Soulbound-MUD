@@ -13,6 +13,8 @@ from systems.party_synergies import (
     party_synergy2_apply_hit_v11339,
 )
 from systems.elemental_combat import skill_element_v11339
+from systems.soul_ancients_v1330 import evolution_power_multiplier
+from systems.soul_evolutions_v1332 import role_evolution
 from core.classes_skills import CLASS_SKILLS, effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import class_type_for_name, skill_power_multiplier
@@ -448,7 +450,21 @@ class SessionCombatSkillsMixin:
 
                 progress = self.server.db.skill_progress(self.account_id, skill["id"])
                 skill_level = int(progress["level"])
-                skill_power = skill_power_multiplier(skill_level)
+                # Three Soul evolutions are derived from already saved progress.
+                skill_power = skill_power_multiplier(skill_level) * evolution_power_multiplier(
+                    skill_level, self.character.soul_level
+                )
+                # Specializations respect existing skill kinds and targeting.
+                # v1.33.0 universal multiplier remains unchanged.
+                kind = skill["kind"]
+                role_channel = (
+                    "offense" if kind in ("damage", "aoe_damage", "execute", "drain")
+                    else "healing" if kind in ("heal", "group_heal")
+                    else "guard" if kind == "guard" else "none"
+                )
+                skill_power *= role_evolution(
+                    skill, skill_level, self.character.soul_level, role_channel
+                )
                 # v1.11.40: all ordinary class skills are cooldown-free.
                 # Only an explicitly marked mechanic cooldown may block reuse.
                 mechanic_lock = bool(skill.get("mechanic_cooldown"))
@@ -680,6 +696,12 @@ class SessionCombatSkillsMixin:
                             candidate.engaged_by = self.character.name
                             candidate.combat_turn = 0
                             candidate.player_hits = 0
+                            candidate.boss_opening_summoned_v1301 = False
+                            candidate.boss_last_summon_turn_v1281 = -1
+                        # AoE też może zabić natychmiast: wezwij strażnika
+                        # przed rozliczeniem obrażeń obszarowych.
+                        if candidate.engaged_by == self.character.name:
+                            await self.boss_summon_wave_v1301(candidate, opening=True)
                         # Każdy mob, który po AoE należy do naszego aggro, ma
                         # kontratakować niezależnie od głównego combat_mob_key.
                         if candidate.engaged_by == self.character.name:
@@ -2168,8 +2190,10 @@ class SessionCombatSkillsMixin:
                     # UOSS does not expose the exact cadence, HP/tick or seconds.
                     # Soulbound adaptation: small WILL-based pulse every 3 owner
                     # combat rounds, with 30->90 s duration from Skill Level 1->600.
-                    _regen_duration=self.regen_duration_seconds_v11196(skill_level)
-                    _regen_power=self.regen_tick_power_v11196(skill_level)
+                    _regen_duration=int(round(self.regen_duration_seconds_v11196(skill_level)
+                        * role_evolution(skill, skill_level, self.character.soul_level, "regen_duration")))
+                    _regen_power=int(round(self.regen_tick_power_v11196(skill_level)
+                        * role_evolution(skill, skill_level, self.character.soul_level, "regen_tick")))
                     target.active_skill_buffs["priest_regen"]={
                         "name":"Regen","boost":1.0,
                         "until":time.time()+_regen_duration,

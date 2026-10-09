@@ -180,6 +180,12 @@ class SessionQuestCommandsMixin:
                 )
 
             quest_coins=v0190_quest_currency_reward(q)
+            # v1.30.0: faktyczne sześciogodzinne zapotrzebowanie lokalnego rynku.
+            if q.get('v1300_market_contract'):
+                from systems.era_awakening_v1300 import market_factor_v1300
+                factor=market_factor_v1300(q['v1300_market_contract'],q.get('v1300_market_category','ore'))
+                quest_coins=max(1,int(quest_coins*factor))
+                await self.send(f'Popyt lokalnego rynku: x{factor:.3f}. Wypłata kontraktu: {quest_coins} srebra.')
             quest_bonus_coins_v11324 = quest_completion_bonus_v11324(
                 q, quest_coins, random.random()
             )

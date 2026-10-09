@@ -566,6 +566,8 @@ class SessionSkillQueueBuffsMixin:
                     authored = max(1.0, float(skill.get("boost", 1.0) or 1.0))
                     base_bonus = max(0.0, authored - 1.0)
                     scaled_bonus = base_bonus * (1.0 + min(1.0, level / float(SKILL_MAX_LEVEL)))
+                    from systems.soul_evolutions_v1332 import role_evolution
+                    scaled_bonus *= role_evolution(skill, level, self.character.soul_level, "passive_boost")
                     total_bonus += min(0.90, scaled_bonus)
             return 1.0 + total_bonus
 
@@ -762,7 +764,14 @@ class SessionSkillQueueBuffsMixin:
             progress_row=self.server.db.skill_progress(self.account_id,sid)
             level=max(1,min(SKILL_MAX_LEVEL,int(progress_row["level"])))
             progress=(level-1)/float(max(1,SKILL_MAX_LEVEL-1))
-            return 1.05 + 0.70*(progress ** 0.82)
+            from systems.soul_evolutions_v1332 import role_evolution
+            base = 1.05 + 0.70*(progress ** 0.82)
+            # The protocol is learned separately and only enhances its own
+            # mapped Mec abilities; it never leaks into other classes/branches.
+            passive_skill = self.skill_by_id(sid)
+            return 1.0 + (base - 1.0) * role_evolution(
+                passive_skill, level, self.character.soul_level, "protocol"
+            )
 
     def mec_branch_multiplier_v0319(self, branch, special=None):
             mult=1.0

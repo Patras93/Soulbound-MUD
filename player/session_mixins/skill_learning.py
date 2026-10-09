@@ -20,6 +20,8 @@ from core.progression_resources import (
 )
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import MOB_TEMPLATES, NPCS, QUESTS
+from systems.soul_ancients_v1330 import ancient_attack
+from systems.soul_evolutions_v1332 import council_allies
 from systems.equipment_crafting import GUILD_REPUTATION_MAX
 from world.economy_quests import v0863_is_boss_template
 
@@ -830,6 +832,11 @@ class SessionSkillLearningMixin:
                         mob.engaged_by = self.character.name
                     mob.combat_turn = 0
                     mob.player_hits = 0
+                    mob.boss_opening_summoned_v1301 = False
+                    mob.boss_last_summon_turn_v1281 = -1
+                # Skill openers can kill a boss before its first normal turn;
+                # the opening guardian must join before damage is applied.
+                await self.boss_summon_wave_v1301(mob, opening=True)
                 self.combat_mob_key = mob.key
                 await self.server.broadcast_room(
                     self.character.room_id,
@@ -999,7 +1006,12 @@ class SessionSkillLearningMixin:
             if not is_boss:
                 return 1.0
 
-            ratio = mob.hp / max(1, int(template.get("max_hp", 1)))
+            max_hp_for_phase = (
+                max(1, int(getattr(mob, "adaptive_max_hp_v11330", 0) or template.get("max_hp", 1)))
+                if template.get("ancient_avatar_v1330")
+                else max(1, int(template.get("max_hp", 1)))
+            )
+            ratio = mob.hp / max_hp_for_phase
             if ratio <= 0.25:
                 stage, mult = 3, 1.60
             elif ratio <= 0.50:
@@ -1009,6 +1021,9 @@ class SessionSkillLearningMixin:
             else:
                 stage, mult = 0, 1.0
 
+            if template.get("ancient_avatar_v1330"):
+                # Guardian role progression uses this encounter-local phase field.
+                mob.v1230_boss_phase = stage
             if stage > int(getattr(mob, "phase_stage", 0)):
                 mob.phase_stage = stage
                 await self.send(
@@ -1425,6 +1440,34 @@ class SessionSkillLearningMixin:
                     profile["defense_factor"], 0.82
                 )
 
+            # Authored ancient avatars exchange elemental techniques each phase.
+            # Their real guardians are spawned by the existing boss wave system.
+            if template.get('ancient_avatar_v1330'):
+                max_hp=max(1,int(getattr(mob,'adaptive_max_hp_v11330',0) or template.get('max_hp',1)))
+                ratio=max(0.0,float(mob.hp)/max_hp)
+                phase=3 if ratio<=.25 else 2 if ratio<=.50 else 1 if ratio<=.75 else 0
+                ancient=ancient_attack(mob.template_id,turn,phase)
+                if ancient:
+                    profile['damage_type']=ancient['damage_type']
+                    profile['damage_multiplier']*=ancient['damage_multiplier']
+                    profile['defense_factor']=min(profile['defense_factor'],ancient['defense_factor'])
+                    profile['drain_pct']=max(profile['drain_pct'],ancient['drain_pct'])
+                    if ancient['special']:
+                        await self.send(f"{template['name']} używa {ancient['special']}! Żywioł: {ancient['element']}. Faza {phase+1}/4.")
+                # Ally support is scoped to the shared arena: no remote healing,
+                # no support from dead bosses, no effect on independent UOSS.
+                allies = council_allies(self.server.world.room_mobs(mob.room_id), mob.room_id, mob)
+                if allies and turn % 4 == 0:
+                    partner = min(allies, key=lambda m: m.hp / max(1, int(getattr(m,'adaptive_max_hp_v11330',0) or MOB_TEMPLATES[m.template_id]['max_hp'])))
+                    partner_max = max(1,int(getattr(partner,'adaptive_max_hp_v11330',0) or MOB_TEMPLATES[partner.template_id]['max_hp']))
+                    amount = max(1,int(partner_max * .03))
+                    healed = max(0,min(amount, partner_max - partner.hp))
+                    if healed:
+                        partner.hp += healed
+                        await self.send(f"RADA STAROŻYTNYCH: {template['name']} uzdrawia {MOB_TEMPLATES[partner.template_id]['name']} za {healed} HP.")
+                if allies and turn % 5 == 0:
+                    profile['damage_multiplier'] *= 1.12
+                    await self.send(f"RADA STAROŻYTNYCH: {template['name']} wykonuje wspólny atak z sojusznikiem!")
             return profile
 
     async def mec_intercept_incoming_attack_v11196(self, mob):

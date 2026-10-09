@@ -52,7 +52,7 @@ def tavern_here(room_id):
     # recruitment, without duplicating the historical hourly NPC catalogs.
     from data.catalogs import ROOMS
     room = ROOMS.get(str(room_id), {})
-    return bool(room.get('v12812_underground_city') and str(room_id).endswith('_tavern'))
+    return bool((room.get('v12812_underground_city') or room.get('v1300_region') or room.get('v1310_campaign')) and str(room_id).endswith('_tavern'))
 
 
 def price_silver(character, role):
