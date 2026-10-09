@@ -438,7 +438,7 @@ def boss_floor_chest_room_id(kind, floor):
 
     # Self-heal already-expanded floors without the new marker (e.g. loaded
     # from a historical runtime map). All subrooms carry numeric position.
-    if canonical.get('v0100_instance_kind') == kind:
+    if canonical and f'{fallback}_r01' in ROOMS:
         best = ''
         for index in range(1, 100):
             candidate_id = f'{fallback}_r{index:02d}'

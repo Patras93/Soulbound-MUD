@@ -1,3 +1,10 @@
+Soulbound v1.28.8 — SKRZYNIE W KOMNACIE BOSSA, KLUCZE Z CIAŁA (2026-10-09)
+- Skrzynia stoi w dokładnej komnacie bossa już przed walką. Klucz pozostaje gwarantowany na ciele zabitego bossa; nie pojawia się automatycznie w ekwipunku.
+- Po otwarciu skrzynia znika dla odbiorcy, a po faktycznym odrodzeniu bossa jest znowu widoczna przed kolejną walką.
+- Naprawiono trwałe ukrycie skrzyń przez historyczny znacznik odebranej nagrody po odrodzeniu bossa lub restarcie świata. Wykorzystano dotychczasową datę otwarcia w SQLite, bez migracji.
+- Starsze dynamiczne piętra potrafią odtworzyć miejsce skrzyni nawet bez nowszego znacznika pokoju bossa.
+- Bez zmian w EXP, balansie potworów, najemnikach, łupach, danych postaci i bez Generator Core.
+
 Soulbound v1.28.7 — SCORE 800 / AKTUALNE OPISY POSTACI (2026-10-09)
 - Poprawiono końcowy komunikat score: rzeczywista progresja do 800 zamiast historycznego 1-600 i wzmianki o usuniętym Generator Core.
 - Poprawiono dusza info i teksty pomocy podstawy, score, level, xp oraz dusza; limity pobierane z istniejących stałych w komendach.
@@ -66,7 +73,7 @@ Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
 - Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
 - Wydanie dla Railway i Windows, bez raportów audytu.
 
-Aktualna paczka: v1.28.7 — SCORE 800, BEZ GENERATOR CORE (2026-10-09)
+Aktualna paczka: v1.28.8 — SKRZYNIE BOSSA / KLUCZ Z CIAŁA (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.

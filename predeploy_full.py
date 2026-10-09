@@ -469,6 +469,17 @@ def main():
             if _chest_v1286['error_count']:
                 raise SystemExit(1)
 
+            # v1.28.8: smoke the actual player-visible chest lifecycle and
+            # corpse key, which room-only tests missed in earlier releases.
+            from validation.chest_cycle_v1288 import check_chest_lifecycle_v1288
+            _cycle_v1288 = check_chest_lifecycle_v1288(ns, audit_world, expected_rooms)
+            print(f"BOSS CHEST LIFECYCLE v1.28.8: {_cycle_v1288['checks']} checks, "
+                  f"{_cycle_v1288['error_count']} errors")
+            for issue in _cycle_v1288['errors'][:50]:
+                print('BOSS CHEST CYCLE ERROR: ' + issue)
+            if _cycle_v1288['error_count']:
+                raise SystemExit(1)
+
             from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
             mob_names = audit_mob_display_names_v11129(server)
             print(

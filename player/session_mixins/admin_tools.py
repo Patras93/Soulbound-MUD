@@ -23,6 +23,24 @@ from network.protocol_gameplay_utils import (
     boss_floor_key_id,
 )
 
+def boss_chest_should_restore_v1288(opened_at, world_started, respawn_at, boss_alive):
+    """A spent chest returns only when the checkpoint boss has returned.
+
+    `opened_at` comes from the EXISTING collection_codex.discovered_at UTC
+    column. No database migration or extra per-player state is needed.
+    """
+    if not boss_alive:
+        return False
+    try:
+        opened_at = float(opened_at)
+        cycle_start = max(float(world_started or 0), float(respawn_at or 0))
+    except (TypeError, ValueError, OverflowError):
+        return False
+    # SQLite timestamps have one-second precision. Avoid false new cycles if
+    # someone opens the chest immediately after boss resurrection.
+    return opened_at + 1.5 < cycle_start
+
+
 class SessionAdminToolsMixin:
 
     def is_admin(self):
@@ -225,7 +243,38 @@ class SessionAdminToolsMixin:
                 self.account_id, BOSS_CHEST_OPENED_CATEGORY_V11332
             )
             if opened:
-                return None
+                # v1.28.8: Previously opened chest markers lived forever if a
+                # player came back AFTER the boss had respawned. The chest
+                # should already stand beside the living boss; the new key
+                # still drops only from that boss's corpse on death.
+                from world.magitek_infinite import boss_floor_identity
+                boss = next(
+                    (mob for mob in self.server.world.room_mobs(self.character.room_id)
+                     if boss_floor_identity(MOB_TEMPLATES.get(mob.template_id, {})) == (kind, floor)),
+                    None,
+                )
+                if boss is not None:
+                    marked_at = self.server.db.collection_entry_discovered_at(
+                        self.account_id, BOSS_CHEST_OPENED_CATEGORY_V11332, state_id
+                    )
+                    try:
+                        opened_at = datetime.fromisoformat(str(marked_at).replace(' ', 'T')).replace(
+                            tzinfo=timezone.utc
+                        ).timestamp() if marked_at else 0
+                    except (TypeError, ValueError, OverflowError):
+                        opened_at = 0
+                    if boss_chest_should_restore_v1288(
+                        opened_at,
+                        getattr(self.server.world, 'boss_chest_world_started_v1288', 0),
+                        getattr(boss, 'respawn_at', 0),
+                        getattr(boss, 'alive', False),
+                    ):
+                        self.server.db.remove_collection_entry(
+                            self.account_id, BOSS_CHEST_OPENED_CATEGORY_V11332, state_id
+                        )
+                        opened = False
+                if opened:
+                    return None
 
             # Skrzynia fizycznie stoi w dokładnym pokoju bossa od razu.
             # Klucz nadal wypada dopiero z ciała bossa i unlock bez klucza

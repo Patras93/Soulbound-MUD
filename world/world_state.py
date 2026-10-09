@@ -131,6 +131,8 @@ class World:
         self.corpses = {}
         self.corpse_counter = 0
         self.treasure_chest_opened_at = {}
+        # Boss chest visibility can recover after an actual boss respawn or restart.
+        self.boss_chest_world_started_v1288 = time.time()
         # v0.71.5: repeated combat/command paths used to rescan the entire
         # world several times per command.  Keep a tiny freshness window; the
         # dedicated wander loop still forces a refresh every five seconds.

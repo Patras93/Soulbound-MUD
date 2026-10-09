@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.28.7 - SCORE i opisy poziomów 800"
+LATEST_CHANGES_TITLE = "Soulbound v1.28.8 - SKRZYNIE W KOMNACIE BOSSA I KLUCZE NA CIELE"
 LATEST_CHANGES = [
+    "v1.28.8: Skrzynia stoi w komnacie żywego bossa, klucz wypada dopiero z jego ciała po zabiciu.",
+    "Po otwarciu skrzynia znika; wraca, gdy boss naprawdę się odrodzi. Naprawiono też starsze piętra bez znacznika pokoju.",
     "v1.28.7: SCORE nie pokazuje już fałszywej progresji 1-600 ani nieistniejącego Generator Core; potwierdza limity 800.",
     "Zaktualizowano dusza info i pomoc podstawy / score / level / xp / dusza. EXP, skalowanie i skrzynie z v1.28.6 bez zmian.",
     "v1.28.6: Naprawiono skrzynie checkpointów w Kryptach, Mitycznych Kryptach i pozostałych piętrowych lochach: tylko komnata bossa, bez cofania do lądowania.",
