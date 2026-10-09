@@ -115,10 +115,23 @@ async def _run_with_deferred_kill_commits_v11125(session, callback, *args, **kwa
 
 
 def deferred_kill_commits_v11125(callback):
-    async def wrapped(self, *args, **kwargs):
-        return await _run_with_deferred_kill_commits_v11125(
-            self, callback, *args, **kwargs
-        )
+    async def wrapped(self, mob, *args, **kwargs):
+        # v1.40.0: kill events can converge from AoE, realtime attacks and
+        # mercenary hits in the same asyncio loop. Claim the MobState BEFORE
+        # the first await, otherwise two callbacks may award the same kill.
+        # No permanent lock: a failed callback can be retried, and respawning
+        # bosses keep their normal reward flow on their next real death.
+        if mob is None or not getattr(mob, "alive", False):
+            return None
+        if getattr(mob, "v1400_kill_in_progress", False):
+            return None
+        mob.v1400_kill_in_progress = True
+        try:
+            return await _run_with_deferred_kill_commits_v11125(
+                self, callback, mob, *args, **kwargs
+            )
+        finally:
+            mob.v1400_kill_in_progress = False
     wrapped.__name__ = callback.__name__
     wrapped.__doc__ = callback.__doc__
     wrapped.__wrapped__ = callback

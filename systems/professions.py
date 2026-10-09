@@ -70,12 +70,12 @@ TOOL_TIER_NAMES["cartography_profession"]=_tool_names("Kompas Mierniczy")
 
 # Narzędzia - brak trwałości, jak we wszystkich profesjach Soulbound.
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
- "tailor_kit":{"name":"Zestaw Krawiecki","type":"tool","tool_type":"tailoring","price":1200,"currency":"silver","desc":"Igły, nici i nożyce do Krawiectwa. Level 1-600, 60 Tierów, bez trwałości."},
- "tanning_knife":{"name":"Nóż Garbarski","type":"tool","tool_type":"leatherworking","price":1200,"currency":"silver","desc":"Narzędzie Garbarstwa. Level 1-600, 60 Tierów, bez trwałości."},
- "carpenter_tools":{"name":"Narzędzia Ciesielskie","type":"tool","tool_type":"carpentry","price":1200,"currency":"silver","desc":"Dłuta, piła precyzyjna i hebel do Stolarstwa. Level 1-600, 60 Tierów, bez trwałości."},
- "runic_focus":{"name":"Fokus Runiczny","type":"tool","tool_type":"enchanting","price":1200,"currency":"silver","desc":"Fokus do trwałego zaklinania wyposażenia. Level 1-600, 60 Tierów, bez trwałości."},
- "archaeology_brush":{"name":"Pędzel Archeologa","type":"tool","tool_type":"archaeology","price":1200,"currency":"silver","desc":"Precyzyjne narzędzie do wykopalisk i oczyszczania reliktów. Archeologia 1-600, 60 Tierów, bez trwałości; kupowane tylko raz na postać."},
- "surveyor_compass":{"name":"Kompas Mierniczy","type":"tool","tool_type":"cartography_profession","price":1200,"currency":"silver","desc":"Kompas, kątomierz i przyrządy pomiarowe Kartografa. Kartografia 1-600, 60 Tierów, bez trwałości; kupowane tylko raz na postać."},
+ "tailor_kit":{"name":"Zestaw Krawiecki","type":"tool","tool_type":"tailoring","price":1200,"currency":"silver","desc":"Igły, nici i nożyce do Krawiectwa. Level 1-800, 80 Tierów, bez trwałości."},
+ "tanning_knife":{"name":"Nóż Garbarski","type":"tool","tool_type":"leatherworking","price":1200,"currency":"silver","desc":"Narzędzie Garbarstwa. Level 1-800, 80 Tierów, bez trwałości."},
+ "carpenter_tools":{"name":"Narzędzia Ciesielskie","type":"tool","tool_type":"carpentry","price":1200,"currency":"silver","desc":"Dłuta, piła precyzyjna i hebel do Stolarstwa. Level 1-800, 80 Tierów, bez trwałości."},
+ "runic_focus":{"name":"Fokus Runiczny","type":"tool","tool_type":"enchanting","price":1200,"currency":"silver","desc":"Fokus do trwałego zaklinania wyposażenia. Level 1-800, 80 Tierów, bez trwałości."},
+ "archaeology_brush":{"name":"Pędzel Archeologa","type":"tool","tool_type":"archaeology","price":1200,"currency":"silver","desc":"Precyzyjne narzędzie do wykopalisk i oczyszczania reliktów. Archeologia 1-800, 80 Tierów, bez trwałości; kupowane tylko raz na postać."},
+ "surveyor_compass":{"name":"Kompas Mierniczy","type":"tool","tool_type":"cartography_profession","price":1200,"currency":"silver","desc":"Kompas, kątomierz i przyrządy pomiarowe Kartografa. Kartografia 1-800, 80 Tierów, bez trwałości; kupowane tylko raz na postać."},
  "v1100_map_fragment":{"name":"Fragment Mapy Rubieży","type":"resource","price":None,"sell_silver":30,"desc":"Fragment szkicu terenowego znaleziony podczas prac kartograficznych."},
  "beast_hide":{"name":"Surowa Skóra Bestii","type":"resource","price":None,"sell_silver":20,"desc":"Skóra pozyskiwana z bestii. Podstawowy materiał Garbarstwa."},
  "tanned_hide":{"name":"Garbowana Skóra","type":"resource","price":None,"sell_silver":35,"desc":"Oczyszczona skóra do pancerzy, pasów i naramienników."},

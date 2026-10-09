@@ -208,7 +208,11 @@ def take_payout(conn, account, current_coins):
 def fort_strength(conn, fort):
     row=conn.execute('SELECT clan_id,walls FROM empire_forts_v1320 WHERE fort=?',(fort,)).fetchone()
     strength=FORTS[fort][2]
-    return strength + (int(row['walls'])-1)*strength//5 if row else strength
+    defense=strength + (int(row['walls'])-1)*strength//5 if row else strength
+    if row:
+        from systems.living_empires_v1340 import garrison_strength
+        defense += garrison_strength(conn,fort)
+    return defense
 
 
 def troop_strength(conn, clan):

@@ -76,7 +76,7 @@ def v0290_event_for_room(room_id, now=None):
     return tuple(event for event in v0290_active_world_events(now) if event["room_id"] == room_id)
 
 HELP_TOPICS["dynamic_world_v029"] = [
-    "dynamiceventy pokazuje pięć godzinnych wydarzeń generowanych z aktualnego świata i etapów Generator Core.",
+    "dynamiceventy pokazuje cykliczne wydarzenia świata. Wydarzenia korzystają z istniejącego katalogu lokacji i potworów, bez Generator Core.",
     "Event może wygenerować Elite, Rare, czempiona albo proceduralnego World Bossa. Wszystkie są pasywne do chwili ataku.",
     "nemesis pokazuje przeciwnika, który ostatnio cię pokonał. Nemesis rośnie po kolejnych zwycięstwach nad tobą i czeka w miejscu ostatniej porażki.",
 ]

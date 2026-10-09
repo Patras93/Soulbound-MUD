@@ -373,8 +373,24 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.33.2 - EWOLUCJE KLAS I RADA STAROŻYTNYCH"
+LATEST_CHANGES_TITLE = "Soulbound v1.40.0 - STABILNOSC WALKI I NAGROD"
 LATEST_CHANGES = [
+    "v1.40.0: ochrona przed podwojnym rozliczeniem tego samego zabojstwa przy rownoleglym AoE, ataku i najemnikach; testy 24 pomocnikow, wygaszania i ponownego odrodzenia bossa.",
+    "Nowa bramka validation/v1400_combat_stability.py w predeploy; bez zmian nagrod EXP, obrazen, profesji i danych graczy.",
+    "v1.39.0: test 4 wirtualnych graczy, zapisow SQLite, profesji, ekwipunku i skalowania walki. Wyniki: validation/v1390_world_stress.py. Balans i zapisy bez zmian.",
+    "Poprawiono nieaktualne opisy narzędzi 1-600 / 60 Tierów na faktyczny zakres 1-800 / 80 Tierów oraz pomoc questów walki bez Generator Core.",
+    "v1.37.1: admin blad naprawiony/otworz ID, admin log aktywne/naprawione/podglad oraz czyszczenie wyłącznie oznaczonych błędów z potwierdzeniem.",
+    "Rejestr błędów SB w SQLite: migracja bez utraty historii, audyt działań admina, bez usuwania logów Railway i aktywnych zgłoszeń.",
+    "v1.37.0: 492 trwałe legendarne osiągnięcia. Retroaktywny postęp klas, profesji, postaci, Duszy, Broni Duszy, walki, odkryć, kontraktów i handlu.",
+    "Nagrody w postaci unikalnych tytułów, bez zwiększania EXP lub psucia ekonomii. Kronika postaci i osobne rekordy serwera. Stronicowanie pod NVDA.",
+    "Komendy: medale, medale rozwoj, klasy, profesje, wyczyny, brakujace, kronika postaci, rekordy, osiagniecia legendarne.",
+    "v1.36.0: Gospodarka 4.0. Karawany PvE ladowe i morskie, wielkie zamowienia rzemieslnicze, produkcja gildii i szescio-godzinne ceny kontraktow.",
+    "Transakcje SQLite: pobieranie materialow z ekwipunku i magazynow, wyplaty jednokrotne, bez podwojnego odbioru, bez resetow poziomow lub czasu lowienia.",
+    "Komendy: gospodarka pomoc, ceny, karawany, wyslij, transport, obron, odbierz, zamowienia, wykonaj, produkcja, rozbuduj, zbierz, rekordy.",
+    "v1.35.0: Ocean 4.0 - PvE flot, eskorty 2 okretow, starcia z korsarzami, blokada morska i 3 morskimi potworami.",
+    "Bitwy trwale zapisywane w SQLite; abordaz przeciw okretom, naprawy w porcie, nagrody tylko raz za zwyciestwo, 2-godzinny odpoczynek flot.",
+    "Komendy: ocean4 pomoc, ocean4 flota, ocean4 eskorta, ocean4 cele, ocean4 atak, ocean4 rozkaz, ocean4 napraw, ocean4 rekordy.",
+    "v1.34.0: jedna gildia kontra frakcje NPC (PvE). Garnizony, wyprawy odwetowe, kontrataki, rozwój terytoriów i raporty. Bez zmian zapisów postaci.",
     'v1.33.2: ewolucje zależne od rodzaju skilla: obrażenia, leczenie, obszarówki, guard, regen i automatyczne boosty. Nie zmieniamy zapisów ani limitów.',
     'Rada Starożytnych: wspólna arena Smoka Korony Burz i Olbrzyma Pierwszych Kuźni, pomoc sojusznika w walce, uzdrawianie i koordynowane ciosy.',
     'Dojście: Sanktuarium Smoka, wschód, północ. Komenda dziedzictwo skille pokazuje specjalizację każdego poznanego skilla.', 
@@ -520,7 +536,14 @@ HELP_TOPIC_ALIASES = {
 }
 
 HELP_TOPICS = {
-    "imperium": ["imperium — kontrolowane przez gildie twierdze i ich obrona.", "imperium mury <kod> potwierdz — lider rozbudowuje zdobyte mury ze skarbca."],
+    "gospodarka": [
+        "Gospodarka 4.0: gospodarka ceny lub karawany; wyslij <kod> potwierdz, transport, obron, odbierz.",
+        "Gospodarka zamowienia; wykonaj <kod> potwierdz — wielkie zamowienia surowcow, co dwie godziny.",
+        "Gospodarka produkcja; rozbuduj <kopalnia/tartak/farma/warsztat> potwierdz; zbierz — gildia produkuje co 6 godzin. Koszty ze skarbca gildii; zbior do banku.",
+        "Transport morski wymaga aktywnego statku, odpowiedniej ladowni i portu. Brak walk PvP. Towary pobierane od razu; zapis trwa w SQLite.",
+    ],
+    "ocean4": ["Ocean 4.0: bitwy flot przeciw NPC, nie przeciw graczom. Aby zacząć: ocean4 cele i ocean4 atak korsarze, blokada, kraken, lewiatan lub smok.", "ocean4 flota; ocean4 eskorta dodaj <nr>; ocean4 eskorta usun <nr> - ustaw w porcie do dwoch okretow eskortowych.", "ocean4 status; ocean4 rozkaz salwa/manewr/oslona/abordaz. Abordaz tylko na oslabione okręty, nie na potwory.", "ocean4 odwrot potwierdz - wycofanie bez lupow; ocean4 napraw <nr> potwierdz - remont bojowego kadluba w porcie. Po bitwie odpoczynek 2 godziny. Rejsy Ocean 2.0 bez zmian."],
+    "imperium": ["Żyjące Imperia v1.34.0: garnizon, obsadz, wycofaj, rozbuduj, pobierz, wojny, raport. Kontrataki co 12 godzin, dochody co 6 godzin; twierdze nie przepadają przez bycie offline.","imperium — kontrolowane przez gildie twierdze i ich obrona.", "imperium mury <kod> potwierdz — lider rozbudowuje zdobyte mury ze skarbca."],
     "armia": ["armia — siła i skład armii twojej gildii.", "armia rekrutuj <wojownik/lucznik/mag> <ilość> potwierdz — finansowanie ze skarbca; bez całkowitego limitu oddziałów."],
     "oblezenie": ["oblezenie <kod> rozpocznij potwierdz — lider gildii rozpoczyna trzyetapową bitwę u bramy lub posterunku twierdzy.", "oblezenie <kod> status; oblezenie <kod> rozkaz natarcie/ostrzal/magia/oslona; oblezenie <kod> odwrot potwierdz.", "Brama sprzyja natarciu, dziedziniec ostrzałowi, cytadela magii. Do 24 rozkazów, utrata jednostek, odpoczynek 4 godziny.", "Stara komenda oblezenie <kod> potwierdz rozpoczyna teraz bitwę trzyetapową. Przejścia świata pozostają otwarte."],
     "aukcja": ["aukcja — 30 najnowszych ofert kup teraz i licytacji. aukcja moje — twoje oferty.", "aukcja wystaw <przedmiot> <ilość> <cena> — cena stała; aukcja licytacja <przedmiot> <ilość> <cena startowa> <1/6/12/24/48 godzin> — licytacja czasowa.", "aukcja licytuj <nr> <kwota> — blokuje pieniądze w depozycie. aukcja rozlicz [nr] — zakończenie po upływie czasu.", "aukcja kup <nr>; aukcja anuluj <nr>; aukcja odbierz — wypłata, również zwrot przebitej oferty. Anulowanie licytacji możliwe tylko przed pierwszą ofertą.", "Chronione, przypisane i założone EQ nie może zostać sprzedane."],
@@ -2533,7 +2556,7 @@ HELP_TOPIC_ALIASES.update({
 
 HELP_TOPICS["questy_walka_0522"] = [
     "Od v0.52.2 każdy quest typu kill daje dodatkowo EXP Biegłości aktywnych klas.",
-    "EXP Biegłości korzysta z Generator Core i istniejących bonusów x2 EXP, Gildii oraz Mentora.",
+    "EXP Biegłości korzysta z aktualnych zasad balansu i istniejących bonusów x2 EXP, Gildii oraz Mentora. Generator Core został usunięty.",
     "Questy profesyjne i rzemieślnicze nie dają już Soul XP. Profesja i narzędzie zachowują własne EXP.",
 ]
 HELP_TOPIC_ALIASES.update({
@@ -2719,3 +2742,15 @@ HELP_TOPICS['ery'] = [
     'W nowych lokacjach dostępne są sklep, kontrakty, bossowie, artefakty i dalsze zadania.',
 ]
 
+
+# v1.37.0: accessible command help without replacing the legacy achievements menu.
+HELP_TOPICS['medale'] = [
+    'Legendarne osiągnięcia: 492 trwałe cele. 14 klas, 14 profesji, rozwój postaci, Dusza, Broń Duszy i rekordy wyczynów.',
+    'medale: liczba odblokowanych celów i ostatnie wpisy.',
+    'medale rozwoj, medale klasy, medale profesje, medale wyczyny: kategorie.',
+    'medale brakujace: następny cel każdego rodzaju z rzeczywistym postępem.',
+    'medale profesje 2: druga strona. Maksymalnie 15 wpisów naraz dla NVDA.',
+    'kronika postaci lub kronikapostaci: historia odblokowanych wyczynów.',
+    'medale rekordy: najwyższe poziomy z prawdziwych zapisów graczy.',
+    'Tytuły są przyznawane jednokrotnie. Możesz je włączać przez tytul.',
+]

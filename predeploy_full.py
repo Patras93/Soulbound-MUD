@@ -20,6 +20,47 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        from validation.v1380_great_audit import run_great_audit_v1380
+        _v1380 = run_great_audit_v1380()
+        assert _v1380['error_count'] == 0, _v1380['errors']
+        print(f"GREAT AUDIT v1.38.0: {_v1380['checks']} checks PASS")
+        from validation.admin_error_cleanup_v1371_test import run_admin_error_cleanup_v1371
+        assert run_admin_error_cleanup_v1371()["errors"] == 0
+        print("ADMIN ERROR CLEANUP v1.37.1: migration, resolved state, safe purge PASS")
+        from validation.admin_error_cleanup_v1371_test import run_admin_error_commands_v1371
+        assert run_admin_error_commands_v1371()["errors"] == 0
+        print("ADMIN ERROR COMMANDS v1.37.1: 9 dispatch, permissions and confirmation tests PASS")
+        # v1.39.0: four deterministic virtual sessions sharing real disposable
+        # SQLite. Does not open player sockets or touch the deployment database.
+        from validation.v1390_world_stress import run_stress_v1390
+        _stress_v1390 = run_stress_v1390(players=4, rounds=120)
+        assert not _stress_v1390['errors'], _stress_v1390['failures'][:20]
+        print(f"WORLD STRESS v1.39.0: {_stress_v1390['simulated_operations']} operations, "
+              f"{_stress_v1390['checks']} checks, "
+              f"p95={_stress_v1390['p95_actor_batch_ms']}ms, "
+              "4 virtual players, 0 errors; NOT live TCP load")
+        # v1.40.0: one boss must never grant two rewards when party, AoE and
+        # mercenary kill callbacks interleave on the same event loop.
+        from validation.v1400_combat_stability import run_combat_stability_v1400
+        _combat_v1400 = run_combat_stability_v1400()
+        assert not _combat_v1400['errors'], _combat_v1400['failures']
+        print(f"COMBAT STABILITY v1.40.0: {_combat_v1400['checks']} checks PASS; "
+              "4 simultaneous kill callbacks; 24 unbounded summons")
+        # v1.37.0: test the actual command routing in the assembled runtime.
+        from player.session import Session
+        from player.session_mixins.command_registry import COMMAND_REGISTRY, resolve_session_command
+        from systems.legendary_achievements_v1370 import CATALOG_V1370
+        from validation.legendary_achievements_v1370_test import run_legendary_achievement_regression_v1370
+        _legendary_v1370 = run_legendary_achievement_regression_v1370()
+        assert _legendary_v1370['catalog'] == 492
+        assert resolve_session_command('medale') == 'medale'
+        assert resolve_session_command('kronikapostaci') == 'kronikapostaci'
+        assert resolve_session_command('legendy') == 'legendaryrares'
+        assert resolve_session_command('legendarneosiagniecia') == 'medale'
+        assert callable(getattr(Session, 'legendary_achievements_v1370', None))
+        assert callable(getattr(Session, 'show_server_chronicle_v03811', None))
+        print('LEGENDARNE OSIAGNIECIA v1.37.0 RUNTIME: 492 definitions, 102 titles, '
+              '12 SQLite tests, session and command integration PASS')
         try:
             from validation.era_awakening_v1300 import audit_awakening_v1300
             _awakening = audit_awakening_v1300(server.ROOMS, server.NPCS, server.SHOPS,

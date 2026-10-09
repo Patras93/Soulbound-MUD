@@ -1,3 +1,87 @@
+Soulbound v1.40.0 — STABILNOŚĆ WALKI I NAGRÓD
+Aktualna paczka: v1.40.0 (2026-10-10)
+=====================================================
+- Usunięto ryzyko wielokrotnego rozliczenia tego samego zabójstwa przy jednoczesnym AoE, skilli, autoataku i najemnikach: blokada na żywym obiekcie przeciwnika, ustawiana przed pierwszym await.
+- Zabezpieczenie jest zwalniane również po błędzie, a po prawidłowym odrodzeniu boss ponownie może przyznawać nagrody.
+- Test regresji walczy o ten sam mob czterema równoległymi callbackami oraz sprawdza 24 strażników przywołanych bez limitu i ich sprzątnięcie po śmierci bossa.
+- Testy syntetyczne; nie zastępują testu czterech realnych klientów na Railway.
+- Doprecyzowano pomoc świata bez nieaktualnych odniesień do działającego Generator Core.
+- Zero zmian w balansie EXP, HP, obrażeń, limitów, waluty, danych kont i profesji.
+
+Soulbound v1.39.0 — WIELKI TEST ŻYWEGO ŚWIATA
+Aktualna paczka: v1.39.0 (2026-10-10)
+=====================================================
+- Dodano validation/v1390_world_stress.py: powtarzalne, odizolowane testy 1–4 wirtualnych graczy na rzeczywistych interfejsach zapisu bazy Soulbound.
+- Cztery postacie wykonują przeplatane operacje: przedmioty, sakwa rudy, Wędkarstwo, Górnictwo i EXP klasy. Weryfikacja po zamknięciu oraz ponownym otwarciu SQLite.
+- Testy matematyki skalowania mobów z grupami 1–4 graczy i 0/4/12 najemnikami oraz pułapu EXP z lochów, poziomy 1–799 i piętra do 800.
+- W pełnym predeploy działa krótka bramka stresowa 4 x 120 rund. Dłuższy test uruchomisz poleceniem: python -m validation.v1390_world_stress (zalecane PYTHONPATH=. na Linux).
+- Testy są SYNTETYCZNE na osobnej bazie i lokalnym sprzęcie. Nie mierzą wydajności prawdziwego TCP ani 4 klientów na Railway.
+- Bez zmiany balansu, czasów profesji, ekonomii, limitów, zapisu postaci, ani przywracania Generator Core.
+
+Soulbound v1.38.0 — WIELKI AUDYT I STABILIZACJA
+Aktualna paczka: v1.38.0 (2026-10-10)
+=====================================================
+- Test regresji progresji 1–800: EXP postaci, Duszy, Biegłości klasy oraz progi poziomów profesji i narzędzi.
+- Utrzymano wymagający grind, tempo Wędkarstwa (minimum 3 sekundy) i obecne nagrody; brak rebalance EXP.
+- Kontrola wypłat EXP na piętrach: bossowie i niski poziom postaci, bez przeskakiwania wielu poziomów.
+- Sprawdzono lokalizacje skrzyń, cykl odnowienia, klucze z ciał, dwugodzinne zadania klasowe oraz bezpieczeństwo czyszczenia błędów admina.
+- Kontrola SQLite / zapisów postaci, gospodarki i zaawansowanych mechanik walki w predeploy_check i predeploy_full.
+- Poprawiono aktywną pomoc z fałszywym odniesieniem do Generator Core oraz siedem opisów narzędzi z 600/60 na 800/80.
+- Bez kasowania zapisów, zmian tabel, resetu postaci, zmian tempa narzędzi czy przywracania Generator Core.
+- Testy Railway nadal wymagają potwierdzenia po wdrożeniu na prawdziwym serwerze.
+
+Soulbound v1.37.1 — ADMIN: NAPRAWIONE BŁĘDY
+Aktualna paczka: v1.37.1 (2026-10-10)
+=====================================================
+- Admin może oznaczyć pojedynczy raport SB jako naprawiony: admin blad naprawiony SB-XXXXXXXX.
+- Można przywrócić status aktywny: admin blad otworz SB-XXXXXXXX.
+- admin log podglad, log aktywne [N], log naprawione [N], log ostatnie [N].
+- admin log wyczysc naprawione POTWIERDZAM usuwa tylko wcześniej oznaczone wpisy (zalecana kopia przez admin backup).
+- Zmiany statusu i usunięcie są zapisywane w historii admina. Stare wpisy są migrowane bez resetu.
+- Logi Railway i rzeczywiste logi serwera nie są modyfikowane, tylko wewnętrzny rejestr kodów SB.
+- Wszystkie systemy v1.37.0 zachowane, bez Generator Core.
+
+Soulbound v1.37.0 — LEGENDARNE OSIĄGNIĘCIA
+Aktualna paczka: v1.37.0 (2026-10-10)
+=====================================================
+- 492 trwałe kamienie milowe, z naliczaniem wstecznym na podstawie aktualnych zapisów.
+- Osiągnięcia za 14 klas, 14 profesji, postać, Duszę, Broń Duszy i 12 liczników wyczynów.
+- Tytuły nagrodowe za wybrane progi; tylko raz, bez inflacji EXP i waluty.
+- Kronika postaci, ranking poziomów i stronicowane komendy dla NVDA.
+- Nowe komendy: medale, kronika postaci, kronikapostaci, osiagniecia legendarne.
+- Wcześniejsze systemy, zapisy, Generator Core (usunięty) i balans bez zmian.
+
+Soulbound v1.36.0 — Gospodarka 4.0: Karawany i Przemysł
+Aktualna paczka: v1.36.0 (2026-10-10)
+- Karawany PvE: pięć tras między krainami. Rzeczywiste materiały zabierane z ekwipunku i magazynów profesji w transakcji SQLite, w tym z kilku schowków jednocześnie.
+- Trwałe transporty po wylogowaniu. Konwoje lądowe docierają po 30 minutach, morskie po 45; nagroda wypłacana tylko raz po odbiorze. Eskorta strategiczna ochroni premię za bezpieczny dowóz.
+- Transport morski wymaga portu, aktywnego sprawnego statku, dostatecznej ładowni i zakończonej bitwy Ocean 4.0. Nie resetuje statków ani rejsów.
+- Kontrakty i ceny: co 6 godzin zmieniają się stawki ofert. Wielkie zamówienia królestw zużywają kilka różnych materiałów, można je powtarzać co 2 godziny.
+- Produkcja gildii: kopalnia, tartak, farma i warsztat (poziomy 1–10) pobierają koszty rozbudowy i utrzymania ze skarbca; zbior co 6 godzin do banku gildii, najwyżej 4 cykle po nieobecności.
+- Komendy NVDA: gospodarka / handel4: ceny, karawany, wyslij, transport, obron, odbierz, zamowienia, wykonaj, produkcja, rozbuduj, zbierz, rekordy.
+- Nie zmieniono EXP, narzędzi, statystyk, walki, najemników, skrzyń bossów, żadnych istniejących danych. Bez Generator Core, bez operacji na GitHubie i bez wdrażania na Railway.
+
+Soulbound v1.35.0 — Ocean 4.0: Floty PvE
+Aktualna paczka: v1.35.0 (2026-10-10)
+- Ocean 4.0: odrębne bitwy flot z eskadrą korsarzy, blokadą portową, Krakenem, Lewiatanem i morskim Smokiem.
+- Okręt flagowy i do dwóch eskort z floty v1.32.1; osobny bojowy kadłub trwale w SQLite, naprawy wyłącznie w porcie.
+- Cztery rozkazy: salwa, manewr, osłona, abordaż; abordaże tylko przy osłabionych jednostkach NPC.
+- Bitwa utrzymuje stan po wylogowaniu, nie wymaga żadnej drugiej gildii; walka i nagroda rozliczane atomowo.
+- Odstęp dwóch godzin między zakończonymi bitwami, bez zmiany EXP, wypraw Ocean 2.0 ani Generator Core.
+- Komendy NVDA: ocean4 pomoc/flota/eskorta/cele/atak/status/rozkaz/napraw/rekordy.
+
+Soulbound v1.34.0 — Żyjące Imperia
+Aktualna paczka: v1.34.0 (2026-10-09)
+
+- Garnizony twierdz: przenoszenie jednostek z armii gildii i z powrotem bez duplikowania.
+- Najazdy WYŁĄCZNIE frakcji NPC (PvE), bez potrzeby konkurencyjnych gildii, co 12 godzin: straty żołnierzy, uszkodzenia murów i stabilność; zajętej twierdzy nie traci się automatycznie podczas nieobecności.
+- Wyprawy odwetowe przeciw obozom NPC (co 3 godziny), 3 taktyki; żołnierze traceni także w zwycięstwie, ograniczony łup do skarbca.
+- Farmy, targi i kuźnie terytoriów: produkcja co 6 godzin, maksymalnie 4 cykle po czasie offline; dochód odbierany do skarbca gildii.
+- Raporty z obrony i aktualne fronty; wolny dostęp do lokacji bez blokad.
+- Garnizony bronią twierdzy również podczas oblężeń innych gildii.
+- Usunięcie garnizonu i skarbca dochodu przy zmianie właściciela; zabezpieczenie transakcji SQLite.
+- Nie zmieniono istniejącego EXP, najemników, podziału nagród ani limitów poziomów. Generator Core pozostaje usunięty.
+
 Soulbound v1.33.2 — Ewolucje Klas i Rada Starożytnych
 Aktualna paczka: v1.33.2 (2026-10-09)
 - Zróżnicowane efekty ewolucji skilli: ofensywa, leczenie, ochrona, automatyczne boosty i Regen; wykorzystanie już zapisanych poziomów.

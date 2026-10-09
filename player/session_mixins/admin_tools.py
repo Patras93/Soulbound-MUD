@@ -437,7 +437,7 @@ class SessionAdminToolsMixin:
             category = parts[1].casefold() if len(parts)>1 else ""
             menus = {
                 "gracze": "admin online; gracz NICK; goto gracz NICK; przywolaj NICK POTWIERDZAM; ulecz NICK POTWIERDZAM; wskrzes NICK POTWIERDZAM; odbuguj NICK POTWIERDZAM; wyrzuc NICK POTWIERDZAM",
-                "serwer": "admin serwer; blad SB-XXXXXXXX; log ostatnie 20; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
+                "serwer": "admin serwer; admin blad SB-XXXXXXXX; admin blad naprawiony SB-XXXXXXXX; admin blad otworz SB-XXXXXXXX; admin log ostatnie 20; admin log aktywne; admin log naprawione; admin log podglad; admin log wyczysc naprawione POTWIERDZAM; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
                 "swiat": "admin lokacja ID; npc NAZWA; moby ID; boss NAZWA",
                 "postacie": "admin profesje NICK; zamowienia NICK; prace NICK; najemnicy NICK; questy NICK; eq NICK; napraw postac NICK (diagnoza) / ... POTWIERDZAM (tylko błędna lokacja)",
             }
@@ -469,24 +469,56 @@ class SessionAdminToolsMixin:
             await self.send(f"SERWER: online {online}; połączeń {len(self.server.sessions)}; lokacji {len(ROOMS)}; mobów {mobs}; czas działania {uptime}s; baza {size//1024} KiB; RAM {ram_text}; CPU procesu {time.process_time():.1f}s.")
             return True
         if action == "blad":
-            if len(parts)<2:
-                await self.send("Użycie: admin blad SB-XXXXXXXX.")
+            import re
+            error_id = parts[-1].upper() if len(parts) >= 2 else ""
+            if len(parts) not in (2, 3) or not re.fullmatch(r"SB-[0-9A-F]{8}", error_id):
+                await self.send("Użycie: admin blad SB-XXXXXXXX / admin blad naprawiony SB-XXXXXXXX / admin blad otworz SB-XXXXXXXX.")
                 return True
-            row = conn.execute("SELECT * FROM admin_errors_v1224 WHERE id=?", (parts[1].upper(),)).fetchone()
+            if len(parts) == 3:
+                status_action = parts[1].casefold()
+                if status_action not in ("naprawiony", "otworz", "otwórz"):
+                    await self.send("Użycie: admin blad naprawiony SB-XXXXXXXX / admin blad otworz SB-XXXXXXXX.")
+                    return True
+                resolved = status_action == "naprawiony"
+                if db.set_admin_error_resolved_v1371(error_id, login, resolved):
+                    await self.send(f"ADMIN: {error_id} — {'oznaczony jako naprawiony' if resolved else 'ponownie otwarty'}. Wpis pozostaje w rejestrze do ręcznego czyszczenia.")
+                else:
+                    await self.send("Nie znaleziono podanego identyfikatora błędu.")
+                return True
+            row = conn.execute("SELECT * FROM admin_errors_v1224 WHERE id=?", (error_id,)).fetchone()
             if row is None:
                 await self.send("Nie znaleziono w wewnętrznym rejestrze. Starsze błędy sprzed v1.22.4 są tylko w logach Railway.")
             else:
-                await self.send(f"{row['id']}: {row['created_at']}; {row['exception']}; {row['file']}:{row['line']}; moduł {row['subsystem']}; obsługa {row['handler']}. Szczegóły traceback w logach serwera.")
+                status = ("naprawiony przez " + row['resolved_by'] + " dnia " + row['resolved_at']) if row['resolved_at'] else "aktywny / nieoznaczony"
+                await self.send(f"{row['id']}: {row['created_at']}; {row['exception']}; {row['file']}:{row['line']}; moduł {row['subsystem']}; obsługa {row['handler']}; status {status}. Szczegóły traceback w logach serwera.")
             return True
         if action == "log":
-            if len(parts)<2 or parts[1].casefold() not in ("ostatnie","last"):
-                await self.send("Użycie: admin log ostatnie 20.")
+            sub = parts[1].casefold() if len(parts) >= 2 else ""
+            if sub in ("wyczysc", "wyczyść", "czysc", "czyść"):
+                if len(parts) != 4 or parts[2].casefold() != "naprawione" or parts[3].casefold() != "potwierdzam":
+                    await self.send("Użycie: admin log wyczysc naprawione POTWIERDZAM. Usuwa WYŁĄCZNIE ręcznie oznaczone błędy z wewnętrznej bazy. Zalecane: admin backup.")
+                    return True
+                removed = db.purge_resolved_admin_errors_v1371(login)
+                await self.send(f"ADMIN: wyczyszczono {removed} naprawionych zgłoszeń SB. Aktywne błędy pozostają. Operację zapisano w admin historia. Logi Railway nie są zmieniane.")
                 return True
-            limit = min(50,max(1,int(parts[2]) if len(parts)>2 and parts[2].isdigit() else 20))
-            rows = conn.execute("SELECT * FROM admin_errors_v1224 ORDER BY created_at DESC, rowid DESC LIMIT ?",(limit,)).fetchall()
-            await self.send(f"OSTATNIE BŁĘDY: {len(rows)}.")
+            if sub in ("podglad", "podgląd"):
+                active = conn.execute("SELECT COUNT(*) FROM admin_errors_v1224 WHERE resolved_at = ''").fetchone()[0]
+                fixed = conn.execute("SELECT COUNT(*) FROM admin_errors_v1224 WHERE resolved_at != ''").fetchone()[0]
+                await self.send(f"REJESTR BŁĘDÓW: aktywne lub nieoznaczone {active}; ręcznie naprawione {fixed}. Do wyczyszczenia: {fixed}. Niczego nie usunięto.")
+                return True
+            if sub not in ("ostatnie", "last", "aktywne", "naprawione"):
+                await self.send("Użycie: admin log ostatnie 20 / aktywne 20 / naprawione 20 / podglad / wyczysc naprawione POTWIERDZAM.")
+                return True
+            if len(parts) > 3 or (len(parts) == 3 and not parts[2].isdigit()):
+                await self.send("Podaj liczbę wpisów od 1 do 50, np. admin log aktywne 20.")
+                return True
+            limit = min(50, max(1, int(parts[2]) if len(parts) == 3 else 20))
+            condition = {"aktywne": "WHERE resolved_at = ''", "naprawione": "WHERE resolved_at != ''"}.get(sub, "")
+            rows = conn.execute(f"SELECT * FROM admin_errors_v1224 {condition} ORDER BY created_at DESC, rowid DESC LIMIT ?", (limit,)).fetchall()
+            await self.send(f"BŁĘDY {sub.upper()}: {len(rows)} wpisów.")
             for row in rows:
-                await self.send(f"{row['id']}: {row['exception']}, {row['file']}:{row['line']}.")
+                status = "NAPRAWIONY" if row['resolved_at'] else "AKTYWNY"
+                await self.send(f"{row['id']}: {row['exception']}, {row['file']}:{row['line']}; {status}.")
             return True
         if action == "komendy":
             if len(parts)<2 or parts[1].casefold() not in ("wolne","slow"):

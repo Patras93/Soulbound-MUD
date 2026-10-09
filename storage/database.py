@@ -67,6 +67,15 @@ class _DeferredCommitConnection:
                 self.flush_deferred_commit()
 
 
+def ensure_admin_error_status_v1371(conn):
+    """Add manual resolution metadata to old SB error records without dropping them."""
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(admin_errors_v1224)")}
+    if "resolved_at" not in columns:
+        conn.execute("ALTER TABLE admin_errors_v1224 ADD COLUMN resolved_at TEXT NOT NULL DEFAULT ''")
+    if "resolved_by" not in columns:
+        conn.execute("ALTER TABLE admin_errors_v1224 ADD COLUMN resolved_by TEXT NOT NULL DEFAULT ''")
+
+
 class Database(
     DatabaseWorldCrisesV1220Mixin,
     DatabaseMercenariesMixin,
@@ -117,6 +126,9 @@ class Database(
                 command TEXT NOT NULL, duration_ms INTEGER NOT NULL
             );
         """)
+        # v1.37.1: non-destructive migration of the historical admin error register.
+        # Old records remain unresolved until an administrator marks them fixed.
+        ensure_admin_error_status_v1371(self.conn)
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS protected_inventory_v1280 (
                 account_id INTEGER NOT NULL, item_id TEXT NOT NULL,
@@ -165,6 +177,36 @@ class Database(
         self.conn.execute("DELETE FROM admin_errors_v1224 WHERE id NOT IN "
                           "(SELECT id FROM admin_errors_v1224 ORDER BY created_at DESC, rowid DESC LIMIT 500)")
         self.conn.commit()
+
+    def set_admin_error_resolved_v1371(self, error_id, admin_login, resolved=True):
+        """Manual resolution label; an error is not assumed fixed automatically."""
+        error_id = str(error_id).strip().upper()
+        if not __import__("re").fullmatch(r"SB-[0-9A-F]{8}", error_id):
+            return False
+        with self.conn as conn:
+            result = conn.execute(
+                "UPDATE admin_errors_v1224 SET resolved_at=CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE '' END, "
+                "resolved_by=CASE WHEN ? THEN ? ELSE '' END WHERE id=?",
+                (int(resolved), int(resolved), str(admin_login)[:64], error_id),
+            )
+            if not result.rowcount:
+                return False
+            conn.execute(
+                "INSERT INTO admin_actions_v1224(admin_login,action,target) VALUES (?,?,?)",
+                (str(admin_login)[:64], "error_fixed" if resolved else "error_reopened", error_id),
+            )
+        return True
+
+    def purge_resolved_admin_errors_v1371(self, admin_login):
+        """Remove only explicitly resolved records; audit and purge share one SQLite transaction."""
+        with self.conn as conn:
+            result = conn.execute("DELETE FROM admin_errors_v1224 WHERE resolved_at != ''")
+            removed = int(result.rowcount)
+            conn.execute(
+                "INSERT INTO admin_actions_v1224(admin_login,action,target) VALUES (?,?,?)",
+                (str(admin_login)[:64], "errors_purge_fixed", f"count={removed}"),
+            )
+        return removed
 
     def record_slow_command_v1224(self, command, duration):
         self.conn.execute("INSERT INTO admin_slow_commands_v1224(command,duration_ms) VALUES (?,?)",

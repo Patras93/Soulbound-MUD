@@ -15,6 +15,12 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'medale': ('legendary_achievements_v1370', (COMMAND_TEXT,), {}),
+    'kronikapostaci': ('legendary_achievements_v1370', ('kronika',), {}),
+    'gospodarka': ('economy4_command_v1360', (COMMAND_TEXT,), {}),
+    'handel4': ('economy4_command_v1360', (COMMAND_TEXT,), {}),
+    'ocean4': ('ocean4_command_v1350', (COMMAND_TEXT,), {}),
+    'flotabitwa': ('ocean4_command_v1350', (COMMAND_TEXT,), {}),
     'ery': ('show_six_eras_v1310', (COMMAND_TEXT,), {}),
     'dziedzictwo': ('soul_legacy_v1330', (COMMAND_TEXT,), {}),
     'imperium': ('imperial_command_v1320', (COMMAND_TEXT,), {}),
@@ -406,6 +412,9 @@ GUIDE_SAFE_COMMANDS = {
     "mistrzostwocraftu", "runes", "clan", "masteryachievements", "partychat",
 }
 
+for _safe_v1370 in (DOWNED_SAFE_COMMANDS, REST_SAFE_COMMANDS, GUIDE_SAFE_COMMANDS):
+    _safe_v1370.update(('medale', 'kronikapostaci'))
+
 DOWNED_SAFE_COMMANDS.add('ery')
 REST_SAFE_COMMANDS.add('ery')
 GUIDE_SAFE_COMMANDS.add('ery')
@@ -440,6 +449,8 @@ for _alias in ("kryzys", "kryzysy", "duzewydarzenia", "worldcrises"):
     COMMAND_CATALOG.add_alias(_alias, "wielkiewydarzenia", source="player/session_mixins/command_registry.py")
 for _alias,_target in (('oblężenie','oblezenie'),('army','armia'),('auction','aukcja'),('shipyard','stocznia'),('empire','imperium')):
     COMMAND_CATALOG.add_alias(_alias,_target,source='player/session_mixins/command_registry.py')
+for _alias in ('legendarneosiagniecia', 'legendaryachievements'):
+    COMMAND_CATALOG.add_alias(_alias, 'medale', source='player/session_mixins/command_registry.py')
 for _alias in ('wielkieery', 'sixeras', 'sixeras1310'):
     COMMAND_CATALOG.add_alias(_alias, 'ery', source='player/session_mixins/command_registry.py')
 

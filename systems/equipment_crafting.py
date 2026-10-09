@@ -1350,7 +1350,7 @@ _catalog_mut.catalog_assign({
     "currency": "silver",
     "desc": (
         "Podstawowe narzędzie Jubilerstwa. "
-        "Ma własny level 1-600, XP i 60 Tierów. "
+        "Ma własny level 1-800, XP i 80 Tierów. "
         "Nie ma trwałości i nie zużywa się."
     ),
 }, 'ITEMS', ITEMS, ("jeweler_pliers",))

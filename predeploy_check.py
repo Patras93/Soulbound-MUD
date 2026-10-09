@@ -4016,3 +4016,43 @@ print(f'SOUL AND ANCIENTS v1.33.0 FAST PASS: {_soul1330}')
 from systems.soul_evolutions_v1332 import audit as _audit_evo_1332
 _evo_1332 = _audit_evo_1332()
 print(f'CLASS EVOLUTIONS v1.33.2 FAST PASS: {_evo_1332}')
+
+# v1.34.0: one-player-guild versus NPC factions; no rival player guild required.
+import validation.regression_living_empires_v1340
+
+# v1.35.0: real durable fleet PvE, escrowless single-claim rewards, repair and escort.
+import unittest as _unittest_ocean4
+from validation.regression_ocean4_v1350 import Ocean4V1350Tests as _Ocean4Tests
+_result_ocean4 = _unittest_ocean4.TextTestRunner(verbosity=0).run(
+    _unittest_ocean4.defaultTestLoader.loadTestsFromTestCase(_Ocean4Tests))
+if not _result_ocean4.wasSuccessful():
+    raise RuntimeError('Ocean 4.0 SQLite regression: 1+ failures')
+print('OCEAN 4.0 v1.35.0: durable fleet, escort, boarding, loot and repair tests PASS')
+
+# v1.36.0: real SQLite commerce/deposit and production regression tests.
+import unittest as _unittest_economy4
+from validation.regression_economy4_v1360 import Economy4V1360Tests as _Economy4Tests
+_e4result = _unittest_economy4.TextTestRunner(verbosity=0).run(
+    _unittest_economy4.defaultTestLoader.loadTestsFromTestCase(_Economy4Tests))
+if not _e4result.wasSuccessful():
+    raise RuntimeError('Gospodarka 4.0: real SQLite regression failed')
+print('GOSPODARKA 4.0 v1.36.0: 13 SQLite commerce, guild and handler tests PASS')
+
+# Soulbound v1.37.0 - achievements use real durable progress, never duplicate awards.
+from validation.legendary_achievements_v1370_test import run_legendary_achievement_regression_v1370
+_v1370_regression = run_legendary_achievement_regression_v1370()
+assert _v1370_regression['catalog'] == 492
+print('LEGENDARNE OSIAGNIECIA v1.37.0: 12 regression checks PASS, 492 milestones')
+
+# v1.37.1: migration and safe cleanup of admin SB error logs.
+from validation.admin_error_cleanup_v1371_test import run_admin_error_cleanup_v1371
+_admin_error_cleanup_gate_v1371 = run_admin_error_cleanup_v1371()
+assert _admin_error_cleanup_gate_v1371["errors"] == 0
+print("ADMIN ERROR CLEANUP v1.37.1: 13 SQL regression checks PASS")
+
+# v1.38.0: always run the integrated stabilization regressions before shipping.
+from validation.v1380_great_audit import run_great_audit_v1380 as _run_great_audit_v1380
+_audit_v1380 = _run_great_audit_v1380()
+print(f"GREAT AUDIT v1.38.0: {_audit_v1380['checks']} checks, {_audit_v1380['error_count']} errors")
+if _audit_v1380['error_count']:
+    raise SystemExit('v1.38.0: ' + '; '.join(_audit_v1380['errors'][:20]))

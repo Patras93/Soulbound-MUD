@@ -41,6 +41,10 @@ from player.session_mixins.six_eras_v1310 import SessionSixErasV1310Mixin
 from player.session_mixins.soul_ancients_v1330 import SessionSoulAncientsV1330Mixin
 from player.session_mixins.imperial_economy_v1320 import SessionImperialEconomyV1320Mixin
 from player.session_mixins.imperial_economy_v1321 import SessionImperialEconomyV1321Mixin
+from player.session_mixins.living_empires_v1340 import SessionLivingEmpiresV1340Mixin
+from player.session_mixins.ocean4_v1350 import SessionOcean4V1350Mixin
+from player.session_mixins.economy4_v1360 import SessionEconomy4V1360Mixin
+from player.session_mixins.legendary_achievements_v1370 import SessionLegendaryAchievementsV1370Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
 from player.session_mixins.item_protection_v1280 import SessionItemProtectionV1280Mixin
@@ -48,6 +52,10 @@ from player.session_mixins.password_recovery_v1222 import SessionPasswordRecover
 
 
 class Session(
+    SessionLegendaryAchievementsV1370Mixin,
+    SessionEconomy4V1360Mixin,
+    SessionOcean4V1350Mixin,
+    SessionLivingEmpiresV1340Mixin,
     SessionImperialEconomyV1321Mixin,
     SessionItemProtectionV1280Mixin,
     SessionCoreProgressionMixin,

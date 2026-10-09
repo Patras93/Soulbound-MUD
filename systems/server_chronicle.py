@@ -355,6 +355,8 @@ V03811_CHRONICLE_LABELS = {
 
 
 async def _v03811_show_chronicle(self, args=""):
+    if normalize_lookup_text(args) in ('postaci', 'moja', 'osobista', 'bohatera'):
+        return await self.legendary_achievements_v1370('kronika')
     raw = normalize_lookup_text(args)
     parts = raw.split() if raw else []
     limit = 25
