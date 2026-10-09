@@ -480,6 +480,17 @@ def main():
             if _cycle_v1288['error_count']:
                 raise SystemExit(1)
 
+            # v1.28.9: class quests rotate every two hours and old hourly
+            # guild saves retain in-progress tasks within the same window.
+            from validation.v1289_class_quest_cadence import audit_class_quest_cadence_v1289
+            _class_quest_1289 = audit_class_quest_cadence_v1289()
+            print(f"CLASS QUESTS v1.28.9: {_class_quest_1289['checks']} checks, "
+                  f"{_class_quest_1289['error_count']} errors")
+            for issue in _class_quest_1289['errors'][:50]:
+                print('CLASS QUEST CADENCE ERROR: ' + issue)
+            if _class_quest_1289['error_count']:
+                raise SystemExit(1)
+
             from admin.mob_display_name_audit_v11129 import audit_mob_display_names_v11129
             mob_names = audit_mob_display_names_v11129(server)
             print(

@@ -67,9 +67,17 @@ def test_v1281():
     extra=world.spawn_boss_companion_v1281(boss)
     check(extra is not None and extra.alive, "generic summon created")
     check(extra.monster_ai_summoned_v1160,"XP branch flag")
-    check(world.spawn_boss_companion_v1281(boss) is None,"generic live guardian bounded")
-    check(world.clear_monster_ai_adds_v1160(boss)==1,"generic cleared on boss death")
-    check(not extra.alive,"generic helper gone")
+    extra_2=world.spawn_boss_companion_v1281(boss)
+    check(extra_2 is not None and extra_2.alive and extra_2.key != extra.key,
+          "generic summon no living guardian limit")
+    boss.combat_turn=11
+    check(boss_companion_due_v1281(boss,MOB_TEMPLATES[boss_tid]),
+          "boss can summon on next scheduled wave while previous guardians live")
+    extra_3=world.spawn_boss_companion_v1281(boss)
+    check(extra_3 is not None and extra_3.alive and extra_3.key != extra_2.key,
+          "third consecutive live guardian spawned")
+    check(world.clear_monster_ai_adds_v1160(boss)==3,"all generic guardians cleared on boss death")
+    check(not extra.alive and not extra_2.alive and not extra_3.alive,"all helpers gone")
     second=world.spawn_boss_companion_v1281(boss)
     check(second is not None and second.key!=extra.key,"generic replacement")
     check(not boss_companion_due_v1281(boss,MOB_TEMPLATES[extra.template_id]),"generic helper can't summon")

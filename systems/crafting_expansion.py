@@ -24,6 +24,19 @@ for iid,(name,base,qty,level) in _REFINED.items():
         "category":"refining","desc":"Refining 2.0 — zaawansowany stop do Forge/Tech Crafting."
     }, 'CRAFT_RECIPES', CRAFT_RECIPES, (f"refine_{iid}",))
 
+# v1.28.11: new craftable discovery treasure; access requires a blueprint from a vault.
+_catalog_mut.catalog_assign({
+    "name": "Relikt Odkrywcy", "aliases": ("relikt odkrywcy", "explorer relic"),
+    "stations": ("forge",),
+    "ingredients": {"v12811_ancient_blueprint": 1, "v12811_leviathan_pearl": 1,
+                    "v12811_worldheart_core": 1, "v12811_eternal_timber": 1,
+                    "v12811_phoenix_bloom": 1, "eternium_ingot": 2},
+    "output": "v12811_explorer_relic", "quantity": 1,
+    "generator_level": 160, "min_tool_level": 160, "min_profession_level": 160,
+    "profession_xp": 25000, "tool_xp": 12500,
+    "category": "legendary", "desc": "Legendarny schemat ze skarbca i cztery rzadkie odkrycia profesji."
+}, 'CRAFT_RECIPES', CRAFT_RECIPES, ('v12811_explorer_relic',))
+
 # v0.61.4: Fragment Mithrilu z Salvage dostaje stałe zastosowanie. To NIE jest
 # walutowy mithril i nie tworzy sztabki mithrilu; materiał odzyskany z EQ jest
 # rafinowany w istniejące komponenty Forge/Runes.

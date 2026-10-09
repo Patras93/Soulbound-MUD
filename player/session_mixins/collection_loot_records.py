@@ -550,8 +550,8 @@ class SessionCollectionLootRecordsMixin:
             if self.boss_floor_chest_here() is not None:
                 await self.unlock_boss_floor_chest()
                 return
-            if ROOMS.get(self.character.room_id, {}).get("v1190_secret_role") == "chamber":
-                if any(bool(MOB_TEMPLATES.get(m.template_id, {}).get("v1190_secret_guard"))
+            if ROOMS.get(self.character.room_id, {}).get("v1190_secret_role") in ("chamber", "vault"):
+                if any(m.alive and bool(MOB_TEMPLATES.get(m.template_id, {}).get("v1190_secret_guard"))
                        for m in self.server.world.room_mobs(self.character.room_id)):
                     await self.send("Skarbiec jest strzeżony. Pokonaj strażnika sekretu, aby otworzyć skrzynię.")
                     return

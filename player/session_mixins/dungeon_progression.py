@@ -63,6 +63,23 @@ class SessionDungeonProgressionMixin:
                 self.account_id, UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331
             )
 
+    def portal_requires_local_leader_v12811(self):
+            """Allow solo travel even when an old party has an offline leader.
+
+            The party leader is mandatory only for a multi-player portal action
+            with another real connected party member standing in this room.
+            """
+            key = self.party_key()
+            if key is None or key == self.account_id:
+                return False
+            here = self.character.room_id
+            return any(
+                member and member is not self and not getattr(member, "closed", False)
+                and getattr(member, "character", None)
+                and member.character.room_id == here
+                for member in self.server.party_sessions(self.account_id, same_room=here)
+            )
+
     async def register_uoss_deep_dungeon_visit_v11331(self, room_id=None):
             floor = uoss_deep_dungeon_floor_number_v11331(
                 room_id if room_id is not None else self.character.room_id
@@ -184,7 +201,7 @@ class SessionDungeonProgressionMixin:
             floor = int(match.group(1))
 
             party_key = self.party_key()
-            if party_key is not None and party_key != self.account_id:
+            if self.portal_requires_local_leader_v12811():
                 leader = self.server.session_by_account(party_key)
                 leader_name = (
                     leader.character.name
@@ -879,7 +896,7 @@ class SessionDungeonProgressionMixin:
     ):
             """Exit a cleared 10-floor checkpoint with eligible local party."""
             party_key = self.party_key()
-            if party_key is not None and party_key != self.account_id:
+            if self.portal_requires_local_leader_v12811():
                 leader = self.server.session_by_account(party_key)
                 leader_name = (
                     leader.character.name
@@ -969,7 +986,7 @@ class SessionDungeonProgressionMixin:
 
     async def use_astral_portal(self, raw):
             party_key = self.party_key()
-            if party_key is not None and party_key != self.account_id:
+            if self.portal_requires_local_leader_v12811():
                 leader = self.server.session_by_account(party_key)
                 leader_name = (
                     leader.character.name
@@ -1143,7 +1160,7 @@ class SessionDungeonProgressionMixin:
 
     async def use_crypt_portal(self, raw):
             party_key = self.party_key()
-            if party_key is not None and party_key != self.account_id:
+            if self.portal_requires_local_leader_v12811():
                 leader = self.server.session_by_account(party_key)
                 leader_name = (
                     leader.character.name

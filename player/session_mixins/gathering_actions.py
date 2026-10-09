@@ -47,6 +47,25 @@ from core.mine_tunnels import mine_tunnel_coords, HORIZONTAL_MINE_DIRECTIONS, MI
 
 class SessionGatheringActionsMixin:
 
+    async def legendary_profession_discovery_v12811(self, profession, tool_level, profession_level):
+            """Exceptionally rare, genuinely sellable loot; normal gathering remains unchanged."""
+            ids = {"fishing": "v12811_leviathan_pearl",
+                   "mining": "v12811_worldheart_core",
+                   "woodcutting": "v12811_eternal_timber",
+                   "herbalism": "v12811_phoenix_bloom"}
+            item_id = ids.get(profession)
+            if not item_id or min(int(tool_level), int(profession_level)) < 40:
+                return False
+            # Roughly 0.08% to 0.5% per successful harvest. No multi-drop chain.
+            chance = min(0.005, 0.0008 + 0.000012 * min(int(tool_level), int(profession_level)))
+            if random.random() >= chance:
+                return False
+            self.server.db.add_item(self.account_id, item_id, 1)
+            await self.record_item_collection(item_id, source=f"Legendarne odkrycie: {profession}", announce=True)
+            await self.send(f"O KURDE — WIELKIE ODKRYCIE! {ITEMS[item_id]['name']} x1. "
+                            "Przedmiot trafia do plecaka. Możesz go sprzedać lub zachować na legendarną recepturę Reliktu Odkrywcy.")
+            return True
+
     def profession_ready(self):
             now = time.time()
             remaining = PROFESSION_COOLDOWN - (now - self.last_profession_action)
@@ -157,6 +176,7 @@ class SessionGatheringActionsMixin:
             base_quantity += gather_feature["quantity_bonus"] if item_id == base_item_id else 0
             self.store_profession_resource(item_id, base_quantity)
             item = ITEMS[item_id]
+            await self.legendary_profession_discovery_v12811("fishing", tool_level, profession_level)
             resource_quest_quantity = base_quantity
             if item_id != base_item_id:
                 await self.send(
@@ -401,6 +421,7 @@ class SessionGatheringActionsMixin:
             vein_quantity = int(vein["quantity"]) + (gather_feature["quantity_bonus"] if vein["key"] != "legendary" else 0)
             self.store_profession_resource(item_id, vein_quantity)
             mined_resource_quantity = vein_quantity
+            await self.legendary_profession_discovery_v12811("mining", tool_level, profession_level)
             item = ITEMS[item_id]
             await self.record_item_collection(
                 item_id, source="Górnictwo", announce=True, record_history=False, amount=vein_quantity
@@ -571,7 +592,6 @@ class SessionGatheringActionsMixin:
                 if result['opened']:
                     if result['new']:
                         from core.mine_world_v1260 import geology_v1260
-                        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
                         dx,dy = HORIZONTAL_MINE_DIRECTIONS[direction]
                         nx,ny=x+dx,y+dy
                         geo=geology_v1260(level,nx,ny)
@@ -676,6 +696,7 @@ class SessionGatheringActionsMixin:
             self.store_profession_resource(item_id, base_quantity)
             resource_quest_quantity = base_quantity
             item = ITEMS[item_id]
+            await self.legendary_profession_discovery_v12811("woodcutting", tool_level, profession_level)
             if item_id != base_item_id:
                 await self.send(
                     f"RZADKI WARIANT DRZEWA: "
@@ -819,6 +840,7 @@ class SessionGatheringActionsMixin:
             base_quantity += gather_feature["quantity_bonus"] if item_id == base_item_id else 0
             self.store_profession_resource(item_id, base_quantity)
             resource_quest_quantity = base_quantity
+            await self.legendary_profession_discovery_v12811("herbalism", old_level, profession_level)
             if item_id != base_item_id:
                 await self.send(
                     f"RZADKI WARIANT ROŚLINY: "

@@ -37,3 +37,18 @@ def material_quality_upgrade_v1250(quality, grade, random_roll):
     if float(random_roll) >= min(.60, .08 * grade + .03): return quality
     idx = CRAFT_QUALITY_ORDER_V03054.index(quality)
     return CRAFT_QUALITY_ORDER_V03054[min(len(CRAFT_QUALITY_ORDER_V03054)-1, idx + 1)]
+
+
+def masterpiece_chance_v12812(profession_level, tool_level, mastery_level, material_grade):
+    """An extra, optional promotion with no artificial stat or player-level cap."""
+    p=max(1,int(profession_level)); t=max(1,int(tool_level)); m=max(1,int(mastery_level)); g=max(0,int(material_grade))
+    if g < 1 or p < 20 or t < 10: return 0.0
+    return min(.12, .001 + min(600,p)*.000065 + min(600,t)*.000045 + min(100,m)*.00016 + min(4,g)*.005)
+
+def masterpiece_promote_v12812(quality, profession_level, tool_level, mastery_level, material_grade, roll):
+    levels=('normal','good','excellent','masterwork','legendary')
+    if quality not in levels or quality == 'legendary': return quality, False
+    chance=masterpiece_chance_v12812(profession_level,tool_level,mastery_level,material_grade)
+    if float(roll) >= chance: return quality, False
+    # Master craft: a meaningful bonus tier, not a flat equipment ID renaming.
+    return levels[min(4,levels.index(quality)+1)], True

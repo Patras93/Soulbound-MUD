@@ -40,6 +40,13 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
+# v1.28.12 authored city network: register AFTER all crypt floor modules,
+# before late boot audits / live World() initialization.
+from systems.underground_cities_v12812 import register_rewards_v12812, install_cities_v12812
+from systems.equipment_crafting import SHOP_SELLERS
+register_rewards_v12812(ITEMS)
+install_cities_v12812(ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+
 # v1.14.3: final runtime mob names are normalized only after every world
 # module/generator has registered its templates. This keeps NVDA output short
 # and prevents procedural floor numbers / stacked rarity prefixes leaking into

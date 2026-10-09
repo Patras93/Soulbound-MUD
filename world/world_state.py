@@ -328,45 +328,49 @@ class World:
 
     def spawn_boss_companion_v1281(self, boss_mob):
         """Spawn a temporary guardian tied to a real boss, with XP on defeat."""
-        from systems.boss_companions_v1281 import boss_guardian_identity_v1281
+        from systems.boss_companions_v1281 import boss_guardian_role_v12811
         if not boss_mob or not boss_mob.alive or not boss_mob.engaged_by:
             return None
         parent_template = MOB_TEMPLATES.get(boss_mob.template_id, {})
         if not parent_template or parent_template.get("uoss_unique_superboss_key"):
             return None
-        # A generic boss may replace slain helpers, but does not accumulate an
-        # arbitrarily large live army over a long, unattended encounter.
-        if any(add.alive and getattr(add, "monster_ai_parent_v1160", None) == boss_mob.key
-               for add in self.mobs.values()):
-            return None
-        tid = f"{boss_mob.template_id}__boss_guardian_v1281"
+        # v1.28.9: summons have NO simultaneous-live count limit. Each
+        # scheduled boss action creates another distinct guardian, even if all
+        # earlier guardians are still alive; parent-death cleanup is unchanged.
+        seq = int(getattr(boss_mob, "boss_add_seq_v1281", 0) or 0) + 1
+        boss_mob.boss_add_seq_v1281 = seq
+        role, title, damage_type, hp_mult, damage_mult = boss_guardian_role_v12811(
+            parent_template, boss_mob, seq)
+        tid = f"{boss_mob.template_id}__guardian_{role}_v12811"
         if tid not in MOB_TEMPLATES:
-            name, damage_type = boss_guardian_identity_v1281(parent_template)
             parent_level = max(1, int(parent_template.get("level", 1) or 1))
             authored_hp = max(1, int(parent_template.get("max_hp", 1) or 1))
             reward = max(500, parent_level * 400,
                          int(parent_template.get("source_xp", 0) or 0) // 8)
-            guardian_hp = max(100, authored_hp // 5)
             parent_stage = max(1, min(800, int(parent_template.get("v019_stage") or
                                            parent_template.get("generator_level") or
                                            parent_level)))
+            guardian_hp = max(100, int(authored_hp * hp_mult) // 5)
             guardian = {
-                "name": name, "level": parent_level, "max_hp": guardian_hp,
+                "name": f"{title} {parent_template.get('name', 'Bossa')}",
+                "level": parent_level, "max_hp": guardian_hp,
                 "base_max_hp": guardian_hp, "max_mp": 0,
                 "v019_stage": parent_stage, "generator_level": parent_stage,
-                "damage": max(1, int(parent_template.get("damage", 10) or 10) // 3),
+                "damage": max(1, int((parent_template.get("damage", 10) or 10) * damage_mult) // 3),
                 "damage_type": damage_type, "silver": 0, "gold": 0, "mithril": 0,
                 "source_xp": reward, "source_xp_exact": True,
                 "character_xp_reward": 0, "class_xp_reward": 0,
                 "soul_reward": 0, "stat_reward": 0, "drops": {},
                 "quest_target": None, "stationary_mob": True, "auto_aggro": False,
-                "boss_companion_v1281": True,
+                "boss_companion_v1281": True, "boss_guardian_role_v12811": role,
             }
             _catalog_mut.catalog_assign(guardian, "MOB_TEMPLATES", MOB_TEMPLATES, (tid,))
-        seq = int(getattr(boss_mob, "boss_add_seq_v1281", 0) or 0) + 1
-        boss_mob.boss_add_seq_v1281 = seq
-        cap = max(100, int(getattr(boss_mob, "adaptive_max_hp_v11330", 0) or
-                           parent_template.get("max_hp", 100) or 100) // 5)
+        boss_max_hp = max(1, int(getattr(boss_mob, "adaptive_max_hp_v11330", 0) or
+                                 parent_template.get("max_hp", 100) or 100))
+        cap = max(100, int(boss_max_hp * hp_mult) // 5)
+        if role == "uzdrowiciel":
+            # The healer has an actual support effect, not just a healer name.
+            boss_mob.hp = min(boss_max_hp, max(0, int(boss_mob.hp)) + max(1, boss_max_hp // 40))
         add = MobState(
             key=f"{boss_mob.key}:boss_guard:{seq}", room_id=boss_mob.room_id,
             template_id=tid, hp=cap, engaged_by=boss_mob.engaged_by,
@@ -720,6 +724,26 @@ class World:
         _ZONE_THREAT_CACHE.clear()
         return True
 
+    def _ensure_city_world_event_v12812(self, room_id):
+        from systems.world_events_v12812 import active_city_event_v12812
+        event = active_city_event_v12812()
+        if event['room_id'] != str(room_id):
+            return False
+        key=f"v12812:event:{event['slot']}:{event['slug']}"
+        if key in self.mobs: return True
+        template_id=event['template_id']
+        if template_id not in MOB_TEMPLATES: return False
+        v0190_apply_combat_template(MOB_TEMPLATES[template_id])
+        mob=MobState(
+            key=key, room_id=str(room_id), template_id=template_id,
+            hp=int(MOB_TEMPLATES[template_id]['max_hp']),
+            home_room_id=str(room_id), next_wander_at=event['expires_at'])
+        mob.v016_ephemeral=True
+        mob.v029_expires_at=float(event['expires_at'])
+        self.mobs[key]=mob
+        self._last_refresh_at=0.0
+        return True
+
     def ensure_runtime_room(self, room_id):
         room_id = str(room_id or "")
         # Private, mined-out chambers are recreated deterministically after deploy.
@@ -774,6 +798,7 @@ class World:
                 self._register_runtime_spawn(room_id,guard_id)
             return True
         if room_id in ROOMS:
+            self._ensure_city_world_event_v12812(room_id)
             self._generatorize_runtime_room(room_id)
             # v1.19.3: generated secret chamber/archive have their own
             # curated guardian and rare encounters. Generic world-event
@@ -908,6 +933,8 @@ class World:
             return False
         _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (created_room, "procedural_dynamic"))
         _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (created_room, "generated_on_demand"))
+        from systems.underground_cities_v12812 import attach_city_v12812
+        attach_city_v12812(created_room, ROOMS)
         self._generatorize_runtime_room(created_room)
         # v0.10.0: każde dynamicznie tworzone piętro dostaje ten sam duży,
         # wielopokojowy układ co ręcznie przygotowana część instancji.

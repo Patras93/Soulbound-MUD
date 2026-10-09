@@ -152,10 +152,17 @@ def create_world_secret_rooms_v1190(kind, floor, parent, rooms, chests, chest_ca
             chests[vault] = {
                 "name": f"Skarbiec Zapomnianych Mistrzów — {zone}",
                 "respawn": 86400,
-                "base_pool": ("soul_shard", "soul_elixir", "mithril_ore"),
-                "set_pool": (),
+                "base_pool": ("soul_shard", "soul_elixir", "v12811_ancient_blueprint", "v12811_worldheart_core"),
+                "set_pool": ("v12811_eternal_timber", "v12811_phoenix_bloom"),
             }
         chest_catalog[vault] = chests[vault]['name']
+        vault_npc_id = f"v12811_vault_sage_{kind}_{floor}"
+        if vault_npc_id not in npcs:
+            _catalog_mut.catalog_assign({
+                "name": "Mistrzyni Zapomnianych Receptur",
+                "room": vault,
+                "dialogue": "Pokonaj strażnika, a potem wpisz sekret dziedzictwo. Zapis receptury połącz z legendarnymi odkryciami czterech profesji w Kuźni."
+            }, 'NPCS', npcs, (vault_npc_id,))
         vault_guard = world_secret_guard_template_v1190('vault_' + kind, floor, parent, spawns, mobs)
         if vault_guard:
             # Separate guardian per vault; remains a real miniboss of its room.

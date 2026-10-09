@@ -1,3 +1,36 @@
+Soulbound v1.28.12 — LEGENDARNI PRZECIWNICY, MIASTA POD KRYPTAMI, MISTRZOWSKIE RZEMIOSŁO, WYDARZENIA I KRONIKA (2026-10-09)
+
+- Cztery podziemne miasta, po siedem normalnych pokoi, wejścia na piętrach Krypt 50/100/200 i Mitycznej Krypty 100. Brak skrótów piętrowych i losowych pułapek.
+- Kupcy, karczmarki, kowale, archiwiści, własne potężne bossy z dropem.
+- Kronika Podziemi: sześć trwałych jednorazowych questów prowadzących przez kryptę, wyspy, Ocean 2.0 i górnictwo; wyjątkowa nagroda finałowa.
+- Losowe legendarne i mityczne odmiany zwykłych potworów: unikalne techniki potwora, własne trofea oraz zachowane skalowanie walki.
+- Dodatkowa promocyjna szansa na arcydzieło podczas rzemiosła: materiały + poziom profesji + narzędzie + mastery. Bez obniżania statystyk.
+- Co trzy godziny rotuje jedno z 4 prawdziwych wydarzeń: Najazd Nieumarłych, Smok, Oblężenie lub Pradawny Król; boss atakuje na bramie odpowiedniego miasta.
+- Globalne komunikaty wydarzeń i reakcji na regionalne kryzysy. Wykorzystywane są rzeczywiste walki świata.
+- Bez Generator Core, bez zmian progów EXP i zapisu postaci.
+
+Soulbound v1.28.11 — LEGENDARNE SEKRETY, FAZY BOSSÓW, ODKRYCIA PROFESJI I POPRAWKI (2026-10-09)
+
+- Naprawione SB-ED1FF0F9 / SB-00E2257E / SB-521F1383: obsługa kierunku kopania w nakładce rekordów, bez TypeError.
+- Naprawione SB-58B5C0CC: nieprzesłaniana stała kierunków przy drążeniu kopalni.
+- Portal Krypty, Astralny Portal, checkpointy i winda Deep Dungeon: gracz sam w pokoju nie otrzyma odmowy z powodu nieobecnego lidera drużyny. Gdy obecni są inni członkowie drużyny, tylko lider przenosi grupę.
+- Legendarne sekrety: NPC w dodatkowych skarbcach, sekret dziedzictwo po pokonaniu strażnika, osobista nagroda raz na skarbiec (Zapis Zapomnianej Receptury).
+- Wyjątkowo rzadkie odkrycia Wędkarstwa, Górnictwa, Drwalstwa i Zielarstwa: perła, ruda, drewno i kwiat. Przedmioty można sprzedać lub użyć do wytworzenia Reliktu Odkrywcy w Kuźni.
+- Bossowie zmieniają skład pomocników zależnie od fazy: Zbrojny, Arkaniczny, Tarczownik, Berserker i Uzdrowiciel. Bez limitu żywych przywołań.
+- Brak pułapek i zmian w bazie postaci, wymaganiach EXP, regułach najemników i systemie kluczy bossów.
+
+Soulbound v1.28.10 — SCORE: SOUL XP DO NASTĘPNEGO POZIOMU (2026-10-09)
+- Komenda score pokazuje przy Soul Level dokładne Soul XP: zdobyte z wymaganych i brakującą ilość do następnego poziomu.
+- Jeżeli dalszy Soul XP jest zablokowany Próbą i Tierem, score informuje o wymaganym odblokowaniu; przy Soul Level 800 wyświetla maksimum.
+- Zmiana tylko informacyjna. Bez zmian w naliczaniu Soul XP, progach awansów, EXP, najemnikach, bossach, skrzyniach, zadaniach klasowych, bazie danych i Generator Core.
+
+Soulbound v1.28.9 — STRAŻNICY BOSSÓW NO LIMIT + ZADANIA KLASOWE CO 2 GODZINY (2026-10-09)
+- Przywołania strażników przez bossów Krypt, Mitycznych Krypt i innych standardowych bossów bez limitu liczby żywych pomocników. Kolejne tury 4, 11, 18, 25 itd. tworzą osobnych pomocników, także gdy wcześniejsi jeszcze żyją.
+- Po śmierci bossa jego przywołani strażnicy znikają. EXP za ich zabijanie pozostaje bez zmian, bez dodatkowego lootu i wielokrotnego creditu questowego.
+- Pięć zadań klasowych przez `zadanieklasowe` odnawia się w dwugodzinnych cyklach (7200 s), ze zgodnością starych zapisów godzinnych podczas aktualizacji.
+- Również 14 zleceń klasowych u nauczycieli ma cooldown 7200 s; identyfikatory questów i zapisany postęp pozostają bez zmian.
+- Aktualna wersja runtime, changelog i `zmiany` zsynchronizowane. EXP, EQ, skrzynie bossów, dane postaci i Generator Core bez zmian.
+
 Soulbound v1.28.8 — SKRZYNIE W KOMNACIE BOSSA, KLUCZE Z CIAŁA (2026-10-09)
 - Skrzynia stoi w dokładnej komnacie bossa już przed walką. Klucz pozostaje gwarantowany na ciele zabitego bossa; nie pojawia się automatycznie w ekwipunku.
 - Po otwarciu skrzynia znika dla odbiorcy, a po faktycznym odrodzeniu bossa jest znowu widoczna przed kolejną walką.
@@ -73,7 +106,7 @@ Soulbound v1.28.0 — Rozwój 800, unikalne umiejętności i ochrona EQ
 - Sprzedaj wszystko i salvage wszystko oraz sprzedaż/rozkładanie pojedyncze omijają chronione EQ.
 - Wydanie dla Railway i Windows, bez raportów audytu.
 
-Aktualna paczka: v1.28.8 — SKRZYNIE BOSSA / KLUCZ Z CIAŁA (2026-10-09)
+Aktualna paczka: v1.28.12 — LEGENDY / MIASTA / ARCYDZIEŁA / WYDARZENIA / KRONIKA (2026-10-09)
 
 SOULBOUND v1.27.0
 - Nazwy potworów: zachowanie pełnych nazw gatunkowych, np. Upiór Martwego Dzwonu i Szkielet w Stalowym Kirysie; bez obcinania do 3 słów.

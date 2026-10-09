@@ -373,8 +373,25 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.28.8 - SKRZYNIE W KOMNACIE BOSSA I KLUCZE NA CIELE"
+LATEST_CHANGES_TITLE = "Soulbound v1.28.12 - LEGENDY, MIASTA, ARCYDZIELA, WYDARZENIA I KRONIKA"
 LATEST_CHANGES = [
+    "v1.28.12: 4 podziemne miasta z 7 połączonymi salami, działającą tawerną najemników, kupcem, kuźnią, archiwistą, powtarzalnym zadaniem i prawdziwym bossem.",
+    "W archiwach: Kronika Podziemi — 6 powiązanych zadań przez krypty, wyspy, Ocean i kopalnię, finał z legendarnym medalionem.",
+    "Legendarne i Mityczne zwykłe potwory mają własne techniki oraz bardzo rzadkie trofea w ciele.",
+    "Mistrzowskie Rzemiosło 2.0: dodatkowa szansa awansu jakości zależna od materiałów, profesji, narzędzia i mastery.",
+    "Wydarzenia: cztery rotujące co 3 godziny najazdy, atak smoka, oblężenie i starożytny boss. Prawdziwe walki na bramach miast.",
+    "Globalne ogłoszenia rotacji świata, startu i końca regionalnych kryzysów. Solo lub w party.",
+    "v1.28.11: Solo portal, astralportal i winda Deep Dungeon nie wymagają lidera nieobecnej drużyny.",
+    "Naprawiono TypeError kop on kierunek oraz UnboundLocalError ręcznego drążenia chodników.",
+    "Legendarny skarbiec i sekret dziedzictwo: wyjątkowa receptura oraz nowy craft Relikt Odkrywcy.",
+    "Cztery profesje zbierackie mogą odkryć bardzo rzadkie, cenne materiały i trofea.",
+    "Bossowie w nowych falach przyzywają różnych strażników: magów, tarczowników, berserkerów i uzdrowicieli, bez limitu liczby żywych pomocników.",
+    "v1.28.10: SCORE pokazuje bieżący Soul XP, wymagany Soul XP i dokładny brak do następnego Soul Levelu.",
+    "Przy blokadzie Soul Tier pokazuje status odblokowania, a przy Soul Level 800: maksimum.",
+    "Bez zmian w wymaganiach i nagrodach EXP, walce, skrzyniach, zadaniach klasowych oraz zapisach postaci.",
+    "v1.28.9: Bossowie krypt oraz pozostali zwykli bossowie przyzywają kolejnych strażników bez limitu żywych pomocników.",
+    "Pierwsze przywołanie w turze 4, dalej co 7 tur. Strażnicy nadal walczą i znikają po śmierci bossa.",
+    "Zadanieklasowe i zlecenia klasowe u nauczycieli odnawiają się co 2 godziny zamiast co godzinę.",
     "v1.28.8: Skrzynia stoi w komnacie żywego bossa, klucz wypada dopiero z jego ciała po zabiciu.",
     "Po otwarciu skrzynia znika; wraca, gdy boss naprawdę się odrodzi. Naprawiono też starsze piętra bez znacznika pokoju.",
     "v1.28.7: SCORE nie pokazuje już fałszywej progresji 1-600 ani nieistniejącego Generator Core; potwierdza limity 800.",
@@ -1717,22 +1734,22 @@ HOURLY_QUEST_IDS = (
 )
 
 _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
-    # v1.00.14: godzinne zlecenia klasowe. Liczą dowolnego przeciwnika
+    # v1.28.9: dwugodzinne zlecenia klasowe. Liczą dowolnego przeciwnika
     # pokonanego po przyjęciu i nagradzają reputacją właściwej klasy.
-    "hourly_class_wojownik": {"name":"Godzinne klasowe: Próba Wojownika","giver":"Mistrz Garran","required_npc_id":"teacher_warrior","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Wojownik.","required_class":"Wojownik","reward_guild_class":"Wojownik","reward_guild_reputation":40,"reward_silver":1400,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_berserker": {"name":"Godzinne klasowe: Próba Berserkera","giver":"Mistrzyni Brynja","required_npc_id":"teacher_berserker","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Berserker.","required_class":"Berserker","reward_guild_class":"Berserker","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_lotrzyk": {"name":"Godzinne klasowe: Próba Łotrzyka","giver":"Mistrz Kael","required_npc_id":"teacher_rogue","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Łotrzyk.","required_class":"Łotrzyk","reward_guild_class":"Łotrzyk","reward_guild_reputation":40,"reward_silver":1400,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_lowca": {"name":"Godzinne klasowe: Próba Łowcy","giver":"Mistrzyni Eira","required_npc_id":"teacher_hunter","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Łowca.","required_class":"Łowca","reward_guild_class":"Łowca","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_mnich": {"name":"Godzinne klasowe: Próba Mnicha","giver":"Mistrz Shen","required_npc_id":"teacher_monk","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Mnich.","required_class":"Mnich","reward_guild_class":"Mnich","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_straznik": {"name":"Godzinne klasowe: Próba Strażnika","giver":"Mistrz Borin","required_npc_id":"teacher_guardian","kind":"kill","target":"*","needed":10,"description":"Pokonaj 10 dowolnych przeciwników jako Strażnik.","required_class":"Strażnik","reward_guild_class":"Strażnik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_mag": {"name":"Godzinne klasowe: Próba Maga","giver":"Arcymag Vaelis","required_npc_id":"teacher_mage","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Mag.","required_class":"Mag","reward_guild_class":"Mag","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_nekromanta": {"name":"Godzinne klasowe: Próba Nekromanty","giver":"Mistrzyni Morwen","required_npc_id":"teacher_necromancer","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Nekromanta.","required_class":"Nekromanta","reward_guild_class":"Nekromanta","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_kaplan": {"name":"Godzinne klasowe: Próba Kapłana","giver":"Mistrz Aureon","required_npc_id":"teacher_priest","kind":"kill","target":"*","needed":10,"description":"Pokonaj 10 dowolnych przeciwników jako Kapłan.","required_class":"Kapłan","reward_guild_class":"Kapłan","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_czarownik": {"name":"Godzinne klasowe: Próba Czarownika","giver":"Mistrzyni Nyra","required_npc_id":"teacher_warlock","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Czarownik.","required_class":"Czarownik","reward_guild_class":"Czarownik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_druid": {"name":"Godzinne klasowe: Próba Druida","giver":"Mistrz Thalen","required_npc_id":"teacher_druid","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Druid.","required_class":"Druid","reward_guild_class":"Druid","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_psionik": {"name":"Godzinne klasowe: Próba Psionika","giver":"Mistrzyni Ilyra","required_npc_id":"teacher_psion","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Psionik.","required_class":"Psionik","reward_guild_class":"Psionik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_mec": {"name":"Godzinne klasowe: Próba Meca","giver":"Mechanik Vektor","required_npc_id":"teacher_mec","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Mec.","required_class":"Mec","reward_guild_class":"Mec","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
-    "hourly_class_inzynier": {"name":"Godzinne klasowe: Próba Inżyniera","giver":"Inżynierka Ada","required_npc_id":"teacher_engineer","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Inżynier.","required_class":"Inżynier","reward_guild_class":"Inżynier","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_wojownik": {"name":"Dwugodzinne klasowe: Próba Wojownika","giver":"Mistrz Garran","required_npc_id":"teacher_warrior","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Wojownik.","required_class":"Wojownik","reward_guild_class":"Wojownik","reward_guild_reputation":40,"reward_silver":1400,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_berserker": {"name":"Dwugodzinne klasowe: Próba Berserkera","giver":"Mistrzyni Brynja","required_npc_id":"teacher_berserker","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Berserker.","required_class":"Berserker","reward_guild_class":"Berserker","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_lotrzyk": {"name":"Dwugodzinne klasowe: Próba Łotrzyka","giver":"Mistrz Kael","required_npc_id":"teacher_rogue","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Łotrzyk.","required_class":"Łotrzyk","reward_guild_class":"Łotrzyk","reward_guild_reputation":40,"reward_silver":1400,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_lowca": {"name":"Dwugodzinne klasowe: Próba Łowcy","giver":"Mistrzyni Eira","required_npc_id":"teacher_hunter","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Łowca.","required_class":"Łowca","reward_guild_class":"Łowca","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_mnich": {"name":"Dwugodzinne klasowe: Próba Mnicha","giver":"Mistrz Shen","required_npc_id":"teacher_monk","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Mnich.","required_class":"Mnich","reward_guild_class":"Mnich","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_straznik": {"name":"Dwugodzinne klasowe: Próba Strażnika","giver":"Mistrz Borin","required_npc_id":"teacher_guardian","kind":"kill","target":"*","needed":10,"description":"Pokonaj 10 dowolnych przeciwników jako Strażnik.","required_class":"Strażnik","reward_guild_class":"Strażnik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_mag": {"name":"Dwugodzinne klasowe: Próba Maga","giver":"Arcymag Vaelis","required_npc_id":"teacher_mage","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Mag.","required_class":"Mag","reward_guild_class":"Mag","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_nekromanta": {"name":"Dwugodzinne klasowe: Próba Nekromanty","giver":"Mistrzyni Morwen","required_npc_id":"teacher_necromancer","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Nekromanta.","required_class":"Nekromanta","reward_guild_class":"Nekromanta","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_kaplan": {"name":"Dwugodzinne klasowe: Próba Kapłana","giver":"Mistrz Aureon","required_npc_id":"teacher_priest","kind":"kill","target":"*","needed":10,"description":"Pokonaj 10 dowolnych przeciwników jako Kapłan.","required_class":"Kapłan","reward_guild_class":"Kapłan","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_czarownik": {"name":"Dwugodzinne klasowe: Próba Czarownika","giver":"Mistrzyni Nyra","required_npc_id":"teacher_warlock","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Czarownik.","required_class":"Czarownik","reward_guild_class":"Czarownik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_druid": {"name":"Dwugodzinne klasowe: Próba Druida","giver":"Mistrz Thalen","required_npc_id":"teacher_druid","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Druid.","required_class":"Druid","reward_guild_class":"Druid","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_psionik": {"name":"Dwugodzinne klasowe: Próba Psionika","giver":"Mistrzyni Ilyra","required_npc_id":"teacher_psion","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Psionik.","required_class":"Psionik","reward_guild_class":"Psionik","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_mec": {"name":"Dwugodzinne klasowe: Próba Meca","giver":"Mechanik Vektor","required_npc_id":"teacher_mec","kind":"kill","target":"*","needed":12,"description":"Pokonaj 12 dowolnych przeciwników jako Mec.","required_class":"Mec","reward_guild_class":"Mec","reward_guild_reputation":50,"reward_silver":1600,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
+    "hourly_class_inzynier": {"name":"Dwugodzinne klasowe: Próba Inżyniera","giver":"Inżynierka Ada","required_npc_id":"teacher_engineer","kind":"kill","target":"*","needed":14,"description":"Pokonaj 14 dowolnych przeciwników jako Inżynier.","required_class":"Inżynier","reward_guild_class":"Inżynier","reward_guild_reputation":45,"reward_silver":1500,"reward_gold":0,"reward_mithril":0,"reward_items":{},"repeatable":True,"repeat_cooldown":2*60*60,"hourly_rotation":False,"remote_turnin":False},
     "hourly_goblins": {
         "name": "Godzinne zlecenie: Gobliny na szlaku", "giver": "Tablica Godzinnych Zleceń",
         "kind": "kill", "target": "goblin", "needed": 20,
@@ -2627,3 +2644,39 @@ HELP_TOPICS["ochronaeq"] = [
     "Chronione przedmioty są pomijane przez sprzedaj wszystko i salvage wszystko; zwykła sprzedaż i salvage również odmawiają.",
     "Blokada obejmuje wszystkie egzemplarze tego samego item_id i zostaje po restarcie/deployu.",
 ]
+
+
+# v1.28.12: human-readable information, never procedurally generated help.
+HELP_TOPICS['podziemne miasta'] = [
+    'Podziemne miasta znajdują się przy piętrach Krypty 50, 100 i 200 oraz Mitycznej Krypty 100.',
+    'Szukaj zwykłego bocznego kierunku z głównej sali piętra. Miasta mają bramę, plac, targ, karczmę, kuźnię, archiwum i arenę.',
+    'Sklep działa na targu. Karczma przyjmuje najemników. Mistrz w kuźni uczy skilli właściwej klasy. Na arenie czeka boss.',
+    'Każda archiwistka daje powtarzalne zadanie miasta. W Bazaltowym Azylu rozpoczyna się także sześć etapów Kroniki Podziemi.',
+]
+HELP_TOPICS['kronika podziemi'] = [
+    'Kronika Podziemi: 6 zależnych zadań od Archiwistki w Bazaltowym Azylu przy Krypcie piętro 50.',
+    'Kolejne cele prowadzą przez arenę Bazaltowego Azylu, Archipelag, Ocean 2.0, Górnictwo, setne piętro Krypty i Mityczne Sanktuarium.',
+    'Użyj quest list przy Archiwistce oraz quest info, aby sprawdzić cel. Na końcu czeka unikatowy Medalion Strażnika Kroniki.',
+]
+HELP_TOPICS['legendy świata'] = [
+    'Rzadkie Legendarne i Mityczne potwory świata mogą wystąpić również na głębokich piętrach lochów.',
+    'Mają własne afiksy i ataki, a ich ciała mogą zawierać Pieczęć Pradawnych Legend albo Serce Mitycznej Bestii.',
+]
+HELP_TOPICS['mistrzowskie rzemiosło'] = [
+    'Wyjątkowe ARCYDZIEŁO może dodatkowo podnieść jakość wykonanego EQ.',
+    'Szansa zależy od rodzaju materiału, poziomu profesji, narzędzia i mistrzostwa. Nie zmienia istniejących receptur ani limitów statystyk.',
+]
+HELP_TOPICS['najazdy świata'] = [
+    'Co 3 godziny rotuje jeden z czterech podziemnych najazdów: nieumarli, smok, oblężenie i pradawny boss.',
+    'Przy bramie ogłoszonego miasta pojawia się prawdziwy boss wydarzenia; walczyć można solo lub w drużynie.',
+    'Komunikaty świata ogłaszają nowy kryzys. Wydarzenia nie zmieniają zwykłego EXP ani resetu istniejących bossów.',
+]
+for _alias, _topic in {
+    'miasta podziemne':'podziemne miasta',
+    'kronika':'kronika podziemi',
+    'legendarne potwory':'legendy świata',
+    'arcydzieła':'mistrzowskie rzemiosło',
+    'wydarzenia podziemi':'najazdy świata',
+}.items():
+    HELP_TOPIC_ALIASES.setdefault(_alias, _topic)
+

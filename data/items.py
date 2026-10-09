@@ -603,4 +603,23 @@ ITEMS = {
     },
 }
 
+# v1.28.11: rare, tradeable discoveries (normal inventory; not bound tools).
+ITEMS.update({
+    "v12811_leviathan_pearl": {"name": "Perła Lewiatana", "type": "loot", "price": None,
+        "sell_gold": 150000, "desc": "Niezwykle rzadki skarb z połowu. Cenny towar na sprzedaż i składnik legendarnych receptur."},
+    "v12811_worldheart_core": {"name": "Serce Pierwotnej Rudy", "type": "loot", "price": None,
+        "sell_gold": 180000, "desc": "Legendarny minerał znaleziony podczas wydobycia. Składnik mistrzowskiego rzemiosła."},
+    "v12811_eternal_timber": {"name": "Żywe Drewno Pradawnych", "type": "loot", "price": None,
+        "sell_gold": 160000, "desc": "Bezcenne drewno ze starych lasów. Składnik mistrzowskiego rzemiosła."},
+    "v12811_phoenix_bloom": {"name": "Pierwotny Kwiat Feniksa", "type": "loot", "price": None,
+        "sell_gold": 160000, "desc": "Wyjątkowy okaz znaleziony wśród ziół. Składnik mistrzowskiego rzemiosła."},
+    "v12811_ancient_blueprint": {"name": "Zapis Zapomnianej Receptury", "type": "loot", "price": None,
+        "sell_gold": 200000, "desc": "Rzadki schemat z legendarnego skarbca. Zużywany do wykonania Reliktu Odkrywcy."},
+    "v12811_explorer_relic": {"name": "Relikt Odkrywcy", "type": "armor", "slot": "charm",
+        "defense": 140, "price": None, "rarity": "legendary", "rarity_name": "Legendarny",
+        "stats": {"strength": 120, "dexterity": 120, "constitution": 120,
+                  "intelligence": 120, "willpower": 120},
+        "desc": "Legendarny talizman wykonany z czterech wyjątkowych odkryć i zapomnianej receptury."},
+})
+
 __all__ = ['ITEMS']

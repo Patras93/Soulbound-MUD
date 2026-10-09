@@ -27,7 +27,10 @@ def build_legendary_v1250(source_id, template, rank):
     clone['name'] = f"{label} {template.get('name', source_id)}"
     clone['rank'] = 'rare' if rank == 'legendary' else 'elite'
     clone['elite'] = True
-    clone['elite_affix'] = 'enraged' if rank == 'mythic' else 'armored'
+    # Different existing monster AI techniques, not merely larger damage numbers.
+    affixes = ('storm','vampiric','cursed')
+    clone['elite_affix'] = affixes[sum(str(source_id).encode('utf-8')) % len(affixes)] if rank == 'mythic' else 'armored'
+    clone['attack_elements_v11339'] = ('dark',) if rank == 'mythic' else ('lightning',)
     clone['elite_legend_rank_v1250'] = rank
     clone['elite_source_template_v11338'] = str(source_id)
     clone['elite_base_template'] = str(template.get('elite_base_template') or template.get('base_template') or source_id)
@@ -35,4 +38,8 @@ def build_legendary_v1250(source_id, template, rank):
     clone['elite_drop_multiplier_v11338'] = drop
     clone['elite_hp_multiplier_v11338'] = hp
     clone['elite_damage_multiplier_v11338'] = dmg
+    # Rare material drop is handled by the normal corpse loot pipeline.
+    drops = dict(clone.get('drops') or {})
+    drops['v12812_mythic_heart' if rank == 'mythic' else 'v12812_legendary_seal'] = (0.27 if rank == 'mythic' else 0.12)
+    clone['drops'] = drops
     return clone

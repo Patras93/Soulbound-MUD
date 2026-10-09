@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Boss companions v1.28.1: one living guardian for non-unique bosses.
+"""Boss companions: unbounded guardian waves for non-unique bosses.
 
 The source-authored UOSS encounters have their own, independent summon
 scripts; a summon is a real kill worth progression XP, but never repeatable
@@ -22,7 +22,11 @@ def boss_companion_due_v1281(mob, template):
         "ai_ephemeral_summon_v1160", "boss_companion_v1281",
     )) or getattr(mob, "monster_ai_summoned_v1160", False):
         return False
-    if not any(template.get(marker) for marker in _BOSS_MARKERS):
+    # v1.28.12: exceptionally rare legendary/mythic normal monsters
+    # may call for help without pretending to be bosses (which would
+    # incorrectly grant boss keys, chest access and quest credit).
+    if not (any(template.get(marker) for marker in _BOSS_MARKERS)
+            or template.get('elite_legend_rank_v1250')):
         return False
     turn = int(getattr(mob, "combat_turn", 0) or 0)
     return turn >= 4 and (turn - 4) % 7 == 0 and int(getattr(mob, "boss_last_summon_turn_v1281", -1)) != turn
@@ -57,3 +61,19 @@ def boss_jammer_immune_v1281(template):
     return str(template.get("rank") or "").strip().casefold() in {
         "boss", "world_boss", "mini", "miniboss", "mini_boss",
     }
+
+
+GUARDIAN_ROLES_V12811 = (
+    ("zbrojny", "Zbrojny", "physical", 1.0, 1.0),
+    ("arkaniczny", "Arkaniczny", "magic", 0.85, 1.15),
+    ("obronca", "Tarczownik", "physical", 1.65, 0.75),
+    ("furia", "Berserker", "physical", 0.78, 1.50),
+    ("uzdrowiciel", "Uzdrowiciel", "magic", 0.9, 0.85),
+)
+
+
+def boss_guardian_role_v12811(template, boss_mob, sequence):
+    """Rotate summon combat roles; later HP phases change the lineup."""
+    stage = max(0, min(3, int(getattr(boss_mob, 'v1230_boss_phase', 0) or 0)))
+    index = (max(1, int(sequence)) - 1 + stage * 2) % len(GUARDIAN_ROLES_V12811)
+    return GUARDIAN_ROLES_V12811[index]

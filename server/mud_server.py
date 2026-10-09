@@ -503,10 +503,34 @@ class MudServer:
 
     async def double_xp_event_loop(self):
         last_active = double_xp_event_state()["active"]
+        last_world_slot_v12812 = None
         while True:
             await asyncio.sleep(5.0)
             try:
                 state = double_xp_event_state()
+                # Every 3 hours announce new actual rotating world encounters.
+                # No rerolls, NPC spawning or EXP changes in this notifier.
+                current_slot_v12812 = int(time.time() // (3 * 3600))
+                if current_slot_v12812 != last_world_slot_v12812:
+                    last_world_slot_v12812 = current_slot_v12812
+                    from world.world_state import v0290_active_world_events
+                    from data.rooms import ROOMS as _rooms_v12812
+                    from systems.world_events_v12812 import active_city_event_v12812
+                    city_event = active_city_event_v12812()
+                    self.world.ensure_runtime_room(city_event['room_id'])
+                    await self.broadcast_all(
+                        f"WYDARZENIE ŚWIATA: {city_event['name']}! Boss: {city_event['boss_name']}. "
+                        f"Miejsce: {_rooms_v12812[city_event['room_id']]['name']}. "
+                        'Czas wydarzenia: 3 godziny. Prawdziwy boss, wspólny EXP i łupy.',
+                        history_category='system')
+                    active_events = list(v0290_active_world_events())
+                    for event in active_events[:3]:
+                        room = _rooms_v12812.get(event.get('room_id'), {})
+                        label = str(event.get('title') or event.get('name') or event.get('kind') or 'Starcie')
+                        await self.broadcast_all(
+                            f'WYDARZENIE ŚWIATA: {label}. Miejsce: {room.get("name",event.get("room_id","nieznane"))}. '
+                            'Wydarzenie jest prawdziwą walką; solo i drużyny mogą wziąć udział.',
+                            history_category='system')
                 active = bool(state["active"])
                 if active == last_active:
                     continue

@@ -152,6 +152,21 @@ class SessionCharacterProfileMixin:
                     )
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+            if c.soul_level >= SOUL_MAX_LEVEL:
+                await self.send(f"Soul XP: maksimum. Soul Level {SOUL_MAX_LEVEL}/{SOUL_MAX_LEVEL}.")
+            else:
+                soul_required = max(0, int(c.soul_xp_to_next()))
+                soul_current = max(0, int(c.soul_xp))
+                soul_remaining = max(0, soul_required - soul_current)
+                await self.send(
+                    f"Soul XP: {soul_current} z {soul_required}. "
+                    f"Brakuje {soul_remaining} Soul XP do Soul Level {int(c.soul_level) + 1}."
+                )
+                if c.soul_progress_is_tier_locked():
+                    await self.send(
+                        f"Soul XP zablokowany do odblokowania Soul Tier "
+                        f"{min(SOUL_MAX_TIER, int(c.soul_tier) + 1)}."
+                    )
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")

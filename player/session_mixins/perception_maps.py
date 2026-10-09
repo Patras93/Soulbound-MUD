@@ -786,6 +786,8 @@ class SessionPerceptionMapsMixin:
                 role, kind, floor = inside
                 if role == "archive":
                     await self.send("Tajemniczy NPC czeka w archiwum. Wpisz rozmawiaj <imię> lub sekret wydarzenie. Wyjścia: zachód, dół.")
+                elif role == "vault":
+                    await self.send("LEGENDARNY SKARBIEC. Pokonaj strażnika, użyj sekret dziedzictwo, a skrzynię otwórz komendą skrzynia. Wyjście: południe.")
                 else:
                     await self.send("Sekretna komnata strażnika. Skarbiec jest tutaj. Aby dostać się do archiwum, pokonaj strażnika i idź na wschód. W dół wrócisz na to samo piętro.")
                 return
@@ -855,7 +857,7 @@ class SessionPerceptionMapsMixin:
             raw = self.normalize_description_query(str(args or "").strip())
             inside = secret_room_identity_v1190(self.character.room_id)
             if raw in ("pomoc", "help", "?", "komendy"):
-                await self.send("Sekrety: sekret (odkryj lub wejdź), sekret trop, sekret lista, sekret wydarzenie. W komnacie: otwórz skrzynię; w archiwum: rozmawiaj <imię>. Nie ma losowych pułapek.")
+                await self.send("Sekrety: sekret (odkryj lub wejdź), sekret trop, sekret lista, sekret wydarzenie, w skarbcu: sekret dziedzictwo. W komnacie: otwórz skrzynię; w archiwum: rozmawiaj <imię>. Nie ma losowych pułapek.")
                 return
             if raw in ("lista", "odkryte", "historia"):
                 found = []
@@ -878,6 +880,26 @@ class SessionPerceptionMapsMixin:
                 kind, floor = instance_room_identity(self.character.room_id)
                 name = instance_secret_name(kind, floor) if kind and floor is not None else None
                 await self.send(f"TROP SEKRETU: {name}. Wpisz sekret." if name else "W tej lokacji nie znajdujesz nowego tropu. Szukaj specjalnych pięter instancji i sekretów rubieży.")
+                return
+            if raw in ("dziedzictwo", "relikt", "receptura"):
+                if not inside or inside[0] != "vault":
+                    await self.send("Zapomnianej receptury szukaj w Zakazanym Skarbcu na sekretnym piętrze lochu.")
+                    return
+                guards = [mob for mob in self.server.world.room_mobs(self.character.room_id)
+                          if mob.alive and MOB_TEMPLATES.get(mob.template_id, {}).get("v1250_vault_guard")]
+                if guards:
+                    await self.send("Najpierw pokonaj strażnika skarbca, żeby poznać dziedzictwo.")
+                    return
+                claimed = self.server.db.add_collection_entry(
+                    self.account_id, "legendary_vault_heritage_v12811", self.character.room_id)
+                if not claimed:
+                    await self.send("Dziedzictwo tego skarbca zostało już przez ciebie odzyskane.")
+                    return
+                self.server.db.add_item(self.account_id, "v12811_ancient_blueprint", 1)
+                await self.record_item_collection("v12811_ancient_blueprint",
+                                                  source="Dziedzictwo legendarnego skarbca", announce=True)
+                await self.send("O KURDE — LEGENDARNA RECEPTURA! Znajdujesz Zapis Zapomnianej Receptury. Trafia do plecaka."
+                                " W Kuźni można z niego wykonać Relikt Odkrywcy wraz z czterema rzadkimi składnikami profesji.")
                 return
             if raw in ("wydarzenie", "event", "znalezisko"):
                 surface_room = v0140_secret_room_identity(self.character.room_id)

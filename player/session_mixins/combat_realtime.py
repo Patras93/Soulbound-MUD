@@ -665,7 +665,10 @@ class SessionCombatRealtimeMixin:
                                         await self.server.party_combat_broadcast(
                                             self,
                                             f"{_boss_template_v1281['name']} przyzywa "
-                                            f"{MOB_TEMPLATES[_guardian_v1281.template_id]['name']}!",
+                                            f"{MOB_TEMPLATES[_guardian_v1281.template_id]['name']}!"
+                                            + (" Uzdrowiciel przywraca część HP bossa."
+                                               if MOB_TEMPLATES[_guardian_v1281.template_id].get("boss_guardian_role_v12811") == "uzdrowiciel"
+                                               else ""),
                                             detail="essential",
                                         )
                                         continue

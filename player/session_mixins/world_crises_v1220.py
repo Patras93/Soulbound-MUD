@@ -60,6 +60,7 @@ class SessionWorldCrisesV1220Mixin:
                 return
             if self.server.db.crisis_start_v1220(self.account_id, key_here, day):
                 await self.send(f"Rozpoczynasz {title}. Pokonaj 3 regionalnych przeciwników. Twoje postępy zapisują się automatycznie.")
+                await self.server.broadcast_all(f"WYDARZENIE ŚWIATA: {self.character.name} rozpoczyna {title}! Obozowisko: {ROOMS[spec['town']]['name']}. Można walczyć solo lub z drużyną.", history_category="system")
             else:
                 await self.send("To wydarzenie jest już dziś rozpoczęte albo ukończone. Wpisz kryzys status.")
             return
@@ -85,6 +86,7 @@ class SessionWorldCrisesV1220Mixin:
                 return
             self.server.db.apply_shared_wallet_to_character(self.character)
             await self.send(f"KRYZYS UKOŃCZONY: {title}. Nagroda: {currency_price_text(coins)} i {quantity} szt. {ITEMS[spec['resource']]['name']}. Kolejna edycja następnego dnia (UTC).")
+            await self.server.broadcast_all(f"WYDARZENIE ŚWIATA ZAKOŃCZONE: {self.character.name} odparł {title}!", history_category="system")
             return
 
     async def record_world_crisis_kill_v1220(self, mob, template):

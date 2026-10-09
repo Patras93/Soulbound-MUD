@@ -152,7 +152,7 @@ class SessionHelpSystemMixin:
                 "multiclass add klasa / remove klasa - dodaj lub wyłącz klasę dodatkową",
                 "stats / staty - statystyki czytane osobno; staty info - baza, efektywne wartości, EQ i mechanika",
                 "hp / zdrowie - szybkie bieżące i maksymalne HP oraz Mana",
-                "score / wynik - podsumowanie postaci, klas, Biegłości, Duszy, statystyk, portfela i terenu",
+                "score / wynik - podsumowanie postaci, klas, Biegłości, Duszy (Soul XP: obecny / wymagany / brakujący), statystyk, portfela i terenu",
                 "odmiana / przypadki - pokaż 7 form imienia postaci",
                 "skills / umiejetnosci - szczegółowa lista umiejętności aktywnych klas; skills all - nazwy skilli/spelli wszystkich 14 klas",
                 "spells / spels / czary - czary aktywnych klas magicznych; spells all / spels all - czary wszystkich klas magicznych",

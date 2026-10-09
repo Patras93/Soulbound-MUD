@@ -46,7 +46,13 @@ def mercenary_role(raw):
 
 def tavern_here(room_id):
     from world.living_npcs import V0560_TAVERNS
-    return any(str(spec["room"]) == str(room_id) for spec in V0560_TAVERNS.values())
+    if any(str(spec["room"]) == str(room_id) for spec in V0560_TAVERNS.values()):
+        return True
+    # v1.28.12: actual underground-city inns accept regular mercenary
+    # recruitment, without duplicating the historical hourly NPC catalogs.
+    from data.catalogs import ROOMS
+    room = ROOMS.get(str(room_id), {})
+    return bool(room.get('v12812_underground_city') and str(room_id).endswith('_tavern'))
 
 
 def price_silver(character, role):

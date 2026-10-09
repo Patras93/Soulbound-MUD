@@ -239,17 +239,17 @@ def _v0370_gem_drop(self,*args,**kwargs):
 SessionProfessionsStorageGuideMixin.mining_gem_drop = _v0370_gem_drop
 
 _V0370_SET_AUTO_MINING_BEFORE = SessionProfessionsStorageGuideMixin.set_auto_mining
-async def _v0370_set_auto_mining(self,enabled):
+async def _v0370_set_auto_mining(self,enabled,direction=None):
     if enabled:
         self._v0370_mining_session_ore=0
-    return await _V0370_SET_AUTO_MINING_BEFORE(self,enabled)
+    return await _V0370_SET_AUTO_MINING_BEFORE(self,enabled,direction=direction)
 SessionProfessionsStorageGuideMixin.set_auto_mining = _v0370_set_auto_mining
 
 _V0370_MINE_BEFORE = SessionAdminGatheringSalesMixin.mine
-async def _v0370_mine(self,from_auto=False):
+async def _v0370_mine(self,from_auto=False,direction=None):
     before=self.server.db.lifetime_stat(self.account_id,"ore_mined") if self.account_id else 0
     self._v0370_last_gem_id=None
-    result=await _V0370_MINE_BEFORE(self,from_auto=from_auto)
+    result=await _V0370_MINE_BEFORE(self,from_auto=from_auto,direction=direction)
     after=self.server.db.lifetime_stat(self.account_id,"ore_mined") if self.account_id else before
     gained=max(0,int(after)-int(before))
     if gained and self.character:

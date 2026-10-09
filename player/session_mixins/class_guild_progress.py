@@ -20,15 +20,19 @@ from systems.equipment_crafting import (
 from world.economy_quests import v0914_combat_quest_soul_reward
 
 
+# Fixed global two-hour windows, matching the earlier hourly rotation model.
+CLASS_GUILD_QUEST_CYCLE_SECONDS = 2 * 60 * 60
+
+
 class SessionClassGuildProgressMixin:
 
     def class_guild_quest_hour_slot_v1120(self, now=None):
         now = time.time() if now is None else float(now)
-        return int(now // 3600)
+        return int(now // CLASS_GUILD_QUEST_CYCLE_SECONDS)
 
     def class_guild_quest_refresh_seconds_v1120(self, now=None):
         now = time.time() if now is None else float(now)
-        remaining = 3600 - (int(now) % 3600)
+        remaining = CLASS_GUILD_QUEST_CYCLE_SECONDS - (int(now) % CLASS_GUILD_QUEST_CYCLE_SECONDS)
         return max(1, remaining)
 
     def class_guild_mastery_level_v11342(self, class_name):
@@ -54,7 +58,7 @@ class SessionClassGuildProgressMixin:
         return tuple((index, pool[index]) for index in order)
 
     def class_guild_quest_state_v1120(self, class_name):
-        """Return current hourly state and migrate old one-quest saves in place."""
+        """Return current two-hour state, preserving compatible hourly saves."""
         states = self.character._guild_json("guild_class_quests_json")
         raw = states.get(class_name, {})
         slot = self.class_guild_quest_hour_slot_v1120()
@@ -67,6 +71,15 @@ class SessionClassGuildProgressMixin:
             raw = {}
             changed = True
 
+        # Previous releases stored the absolute one-hour slot number.
+        # Convert it to the new two-hour cycle before comparing state, so
+        # accepted quests inside the same cycle do not disappear on upgrade.
+        if "slot" in raw and int(raw.get("cycle_seconds", 3600) or 3600) != CLASS_GUILD_QUEST_CYCLE_SECONDS:
+            raw = dict(raw)
+            raw["slot"] = int(raw["slot"]) // (CLASS_GUILD_QUEST_CYCLE_SECONDS // 3600)
+            raw["cycle_seconds"] = CLASS_GUILD_QUEST_CYCLE_SECONDS
+            changed = True
+
         old_quests = raw.get("quests") if isinstance(raw.get("quests"), dict) else {}
         ever_completed = bool(raw.get("ever_completed") or raw.get("completed"))
         if any(bool(value.get("completed")) for value in old_quests.values() if isinstance(value, dict)):
@@ -74,7 +87,7 @@ class SessionClassGuildProgressMixin:
 
         if "slot" not in raw:
             # v1.11.x stored one flat quest per class. Preserve its progress as
-            # the first (legacy-compatible) quest in the new hourly pool.
+            # the first (legacy-compatible) quest in the new two-hour pool.
             quest_rows = {}
             old_progress = max(0, int(raw.get("progress", 0) or 0))
             old_completed = bool(raw.get("completed"))
@@ -85,17 +98,19 @@ class SessionClassGuildProgressMixin:
                 }
             state = {
                 "slot": slot,
+                "cycle_seconds": CLASS_GUILD_QUEST_CYCLE_SECONDS,
                 "active": 0 if raw.get("accepted") and not old_completed else None,
                 "quests": quest_rows,
                 "ever_completed": ever_completed,
                 # Existing in-progress legacy task keeps base difficulty until
-                # the next hourly refresh instead of changing under the player.
+                # the next two-hour refresh instead of changing under the player.
                 "mastery_level": 1,
             }
             changed = True
         elif int(raw.get("slot", -1)) != slot:
             state = {
                 "slot": slot,
+                "cycle_seconds": CLASS_GUILD_QUEST_CYCLE_SECONDS,
                 "active": None,
                 "quests": {},
                 "ever_completed": ever_completed,
@@ -105,9 +120,10 @@ class SessionClassGuildProgressMixin:
         else:
             state = dict(raw)
             state["slot"] = slot
+            state["cycle_seconds"] = CLASS_GUILD_QUEST_CYCLE_SECONDS
             state["ever_completed"] = ever_completed
             if "mastery_level" not in state:
-                # First hour after upgrade: preserve current task numbers.
+                # First cycle after upgrade: preserve current task numbers.
                 state["mastery_level"] = 1 if (
                     state.get("active") is not None or state.get("quests")
                 ) else self.class_guild_mastery_level_v11342(class_name)
@@ -197,7 +213,7 @@ class SessionClassGuildProgressMixin:
                     f"{cls}: reputacja {rep}/{GUILD_REPUTATION_MAX}, ranga {rank[1]}, "
                     f"zniżka na naukę {discount}%, {next_text}, "
                     f"egzaminy: {', '.join(exams) if exams else 'brak'}, "
-                    f"zadania godzinne: {quest_count}."
+                    f"zadania co 2 godziny: {quest_count}."
                 )
             lines.append("Zadania aktywnej klasy: zadanieklasowe.")
             await self.send("\n".join(lines))
@@ -212,7 +228,7 @@ class SessionClassGuildProgressMixin:
                     f"{cls}. Reputacja {rep}/{GUILD_REPUTATION_MAX}. Ranga: {rank[1]}. "
                     f"Zniżka na naukę: {int(rank[2]*100)}%. "
                     f"Zadania klasowe: {len(GUILD_CLASS_QUEST_POOLS[cls])} różnych ofert, "
-                    "odnawianych co godzinę i skalowanych z Biegłością klasy. "
+                    "odnawianych co 2 godziny i skalowanych z Biegłością klasy. "
                     "Dla aktywnej klasy użyj zadanieklasowe."
                 )
                 return
@@ -291,7 +307,7 @@ class SessionClassGuildProgressMixin:
             self.character._set_guild_json("guild_class_quests_json", states)
             self.server.db.save_character(self.character)
             await self.send(
-                "Wstrzymano aktywne zadanie klasowe. Postęp pozostaje zapisany do końca bieżącej godziny."
+                "Wstrzymano aktywne zadanie klasowe. Postęp pozostaje zapisany do końca bieżącego dwugodzinnego cyklu."
             )
             return
 
@@ -311,7 +327,7 @@ class SessionClassGuildProgressMixin:
             qstate = quests.setdefault(str(quest_index), {"progress": 0, "completed": False})
             if qstate.get("completed"):
                 await self.send(
-                    f"{data[0]} jest już ukończone w tym cyklu godzinnym. Wybierz inne zadanie."
+                    f"{data[0]} jest już ukończone w tym cyklu dwugodzinnym. Wybierz inne zadanie."
                 )
                 return
             current_active = state.get("active")
@@ -385,7 +401,7 @@ class SessionClassGuildProgressMixin:
         await self.grant_combat_quest_stat_xp(
             guild_stat_xp,
             repeatable=True,
-            source_label="Godzinne zadanie klasowe Gildii",
+            source_label="Dwugodzinne zadanie klasowe Gildii",
             content_level=guild_content_level,
             content_scaled=True,
         )
@@ -411,12 +427,12 @@ class SessionClassGuildProgressMixin:
             f"Reputacja {cls} +{data[2]}, waluta +"
             + currency_reading_text(data[3], 0, 0) + ". "
             f"Reputacja teraz {new_rep}/{GUILD_REPUTATION_MAX}. "
-            f"W tej godzinie ukończono {completed_count} z {len(pool)} zadań."
+            f"W tym cyklu ukończono {completed_count} z {len(pool)} zadań."
         )
         if completed_count < len(pool):
             await self.send("Możesz od razu wybrać kolejne: zadanieklasowe.")
         else:
-            await self.send("Wszystkie pięć zadań tej klasy ukończone w bieżącej godzinie.")
+            await self.send("Wszystkie pięć zadań tej klasy ukończone w bieżącym cyklu dwugodzinnym.")
 
     async def guild_exam(self, args=""):
             raw = (args or "").strip()

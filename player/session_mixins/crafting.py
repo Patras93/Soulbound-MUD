@@ -19,7 +19,7 @@ from core.mines_threat import ITEMS, TOOL_SHOP_ROOMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text, roll_crafting_xp
 from systems.content_registry import NPCS
 from systems.game_feel_rewards import craft_inspiration_v11324
-from systems.market_dynamics_v1250 import material_grade_v1250, material_quality_upgrade_v1250
+from systems.market_dynamics_v1250 import material_grade_v1250, material_quality_upgrade_v1250, masterpiece_promote_v12812
 from systems.crafting_expansion import CRAFT_MATERIAL_STORAGE_IDS
 from systems.crafting_quality import (
     CRAFT_CRIT_AFFIX_NAMES_V03054,
@@ -450,6 +450,10 @@ class SessionCraftingMixin:
                     '(?,?,?,?)', (self.account_id,'Górnictwo','Kowalstwo','Zaklinanie','Archeologia'))]
                 quality_key = craft_chain_bonus_v1260(
                     quality_key, grade_v1250, chain_levels, random.random())
+            quality_key, _masterpiece_v12812 = masterpiece_promote_v12812(
+                quality_key, profession_level, old_tool_level, mastery_before,
+                grade_v1250, random.random()
+            )
             critical_chance = crafting_critical_chance_v03054(
                 profession_level, mastery_before
             )
@@ -513,6 +517,8 @@ class SessionCraftingMixin:
                     f"{action_name.capitalize()}: {crafted_name} "
                     f"x{quantity}. Przedmiot trafia do {destination}."
                 )
+            if _masterpiece_v12812 and crafting_output_is_quality_equipment_v03054(output_id):
+                await self.send(f'ARCYDZIEŁO! Materiał, mistrzostwo i narzędzie podniosły jakość: {crafted_name}.')
             if crafting_output_is_quality_equipment_v03054(output_id):
                 quality_name = CRAFT_QUALITY_V03054[quality_key]["name"]
                 await self.send(
