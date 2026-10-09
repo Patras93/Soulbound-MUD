@@ -373,13 +373,13 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.28.4 - Koniec Generator Core"
+LATEST_CHANGES_TITLE = "Soulbound v1.28.5 - EXP pięter / grind 800"
 LATEST_CHANGES = [
-    "v1.28.4: Generator Core został fizycznie usunięty z paczki i nie jest już importowany przez serwer.",
-    "Dedykowane wzory balansu (core/balance_math.py) zastępują jego obliczenia, bez modyfikowania katalogów.",
-    "Statyczny katalog pozostaje źródłem prawdy dla EQ, skilli, questów, klas, nagród i receptur.",
-    "Pozostają poziom 800 i nielimitowane statystyki, nieskończone krypty oraz kopalnia.",
-    "Pełny predeploy i audyty nadal wykrywają błędy zamiast maskować je generowaniem danych.",
+    "v1.28.5: O 30% więcej EXP z walk na wczesnych piętrach obsługiwanych lochów, bez zmian w otwartym świecie.",
+    "Od poziomu 101 nagrody EXP postaci, klasy i Duszy w lochach uwzględniają wymagania awansu; głębsze piętra pozostają wymagające.",
+    "Bossowie mają osobne minimalne nagrody EXP, a wyższe istniejące wartości zostają zachowane.",
+    "v1.28.4: Generator Core został usunięty; dedykowane wzory w core/balance_math.py zachowują ręcznie zaprojektowany balans.",
+    "Poziom 800, nielimitowane statystyki, najemnicy, skalowanie drużyn i istniejące zapisy pozostają bez zmian.",
 ]
 
 HELP_TOPIC_ALIASES = {
