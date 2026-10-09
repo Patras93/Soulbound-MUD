@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.40.2 - NARZEDZIA: EXP OD POZIOMU 100"
+LATEST_CHANGES_TITLE = "Soulbound v1.40.3 - RAILWAY: OCHRONA PRZED STARYM GENERATOREM"
 LATEST_CHANGES = [
+    "v1.40.3: naprawa budowania Railway: Docker ignoruje i usuwa pozostaly core/generator_core.py przed kontrolami. Bez przywracania generatora.",
+    "Wymagania EXP profesji i narzedzi od poziomu 100 jak w v1.40.2; wszystkie nagrody i zapisy bez zmian.",
     "v1.40.2: wszystkie 14 narzedzi ma plynnie wyzsze wymagania EXP od poziomu 100, identyczna krzywa jak profesje (150 x1.12, 200 x1.30, 400 x2.60, 600 x6, 799 x12).",
     "Kilof zachowuje swoj mnoznik x2. Nagrody EXP, wypracowane poziomy i XP, drop, oraz czas akcji bez zmian. Wedka nadal minimum 3 sekundy.",
     "v1.40.1: od poziomu profesji 100 zaczyna plynnie rosnac wymagany EXP: x1.12 przy 150, x1.30 przy 200, x2.60 przy 400, x6 przy 600, x12 przy 799.",

@@ -1,3 +1,17 @@
+Soulbound v1.40.3 — RAILWAY: USUNIECIE STAREGO GENERATOR CORE
+Aktualna paczka: v1.40.3 (2026-10-10)
+=====================================================
+- Naprawa build Railway: v1.40.2 mogla byc rozpakowana na stara wersje,
+  zostawiajac fizyczny plik core/generator_core.py poza zawartoscia nowego ZIP.
+- .dockerignore blokuje przeslanie tego pliku do kontekstu Docker.
+- Dockerfile usuwa pozostaly generator_core.py z /app/core natychmiast po COPY core,
+  PRZED uruchomieniem predeploy_check.py i predeploy_full.py.
+- Dodano walidacje kolejnosci krokow Docker i braku importow starego generatora.
+- Nie przywrocono Generator Core. Wszystkie 14 profesji i 14 narzedzi,
+  wymagania EXP od poziomu 100, nagrody, zapisane poziomy, czas wedki i inne
+  mechaniki v1.40.2 pozostaja bez zmian.
+- Nie wymaga migracji bazy ani resetowania kont.
+
 Soulbound v1.40.2 — NARZEDZIA: WYMAGANY EXP OD POZIOMU 100
 Aktualna paczka: v1.40.2 (2026-10-10)
 =====================================================

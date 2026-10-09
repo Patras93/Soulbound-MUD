@@ -4069,3 +4069,10 @@ from validation.tool_xp_v1402 import run_tool_xp_regression_v1402 as _run_tool_x
 _tool_v1402 = _run_tool_xp_regression_v1402()
 assert not _tool_v1402['errors'], _tool_v1402['errors'][:20]
 print(f"TOOL XP v1.40.2: {_tool_v1402['checks']} checks PASS; 14 tools from level 100")
+
+# v1.40.3: guard against old Generator Core files left by overlay extracts.
+from validation.v1403_docker_guard import run_docker_generator_guard_v1403 as _run_docker_generator_guard_v1403
+_docker_guard_v1403 = _run_docker_generator_guard_v1403()
+if _docker_guard_v1403['errors']:
+    raise RuntimeError('Railway stale Generator Core: ' + '; '.join(_docker_guard_v1403['errors']))
+print(f"RAILWAY GENERATOR GUARD v1.40.3: {_docker_guard_v1403['checks']} checks PASS")

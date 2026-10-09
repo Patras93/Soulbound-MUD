@@ -28,6 +28,10 @@ def main():
         _tools_v1402 = run_tool_xp_regression_v1402()
         assert not _tools_v1402['errors'], _tools_v1402['errors'][:20]
         print(f"TOOL XP v1.40.2: {_tools_v1402['checks']} checks PASS")
+        from validation.v1403_docker_guard import run_docker_generator_guard_v1403
+        _docker_guard = run_docker_generator_guard_v1403()
+        assert not _docker_guard['errors'], _docker_guard['errors']
+        print(f"RAILWAY GENERATOR GUARD v1.40.3: {_docker_guard['checks']} checks PASS")
         from validation.v1380_great_audit import run_great_audit_v1380
         _v1380 = run_great_audit_v1380()
         assert _v1380['error_count'] == 0, _v1380['errors']

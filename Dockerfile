@@ -11,6 +11,9 @@ WORKDIR /app
 # Force fresh source snapshot after Railway queued-build race
 COPY server.py /app/server.py
 COPY core /app/core
+# v1.40.3: defend upgrades unpacked over previous source directories.
+# A stale file must not enter the runtime even with an old Docker COPY cache.
+RUN rm -f /app/core/generator_core.py && test ! -e /app/core/generator_core.py
 COPY systems /app/systems
 COPY world /app/world
 COPY network /app/network

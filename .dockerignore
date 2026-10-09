@@ -6,3 +6,6 @@ __pycache__/
 *.log
 *.zip
 RELEASE_NOTES*
+
+# v1.40.3: ignore retired Generator Core even in overwritten release folders.
+core/generator_core.py
