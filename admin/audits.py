@@ -2839,11 +2839,21 @@ def full_game_predeploy_audit_v0336():
         'v020_mega_','magitek_floor_','uoss_deep_dungeon_floor_',
         'eth_void_floor_','eth_holy_floor_','eth_shadow_floor_'
     )
+    # Echo Labyrinth generates floors on demand, so static rooms legitimately
+    # point at valid future room IDs. Only accept those IDs if the runtime
+    # generator really is installed; a generic v1500_ prefix would hide bugs.
+    from systems.echo_dungeon_v1500 import echo_identity
+    from world.world_state import World
+    echo_generator_ready = bool(getattr(World.ensure_infinite_dungeon_floor,
+                                        '_v1500_echo', False))
     for rid,room in ROOMS.items():
         if not str(room.get('name') or '').strip(): err('room_missing_name',rid)
         for direction,target in (room.get('exits') or {}).items():
-            if target not in ROOMS and not str(target).startswith(dynamic_prefixes):
-                err('broken_exit',rid,direction,target)
+            if target in ROOMS or str(target).startswith(dynamic_prefixes):
+                continue
+            if echo_generator_ready and echo_identity(target) is not None:
+                continue
+            err('broken_exit',rid,direction,target)
 
     # 4) NPCs and shops.
     for nid,npc in NPCS.items():

@@ -10,6 +10,7 @@ from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import sys
 import threading
@@ -93,6 +94,8 @@ def run_server(entry: Path | None = None) -> int:
         return 2
     env = os.environ.copy()
     env.update({"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
+    env["SOULBOUND_CONTROL_TOKEN"] = secrets.token_hex(32)
+    env["SOULBOUND_CONTROL_FILE"] = str(LOG_DIR / "soulbound_control.json")
     print(f"Soulbound — logi serwera: {LOG_DIR / 'serwer.log'}", flush=True)
     print(f"Soulbound — logi bledow: {LOG_DIR / 'bledy.log'}", flush=True)
     print("Ctrl+C zatrzymuje serwer. Logi sa zapisywane w UTF-8.", flush=True)

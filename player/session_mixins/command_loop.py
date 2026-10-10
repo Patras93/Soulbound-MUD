@@ -59,6 +59,15 @@ class SessionCommandLoopMixin:
                 else:
                     self.guide_choice_state = None
 
+            # v1.60.3: after `kop kierunki` a bare digit 1..10 is a choice.
+            # Only one following input may use this shortcut; no collisions
+            # with other numbered menus or ordinary game commands.
+            if getattr(self, 'mine_direction_choice_v1603', False):
+                self.mine_direction_choice_v1603 = False
+                if raw.strip() in {str(i) for i in range(1, 11)}:
+                    await self.command_mine_v0490(raw.strip())
+                    continue
+
             # Naturalne nazwy wejść do instancji są pre-parserem świata, nie
             # aliasami komend; mogą zawierać więcej niż jeden wyraz.
             if await self.try_dungeon_entry_command_v03812(raw):

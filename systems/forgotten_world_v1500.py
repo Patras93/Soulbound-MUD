@@ -53,7 +53,7 @@ PROFESSIONS = (
  ('Wędkarstwo','fishing','Połów rzadkich okazów'),
  ('Drwalstwo','woodcutting','Pozyskanie bezcennego drewna'),
  ('Zielarstwo','herbalism','Zbieranie ziół nowych krain'),
- ('Kowalstwo','smithing','Kucie legendarnych stopów'),
+ ('Kowalstwo','crafting','Kucie legendarnych stopów'),
  ('Gotowanie','cooking','Przygotowanie posiłków na wyprawę'),
  ('Alchemia','alchemy','Destylacja nowych esencji'),
  ('Jubilerstwo','jewelcrafting','Oprawa starych klejnotów'),

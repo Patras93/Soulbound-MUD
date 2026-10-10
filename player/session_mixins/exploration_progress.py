@@ -8,7 +8,7 @@ from core.bootstrap_economy_professions import currency_reading_text
 from core.classes_skills import ROOMS
 from core.mines_threat import ITEMS
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
-from systems.content_registry import NPCS, QUESTS
+from systems.content_registry import NPCS, QUESTS, MOB_SPAWNS, MOB_TEMPLATES
 from systems.economy_income_balance import v1138_activity_income
 from systems.game_feel_rewards import exploration_find_v11324
 from world.dynamic_content import (
@@ -52,6 +52,11 @@ from world.world_expansion_v import ARCHIPELAGO_DUNGEONS_V0900, CATACOMB_LEVELS_
 
 
 GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120 = {
+    "regions": {
+        "label": "Regiony i Krainy",
+        "aliases": ("regiony", "region", "krainy", "kraina", "kontynenty", "kontynent", "podziemne królestwa", "podziemia", "regions"),
+        "achievement": ("global_atlas_regions_v1602", "Globalny Atlas: wszystkie regiony", "Gold"),
+    },
     "cities": {
         "label": "Miasta",
         "aliases": ("miasta", "miasto", "cities", "city"),
@@ -127,6 +132,21 @@ class SessionExplorationProgressMixin:
                     f"city:{normalize_lookup_text(city)}", city, room_ids=rooms
                 ))
 
+            # Current authored territories, including 1.50 and 1.60. These are
+            # discovered from actual rooms rather than a static historical list.
+            # A single visited room in a region records its discovery.
+            region_rooms = {}
+            for rid, room in ROOMS.items():
+                if (rid.startswith("v1500_") or rid.startswith("v1600_")
+                        or rid.startswith("v1300_orc")) and not rid.startswith("v1500_echo_"):
+                    zone = str(room.get("zone") or "").strip()
+                    if zone:
+                        region_rooms.setdefault(zone, []).append(rid)
+            for zone, room_ids in sorted(region_rooms.items(), key=lambda x: normalize_lookup_text(x[0])):
+                catalog["regions"].append(self.global_discovery_place_v1120(
+                    f"region:authored:{normalize_lookup_text(zone)}", zone, room_ids=room_ids
+                ))
+
             # Fixed Broken Star islands.
             for zone, room_ids in sorted(V0800_ZONE_ROOM_IDS.items(), key=lambda row: normalize_lookup_text(row[0])):
                 if "wyspa" not in normalize_lookup_text(zone):
@@ -157,6 +177,7 @@ class SessionExplorationProgressMixin:
                 ("ancient_forest", "Pradawny Las", (), ("prof_ancient_forest_",)),
                 ("alchemy_garden", "Ogród Alchemika", (), ("prof_alchemy_garden_",)),
                 ("magitek", "Kompleks Magitek 2.0", (), ("magitek_",)),
+                ("echo", "Nieskończony Labirynt Echa", ("v1500_echo_entry",), ("v1500_echo_",)),
             )
             for key, name, room_ids, prefixes in dungeon_defs:
                 catalog["dungeons"].append(self.global_discovery_place_v1120(
@@ -261,6 +282,28 @@ class SessionExplorationProgressMixin:
                     f"superboss:{key}",
                     str(room.get("name") or key),
                     room_ids=(rid,),
+                ))
+
+            # New authored superboss halls: 1.50 four sanctuaries, the council,
+            # and any current 1.60 halls with explicit world-boss encounters.
+            for rid, room in ROOMS.items():
+                if rid == "v1500_super_council" or (
+                    rid.startswith("v1500_") and rid.endswith("_super_room")
+                ):
+                    catalog["superbosses"].append(self.global_discovery_place_v1120(
+                        f"superboss:authored:{rid}", str(room.get("name") or rid), room_ids=(rid,)
+                    ))
+            # 1.60 superboss sanctuaries and world-boss locations are registered
+            # by the expansion. Check real spawn/template flags, not name guesses.
+            for boss_room, mob_id in MOB_SPAWNS:
+                if not str(mob_id).startswith('v1600_'):
+                    continue
+                template = MOB_TEMPLATES.get(mob_id, {})
+                if not template.get('world_boss') or boss_room not in ROOMS:
+                    continue
+                catalog['superbosses'].append(self.global_discovery_place_v1120(
+                    f'superboss:authored:{mob_id}', str(template.get('name') or mob_id),
+                    room_ids=(boss_room,),
                 ))
 
             # Finite surface secrets. Instance secrets remain in the instance map
@@ -374,7 +417,7 @@ class SessionExplorationProgressMixin:
                 if not key:
                     await self.send(
                         "Nie rozpoznaję działu Globalnego Atlasu. "
-                        "Działy: miasta, wyspy, lochy, platformy, ruiny, superbossy, sekrety."
+                        "Działy: regiony, miasta, wyspy, lochy, platformy, ruiny, superbossy, sekrety."
                     )
                     return
                 category = state[key]

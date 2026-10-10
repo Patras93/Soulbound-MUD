@@ -24,7 +24,7 @@ def run_era_legends_v1600(server):
     start=connected('temple')
     for rid in ('v1300_lost_border','v1300_orc_border','v1300_orc_throne','v1500_gate'):
         check(rid in start,'missing connection from temple to '+rid)
-    check(server.VERSION=='1.60.0','release version')
+    check(tuple(int(n) for n in server.VERSION.split('.')[:3]) >= (1,60,0),'release version 1.60+')
     nav=SessionGuideNavigationMixin()
     for alias in ('orki','orkowie','gor khaz','kraina orkow'):
         check(nav.find_room_matches(alias)==['v1300_orc_border'],'orc alias '+alias)

@@ -417,6 +417,95 @@ class SessionAtlasCodexMixin:
                     + "."
                 )
 
+    async def show_profession_atlas_v1602(self, query=""):
+            """A live registry-backed index, not a copied 600-level recipe list."""
+            from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
+            from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+            from systems.profession_quest_expansion import PROFESSION_QUEST_SPECS_V0700
+            from systems.professions import V03053_CRAFT_RECIPES, V1215_ENCHANT_RECIPES
+            from systems.equipment_crafting import (
+                CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES,
+            )
+            from systems.content_registry import NPCS, QUESTS
+            from core.classes_skills import ROOMS
+            professions = {
+                self.normalize_description_query(name): (name, tool, npc, action)
+                for name, tool, npc, action in PROFESSION_QUEST_SPECS_V0700
+            }
+            lookup = self.normalize_description_query(query or "")
+            if lookup in ("lista", "wszystkie", "all", ""):
+                await self.send(
+                    f"ATLAS PROFESJI: {len(professions)} profesji. "
+                    f"Rozwój profesji 1-{PROFESSION_MAX_LEVEL}, narzędzi 1-{TOOL_MAX_LEVEL}; "
+                    "wyższy wymagany EXP od poziomu 50, bez obcinania nagród."
+                )
+                for name, tool, npc, action in PROFESSION_QUEST_SPECS_V0700:
+                    await self.send(f"{name}: atlas profesje {self.normalize_description_query(name)}.")
+                await self.send("Atlas konkretnej profesji opisuje zadania, specjalistę, komendy i aktualny katalog receptur. Surowce: atlas rudy / ryby / drewno / zioła / geody.")
+                return
+            if lookup == "wedkarstwo" or lookup == "wedkarz":
+                lookup = "wedkarstwo"
+            if lookup not in professions:
+                await self.send("Nie ma takiej profesji w atlasie. Użyj atlas profesje, żeby poznać wszystkie 14 nazw.")
+                return
+            name, tool, npc, action = professions[lookup]
+            npc_info = NPCS.get(npc, {})
+            specialist = npc_info.get("name", npc)
+            room_id = npc_info.get("room", "")
+            room_name = ROOMS.get(room_id, {}).get("name", "") if room_id else ""
+            await self.send(f"ATLAS PROFESJI — {name.upper()}. Poziom 1-{PROFESSION_MAX_LEVEL}; narzędzie 1-{TOOL_MAX_LEVEL}.")
+            await self.send(f"Cel: {action}. Specjalista: {specialist}" + (f", lokacja: {room_name}." if room_name else "."))
+            await self.send("Postęp: profesje info / narzedzia info. Zadania: quest list <NPC> i zamowienia; zamowienie porzuc anuluje aktywny kontrakt. Nagrody EXP za czynności pozostają bez zmian.")
+            commands = {
+                "fishing": "low, low on, low off; atlas ryby i atlas ocean",
+                "mining": "kop, kop on, kop off, kop north|south|east|west|up|down; atlas rudy i atlas geody; kopalnia",
+                "woodcutting": "tnij, tnij on, tnij off; atlas drewno",
+                "herbalism": "zbieraj, zbieraj on, zbieraj off; atlas zioła",
+                "crafting": "craft <receptura> [ilość], przetop, receptury kowalstwo",
+                "cooking": "gotuj <receptura>, receptury gotowanie",
+                "alchemy": "warz <receptura>, receptury alchemia",
+                "jewelcrafting": "jubilerstwo / szlifuj, receptury jubilerstwo",
+                "tailoring": "szyj <receptura>, receptury krawiectwo",
+                "leatherworking": "garbuj <receptura>, receptury garbarstwo",
+                "carpentry": "stolarka <receptura>, receptury stolarstwo",
+                "enchanting": "zaklinaj <slot> <typ> [poziom], receptury zaklinanie",
+                "archaeology": "wykop, atlas odkrycia ruiny",
+                "cartography_profession": "mapuj, atlas odkrycia regiony",
+            }
+            await self.send("Komendy: " + commands.get(tool, "profesje info") + ". Pomoc: help " + lookup + ".")
+            recipes = []
+            if tool == "crafting":
+                recipes = [row for row in CRAFT_RECIPES.values()
+                           if row.get("profession") in (None, "Kowalstwo")]
+            elif tool == "woodcutting":
+                recipes = [row for row in CRAFT_RECIPES.values()
+                           if row.get("profession") == "Drwalstwo"]
+            elif tool == "cooking":
+                recipes = list(COOK_RECIPES.values())
+            elif tool == "alchemy":
+                recipes = list(ALCHEMY_RECIPES.values())
+            elif tool == "jewelcrafting":
+                recipes = list(JEWELCRAFT_RECIPES.values())
+            elif tool == "enchanting":
+                recipes = list(V1215_ENCHANT_RECIPES.values())
+            elif tool in ("tailoring", "leatherworking", "carpentry"):
+                recipes = [row for row in V03053_CRAFT_RECIPES.values() if row.get("profession") == name]
+            if recipes:
+                await self.send(f"Receptury katalogowe {name}: {len(recipes)}. Sprawdź pełne i aktualne wymagania: receptury {lookup}.")
+                ordered = sorted(recipes, key=lambda r: (int(r.get("min_profession_level", r.get("min_level", 1)) or 1), str(r.get("name", ""))))
+                samples = ordered[:2] + ordered[-3:] if len(ordered)>5 else ordered
+                for row in samples:
+                    await self.send(f"Przykład: {row.get('name','Receptura')}, poziom {row.get('min_profession_level', row.get('min_level', 1))}.")
+            else:
+                await self.send("Ta profesja opiera się na zbieraniu lub odkrywaniu, a nie na katalogu wyrobów. Szczegóły: help " + lookup + ".")
+            related = sum(
+                1 for quest in QUESTS.values()
+                if quest.get("required_profession") == name
+                or quest.get("reward_profession") == name
+                or quest.get("specialist_tool_type") == tool
+            )
+            await self.send(f"Powiązane zadania profesji w aktualnym katalogu: {related}. Zadania przyjęte i postęp sprawdzaj przez quest.")
+
     async def show_atlas(self, query=""):
             q = self.normalize_description_query(query)
 
@@ -434,11 +523,27 @@ class SessionAtlasCodexMixin:
                     await self.show_global_discovery_atlas_v1120(rest)
                     return
 
+            if q in ("profesje", "profesja", "zawody", "jobs"):
+                await self.show_profession_atlas_v1602("")
+                return
+            for prefix in ("profesje ", "profesja ", "jobs "):
+                if q.startswith(prefix):
+                    await self.show_profession_atlas_v1602(q[len(prefix):])
+                    return
+            if q in (
+                "gornictwo", "drwalstwo", "zielarstwo", "gotowanie", "alchemia",
+                "kowalstwo", "jubilerstwo", "krawiectwo", "garbarstwo", "stolarstwo",
+                "zaklinanie", "archeologia", "kartografia",
+            ):
+                await self.show_profession_atlas_v1602(q)
+                return
+
             if not q:
                 await self.send("ATLAS")
-                await self.send("Działy: odkrycia świata, ryby, drewno, rudy, geody, zioła.")
+                await self.send("Działy: odkrycia świata, profesje (14), ryby, drewno, rudy, geody, zioła.")
                 await self.send(
-                    "Globalny Atlas: atlas odkrycia. Surowce: atlas ryby, atlas rzeka, "
+                    "Globalny Atlas: atlas odkrycia regiony / miasta / lochy / wyspy / superbossy. "
+                    "Profesje: atlas profesje lub atlas profesje <nazwa>. Surowce: atlas ryby, atlas rzeka, "
                     "atlas drewno, atlas rudy, atlas geody, atlas zioła albo atlas <nazwa surowca>."
                 )
                 return

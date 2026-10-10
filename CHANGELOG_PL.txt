@@ -1,3 +1,46 @@
+Soulbound v1.60.4 — SERWER WINDOWS W TLE — 2026-10-10
+Aktualna paczka: v1.60.4 (2026-10-10)
+- START_Soulbound.bat uruchamia teraz serwer w ukrytym oknie przez Windows Script Host; CMD znika po starcie.
+- START_Soulbound_UKRYTY.vbs pozwala uruchomic serwer bez pojawiania sie nawet na chwile okna CMD (dwuklik).
+- W razie braku Windows Script Host BAT przechodzi do widocznego trybu awaryjnego.
+- Logowanie startu, serwera i bledow pozostaje aktywne w folderze logs; niewidoczne okno nie oznacza wylaczonego serwera.
+- STOP_Soulbound.bat pozostaje dostepny i wysyla bezpieczne polecenie zamkniecia z zapisem sesji do SQLite.
+- Zmieniono tylko pliki uruchamiania Windows, informacje o wydaniu i test launcherow; nie ruszono walki, map, EXP ani zapisow.
+- Testy uruchamiania bez okna CMD wymagaja potwierdzenia na prawdziwym Windows; testy statyczne nie zastepuja WSH.
+
+Soulbound v1.60.3 — WINDOWS START/STOP I AUTO-KOPANIE PO WYBORZE KIERUNKU — 2026-10-10
+Aktualna paczka: v1.60.3 (2026-10-10)
+- Nowe pliki START_Soulbound.bat i STOP_Soulbound.bat uruchamiane dwuklikiem lub z NVDA.
+- STOP wysyła uwierzytelnione polecenie tylko do serwera z tego folderu, przez 127.0.0.1.
+- Zatrzymywanie jest łagodne: koniec nasłuchu, zamknięcie sesji, zapis postaci i commit SQLite. Nie używa taskkill ani Stop-Process.
+- Zmiana nie dotyczy Linux/Railway ani innych procesów Pythona.
+- kop kierunki pokazuje 10 pozycji, sam numer 1..10, kop 1..10 lub kop <kierunek> uruchamia i kontynuuje auto-kopanie w wybranym kierunku.
+- kop on <kierunek> nadal działa, kop off zatrzymuje, a kop bez parametrów pozostaje pojedynczym wydobyciem.
+- Tunel nadal jest zapisywany w SQLite, automat przechodzi przez wykopane przejście i drąży kolejny odcinek.
+- Nie zmieniono zdobywanego EXP, progów EXP, ekonomii, map ani zapisu kont i postaci.
+
+Soulbound v1.60.2 — AKTUALNE ATLASY I POMOC — 2026-10-10
+Aktualna paczka: v1.60.2 (2026-10-10)
+- Naprawiono help górnictwo (polskie znaki i akcenty) oraz rozpoznawanie innych polskich tematów.
+- Atlas profesji: atlas profesje, atlas profesje <nazwa>, 14 profesji, aktualne zlecenia, NPC, narzędzia, receptury.
+- Globalny Atlas: regiony 1.50/1.60, Labirynt Echa, nowe superbossy, aktualne liczniki i odkrycia.
+- Przegląd HELP, maksymalne poziomy 800, wymagania EXP od 50, komendy nowszych systemów.
+- Nie zmieniono EXP, walki, dropów, zapisów SQLite ani dotychczasowych osiągnięć.
+
+Soulbound v1.60.1 — LABIRYNT ECHA: NAPRAWA BUDOWANIA RAILWAY — 2026-10-10
+Aktualna paczka: v1.60.1 (2026-10-10)
+- Usunięto błąd Build Failed w predeploy_full.py: FULL_GAME_PREDEPLOY_AUDIT_V0336
+  zgłaszał broken_exit v1500_echo_entry / down / v1500_echo_1_gate.
+- W pełnym audycie akceptowane są prawidłowe, dynamicznie tworzone
+  komory Labiryntu Echa, ale TYLKO gdy generator tych lokacji jest zainstalowany.
+- Błędne identyfikatory i pozostałe nieistniejące wyjścia nadal blokują deploy.
+- Dodano kontrolę wejścia na pierwsze piętro i identyfikatorów dynamicznych.
+- Naprawiono nagrody 3 zadań Kowalstwa 5.0: poprawny typ narzędzia
+  crafting zamiast smithing; XP trafia teraz do właściwego młota.
+- Dodano walidację zgodności narzędzi ze wszystkimi 14 profesjami.
+- Brak zmian mapy, walk, profesji, EXP, waluty, danych SQLite i postaci.
+- Przed wdrożeniem zrób kopię wolumenu SQLite; nie kasuj starego wolumenu.
+
 Soulbound v1.60.0 — WIELKA ERA LEGEND — 2026-10-10
 Aktualna paczka: v1.60.0 (2026-10-10)
 - Naprawiono dojście pieszo do Valdorii i Krainy Orków: nowy pięciolokacyjny szlak z Rozdroża Czterech Wiatrów. Komendy walk orki/orkowie/gor khaz.

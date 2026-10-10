@@ -23,7 +23,7 @@ def main():
         from validation.v1600_era_legends import run_era_legends_v1600
         _era_v1600=run_era_legends_v1600(server)
         assert not _era_v1600['errors'], _era_v1600['errors'][:20]
-        print(f"ERA LEGEND v1.60.0 FULL: {_era_v1600['checks']} checks PASS; "
+        print(f"ERA LEGEND v1.60.1 FULL: {_era_v1600['checks']} checks PASS; "
               f"walk do Orków {_era_v1600['road_steps']} steps")
         from validation.v1407_progression_from50 import run_progression_from50_regression_v1407
         _prog1407=run_progression_from50_regression_v1407()

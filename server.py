@@ -67,6 +67,10 @@ from systems.era_legends_v1600 import install_era_legends_v1600
 ERA_LEGENDS_V1600 = install_era_legends_v1600(
     ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 
+# v1.60.2: final public documentation after both content expansions and old HELP layers.
+from systems.help_atlas_v1602 import install_help_atlas_v1602
+HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
+
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)
 MOB_NAME_AUDIT_V1142 = audit_runtime_mob_names_v1142(MOB_TEMPLATES)

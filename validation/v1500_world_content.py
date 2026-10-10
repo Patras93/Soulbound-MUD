@@ -19,8 +19,17 @@ def run(server):
         checks+=1
         if not pred:errors.append(msg)
 
-    verify(server.VERSION in ('1.50.0','1.50.1','1.60.0'),'release version 1.50.x')
+    verify(tuple(int(n) for n in server.VERSION.split('.')[:3]) >= (1,50,0),'release version 1.50+')
     verify(server.FORGOTTEN_WORLD_V1500.get('rooms')==167,'region room count')
+    verify(rooms['v1500_echo_entry']['exits'].get('down') == echo_floor_id(1),
+           'Echo entrance points to the first on-demand floor')
+    verify(echo_identity(rooms['v1500_echo_entry']['exits']['down']) == (1,'gate'),
+           'Echo entrance target has a valid lazy room identity')
+    verify(bool(getattr(server._WorldV1500.ensure_infinite_dungeon_floor,
+                        '_v1500_echo', False)),
+           'Echo on-demand room generator installed')
+    for invalid in ('v1500_echo_0_gate','v1500_echo_1_nowhere','v1500_echo_bad_gate'):
+        verify(echo_identity(invalid) is None, 'invalid Echo ID rejected '+invalid)
     verify(rooms['v1310_emp_lost_arena']['exits'].get('east')=='v1500_gate','old-world connection')
     # Reachability of every new static location, with no one-way mistakes.
     seen={'v1500_gate'}; todo=deque(seen)
@@ -52,6 +61,8 @@ def run(server):
             verify(stage==1 or spec.get('requires_quest')==f'v1500_{slug}_saga_{stage-1}', 'broken saga chain '+qid)
         verify(f'v1500_{slug}_superboss' in mobs,'missing superboss '+slug)
     for index,(profession,tool,_) in enumerate(PROFESSIONS):
+        verify(server.TOOL_PROFESSION_MAP.get(tool)==profession,
+               'registered tool/profession mapping '+profession+'/'+tool)
         npc=f'v1500_prof_npc_{index}'
         verify(npc in npcs,'specialist NPC '+npc)
         for phase in range(1,4):

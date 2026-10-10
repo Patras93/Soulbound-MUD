@@ -4115,3 +4115,7 @@ from validation.v1408_pleasant_grind import run_pleasant_grind_v1408
 _pleasant_v1408 = run_pleasant_grind_v1408()
 assert not _pleasant_v1408['errors'], _pleasant_v1408['errors'][:20]
 print(f"PLEASANT GRIND v1.40.8: {_pleasant_v1408['checks']} checks PASS")
+
+# v1.60.4: hide the Windows console while keeping safe STOP and log files.
+from validation.v1604_background_windows import run_regression as _windows_background_regression_v1604
+print(f"WINDOWS BACKGROUND v1.60.4: {_windows_background_regression_v1604()} checks PASS")

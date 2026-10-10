@@ -117,7 +117,7 @@ class SessionHelpSystemMixin:
                 "astralportal [poziom] - zwykła i Mityczna Wieża: checkpoint co 10 poziomów; z odpowiedniej Bramy wejście na odblokowany checkpoint, a na checkpointcie samo astralportal lub astralportal wyjdz wraca do właściwej Bramy",
                 "portal [piętro] - zwykła i Mityczna Krypta: checkpoint co 10 pięter; z odpowiedniego wejścia wejście na odblokowany checkpoint, a na checkpointcie samo portal lub portal wyjdz wraca do właściwej Bramy/Sali",
                 "deepdungeon - status nieskończonego UOSS Deep Dungeon; deepelevator <piętro> - winda do odwiedzonego piętra; deepelevator 0 - Floor 0 po dotarciu do 100",
-                "atlas [ryby|drewno|rudy|zioła|surowiec] - pełny atlas pozyskiwania surowców i klejnotów",
+                "atlas / atlas odkrycia [regiony|miasta|wyspy|lochy|superbossy] - atlas świata; atlas profesje [nazwa] - wszystkie 14 profesji; atlas ryby|drewno|rudy|geody|zioła|surowiec - surowce",
                 "woda / łowisko - mówi typ bieżącego łowiska, np. rzeka, jezioro, morze, ocean, kanał lub Zatopiona Grota; pokazuje też znane i nieodkryte gatunki",
                 "dziennikryb / fishjournal [lista|nazwa] - odkryte gatunki, rzadkość, liczba połowów oraz rekord długości i masy",
                 "rekordyryb / fishrecords [gatunek] - Fishing Records 2.0: osobiste i serwerowe rekordy długości, masy oraz najrzadszy okaz",
@@ -576,7 +576,10 @@ class SessionHelpSystemMixin:
 
     async def show_help(self, topic=""):
             raw = topic.strip().lower()
-            key = HELP_TOPIC_ALIASES.get(raw, raw)
+            folded = normalize_lookup_text(raw)
+            key = HELP_TOPIC_ALIASES.get(raw, HELP_TOPIC_ALIASES.get(folded, raw))
+            if key not in HELP_TOPICS and folded in HELP_TOPICS:
+                key = folded
 
             # v0.8.72: temat administratora jest całkowicie ukryty przed zwykłymi kontami.
             if key == "admin_owner" and not self.is_admin():
@@ -605,7 +608,7 @@ class SessionHelpSystemMixin:
                 await self.send("START: help podstawy, help progresja600, help informacje, help komendy, help nawigacja.")
                 await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass, help moogle board.")
                 await self.send("WALKA: help walka, help statusy, help wimpy, help bossowie, help superbossy, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
-                await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help event_exp, help eksploracja, help bestiariusz, help teren_info, help atlas, help krypta, help portale, help zwloki, help pojemniki, help sklepy.")
+                await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help era60, help kontynent, help labirynt echa, help podziemia, help eksploracja, help bestiariusz, help atlas, help krypta, help portale, help sklepy.")
                 await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help archeologia, help kartografia, help craftmastery.")
                 await self.send("SPOŁECZNE: help gracze, help druzyny, help najemnicy, help przekazywanie, help reputacja, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
                 await self.send("SYSTEM: help logowanie, help smierc, help recaps, help loothistory2, help accessibility_presets, help audyt_v03055, help opisy, help zmiany.")

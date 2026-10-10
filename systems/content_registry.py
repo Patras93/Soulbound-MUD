@@ -373,8 +373,13 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.60.0 - WIELKA ERA LEGEND"
+LATEST_CHANGES_TITLE = "Soulbound v1.60.4 - WINDOWS SERWER W TLE"
 LATEST_CHANGES = [
+    "v1.60.4: START_Soulbound.bat uruchamia serwer w tle bez otwartego okna CMD; STOP_Soulbound.bat zatrzymuje go bezpiecznie.",
+    "v1.60.3: START_Soulbound.bat i STOP_Soulbound.bat; bezpieczne zamykanie z zapisem sesji przez lokalny uwierzytelniony kanal.",
+    "Kopalnia: kop kierunki, kop 1..10 i kop <kierunek> wlaczaja stale auto-kopanie; kop off zatrzymuje.",
+    "v1.60.2: aktualizacja wszystkich atlasów świata i 14 profesji, polskie znaki w help, limit 800 i nowe działy pomocy.",
+    "v1.60.1: poprawiono walidacje lazy room Labiryntu Echa w pelnym audycie Railway; nie zmieniono gry ani zapisow.",
     "WIELKA ERA LEGEND: 4 podziemne krolestwa, osiem nowych bossow i podziemne sklepy.",
     "DROGA DO ORKOW: walk orki / orkowie / gor khaz prowadzi normalnym szlakiem z Rozdroza Czterech Wiatrow, bez Krypt 100.",
     "Wojny PvE: cztery fronty z powtarzalnymi misjami, rotujace co 4 godziny inwazje i 10 polowan na legendy.",

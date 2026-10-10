@@ -700,12 +700,49 @@ class MudServer:
         print(f"Baza danych: {DB_PATH}", flush=True)
         print(f"Lokacje: {len(ROOMS)}", flush=True)
         print(f"Limit klientów: {MAX_CLIENTS}", flush=True)
+        # On Windows, our BAT launcher supplies a per-launch secret for a
+        # localhost-only stop channel. Linux/Railway uses the previous path.
+        from systems.windows_control_v1603 import start_control_v1603
+        stop_event = asyncio.Event()
+        control = await start_control_v1603(stop_event)
         wander_task = asyncio.create_task(self.mob_wander_loop())
         xp_event_task = asyncio.create_task(self.double_xp_event_loop())
         try:
             async with server:
-                await server.serve_forever()
+                if control is None:
+                    await server.serve_forever()
+                else:
+                    serve_task = asyncio.create_task(server.serve_forever())
+                    stop_task = asyncio.create_task(stop_event.wait())
+                    try:
+                        completed, _ = await asyncio.wait(
+                            (serve_task, stop_task), return_when=asyncio.FIRST_COMPLETED
+                        )
+                        if serve_task in completed:
+                            await serve_task  # Do not hide unexpected server failure.
+                        else:
+                            print('Soulbound: zamykanie serwera na zlecenie STOP_Soulbound.bat.', flush=True)
+                            serve_task.cancel()
+                            try:
+                                await serve_task
+                            except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal shutdown
+                                pass
+                            for session in tuple(self.sessions):
+                                try:
+                                    await asyncio.wait_for(session.close(), timeout=10)
+                                except Exception as exc:
+                                    print('Soulbound: nieudany zapis lub zamkniecie sesji: '
+                                          + repr(exc), flush=True)
+                            self.db.conn.commit()
+                            print('Soulbound: zakonczenie sesji i zapis SQLite zakonczone.', flush=True)
+                    finally:
+                        for task in (serve_task, stop_task):
+                            if not task.done():
+                                task.cancel()
+                        await asyncio.gather(serve_task, stop_task, return_exceptions=True)
         finally:
+            if control is not None:
+                await control.close()
             for task in (wander_task, xp_event_task):
                 task.cancel()
             for task in (wander_task, xp_event_task):

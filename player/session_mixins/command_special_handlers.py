@@ -81,9 +81,15 @@ class SessionCommandSpecialHandlersMixin:
 
     async def command_mine_v0490(self, args):
         mode = str(args or '').strip().lower()
+        self.mine_direction_choice_v1603 = False
         parts = mode.split(maxsplit=1)
-        if parts and parts[0] in ('on', 'start', '1'):
-            direction = mine_direction(parts[1]) if len(parts) > 1 else None
+        if parts and parts[0] in ('on', 'start'):
+            auto_choices = ('north', 'south', 'east', 'west', 'northeast',
+                            'northwest', 'southeast', 'southwest', 'up', 'down')
+            choice = (parts[1] if len(parts) > 1 else '').strip()
+            direction = (auto_choices[int(choice)-1]
+                         if choice.isdecimal() and 1 <= int(choice) <= 10
+                         else mine_direction(choice)) if choice else None
             if len(parts) > 1 and direction is None:
                 await self.send('Nie znam kierunku. Użyj: north, south, east, west, northeast, northwest, southeast, southwest, up, down.')
                 return
@@ -91,31 +97,29 @@ class SessionCommandSpecialHandlersMixin:
         elif mode in ('off', 'stop', '0'):
             await self.set_auto_mining(False)
         elif mode:
-            direction = mine_direction(mode)
+            # v1.60.3: the direction chosen from `kop kierunki` is continuous.
+            # Accept both full Polish/English names and accessible numbered choices.
+            choices = ('north', 'south', 'east', 'west', 'northeast',
+                       'northwest', 'southeast', 'southwest', 'up', 'down')
+            if mode in ('kierunki', 'directions', 'kierunek', 'lista', 'list'):
+                self.mine_direction_choice_v1603 = True
+                await self.send(
+                    'Wybierz kierunek: 1 północ, 2 południe, 3 wschód, '
+                    '4 zachód, 5 północny wschód, 6 północny zachód, '
+                    '7 południowy wschód, 8 południowy zachód, '
+                    '9 góra, 10 dół. Wpisz kop <numer> albo kop <kierunek>. '
+                    'Możesz też wpisać sam numer 1-10 bez kop. Po wyborze '
+                    'auto-kopanie ruszy samodzielnie. Zatrzymanie: kop off.'
+                )
+                return
+            selection = mode.removeprefix('wybierz ').strip()
+            direction = (choices[int(selection)-1]
+                         if selection.isdecimal() and 1 <= int(selection) <= 10
+                         else mine_direction(selection))
             if direction is None:
-                await self.send('Kierunki kopania: north, south, east, west, northeast, northwest, southeast, southwest, up, down; także: prawo, lewo, góra, dół.')
-            elif direction == 'up':
-                from core.mine_tunnels import mine_tunnel_coords
-                if mine_tunnel_coords(self.character.room_id, self.account_id) is None:
-                    await self.send('Kopanie kierunkowe jest dostępne na piętrach Kopalni Głębinowej.')
-                else:
-                    await self.move('up')
-            elif direction in HORIZONTAL_MINE_DIRECTIONS:
-                from core.mine_tunnels import mine_tunnel_coords
-                pos = mine_tunnel_coords(self.character.room_id, self.account_id)
-                if pos is None:
-                    await self.send('Wybierz piętro Kopalni Głębinowej, aby drążyć własne chodniki.')
-                elif self.server.db.mine_tunnel_target_v1251(self.account_id, *pos, direction):
-                    await self.move(direction)
-                else:
-                    await self.mine(direction=direction)
-            else:
-                from core.progression_resources import mine_floor_number
-                floor = mine_floor_number(self.character.room_id)
-                if (floor is not None and floor < self.mine_progress()['max_floor_unlocked']):
-                    await self.move('down')
-                else:
-                    await self.mine(direction=direction)
+                await self.send('Nieznany kierunek. Wpisz kop kierunki, aby zobaczyć wybór od 1 do 10.')
+                return
+            await self.set_auto_mining(True, direction=direction)
         else:
             await self.mine()
 

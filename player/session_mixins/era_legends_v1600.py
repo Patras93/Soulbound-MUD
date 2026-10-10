@@ -32,5 +32,5 @@ class SessionEraLegendsV1600Mixin:
             await self.send('Zabicia zapisują się w istniejącym bestiariuszu. Użyj: bestiariusz, quest list, quest przyjmij.')
             for _,_,name in HUNTS: await self.send(name+'.')
         else:
-            await self.send('SOULBOUND 1.60.0 — WIELKA ERA LEGEND: 7 aktualizacji PvE. Bez resetu postaci, bez Generator Core.')
+            await self.send('SOULBOUND 1.60.1 — WIELKA ERA LEGEND: 7 aktualizacji PvE. Bez resetu postaci, bez Generator Core.')
             await self.send('Podkomendy: era60 orki, era60 podziemia, era60 wojny, era60 twierdza, era60 najemnicy, era60 ocean, era60 inwazje, era60 lowcy.')
