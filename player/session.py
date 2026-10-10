@@ -45,6 +45,8 @@ from player.session_mixins.living_empires_v1340 import SessionLivingEmpiresV1340
 from player.session_mixins.ocean4_v1350 import SessionOcean4V1350Mixin
 from player.session_mixins.economy4_v1360 import SessionEconomy4V1360Mixin
 from player.session_mixins.legendary_achievements_v1370 import SessionLegendaryAchievementsV1370Mixin
+from player.session_mixins.forgotten_v1500 import SessionForgottenV1500Mixin
+from player.session_mixins.era_legends_v1600 import SessionEraLegendsV1600Mixin
 from player.session_mixins.command_registry import SessionCommandRegistryMixin
 from player.session_mixins.command_loop import SessionCommandLoopMixin
 from player.session_mixins.item_protection_v1280 import SessionItemProtectionV1280Mixin
@@ -52,6 +54,8 @@ from player.session_mixins.password_recovery_v1222 import SessionPasswordRecover
 
 
 class Session(
+    SessionForgottenV1500Mixin,
+    SessionEraLegendsV1600Mixin,
     SessionLegendaryAchievementsV1370Mixin,
     SessionEconomy4V1360Mixin,
     SessionOcean4V1350Mixin,

@@ -20,6 +20,30 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        from validation.v1600_era_legends import run_era_legends_v1600
+        _era_v1600=run_era_legends_v1600(server)
+        assert not _era_v1600['errors'], _era_v1600['errors'][:20]
+        print(f"ERA LEGEND v1.60.0 FULL: {_era_v1600['checks']} checks PASS; "
+              f"walk do Orków {_era_v1600['road_steps']} steps")
+        from validation.v1407_progression_from50 import run_progression_from50_regression_v1407
+        _prog1407=run_progression_from50_regression_v1407()
+        assert not _prog1407['errors'], _prog1407['errors'][:20]
+        print(f"PROGRESSION FROM 50 v1.40.7 FULL: {_prog1407['checks']} checks PASS")
+        from validation.v1408_pleasant_grind import run_pleasant_grind_v1408
+        _pleasant_v1408=run_pleasant_grind_v1408()
+        assert not _pleasant_v1408['errors'], _pleasant_v1408['errors'][:20]
+        print(f"PLEASANT GRIND v1.40.8 FULL: {_pleasant_v1408['checks']} checks PASS")
+        from validation.v1406_orders_regression import run_orders_regression_v1406
+        _order_v1406=run_orders_regression_v1406()
+        print(f"PROFESSION ORDERS v1.40.6 FULL: {_order_v1406['checks']} checks PASS")
+        from validation.v1405_admin_orders_regression import run_admin_orders_v1405
+        _admin_orders_v1405 = run_admin_orders_v1405(runtime=server)
+        assert not _admin_orders_v1405['errors'], _admin_orders_v1405['errors']
+        print(f"ADMIN + ORDERS v1.40.5 RUNTIME: {_admin_orders_v1405['checks']} checks PASS")
+        from validation.v1405_mob_regen import run_mob_regen_regression_v1405
+        _mob_regen_v1405 = run_mob_regen_regression_v1405(runtime=server)
+        assert not _mob_regen_v1405['errors'], _mob_regen_v1405['errors']
+        print(f"MOB REGEN v1.40.5 RUNTIME: {_mob_regen_v1405['checks']} checks PASS")
         from validation.profession_xp_v1401 import run_profession_xp_regression_v1401
         _xp_v1401 = run_profession_xp_regression_v1401()
         assert not _xp_v1401['errors'], _xp_v1401['errors'][:20]

@@ -765,6 +765,27 @@ class World:
         self._last_refresh_at=0.0
         return True
 
+    def _ensure_invasion_v1600(self, room_id):
+        from systems.era_legends_v1600 import active_invasion_v1600
+        event = active_invasion_v1600()
+        if event['room_id'] != str(room_id):
+            return False
+        key = f"v1600:invasion:{event['slot']}:{event['slug']}"
+        if key in self.mobs:
+            return True
+        template_id = event['template_id']
+        if template_id not in MOB_TEMPLATES:
+            return False
+        v0190_apply_combat_template(MOB_TEMPLATES[template_id])
+        mob = MobState(key=key, room_id=str(room_id), template_id=template_id,
+                       hp=int(MOB_TEMPLATES[template_id]['max_hp']),
+                       home_room_id=str(room_id), next_wander_at=event['expires_at'])
+        mob.v016_ephemeral = True
+        mob.v029_expires_at = float(event['expires_at'])
+        self.mobs[key] = mob
+        self._last_refresh_at = 0.0
+        return True
+
     def ensure_runtime_room(self, room_id):
         room_id = str(room_id or "")
         # Private, mined-out chambers are recreated deterministically after deploy.
@@ -821,6 +842,7 @@ class World:
         if room_id in ROOMS:
             self._ensure_awakening_war_event_v1300(room_id)
             self._ensure_city_world_event_v12812(room_id)
+            self._ensure_invasion_v1600(room_id)
             self._generatorize_runtime_room(room_id)
             # v1.19.3: generated secret chamber/archive have their own
             # curated guardian and rare encounters. Generic world-event

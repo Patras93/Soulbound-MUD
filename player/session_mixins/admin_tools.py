@@ -55,6 +55,10 @@ class SessionAdminToolsMixin:
                 return
             raw = str(args or "").strip()
             norm = self.normalize_description_query(raw)
+            # v1.40.5: convenient admin form must never be mistaken for a wipe.
+            if norm.startswith(("wyczysc naprawione", "wyczyść naprawione")):
+                await self.admin_error_cleanup_shortcut_v1405(norm)
+                return
             if not norm or norm in ("help", "pomoc"):
                 await self.send("ADMIN OWNER-ONLY")
                 await self.send("admin status / administrator status — status uprawnień.")
@@ -64,6 +68,7 @@ class SessionAdminToolsMixin:
                 await self.send("admin haslo reset <login> - jednorazowy kod do prywatnego przekazania właścicielowi konta.")
                 await self.send("admin haslo wyslij <login> - wyślij kod resetowania na zweryfikowany e-mail.")
                 await self.send("admin pomoc gracze / serwer / swiat / postacie - Admin Tools 2.0.")
+                await self.send("Wyczysc naprawione POTWIERDZAM - usuwa wyłącznie oznaczone jako naprawione błędy SB, nie postacie.")
                 await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
                 await self.send("wipe wszystkie postacie POTWIERDZAM / wipe all characters CONFIRM.")
                 await self.send("Wipe usuwa postacie i ich progres, ale NIE usuwa kont/loginów/haseł.")
@@ -170,11 +175,31 @@ class SessionAdminToolsMixin:
             self.current_hp = 0
             self.current_mana = 0
 
+    async def admin_error_cleanup_shortcut_v1405(self, args=""):
+            """Short form: wyczysc naprawione POTWIERDZAM, never character wipe."""
+            norm = self.normalize_description_query(args)
+            if norm not in (
+                "naprawione potwierdzam", "naprawione confirm",
+                "wyczysc naprawione potwierdzam", "wyczysc naprawione confirm",
+                "wyczyść naprawione potwierdzam", "wyczyść naprawione confirm",
+            ):
+                await self.send(
+                    "Czyszczenie zgłoszeń: wyczysc naprawione POTWIERDZAM "
+                    "albo admin log wyczysc naprawione POTWIERDZAM. "
+                    "Usuwane są tylko błędy oznaczone jako naprawione."
+                )
+                return
+            # Shared audited implementation; keeps active SB errors and all characters.
+            await self.admin_tools_v1224("log wyczysc naprawione POTWIERDZAM")
+
     async def wipe_command(self, args=""):
             if not self.is_admin():
                 await self.send("Nieznana komenda. Wpisz help.")
                 return
             norm = self.normalize_description_query(args)
+            if norm.startswith("naprawione"):
+                await self.admin_error_cleanup_shortcut_v1405(norm)
+                return
             own_tokens = ("moje postacie", "my characters")
             all_tokens = ("wszystkie postacie", "all characters")
             confirmed_pl = norm.endswith(" potwierdzam")
@@ -437,7 +462,7 @@ class SessionAdminToolsMixin:
             category = parts[1].casefold() if len(parts)>1 else ""
             menus = {
                 "gracze": "admin online; gracz NICK; goto gracz NICK; przywolaj NICK POTWIERDZAM; ulecz NICK POTWIERDZAM; wskrzes NICK POTWIERDZAM; odbuguj NICK POTWIERDZAM; wyrzuc NICK POTWIERDZAM",
-                "serwer": "admin serwer; admin blad SB-XXXXXXXX; admin blad naprawiony SB-XXXXXXXX; admin blad otworz SB-XXXXXXXX; admin log ostatnie 20; admin log aktywne; admin log naprawione; admin log podglad; admin log wyczysc naprawione POTWIERDZAM; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
+                "serwer": "admin serwer; admin blad SB-XXXXXXXX; admin blad naprawiony SB-XXXXXXXX; admin blad otworz SB-XXXXXXXX; admin log ostatnie 20; admin log aktywne; admin log naprawione; admin log podglad; admin log wyczysc naprawione POTWIERDZAM; wyczysc naprawione POTWIERDZAM; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
                 "swiat": "admin lokacja ID; npc NAZWA; moby ID; boss NAZWA",
                 "postacie": "admin profesje NICK; zamowienia NICK; prace NICK; najemnicy NICK; questy NICK; eq NICK; napraw postac NICK (diagnoza) / ... POTWIERDZAM (tylko błędna lokacja)",
             }

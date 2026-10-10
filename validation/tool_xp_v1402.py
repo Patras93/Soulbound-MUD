@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v1.40.2: all 14 tools require progressively more XP after level 100.
+"""v1.40.2: all 14 tools require progressively more XP after level 50.
 
 Checks actual session dispatch when imported by full runtime, and standalone
 requirement helper otherwise. Only requirements change, never rewards.
@@ -54,19 +54,19 @@ def run_tool_xp_regression_v1402():
           'fishing has unchanged minimum 3s')
     check(profession_action_seconds('fishing', 800) == 3,
           'fishing at level 800 still takes 3s')
-    check(profession_late_requirement_points_v1401(100) == 10000,
-          'level 100 untouched')
-    check(profession_late_requirement_points_v1401(101) > 10000,
-          'level 101 increases smoothly')
+    check(profession_late_requirement_points_v1401(49) == 10000,
+          'level 49 untouched')
+    check(profession_late_requirement_points_v1401(50) > 10000,
+          'level 50 increases smoothly')
 
     # Existing mixin exposes exactly these tools to characters.
     if session:
         for kind in TOOL_TYPES_V1402:
             check(session.valid_tool_type(kind), f'{kind}: valid tool type')
 
-    checkpoints = {100: 10000, 150: 11200, 200: 13000,
-                   300: 18000, 400: 26000, 500: 40000,
-                   600: 60000, 700: 85000, 799: 120000}
+    checkpoints = {49: 10000, 50: 10100, 75: 15000, 100: 20000, 150: 30000,
+                   200: 40000, 300: 60000, 400: 80000, 500: 120000,
+                   600: 160000, 700: 205000, 799: 250000}
     for level, points in checkpoints.items():
         check(profession_late_requirement_points_v1401(level) == points,
               f'growth checkpoint {level}')
@@ -87,8 +87,8 @@ def run_tool_xp_regression_v1402():
                   f'{kind} level {level}: no decreased next-level XP')
             check(point >= prior_points,
                   f'{kind} level {level}: monotonically increasing scaling')
-            check(got == old if level <= 100 else got > old,
-                  f'{kind} level {level}: exact original until level 100, higher afterward')
+            check(got == old if level < 50 else got > old,
+                  f'{kind} level {level}: exact original through level 49, higher from level 50')
             prior_required, prior_points = got, point
         check(required(800, kind) == 0, f'{kind}: maximum has no next level')
 

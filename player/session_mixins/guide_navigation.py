@@ -764,6 +764,49 @@ class SessionGuideNavigationMixin:
                     queue.append((next_room, new_path))
             return None
 
+    def guide_descending_floor_v1501(self, room_id):
+            """Describe only the CURRENT descending dungeon floor.
+
+            Deliberately do not create the next floor: the last movement is
+            always manual, so all boss, access and checkpoint checks remain.
+            """
+            from systems.echo_dungeon_v1500 import echo_identity, echo_floor_id
+            from world.magitek_infinite import magitek_floor_number, magitek_floor_id
+            from core.progression_resources import mine_floor_number, mine_floor_id
+
+            def echo_parser(rid):
+                identity = echo_identity(rid)
+                return identity[0] if identity else None
+
+            families = (
+                ("Labirynt Echa", echo_parser, echo_floor_id),
+                ("Krypta", crypt_floor_number, crypt_floor_id),
+                ("Mityczna Krypta", mythic_crypt_floor_number, mythic_crypt_floor_id),
+                ("UOSS Deep Dungeon", uoss_deep_dungeon_floor_number_v11331,
+                 uoss_deep_dungeon_floor_id_v11331),
+                ("Kompleks Magitek", magitek_floor_number, magitek_floor_id),
+                ("Kopalnia Głębinowa", mine_floor_number, mine_floor_id),
+            )
+            for label, parser, builder in families:
+                floor = parser(room_id)
+                if floor is not None:
+                    return label, floor, parser, builder
+            dungeon, floor = profession_dungeon_floor(room_id)
+            if dungeon and floor is not None:
+                labels = {
+                    "crystal_mine": "Kryształowe Groty",
+                    "sunken_grotto": "Zatopiona Grota",
+                    "ancient_forest": "Pradawny Las",
+                    "alchemy_garden": "Ogród Alchemika",
+                }
+                def parser(rid):
+                    name, level = profession_dungeon_floor(rid)
+                    return level if name == dungeon else None
+                def builder(level):
+                    return profession_dungeon_room_id(dungeon, level)
+                return labels.get(dungeon, dungeon), floor, parser, builder
+            return None
+
     def guide_exploration_safe_target(self, room_id):
             """Prowadzenie nigdy nie omija eksploracji pięter lochów."""
             room_id = str(room_id or "")
@@ -1068,6 +1111,26 @@ class SessionGuideNavigationMixin:
                 await self.send("Nie możesz użyć prowadzenia podczas walki.")
                 return
 
+            # v1.50.1: `walk gora` / `walk góra` -- rozpoznaj bieżącą
+            # wieżę, a potem użyj istniejącego, bezpiecznego prowadzenia
+            # wewnątrz jej piętra. Nigdy nie wykonuj ostatniego `up`.
+            # Dotyczy zwykłej i Mitycznej Wieży Astralnej oraz Twierdzy Gigantów.
+            if normalized in ("gora", "w gore", "up"):
+                if astral_floor_number(self.character.room_id) is not None:
+                    normalized = "wieza gora"
+                elif mythic_astral_floor_number(self.character.room_id) is not None:
+                    normalized = "mityczna wieza gora"
+                elif giant_fortress_floor_number(self.character.room_id) is not None:
+                    normalized = "twierdza gora"
+                else:
+                    await self.send(
+                        "walk gora / walk góra działa na piętrze Wieży Astralnej, "
+                        "Mitycznej Wieży Astralnej lub Twierdzy Gigantów. "
+                        "Najpierw wejdź do wieży. W lochach schodzących w dół "
+                        "użyj walk dol / walk dool."
+                    )
+                    return
+
             # v0.23.0: część celów (Kopalnia Głębinowa i lochy profesyjne)
             # jest tworzona dopiero na żądanie. W v0.22 alias był odrzucany,
             # dopóki pokój nie istniał już w ROOMS, więc np. `prowadz kopalnia`
@@ -1075,6 +1138,55 @@ class SessionGuideNavigationMixin:
             shortcut = GUIDE_DESTINATION_ALIASES.get(normalized)
             if shortcut and shortcut not in ROOMS:
                 self.server.world.ensure_runtime_room(shortcut)
+
+            # v1.50.1: krótkie `walk dol` / `walk dool` wybiera zejście
+            # z AKTUALNEGO piętra. Nie przechodzi na następne piętro.
+            generic_down_requested = normalized in (
+                "dol", "dool", "w dol", "down", "zejscie", "zejscie w dol",
+            )
+            direct_generic_down = False
+            generic_down_floor = None
+            generic_down_label = None
+            generic_down_direction = None
+            generic_down_parser = None
+            generic_down_number = None
+            if generic_down_requested:
+                context = self.guide_descending_floor_v1501(self.character.room_id)
+                if context is None:
+                    await self.send(
+                        "walk dol działa na piętrze lochu, z którego można zejść niżej. "
+                        "Najpierw wejdź do lochu. W wieżach użyj walk wieza gora."
+                    )
+                    return
+                (generic_down_label, current_down_floor,
+                 generic_down_parser, down_floor_builder) = context
+                generic_down_floor = current_down_floor + 1
+                generic_down_number = current_down_floor
+                self.server.world.ensure_runtime_room(down_floor_builder(current_down_floor))
+                generic_target = None
+                for room_id, room in ROOMS.items():
+                    if generic_down_parser(room_id) != current_down_floor:
+                        continue
+                    for direction, next_room in room.get("exits", {}).items():
+                        if generic_down_parser(next_room) == generic_down_floor:
+                            generic_target = room_id
+                            generic_down_direction = direction
+                            break
+                    if generic_target:
+                        break
+                if generic_target is None:
+                    await self.send(
+                        f"Na piętrze {current_down_floor} ({generic_down_label}) "
+                        "nie znaleziono przejścia na następne piętro."
+                    )
+                    return
+                target_is_treasure = False
+                treasure_label = ""
+                npc_match = None
+                target_is_npc = False
+                target_npc = None
+                matches = [generic_target]
+                direct_generic_down = True
 
             # v1.13.40: `walk krypta dół` działa zarówno w zwykłej, jak i
             # Mitycznej Krypcie. Komenda prowadzi wyłącznie do komnaty z wyjściem
@@ -1303,6 +1415,7 @@ class SessionGuideNavigationMixin:
                 or direct_astral_up
                 or direct_fortress_up
                 or direct_deep_down
+                or direct_generic_down
             )
             treasure_match = None if direct_floor_edge else re.fullmatch(
                 r"(?:skarb|skarbu|treasure)(?:\s+(\d+))?", normalized
@@ -1400,7 +1513,13 @@ class SessionGuideNavigationMixin:
             reach_exact_target = True
 
             if target == self.character.room_id:
-                if direct_crypt_down:
+                if direct_generic_down:
+                    await self.send(
+                        f"Już jesteś przed przejściem na piętro {generic_down_floor} "
+                        f"({generic_down_label}). Wykonaj ostatni krok ręcznie: "
+                        f"{self.route_direction_name(generic_down_direction)}."
+                    )
+                elif direct_crypt_down:
                     await self.send(
                         f"Już jesteś przed zejściem na piętro {crypt_down_floor} {crypt_down_label}. "
                         "Wykonaj zejście ręcznie."
@@ -1429,7 +1548,12 @@ class SessionGuideNavigationMixin:
                     await self.send(f"Już jesteś tutaj: {ROOMS[target]['name']}.")
                 return
 
-            if direct_floor_edge and direct_floor_parser_v11340 is not None:
+            if direct_generic_down:
+                full_path = self.shortest_path_within_floor_v11340(
+                    self.character.room_id, target,
+                    generic_down_parser, generic_down_number,
+                )
+            elif direct_floor_edge and direct_floor_parser_v11340 is not None:
                 full_path = self.shortest_path_within_floor_v11340(
                     self.character.room_id,
                     target,
@@ -1482,6 +1606,13 @@ class SessionGuideNavigationMixin:
                 await self.send(
                     f"Prowadzę bezpośrednio do aktywnego tropu skarbu: {treasure_label}. "
                     f"Automatyczne przejścia: {len(path)}. Po dotarciu użyj sekret."
+                )
+            elif direct_generic_down:
+                await self.send(
+                    f"Prowadzę przed przejście na piętro {generic_down_floor} "
+                    f"({generic_down_label}). Automatyczne przejścia: {len(path)}. "
+                    f"Ostatni krok wykonujesz ręcznie: "
+                    f"{self.route_direction_name(generic_down_direction)}."
                 )
             elif direct_crypt_down:
                 await self.send(
@@ -1625,6 +1756,13 @@ class SessionGuideNavigationMixin:
                     await self.send(
                         f"Dotarłeś do NPC: {target_npc['name']}. "
                         f"Lokalizacja: {ROOMS[target]['name']}."
+                    )
+                    await self.look()
+                elif direct_generic_down and self.character.room_id == target:
+                    await self.send(
+                        f"Dotarłeś przed przejście na piętro {generic_down_floor} "
+                        f"({generic_down_label}). Wykonaj ostatni krok ręcznie: "
+                        f"{self.route_direction_name(generic_down_direction)}."
                     )
                     await self.look()
                 elif direct_crypt_down and self.character.room_id == target:

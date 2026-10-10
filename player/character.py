@@ -6,6 +6,7 @@ from config.balance import (
     SOUL_XP_REQUIREMENT_MULTIPLIER,
     STAT_XP_REQUIREMENT_MULTIPLIER,
     STAT_XP_REWARD_MULTIPLIER,
+    scale_stat_requirement_v1408,
 )
 from core.character_resources import (
     character_hp_base as authored_character_hp_base,
@@ -551,11 +552,10 @@ class Character:
     }
 
     def stat_growth_threshold_for(self, stat_name):
-        """Próg EXP pojedynczej statystyki.
+        """EXP dla kolejnego punktu bez limitu wartości statystyki.
 
-        Każda statystyka rozwija się niezależnie. Start to 100 EXP, a od
-        wartości bazowej 26 próg rośnie o 10 za każdy punkt. Dzięki temu
-        niska statystyka może nadrobić, a wysoka nie rośnie lawinowo.
+        Każda statystyka rośnie niezależnie. Od wartości 50 dodatkowo
+        rośnie wymagany EXP; nagrody i zdobyte punkty pozostają bez zmian.
         """
         _label, value_field, _progress_field = self.STAT_PROGRESS_FIELDS[stat_name]
         value = max(1, int(getattr(self, value_field)))
@@ -563,7 +563,8 @@ class Character:
         requirement = max(1, int(round(base * STAT_XP_REQUIREMENT_MULTIPLIER)))
         terminal_base = v0190_requirement("stat", 599)
         terminal_requirement = max(1, int(round(terminal_base * STAT_XP_REQUIREMENT_MULTIPLIER)))
-        return late_game_xp_requirement(value, requirement, terminal_requirement)
+        historical = late_game_xp_requirement(value, requirement, terminal_requirement)
+        return scale_stat_requirement_v1408(historical, value)
 
     def stat_growth_threshold(self):
         """Legacy: zwraca średni próg sześciu statystyk dla zgodności."""

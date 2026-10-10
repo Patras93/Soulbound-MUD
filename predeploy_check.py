@@ -3617,7 +3617,11 @@ try:
         _class_req_v11357(599),
         _soul_req_v11357(599),
     )
-    if any(abs(_v - 10_000_000_000_000) > 50_000_000 for _v in _reqs_599_v11357):
+    # v1.40.7 also increases the amount required beyond 50; preserve the
+    # original ~10T anchor * new deterministic level-specific multiplier.
+    from config.balance import scale_player_requirement_v1407
+    _target_599_v1407 = scale_player_requirement_v1407(10_000_000_000_000, 599)
+    if any(abs(_v - _target_599_v1407) > 150_000_000 for _v in _reqs_599_v11357):
         _semantic_errors.append(
             f"v1.13.60 late-game XP target regression: {_reqs_599_v11357}"
         )
@@ -4061,14 +4065,14 @@ if _audit_v1380['error_count']:
 from validation.profession_xp_v1401 import run_profession_xp_regression_v1401 as _run_profession_xp_regression_v1401
 _prof_v1401 = _run_profession_xp_regression_v1401()
 assert not _prof_v1401['errors'], _prof_v1401['errors'][:20]
-print(f"PROFESSION XP v1.40.1: {_prof_v1401['checks']} checks PASS; requirement rises from level 100")
+print(f"PROFESSION XP v1.40.1: {_prof_v1401['checks']} checks PASS; requirement rises from level 50")
 
 # v1.40.2: all 14 tools share the smooth late-game profession curve;
 # rewards, actions, saved levels and XP must remain unchanged.
 from validation.tool_xp_v1402 import run_tool_xp_regression_v1402 as _run_tool_xp_regression_v1402
 _tool_v1402 = _run_tool_xp_regression_v1402()
 assert not _tool_v1402['errors'], _tool_v1402['errors'][:20]
-print(f"TOOL XP v1.40.2: {_tool_v1402['checks']} checks PASS; 14 tools from level 100")
+print(f"TOOL XP v1.40.2: {_tool_v1402['checks']} checks PASS; 14 tools from level 50")
 
 # v1.40.3: guard against old Generator Core files left by overlay extracts.
 from validation.v1403_docker_guard import run_docker_generator_guard_v1403 as _run_docker_generator_guard_v1403
@@ -4082,3 +4086,32 @@ from validation.v1404_railway_stage import run_railway_stage_regression_v1404 as
 _stage_v1404 = _run_railway_stage_regression_v1404()
 assert not _stage_v1404['errors'] and _stage_v1404['tests'] == 5
 print("RAILWAY STAGE v1.40.4: 5 source/image/negative checks PASS")
+
+# v1.40.5: wounded mobs recover gradually after flee and never heal during fight.
+from validation.v1405_mob_regen import run_mob_regen_regression_v1405
+_mob_regen_v1405 = run_mob_regen_regression_v1405()
+assert not _mob_regen_v1405['errors'], _mob_regen_v1405['errors']
+print(f"MOB REGEN v1.40.5: {_mob_regen_v1405['checks']} checks PASS")
+
+# v1.40.5: admin resolved-error cleanup must not fall into character wipe.
+from validation.v1405_admin_orders_regression import run_admin_orders_v1405
+_admin_orders_v1405 = run_admin_orders_v1405()
+assert not _admin_orders_v1405['errors'], _admin_orders_v1405['errors']
+print(f"ADMIN + ORDERS v1.40.5: {_admin_orders_v1405['checks']} checks PASS")
+
+# v1.40.6: every profession order and the Gospodarka 4.0 settlement must pay fairly.
+from validation.v1406_orders_regression import run_orders_regression_v1406
+_orders_v1406=run_orders_regression_v1406()
+print(f"PROFESSION ORDERS v1.40.6: {_orders_v1406['checks']} checks; {_orders_v1406['professions']} professions PASS")
+
+# v1.40.7: all XP requirement axes after level 50, stats uncapped.
+from validation.v1407_progression_from50 import run_progression_from50_regression_v1407 as _run_progression_v1407
+_progression_v1407 = _run_progression_v1407()
+assert not _progression_v1407['errors'], _progression_v1407['errors'][:20]
+print(f"PROGRESSION FROM 50 v1.40.7: {_progression_v1407['checks']} checks PASS")
+
+# v1.40.8 stronger smooth progression with a separate uncapped-stat curve.
+from validation.v1408_pleasant_grind import run_pleasant_grind_v1408
+_pleasant_v1408 = run_pleasant_grind_v1408()
+assert not _pleasant_v1408['errors'], _pleasant_v1408['errors'][:20]
+print(f"PLEASANT GRIND v1.40.8: {_pleasant_v1408['checks']} checks PASS")

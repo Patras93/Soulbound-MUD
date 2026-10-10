@@ -55,6 +55,18 @@ SIX_ERAS_V1310 = install_six_eras_v1310(ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_S
 # module/generator has registered its templates. This keeps NVDA output short
 # and prevents procedural floor numbers / stacked rarity prefixes leaking into
 # combat messages.
+# v1.50.0 — explicit authored content, layered on top of the COMPLETE historical world.
+from systems.forgotten_world_v1500 import install_forgotten_world_v1500
+FORGOTTEN_WORLD_V1500 = install_forgotten_world_v1500(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+from world.world_state import World as _WorldV1500
+from systems.echo_dungeon_v1500 import install_echo_dungeon_v1500
+ECHO_DUNGEON_V1500 = install_echo_dungeon_v1500(ROOMS, ITEMS, _WorldV1500)
+
+from systems.era_legends_v1600 import install_era_legends_v1600
+ERA_LEGENDS_V1600 = install_era_legends_v1600(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)
 MOB_NAME_AUDIT_V1142 = audit_runtime_mob_names_v1142(MOB_TEMPLATES)

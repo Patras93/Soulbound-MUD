@@ -309,6 +309,15 @@ class SessionMercenaryTavernsMixin:
                                 target_template.get('mythic_crypt_boss') or
                                 target_template.get('uoss_unique_superboss_key') or
                                 target_template.get('superboss') or target_template.get('rank') == 'boss')
+            # v1.60: dedicated guardian anticipates major-boss pressure and
+            # shields the weakest party member WITHOUT sacrificing its attack.
+            if role == 'straznik' and major_threat and weakest.skill_guard <= 0:
+                next_barrier=getattr(self,'_v1600_guardian_barrier_at',0.0)
+                if now >= next_barrier and weakest.current_hp < weakest.max_hp()*.95:
+                    barrier=max(1,int(weakest.max_hp()*.09))
+                    weakest.skill_guard += barrier
+                    self._v1600_guardian_barrier_at=now+20.0
+                    await self.send(f"{name}: automatyczna osłona {weakest.character.name}, +{barrier} ochrony.")
             heal_threshold = (.89 if major_threat else (.78 if role != 'druid' else .68))
             if role in ("kaplan", "paladyn", "druid") and (
                     weakest.current_hp < weakest.max_hp() * heal_threshold and

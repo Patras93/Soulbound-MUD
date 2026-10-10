@@ -35,6 +35,7 @@ from config.balance import (
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
     SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER,
     SOUL_XP_REQUIREMENT_MULTIPLIER,
+    scale_player_requirement_v1407,
     V019_CLASS_KILL_BOSS,
     V019_CLASS_KILL_NORMAL,
     V019_CLASS_REQ,
@@ -536,7 +537,8 @@ def _late_game_axis_requirement(kind, level, requirement_multiplier):
     requirement = max(1, int(round(base * requirement_multiplier)))
     terminal_base = v0190_requirement(kind, 599)
     terminal_requirement = max(1, int(round(terminal_base * requirement_multiplier)))
-    return late_game_xp_requirement(level, requirement, terminal_requirement)
+    historical = late_game_xp_requirement(level, requirement, terminal_requirement)
+    return scale_player_requirement_v1407(historical, level)
 
 
 def character_xp_to_next(level):
@@ -579,7 +581,7 @@ def skill_xp_to_next(level):
     level = max(1, min(SKILL_MAX_LEVEL, int(level)))
     if level >= SKILL_MAX_LEVEL:
         return 0
-    return v0190_requirement("skill", level)
+    return scale_player_requirement_v1407(v0190_requirement("skill", level), level)
 
 def skill_power_multiplier(level):
     return skill_level_power(level)
@@ -595,10 +597,11 @@ def soul_weapon_mastery_xp_to_next(level):
     if level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
         return 0
     base = v0190_requirement("skill", level)
-    return max(
+    historical = max(
         1,
         int(round(base * SOUL_WEAPON_MASTERY_XP_REQUIREMENT_MULTIPLIER)),
     )
+    return scale_player_requirement_v1407(historical, level)
 
 def soul_weapon_mastery_bonuses(level):
     level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))

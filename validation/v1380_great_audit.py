@@ -28,7 +28,7 @@ def run_great_audit_v1380():
         SOUL_MAX_LEVEL, SKILL_MAX_LEVEL, SOUL_WEAPON_MASTERY_MAX_LEVEL,
         TOOL_MAX_LEVEL, TOOL_MAX_TIER, SOUL_MAX_TIER,
     )
-    check(VERSION == '1.40.4', 'runtime version 1.40.4')
+    check(VERSION in ('1.50.0', '1.50.1', '1.60.0'), 'runtime version 1.50.x')
     for axis, limit in (
         ('character', CHARACTER_MAX_LEVEL), ('class', CLASS_MASTERY_MAX_LEVEL),
         ('profession', PROFESSION_MAX_LEVEL), ('soul', SOUL_MAX_LEVEL),

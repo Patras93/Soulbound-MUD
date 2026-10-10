@@ -90,37 +90,112 @@ TOOL_XP_REQUIREMENT_MULTIPLIERS = {
     "mining": 2.0,
 }
 
-# v1.40.1: dodatkowy, LAGODNY od 100 poziomu, rosnacy prog
-# tylko WYMAGANEGO EXP profesji. Nie dotyka EXP z czynnosci, nagrod,
-# dropu, czasu narzedzi, istniejacych poziomow ani zapisanego postepu.
-# Progi sa ciagle (interpolacja liniowa): nie ma skoku przy 100.
-# Jednostka: punkty bazowe. 10000 = x1.00.
+# v1.40.8: mocniejsza, lecz plynnna progresja od poziomu 50.
+# Mnozniki sa CALKOWITE wzgledem starej (przed v1.40.1/v1.40.7)
+# krzywej, NIE nakladaja sie ponownie na punkty z v1.40.7.
+# Poziomy <=49 i zdobywane EXP pozostaja nietkniete.
+# 10000 punktow = x1.00. Profesje i narzedzia maja wspolna krzywa.
 PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401 = (
-    (100, 10000),    # bez zmian do 100 wlacznie
-    (150, 11200),    # x1.12
-    (200, 13000),    # x1.30
-    (300, 18000),    # x1.80
-    (400, 26000),    # x2.60
-    (500, 40000),    # x4.00
-    (600, 60000),    # x6.00
-    (700, 85000),    # x8.50
-    (799, 120000),   # x12.00
+    (49, 10000),
+    (50, 10100),    # x1.01
+    (75, 15000),    # x1.50
+    (100, 20000),   # x2.00
+    (150, 30000),   # x3.00
+    (200, 40000),   # x4.00
+    (300, 60000),   # x6.00
+    (400, 80000),   # x8.00
+    (500, 120000),  # x12.0
+    (600, 160000),  # x16.0
+    (700, 205000),  # x20.5
+    (799, 250000),  # x25.0
 )
+
+# Poziom postaci, biegosc klasy, Dusza, Bron Duszy, skille, wzniesienie.
+PLAYER_EXTRA_REQUIREMENT_POINTS_V1407 = (
+    (49, 10000),
+    (50, 10100),
+    (75, 15000),
+    (100, 20000),
+    (150, 30000),
+    (200, 40000),
+    (300, 60000),
+    (400, 80000),
+    (500, 110000),
+    (600, 140000),
+    (700, 180000),
+    (799, 220000),
+)
+
+# Kazda statystyka osobno: znacznie lzejsza krzywa, bez limitu wartosci.
+# Zachowane wysokie progi statow w historycznej krzywej od 100+.
+STAT_EXTRA_REQUIREMENT_POINTS_V1408 = (
+    (49, 10000),
+    (50, 10100),
+    (75, 12500),
+    (100, 15000),
+    (150, 17500),
+    (200, 20000),
+    (300, 27000),
+    (400, 35000),
+    (500, 45000),
+    (600, 55000),
+    (700, 68000),
+    (799, 80000),
+)
+
+
+def _interpolated_requirement_points_v1407(level: int, checkpoints) -> int:
+    level = max(1, int(level))
+    previous_level, previous_points = checkpoints[0]
+    if level <= previous_level:
+        return previous_points
+    for next_level, next_points in checkpoints[1:]:
+        if level <= next_level:
+            return previous_points + ((level - previous_level) *
+                (next_points - previous_points)) // (next_level - previous_level)
+        previous_level, previous_points = next_level, next_points
+    # Statystyki sa bez limitu: po 799 mnoznik rosnie powoli do x12.
+    # Przy pozostalych osiach maksymalny poziom jest ograniczony.
+    if checkpoints is STAT_EXTRA_REQUIREMENT_POINTS_V1408:
+        return min(120000, previous_points + ((level - previous_level) * 20))
+    return previous_points
+
+
+def player_extra_requirement_points_v1407(level: int) -> int:
+    return _interpolated_requirement_points_v1407(level, PLAYER_EXTRA_REQUIREMENT_POINTS_V1407)
+
+
+def _scale_required_xp_by_points_v1408(required_xp: int, points: int) -> int:
+    """Apply a requirement-only multiplier, never an XP award."""
+    required_xp = max(1, int(required_xp))
+    if points == 10000:
+        return required_xp
+    return min(9_000_000_000_000_000_000,
+               max(required_xp, (required_xp * points + 5000) // 10000))
+
+
+def scale_player_requirement_v1407(required_xp: int, level: int) -> int:
+    """Legacy API: v1.40.8 player-axes requirement curve."""
+    return _scale_required_xp_by_points_v1408(
+        required_xp, player_extra_requirement_points_v1407(level))
+
+
+def stat_extra_requirement_points_v1408(value: int) -> int:
+    """Gentler curve for six individual unlimited statistics."""
+    return _interpolated_requirement_points_v1407(
+        value, STAT_EXTRA_REQUIREMENT_POINTS_V1408)
+
+
+def scale_stat_requirement_v1408(required_xp: int, value: int) -> int:
+    return _scale_required_xp_by_points_v1408(
+        required_xp, stat_extra_requirement_points_v1408(value))
 
 
 def profession_late_requirement_points_v1401(level: int) -> int:
     """Monotonic, continuous multiplier of required EXP, never earned EXP."""
-    level = int(level)
-    if level <= 100:
-        return 10000
-    previous_level, previous_points = PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[0]
-    for next_level, next_points in PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[1:]:
-        if level <= next_level:
-            span = next_level - previous_level
-            # Integer interpolation, deterministic on every Python runtime.
-            return previous_points + ((level - previous_level) * (next_points - previous_points)) // span
-        previous_level, previous_points = next_level, next_points
-    return PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[-1][1]
+    return _interpolated_requirement_points_v1407(
+        level, PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401
+    )
 
 
 def profession_xp_requirement_v1401(base: int, profession: str | None, level: int) -> int:
@@ -129,14 +204,14 @@ def profession_xp_requirement_v1401(base: int, profession: str | None, level: in
         int(base) * float(PROFESSION_XP_REQUIREMENT_MULTIPLIERS.get(str(profession), 1.0))
     )))
     points = profession_late_requirement_points_v1401(level)
-    # Exact historical value at <=100; round half-up for later progression.
+    # Exact historical value at <=49; round half-up for later progression.
     return old_requirement if points == 10000 else max(1, (old_requirement * points + 5000) // 10000)
 
 
 # v1.40.2: synchronize TOOLS with the smooth late-game profession
 # requirement curve introduced in v1.40.1. The formula only changes the
 # amount needed for the NEXT tool level; it never edits character records.
-# Keep the exact historical rounding for levels <=100 and the pickaxe x2.
+# Keep exact historical rounding for levels <=49 and the pickaxe x2.
 def tool_xp_requirement_v1402(base: int, tool_type: str | None, level: int) -> int:
     """Next-level required tool EXP, not an EXP reward calculation."""
     original = max(1, int(round(

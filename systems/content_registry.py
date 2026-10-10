@@ -373,12 +373,33 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.40.4 - RAILWAY: TEST DOCKERIGNORE W OBRAZIE"
+LATEST_CHANGES_TITLE = "Soulbound v1.60.0 - WIELKA ERA LEGEND"
 LATEST_CHANGES = [
+    "WIELKA ERA LEGEND: 4 podziemne krolestwa, osiem nowych bossow i podziemne sklepy.",
+    "DROGA DO ORKOW: walk orki / orkowie / gor khaz prowadzi normalnym szlakiem z Rozdroza Czterech Wiatrow, bez Krypt 100.",
+    "Wojny PvE: cztery fronty z powtarzalnymi misjami, rotujace co 4 godziny inwazje i 10 polowan na legendy.",
+    "Ocean 5.0: osiem podwodnych lokacji, dwaj bossowie, trzy morskie bitwy flot i legendarne perly.",
+    "Gildie i Twierdze 5.0: Sala Wojenna od poziomu 3 i Archiwum Reliktow od poziomu 6 istniejacej siedziby.",
+    "Najemnicy 6.0: straznik moze automatycznie dodac oslone przeciw bossowi bez tracenia ataku.",
+    "Komenda era60: orki, podziemia, wojny, twierdza, najemnicy, ocean, inwazje, lowcy.",
+    "v1.50.0: cztery krainy, 160 lokacji, 20 bossow, 5 superbossow i 40-etapowa saga.",
+    "Profesje 5.0: 42 nowe zlecenia dla 14 profesji i 24 nowe projekty wyposazenia.",
+    "Labirynt Echa: nieskonczone pietra po piec komor, elita co 5, boss co 10; lokacje tworzone na zadanie.",
+    "Komendy: kontynent, kontynent saga, kontynent profesje, kontynent bossowie, lochy50.",
+    "v1.40.8: mocniejsze ale plynne wymagania EXP od poziomu 50; profesje i narzedzia x2 na 100, x4 na 200, x8 na 400, x25 na 799.",
+    "Bieglosci, Dusza, skille i postac: x2 na 100, x4 na 200, x22 na 799. Statystyki osobno, lagodniej: x1.5 na 100, x2 na 200, x8 na 799.",
+    "Wszystkie 6 statystyk ma wyzszy prog EXP od wartosci 50, nadal bez limitu. Wyplaty EXP i nagrody, drop, czasy akcji, poziomy i zapisany postep bez zmian.",
+    "v1.40.6: duzo lepsze nagrody za zamowienia wszystkich 14 profesji oraz wielkie zamowienia krolestw; zwiekszono monety i XP kontraktowe.",
+    "Wyplaty uwzgledniaja poziom, ilosc, trudnosc zlecenia i rynkowa wartosc surowcow; zachowano godzinne oferty i blokady ponownego odbioru.",
+    "Aktywne zamowienia zachowuja obiecana kwote zapisana przy przyjeciu, nowe oferty maja wyzsze wyplaty. Bez zmian XP za zwykla prace, dropu i zapisow.",
+    "v1.40.5: po flee lub wylogowaniu ranny mob poza walka odzyskuje co 15 sekund do 10 procent bazowego HP; nigdy podczas walki z innym graczem.",
+    "v1.40.5: wyczysc naprawione POTWIERDZAM to bezpieczny skrot do czyszczenia oznaczonych bledow SB; nie wymazuje postaci.",
+    "v1.40.5: zamowienie porzuc / zamówienie porzuć anuluje zamowienie profesji, bez zabierania materialow lub nagrod.",
+    "Adaptacyjne HP bossow po zakonczeniu walki zachowuje procent ran zamiast natychmiastowego leczenia. Bez zmian EXP, dropu, walki aktywnej i zapisow.",
     "v1.40.4: poprawiono predeploy wewnatrz obrazu Docker: .dockerignore nie jest kopiowany do /app, wiec audyt sprawdza bezpieczny krok usuniecia generatora.",
     "Nowy test osobno sprawdza zrodla oraz obraz bez .dockerignore i odrzuca przywrocony generator lub brak zabezpieczenia. Bez zmian EXP, nagrod i postaci.",
     "v1.40.3: naprawa budowania Railway: Docker ignoruje i usuwa pozostaly core/generator_core.py przed kontrolami. Bez przywracania generatora.",
-    "Wymagania EXP profesji i narzedzi od poziomu 100 jak w v1.40.2; wszystkie nagrody i zapisy bez zmian.",
+    "Wymagania EXP profesji i narzedzi od 50 mocniejsze jak w v1.40.8; wszystkie nagrody i zapisy bez zmian.",
     "v1.40.2: wszystkie 14 narzedzi ma plynnie wyzsze wymagania EXP od poziomu 100, identyczna krzywa jak profesje (150 x1.12, 200 x1.30, 400 x2.60, 600 x6, 799 x12).",
     "Kilof zachowuje swoj mnoznik x2. Nagrody EXP, wypracowane poziomy i XP, drop, oraz czas akcji bez zmian. Wedka nadal minimum 3 sekundy.",
     "v1.40.1: od poziomu profesji 100 zaczyna plynnie rosnac wymagany EXP: x1.12 przy 150, x1.30 przy 200, x2.60 przy 400, x6 przy 600, x12 przy 799.",
@@ -1307,7 +1328,7 @@ HELP_TOPICS = {
     ],
     "wolniejsze_staty": [
         "Każda z sześciu statystyk ma własny licznik EXP i własny próg.",
-        "Próg startuje od 100 EXP i rośnie osobno wraz z wartością danej statystyki.",
+        "Każda statystyka ma osobny, rosnący próg; od wartości 50 dalszy wzrost jest wyraźnie wolniejszy, bez limitu statystyk.",
         "Po osiągnięciu progu rośnie tylko wskazana statystyka; pozostałe zachowują własny postęp.",
         "Statystyki nadal nie mają ręcznego rozdawania punktów ani levelu postaci.",
         "Stary wspólny Postęp Rozwoju jest jednorazowo migrowany do sześciu osobnych liczników bez utraty zapisanego postępu.",
@@ -1600,7 +1621,7 @@ HELP_TOPICS = {
     ],
     "rozwoj_statystyk": [
         "Statystyki rosną automatycznie przez sześć niezależnych liczników EXP; nie ma ręcznego rozdawania punktów ani levelu postaci.",
-        "Każda statystyka zaczyna od progu 100 EXP. Po przekroczeniu wartości bazowej 25 jej własny próg rośnie o 10 za każdy kolejny punkt tej statystyki.",
+        "Każda z sześciu statystyk ma osobną krzywą EXP, bez limitu wartości; od 50 wymaga dodatkowo stopniowo więcej EXP. Nagrody za walki pozostają takie same.",
         "Pełny próg zwiększa tylko tę konkretną statystykę o 1; pozostałe zachowują własny EXP i własne progi.",
         "Pojedynczy mob ma limit EXP każdej statystyki zależny od rangi, więc boss nie przeskakuje całej progresji jednym zabiciem.",
         "Bonus rasy Człowiek do Postępu Rozwoju nadal działa.",
@@ -2593,9 +2614,9 @@ HELP_TOPICS["zamowienia_rzemieslnicze"] = [
     "Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo liczą wyłącznie świeżo zebrane surowce po przyjęciu; przy oddaniu wymagana ilość jest pobierana z właściwego magazynu profesji lub ekwipunku.",
     "Zaklinanie liczy wyłącznie udane akcje zaklinania wykonane po przyjęciu; przy oddaniu nie pobiera się drugiego produktu.",
     "Kowalstwo, Gotowanie, Alchemia, Jubilerstwo, Krawiectwo, Garbarstwo i Stolarstwo nadal korzystają z prawdziwych receptur i fizycznych produktów.",
-    "zamowienia status - pokaż cel, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc - anuluj.",
+    "zamowienia status - pokaż cel, postęp, zleceniodawcę i nagrodę; zamowienia oddaj - oddaj gotowe zamówienie u właściwego NPC; zamowienia porzuc albo zamówienie porzuć - anuluj bez utraty materiałów.",
     "zamowienia historia / zamowienia statystyki - trwała historia ukończeń per profesja, zarobek, XP profesji/narzędzia i rekord nagrody; stare ukończenia sprzed v0.61.4 zachowują tylko pewny licznik.",
-    "Nagrody to waluta oraz dodatkowy XP profesji i narzędzia. Zamówienia profesji nie dają Soul XP.",
+    "Od v1.40.6 nagrody za nowe zamówienia rosną z poziomem, wielkością zamówienia i kosztem surowców; większe są zarówno waluta, jak i XP profesji oraz narzędzia. Już przyjęte zamówienia zachowują obiecaną nagrodę. Zamówienia nie dają Soul XP.",
 ]
 HELP_TOPIC_ALIASES.update({
     "zamowienia": "zamowienia_rzemieslnicze", "zamówienia": "zamowienia_rzemieslnicze",

@@ -716,6 +716,33 @@ class SessionForgeGuildsMixin:
                 _catalog_mut.catalog_assign({"name":"Kustosz Trofeów","room":base,"dialogue":"Prowadzi Salę Trofeów Gildii. Użyj: gildia trofea."}, 'NPCS', NPCS, (f"player_guild_trophies_{cid}",))
             if hall_level>=7:
                 _catalog_mut.catalog_assign({"name":"Herold Wielkich Łowów","room":base,"dialogue":"Otwiera dostęp do specjalnych bossów Gildii. Użyj: gildia boss."}, 'NPCS', NPCS, (f"player_guild_bossmaster_{cid}",))
+            # v1.60: real guild-owned castle annexes; their unlocks are based
+            # on persistent v0.92.7 guild-hall upgrades (no second currency).
+            if hall_level>=3:
+                _catalog_mut.catalog_assign(f"{base}_war_room", 'ROOMS', ROOMS, (base, 'exits','northeast'))
+                _catalog_mut.catalog_assign({
+                    'zone':f"Twierdza Gildii {guild_name}",
+                    'name':f"Sala Wojenna Gildii {guild_name}",
+                    'desc':'Tablice inwazji, wielkich polowań i kontraktów. Użyj: era60 wojny, gildia kontrakty.',
+                    'exits':{'southwest':base,'north':f"{base}_watchtower"},
+                    'guild_hall_level':hall_level}, 'ROOMS',ROOMS,(f"{base}_war_room",))
+                _catalog_mut.catalog_assign({
+                    'zone':f"Twierdza Gildii {guild_name}",
+                    'name':f"Wieża Obserwacyjna Gildii {guild_name}",
+                    'desc':'Wieża służy do obserwacji frontów. Dostęp zależy od poziomu Siedziby.',
+                    'exits':{'south':f"{base}_war_room"},
+                    'guild_hall_level':hall_level}, 'ROOMS',ROOMS,(f"{base}_watchtower",))
+                _catalog_mut.catalog_assign({'name':'Strateg Gildii','room':f"{base}_war_room",
+                    'dialogue':'Wojny PvE i łowy legend obsługują istniejące zadania; gildia kontrakty przechowuje wspólny postęp.'},
+                    'NPCS',NPCS,(f"player_guild_strategist_{cid}",))
+            if hall_level>=6:
+                _catalog_mut.catalog_assign(f"{base}_relic_vault", 'ROOMS', ROOMS,(base,'exits','northwest'))
+                _catalog_mut.catalog_assign({
+                    'zone':f"Twierdza Gildii {guild_name}",
+                    'name':f"Archiwum Reliktów Gildii {guild_name}",
+                    'desc':'Zebrane trofea i relikty. Użyj: gildia trofea oraz bestiariusz.',
+                    'exits':{'southeast':base},'guild_hall_level':hall_level},
+                    'ROOMS',ROOMS,(f"{base}_relic_vault",))
             return base
 
     async def enter_guild_estate_v0927(self, row):

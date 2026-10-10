@@ -184,8 +184,16 @@ def collect_convoy(conn, account, *, now=None):
         return reward,balance
 
 
+def order_reward_v1406(code, *, now=None):
+    name, ingredients, base = ORDERS[code]
+    cost = sum(qty*_item_value(item) for item,qty in ingredients.items())
+    # A kingdom's major order must cover the materials AND reward the labor;
+    # keep six-hour demand rotation and the existing 2h payout cooldown.
+    return max(base*4, cost*3)*demand(code,now=now)//100
+
+
 def order_quotes(*,now=None):
-    return [(code,name,ingredients,max(price, sum(qty*_item_value(item) for item,qty in ingredients.items())*16//10)*demand(code,now=now)//100)
+    return [(code,name,ingredients,order_reward_v1406(code,now=now))
             for code,(name,ingredients,price) in ORDERS.items()]
 
 
@@ -200,7 +208,7 @@ def finish_order(conn,account,code,*,now=None):
         # Reserve ALL ingredients before paying; savepoint rolls back shortfalls.
         for item,qty in ingredients.items():
             _consume(conn,account,item,qty)
-        price=max(base,sum(qty*_item_value(item) for item,qty in ingredients.items())*16//10)*demand(code,now=now)//100
+        price=order_reward_v1406(code,now=now)
         balance=_credit(conn,account,price)
         conn.execute('INSERT INTO trade_cooldowns_v1360(account_id,next_order) VALUES(?,?) '
                      'ON CONFLICT(account_id) DO UPDATE SET next_order=excluded.next_order',(account,now+7200))

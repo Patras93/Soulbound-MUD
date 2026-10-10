@@ -15,6 +15,9 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'era60': ('era_legends_v1600', (COMMAND_TEXT,), {}),
+    'kontynent': ('forgotten_continent_v1500', (COMMAND_TEXT,), {}),
+    'lochy50': ('forgotten_dungeons_v1500', (COMMAND_TEXT,), {}),
     'medale': ('legendary_achievements_v1370', (COMMAND_TEXT,), {}),
     'kronikapostaci': ('legendary_achievements_v1370', ('kronika',), {}),
     'gospodarka': ('economy4_command_v1360', (COMMAND_TEXT,), {}),
@@ -413,11 +416,15 @@ GUIDE_SAFE_COMMANDS = {
 }
 
 for _safe_v1370 in (DOWNED_SAFE_COMMANDS, REST_SAFE_COMMANDS, GUIDE_SAFE_COMMANDS):
+    _safe_v1370.update(('kontynent', 'lochy50', 'era60'))
     _safe_v1370.update(('medale', 'kronikapostaci'))
 
 DOWNED_SAFE_COMMANDS.add('ery')
 REST_SAFE_COMMANDS.add('ery')
 GUIDE_SAFE_COMMANDS.add('ery')
+
+for _alias,_target in (('forgotten','kontynent'),('continent','kontynent'),('saga50','kontynent'),('echodungeon','lochy50')):
+    COMMAND_CATALOG.add_alias(_alias,_target,source='player/session_mixins/command_registry.py')
 
 for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     COMMAND_CATALOG.register_handler(

@@ -41,7 +41,11 @@ def late_game_xp_requirement(
     progress = max(0.0, (level - LATE_GAME_XP_START_LEVEL) / span)
     exponent = progress ** LATE_GAME_XP_CURVE_POWER
     terminal_multiplier = max(1.0, LATE_GAME_XP_TARGET_REQUIREMENT / float(terminal_base))
-    multiplier = math.exp(math.log(terminal_multiplier) * exponent)
+    # Stats are uncapped: a very large stat must not overflow math.exp.
+    exponent_log = math.log(terminal_multiplier) * exponent
+    if exponent_log >= math.log(SAFE_INT / min(SAFE_INT, base_requirement)):
+        return SAFE_INT
+    multiplier = math.exp(exponent_log)
     value = base_requirement * multiplier
     return min(SAFE_INT, max(base_requirement, int(round(value))))
 

@@ -11,9 +11,11 @@ V021_ASCENSION_REQ = (
 V021_WORLD_TIER_ASCENSION_REQUIREMENT={1:0,2:0,3:5,4:10,5:20,6:35,7:55,8:80,9:120,10:180}
 
 def v0210_ascension_xp_to_next(rank):
+    from config.balance import scale_player_requirement_v1407
     rank=max(0,int(rank or 0))
     if rank>=V021_ASCENSION_MAX_RANK: return 0
-    return v0190_log_curve(rank+1,V021_ASCENSION_REQ)
+    level=rank+1
+    return scale_player_requirement_v1407(v0190_log_curve(level,V021_ASCENSION_REQ),level)
 
 def v0210_world_tier_multipliers(tier):
     tier=max(1,min(V021_WORLD_TIER_MAX,int(tier or 1))); step=tier-1

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v1.40.1: required Profession XP rises smoothly after level 100.
+"""v1.40.1: required Profession XP rises smoothly after level 50.
 
 No reward, drop, player records or tool speed modifications. This regression
 validates all 14 professions and all levels 1..800 against the actual session
@@ -45,12 +45,12 @@ def run_profession_xp_regression_v1401():
     check(PROFESSION_XP_GAIN_MULTIPLIER == 4, 'EXP gains multiplier preserved')
     check(TOOL_ACTION_MIN_SECONDS['fishing'] == 3, 'fishing minimum 3s')
     check(profession_action_seconds('fishing', 800) == 3, 'fishing endgame remains 3s')
-    check(PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[0] == (100, 10000),
-          'growth starts at 100 without jump')
-    check(PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[-1] == (799, 120000),
-          'endgame requirement x12')
-    check(profession_late_requirement_points_v1401(100) == 10000, 'level100 unchanged')
-    check(profession_late_requirement_points_v1401(101) > 10000, 'level101 grows')
+    check(PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[0] == (49, 10000),
+          'growth starts at 50 with minimal increase')
+    check(PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401[-1] == (799, 250000),
+          'endgame requirement x25')
+    check(profession_late_requirement_points_v1401(49) == 10000, 'level49 unchanged')
+    check(profession_late_requirement_points_v1401(50) > 10000, 'level50 grows')
     check(next_level_xp(800, 'Wędkarstwo') == 0, 'level800 capped')
 
     for profession in PROFESSIONS_V1370:
@@ -68,8 +68,8 @@ def run_profession_xp_regression_v1401():
                 f'{profession} level{level}: session/helper match')
             check(new >= prior_requirement, f'{profession} level{level}: nondecreasing required EXP')
             check(growth >= prior_growth, f'{profession} level{level}: smooth nondecreasing multiplier')
-            check(new == original if level <= 100 else new > original,
-                  f'{profession} level{level}: exact original <=100, strictly more >100')
+            check(new == original if level < 50 else new > original,
+                  f'{profession} level{level}: exact original <50, strictly more >=50')
             prior_requirement, prior_growth = new, growth
         check(next_level_xp(800, profession) == 0,
               f'{profession}: cap 800')

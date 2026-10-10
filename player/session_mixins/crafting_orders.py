@@ -11,6 +11,7 @@ from systems.content_registry import NPCS
 from systems.equipment_crafting import ALCHEMY_RECIPES, COOK_RECIPES, CRAFT_RECIPES, JEWELCRAFT_RECIPES
 from systems.professions import V03053_CRAFT_RECIPES
 from core.mines_threat import ITEMS
+from systems.profession_order_rewards_v1406 import balanced_order_reward_v1406
 
 
 CRAFTING_ORDER_REFRESH_SECONDS_V0600 = 3600
@@ -194,6 +195,14 @@ class SessionCraftingOrdersV0600Mixin:
                 seen_outputs.add(output)
                 rows.append((str(recipe_id), recipe, output, item, required))
         rows.sort(key=lambda row: (row[4], normalize_lookup_text(row[3].get("name", "")), row[0]))
+        # High-level artisans should primarily see recipes worthy of their
+        # mastery, rather than random level-one trinkets from a large catalog.
+        if level >= 100 and len(rows) > 4:
+            highest = max(row[4] for row in rows)
+            if highest >= 50:
+                recent = [row for row in rows if row[4] >= highest - max(35,level//5)]
+                if len(recent) >= 3:
+                    rows = recent
         return rows
 
     def crafting_order_quantity_v0600(self, item, recipe, cycle, npc_id, offer_no):
@@ -219,13 +228,11 @@ class SessionCraftingOrdersV0600Mixin:
         idx = _stable_index_v0600(f"qty:{self.account_id}:{cycle}:{npc_id}:{offer_no}:{item.get('name','')}", len(choices))
         return int(choices[idx])
 
-    def crafting_order_reward_v0600(self, recipe, needed):
+    def crafting_order_reward_v0600(self, recipe, needed, item=None, required_level=None):
         level = max(1, int(recipe.get("order_reward_level", recipe.get("min_profession_level", recipe.get("min_tool_level", 1))) or 1))
-        pseudo = {"min_profession_level": level, "needed": int(needed), "repeatable": True}
-        coins = max(50, int(v0190_quest_currency_reward(pseudo)))
-        prof_xp = max(25, int(recipe.get("profession_xp", max(20, level * 3)) or 0) * max(1, int(needed)) // 2)
-        tool_xp = max(15, int(recipe.get("tool_xp", max(15, level * 2)) or 0) * max(1, int(needed)) // 3)
-        return coins, prof_xp, tool_xp
+        return balanced_order_reward_v1406(
+            recipe, needed, item or {}, required_level or level, item_catalog=ITEMS
+        )
 
     def crafting_order_offers_v0600(self, npc_id):
         cycle = self.crafting_order_cycle_v0600()
@@ -243,7 +250,7 @@ class SessionCraftingOrdersV0600Mixin:
             recipe_id, recipe, output, item, required = row
             used.add(output)
             needed = self.crafting_order_quantity_v0600(item, recipe, cycle, npc_id, offer_no)
-            coins, prof_xp, tool_xp = self.crafting_order_reward_v0600(recipe, needed)
+            coins, prof_xp, tool_xp = self.crafting_order_reward_v0600(recipe, needed, item, required)
             spec = CRAFTING_ORDER_NPCS_V0600[npc_id]
             completion_key = self.server.db.crafting_order_completion_key_v0700(
                 cycle, npc_id, output, needed
@@ -334,12 +341,16 @@ class SessionCraftingOrdersV0600Mixin:
                 )
             return
 
-        if mode in ("porzuc", "porzuć", "abandon"):
+        if mode in ("porzuc", "porzuć", "abandon", "anuluj"):
             if not active or not str(active["item_id"] or ""):
                 await self.send("Nie masz aktywnego zamówienia profesji.")
                 return
             self.server.db.abandon_crafting_order_v0600(self.account_id)
-            await self.send("Porzucasz aktywne zamówienie profesji. Wykonany postęp przepada.")
+            await self.send(
+                "Porzucono aktywne zamówienie profesji. Postęp tego zamówienia "
+                "wyzerowano. Nie zabrano żadnych materiałów z ekwipunku ani magazynów; "
+                "wcześniejsze nagrody pozostają bez zmian."
+            )
             return
 
         if mode in ("oddaj", "deliver", "turnin"):

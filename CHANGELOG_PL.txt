@@ -1,3 +1,98 @@
+Soulbound v1.60.0 — WIELKA ERA LEGEND — 2026-10-10
+Aktualna paczka: v1.60.0 (2026-10-10)
+- Naprawiono dojście pieszo do Valdorii i Krainy Orków: nowy pięciolokacyjny szlak z Rozdroża Czterech Wiatrów. Komendy walk orki/orkowie/gor khaz.
+- Podziemne Królestwa: 4 krainy, 97 lokacji, 8 bossów i 24 odmiany patroli, NPC, sklepy, 8 misji.
+- Frakcje PvE: 4 fronty, 4 powtarzalne misje z realnym zaliczaniem walk.
+- Gildie 5.0: nowe pomieszczenia w prywatnych twierdzach od poziomów siedziby 3 i 6; istniejące kontrakty i bossowie bez zmian.
+- Najemnicy 6.0: strażnik osłania w czasie walki z bossem bez utraty własnej tury ataku.
+- Ocean 5.0: 8 podwodnych lokacji, 2 bossów, 2 misje, 3 nowe bitwy flot, nowy łup.
+- Inwazje: 4 wydarzenia, po jednym aktywnym w 4-godzinnym oknie; spawnowane na wejściu gracza do regionu.
+- Bestiariusz i Łowcy Legend: 10 powtarzalnych polowań na prawdziwe potwory.
+- Komenda NVDA: era60, era60 orki/podziemia/wojny/twierdza/najemnicy/ocean/inwazje/lowcy.
+- Brak zmian EXP, dropu historycznego, poziomów i danych postaci. Instalować bez kasowania SQLite.
+
+Soulbound v1.50.1 — WALK DÓŁ W LOCHACH I WALK GÓRA W WIEŻACH
+Aktualna paczka: v1.50.1 (2026-10-10)
+
+- walk dol oraz walk dool: automatycznie prowadzą na AKTUALNYM piętrze
+  do lokacji z przejściem na kolejne piętro. Nie wykonują tego ostatniego kroku.
+- walk gora / walk góra: Wieża Astralna, Mityczna Wieża Astralna oraz
+  Twierdza Gigantów — prowadzenie przed wejście w górę, bez wykonania
+  ostatniego kroku i bez omijania bossów.
+- Labirynt Echa, Krypta, Mityczna Krypta, Deep Dungeon, Magitek,
+  lochy wszystkich profesji oraz Kopalnia Głębinowa.
+- W lochach, gdzie następne piętro znajduje się na południe lub wschód,
+  komunikat podaje właściwy kierunek ręcznego przejścia.
+- Wcześniejsze walk krypta dół, walk deep dół, walk wieża góra pozostają.
+- Przejścia nadal sprawdzają bossów, wymagania i blokady; brak teleportacji
+  oraz generowania kolejnego piętra podczas prowadzenia.
+- Rozwój postaci, profesje, nagrody, SQLite i zapisane postacie bez zmian.
+
+Soulbound v1.50.0 — PRZEBUDZENIE ZAPOMNIANYCH ŚWIATÓW
+Aktualna paczka: v1.50.0 (2026-10-10)
+Data: 2026-10-10
+Baza: 1.40.8. Zachowane progi EXP od 50 oraz wszystkie nagrody.
+
+1. NOWY KONTYNENT: cztery autorskie krainy po 40 lokacji (160) i wspólne wrota.
+2. BOSSOWIE 5.0: 20 regionalnych bossów, 5 superbossów; prawdziwe żywioły, drop i mechaniki walki.
+3. PROFESJE 5.0: 14 profesji po 3 nowe zadania (42), 24 nowe receptury kowalskie.
+4. SAGA DUSZY: 40 etapów (4 kampanie po 10), questy zapisane w bazie; 20 dodatkowych kontraktów i 5 prób superbossów.
+5. NIESKOŃCZONE LOCHY 5.0: nowy Labirynt Echa, pięć komór na piętro, boss co dziesięć, elita co pięć;
+   piętra tworzone dopiero przy wejściu, bez pułapek i bez limitu poziomu.
+6. NAWIGACJA NVDA: kontynent, kontynent saga, kontynent bossowie, kontynent profesje, lochy50.
+7. Zachowano stare postacie, ekwipunek, drop, brak endgame i pełne EXP z v1.40.8.
+8. Nie dotykano działającej bazy SQLite, Railway, GitHuba.
+
+Soulbound v1.40.8 — PRZYJEMNY, DLUGOTERMINOWY GRIND OD 50
+Aktualna paczka: v1.40.8 (2026-10-10)
+=====================================================
+- Mocniejsze, plynne wymagania EXP poczawszy od awansu z 50 na 51.
+- Profesje/narzedzia: x2 na 100, x4 na 200, x8 na 400, x16 na 600, x25 na 799.
+- Dusza, biegosci, skille, poziom postaci i Rangi Wzniesienia:
+  x2 na 100, x4 na 200, x8 na 400, x14 na 600, x22 na 799.
+- Osobna, lagodniejsza krzywa 6 statystyk, nadal bez limitu:
+  x1.5 na 100, x2 na 200, x3.5 na 400, x5.5 na 600, x8 na 799.
+- Te mnozniki sa CALKOWITE wzgledem historycznych progow, nie mnoza sie
+  dodatkowo przez mnozniki v1.40.7. Nie ma podwojnego spowolnienia.
+- Poziomy 1-49 i zdobyte punkty oraz zapisane EXP pozostaja bez zmian.
+- Nagrody za prace, walki i zamowienia, drop, EQ, ceny, czasy narzedzi bez zmian.
+- Wszystkie 14 profesji i 14 narzedzi; wprowadzono testy regresji.
+- Bez migracji bazy, bez operacji na GitHub/Railway.
+
+Soulbound v1.40.7 — WOLNIEJSZE POZIOMY OD 50, STATYSTYKI BEZ LIMITU
+Aktualna paczka: v1.40.7 (2026-10-10)
+=====================================================
+- Od poziomu 50 profesje i narzedzia wymagaja coraz wiecej EXP do nastepnego poziomu. Zachowane wyzsze progi 100-799 z poprzednich wersji; dodatkowy wzrost zaczyna sie juz po 50.
+- Wolniejszy wzrost od poziomu 50: Character Level, Bieglosc klasy, Soul Level, Bieglosc Broni Duszy, wszystkie skille i Ranga Wzniesienia.
+- Sila, Zrecznosc, Kondycja, Inteligencja, Sila Woli i Charyzma wymagaja wiecej EXP od WARTOSCI 50. Kazda statystyka nadal moze rosnac bez limitu i ma wlasny licznik EXP.
+- Poziomy 1-49 i dotychczas zdobyte poziomy, zapisany EXP, nagrody EXP za czynnosci i questy, drop, waluta, EQ, czasy czynnosci i moby bez zmian.
+- Rozliczenie XP nadal oparte jest na wymaganym EXP dla aktualnego poziomu: bez migracji danych i bez utraty dotychczasowego postepu. Od razu widac nowe wymagania przy nastepnym awansie.
+- Dodano walidacje wszystkich krzywych od 1 do 800 i statystyk ponad 800, plus kontrole braku zmian w nagrodach i limitach.
+
+Soulbound v1.40.6 — OPŁACALNE ZAMÓWIENIA PROFESJI I KRÓLESTW
+Aktualna paczka: v1.40.6 (2026-10-10)
+=====================================================
+- Wszystkie 14 profesji: premie za wielkość, poziom i rodzaj zamówienia; znacznie więcej monet i dodatkowego XP profesji/narzędzia.
+- Oddawanie wytworzonych przedmiotów wycenia ich wartość rynkową i zużyte składniki, żeby sprzedanie produktów nie było korzystniejsze od kontraktu.
+- Wysokopoziomowi rzemieślnicy częściej otrzymują adekwatne oferty z trudniejszych znanych receptur.
+- Wielkie zamówienia Gospodarki 4.0: większy zarobek, wycena materiałów minimum 3x i baza 4x; istniejący cooldown 2h oraz transakcje SQLite bez zmian.
+- Stare już przyjęte zamówienia zachowują nagrody obiecane przy ich przyjęciu. Nowe wyższe stawki dotyczą nowych ofert; ukończone zamówienia nie są wypłacane ponownie.
+- Nie zmieniono XP za zwykłe działania, progresji wymaganej do lvl 800, dropu, czasu narzędzi ani zapisanych postaci.
+- Dodano regresje nagród, ilości, rynkowej wyceny i identycznych kwot pokazywanych oraz wypłacanych w Gospodarce 4.0.
+
+Soulbound v1.40.5 — REGENERACJA HP PRZECIWNIKOW PO UCIECZCE
+Aktualna paczka: v1.40.5 (2026-10-10)
+=====================================================
+- Po ucieczce, wylogowaniu lub opuszczeniu walki ranny zywy przeciwnik stopniowo leczy HP poza walka.
+- Co 15 sekund odzyskuje do 10% swojego normalnego maksymalnego HP; maksymalnie do pelnego HP.
+- Jesli ktos wciaz walczy z mobem (druzyna, aggro, AoE), regeneracja poza walka nie dziala.
+- Po resecie skalowania bossa zachowywany jest proporcjonalny aktualny procent HP, a nie natychmiastowe pelne uzdrowienie.
+- Martwe moby nie sa wskrzeszane przez regen; czas odrodzenia nie zmienia sie.
+- Nowe testy zabezpieczaja ucieczke, ogromne pule HP, wielu graczy, odzyskanie HP i brak podwojnych nagrod.
+- Skrot admina `wyczysc naprawione POTWIERDZAM` czysci WYŁĄCZNIE oznaczone jako naprawione zgloszenia SB, zamiast wyswietlac blad zakresu wipe; nie rusza postaci ani bledow aktywnych.
+- `zamówienie porzuć` (takze `zamowienie porzuc`, `zamowienia porzuc`) wyzerowuje aktywne zamowienie profesji bez zabierania surowcow, przedmiotow lub wczesniejszych nagrod.
+- Brak migracji SQLite; nie zmieniono obrazen, EXP, nagrod, profili EQ ani tempa profesji/narzedzi.
+
 Soulbound v1.40.4 — NAPRAWA PREDEPLOY RAILWAY W OBRAZIE DOCKER
 Aktualna paczka: v1.40.4 (2026-10-10)
 =====================================================

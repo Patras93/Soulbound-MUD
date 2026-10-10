@@ -4,6 +4,10 @@ from events.bootstrap import build_default_event_bus
 import time
 import sqlite3
 from systems.infinite_equipment import ensure_infinite_equipment_variant
+from systems.mob_recovery_v1405 import (
+    preserve_hp_when_encounter_ends_v1405,
+    restore_idle_hp_tick_v1405,
+)
 
 class MudServer:
     def __init__(self):
@@ -364,7 +368,16 @@ class MudServer:
             return
         template = MOB_TEMPLATES.get(mob.template_id, {})
         if mob.alive and isinstance(template, dict):
-            mob.hp = max(1, int(template.get("max_hp", 1) or 1))
+            # Flee/disconnect must not instantly refill a wounded boss. Convert
+            # its adaptive HP proportion back to the template maximum instead.
+            _base_hp_v1405 = max(1, int(template.get("max_hp", 1) or 1))
+            _old_hp_v1405 = max(
+                _base_hp_v1405,
+                int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0),
+            )
+            mob.hp = preserve_hp_when_encounter_ends_v1405(
+                mob.hp, _old_hp_v1405, _base_hp_v1405,
+            )
         mob.adaptive_max_hp_v11330 = 0
         mob.adaptive_hp_multiplier_v11330 = 1.0
         mob.adaptive_reward_multiplier_v11330 = 1.0
@@ -553,6 +566,36 @@ class MudServer:
                     file=sys.stderr, flush=True,
                 )
 
+    def regenerate_idle_mobs_v1405(self):
+        """One lightweight HP tick; only mobs without a living opponent heal.
+
+        Reuses the existing 15-second world loop; no task per mob, no DB writes.
+        A player in the room still fighting prevents healing, even if aggro is
+        temporarily transferred between party members or AoE targets.
+        """
+        active_keys = {
+            s.combat_mob_key for s in self.sessions
+            if (not s.closed and s.character and s.current_hp > 0
+                and getattr(s, "combat_mob_key", None)
+                and self.world.mobs.get(s.combat_mob_key) is not None
+                and s.character.room_id == self.world.mobs[s.combat_mob_key].room_id)
+        }
+        restored = 0
+        for mob in tuple(self.world.mobs.values()):
+            if not mob.alive or int(mob.hp) <= 0:
+                continue
+            if mob.engaged_by:
+                self.sanitize_mob_engagement(mob)
+            if mob.engaged_by or getattr(mob, "aoe_engaged_by", None) or mob.key in active_keys:
+                continue
+            # Recover leftover scaling only after the last fighter disappears.
+            if int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0) > 0:
+                self.reset_adaptive_mob_encounter_v11330(mob)
+            template = MOB_TEMPLATES.get(mob.template_id, {})
+            if restore_idle_hp_tick_v1405(mob, template):
+                restored += 1
+        return restored
+
     async def mob_wander_loop(self):
         while True:
             # v1.11.22: ruch świata nie wymaga ticku co 5 s. Same moby mają
@@ -561,6 +604,8 @@ class MudServer:
             await asyncio.sleep(15.0)
             try:
                 _tick_started_v0718 = time.perf_counter()
+                # v1.40.5: healed idle mobs only; 10% HP each 15-second tick.
+                self.regenerate_idle_mobs_v1405()
                 _moves_v0718 = self.world.wander_step()
                 _tick_elapsed_v0718 = time.perf_counter() - _tick_started_v0718
                 if _tick_elapsed_v0718 >= 0.10:
