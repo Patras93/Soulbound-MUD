@@ -290,8 +290,12 @@ class SessionCombatRewardsMixin:
                 for _fame_session, _fame_region in record_fame_kill(
                     self.server.db.conn, recipients, mob, template
                 ):
-                    # No instant Fame. Credit and XP are durable in SQLite;
-                    # active party members see the result after a short pause.
+                    # SQLite permanently credits Fame right after the kill;
+                    # the queued bonus EXP remains delayed and restart-safe.
+                    await _fame_session.send(
+                        'FAME ZALICZONE — nowy cel w terenie '
+                        + str(_fame_region) + '. Premia EXP po chwili. '
+                        'Sprawdź fame cele lub fame log.')
                     import asyncio
                     asyncio.create_task(fame_pay_later(_fame_session))
                 count = len(recipients)

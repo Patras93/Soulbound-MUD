@@ -61,7 +61,7 @@ def run_regression():
     assert not record_fame_kill(db, [p1,p2], mob, MOB_TEMPLATES[fresh])
     assert db.execute('SELECT count(*) FROM fame_bosses_v1702 WHERE account_id=100').fetchone()[0] == 2
     assert db.execute('SELECT count(*) FROM fame_pending_v1703 WHERE account_id=101').fetchone()[0] == 1
-    assert any('oczekuje na nagrodę' in msg for msg in fame_report(db, 100, 'cele',room))
+    assert any('zaliczone (premia EXP oczekuje)' in msg for msg in fame_report(db, 100, 'cele',room))
     assert any('do zdobycia' in msg for msg in fame_report(db, 100, 'braki',room))
     assert 'Jaskinie Goblinów' in fame_report(db, 100, 'cele',room)[0]
     assert fame_report(db, 100, '', room)[0].startswith('You have ')

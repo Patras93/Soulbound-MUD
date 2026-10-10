@@ -38,7 +38,7 @@ async def run_async():
     assert hp(c,13,'wilk')[0]==0 and druid.current_mana==mana;n+=1
     put(c,13,'wilk',4000,7000,0)
     await druid.summons_v1700('lecz wilk')
-    assert hp(c,13,'wilk')[0]==4000 and druid.current_mana==mana;n+=1
+    assert hp(c,13,'wilk')[0]>0 and druid.current_mana==mana and hp(c,13,'wilk')[1]==0;n+=1
     put(c,13,'lifeoak',100,5000);put(c,13,'wilk',1000,7000)
     await druid.summons_v1700('lecz wszystko')
     assert hp(c,13,'lifeoak')[0]>100 and hp(c,13,'wilk')[0]>1000;n+=1

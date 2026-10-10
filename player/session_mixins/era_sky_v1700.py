@@ -152,48 +152,90 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             factor=NECRO_MINIONS[kind][6]
         return max(40,int(owner_hp*factor*(1+max(0,int(level)-1)*.075)))
 
-    def _v1710_refresh_summon_health(self, conn):
-        """Refresh living HP limits after stats/EQ/level change without free healing.
+    def _v1806_owner_summon_level(self, kind, fallback=1):
+        """Battle level follows the owner, never a second creature XP curve."""
+        character = getattr(self, 'character', None)
+        own = getattr(character, 'character_level', None)
+        if own is None:
+            own = getattr(character, 'level', fallback)
+        try:
+            return max(1, int(own or fallback))
+        except (TypeError, ValueError):
+            return max(1, int(fallback or 1))
 
-        Keep the HP ratio, preserve deaths and mastery. Only writes when power
-        really changes, so idle time has no extra database traffic.
+    def _v1710_refresh_summon_health(self, conn):
+        """Synchronize every acquired summon to owner level/stats, retaining wounds.
+
+        Existing soulstone rank and known creatures stay in SQLite. Dormant/dead
+        creatures never get resurrected by this migration or by level changes.
+        Legacy creature EXP is cleared only for the current account.
         """
-        rows=conn.execute('SELECT summon_type,level,hp,max_hp FROM summons_v1700 '
-                          'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
-        changed=0
+        rows = conn.execute('SELECT summon_type,level,xp,hp,max_hp,active FROM summons_v1700 '
+                            'WHERE account_id=?', (self.account_id,)).fetchall()
+        changed = 0
         for r in rows:
-            kind=r['summon_type']
-            if kind not in SUMMONS:continue
-            old=max(1,int(r['max_hp']))
-            new=self._v1702_summon_max_hp(kind,r['level'])
-            if old==new:continue
-            life=max(1,min(new,(int(r['hp'])*new+old-1)//old))
-            conn.execute('UPDATE summons_v1700 SET hp=?,max_hp=? '
-                         'WHERE account_id=? AND summon_type=? AND active=1 AND hp>0',
-                         (life,new,self.account_id,kind))
-            changed+=1
-        if changed:conn.commit()
+            kind = r['summon_type']
+            if kind not in SUMMONS:
+                continue
+            owner_level = self._v1806_owner_summon_level(kind, r['level'])
+            old_max = max(1, int(r['max_hp'] or 0))
+            new_max = self._v1702_summon_max_hp(kind, owner_level)
+            old_hp = max(0, int(r['hp'] or 0))
+            # Preserve an actual death and the relative HP of a wounded summon.
+            new_hp = (0 if old_hp <= 0 else
+                      max(1, min(new_max, (old_hp * new_max + old_max - 1) // old_max)))
+            if (int(r['level']) == owner_level and int(r['xp'] or 0) == 0
+                    and int(r['max_hp']) == new_max and old_hp == new_hp):
+                continue
+            conn.execute('UPDATE summons_v1700 SET level=?,xp=0,hp=?,max_hp=? '
+                         'WHERE account_id=? AND summon_type=?',
+                         (owner_level, new_hp, new_max, self.account_id, kind))
+            changed += 1
+        if changed:
+            conn.commit()
         return changed
 
     def _v1710_earn_summon_xp(self, conn, kind, damage):
-        """Steady combat mastery, no level cap; stone skeletons keep stone levels."""
-        if kind in ('wojownik','mag') or kind not in SUMMONS:return False
-        row=conn.execute('SELECT level,xp FROM summons_v1700 WHERE account_id=? AND summon_type=?',
-                         (self.account_id,kind)).fetchone()
-        if not row:return False
-        level=max(1,int(row['level']));xp=max(0,int(row['xp']))
-        owner=max(1,int(max(self.physical_power(),self.spell_power())))
-        earned=max(1,min(35,2+int(max(0,damage)//max(1,owner//6))))
-        xp+=earned; grew=False
-        # Increasing quadratic requirements keep high-level grind meaningful.
-        while xp>=50+level*level*12:
-            xp-=50+level*level*12
-            level+=1;grew=True
-        conn.execute('UPDATE summons_v1700 SET level=?,xp=? WHERE account_id=? AND summon_type=?',
-                     (level,xp,self.account_id,kind))
-        if grew:self._v1710_refresh_summon_health(conn)
-        conn.commit()
-        return grew
+        """Compatibility method: summons no longer earn separate combat EXP."""
+        return False
+
+    def _v1806_summon_rest_regen(self):
+        """Quiet out-of-combat HP regeneration, including when owner HP is full.
+
+        Called every five seconds by the existing standing-regen task. Regenerate
+        any alive/active creature; never revive a fallen or dismissed summon.
+        """
+        if (not getattr(self, 'character', None) or getattr(self, 'closed', False)
+                or getattr(self, 'combat_mob_key', None)
+                or int(getattr(self, 'current_hp', 0) or 0) <= 0):
+            return 0
+        from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+        if superboss_healing_blocked_v11179(self):
+            return 0
+        conn = self._v1700_conn()
+        self._v1702_prepare_summon_lives(conn)
+        self._v1710_refresh_summon_health(conn)
+        rows = conn.execute('SELECT summon_type,hp,max_hp FROM summons_v1700 '
+                            'WHERE account_id=? AND active=1 AND hp>0 AND hp<max_hp',
+                            (self.account_id,)).fetchall()
+        healed = 0
+        for r in rows:
+            kind = r['summon_type']
+            if kind not in SUMMONS or not self._v1700_class(SUMMONS[kind][1]):
+                continue
+            maximum = max(1, int(r['max_hp']))
+            gain = max(1, (maximum * 3 + 99) // 100)
+            new_hp = min(maximum, int(r['hp']) + gain)
+            if new_hp <= int(r['hp']):
+                continue
+            cur = conn.execute('UPDATE summons_v1700 SET hp=? WHERE '
+                               'account_id=? AND summon_type=? AND active=1 '
+                               'AND hp=? AND hp>0',
+                               (new_hp, self.account_id, kind, int(r['hp'])))
+            healed += int(cur.rowcount == 1)
+        if healed:
+            conn.commit()
+        return healed
 
     def _v1702_prepare_summon_lives(self,conn):
         """One-time backfill of pre-HP live pets. Dead (max_hp>0) stay dead."""
@@ -464,10 +506,10 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             self._v1702_prepare_summon_lives(conn)
             self._v1710_refresh_summon_health(conn)
             rows=conn.execute('SELECT summon_type,level,active,soul_rank,hp,max_hp FROM summons_v1700 WHERE account_id=? ORDER BY summon_type',(self.account_id,)).fetchall()
-            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>; chowaniec odwolaj <nazwa|wszystkie>. Do 3 aktywnych. Każdy ma HP, może zginąć; powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
+            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>; chowaniec odwolaj <nazwa|wszystkie>. Do 3 aktywnych. Poziom wszystkich = poziom właściciela, bez osobnego EXP. Żywe regenerują HP poza walką. Powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
             await self.send('Nekromanta: pająk — 2 zwykłe zęby; wojownik — 1 smoczy ząb; mag — 2 smocze zęby. Dziewięć kolorów Kamieni Duszy ulepsza wojowników i magów. nekro wyrwij; nekro scal <kolor>.')
             await self.send('Druid: call list (zwierzęta na aktualnym terenie), call <zwierzę>, call squirrel (wiewiórka dostarcza szyszki za 20 MP), order <zwierzę> <atakuj|bron|wspieraj|czekaj>. Bez Pieczęci Chowańców. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP.')
-            await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
+            await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; moc z Twojej magii i aktualnego poziomu, bez osobnego EXP; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
             await self.send('Nekromanta: nekro lista — konstrukty, nieumarli, materiały, mana, wymagane poziomy. nekro przywolaj metal / gliniany / kostny_straznik itd. Rozkazy: order <nazwa|all> <atakuj|bron|wspieraj|czekaj>.')
             if not rows:await self.send('Nie masz jeszcze przywołań.')
             for row in rows:
@@ -487,7 +529,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             if requested in ('all', 'wszystkie', 'wszystko'):
                 cur = conn.execute('UPDATE summons_v1700 SET active=0 WHERE account_id=? AND active=1', (self.account_id,))
                 conn.commit()
-                await self.send(f'Odwołano {cur.rowcount} aktywnych przywołań. Ich poziomy, HP i ulepszenia pozostały zapisane.')
+                await self.send(f'Odwołano {cur.rowcount} aktywnych przywołań. Ich HP i ulepszenia pozostały zapisane.')
                 return
             kind = summon_key(requested)
             if kind not in SUMMONS:
@@ -546,6 +588,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             await self.send('Przywoływanie i ulepszenia wymagają zakończenia walki.');return
         conn=self._v1700_conn()
         self._v1702_prepare_summon_lives(conn)
+        self._v1710_refresh_summon_health(conn)
         row=conn.execute('SELECT level,active,soul_rank,hp,max_hp FROM summons_v1700 WHERE account_id=? AND summon_type=?',(self.account_id,kind)).fetchone()
         if action=='ulepsz':
             if kind not in ('wojownik','mag'):
@@ -556,20 +599,20 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             if color not in STONE_BY_KEY:
                 await self.send('Nieznany kolor Kamienia Duszy. Wpisz chowaniec kamienie.');return
             index,tier=STONE_BY_KEY[color]
-            mana_cost=55+index*15+max(1,int(row['level']))*3
+            mana_cost=55+index*15+max(1,int(row['soul_rank'])+1)*3
             if not await self._v1701_need_mana(mana_cost):return
-            stone_cost=summon_upgrade_stones(row['level'])
-            new_max=self._v1702_summon_max_hp(kind,int(row['level'])+1)
+            stone_cost=summon_upgrade_stones(int(row['soul_rank'])+1)
+            new_max=self._v1702_summon_max_hp(kind,self._v1806_owner_summon_level(kind,row['level']))
             previous_max=max(0,int(row['max_hp']))
             previous_hp=max(0,int(row['hp']))
             new_hp=(0 if previous_hp==0 else min(new_max,max(1,previous_hp+max(0,new_max-previous_max))))
             if not self._v1700_spend_and_write({tier[2]:stone_cost},
-                'UPDATE summons_v1700 SET level=level+1,soul_rank=MAX(soul_rank,?), hp=?, max_hp=? WHERE account_id=? AND summon_type=?',
+                'UPDATE summons_v1700 SET soul_rank=MAX(soul_rank,?), hp=?, max_hp=? WHERE account_id=? AND summon_type=?',
                 (index,new_hp,new_max,self.account_id,kind)):
                 await self.send(f'Potrzebujesz {stone_cost} x {tier[1]}; masz {self._v1700_qty(tier[2])}.');return
             self.current_mana-=mana_cost
             new_grade=max(index,int(row['soul_rank']))
-            await self.send(f'{summon_display(kind,new_grade)}: poziom {row["level"]+1}, rezonans {SOULSTONE_TIERS[new_grade][1]}. Zużyto {stone_cost} kamieni i {mana_cost} MP; zostało {self.current_mana} MP.');return
+            await self.send(f'{summon_display(kind,new_grade)}: poziom {self._v1806_owner_summon_level(kind,row["level"])}, rezonans {SOULSTONE_TIERS[new_grade][1]}. Zużyto {stone_cost} kamieni i {mana_cost} MP; zostało {self.current_mana} MP.');return
         if action in ('schowaj','aktywuj'):
             if not row:
                 await self.send('Najpierw zdobądź przywołanie.');return
@@ -610,8 +653,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         mana_cost=SUMMON_MANA[kind]
         if not await self._v1701_need_mana(mana_cost):return
         if not self._v1700_spend_and_write(costs,
-            'INSERT INTO summons_v1700(account_id,summon_type,level,active,hp,max_hp) VALUES(?,?,1,1,?,?)',
-            (self.account_id,kind,self._v1702_summon_max_hp(kind),self._v1702_summon_max_hp(kind))):
+            'INSERT INTO summons_v1700(account_id,summon_type,level,active,hp,max_hp,xp) VALUES(?,?,?,1,?,?,0)',
+            (self.account_id,kind,self._v1806_owner_summon_level(kind),self._v1702_summon_max_hp(kind,self._v1806_owner_summon_level(kind)),self._v1702_summon_max_hp(kind,self._v1806_owner_summon_level(kind)))):
             missing=', '.join(f'{k}: {v} (masz {self._v1700_qty(k)})' for k,v in costs.items())
             await self.send('Brak materiałów: '+missing);return
         self.current_mana-=mana_cost
@@ -672,7 +715,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             for key,spec in NECRO_MINIONS.items():
                 mat=', '.join(f'{n} x {qty}' for n,qty in spec[3].items())
                 await self.send(f'{spec[0]} ({key}): poziom {spec[1]}+, {spec[2]} MP, utrzymanie {spec[8]} MP/atak, {mat}; rola: {spec[7]}.')
-            await self.send('Szkielety: pajak (zęby zwykłe), wojownik i mag (smocze zęby). Wojownik/mag rosną dzięki Kamieniom Duszy i statystykom właściciela; pozostałe przywołania ćwiczą się w walce.')
+            await self.send('Szkielety: pajak (zęby zwykłe), wojownik i mag (smocze zęby). Wszystkie przywołania mają poziom właściciela i nie zdobywają własnego EXP; Kamienie Duszy nadal zwiększają rezonans szkieletów.')
             return
         if query.startswith('wyrwij'):
             await self._v1700_rip_soul()
@@ -852,8 +895,10 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             grade=max(0,min(8,int(row['soul_rank'] or 0)))
             name=summon_display(row['summon_type'],grade)
             factor*=SOULSTONE_TIERS[grade][3] if row['summon_type'] in ('wojownik','mag') else 1.0
-            mastery=max(1,int(row['level']))
+            mastery=self._v1806_owner_summon_level(row['summon_type'],row['level'])
             _walls,_workshop,_infirmary=self._v1700_city_bonuses()
+            # Elementals always scale with the Mage's spell power (INT/WIS and
+            # equipment), NOT physical strength or their obsolete summon XP.
             caster_power=max(1,int(self.spell_power())) if elemental else raw_power
             stance_factor=.8 if stance=='bron' else (.7 if stance=='wspieraj' else 1.0)
             formation_bonus,formation_guard=self._v1800_form_bonus()
@@ -891,7 +936,6 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 if not superboss_healing_blocked_v11179(self):
                     heal=min(max(0,self.max_hp()-self.current_hp),max(1,int(damage*.06)))
                     self.current_hp+=heal
-            self._v1710_earn_summon_xp(conn,row['summon_type'],damage)
             target_name=str(MOB_TEMPLATES.get(mob.template_id, {}).get('name') or mob.template_id)
             msg=(f'{name} (przywołanie {getattr(self.character, "name", None) or "gracza"}, poziom {mastery}) '
                  f'trafia {target_name} za {damage} obrażeń. '

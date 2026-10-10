@@ -46,11 +46,11 @@ def run_regression():
         assert fame_report(conn,77,'',room_id=mythic2) == ['You have all fame in this area.']
         assert fame_report(conn,77,'',room_id=crypt1) == ['You have no fame in this area.']
         checks += 2
-        # Deferred Fame excludes target until payment, even though kill recorded.
+        # Fame is credited on kill; only its EXP bonus waits for payout.
         defeat(crypt,'boss_e')
         conn.execute('INSERT INTO fame_pending_v1703(account_id,region,boss_id,boss_name,reward_xp,due_at,delivered) VALUES (77,?,?,?,123,0,0)',(crypt,'boss_e','Example'))
         conn.commit()
-        assert fame_report(conn,77,'',room_id=crypt1) == ['You have no fame in this area.']
+        assert fame_report(conn,77,'',room_id=crypt1) == ['You have some fame in this area.']
         conn.execute('UPDATE fame_pending_v1703 SET delivered=1 WHERE account_id=77 AND region=?',(crypt,));conn.commit()
         assert fame_report(conn,77,'',room_id=crypt2) == ['You have some fame in this area.']
         # The final killed boss still awaiting delayed Fame must not be
@@ -60,7 +60,7 @@ def run_regression():
         defeat(crypt,'boss_h')
         conn.execute('INSERT INTO fame_pending_v1703(account_id,region,boss_id,boss_name,reward_xp,due_at,delivered) VALUES (77,?,?,?,123,0,0)',(crypt,'boss_h','Prastary Strażnik'))
         conn.commit()
-        assert fame_report(conn,77,'',room_id=crypt2) == ['You have most fame in this area. Pending fame: Prastary Strażnik (awaiting confirmation).']
+        assert fame_report(conn,77,'',room_id=crypt2) == ['You have all fame in this area.']
         conn.execute('UPDATE fame_pending_v1703 SET delivered=1 WHERE account_id=77 AND region=? AND boss_id=?',(crypt,'boss_h'));conn.commit()
         assert fame_report(conn,77,'',room_id=crypt2) == ['You have all fame in this area.']
         checks += 3

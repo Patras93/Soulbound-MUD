@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.80.5 - TEST SQLITE WINDOWS"
+LATEST_CHANGES_TITLE = "Soulbound v1.80.6 - FAME I PRZYZWANIA WLASCICIELA"
 LATEST_CHANGES = [
+    "v1.80.6: Fame zaliczane natychmiast za cele, premia EXP po chwili; Miniony Maga/Druida/Nekromanty maja poziom wlasciciela, bez osobnego EXP i z regeneracja poza walka.",
     "v1.80.5: test CITY SERVICES zamyka polaczenie SQLite przed usunieciem pliku tymczasowego (Windows WinError 32).",
     "v1.80.4: naprawiono zgodnosc audytu XP z Windows i zwalnianie plikow SQLite po testach; tester zapisuje pelny log.",
     "v1.80.2: rozszerzono Fame do 6 celow w regionach z bossami, bez zmiany starych zaliczen i nagrod; fame cele i fame braki.",

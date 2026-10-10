@@ -1312,7 +1312,7 @@ class SessionIOAuthCharacterMixin:
                     "Nowa postać nie została przypisana automatycznie."
                 )
             await self.send(
-                "Postać ma osobny Level 1-600. Sześć statystyk bazowych nadal rośnie automatycznie."
+                "Postać ma osobny Level 1-800. Sześć statystyk bazowych nadal rośnie automatycznie."
             )
             if slot == 1:
                 await self.send(

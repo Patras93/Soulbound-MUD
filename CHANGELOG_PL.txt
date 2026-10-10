@@ -1,3 +1,17 @@
+Soulbound v1.80.6 — FAME, PRZYWOŁANIA BEZ WŁASNEGO EXP, REGENERACJA — 2026-10-10
+Aktualna paczka: v1.80.6 (pełna gra na bazie działającej v1.80.5).
+- Fame: trwałe zaliczenie następuje w SQLite od razu po pierwszym pokonaniu naturalnego celu i jest od razu uwzględniane w fame, fame cele, fame braki, fame log i fame regiony. Opóźniona jest TYLKO premia EXP (kolejka bez wielokrotnych wypłat). Powtórne zabicie nie dodaje kolejnego punktu. Postępy sprzed aktualizacji pozostają zapisane.
+- Fame: identyfikacja naturalnych celów uwzględnia pierwotny teren występowania, wędrówki, bazowe szablony elit/rare/skalowanych potworów oraz jednoznaczne zgodności nazw; nie nagradza za pomocników bossów, treningowe manekiny ani sztucznie przywołane klony. Zachowano 152 tereny i 589 istniejących celów.
+- Przywołania: zwierzęta Druida, wszystkie żywiołaki Maga, szkielety, inne nieumarłe i konstrukty Nekromanty używają aktualnego poziomu postaci właściciela — także w walce, na liście i po ponownym przywołaniu. Nigdy więcej nie otrzymują osobnego EXP ani nie rozwijają własnej drabinki poziomów.
+- Żywiołaki Maga zależą od mocy magicznej i EQ Maga, a nie jego fizycznej Siły. Zachowano różnice między trzema stopniami i czterema żywiołami oraz koszty przywołania/utrzymania.
+- HP aktywnych przywołań skaluje się do aktualnego HP/poziomu postaci bez kasowania istniejących ran; zwierzęta, konstrukty i nieumarli mogą regenerować HP co 5 sekund poza walką, także gdy właściciel ma pełne HP i MP. Umarłe lub odwołane nie odradzają się samoczynnie; blokady leczenia superbossów są zachowane.
+- Dawne zapisy summons_v1700 pozostają zgodne ze schematem SQLite; zapamiętane Kamienie Duszy/kolory i odblokowane rodzaje pozostają. Przestarzały EXP przywołań jest zerowany przy synchronizacji właściwego konta. Produkcyjnej bazy graczy nie modyfikowano w paczce.
+- Komunikaty tworzenia i profilu postaci: poziom 1–800 zamiast błędnego 1–600. Sam limit silnika już wynosił 800; EXP/progi poziomów i limity innych systemów bez zmian.
+- Aktualizowano testy regresji poprzednio zakładające, że przywołania levelują dzięki własnemu EXP albo że wypłata EXP musi wyprzedzać zaliczenie Fame. Zachowano TESTUJ_Soulbound.bat i log logs/TESTY_Soulbound.log na Windows (NVDA).
+- Testy lokalne (Linux, Python 3.13): predeploy_check.py PASS (kod 0); predeploy_full.py FULL AUDIT PASS (kod 0, bez ostrzeżeń); Mag: 65 kontroli, w tym 102→103, dwukrotnie większa moc magiczna i regeneracja; przywołania 25/86, Fame 23 i rozszerzenie 152 terenów/589 celów, jednorazowe naliczanie i dwóch odbiorców w party. Test Windows 11/Python 3.14.7 i rzeczywisty deploy Railway należy wykonać po pobraniu nowej paczki.
+- Bez GitHuba, resetu postaci, zmian schematu produkcyjnej bazy SQLite ani osobnych raportów TXT. Przed aktualizacją serwera wykonaj kopię bazy/volumenu SQLite.
+
+--------------------------------------------------------------------------------
 Soulbound v1.80.5 — NAPRAWA TESTU SQLITE CITY SERVICES NA WINDOWS — 2026-10-10
 Aktualna paczka: v1.80.5 (pełna gra oparta o v1.80.4).
 - Na podstawie logu TESTY_Soulbound z Windows 11 / Python 3.14.7 zidentyfikowano blokowanie test.db podczas sprzątania katalogu tymczasowego po teście CITY SERVICES v1.22.5.

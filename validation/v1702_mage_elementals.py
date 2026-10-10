@@ -30,9 +30,9 @@ async def run_async():
     db=DB();msgs=[]
     class Mage(SessionSkyV1700Mixin):
         def __init__(self):
-            self.character=SimpleNamespace(room_id='somewhere',class_name='Mag',name='Mag Testowy')
+            self.character=SimpleNamespace(room_id='somewhere',class_name='Mag',name='Mag Testowy',character_level=102)
             self.account_id=42;self.combat_mob_key=None;self.current_mana=0
-            self.current_hp=500;self.skill_guard=0
+            self.current_hp=500;self.skill_guard=0;self.magic_power=200
             self.server=SimpleNamespace(db=db,party_combat_broadcast=self.party)
         async def send(self,s):msgs.append(str(s))
         async def send_combat(self,s,**kw):msgs.append(str(s))
@@ -40,7 +40,7 @@ async def run_async():
         def active_class_names(self):return ('Mag',)
         def max_hp(self):return 1000
         def physical_power(self):return 10
-        def spell_power(self):return 200
+        def spell_power(self):return self.magic_power
         async def apply_boss_defense(self,mob,amount):return amount
         def v0210_adjust_player_damage(self,amount):return amount
         async def mob_defeated(self,mob):raise AssertionError('mob not expected to die')
@@ -52,7 +52,9 @@ async def run_async():
     await mage.mage_elementals_v1702('przywolaj ogien mniejszy')
     assert conn.execute("SELECT active FROM summons_v1700 WHERE account_id=42 AND summon_type='zywiolak_ogien_mniejszy'").fetchone()[0]==1
     assert mage.current_mana==435
-    checks+=2
+    first=conn.execute("SELECT level,xp FROM summons_v1700 WHERE account_id=42 AND summon_type='zywiolak_ogien_mniejszy'").fetchone()
+    assert (first['level'],first['xp']) == (102,0)  # no summon progression
+    checks+=3
     await mage.mage_elementals_v1702('schowaj ogien mniejszy')
     assert conn.execute("SELECT active FROM summons_v1700 WHERE account_id=42 AND summon_type='zywiolak_ogien_mniejszy'").fetchone()[0]==0
     checks+=1
@@ -77,15 +79,52 @@ async def run_async():
     mob=SimpleNamespace(alive=True,room_id='somewhere',hp=100000,template_id='nonexistent')
     fake=ModuleType('world.machine_expansion')
     fake.v0314_adjust_damage_vs_template=lambda *a:(1,'magic')
+    preadjust=[]
+    def track_magic(template, amount, kind, name):
+        preadjust.append(int(amount))
+        return 1, 'magic'
+    fake.v0314_adjust_damage_vs_template=track_magic
     with patch.dict(sys.modules, {'world.machine_expansion':fake}):
         before=mage.current_mana
         await mage.summon_combat_turn_v1700(mob)
         assert mage.current_mana<before and mage.skill_guard>0 and mob.hp<100000
         checks+=3
+        assert preadjust and all(d>0 for d in preadjust)
+        before_damage=preadjust[0]
+        mage.magic_power=400  # INT/WIS and equipment: physical power unchanged
+        mage.current_mana=500
+        preadjust.clear()
+        await mage.summon_combat_turn_v1700(mob)
+        assert preadjust[0] >= before_damage*2-2
+        checks+=2
+        mage.character.character_level=103
+        await mage.summons_v1700('lista')
+        rows=conn.execute('SELECT level,xp FROM summons_v1700 WHERE account_id=42').fetchall()
+        assert rows and all((r['level'],r['xp'])==(103,0) for r in rows)
+        checks+=1
         mage.current_mana=0;before=mob.hp
         await mage.summon_combat_turn_v1700(mob)
         assert mob.hp==before and mage.current_mana==0
         checks+=2
+    # Mage elemental HP recovers quietly without its own XP or combat.
+    mage.current_mana=500
+    key='zywiolak_ogien_mniejszy'
+    conn.execute('UPDATE summons_v1700 SET hp=MAX(1,hp/2) WHERE account_id=42 AND summon_type=?',(key,))
+    conn.commit()
+    wounded=conn.execute('SELECT hp,max_hp FROM summons_v1700 WHERE account_id=42 AND summon_type=?',(key,)).fetchone()
+    from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+    with patch('world.uoss_superboss_runtime.superboss_healing_blocked_v11179',return_value=False):
+        assert mage._v1806_summon_rest_regen()>=1
+    recovered=conn.execute('SELECT hp,max_hp FROM summons_v1700 WHERE account_id=42 AND summon_type=?',(key,)).fetchone()
+    assert wounded['hp']<recovered['hp']<=recovered['max_hp']
+    checks+=2
+    # No revive for fallen, dismissed minions during passive regeneration.
+    conn.execute('UPDATE summons_v1700 SET hp=0,active=0 WHERE account_id=42 AND summon_type=?',(key,))
+    conn.commit()
+    with patch('world.uoss_superboss_runtime.superboss_healing_blocked_v11179',return_value=False):
+        mage._v1806_summon_rest_regen()
+    assert conn.execute('SELECT hp FROM summons_v1700 WHERE account_id=42 AND summon_type=?',(key,)).fetchone()[0]==0
+    checks+=1
     # Necromancer's tooth-based summons remain restricted to Necromancer
     await mage.summons_v1700('przywolaj wojownik')
     assert conn.execute("SELECT 1 FROM summons_v1700 WHERE account_id=42 AND summon_type='wojownik'").fetchone() is None

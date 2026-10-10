@@ -85,7 +85,7 @@ async def _run_async():
     assert scaled['max_hp']==max0*2 and abs(scaled['hp']/scaled['max_hp']-1/3)<.01;n+=1
     for _ in range(75):nec._v1710_earn_summon_xp(conn,'konstrukt_zelaza',1000)
     row=conn.execute("SELECT level,xp FROM summons_v1700 WHERE summon_type='konstrukt_zelaza'").fetchone()
-    assert row['level']>1 and row['xp']>=0;n+=1
+    assert row['level']==75 and row['xp']==0;n+=1
     # Legacy warrior progression cannot accidentally gain passive summon XP.
     conn.execute("INSERT INTO summons_v1700(account_id,summon_type,level,xp,active) VALUES(77,'wojownik',9,0,0)")
     nec._v1710_earn_summon_xp(conn,'wojownik',50000)

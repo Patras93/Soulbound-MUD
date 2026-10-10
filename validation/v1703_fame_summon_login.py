@@ -31,7 +31,7 @@ async def _run():
         def __init__(self,aid,cls):
             self.account_id=aid
             self.server=SimpleNamespace(db=db)
-            self.character=SimpleNamespace(level=90,character_level=90,STAT_PROGRESS_FIELDS=['strength','dexterity'],room_id='square')
+            self.character=SimpleNamespace(level=(150 if cls=='Druid' else 90),character_level=(150 if cls=='Druid' else 90),STAT_PROGRESS_FIELDS=['strength','dexterity'],room_id='square')
             self.cls=cls;self.combat_mob_key=None;self.current_mana=900;self.closed=False
             self.soul=0;self.class_xp=0;self.stat_xp=0;self.char_xp=0
         def max_hp(self):return 1000
@@ -66,7 +66,7 @@ async def _run():
         if aid!=23:
             await player.summons_v1700(f'przywolaj {kind}')
         row=conn.execute('SELECT * FROM summons_v1700 WHERE account_id=?',(aid,)).fetchone()
-        assert row['active']==1 and row['hp']==row['max_hp'] and row['level']==summons[aid-21][2]
+        assert row['active']==1 and row['hp']==row['max_hp'] and row['level']==player.character.character_level  # owner level
         checks+=1
     cat=fame_catalog();assert cat
     from systems.content_registry import MOB_SPAWNS
@@ -76,9 +76,9 @@ async def _run():
     p=Session(80,'Druid'); p.character.room_id=rid
     assert len(record_fame_kill(conn,[p],mob,MOB_TEMPLATES[tid]))==1
     assert not record_fame_kill(conn,[p],mob,MOB_TEMPLATES[tid])
-    assert 'OCZEKUJE' in ' '.join(fame_report(conn,80,'log',room_id=rid))
+    assert 'zaliczone (premia EXP oczekuje)' in ' '.join(fame_report(conn,80,'log',room_id=rid))
     checks+=3
-    assert fame_report(conn,80,'',room_id=rid)==['You have no fame in this area.']
+    assert fame_report(conn,80,'',room_id=rid)!=['You have no fame in this area.']
     assert (await pay_due_fame(p))==0
     conn.execute('UPDATE fame_pending_v1703 SET due_at=? WHERE account_id=80',(time.time()-1,));conn.commit()
     assert (await pay_due_fame(p))==1

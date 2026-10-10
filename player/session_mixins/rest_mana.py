@@ -72,6 +72,10 @@ class SessionRestManaMixin:
                     await asyncio.sleep(STANDING_REGEN_TICK_SECONDS_V1124)
                     if self.standing_regen_allowed_v1124():
                         await self.standing_regen_tick_v1124()
+                    # Companion HP recovers out of combat even when player HP/MP
+                    # is already full (no extra background task or NVDA spam).
+                    if hasattr(self, '_v1806_summon_rest_regen'):
+                        self._v1806_summon_rest_regen()
             except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal standing-regen task cancellation
                 pass
             finally:

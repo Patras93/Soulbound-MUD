@@ -142,27 +142,62 @@ def _is_runtime_summoned_mob(mob):
     )))
 
 
+def _fame_target_identity(mob, catalog, template=None):
+    """Identify the real placed mob, even when it wandered or became elite.
+
+    Catalog IDs are immutable: historical Fame entries keep their original
+    primary keys. Runtime variants must resolve to that same original target.
+    """
+    original_room = str(getattr(mob, 'home_room_id', '') or '')
+    current_room = str(getattr(mob, 'room_id', '') or '')
+    zones = []
+    if original_room and (original_room in ROOMS or fame_region(original_room) in catalog):
+        zones.append(fame_region(original_room))
+    if current_room in ROOMS and fame_region(current_room) not in zones:
+        zones.append(fame_region(current_room))
+    if not zones:
+        zones.append(fame_region(current_room))
+    template_id = str(getattr(mob, 'template_id', '') or '')
+    lineage = []
+    visited = set()
+    current = template_id
+    while current and current not in visited:
+        visited.add(current)
+        lineage.append(current)
+        meta = (template if current == template_id and template else
+                MOB_TEMPLATES.get(current, {}))
+        current = str(meta.get('elite_base_template') or
+                      meta.get('rare_base_template') or
+                      meta.get('dense_dungeon_base_template') or
+                      meta.get('elite_source_template_v11338') or
+                      meta.get('base_template') or '')
+    # A runtime elite/terrain form should not produce a new Fame objective.
+    # Prefer natural/root IDs over elite names, but preserve all authored IDs.
+    for zone in zones:
+        candidates = catalog.get(zone, ())
+        for base in reversed(lineage):
+            if base in candidates:
+                return zone, base
+    # Some generated variants retain the canonical species in their exact name.
+    # Resolve only an unambiguous same-species target inside a real Fame zone.
+    name = str((template or {}).get('name') or '').casefold().strip()
+    if name:
+        for zone in zones:
+            matches = [bid for bid in catalog.get(zone, ())
+                       if str(MOB_TEMPLATES.get(bid, {}).get('name') or '').casefold().strip() == name]
+            if len(matches) == 1:
+                return zone, matches[0]
+    return None
+
+
 def record_fame_kill(conn, recipients, mob, template):
     if not _eligible_natural_fame_enemy(template) or _is_runtime_summoned_mob(mob):
         return []
-    cat = fame_catalog()
-    rid = str(getattr(mob, 'room_id', ''))
-    region = fame_region(rid)
-    tid = str(getattr(mob, 'template_id', ''))
-    # A terrain-scaled / elite copy retains its natural spawn template identity.
-    # Do not mistake its temporary generated ID for an additional Fame target.
-    seen = set()
-    while tid and tid not in seen and tid not in cat.get(region, ()):
-        seen.add(tid)
-        current = MOB_TEMPLATES.get(tid, {})
-        base = str(current.get('base_template') or current.get('elite_base_template') or current.get('rare_base_template') or '')
-        if not base or base == tid:
-            break
-        tid = base
-    # Only the placed, catalogued targets grant Fame. For regions with prior
-    # Fame objectives, ordinary mobs remain excluded as before.
-    if tid not in cat.get(region, ()):
+    identity = _fame_target_identity(mob, fame_catalog(), template)
+    if identity is None:
         return []
+    region, tid = identity
+    # Canonical mob ID/region prevents elite and wandering duplicates.
     ensure_schema(conn)
     announced = []
     for session in recipients:
@@ -171,9 +206,8 @@ def record_fame_kill(conn, recipients, mob, template):
             (session.account_id, tid, region),
         )
         if result.rowcount:
-            # Fame is recorded immediately to prevent repeat-kill farming,
-            # but the visible credit and rewards arrive after a short delay.
-            # A durable queue survives disconnects and server restarts.
+            # Fame and permanent credit occur now; only its EXP arrives later.
+            # Durable EXP queue survives disconnects and server restarts.
             base=max(1,int(template.get('soul_reward',0) or 0),
                      int(template.get('class_xp_reward',0) or 0),
                      int(template.get('stat_reward',0) or 0)*4)
@@ -212,7 +246,8 @@ def fame_report(conn, account_id, raw='', room_id=None):
     pending={(str(r[0]),str(r[1])) for r in conn.execute(
         'SELECT region,boss_id FROM fame_pending_v1703 WHERE account_id=? AND delivered=0',
         (account_id,))}
-    defeated.difference_update(pending)
+    # Permanent Fame is earned on kill. Pending describes only deferred EXP,
+    # never an uncredited target. Old SQLite progress stays valid.
     args = str(raw or '').strip().lower().split()
     if args and args[0] in ('cele', 'targets', 'braki'):
         if room_id is None:
@@ -237,7 +272,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
                  f'{pending_count} oczekuje. Strona {page}/{pages}.']
         for tid in ordered[(page-1)*page_size:page*page_size]:
             name = str(MOB_TEMPLATES.get(tid, {}).get('name') or tid)
-            status = ('oczekuje na nagrodę' if (zone, tid) in pending else
+            status = ('zaliczone (premia EXP oczekuje)' if (zone, tid) in pending else
                       'zaliczone' if (zone, tid) in defeated else 'do zdobycia')
             lines.append(f'{name} — {status}.')
         if not ordered:
@@ -262,7 +297,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
         lines=[f'FAME LOG — {heading}. Pokonani przeciwnicy: {len(rows)}. Strona {page}/{max(1,(len(rows)+14)//15)}.']
         for region,tid,when,delivered,due in section:
             label=MOB_TEMPLATES.get(tid,{}).get('name') or tid
-            state='OCZEKUJE na zaliczenie i nagrodę' if delivered==0 else 'zaliczone'
+            state='zaliczone (premia EXP oczekuje)' if delivered==0 else 'zaliczone'
             lines.append(f'{label} — {region}; {state}; pierwsze pokonanie: {when}.')
         if not section:lines.append('Brak zapisanych celów Fame.')
         lines.append('fame log — bieżący teren; fame log wszystko — wszystkie tereny.')
@@ -281,7 +316,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
             # v1.70.4: quick, screen-reader-friendly current-area message.
             # All floors of a dungeon use the same region, but different
             # regions always retain independent completion statuses.
-            # Pending awards do not count until their delayed delivery.
+            # Fame counts immediately; only its EXP arrives with delay.
             messages = {
                 'none': 'You have no fame in this area.',
                 'some': 'You have some fame in this area.',
@@ -290,14 +325,13 @@ def fame_report(conn, account_id, raw='', room_id=None):
             }
             message = messages[status if count else 'none']
             # A final missing Fame target is useful in the short local command.
-            # Fame queued for delayed credit is not yet in the completed count,
-            # but don't tell the player to kill it again.
+            # A queued EXP payout never hides already earned Fame.
             missing = [bid for bid in bosses if (region, bid) not in defeated]
             if len(missing) == 1:
                 bid = missing[0]
                 name = str(MOB_TEMPLATES.get(bid, {}).get('name') or bid)
                 if (region, bid) in pending:
-                    message += f' Pending fame: {name} (awaiting confirmation).'
+                    message += f' Fame zaliczone: {name} (EXP oczekuje).'
                 else:
                     message += f' Missing fame: {name}.'
             return [message]
