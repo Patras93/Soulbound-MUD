@@ -1,20 +1,23 @@
 Option Explicit
-' Soulbound: Windows Script Host launcher with no visible CMD window.
-' The regular BAT and host_windows.py still collect logs and handle safe STOP.
-Dim files, shell, gameFolder, batPath, exitCode
-Set files = CreateObject("Scripting.FileSystemObject")
-gameFolder = files.GetParentFolderName(WScript.ScriptFullName)
-batPath = files.BuildPath(gameFolder, "Start-Soulbound-Windows.bat")
-If Not files.FileExists(batPath) Then
-    MsgBox "Brakuje Start-Soulbound-Windows.bat. Rozpakuj kompletna paczke Soulbound.", vbCritical, "Soulbound"
+' Runs the short BAT invisibly and WAITS until CMD exits (no orphan launcher CMD).
+Dim fs, shell, folder, bat, rc
+Set fs = CreateObject("Scripting.FileSystemObject")
+Set shell = CreateObject("WScript.Shell")
+folder = fs.GetParentFolderName(WScript.ScriptFullName)
+bat = fs.BuildPath(folder, "Start-Soulbound-Windows.bat")
+If Not fs.FileExists(bat) Then
+    MsgBox "Brakuje Start-Soulbound-Windows.bat.", vbCritical, "Soulbound"
     WScript.Quit 2
 End If
-Set shell = CreateObject("WScript.Shell")
-shell.CurrentDirectory = gameFolder
+shell.CurrentDirectory = shell.ExpandEnvironmentStrings("%TEMP%")
 On Error Resume Next
-exitCode = shell.Run(Chr(34) & batPath & Chr(34), 0, False)
+rc = shell.Run(Chr(34) & bat & Chr(34), 0, True)
 If Err.Number <> 0 Then
-    MsgBox "Nie udalo sie uruchomic Soulbound w tle: " & Err.Description, vbCritical, "Soulbound"
+    MsgBox "Blad startu Soulbound: " & Err.Description, vbCritical, "Soulbound"
     WScript.Quit 3
 End If
 On Error GoTo 0
+If rc <> 0 Then
+    MsgBox "Soulbound nie mogl zostac uruchomiony. Sprawdz logs\bledy.log.", vbCritical, "Soulbound"
+End If
+WScript.Quit rc

@@ -1425,6 +1425,9 @@ class SessionIOAuthCharacterMixin:
 
     async def enter_world(self):
             self.refresh_active_classes()
+            # v1.70.3: summons disappear between sessions; experience and
+            # soulstone upgrades stay in SQLite. Never recast for free.
+            _dismissed_summons = self._v1703_dismiss_summons_on_login()
             self.start_session_summary()
             # v0.36.3: trwały status profilu działa także po wylogowaniu.
             self.server.db.mark_player_login_v0363(self.account_id)
@@ -1460,6 +1463,11 @@ class SessionIOAuthCharacterMixin:
             await self.send(
                 "Rozpoczynasz sesję w Świątyni Odrodzenia."
             )
+            if _dismissed_summons:
+                await self.send(
+                    f"Twoje przywołania ({_dismissed_summons}) rozproszyły się przy logowaniu. "
+                    "Poziomy i ulepszenia zostały zachowane. Przywołaj je ponownie za manę i materiały."
+                )
             await self.daily_login_v03051()
             # v1.11.17: nie odtwarzaj historii kanałów społecznościowych przy logowaniu.
             # Gossip/newbie/trade nadal działają na żywo; historię gracz otwiera ręcznie.
@@ -1482,5 +1490,9 @@ class SessionIOAuthCharacterMixin:
                 )
             if self.double_xp_state()["active"]:
                 await self.show_double_xp_event()
+            # Pending Fame earned just before logout is never lost.
+            from systems.fame_v1702 import fame_pay_later
+            import asyncio
+            asyncio.create_task(fame_pay_later(self))
             await self.send("Wpisz help, aby poznać komendy.")
             await self.look()

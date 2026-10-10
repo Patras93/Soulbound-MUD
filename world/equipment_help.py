@@ -1454,3 +1454,14 @@ HELP_TOPICS['eq_info'] = [
     'eq info pancerz srebrny: znajdź założony przedmiot po nazwie, bez zdejmowania.',
 ]
 HELP_TOPIC_ALIASES.update({'eqinfo':'eq_info', 'equippedinfo':'eq_info'})
+
+# v1.70.2 — elemental familiars for Mages, true spell costs
+HELP_TOPICS['zywiolaki'] = [
+    'Mag: 4 żywioły (ogień, błyskawice, lód, kryształ), 3 moce: mniejszy / zwykły / potężny.',
+    'mag lista — wszystkie żywiołaki i koszt many; mag przywolaj ogien mniejszy; mag przywolaj lod potezny.',
+    'mag schowaj ogien mniejszy; mag aktywuj ogien mniejszy. Ponowne wezwanie też kosztuje manę.',
+    'Ogień: wszechstronny; Błyskawice: wysokie obrażenia; Lód: obrona; Kryształ: osłony.',
+    'Żywiołaki zużywają niewielką ilość many również przy automatycznych atakach; bez many czekają. Wspólny limit 3 aktywnych chowańców.',
+    'Przywołania Maga nie wymagają materiałów Nekromanty i nie wykorzystują jego Kamieni Duszy.',
+]
+HELP_TOPIC_ALIASES.update({'elementale':'zywiolaki','elemental':'zywiolaki','zywiol':'zywiolaki'})

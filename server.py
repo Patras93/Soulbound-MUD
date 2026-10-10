@@ -67,9 +67,55 @@ from systems.era_legends_v1600 import install_era_legends_v1600
 ERA_LEGENDS_V1600 = install_era_legends_v1600(
     ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 
+# v1.70.0 — Sky Kingdoms, 14 profession guild trials and nine authored boss arenas.
+from systems.sky_era_v1700 import install_sky_era_v1700
+SKY_ERA_V1700 = install_sky_era_v1700(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
 HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
+HELP_TOPICS['niebo'] = [
+    'Niebo 1.0: wejście z Kamiennego Mostu Traktatów w GÓRĘ; podniebna przystań i 3 krainy.',
+    'niebo bossowie, niebo profesje. Dziewięć walk z bossami; trzy legendarne trony.',
+    'Nowi Arcymistrzowie wszystkich 14 profesji dają zadania z realnych czynności.',
+]
+HELP_TOPICS['chowaniec'] = [
+    'chowaniec lista; chowaniec przywolaj pajak / wojownik / mag / lifeoak / ancientoak / wilk / sowa / niedzwiedz.',
+    'Nekromanta: zwykłe zęby dla szkieletów pająków; smocze zęby dla szkieletów wojowników i magów.',
+    'Nekro wyrwij: poniżej 20% HP wroga można zdobyć Kamień Duszy o kolorze zależnym od siły wroga. Mana jest wymagana; z jednego przeciwnika tylko raz.',
+    'chowaniec kamienie: dziewięć kolorów i zapasy. chowaniec ulepsz wojownik <kolor> / mag <kolor>: kolorowe Kamienie Duszy i mana. nekro scal <kolor>: 3 kamienie niższe w 1 wyższy.',
+    'Druid: Life Oak, Ancient Oak i zwierzęta. Przywołanie zużywa manę, trzy aktywne stworzenia, automatyczna walka, trwały zapis.',
+]
+HELP_TOPICS.setdefault('nekro', list(HELP_TOPICS['chowaniec']))
+HELP_TOPICS['druid'] = [
+    'Druid: Life Oak 80 MP + 2 szyszki; Ancient Oak 180 MP + 5 szyszek. Wilk, Sowa, Niedźwiedź wymagają Pieczęci Chowańców oraz MP.',
+    'druid zbierz — szyszki w lesie (odnowienie 90 sekund); druid szyszki — stan zapasów; druid wymien — wymiana starych nasion na szyszki.',
+    'chowaniec przywolaj lifeoak / ancientoak / wilk / sowa / niedzwiedz; chowaniec lista — aktualne HP każdego pomocnika.',
+    'Każdy pomocnik ma własne HP, otrzymuje obrażenia od wrogów i ginie przy 0 HP. Powrót wymaga ponownego kosztu many i materiałów.',
+    'Trzy aktywne przywołania łącznie. Zwierzęta i drzewa walczą automatycznie, a dęby wspierają leczenie.',
+]
+HELP_TOPICS['fame'] = [
+    'fame — tylko: You have no/some/most/all fame in this area. Każdy teren ma osobny wynik, w lochu liczą się wszystkie piętra.',
+    'fame log — zaliczone i oczekujące cele terenu. fame log wszystko — historia świata.',
+    'Fame przynosi po chwili jednorazowy EXP poziomu, Duszy, Biegłości klasowej i każdej statystyki. Profesje i narzędzia nie dostają EXP.',
+    'fame regiony — lista postępów świata; fame none / some / most / all — filtr regionów o danym stopniu ukończenia.',
+    'none = 0%, some = 1–49%, most = 50–99%, all = 100% unikalnych celów Fame w terenie.',
+    'Pokonani ważni bossowie i oznaczeni przeciwnicy Fame zaliczają się tylko raz, także obecnym członkom drużyny.',
+    'Wyniki są trwale zapisane w SQLite. Fame nie blokuje awansów i nie zmienia nagród EXP.',
+]
+
+HELP_TOPICS['chowaniec'].extend([
+    'Nowość: każda istota ma własne HP, może zostać zniszczona przez atak potwora i nie wskrzesza się po ponownym zalogowaniu.',
+    'chowaniec aktywuj <typ>: ponowne wezwanie kosztuje MP; po śmierci także pierwotne materiały. Żywiołaki Maga potrzebują wyłącznie MP.',
+    'Mag: mag lista, mag przywolaj <ogien|blyskawice|lod|krysztal> [mniejszy|zwykly|potezny]. Żywiołaki zużywają manę za przywołanie i atak.',
+])
+HELP_TOPICS['nekro'] = list(HELP_TOPICS['chowaniec'])
+
+HELP_TOPICS['miasto'] = ['miasto zaloz <nazwa> — własna osada; miasto buduj mury / targ / warsztat / lazaret; miasto status.',
+    'Mury: osłona; lazaret: leczenie; warsztat: obrażenia przywołań; targ: dochód co 2 godziny przez miasto zbierz. Wejście z przystani niebios.']
+HELP_TOPICS['przebudzenie'] = ['Klasy 4.0: przebudzenie ofensywa / obrona / wsparcie.',
+    'Jednorazowa ścieżka rozwoju na główną klasę. Bonusy do ataku, osłony albo leczenia w realnej walce.']
 
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)

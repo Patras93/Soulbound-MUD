@@ -283,6 +283,17 @@ class SessionCombatRewardsMixin:
                 recipients = sorted(
                     recipients, key=lambda s: s.character.name.lower()
                 )
+                # v1.70.2: fame is earned once per genuinely defeated, placed boss,
+                # for each eligible member present in the same room.
+                from systems.fame_v1702 import record_fame_kill
+                from systems.fame_v1702 import fame_pay_later
+                for _fame_session, _fame_region in record_fame_kill(
+                    self.server.db.conn, recipients, mob, template
+                ):
+                    # No instant Fame. Credit and XP are durable in SQLite;
+                    # active party members see the result after a short pause.
+                    import asyncio
+                    asyncio.create_task(fame_pay_later(_fame_session))
                 count = len(recipients)
 
                 _deep_apanda_floor = int(

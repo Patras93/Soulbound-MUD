@@ -1,24 +1,19 @@
 @echo off
-setlocal
-cd /d "%~dp0"
+setlocal EnableExtensions DisableDelayedExpansion
+rem Work from TEMP so even an open STOP window cannot lock Soulbound folder.
+set "ROOT=%~dp0"
 set "PYTHONUTF8=1"
 set "PYTHONIOENCODING=utf-8"
+if exist "%TEMP%\" cd /d "%TEMP%" >nul 2>&1
 py -3 -c "import sys;sys.exit(0 if sys.version_info >= (3,12) else 1)" >nul 2>&1
 if not errorlevel 1 (
-    py -3 "%~dp0stop_soulbound_windows.py"
-    goto :end
+    py -3 -u "%ROOT%stop_soulbound_windows.py"
+    exit /b %errorlevel%
 )
 python -c "import sys;sys.exit(0 if sys.version_info >= (3,12) else 1)" >nul 2>&1
 if not errorlevel 1 (
-    python "%~dp0stop_soulbound_windows.py"
-    goto :end
+    python -u "%ROOT%stop_soulbound_windows.py"
+    exit /b %errorlevel%
 )
 echo BLAD: Wymagany Python 3.12 lub nowszy.
-set "RESULT=2"
-goto :finish
-:end
-set "RESULT=%errorlevel%"
-:finish
-echo Nacisnij dowolny klawisz, aby zamknac okno STOP.
-pause >nul
-exit /b %RESULT%
+exit /b 2

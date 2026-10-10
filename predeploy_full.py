@@ -20,6 +20,18 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        from validation.v1705_windows_clean_stop import run_regression as _clean_stop_v1705
+        print(f'WINDOWS CLEAN STOP v1.70.5 FULL: {_clean_stop_v1705()} checks PASS')
+        from validation.v1704_short_fame import run_regression as _fame_short_v1704
+        print(f'FAME SHORT STATUS v1.70.4 FULL: {_fame_short_v1704()} checks PASS')
+        from validation.v1702_living_summons import run_regression as _living_v1702
+        print(f'LIVING SUMMONS v1.70.2 FULL: {_living_v1702()} checks PASS')
+        from validation.v1702_mage_elementals import run_regression as _mage_v1702
+        print(f'MAGE ELEMENTALS v1.70.2 FULL: {_mage_v1702()} checks PASS')
+        from validation.v1702_druid_fame import run_regression as _druid_fame_v1702
+        print(f'DRUID PINECONES + FAME v1.70.2 FULL: {_druid_fame_v1702()} checks PASS')
+        from validation.v1701_colored_souls import run_regression as _colored_souls_v1701
+        print(f"COLORED SOULSTONES v1.70.1 FULL: {_colored_souls_v1701(server)} checks PASS")
         from validation.v1600_era_legends import run_era_legends_v1600
         _era_v1600=run_era_legends_v1600(server)
         assert not _era_v1600['errors'], _era_v1600['errors'][:20]

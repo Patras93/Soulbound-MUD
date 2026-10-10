@@ -265,6 +265,12 @@ class SessionCombatRealtimeMixin:
                 await self.apply_uoss_helper_turn_v1146(mob)
                 await self.mercenary_combat_turn_v1170(mob)
                 if not mob.alive or mob.hp <= 0:
+                    return
+                await self.summon_combat_turn_v1700(mob)
+                if not mob.alive or mob.hp <= 0:
+                    return
+                await self.class_support_turn_v1700()
+                if not mob.alive or mob.hp <= 0:
                     return  # mercenary finished the encounter via mob_defeated
                 # Timed V-MAX must expire during ordinary realtime combat too,
                 # not only when the player manually invokes another skill.
@@ -360,6 +366,7 @@ class SessionCombatRealtimeMixin:
                 # matching logs where a nearly dead target receives fewer hits.
                 _potential_hits = 1 if _zantetsuken_no_melee else self.basic_attack_hit_count_v11196()
                 _actual_hits = 0
+                damage = max(0, int(damage * self.class_damage_multiplier_v1700()))
                 _per_hit_damage = max(0, int(damage))
                 _total_basic_damage = 0
                 for _ in range(_potential_hits):
@@ -1102,35 +1109,46 @@ class SessionCombatRealtimeMixin:
                                     )
                                     target_session._monster_magic_last_hit_v1151 = False
                                     _hp_before_monster_v1160 = int(target_session.current_hp or 0)
-                                    if (
-                                        _enemy_action_mult_v11324 != 1.0
-                                        or _elemental_attack_v11339
-                                    ):
-                                        _old_damage = _enemy_template.get("damage", 1)
-                                        _old_damage_type = _enemy_template.get(
-                                            "damage_type", "physical"
-                                        )
-                                        _enemy_template["damage"] = max(
-                                            1,
-                                            int(round(
-                                                float(_old_damage)
-                                                * _enemy_action_mult_v11324
-                                            )),
-                                        )
-                                        if _elemental_attack_v11339:
-                                            _enemy_template["damage_type"] = str(
-                                                _elemental_attack_v11339.get(
-                                                    "defense_channel", "magic"
-                                                )
-                                                or "magic"
+                                    # v1.70.2 — living summons can intercept normal
+                                    # enemy strikes and really die at zero HP. Scripted
+                                    # boss effects have already been applied separately.
+                                    _raw_pet_attack_v1702=max(1,int(round(
+                                        float(_enemy_template.get("damage",1))
+                                        * _enemy_action_mult_v11324
+                                        * target_session.v0210_enemy_damage_multiplier()
+                                    )))
+                                    _hit_summon_v1702 = await target_session.summon_take_enemy_hit_v1702(
+                                        enemy_mob,raw_damage=_raw_pet_attack_v1702)
+                                    if not _hit_summon_v1702:
+                                        if (
+                                            _enemy_action_mult_v11324 != 1.0
+                                            or _elemental_attack_v11339
+                                        ):
+                                            _old_damage = _enemy_template.get("damage", 1)
+                                            _old_damage_type = _enemy_template.get(
+                                                "damage_type", "physical"
                                             )
-                                        try:
+                                            _enemy_template["damage"] = max(
+                                                1,
+                                                int(round(
+                                                    float(_old_damage)
+                                                    * _enemy_action_mult_v11324
+                                                )),
+                                            )
+                                            if _elemental_attack_v11339:
+                                                _enemy_template["damage_type"] = str(
+                                                    _elemental_attack_v11339.get(
+                                                        "defense_channel", "magic"
+                                                    )
+                                                    or "magic"
+                                                )
+                                            try:
+                                                await target_session.enemy_counterattack(enemy_mob)
+                                            finally:
+                                                _enemy_template["damage"] = _old_damage
+                                                _enemy_template["damage_type"] = _old_damage_type
+                                        else:
                                             await target_session.enemy_counterattack(enemy_mob)
-                                        finally:
-                                            _enemy_template["damage"] = _old_damage
-                                            _enemy_template["damage_type"] = _old_damage_type
-                                    else:
-                                        await target_session.enemy_counterattack(enemy_mob)
                                     _drained_v1160 = monster_ai_lifesteal_v1160(
                                         enemy_mob, _enemy_template,
                                         max(0, _hp_before_monster_v1160 - int(target_session.current_hp or 0)),

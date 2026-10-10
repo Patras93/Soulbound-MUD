@@ -23,14 +23,16 @@ def run_host(source: Path | None = None) -> int:
     except BaseException as exc:
         details = traceback.format_exc()
         message = f"BLAD PRZED STARTEM SERWERA: {type(exc).__name__}: {exc}"
-        print(message, file=sys.stderr, flush=True)
-        print(details, file=sys.stderr, flush=True)
+        if sys.stderr is not None:
+            print(message, file=sys.stderr, flush=True)
+            print(details, file=sys.stderr, flush=True)
         try:
             LOG_DIR.mkdir(parents=True, exist_ok=True)
             with (LOG_DIR / "bledy.log").open("a", encoding="utf-8") as log:
                 log.write(f"{datetime.now().isoformat(timespec='seconds')} | {message}\n{details}\n")
         except OSError as storage_error:
-            print(f"Nie mozna zapisac bledy.log: {storage_error}", file=sys.stderr, flush=True)
+            if sys.stderr is not None:
+                print(f"Nie mozna zapisac bledy.log: {storage_error}", file=sys.stderr, flush=True)
         return 1
     return 0
 

@@ -137,7 +137,7 @@ class SessionExplorationProgressMixin:
             # A single visited room in a region records its discovery.
             region_rooms = {}
             for rid, room in ROOMS.items():
-                if (rid.startswith("v1500_") or rid.startswith("v1600_")
+                if (rid.startswith("v1500_") or rid.startswith("v1600_") or rid.startswith("v1700_")
                         or rid.startswith("v1300_orc")) and not rid.startswith("v1500_echo_"):
                     zone = str(room.get("zone") or "").strip()
                     if zone:
@@ -296,7 +296,7 @@ class SessionExplorationProgressMixin:
             # 1.60 superboss sanctuaries and world-boss locations are registered
             # by the expansion. Check real spawn/template flags, not name guesses.
             for boss_room, mob_id in MOB_SPAWNS:
-                if not str(mob_id).startswith('v1600_'):
+                if not (str(mob_id).startswith('v1600_') or str(mob_id).startswith('v1700_')):
                     continue
                 template = MOB_TEMPLATES.get(mob_id, {})
                 if not template.get('world_boss') or boss_room not in ROOMS:

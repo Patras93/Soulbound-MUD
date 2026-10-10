@@ -6,6 +6,7 @@ Standalone, standard-library only; does not alter Soulbound combat or database.
 from __future__ import annotations
 
 import logging
+import json
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
@@ -18,6 +19,7 @@ import traceback
 
 ROOT = Path(__file__).resolve().parent
 LOG_DIR = Path(os.environ.get("SOULBOUND_LOG_DIR") or (ROOT / "logs")).resolve()
+RUN_STATE = LOG_DIR / "soulbound_launcher.json"
 MAX_LOG_BYTES = 5 * 1024 * 1024
 BACKUP_COUNT = 5
 
@@ -52,14 +54,15 @@ def _forward(stream, kind: str, all_log: logging.Logger, error_log: logging.Logg
     try:
         for raw in iter(stream.readline, ""):
             line = raw.rstrip("\r\n")
-            with console_lock:
-                try:
-                    to_console.write(raw)
-                    to_console.flush()
-                except (OSError, UnicodeError) as exc:
+            if to_console is not None:
+                with console_lock:
+                    try:
+                        to_console.write(raw)
+                        to_console.flush()
+                    except (OSError, UnicodeError) as exc:
                     # Terminal may be closed; keep writing to logs regardless.
-                    all_log.error("CONSOLE_WRITE_FAILURE | %s: %s", type(exc).__name__, exc)
-                    error_log.error("CONSOLE_WRITE_FAILURE | %s: %s", type(exc).__name__, exc)
+                        all_log.error("CONSOLE_WRITE_FAILURE | %s: %s", type(exc).__name__, exc)
+                        error_log.error("CONSOLE_WRITE_FAILURE | %s: %s", type(exc).__name__, exc)
             # Record stdout and stderr in one timeline. A separate file captures
             # stderr and explicitly marked stdout errors from Soulbound modules.
             all_log.info("%s | %s", kind, line)
@@ -118,6 +121,14 @@ def run_server(entry: Path | None = None) -> int:
         error_log.exception("Nie mozna uruchomic serwera: %s", exc)
         print(f"Blad uruchomienia serwera: {exc}", file=sys.stderr, flush=True)
         return 1
+    # Track only our own detached host. STOP waits until it exits, not just until
+    # the game's control socket and SQLite have shut down.
+    try:
+        state_tmp = RUN_STATE.with_suffix('.new')
+        state_tmp.write_text(json.dumps({'root': str(ROOT), 'pid': os.getpid(), 'server_pid': process.pid}), encoding='utf-8')
+        os.replace(state_tmp, RUN_STATE)
+    except OSError as exc:
+        all_log.warning('Nie mozna zapisac znacznika procesu launchera: %s', exc)
     guard = threading.Lock()
     threads = [
         threading.Thread(target=_forward, args=(pipe, kind, all_log, error_log, guard), daemon=True)
@@ -139,6 +150,13 @@ def run_server(entry: Path | None = None) -> int:
     for t in threads:
         t.join(timeout=5)
     all_log.info("STOP | Kod zakonczenia serwera: %s", code)
+    try:
+        if RUN_STATE.is_file():
+            data = json.loads(RUN_STATE.read_text(encoding='utf-8'))
+            if int(data.get('pid', -1)) == os.getpid() and Path(str(data.get('root', ''))).resolve() == ROOT:
+                RUN_STATE.unlink(missing_ok=True)
+    except (OSError, ValueError, TypeError) as exc:
+        all_log.warning('Nie mozna usunac znacznika launchera: %s', exc)
     if code:
         error_log.error("STOP | Kod zakonczenia serwera: %s", code)
         print(f"Serwer zakonczyl prace z kodem: {code}", file=sys.stderr, flush=True)
@@ -151,7 +169,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Soulbound: przerwano uruchamianie.", file=sys.stderr, flush=True)
         raise SystemExit(130)
-    except BaseException as exc:
+    except Exception as exc:
+        # SystemExit(0) to normalne zakonczenie procesu, nie blad launchera.
         # Awaria samego launchera (np. brak dostepu do plikow logow).
         # Nie ukrywaj tracebacka przed NVDA, nawet jesli zapis jest niemozliwy.
         message = f"BLAD LAUNCHERA: {type(exc).__name__}: {exc}"

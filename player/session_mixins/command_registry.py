@@ -15,6 +15,16 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'fame': ('fame_v1702', (COMMAND_TEXT,), {}),
+    'mag': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
+    'zywiolak': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
+    'niebo': ('sky_v1700', (COMMAND_TEXT,), {}),
+    'chowaniec': ('summons_v1700', (COMMAND_TEXT,), {}),
+    'chowance': ('summons_v1700', (COMMAND_TEXT,), {}),
+    'nekro': ('necro_v1700', (COMMAND_TEXT,), {}),
+    'druid': ('druid_v1700', (COMMAND_TEXT,), {}),
+    'miasto': ('city_v1700', (COMMAND_TEXT,), {}),
+    'przebudzenie': ('classes_v1700', (COMMAND_TEXT,), {}),
     'era60': ('era_legends_v1600', (COMMAND_TEXT,), {}),
     'kontynent': ('forgotten_continent_v1500', (COMMAND_TEXT,), {}),
     'lochy50': ('forgotten_dungeons_v1500', (COMMAND_TEXT,), {}),

@@ -1,28 +1,29 @@
 # -*- coding: utf-8 -*-
-"""Static regression checks for hidden WSH start; runnable on Linux CI."""
+"""Backward compatible check of hidden Windows start after v1.70.6 redesign."""
 from pathlib import Path
-
 ROOT = Path(__file__).resolve().parents[1]
 
 def run_regression():
-    launcher = (ROOT / "START_Soulbound.bat").read_text(encoding="ascii")
-    hidden = (ROOT / "START_Soulbound_UKRYTY.vbs").read_text(encoding="ascii")
-    visible = (ROOT / "Start-Soulbound-Windows.bat").read_text(encoding="utf-8")
-    stop = (ROOT / "STOP_Soulbound.bat").read_text(encoding="utf-8")
+    launcher = (ROOT / 'START_Soulbound.bat').read_text(encoding='ascii')
+    hidden = (ROOT / 'START_Soulbound_UKRYTY.vbs').read_text(encoding='ascii')
+    visible = (ROOT / 'Start-Soulbound-Windows.bat').read_text(encoding='ascii')
+    stop = (ROOT / 'STOP_Soulbound.bat').read_text(encoding='ascii')
+    bg = (ROOT / 'uruchom_w_tle.py').read_text(encoding='utf-8')
     checks = {
-        "default invokes hidden WSH": 'wscript.exe' in launcher and 'START_Soulbound_UKRYTY.vbs' in launcher,
-        "default fallback remains": 'call "%~dp0Start-Soulbound-Windows.bat"' in launcher,
-        "WSH launch uses hide style": 'shell.Run(Chr(34) & batPath & Chr(34), 0, False)' in hidden,
-        "WSH launch is asynchronous": ', 0, False)' in hidden,
-        "WD from script folder": 'shell.CurrentDirectory = gameFolder' in hidden,
-        "visible launcher retains bootstrap": 'start_windows_bootstrap.py' in visible and 'serwer.log' in (ROOT/'host_windows.py').read_text(encoding='utf-8'),
-        "STOP remains safe": 'stop_soulbound_windows.py' in stop and 'Stop-Process' not in stop and 'taskkill' not in stop.lower(),
-        "no destructive termination": all(x not in launcher.lower() and x not in hidden.lower() for x in ('taskkill','stop-process','wmic process delete')),
+        'default invokes WSH': 'wscript.exe' in launcher and 'START_Soulbound_UKRYTY.vbs' in launcher,
+        'default fallback': 'call "%~dp0Start-Soulbound-Windows.bat"' in launcher,
+        'WSH waits for short CMD': ', 0, True)' in hidden,
+        'WSH cwd TEMP': 'CurrentDirectory = shell.ExpandEnvironmentStrings("%TEMP%")' in hidden,
+        'visible starter exits': 'uruchom_w_tle.py' in visible and 'exit /b %errorlevel%' in visible,
+        'detached Python': 'DETACHED_PROCESS' in bg and 'CREATE_NO_WINDOW' in bg,
+        'safe STOP': 'stop_soulbound_windows.py' in stop and 'taskkill' not in stop.lower(),
+        'STOP working dir outside game': 'cd /d "%TEMP%"' in stop,
+        'no force kill': 'taskkill' not in launcher.lower() and 'taskkill' not in bg.lower(),
     }
-    failures=[k for k,ok in checks.items() if not ok]
-    if failures:
-        raise AssertionError('Windows background launcher: '+', '.join(failures))
+    errors = [key for key,passed in checks.items() if not passed]
+    if errors:
+        raise AssertionError('Windows background regression: '+', '.join(errors))
     return len(checks)
 
-if __name__=='__main__':
-    print(f'WINDOWS BACKGROUND v1.60.4: {run_regression()} checks PASS')
+if __name__ == '__main__':
+    print(f'WINDOWS BACKGROUND v1.70.6: {run_regression()} checks PASS')

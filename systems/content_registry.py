@@ -373,8 +373,16 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.60.5 - NAPRAWA BUDOWANIA RAILWAY"
+LATEST_CHANGES_TITLE = "Soulbound v1.70.6 - START I STOP BEZ BLOKOWANIA FOLDERU"
 LATEST_CHANGES = [
+    "v1.70.6: START uruchamia Pythona bez pozostawiania CMD; STOP czeka na zapis SQLite i zamkniecie launchera. Aktualizator chroni folder przed podmiana podczas pracy.",
+    "v1.70.5: Windows host_windows.py prawidlowo odroznia SystemExit(0) przy STOP od awarii; bledy.log bez falszywych alarmow.",
+    "v1.70.4: Wpisanie fame pokazuje tylko bieżący teren: You have no/some/most/all fame in this area. Fame log i regiony zachowane.",
+    "v1.70.3: Fame terenu, fame log i odroczony EXP dla poziomu, Duszy, Biegłości oraz statystyk (bez profesji). Po zalogowaniu przywołania trzeba wezwać na nowo.",
+    "v1.70.2: Druid przywołuje drzewa za szyszki i manę; zbiór w lasach i wymiana starych nasion, Fame none/some/most/all z prawdziwych zabójstw bossów.",
+    "v1.70.1: Dziewięć kolorów Kamieni Duszy, mana przywołań, wyrywania dusz i ulepszeń, scalanie, Rycerze Szkieletów i Licze.",
+    "v1.70.0: Podniebne Królestwa, 9 bossów, Chowańce, Miasta Graczy, Rzemiosło 6.0, Wojny Legend, Klasy 4.0; nekromanta z zębami i Kamieniami Duszy, druid z Life Oak i Ancient Oak.",
+    "v1.60.6: Windows: AKTUALIZUJ_Soulbound.bat, kopia bazy i kodu, bezpieczne STOP i aktualizacja z ZIP.",
     "v1.60.5: Naprawiono build Railway: do testow predeploy kopiowane sa pliki START/STOP Windows i po testach usuwane z obrazu Linux.",
     "v1.60.4: START_Soulbound.bat uruchamia serwer w tle bez otwartego okna CMD; STOP_Soulbound.bat zatrzymuje go bezpiecznie.",
     "v1.60.3: START_Soulbound.bat i STOP_Soulbound.bat; bezpieczne zamykanie z zapisem sesji przez lokalny uwierzytelniony kanal.",
@@ -2788,4 +2796,23 @@ HELP_TOPICS['medale'] = [
     'kronika postaci lub kronikapostaci: historia odblokowanych wyczynów.',
     'medale rekordy: najwyższe poziomy z prawdziwych zapisów graczy.',
     'Tytuły są przyznawane jednokrotnie. Możesz je włączać przez tytul.',
+]
+
+# Soulbound v1.70.2: accessible command descriptions.
+HELP_TOPICS['fame'] = [
+    'fame — jeden krótki komunikat po angielsku: You have no/some/most/all fame in this area.',
+    'Postęp Fame w obrębie lochu obejmuje wszystkie jego piętra; osobne krainy mają osobne statusy.',
+    'fame log — zaliczone i oczekujące cele w tej krainie; fame log wszystko — zapis całego świata.',
+    'Fame daje po chwili jednorazowy EXP poziomu, duszy, biegłości i wszystkich statystyk, lecz nie profesji ani narzędzi.',
+    'fame regiony — wyniki wszystkich krain osobno; fame none / some / most / all — filtr według ukończenia.',
+    'none 0%, some 1–49%, most 50–99%, all 100%. Drużyna otrzymuje indywidualny zapis pierwszego pokonania.',
+    'Fame nie blokuje poziomów, nie obcina EXP i nie odbiera nagród; dawnych nieudokumentowanych zabójstw nie odgadujemy.',
+]
+
+HELP_TOPICS['druid'] = [
+    'Druid: chowaniec przywolaj lifeoak (2 szyszki, 80 MP) lub ancientoak (5 szyszek, 180 MP).',
+    'druid zbierz — szyszki w Gaju Szeptów i leśnych krainach, odnawiane co 90 sekund.',
+    'druid szyszki — stan materiałów i koszty; druid wymien — wymiana starych Nasion Gaju (1 na 2 szyszki).',
+    'chowaniec aktywuj lifeoak/ancientoak — ponownie zużywa szyszki i manę; zwierzęta nadal wymagają pieczęci i many.',
+    'Wszystkie przywołania walczą automatycznie. Brak many lub materiałów = brak kosztu.'
 ]

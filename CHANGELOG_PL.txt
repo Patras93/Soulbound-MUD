@@ -1,3 +1,238 @@
+Soulbound v1.70.6 — WINDOWS: START/STOP BEZ BLOKOWANIA FOLDERU — 2026-10-10
+Aktualna paczka: v1.70.6 (2026-10-10)
+Baza: kompletna v1.70.5. Nie zmieniono postaci, Fame, EXP, przywolan ani swiata.
+
+- START_Soulbound.bat / START_Soulbound_UKRYTY.vbs: krótki proces CMD tylko uruchamia
+  oddzielny proces Pythona bez widocznej konsoli. VBS czeka na zamkniecie CMD,
+  wiec stare cmd.exe nie pozostaje uruchomione w folderze gry.
+- Start-Soulbound-Windows.bat: takze przy bezposrednim uruchomieniu nie trzyma CMD
+  podczas pracy serwera; nowy uruchom_w_tle.py wybiera pythonw.exe, jesli dostepny.
+- host_windows.py: poprawna obsluga pracy bez konsoli; przekierowanie wyjscia
+  i wyjatkow do logow. Znacznik PID launchera w logs/soulbound_launcher.json
+  jest usuwany po prawidlowym zakonczeniu i oproznieniu strumieni.
+- STOP_Soulbound.bat: uruchamia sie spoza folderu gry (z TEMP), samoczynnie
+  zamyka okno i nie pozostawia procesu CMD; stop_soulbound_windows.py czeka
+  na koniec launchera, a nie tylko na zamkniecie portu i zapis SQLite.
+- AKTUALIZUJ_Soulbound.bat: uruchamia okno z katalogu TEMP; aktualizator
+  sprawdza czy launcher skonczyl dzialanie przed podmiana plikow.
+- Nie wprowadzono taskkill, Stop-Process, resetow postaci ani migracji bazy.
+- STOP nadal korzysta z lokalnego uwierzytelnionego kanalu gry.
+- Logi w logs/start.log, logs/serwer.log i logs/bledy.log.
+
+TESTY:
+- Testy Windows no-locks: 13 kontroli PASS (mock procesow i krotki serwer testowy).
+- Testy ukrytego startu: 9 kontroli PASS.
+- Testy Windows clean STOP: 8 kontroli PASS (kod 0 i kod 7).
+- Testy aktualizatora: 4 scenariusze PASS (backup, SQLite/WAL, odmowa downgrade,
+  odrzucenie niebezpiecznej sciezki i bazy w ZIP).
+- predeploy_check.py: PASS, kod 0.
+- predeploy_full.py: PASS, kod 0; 89 raportow, 0 bledow blokujacych,
+  0 ostrzezen miedzy systemami. Kontrole lochow, bossow i Oceanu: PASS.
+- Testy automatyczne na Linuksie; brak wykonania testow okien/uchwytow CMD
+  na prawdziwym Windows. Sprawdz po instalacji na komputerze uzytkownika.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.5 — WINDOWS: NORMALNY STOP BEZ FAŁSZYWEGO BŁĘDU — 2026-10-10
+Aktualna paczka: v1.70.5 (2026-10-10)
+Baza: kompletna v1.70.4 z niezmienionym światem, postaciami, poziomami i Fame.
+
+- POPRAWKA host_windows.py: SystemExit(0) po poprawnym STOP_Soulbound.bat nie jest już przechwytywany jako awaria launchera.
+- Prawidłowy STOP kończy launcher kodem 0, bez wpisu "BLAD LAUNCHERA: SystemExit: 0" w logs\bledy.log.
+- Rzeczywiste błędy serwera dalej dają niezerowy kod i są rejestrowane w logs\bledy.log.
+- START w tle, STOP_Soulbound.bat, port 4000, SQLite, Fame, nagrody, przywołania i EXP bez zmian.
+- Nie są potrzebne żadne migracje danych ani reset postaci.
+
+TESTY:
+- 8 kontroli izolowanego launchera: PASS (kod 0 przy STOP, kod 7 przy prawdziwym błędzie, logi zgodne).
+- Dodatkowy test ścieżki start_windows_bootstrap.py: PASS (kody 0 oraz 7 zachowane).
+- predeploy_check.py: PASS, kod 0.
+- predeploy_full.py: PASS, kod 0; 89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami.
+- Bez uruchamiania na komputerze gracza ani modyfikowania produkcyjnej bazy SQLite.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.4 — FAME LOKALNE I OSTATNI BRAKUJĄCY CEL — 2026-10-10
+Aktualna paczka: v1.70.4 (2026-10-10)
+Baza: kompletna v1.70.3, bez zmiany zapisów graczy.
+
+- Zwykłe fame odpowiada krótkim komunikatem, zależnie od aktualnego terenu:
+  You have no fame in this area.
+  You have some fame in this area.
+  You have most fame in this area.
+  You have all fame in this area.
+- Jeśli brakuje już tylko jednego przeciwnika Fame, komenda dopisuje jego prawdziwą nazwę, np.:
+  You have most fame in this area. Missing fame: Król Mitycznej Wieży.
+- Gdy ostatni przeciwnik jest pokonany, ale wpis Fame czeka na 7-sekundowe potwierdzenie, status brzmi Pending fame: [nazwa] (awaiting confirmation), a nie informacja o konieczności ponownej walki.
+- Po otrzymaniu ostatniego zaliczenia: You have all fame in this area.
+- Status obliczany z unikalnych, zaliczonych celów; fame oczekujące na 7-sekundowe potwierdzenie nie liczy się przed wypłatą.
+- W lochu Fame sumuje się ze wszystkich pięter, w innym terenie ma osobny wynik.
+- fame log / fame log wszystko / fame regiony / fame none / fame some / fame most / fame all nadal działają.
+- Nie zmieniono nagród EXP, opóźnienia Fame, kosztów przywołań, systemów Druida, Maga, Nekromanty ani SQLite.
+- Wpis fame jest przeznaczony do szybkiego odczytu przez NVDA; podaje nazwę tylko ostatniego brakującego celu.
+
+TESTY: 23 kontrole statusów i ostatniego celu PASS; predeploy_check.py PASS (kod 0); predeploy_full.py PASS (kod 0); 89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.3 — FAME TERENOWE, NAGRODY I ROZPRASZANIE PRZYWOŁAŃ — 2026-10-10
+Aktualna paczka: v1.70.3 (2026-10-10)
+Baza: kompletna v1.70.2; aktualizacja nie zeruje żadnych zapisów Fame.
+
+- fame: pokazuje postęp wyłącznie w aktualnej krainie / lochu.
+- Cała Mityczna Wieża, Mityczna Krypta, zwykłe krypty i pozostałe lochy sumują unikalne cele Fame na wszystkich swoich piętrach — przejście między piętrami nie resetuje licznika.
+- Każda kraina ma osobny status (none 0%, some 1–49%, most 50–99%, all 100%).
+- fame regiony: zbiorcze zestawienie postępu we wszystkich terenach (strony po 12).
+- fame none / some / most / all: zachowane filtry regionów według statusu; fame tutaj / fame status: bieżący teren.
+- Liczone są prawdziwe, umieszczone w świecie bossy i przeciwnicy oznaczeni jako cele Fame. Zwykłe moby nie nabijałyby Fame w nieskończoność; dany cel tylko jeden raz na konto.
+- Członkowie drużyny obecni przy pokonaniu dostają własny postęp.
+- Fame daje jednorazowy EXP do poziomu postaci, Duszy, Biegłości klasowej i wszystkich statystyk; bez EXP profesji ani narzędzi. Nagroda jest odroczona o około 7 sekund i zapisana w kolejce SQLite. Oczekujące nagrody są odbierane po zalogowaniu.
+- Po zalogowaniu szkieletów Nekromanty, drzew i zwierząt Druida oraz żywiołaków Maga nie ma w świecie; trzeba przywołać je ponownie za manę i stosowne materiały. Poziomy i ulepszenia pozostają zapisane.
+- fame log: zabite cele aktualnego terenu, stan kolejki i daty. fame log wszystko: historia całego świata.
+
+TESTY:
+- Python compileall: PASS. Semantyczne kontrakty EXP: PASS.
+- v1.70.3: 22 testy wylogowania/ponownego przywołania, opóźnionego Fame, kolejki i wieloosiowych EXP: PASS.
+- predeploy_check.py: PASS (kod 0).
+- predeploy_full.py: PASS (kod 0).
+- 89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami.
+- Testy zostały wykonane lokalnie, bez wdrożenia na Railway i bez testowania zalogowanych graczy na Windows.
+- Istniejące wpisy Fame z v1.70.2 pozostają zaliczone. Jednorazowe bonusy Fame są przyznawane za nowe zaliczenia po aktualizacji.
+
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.2 — DRUID, FAME, MAG I ŻYJĄCE PRZYWOŁANIA — 2026-10-10
+Aktualna paczka: v1.70.2 (2026-10-10)
+Baza: pełna v1.70.1, bez zmian zapisów postaci.
+
+DRUID / MATERIAŁY:
+- Life Oak: 2 Szyszki Pradawnego Gaju + 80 MP.
+- Ancient Oak: 5 Szyszek Pradawnego Gaju + 180 MP.
+- Druid zbierz / druid szyszki: zbieranie szyszek w leśnych lokacjach co 90 sekund, trwały czas odnowienia SQLite.
+- Druid wymien: stare Nasiona Pradawnego Gaju na szyszki w przeliczniku 1 nasiono = 2 szyszki.
+- Przywołanie i ponowne aktywowanie drzewa płaci szyszki oraz manę. Nieudana akcja nie zjada zasobów.
+- Wilk, Sowa i Niedźwiedź nadal wymagają Pieczęci Chowańców oraz MP. Zachowano istniejące przywołania.
+- Rozwiązanie inspirowane Alter Aeon: oryginalnie Liveoak/Ancient Oak używają żołędzi i światła słonecznego; tutaj na życzenie gracza używamy szyszek i MP.
+
+MAG / PRZYWOŁANIA INSPIROWANE ALTER AEON:
+- Cztery żywioły: ogień, błyskawice, lód i kryształ. Każdy w 3 stopniach: mniejszy, zwykły, potężny.
+- mag lista; mag przywolaj ogien mniejszy; mag przywolaj lod potezny; mag schowaj; mag aktywuj.
+- Koszty wezwań: Ogień 65/100/145 MP, Błyskawice 75/115/165 MP,
+  Lód 85/127/185 MP, Kryształ 110/160/210 MP.
+- Ataki automatyczne zużywają 1–4 MP i nie następują bez dostępnej many.
+- Żywiołaki Ognia są wszechstronne; Błyskawic mają wysokie obrażenia;
+  Lodu i Kryształu generują osłony w ramach istniejącego systemu guard.
+- Żadnych zębów ani Kamieni Duszy (te należą do Nekromanty). Limit 3 wspólnych aktywnych przywołań.
+- Trwały zapis żywiołaków w dotychczasowej tabeli SQLite; nie usuwa starych postaci.
+- help zywiolaki i dostosowana pomoc chowaniec, NVDA.
+
+ŻYJĄCE PRZYWOŁANIA — HP I ŚMIERĆ:
+- Przywołania Nekromanty, Maga i Druida mają własne HP/max HP zapisane w SQLite.
+- Zwykłe ataki potworów mogą wybrać przywołaną istotę jako cel zamiast postaci.
+- HP spada po otrzymaniu obrażeń. Przy 0 HP pomocnik ginie, przestaje atakować i znika z aktywnych.
+- Log pokazuje trafienie, pozostałe HP oraz zniszczenie; lista chowańców pokazuje aktualne HP.
+- Śmierć zachowuje poziom i rozwój szkieletu, ale nie pozwala mu wrócić przez relogowanie.
+- Ponowne przywołanie martwych wymaga many i odpowiednich zębów, szyszek lub pieczęci.
+  Żywiołaki Maga odradza się tylko za manę. Drzewa wymagają szyszek także przy ponownym aktywowaniu.
+- Brak zasobów nie odejmuje many; ulepszenia Kamieni Duszy nie wskrzeszają martwych.
+- Nowe kolumny SQLite migrowane przy pierwszym uruchomieniu, bez zerowania starego postępu.
+
+FAME:
+- fame: krainy i postęp pokonanych unikalnych bossów, zaliczany na stałe w SQLite.
+- fame none: 0%; fame some: 1–49%; fame most: 50–99%; fame all: 100% bossów danej krainy.
+- Widok stronicowany po 12 regionów; np. fame most 2.
+- Tylko realne, ręcznie umieszczone bossy; obecni członkowie drużyny otrzymują osobny postęp.
+- Bez wymagania Fame do awansów, bez zmiany EXP, łupów, najemników, klas i ekwipunku.
+- Stare nieudokumentowane zabójstwa bossów nie są odgadywane.
+
+TESTY I WDROŻENIE:
+- predeploy_check.py: PASS (exit 0) na lokalnej kopii.
+- predeploy_full.py: PASS (exit 0), 89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami.
+- 131 kontroli kolorowych Kamieni Duszy, 28 kontroli Druida/Fame, 58 kontroli żywiołaków Maga i 25 kontroli HP/śmierci/ponownych przywołań — PASS.
+- Sprawdzone migracje starej tabeli SQLite, ochrona poziomów i kamieni po zniszczeniu przywołania.
+- Nie wykonywano testów z kilkoma prawdziwymi graczami na działającym Windows ani na produkcyjnym Railway.
+- Zachowaj bazę soulbound.db i kopię bezpieczeństwa. Railway/GitHub niezmienione.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.1 — KOLORY KAMIENI DUSZY I MAGIA PRZYWOŁAŃ — 2026-10-10
+Aktualna paczka: v1.70.1 (2026-10-10)
+Baza: kompletna v1.70.0, bez utraty świata, EQ, profesji ani nagród.
+- Inspirowane Alter Aeon: 9 barw Kamieni Duszy: czerwone, żółte, zielone,
+  jasnoniebieskie, ciemnoniebieskie, fioletowe, przezroczyste, białe, czarne.
+- Moc: coraz silniejszy rezonans kamieni. Lepszy kolor zwiększa moc
+  ulepszonych wojowników i magów, niższy kolor nie cofa ulepszenia.
+- Szkielet Wojownika po wystarczająco mocnym kamieniu staje się Rycerzem
+  Szkieletów, a Szkielet Maga — Liczem. Poziom rozwoju pozostaje bez limitu.
+- Kamienie wyrywa się wrogom poniżej 20% HP; potężniejsi przeciwnicy mają
+  szansę na silniejszy kolor, boss może dać 2 kamienie. Jeden wróg raz.
+- Czary wymagają many: pająk 45 MP, wojownik 90 MP, mag 120 MP,
+  Life Oak 80 MP, Ancient Oak 180 MP, wilk 50 MP, sowa 55 MP, niedźwiedź 110 MP.
+  Wyrywanie duszy kosztuje 65–185 MP, ulepszanie ma rosnący koszt.
+- Brak many NIE zużywa zębów, nasion, pieczęci ani Kamieni Duszy.
+  Nieudane akcje materiałowe również nie zabierają many.
+- nekro scal <kolor>: 3 kamienie niższego koloru w 1 wyższy, koszt many.
+- chowaniec kamienie: lista dziewięciu kolorów i liczby posiadanych.
+- chowaniec ulepsz wojownik <kolor> / mag <kolor>: rosnąca liczba kamieni
+  wybranego koloru i mana; bez podwójnego naliczania.
+- Stare Kamienie Duszy v1.70.0 zachowano jako CZERWONE (ten sam identyfikator).
+- Nowa kolumna soul_rank dodawana bezpieczną migracją SQLite przy pierwszym użyciu.
+- W świecie dodano kolorowe kamienie do katalogu i łupów wybranych bossów;
+  stare przedmioty i dropy nie są usuwane.
+- Utrzymano limit 3 aktywnych chowańców, siłę najemników i całą progresję.
+- Tylko CHANGELOG_PL.txt, bez dodatkowych raportów TXT.
+- Testy: predeploy_check.py PASS, predeploy_full.py PASS (89 raportów; 0 błędów i ostrzeżeń między systemami).
+- Kolory, mana, scalanie, brak utraty przedmiotów, migracja: 131 kontroli PASS.
+- Testy na kopii SQLite; działanie z żywymi graczami na Windows/Railway należy potwierdzić po instalacji.
+
+Soulbound v1.70.0 — ERA NIEBIOS, CHOWAŃCÓW I PRZEBUDZENIA MOCY
+Aktualna paczka: v1.70.0 (2026-10-10)
+Baza: kompletna Soulbound v1.60.6.
+
+NIEBO 1.0: 3 odrębne krainy po 18 lokacji, 9 bossów (3 superbossów),
+przystań sterowców, osady graczy i szlaki do starego świata.
+CHOWAŃCE 1.0: trwałe przywołania w SQLite; szkielety pająków ze zwykłych zębów,
+szkielety wojowników i magów ze smoczych zębów. Kamienie Duszy wyłącznie
+ulepszają już przywołane szkielety wojowników/magów; koszt rośnie z poziomem.
+Nekromanta wyrywa Kamienie Duszy walczącym przeciwnikom poniżej 20% HP,
+raz na konkretnego przeciwnika. Druid: Life Oak, Ancient Oak, wilk, sowa,
+niedźwiedź. Maksymalnie 3 aktywne, walczą automatycznie. Nie osłabiono najemników.
+MIASTA 1.0: tworzenie osady, rozbudowa murów, targu, warsztatu i lazaretu
+za realne srebro; trwały zapis per konto, rosnące koszty. Mury dodają osłonę,
+lazaret leczenie, warsztat moc przywołań, targ dochód co 2 godziny.
+RZEMIOSŁO 6.0: 28 nowych odnawialnych zadań dla 14 profesji,
+6 autorskich receptur arcymistrzów; materiały z nowych krain.
+WOJNY LEGEND: 9 nowych zleceń na bossów, realne nagrody i drop.
+KLASY 4.0: ścieżki ofensywy, obrony i wsparcia dla każdej aktywnej głównej
+klasy; bonusy w automatycznej walce. Nie zastępują starych umiejętności.
+
+KOMENDY: niebo, niebo bossowie, niebo profesje; chowaniec lista,
+chowaniec przywolaj <typ>, chowaniec ulepsz wojownik/mag,
+chowaniec schowaj/aktywuj <typ>; nekro wyrwij; miasto zaloz <nazwa>,
+miasto buduj mury/targ/warsztat/lazaret, miasto status, miasto zbierz;
+przebudzenie ofensywa/obrona/wsparcie.
+
+ZACHOWANO: EXP v1.40.8, statystyki bez limitu, 14 profesji i wszystkie
+systemy v1.60.6; ochrona SQLite, Windows launcher i Railway.
+TESTY: kontrola nowych tras i katalogów 273 PASS; przywołania, upgrade,
+Kamienie Duszy, własne miasta i realna walka 28 PASS (razem 301).
+python predeploy_check.py: PASS, kod 0.
+python predeploy_full.py: PASS, kod 0; 89 raportów, 0 błędów blokujących,
+0 ostrzeżeń między systemami. Pełny serwer na porcie testowym: PASS.
+Testy są lokalne i nie zastępują próby na Railway/Windows z graczami.
+Brak operacji GitHub i wdrożenia Railway.
+
+Soulbound v1.60.6 — AKTUALIZATOR WINDOWS Z ZIP — 2026-10-10
+Aktualna paczka: v1.60.6 (2026-10-10)
+- Dodano AKTUALIZUJ_Soulbound.bat i aktualizuj_soulbound.py: aktualizacja bez recznego kopiowania plikow.
+- Uzycie: pobierz nowszy Soulbound-MUD-vX.Y.Z*.zip i skopiuj ZIP do folderu gry; uruchom AKTUALIZUJ_Soulbound.bat, potwierdz TAK.
+- Przyjmuje tez pelna sciezke do ZIP jako argument (mozna podac ZIP z folderu Pobrane).
+- Przed aktualizacja testuje spojnosc ZIP i numer wersji, a dzialajacy serwer zatrzymuje przez uwierzytelnione bezpieczne STOP.
+- Jesli STOP sie nie powiedzie albo port 4000 jest zajety, aktualizacja zostaje przerwana bez podmieniania kodu.
+- Tworzy kopie poprzedniej wersji, w tym SQLite i prywatnej konfiguracji, obok folderu gry jako Soulbound_BACKUP_YYYYMMDD_HHMMSS.
+- Nigdy nie nadpisuje plikow *.db, *.sqlite, ich WAL/SHM, .env, prywatnych kluczy, logow ani ZIP-ow.
+- Nadpisywanie kodu odbywa sie przez podmiane plikow; w razie bledu kopie plikow sa przywracane automatycznie.
+- Po sukcesie uruchamia serwer ponownie w tle przez START_Soulbound_UKRYTY.vbs (Windows).
+- Nie dodano zadnej zewnetrznej uslugi aktualizacji, automatycznego pobierania ani zmian bazy czy balansu.
+- Zalecenie: zachowaj kopie na osobnym dysku; duze bazy SQLite wymagaja dostatecznej ilosci wolnego miejsca.
+- Windows: korzystaj z jednego, aktualnego folderu gry; nie rozpakowuj ZIP bezposrednio na baze, uzyj aktualizatora.
+
 Soulbound v1.60.5 — NAPRAWA BUDOWANIA RAILWAY DLA START W TLE — 2026-10-10
 Aktualna paczka: v1.60.5 (2026-10-10)
 - Naprawiono blad FileNotFoundError: /app/START_Soulbound.bat podczas budowania Docker na Railway.

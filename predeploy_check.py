@@ -4119,3 +4119,32 @@ print(f"PLEASANT GRIND v1.40.8: {_pleasant_v1408['checks']} checks PASS")
 # v1.60.4: hide the Windows console while keeping safe STOP and log files.
 from validation.v1604_background_windows import run_regression as _windows_background_regression_v1604
 print(f"WINDOWS BACKGROUND v1.60.4: {_windows_background_regression_v1604()} checks PASS")
+
+# v1.70.1: force color, mana, migration and forge regressions on every Railway build.
+from validation.v1701_colored_souls import run_regression as _colored_souls_v1701
+import server as _server_colored_v1701
+print(f"COLORED SOULSTONES v1.70.1 FAST: {_colored_souls_v1701(_server_colored_v1701)} checks PASS")
+
+# v1.70.2: prevent mana/material double-payments and fame regressions.
+from validation.v1702_druid_fame import run_regression as _druid_fame_regression_v1702
+print(f'DRUID PINECONES + FAME v1.70.2: {_druid_fame_regression_v1702()} checks PASS')
+
+# v1.70.2: Mage's four elemental families, 3 ranks each, real MP casting/upkeep and shields.
+from validation.v1702_mage_elementals import run_regression as _mage_v1702
+print(f'MAGE ELEMENTALS v1.70.2: {_mage_v1702()} checks PASS')
+
+# v1.70.2: summons have real HP, die permanently and require paid revival.
+from validation.v1702_living_summons import run_regression as _living_v1702
+print(f'LIVING SUMMONS v1.70.2 FAST: {_living_v1702()} checks PASS')
+
+# v1.70.4: exact, concise local Fame phrases with independent terrain status.
+from validation.v1704_short_fame import run_regression as _short_fame_v1704
+print(f'FAME SHORT STATUS v1.70.4: {_short_fame_v1704()} checks PASS')
+
+# v1.70.5: normal STOP on Windows must never be logged as a fatal SystemExit(0).
+from validation.v1705_windows_clean_stop import run_regression as _clean_stop_v1705
+print(f'WINDOWS CLEAN STOP v1.70.5: {_clean_stop_v1705()} checks PASS')
+
+# v1.70.6: Windows detached start must not leave cmd.exe locking release folder.
+from validation.v1706_windows_no_locks import run_regression as _win_nolocks_v1706
+print(f'WINDOWS NO LOCKS v1.70.6: {_win_nolocks_v1706()} checks PASS')
