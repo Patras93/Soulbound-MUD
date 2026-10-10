@@ -464,7 +464,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             self._v1702_prepare_summon_lives(conn)
             self._v1710_refresh_summon_health(conn)
             rows=conn.execute('SELECT summon_type,level,active,soul_rank,hp,max_hp FROM summons_v1700 WHERE account_id=? ORDER BY summon_type',(self.account_id,)).fetchall()
-            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>. Do 3 aktywnych. Każdy ma HP, może zginąć; powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
+            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>; chowaniec odwolaj <nazwa|wszystkie>. Do 3 aktywnych. Każdy ma HP, może zginąć; powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
             await self.send('Nekromanta: pająk — 2 zwykłe zęby; wojownik — 1 smoczy ząb; mag — 2 smocze zęby. Dziewięć kolorów Kamieni Duszy ulepsza wojowników i magów. nekro wyrwij; nekro scal <kolor>.')
             await self.send('Druid: call list (zwierzęta na aktualnym terenie), call <zwierzę>, call squirrel (wiewiórka dostarcza szyszki za 20 MP), order <zwierzę> <atakuj|bron|wspieraj|czekaj>. Bez Pieczęci Chowańców. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP.')
             await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
@@ -477,6 +477,31 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                     color=SOULSTONE_TIERS[grade][1] if grade else 'bez kamienia'
                     state='aktywny' if row['active'] else ('nieprzywołany/pokonany' if int(row['hp'])<=0 else 'schowany')
                     await self.send(f"{summon_display(row['summon_type'],grade)}: poziom {row['level']}, {color}, {state}, HP {row['hp']}/{row['max_hp']}.")
+            return
+        if parts[0] in ('odwolaj', 'odwołaj', 'dismiss'):
+            requested = ' '.join(parts[1:]).strip()
+            if not requested:
+                await self.send('Użycie: chowaniec odwolaj <typ|wszystkie>. Zwierzę pozostaje zapisane i może być przywołane ponownie.')
+                return
+            conn = self._v1700_conn()
+            if requested in ('all', 'wszystkie', 'wszystko'):
+                cur = conn.execute('UPDATE summons_v1700 SET active=0 WHERE account_id=? AND active=1', (self.account_id,))
+                conn.commit()
+                await self.send(f'Odwołano {cur.rowcount} aktywnych przywołań. Ich poziomy, HP i ulepszenia pozostały zapisane.')
+                return
+            kind = summon_key(requested)
+            if kind not in SUMMONS:
+                kind = normalize_animal(requested)
+            if kind not in SUMMONS:
+                matching = [key for key, spec in SUMMONS.items() if ascii_fold(spec[0]) == requested]
+                if len(matching) == 1:
+                    kind = matching[0]
+            if kind not in SUMMONS:
+                await self.send('Nieznane przywołanie. Wpisz chowaniec lista.')
+                return
+            cur = conn.execute('UPDATE summons_v1700 SET active=0 WHERE account_id=? AND summon_type=? AND active=1', (self.account_id, kind))
+            conn.commit()
+            await self.send((f'Odwołano {SUMMONS[kind][0]}. Postęp został zachowany.' if cur.rowcount else f'{SUMMONS[kind][0]} nie jest aktywny.'))
             return
         if parts[0] in ('lecz','heal'):
             await self._v1711_summon_heal_command(' '.join(parts[1:]));return
@@ -665,6 +690,26 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         available=terrain_animals(area)
         druid_level=max(1,int(getattr(self.character,'character_level',1) or 1))
         cmd=ascii_fold(raw)
+        if cmd.startswith(('odwolaj ', 'dismiss ')):
+            who = cmd.split(' ', 1)[1].strip()
+            if who in ('all', 'wszystkie', 'wszystko'):
+                # `call` specifically dismisses Druids' animals, not allied
+                # Necromancer or Mage summons on a multi-class character.
+                conn = self._v1700_conn()
+                keys = tuple(k for k in ANIMALS if k in SUMMONS)
+                if not keys:
+                    await self.send('Brak zwierząt do odwołania.');return
+                cur = conn.execute('UPDATE summons_v1700 SET active=0 WHERE account_id=? AND active=1 AND summon_type IN (' + ','.join('?' for _ in keys) + ')', (self.account_id,*keys))
+                conn.commit()
+                await self.send(f'Odwołano {cur.rowcount} aktywnych zwierząt. Postęp pozostaje zapisany.')
+                return
+            kind = normalize_animal(who)
+            if kind not in ANIMALS:
+                await self.send('Nieznane zwierzę. Sprawdź call list.');return
+            await self.summons_v1700('odwolaj ' + kind)
+            return
+        if cmd in ('odwolaj','dismiss'):
+            await self.send('Użycie: call odwolaj <zwierzę|wszystkie>.');return
         if not cmd or cmd in ('list','lista','zwierzeta'):
             await self.send(f'CALL LIST — teren: {area}. Dostępne zwierzęta:')
             for kind in available:
@@ -847,7 +892,10 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                     heal=min(max(0,self.max_hp()-self.current_hp),max(1,int(damage*.06)))
                     self.current_hp+=heal
             self._v1710_earn_summon_xp(conn,row['summon_type'],damage)
-            msg=f'{name} (poziom {mastery}) atakuje za {damage} obrażeń. Przeciwnik: {max(0,mob.hp)} HP.'
+            target_name=str(MOB_TEMPLATES.get(mob.template_id, {}).get('name') or mob.template_id)
+            msg=(f'{name} (przywołanie {self.character.name}, poziom {mastery}) '
+                 f'trafia {target_name} za {damage} obrażeń. '
+                 f'{target_name}: {max(0,mob.hp)} HP.')
             if elemental:
                 msg+=f' Mana -{elemental["upkeep"]} MP.'
             if necro:

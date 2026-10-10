@@ -572,7 +572,8 @@ class SessionCombatSkillsMixin:
                         session for session in injured
                         if not superboss_healing_blocked_v11179(session)
                     ]
-                    from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+                    # Imported at module scope; importing here shadows prior uses
+                    # within this function and crashes the automatic combat loop.
                     summon_healable=[(owner,row) for owner,row in summon_injured if not superboss_healing_blocked_v11179(owner)]
                     if not healable and not summon_healable:
                         await self.send(

@@ -1,3 +1,21 @@
+Soulbound v1.80.1 — FAME, ZWIERZĘTA, WALKA I PIWNICA ŚWIĄTYNI — 2026-10-10
+Aktualna paczka: v1.80.1 (pełna baza v1.80.0, bez resetu postaci i SQLite).
+- Fame: dodano jednorazowe cele za naturalnie występujące moby w 46 terenach, w których wcześniej nie było żadnego celu Fame (134 typy w bazowym katalogu świata).
+- Pozostawiono bez zmian dotychczasowe cele Fame we wszystkich 68 terenach z autorskim Fame, aby ukończony postęp i nagrody nie zostały cofnięte.
+- Fame działa raz na typ moba na teren i obecnego członka drużyny. Nie zalicza treningowych manekinów, przywołanych pomocników bossów, kopii ani ponownych zabójstw.
+- Przywołania Druida (w tym zwierzęta), Maga i Nekromanty pojawiają się w opisie pomieszczenia: własne i cudze, z nazwą oraz aktualnym HP; l <nazwa przywołania> pokazuje właściciela, poziom, HP i rozkaz.
+- Dziennik walki podaje nazwę przywołania, jego właściciela, cel i zadane obrażenia. Wydarzenia otrzymuje właściciel i obecna drużyna w ramach dotychczasowego filtrowania komunikatów NVDA.
+- Nie zmieniono obrażeń, ataków, kosztów many, szybkości przywołań, EXP poza nowymi jednorazowymi nagrodami Fame ani struktury zapisów SQLite.
+- Dodatkowa poprawka startowa: wszystkie 20 pomieszczeń Piwnicy Świątyni mają generator_level=1, żeby generator nie przypisywał im przypadkowych poziomów, np. 129; Szczur Świątynny ma jawny poziom Generator 1 i zachowane autorskie bazowe HP/obrażenia.
+- Odwołanie: chowaniec odwolaj <typ|wszystkie> oraz call odwolaj <zwierzę|wszystkie>. Odwołanie nie usuwa przywołań z SQLite ani ich poziomów, HP czy ulepszeń. Call wszystkie odwołuje wyłącznie zwierzęta Druida.
+- Naprawa pętli walki: usunięto cieniujący import superboss_healing_blocked_v11179 wewnątrz funkcji leczenia grupowego (UnboundLocalError).
+- Zaliczenie Fame uwzględnia bazowy ID naturalnego spawnu również przy terenowych kopiach i elitach, bez zaliczania przywołań.
+- Testy wykonane: składnia zmienionych modułów PASS; 20/20 komnat Piwnicy Świątyni poziom 1 PASS; Szczur Świątynny poziom 1, 28 bazowego HP PASS. Pełny rozruch i test wieloosobowej walki wymagają sprawdzenia na docelowym serwerze.
+- Weryfikacja rzeczywistego runtime: załadowanie silnika PASS; 5/5 startowych szczurów w komnacie wejściowej w runtime ma poziom 1; Fame przyznane tylko raz także przy elitarnej kopii terenowej; odwołanie jednego zwierzęcia oraz wszystkich Druida PASS; widoczność przywołania w pomieszczeniu PASS.
+- Test rzeczywistej wieloosobowej sesji i długiej pętli walki nie został przeprowadzony w środowisku produkcyjnym; baza graczy i wszystkie istniejące bazy SQLite pozostają nietknięte.
+- Nie wykonano żadnych operacji na GitHub, Railway ani produkcyjnej bazie danych.
+
+--------------------------------------------------------------------------------
 Soulbound v1.80.0 — ARMIE, BOGOWIE CHAOSU, MAGIA ŻYWIOŁÓW I KLASY 5.0 — 2026-10-10
 Aktualna paczka: v1.80.0 (baza: pełna v1.70.11).
 Baza: kompletna paczka v1.70.11. Bez resetu postaci, bazy SQLite, profili przywołań ani starych progów EXP.

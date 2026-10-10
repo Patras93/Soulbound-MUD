@@ -33,7 +33,7 @@ def ensure_schema(conn):
 
 
 def _is_fame_target(template):
-    """Explicit fame enemies and authored bosses; normal mobs never give fame."""
+    """Authored Fame enemies; fallback targets are chosen only in empty regions."""
     return bool(template.get('boss') or template.get('world_boss')
                 or template.get('fame_mob') or template.get('fame_target')) and not (
                 template.get('uoss_superboss_add') or template.get('monster_ai_summoned_v1160'))
@@ -60,28 +60,70 @@ def fame_region(room_id, rooms=None):
 
 @lru_cache(maxsize=1)
 def fame_catalog():
-    """Fixed targets for all existing floors, grouped by the room's actual zone."""
+    """Fame targets for placed monsters, preserving all previously authored regions.
+
+    Areas with at least one authored Fame opponent keep their EXACT old list.
+    In areas with no Fame at all, each naturally spawned mob type is a
+    one-time regional Fame target. This never awards a repeat-kill bonus.
+    """
     from systems.content_registry import MOB_SPAWNS
-    results = {}
+    authored = {}
+    fallback = {}
     for rid, mid in MOB_SPAWNS:
-        room = ROOMS.get(rid)
-        mob = MOB_TEMPLATES.get(mid)
-        if not room or not mob or not _is_fame_target(mob):
+        if rid not in ROOMS:
+            continue
+        template = MOB_TEMPLATES.get(mid)
+        if not template or not _eligible_natural_fame_enemy(template):
             continue
         zone = fame_region(rid)
-        results.setdefault(zone, set()).add(str(mid))
-    return {k: tuple(sorted(v)) for k, v in sorted(results.items(), key=lambda x: x[0].casefold())}
+        if _is_fame_target(template):
+            authored.setdefault(zone, set()).add(str(mid))
+        else:
+            fallback.setdefault(zone, set()).add(str(mid))
+    # Do not inflate completion in older regions: existing achievements and
+    # completed 'all' states remain valid after this update.
+    regions = set(authored) | set(fallback)
+    return {
+        zone: tuple(sorted(authored.get(zone) or fallback.get(zone, ())))
+        for zone in sorted(regions, key=str.casefold)
+    }
+
+
+def _eligible_natural_fame_enemy(template):
+    """Only actual world opponents; not dummies or boss-spawned helpers."""
+    return not any(template.get(k) for k in (
+        'training_dummy', 'uoss_superboss_add', 'monster_ai_summoned_v1160',
+        'ai_ephemeral_summon_v1160', 'boss_companion_v1281',
+    ))
+
+
+def _is_runtime_summoned_mob(mob):
+    """A dynamically summoned copy cannot stand in for a natural Fame kill."""
+    return bool(any(getattr(mob, key, None) for key in (
+        'monster_ai_summoned_v1160', 'uoss_summon_parent_v1144',
+        'ai_ephemeral_summon_v1160', 'boss_companion_v1281',
+    )))
 
 
 def record_fame_kill(conn, recipients, mob, template):
-    if not _is_fame_target(template):
+    if not _eligible_natural_fame_enemy(template) or _is_runtime_summoned_mob(mob):
         return []
     cat = fame_catalog()
     rid = str(getattr(mob, 'room_id', ''))
     region = fame_region(rid)
     tid = str(getattr(mob, 'template_id', ''))
-    # Only catalogued enemies can grant Fame. Ordinary summoned helpers and
-    # arbitrary enemy templates must not inflate the completion percentage.
+    # A terrain-scaled / elite copy retains its natural spawn template identity.
+    # Do not mistake its temporary generated ID for an additional Fame target.
+    seen = set()
+    while tid and tid not in seen and tid not in cat.get(region, ()):
+        seen.add(tid)
+        current = MOB_TEMPLATES.get(tid, {})
+        base = str(current.get('base_template') or current.get('elite_base_template') or current.get('rare_base_template') or '')
+        if not base or base == tid:
+            break
+        tid = base
+    # Only the placed, catalogued targets grant Fame. For regions with prior
+    # Fame objectives, ordinary mobs remain excluded as before.
     if tid not in cat.get(region, ()):
         return []
     ensure_schema(conn)

@@ -473,6 +473,11 @@ def runtime_room_level(room_id: str, room: dict, rooms: dict | None = None) -> i
     """Assign numeric balance stage to runtime rooms without creating gameplay gates."""
     room_id = str(room_id or "room")
     room = room or {}
+    # The original temple basement is the onboarding zone, not a random
+    # progression dungeon. Never inherit levels from nearby high-stage rooms.
+    if room_id.startswith("temple_basement") and room.get("zone") == "Piwnica Świątyni":
+        _assign_runtime_number("ROOMS", room, "generator_level", 1)
+        return 1
     lvl = semantic_floor_level(room)
     if lvl is None:
         text = f"{room_id} {room.get('zone','')} {room.get('name','')}".lower()

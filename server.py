@@ -91,6 +91,7 @@ HELP_TOPICS['chowaniec'] = [
     'Nekro wyrwij: poniżej 20% HP wroga można zdobyć Kamień Duszy o kolorze zależnym od siły wroga. Mana jest wymagana; z jednego przeciwnika tylko raz.',
     'chowaniec kamienie: dziewięć kolorów i zapasy. chowaniec ulepsz wojownik <kolor> / mag <kolor>: kolorowe Kamienie Duszy i mana. nekro scal <kolor>: 3 kamienie niższe w 1 wyższy.',
     'Druid: Life Oak, Ancient Oak i zwierzęta. Przywołanie zużywa manę, trzy aktywne stworzenia, automatyczna walka, trwały zapis.',
+    'Odwołanie zwierząt: call odwolaj <nazwa|wszystkie> lub chowaniec odwolaj <nazwa|wszystkie>. Nie usuwa poziomów i ulepszeń.',
 ]
 HELP_TOPICS.setdefault('nekro', list(HELP_TOPICS['chowaniec']))
 HELP_TOPICS['druid'] = [
@@ -109,7 +110,7 @@ HELP_TOPICS['fame'] = [
     'Fame przynosi po chwili jednorazowy EXP poziomu, Duszy, Biegłości klasowej i każdej statystyki. Profesje i narzędzia nie dostają EXP.',
     'fame regiony — lista postępów świata; fame none / some / most / all — filtr regionów o danym stopniu ukończenia.',
     'none = 0%, some = 1–49%, most = 50–99%, all = 100% unikalnych celów Fame w terenie.',
-    'Pokonani ważni bossowie i oznaczeni przeciwnicy Fame zaliczają się tylko raz, także obecnym członkom drużyny.',
+    'Bossowie i oznaczeni przeciwnicy dają Fame jak dotąd. W terenach bez Fame pierwsze pokonanie każdego naturalnego rodzaju moba także się liczy, również członkom drużyny.',
     'Wyniki są trwale zapisane w SQLite. Fame nie blokuje awansów i nie zmienia nagród EXP.',
 ]
 

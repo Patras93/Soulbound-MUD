@@ -10,6 +10,22 @@ from world.world_secrets_v1190 import (
 )
 
 class SessionPerceptionMapsMixin:
+    def visible_companion_for_look_v1801(self, query):
+        from systems.visible_companions_v1801 import nearby_companions_v1801
+        wanted = self.normalize_description_query(query)
+        if not wanted:
+            return None
+        matches = []
+        for entry in nearby_companions_v1801(self.server, self.character.room_id):
+            owner, kind, name, *_ = entry
+            labels = (kind, name, f'{name} {owner.character.name}')
+            normalized = tuple(self.normalize_description_query(label) for label in labels)
+            if wanted in normalized:
+                return entry
+            if any(wanted in label for label in normalized):
+                matches.append(entry)
+        return matches[0] if len(matches) == 1 else None
+
     def visible_player_for_look(self, query):
             wanted = self.normalize_description_query(query)
             if not wanted:
@@ -313,6 +329,16 @@ class SessionPerceptionMapsMixin:
                     )
                     return
 
+                companion = self.visible_companion_for_look_v1801(query)
+                if companion:
+                    owner, kind, name, hp, maximum, level, stance = companion
+                    await self.send(
+                        f'{name}. Przywołany pomocnik postaci {owner.character.name}. '
+                        f'Poziom {level}, HP {hp}/{maximum}, rozkaz: {stance}. '
+                        'Walczy automatycznie i podąża za właścicielem.'
+                    )
+                    return
+
                 npc = self.visible_npc_for_look(query)
                 if npc:
                     npc_id, npc_data = npc
@@ -421,6 +447,16 @@ class SessionPerceptionMapsMixin:
                     await self.send(mercenary_follow_notice_v12210(mine))
                 if others:
                     await self.send("Najemnicy innych graczy: " + ", ".join(others) + ".")
+
+            from systems.visible_companions_v1801 import nearby_companions_v1801
+            companions = nearby_companions_v1801(self.server, self.character.room_id)
+            if companions:
+                mine = [f'{name} ({hp}/{maximum} HP)' for owner, _kind, name, hp, maximum, _lvl, _stance in companions if owner is self]
+                others = [f'{name} ({owner.character.name}, {hp}/{maximum} HP)' for owner, _kind, name, hp, maximum, _lvl, _stance in companions if owner is not self]
+                if mine:
+                    await self.send('Twoje przywołane istoty: ' + ', '.join(mine) + '.')
+                if others:
+                    await self.send('Przywołania innych graczy: ' + ', '.join(others) + '.')
 
             mobs = self.server.world.room_mobs(
                 self.character.room_id

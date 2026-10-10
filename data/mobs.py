@@ -2,6 +2,8 @@
 """Static Soulbound catalog. Data only; gameplay logic lives elsewhere."""
 MOB_TEMPLATES = {
     "temple_rat": {
+        # Authored early-game enemy: avoid deterministic pseudo-random Generator level (e.g. 129).
+        "generator_level": 1,
         "name": "Szczur Świątynny", "max_hp": 28, "damage": 3, "damage_type": "physical",
         "silver": 6, "gold": 0, "mithril": 0,
         "stat_reward": 8, "soul_reward": 80,
