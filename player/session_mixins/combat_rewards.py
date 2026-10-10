@@ -137,6 +137,8 @@ def deferred_kill_commits_v11125(callback):
     wrapped.__wrapped__ = callback
     return wrapped
 
+from core.performance_v2002 import measure_async
+
 class SessionCombatRewardsMixin:
     def class_for_milestone_loot(self):
                 active = self.active_class_names()
@@ -181,6 +183,7 @@ class SessionCombatRewardsMixin:
                     )
 
     @deferred_kill_commits_v11125
+    @measure_async("combat.mob_defeated", report_every=10)
     async def mob_defeated(self, mob):
                 # Zwycięstwo, loot, questy i nagrody są zawsze ważne nawet w trybie
                 # combat concise. Nie dziedziczą wyciszenia rutynowej auto kolejki.
@@ -298,6 +301,21 @@ class SessionCombatRewardsMixin:
                         'Sprawdź fame cele lub fame log.')
                     import asyncio
                     asyncio.create_task(fame_pay_later(_fame_session))
+                # v2.00.0: real faction and arena kill credit only for
+                # recipients present in the actual fight. No global scans.
+                _v2000_target=str(template.get('quest_target') or mob.template_id)
+                if (_v2000_target.startswith('v2000_')
+                        and not template.get('monster_ai_summoned_v1160')
+                        and not template.get('uoss_superboss_add')):
+                    from systems.eras_pve_v2000 import record_kill
+                    _eras_conn=self._eras_v2000()
+                    _earned=record_kill(_eras_conn, (s.account_id for s in recipients), _v2000_target)
+                    if _earned:
+                        _eras_conn.commit()
+                        _by_account={int(s.account_id):s for s in recipients}
+                        for _account,_message in _earned:
+                            if _account in _by_account:
+                                await _by_account[_account].send(_message)
                 count = len(recipients)
 
                 _deep_apanda_floor = int(

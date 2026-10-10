@@ -373,8 +373,15 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.80.6 - FAME I PRZYZWANIA WLASCICIELA"
+LATEST_CHANGES_TITLE = "Soulbound v2.00.4 - NAPRAWA TESTOW AWANSU NVDA"
 LATEST_CHANGES = [
+    "v2.00.3: szybsze przejscia swiata, jednoczesne dostarczanie komunikatow wielu klientom, przywolania, SQLite, NVDA i test obciazenia TCP.",
+    "v2.00.2: szybkie rozliczanie serii przywolan; pojedynczy odczyt premii miasta, jedna kalkulacja mocy Maga, pojedyncze wyszukiwanie moba; opcjonalne pomiary wydajnosci i usuniecie podwojonego komunikatu frakcji.",
+    "v2.00.1: katalog wartosci liczbowych wczytywany strumieniowo z pliku skompresowanego, z pelna zgodnoscia wartosci i mniejszym zuzyciem pamieci przy starcie.",
+    "v2.00.0: 4 wymiary i 3 archipelagi Oceanu 5.0, siedem trwałych frakcji z kontraktami oraz Arena Legend 3.0 z 3 falami i bossem. SQLite i dawne statki zachowane.",
+    "v1.90.1: optymalizacja AoE przy 10+ mobach: AI sprawdza aktualny pokój zamiast całego świata i pomija niepotrzebne wyszukiwania podczas cooldownu. Bez zmian w sile mobów, EXP, Fame i przywołaniach.",
+    "v1.80.8: Kobra Piasków zatruwa; żywiołaki Ognia podpalają, Lodu i Kryształu zamrażają, Błyskawic porażają. DOT i pojedyncza utrata akcji działają w prawdziwej pętli walki, bez permanentnego blokowania bossów.",
+    "v1.80.7: fame pokazuje liczbę zdobytych punktów, where fame / gdzie fame mówi none/some/most/all w obecnym terenie; istniejące zapisy i komendy Fame zachowane.",
     "v1.80.6: Fame zaliczane natychmiast za cele, premia EXP po chwili; Miniony Maga/Druida/Nekromanty maja poziom wlasciciela, bez osobnego EXP i z regeneracja poza walka.",
     "v1.80.5: test CITY SERVICES zamyka polaczenie SQLite przed usunieciem pliku tymczasowego (Windows WinError 32).",
     "v1.80.4: naprawiono zgodnosc audytu XP z Windows i zwalnianie plikow SQLite po testach; tester zapisuje pelny log.",
@@ -386,7 +393,7 @@ LATEST_CHANGES = [
     "v1.70.7: druid zbierz prawidlowo odczytuje poziom postaci i przyznaje szyszki bez AttributeError SB-5AD59274.",
     "v1.70.6: START uruchamia Pythona bez pozostawiania CMD; STOP czeka na zapis SQLite i zamkniecie launchera. Aktualizator chroni folder przed podmiana podczas pracy.",
     "v1.70.5: Windows host_windows.py prawidlowo odroznia SystemExit(0) przy STOP od awarii; bledy.log bez falszywych alarmow.",
-    "v1.70.4: Wpisanie fame pokazuje tylko bieżący teren: You have no/some/most/all fame in this area. Fame log i regiony zachowane.",
+    "v1.70.4: Historycznie fame pokazywało stan bieżącego terenu; od v1.80.7 tę rolę przejęło where fame / gdzie fame. Fame log i regiony zachowane.",
     "v1.70.3: Fame terenu, fame log i odroczony EXP dla poziomu, Duszy, Biegłości oraz statystyk (bez profesji). Po zalogowaniu przywołania trzeba wezwać na nowo.",
     "v1.70.2: Druid przywołuje drzewa za szyszki i manę; zbiór w lasach i wymiana starych nasion, Fame none/some/most/all z prawdziwych zabójstw bossów.",
     "v1.70.1: Dziewięć kolorów Kamieni Duszy, mana przywołań, wyrywania dusz i ulepszeń, scalanie, Rycerze Szkieletów i Licze.",
@@ -2809,13 +2816,13 @@ HELP_TOPICS['medale'] = [
 
 # Soulbound v1.70.2: accessible command descriptions.
 HELP_TOPICS['fame'] = [
-    'fame — jeden krótki komunikat po angielsku: You have no/some/most/all fame in this area.',
-    'Postęp Fame w obrębie lochu obejmuje wszystkie jego piętra; osobne krainy mają osobne statusy.',
-    'fame log — zaliczone i oczekujące cele w tej krainie; fame log wszystko — zapis całego świata.',
-    'Fame daje po chwili jednorazowy EXP poziomu, duszy, biegłości i wszystkich statystyk, lecz nie profesji ani narzędzi.',
-    'fame regiony — wyniki wszystkich krain osobno; fame none / some / most / all — filtr według ukończenia.',
-    'none 0%, some 1–49%, most 50–99%, all 100%. Drużyna otrzymuje indywidualny zapis pierwszego pokonania.',
-    'Fame nie blokuje poziomów, nie obcina EXP i nie odbiera nagród; dawnych nieudokumentowanych zabójstw nie odgadujemy.',
+    'fame — liczba zdobytych punktów Fame na całym świecie i stan celów z aktualnego katalogu.',
+    'where fame / gdzie fame — status Fame bieżącego terenu: You have no/some/most/all fame in this area.',
+    'none 0%, some 1–49%, most 50–99%, all 100%. Loch sumuje wszystkie piętra.',
+    'fame log — zapis zabitych celów terenu; fame log wszystko — cały świat.',
+    'fame cele / fame braki — cele obecnego terenu i to, co jeszcze pozostało.',
+    'fame regiony — wszystkie tereny; fame none/some/most/all — filtr według stanu ukończenia.',
+    'Fame jest zaliczana od razu do SQLite po pierwszym zabiciu; jedynie premia EXP może nadejść później.',
 ]
 
 HELP_TOPICS['druid'] = [

@@ -112,9 +112,17 @@ class DatabaseCraftingExtensionsMixin:
 
     def add_combat_event_v0320(self, account_id, text, kind='combat'):
         if not account_id or not str(text or '').strip(): return
-        self.conn.execute("INSERT INTO combat_events_v0320(account_id,event_text,event_kind) VALUES(?,?,?)",(account_id,str(text)[:700],str(kind or 'combat')[:40]))
-        self.conn.execute("DELETE FROM combat_events_v0320 WHERE account_id=? AND id NOT IN (SELECT id FROM combat_events_v0320 WHERE account_id=? ORDER BY id DESC LIMIT 40)",(account_id,account_id))
-        self.conn.commit()
+        conn = self.conn
+        execute = conn.execute
+        execute("INSERT INTO combat_events_v0320(account_id,event_text,event_kind) VALUES(?,?,?)",(account_id,str(text)[:700],str(kind or 'combat')[:40]))
+        # Retain the same forty newest entries but let the existing
+        # (account_id, id DESC) index find the cutoff directly. Unlike NOT IN,
+        # this needs no 40-ID materialization for every AoE combat message.
+        execute("DELETE FROM combat_events_v0320 WHERE account_id=? "
+                          "AND id < (SELECT id FROM combat_events_v0320 "
+                          "WHERE account_id=? ORDER BY id DESC LIMIT 1 OFFSET 39)",
+                          (account_id,account_id))
+        conn.commit()
 
     def combat_events_v0320(self, account_id, limit=10):
         return self.conn.execute("SELECT event_text,event_kind,created_at FROM combat_events_v0320 WHERE account_id=? ORDER BY id DESC LIMIT ?",(account_id,max(1,min(20,int(limit))))).fetchall()

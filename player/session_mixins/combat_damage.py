@@ -124,11 +124,14 @@ class SessionCombatDamageMixin:
                 return projected
 
     def adaptive_party_dps_v1261(self, members):
-                return sum(
-                    self.adaptive_member_dps_v11330(member)
-                    + self.adaptive_member_mercenary_dps_v1261(member)
-                    for member in members
-                )
+                """Scale enemies only to actual player characters in the room.
+
+                Mercenaries are helpers, not additional player slots or a reason
+                to inflate monsters' HP, damage or adaptive reward multiplier.
+                Keep the hired allies' combat power unchanged; avoid querying
+                mercenary contracts at all on this hot combat-scaling path.
+                """
+                return sum(self.adaptive_member_dps_v11330(member) for member in members)
 
     def adaptive_mob_has_active_fighters_v1261(self, mob):
                 """No downscaling while ANY player is still fighting this mob."""

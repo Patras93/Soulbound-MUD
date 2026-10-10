@@ -33,7 +33,9 @@ from systems.monster_ai import (
     monster_ai_plan_v1160, monster_ai_execute_v1160,
     monster_ai_eligible_v1160, monster_ai_necromancer_v1160,
     monster_ai_attack_multiplier_v1160, monster_ai_lifesteal_v1160,
+    monster_ai_room_candidates_v1901, monster_ai_due_v1901,
 )
+from systems.summon_status_v1808 import summon_status_enemy_turn_v1808
 from systems.monster_magic import (
     monster_magic_apply_v1151, monster_magic_tick_v1151,
     monster_magic_player_action_v1151, monster_magic_action_interval_v1151,
@@ -267,6 +269,7 @@ class SessionCombatRealtimeMixin:
                 if not mob.alive or mob.hp <= 0:
                     return
                 await self.chaos_boss_phase_v1800(mob)
+                await self.ancient_boss_phase_v1900(mob)
                 await self.summon_combat_turn_v1700(mob)
                 if not mob.alive or mob.hp <= 0:
                     return
@@ -539,6 +542,18 @@ class SessionCombatRealtimeMixin:
                                     or enemy_mob.room_id != self.character.room_id
                                 ):
                                     break
+                                # v1.80.8: poison/fire periodic hits and ice/lightning
+                                # control run ONCE per monster action (not per party
+                                # member). A DOT kill uses normal XP/Fame/party credit.
+                                _effect_lines, _effect_skip, _effect_kill = summon_status_enemy_turn_v1808(enemy_mob)
+                                for _effect_line in _effect_lines:
+                                    await self.server.party_combat_broadcast(
+                                        self, _effect_line, detail="essential")
+                                if _effect_kill:
+                                    await self.mob_defeated(enemy_mob)
+                                    continue
+                                if _effect_skip:
+                                    continue
                                 _slow_left = max(0, int(getattr(enemy_mob, "uoss_helper_slow_rounds_v1146", 0) or 0))
                                 _mini_left = max(0, int(getattr(enemy_mob, "uoss_helper_mini_rounds_v1146", 0) or 0))
                                 if _slow_left:
@@ -711,22 +726,24 @@ class SessionCombatRealtimeMixin:
                                 # AI support is one mob action, not a second attack
                                 # against every party member. Authored bosses are exempt.
                                 _ai_template_v1160 = MOB_TEMPLATES[enemy_mob.template_id]
-                                _ai_ready_v1160 = (
-                                    enemy_mob.combat_turn % 3 == 0
-                                    and monster_ai_eligible_v1160(enemy_mob, _ai_template_v1160)
+                                # v1.90.1: avoid an O(world_mobs) scan for each
+                                # magic/elite enemy in a 10+ target AoE encounter.
+                                # Skip candidate collection while AI is on cooldown.
+                                _ai_now_v1901 = time.monotonic()
+                                _ai_ready_v1160 = monster_ai_due_v1901(
+                                    enemy_mob, _ai_template_v1160, _ai_now_v1901
                                 )
-                                _room_ai_v1160 = tuple(
-                                    other for other in self.server.world.mobs.values()
-                                    if other.room_id == enemy_mob.room_id
-                                    and (other.engaged_by == enemy_mob.engaged_by or (
-                                        not other.alive and monster_ai_necromancer_v1160(_ai_template_v1160)
-                                    ))
-                                ) if _ai_ready_v1160 else ()
-                                _ai_plan_v1160 = monster_ai_plan_v1160(
-                                    enemy_mob, _ai_template_v1160,
-                                    [other for other in _room_ai_v1160 if other.alive],
-                                    [other for other in _room_ai_v1160 if not other.alive],
-                                ) if _ai_ready_v1160 else None
+                                if _ai_ready_v1160:
+                                    _ai_live_v1901, _ai_dead_v1901 = monster_ai_room_candidates_v1901(
+                                        self.server.world, enemy_mob, _ai_template_v1160
+                                    )
+                                    _ai_plan_v1160 = monster_ai_plan_v1160(
+                                        enemy_mob, _ai_template_v1160,
+                                        _ai_live_v1901, _ai_dead_v1901,
+                                        now=_ai_now_v1901,
+                                    )
+                                else:
+                                    _ai_plan_v1160 = None
                                 # Logic Bomb Silence cancels monster spellcasting.
                                 if _ai_plan_v1160 and not (_logic_active and "silence" in _logic_effects):
                                     _ai_text_v1160 = monster_ai_execute_v1160(
@@ -1099,6 +1116,8 @@ class SessionCombatRealtimeMixin:
                                         _uoss_mult
                                         * _flavor_mult_v11324
                                         * _adaptive_enemy_mult_v11330
+                                        * (1.0 + .09 * max(0,min(3,int(getattr(enemy_mob,'_v1900_god_phase',0) or 0)))
+                                           if _enemy_template.get('v1900_ancient_god') else 1.0)
                                         * _elite_enemy_mult_v11338
                                         * monster_ai_attack_multiplier_v1160(enemy_mob)
                                         * adaptive_skills_v1250(

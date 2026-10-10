@@ -69,14 +69,13 @@ def audit_v1261():
     db.hires[1] = ('wojownik', 'mag', 'kaplan')
     if hasattr(solo, '_adaptive_mercenary_dps_cache_v1261'): del solo._adaptive_mercenary_dps_cache_v1261
     with_hires = solo.apply_adaptive_mob_scale_v11330(mob)
-    check(with_hires['max_hp'] > start['max_hp'], 'three hires must increase mob HP')
-    check(with_hires['party_dps'] > start['party_dps'] * 2, 'hire DPS must be substantial')
+    check(with_hires['max_hp'] == start['max_hp'], 'hires must NOT inflate mob HP')
+    check(with_hires['party_dps'] == start['party_dps'], 'hires must NOT change player party DPS')
     check(with_hires['party_size'] == 1, 'hires do not occupy player party slots')
-    check(db.calls >= 2, 'active contracts checked')
-    cache_reads = db.calls
+    check(db.calls == 0, 'combat scaling never queries mercenary contracts')
     solo.apply_adaptive_mob_scale_v11330(mob)
-    check(db.calls == cache_reads, 'hire count cached during combat for performance')
-    check(with_hires['reward_multiplier'] > start['reward_multiplier'], 'rewards scale to actual party power')
+    check(db.calls == 0, 'repeated combat scaling never queries hired allies')
+    check(with_hires['reward_multiplier'] == start['reward_multiplier'], 'hires must NOT inflate adaptive rewards')
     mob.hp = with_hires['max_hp'] // 2
     server.sessions = [solo]
     solo.combat_mob_key = mob.key
@@ -98,9 +97,9 @@ def audit_v1261():
     party_mob = SimpleNamespace(key='mobB', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
     multi = solo.apply_adaptive_mob_scale_v11330(party_mob)
     check(multi['party_size'] == 2, 'two players count as two party members')
-    check(multi['party_dps'] > with_hires['party_dps'], 'party members and their hires both count')
+    check(multi['party_dps'] > with_hires['party_dps'], 'only real party players count')
     check(multi['rank'] == 'boss', 'boss type not overwritten')
-    # All four players and twelve individually contracted hires contribute DPS.
+    # All four human players contribute DPS; twelve hired allies do NOT scale enemies.
     party3, party4 = Player(4, 500, 600), Player(5, 100, 60)
     db.hires[4] = ('mag', 'wojownik', 'druid')
     db.hires[5] = ('berserker', 'lucznik', 'paladyn')
@@ -108,7 +107,7 @@ def audit_v1261():
     fresh = SimpleNamespace(key='mobC', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
     combined = solo.apply_adaptive_mob_scale_v11330(fresh)
     check(combined['party_size'] == 4, 'four human players counted')
-    check(combined['party_dps'] > multi['party_dps'], 'twelve mercenaries and four players increase expected throughput')
+    check(combined['party_dps'] > multi['party_dps'], 'four actual players increase expected throughput')
     check(combined['max_hp'] > multi['max_hp'], 'boss HP keeps pace with full group')
     check(all(db.mercenary_contracts(i) for i in (1, 3, 4, 5)), 'all four owners keep three hire contracts')
     check(adaptive_reward_multiplier_v11330(1000, 1000) == 1, 'base reward unchanged')

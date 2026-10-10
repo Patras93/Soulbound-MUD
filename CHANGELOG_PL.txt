@@ -1,3 +1,105 @@
+Soulbound v2.00.4 — Poprawa testów awansu NVDA i wykrywania ukrytych błędów — 2026-10-11
+Aktualna paczka: v2.00.4 (kompletna v2.00.3 i poprawiony test stabilności).
+- Naprawiono izolowane środowisko testu stabilności v1.17.8: metoda send() korzystała z pomocnika is_level_promotion_v2003 bez udostępnienia importu w przestrzeni uruchamianych metod. Test potrafił wypisać ACTIVITY_PROMOTION_LOG_ERROR: NameError i mimo tego zgłaszać PASS.
+- Test symuluje teraz rzeczywisty zapis informacji o awansie, sprawdza poprawny brak zapisu zwykłego ciosu oraz wykrywa wszelkie komunikaty o przechwyconym wyjątku. Takie błędy odtąd blokują szybki i pełny audyt.
+- Właściwy kod sesji gracza już miał poprawny import funkcji. Nie zmieniono zachowania rozpoznawania awansów ani historii rozgrywki, EXP, Fame, skalowania mobów, AoE, komunikatów NVDA i SQLite.
+- Zachowano kompletne skrypty Windows, TESTUJ_Soulbound.bat, PROFILUJ_Soulbound.bat, STRESS_TCP_Soulbound.bat oraz konfigurację Railway.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.3 — Wydajność świata, AoE, SQLite, przywołań, NVDA i TCP
+Aktualna paczka: v2.00.3 (pełne v2.00.2 i nowe optymalizacje).
+- World.refresh: szybki dostęp do flag stanu mobów bez serii wyjątków dla zwykłych przeciwników; nie zmienia respawnu ani zachowania potworów.
+- Rozsyłanie komunikatów do graczy w pokoju i drużynie odbywa się równolegle do niezależnych połączeń, aby powolny odbiorca nie blokował reszty.
+- Zachowano pełne teksty oraz 40 trwałych wpisów historii walki na konto; niewielka optymalizacja wywołań SQLite bez zmian transakcji.
+- Dopasowanie komunikatów awansu NVDA wykorzystuje skompilowane wzorce zamiast kompilacji podczas każdego komunikatu.
+- Przywołania przeliczają maksymalne HP właściciela raz na serię ataków, z zachowaniem automatycznych taktyk i pełnych obrażeń.
+- Dodano test prawdziwych połączeń TCP (bez logowania i bez symulacji walki) i mikrobenchmark (bez używania produkcyjnej bazy postaci) oraz nowe regresje wydajnościowe.
+- Nie zmieniono balansu, Fame, EXP, łupów, skalowania najemników, postaci ani zapisów SQLite.
+- Zachowano TESTUJ_Soulbound.bat, PROFILUJ_Soulbound.bat oraz pełne pliki do Railway.
+
+Soulbound v2.00.2 — OPTYMALIZACJA SILNIKA — 2026-10-11
+Aktualna paczka: v2.00.2 (pełne v2.00.1 + poprawki wydajności).
+- Przywołania Maga, Druida i Nekromanty: premie miejskiego warsztatu są odczytywane raz na serię ataków zamiast dla każdego pomocnika. Moc magiczna Maga jest obliczana raz w danej serii. Skalowanie obrażeń, obrona, efekty żywiołów, leczenie i komunikaty NVDA pozostają bez zmian.
+- Synchronizacja poziomu i HP przywołań ponownie używa raz obliczonego maksymalnego HP właściciela. Zapis SQLite, rany, śmierć przywołania i Kamienie Duszy pozostają nienaruszone.
+- Rejestracja potworów do dynamicznych lokacji nie wykonuje już drugiego, niepotrzebnego skanowania całej mapy.
+- Frakcje/Arena: usunięto duplikat tego samego komunikatu zaliczenia wysyłanego odbiorcy. Nagrody i zapis jednorazowego odbioru bez zmian.
+- Opcjonalne profilowanie prawdziwej gry: ustaw SOULBOUND_PERF_LOG=1 PRZED startem serwera, aby okresowo otrzymywać w istniejącym logu serwera średnie i maksymalne czasy world.refresh, tury przywołań, naliczania zabójstwa oraz transmisji komunikatów drużynowych. Domyślnie wyłączone, bez dodatkowych plików i bez nazw postaci w metrykach.
+- Nie ma sztucznych limitów AoE, mobów lub przywołań, nie osłabiono najemników, nie zmniejszono EXP ani Fame. Wyniki testów wydania będą w logu TESTUJ_Soulbound.bat.
+- Aby sprawdzić wydajność podczas żywej walki z 10–20 mobami, włącz pomiar tylko na czas testu; pomiary pojedynczego serwera nadal nie są gwarancją płynności przy 50 mobach.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.1 — OPTYMALIZACJA KATALOGU LICZBOWEGO — 2026-10-11
+Aktualna paczka: v2.00.1 (pełne v2.00.0 z poprawką skalowania najemników).
+- Zweryfikowano, że katalog dawnych wartości liczbowych jest wczytywany wyłącznie raz podczas inicjalizacji modułu świata, a nie podczas każdej walki AoE. Nie ma zbędnego odczytu katalogu w pętli bojowej.
+- data/catalogue_numeric_defaults_v1283.json (7 438 144 bajty) zastąpiono wiernym odpowiednikiem data/catalogue_numeric_defaults_v1283.jsonl.gz (483 165 bajtów). Zachowano wszystkie 116 953 wpisy, ich identyfikatory i wartości, kolejność tabel oraz autorskie pierwszeństwo istniejących pól.
+- core/catalog_fallback_v1283.py przetwarza skompresowane wpisy strumieniowo, bez ładowania osobnego ogromnego słownika JSON do pamięci. Gzip i JSON pochodzą z biblioteki standardowej Pythona; nie dodano zależności zewnętrznych.
+- Błędy brakujących identyfikatorów nadal zatrzymują wdrożenie; opcjonalne pokoje generator_level pozostają wyjątkiem. Nie przywrócono Generator Core.
+- Dodano automatyczne testy formatu, liczby wpisów, zachowania autorskich wartości i bezpieczeństwa brakujących rekordów w szybkiej i pełnej walidacji Windows/Railway.
+- Bez zmian poziomów postaci, EXP, obrażeń, nagród, Fame, przywołań, najemników, istniejącego SQLite, skryptów START/STOP i TESTUJ_Soulbound.bat. Nadal zalecana kopia zapasowa SQLite przed aktualizacją.
+- Mniejszy rozmiar po rozpakowaniu i mniejsza pamięć tymczasowa podczas startu nie oznaczają automatycznej poprawy lagów AoE; źródła opóźnień walki wymagają osobnego profilowania na żywym serwerze.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.0 — ERA NIESKOŃCZONYCH ŚWIATÓW — 2026-10-11
+Aktualna paczka: v2.00.0 (kompletna gra na bazie v1.90.1).
+Pełne wydanie na bazie v1.90.1; bez resetu postaci i bez zamiany istniejącego SQLite.
+- WYMIARY: 4 autorskie światy (Sny, Smoki, Duchy, Pustka), każdy z 18 pomieszczeniami, 10 przeciwnikami, 3 polowaniami i prawdziwym bossem. Wejście: Wymiary Chaosu, GÓRA. Polecenia: wymiary, wymiary droga.
+- OCEAN 5.0: 3 nowe archipelagi, po 8 lokacji, 5 typów mobów, boss i polowanie. 3 dodatkowe bitwy flot: perlowaflota, czarnaarmada, sztormowcy. Istniejące statki, floty, ulepszenia i stan walki pozostają. ocean5, ocean4 cele.
+- FRAKCJE 5.0: 7 frakcji; trwała reputacja w nowej tabeli SQLite, kontrakty na realne pokonanie przeciwnika, zaliczanie uczestnikom drużyny obecnym podczas walki. Frakcje: frakcje lista, frakcje kontrakt <kod>, frakcje odbierz <kod>, frakcje odznaka <kod>. 3 rangi nagród na frakcję po 100/300/600 reputacji. Odbiór transakcyjny i jednorazowy; kolejne kontrakty po godzinie.
+- ARENA LEGEND 3.0: 4 prawdziwe próby PvE, każda z 3 rodzajami fal oraz bossem. Zaliczenie pokonania wymaganych 3 typów i bossa w dowolnej kolejności (również podczas AoE); solo i drużynowo, bez obowiązkowego PvP. Zapamiętywanie prób, zwycięstw, wypłat i 90-minutowego odnowienia w SQLite. Arena: arena lista / podejmij <kod> / status / odbierz <kod>.
+- NOWY ŚWIAT: 103 pomieszczenia, 78 przeciwników/bossów, 15 polowań, 7 kronikarzy/kartografów, 21 przedmiotów za rangi frakcyjne; wszystkie kierunki mają drogi powrotne, bez pułapek.
+- Zachowano dotychczasowe Fame, skalowanie przywołań, EXP, ekwipunek, poziom maksymalny 800, 14 klas, pełne nagrody drużynowe, optymalizację AoE v1.90.1, autorskie połączenia mapy oraz obsługę NVDA.
+- ZACHOWANO TESTUJ_Soulbound.bat. Nowy test walidacyjny v2000 obejmuje dwukierunkowe drogi, 7 frakcji, niepowtarzalne zaliczanie walk, 3 fale Areny, odnowienia, saldo i integralność SQLite.
+- SKALOWANIE MOBÓW A NAJEMNICY (uzupełnienie v2.00.0): adaptacyjne HP, siła przeciwników i powiązane premie za trudność są wyliczane z rzeczywistych graczy w pomieszczeniu, a NIE z DPS wynajętych najemników. Trzech najemników jednego właściciela nie zwiększa siły moba. Kilku prawdziwych graczy w drużynie nadal zwiększa trudność według własnej mocy.
+- Zachowano pełną siłę, umiejętności, automatyczne akcje i skalowanie najemników do właściciela/EQ. Zrezygnowano z odpytywania kontraktów najemników podczas skalowania starcia AoE, co ogranicza zbędne operacje SQLite. Nie zmienia to mechaniki bezpośrednich nagród ani historycznego SQLite.
+- Zaktualizowano testy regresji v1.26.1 oraz v1.26.4: dodanie najemników nie podbija HP/DPS/nagrody, a kolejny prawdziwy gracz nadal ma wpływ na skalowanie; ekstremalnie wielkie statystyki nadal są obsługiwane.
+- Całość w jednym ZIP, bez GitHuba i bez dodatkowych raportów TXT.
+
+Soulbound v1.90.1 — OPTYMALIZACJA WALKI AOE I AI — 2026-10-11
+Aktualna paczka: v1.90.1 (pełne v1.90.0 ze wszystkimi 7 systemami).
+- Optymalizacja AI zwykłych magicznych i elitarnych przeciwników: zamiast przeglądać tysiące mobów całego świata co trzecią turę, wyszukuje tylko żywych sojuszników z aktualnej lokacji przy użyciu istniejącego indeksu World.room_mobs.
+- AI nie pobiera listy kandydatów, dopóki trwa jego cooldown. To ogranicza koszt starć AoE z 10+ mobami bez zmniejszenia liczby ataków, obrażeń, nagród, zdobywanego EXP ani Fame.
+- Nekromanci nadal mogą wskrzeszać martwych przeciwników w pomieszczeniu: pozostawiono ich dotychczasową ścieżkę wyszukiwania także martwych celów.
+- Dodano regresję 10 przeciwników na mapie 20 000 innych mobów: sprawdzane jest zerowe skanowanie globalnej listy w zwykłym AI oraz wskrzeszanie nekromanckie.
+- Brak zmian w bazie SQLite, zapisach postaci, balansie przywołań, AoE on/off, poziomach i nagrodach. Zachowano skrypty Windows i TESTUJ_Soulbound.bat.
+- Nie weryfikowano rzeczywistego opóźnienia 10 graczy na produkcyjnym Railway; wymagany test w żywej walce. Po aktualizacji uruchom TESTUJ_Soulbound.bat, a na Railway sprawdź build i uruchomienie.
+
+--------------------------------------------------------------------------------
+Soulbound v1.90.0 — PRZEBUDZENIE PRADAWNYCH KRÓLESTW — 2026-10-11
+Aktualna paczka: v1.90.0 (pełna gra na bazie v1.80.8).
+- NOWE PODZIEMIA: trzy ręcznie opisane królestwa (Miedziane Echa, Dwór Zarodników, Obsydianowe Imperium), dwie osady z kupcami, 66 nowych typów przeciwników/bossów 9 odnawialnych polowań i 14 nowych zleceń profesji. Łącznie 116 nowych pomieszczeń, jawne dwukierunkowe wyjścia; nowe tereny dostępne od Rozdroża Bogów Chaosu (w dół). Bez losowych pułapek i blokad poziomów.
+- SUPERBOSSOWIE 8.0: bossowie nowych królestw i Wymiarów Chaosu dostali trzy fazy na 70%, 40%, 15% HP. W fazach wzrastają ich kontrataki i odporność na przywołania. Stare superbossy i ich unikalne mechaniki pozostają nienaruszone.
+- PRZYWOŁANIA 6.0: komenda taktyka auto przełącza automatycznie formacje szturm/bastion/harmonia zależnie od aktualnego HP właściciela i przeciwnika. Bez osobnego EXP przywołań; dawny wybór formacji zapisany w tej samej tabeli SQLite.
+- RZEMIOSŁO 6.0: sześć unikalnych legendarnych artefaktów do wykonania w Kuźni z dropu krain, odłamków duszy i sztabek stali smoczej. Każdy ma inne własności oraz slot; można mieszać z pozostałym EQ. Nie usunięto starych receptur i przedmiotów.
+- MAGIA ŻYWIOŁÓW 4.0: nowe reakcje wody, mroku, trucizny i lodu w obecnym, limitowanym systemie synergii, bez podmiany starego obrażeń ani odporności.
+- NIESKOŃCZONE LOCHY 3.0: trzy dodatkowe, ręcznie stworzone ścieżki Wymiarów Chaosu z osobnymi wrogami i bossami. Istniejące bezlimitowe instancje i windy pozostają bez zmian — nowe ścieżki nie zastępują ich silnika.
+- FAME 3.0: dodatkowe możliwe cele naturalnych przeciwników w istniejących regionach (maksimum docelowe 30, jeśli teren ma tylu różnych wrogów), Fame za nowe krainy i wymiary, komenda fame bestiariusz [strona]. Historia pierwszych pokonań w SQLite nie jest kasowana ani przeliczana.
+- BEZPIECZEŃSTWO: bez resetowania graczy, bez zmian limitu poziomu 800, bez obniżania EXP ani nagród, bez naruszenia starego SQLite. TESTUJ_Soulbound.bat, Windows i konfiguracja Railway zachowane. Zmiany dotyczą wyłącznie nowych przestrzeni i jawnie opisanych mechanik.
+- Przed użyciem na Railway wykonaj kopię bazy/volumenu SQLite. Zaliczenie audytów opisuje wynik uruchomienia testów, a nie gwarancję zachowania serwera przy każdej liczbie graczy.
+
+--------------------------------------------------------------------------------
+Soulbound v1.80.8 — JADEM KOBRY I ZYWIOLOWE EFEKTY PRZYWOLAN — 2026-10-10
+Aktualna paczka: v1.80.8 (pełna gra na bazie v1.80.7).
+- Kobra Piasków (Druid): jej uderzenie może nałożyć truciznę. Trucizna zadaje ograniczone obrażenia okresowe przez maksymalnie trzy impulsy, bez nakładania na siebie kolejnych stosów.
+- Żywiołaki Maga: Ogień podpala (obrażenia okresowe); Błyskawice porażają (maksymalnie jedna pominięta akcja); Lód zamraża (maksymalnie jedna pominięta akcja); Kryształ skuwa lodem rzadziej niż żywiołak Lodu (maksymalnie jedna pominięta akcja). Wszystkie trzy rangi żywiołaków obsługiwane; szansa rośnie nieznacznie wraz z rangą.
+- Statusy nakładane po trafieniu i rozliczane podczas rzeczywistej tury moba, PRZED specjalną akcją przeciwnika. Wiadomości ataków i obrażeń okresowych są krótkie i czytelne dla NVDA, także w drużynie.
+- Ochrona balansu: co najwyżej dwa różne efekty jednocześnie, wspólne odnowienie dla zamrożenia i porażenia, brak odświeżania trwającego efektu, niższa szansa na kontrolę bossów oraz dłuższe odnowienie; efekty wygasają automatycznie. Obrażenia okresowe mają limit zależny od wroga.
+- Zabójstwo przez truciznę lub ogień wykonuje istniejący mob_defeated, dzięki czemu normalnie nalicza się EXP, Fame i zaliczenia drużyny. Efekty są przejściowymi polami moba, czyszczonymi po respawnie; nie wprowadzono zmian schematu SQLite, limitów poziomów, postaci ani EXP przywołań.
+- Zachowano wszystkie funkcje v1.80.7, 589 celów Fame w 152 terenach, gdzie fame i licznik punktów, regenerację i skalowanie przywołań oraz TESTUJ_Soulbound.bat.
+- W pakiecie dodano test regresji statusów w predeploy_check.py oraz predeploy_full.py dla Windows i Railway. Wyniki testów podawane po uruchomieniu, bez dodatkowych raportów TXT poza tym CHANGELOG_PL.txt.
+- Przed wdrożeniem wykonaj kopię aktualnej bazy danych/volumenu Railway.
+
+--------------------------------------------------------------------------------
+Soulbound v1.80.7 — FAME LICZNIK / WHERE FAME — 2026-10-10
+Aktualna paczka: v1.80.7 (pełny kod na bazie v1.80.6).
+- fame bez argumentów: pokazuje liczbę zdobytych punktów Fame w całym świecie z trwałych wpisów SQLite, wraz z liczbą zaliczonych celów aktualnego katalogu / wszystkich dostępnych (nie ukrywa historycznych punktów).
+- where fame oraz gdzie fame: pokazują jednozdaniowy lokalny status none/some/most/all (zachowują podpowiedź ostatniego brakującego celu).
+- fame tutaj / fame status: zachowane jako zgodne aliasy lokalnego statusu.
+- fame cele, fame braki, fame log, fame regiony i fame none/some/most/all: niezmienione.
+- Zmieniono opisy pomocy i wydania, dodano testy regresji dla rozdzielenia obu komend oraz trwałości Fame po zaliczeniu.
+- Bez zmian w regułach naliczania Fame, EXP, balansie, bazie SQLite, postaciach i przywołaniach. TESTUJ_Soulbound.bat zachowany.
+- Przed wdrożeniem wykonaj kopię bazy SQLite; wersję sprawdzaj testerem na Windows i/lub buildem Railway.
+
+--------------------------------------------------------------------------------
 Soulbound v1.80.6 — FAME, PRZYWOŁANIA BEZ WŁASNEGO EXP, REGENERACJA — 2026-10-10
 Aktualna paczka: v1.80.6 (pełna gra na bazie działającej v1.80.5).
 - Fame: trwałe zaliczenie następuje w SQLite od razu po pierwszym pokonaniu naturalnego celu i jest od razu uwzględniane w fame, fame cele, fame braki, fame log i fame regiony. Opóźniona jest TYLKO premia EXP (kolejka bez wielokrotnych wypłat). Powtórne zabicie nie dodaje kolejnego punktu. Postępy sprzed aktualizacji pozostają zapisane.

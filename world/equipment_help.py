@@ -1313,7 +1313,7 @@ HELP_TOPICS.update({
 })
 
 # v1.18.0: help must agree with the registered read-only QoL commands.
-HELP_TOPICS["gdzie"] = ["gdzie — nazwa i strefa lokacji oraz prawdziwe kierunki wyjść.", "gdzie cele — lokalne cele w mieście; trasa <cel> planuje drogę, walk <cel> prowadzi do celu."]
+HELP_TOPICS["gdzie"] = ["gdzie — nazwa i strefa lokacji oraz prawdziwe kierunki wyjść.", "gdzie fame / where fame — status none/some/most/all dla obecnego terenu.", "gdzie cele — lokalne cele w mieście; trasa <cel> planuje drogę, walk <cel> prowadzi do celu."]
 HELP_TOPICS["zdobycze"] = ["zdobycze — 10 ostatnich zapisanych łupów; zdobycze legendarne [1-30], zdobycze epickie, zdobycze rzadkie, zdobycze wszystkie [1-30].", "zdobycze szukaj <nazwa> — przeszukaj historię dropów; zdobycze nie obejmują materiałów bez zapisu w historii dropów."]
 HELP_TOPICS["prace"] = ["prace — jeden status aktualnego przetopu (pozostałe sekundy), automatycznego łowienia, kopania, drewna, ziół oraz zapisanej kolejki skilli.", "przetop status / przetop stop; kolejka lista; prowadz status. Nie obiecuje czasu kolejnego losowego zbioru."]
 HELP_TOPICS["combatlog"] = ["combat concise, combat normal, combat full — zakres komunikatów walki dla NVDA.", "combat ostatnie [1-100] — zobacz ostatnie widoczne komunikaty tej sesji bez zmiany trybu ani ponownego zapisu historii."]
@@ -1357,7 +1357,7 @@ HELP_TOPICS["najemnicy"] = [
     "najemnik odeslij <imię> — odeślij wskazanego najemnika; najemnik odeslij wszyscy — odeślij wszystkich. Działa również zwolnij.",
     "Możesz mieć najwyżej 3 wynajętych najemników bez limitu czasu."
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
-    "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ.",
+    "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ. Najemnicy NIE zwiększają HP ani obrażeń potworów — moby skalują się tylko do prawdziwych graczy.",
     "najemnik rozwoj [imię] — poziom właściciela i aktualna taktyka; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> — zmiana bez kosztu w dowolnym momencie.",
     "najemnik skille — lista rzeczywistych umiejętności wszystkich 15 najemników; najemnik skille Seren — szczegółowy opis ataku, leczenia i osłony. Działa również przed wynajęciem.",
     "Umiejętności najemnicy wybierają automatycznie w walce. Gracz może podejrzeć skille, ale nie wskazuje im, którego skilla mają użyć.",

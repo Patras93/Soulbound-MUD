@@ -4170,3 +4170,32 @@ print(f'GUILD 800 v1.70.10: {_guild_v1710()} checks PASS')
 # v1.70.11: wounded live companions heal; dead/hidden do not resurrect.
 from validation.v1711_companion_healing import run_regression as _summon_heal_v1711
 print(f'COMPANION HEALING v1.70.11: {_summon_heal_v1711()} checks PASS')
+
+# v1.80.8: Cobra poison and all elemental kinds must affect real mob actions.
+from validation.v1808_summon_status import run_regression as _summon_status_v1808
+print(f'SUMMON STATUS v1.80.8 FAST: {_summon_status_v1808()} checks PASS')
+
+# v1.90.0: reality checks for all seven integrated expansion systems.
+from validation.v1900_ancient_kingdoms import run_regression as _ancient_kingdoms_v1900
+print(f'ANCIENT KINGDOMS v1.90.0 FAST: {_ancient_kingdoms_v1900(_server_colored_v1701)} checks PASS')
+
+# v1.90.1: ten AoE opponents use only local AI candidates; necromancy preserved.
+from validation.v1901_aoe_ai_performance import run_regression as _aoe_ai_perf_v1901
+print(f'AOE AI v1.90.1 FAST: {_aoe_ai_perf_v1901()} checks PASS')
+
+# v2.00.0: linked worlds, Ocean 5.0, faction/arena transaction tests.
+from validation.v2000_parallel_worlds import run_regression as _v2000_check
+print(f'PARALLEL WORLDS v2.00.0 FAST: {_v2000_check()} checks PASS')
+
+# v2.00.1: lossless low-memory streaming catalogue and authored-field priority.
+from validation.v2001_catalogue_streaming import run_regression as _catalogue_v2001
+print(f'CATALOGUE STREAMING v2.00.1 FAST: {_catalogue_v2001()} checks PASS')
+
+# v2.00.2: SQLite history retains 40 immediately durable events per player,
+# while minion synchronization avoids repeated owner HP calculations.
+from validation.v2002_engine_performance import run_regression as _engine_perf_v2002
+print(f"ENGINE PERFORMANCE v2.00.2 FAST: {_engine_perf_v2002()} checks PASS")
+
+# v2.00.3: room/50-target/AoE history, NVDA and concurrent TCP recipients.
+from validation.v2003_engine_optimization import run_regression as _engine_opt_v2003
+print(f'ENGINE OPTIMIZATION v2.00.3 FAST: {_engine_opt_v2003()} checks PASS')

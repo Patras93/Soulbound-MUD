@@ -1904,7 +1904,7 @@ HELP_TOPICS["generator"] = [
     "Od Soulbound v1.28.4 Generator Core jest całkowicie usunięty z kodu gry.",
     "Nie tworzy ani nie nadpisuje EQ, skilli, potworów, questów, receptur, klas i poziomów.",
     "Obliczenia poziomów i balansu są w core/balance_math.py, a katalogi mają jawne, autorskie dane.",
-    "Wcześniejsze stałe uzupełnienia liczbowe: data/catalogue_numeric_defaults_v1283.json.",
+    "Wcześniejsze stałe uzupełnienia liczbowe: data/catalogue_numeric_defaults_v1283.jsonl.gz (strumieniowy, skompresowany).",
     "Statystyki nadal rosną bez limitu; poziomy rozwoju do 800. Nieskończone lochy i kopalnia pozostają proceduralne.",
     "Katalog jest walidowany bez zapisu przez core/catalog_validation.py; pełny predeploy sprawdza integralność gry.",
 ]

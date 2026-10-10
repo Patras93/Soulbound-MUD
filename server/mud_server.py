@@ -3,11 +3,14 @@ from core.runtime_diagnostics import build_runtime_error_report, log_runtime_err
 from events.bootstrap import build_default_event_bus
 import time
 import sqlite3
+import asyncio
 from systems.infinite_equipment import ensure_infinite_equipment_variant
 from systems.mob_recovery_v1405 import (
     preserve_hp_when_encounter_ends_v1405,
     restore_idle_hp_tick_v1405,
 )
+
+from core.performance_v2002 import measure_async
 
 class MudServer:
     def __init__(self):
@@ -297,20 +300,22 @@ class MudServer:
         ):
             return 0
         excluded = set(exclude or [])
-        sent = 0
         room_id = actor.character.room_id
-        for session in self.party_sessions(actor.account_id, same_room=room_id):
-            if session in excluded or session.closed or not session.character:
-                continue
-            kwargs = {}
-            if detail is not None:
-                kwargs["combat_detail"] = detail
-            if history_category is not None:
-                kwargs["history_category"] = history_category
-            await session.send(str(message), **kwargs)
-            sent += 1
-        return sent
+        recipients = [session for session in self.party_sessions(actor.account_id, same_room=room_id)
+                      if session not in excluded and not session.closed and session.character]
+        if not recipients:
+            return 0
+        kwargs = {}
+        if detail is not None:
+            kwargs["combat_detail"] = detail
+        if history_category is not None:
+            kwargs["history_category"] = history_category
+        # Each recipient keeps their complete NVDA message/history. A slow
+        # client's writer.drain must not block everyone else's outgoing text.
+        await asyncio.gather(*(session.send(str(message), **kwargs) for session in recipients))
+        return len(recipients)
 
+    @measure_async("party.combat_broadcast", report_every=100)
     async def party_combat_broadcast(self, actor, message, detail="normal"):
         """NVDA-friendly combat feed for other party members in the same room."""
         return await self.party_nearby_broadcast(
@@ -505,14 +510,16 @@ class MudServer:
         return result
 
     async def broadcast_room(self, room_id, text, exclude=None, history_category=None):
-        for s in list(self.sessions):
-            if s is not exclude and s.character and s.character.room_id == room_id:
-                await s.send(text, history_category=history_category)
+        targets = [s for s in tuple(self.sessions)
+                   if s is not exclude and not s.closed and s.character
+                   and s.character.room_id == room_id]
+        if targets:
+            await asyncio.gather(*(s.send(text, history_category=history_category) for s in targets))
 
     async def broadcast_all(self, text, history_category=None):
-        for session in list(self.sessions):
-            if session.character and not session.closed:
-                await session.send(text, history_category=history_category)
+        targets = [s for s in tuple(self.sessions) if s.character and not s.closed]
+        if targets:
+            await asyncio.gather(*(s.send(text, history_category=history_category) for s in targets))
 
     async def double_xp_event_loop(self):
         last_active = double_xp_event_state()["active"]

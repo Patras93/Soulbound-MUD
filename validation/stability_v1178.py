@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import ast
-from contextlib import closing
+from contextlib import closing, redirect_stdout
+from io import StringIO
+from core.promotion_patterns_v2003 import is_level_promotion_v2003
 import asyncio
 import re
 from pathlib import Path
@@ -23,7 +25,8 @@ _selected = [x for x in _class.body if isinstance(x, (ast.FunctionDef, ast.Async
 assert {x.name for x in _selected} == _methods
 _node = ast.ClassDef(name='SessionIOAuthCharacterMixin', bases=[], keywords=[], body=_selected, decorator_list=[])
 _mini = ast.fix_missing_locations(ast.Module(body=[_node], type_ignores=[]))
-_ns = {'time': time, 're': re, 'COMBAT_LOG_MODE_CACHE_SECONDS_V1178': 30.0}
+_ns = {'time': time, 're': re, 'COMBAT_LOG_MODE_CACHE_SECONDS_V1178': 30.0,
+       'is_level_promotion_v2003': is_level_promotion_v2003}
 exec(compile(_mini, str(_source), 'exec'), _ns)
 SessionIOAuthCharacterMixin = _ns['SessionIOAuthCharacterMixin']
 from storage.db_progression import DatabaseProgressionMixin
@@ -46,6 +49,7 @@ class _CountingDb:
         self.modes = {}
         self.reads = {}
         self.saved = []
+        self.activities = []
 
     def combat_log_mode(self, account):
         self.reads[account] = self.reads.get(account, 0) + 1
@@ -57,6 +61,9 @@ class _CountingDb:
 
     def add_combat_event_v0320(self, account, text, kind):
         self.saved.append((account, text, kind))
+
+    def record_activity_v0560(self, account, kind, text, extra):
+        self.activities.append((account, kind, text, extra))
 
 
 class _Session(SessionIOAuthCharacterMixin):
@@ -110,6 +117,21 @@ async def _async_checks(check):
     await a.send_combat('Zapamiętane wydarzenie', 'essential')
     check((50, 'Zapamiętane wydarzenie', 'combat') in db.saved,
           'combat event history remains persisted despite output cache')
+
+    # The isolated AST method must receive the same dependencies as a real
+    # session. Previous tests omitted the new recognition helper and silently
+    # printed ACTIVITY_PROMOTION_LOG_ERROR despite reporting PASS.
+    promotion_errors = StringIO()
+    with redirect_stdout(promotion_errors):
+        await a.send('Level postaci wzrasta do 17')
+        await a.send('Kowalstwo osiąga poziom 5')
+        await a.send('Wilk trafia za 120 obrażeń')
+    check(db.activities == [
+              (50, 'awans', 'Level postaci wzrasta do 17', ''),
+              (50, 'awans', 'Kowalstwo osiąga poziom 5', ''),
+          ], 'advancements recorded once; ordinary combat not recorded as advancement')
+    check(not promotion_errors.getvalue(),
+          'isolated promotion logging produces no hidden NameError or other exceptions')
 
 
 def audit_stability_v1178():

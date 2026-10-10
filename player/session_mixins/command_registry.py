@@ -15,6 +15,11 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'wymiary': ('dimensions_v2000', (COMMAND_TEXT,), {}),
+    'ocean5': ('ocean5_v2000', (COMMAND_TEXT,), {}),
+    'frakcje': ('factions_v2000', (COMMAND_TEXT,), {}),
+    'arena': ('arena_v2000', (COMMAND_TEXT,), {}),
+    'podziemia': ('underground_guide_v1900', (COMMAND_TEXT,), {}),
     'taktyka': ('tactics_v1800', (COMMAND_TEXT,), {}),
     'mistrzostwo': ('class_mastery_v1800', (COMMAND_TEXT,), {}),
     'bogowie': ('chaos_bosses_v1800', (COMMAND_TEXT,), {}),

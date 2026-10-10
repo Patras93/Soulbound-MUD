@@ -44,12 +44,18 @@ REACTIONS = {
  frozenset(('dark','holy')): ('Zaćmienie Duszy', .08),
  frozenset(('arcane','lightning')): ('Przeciążenie Runiczne', .09),
  frozenset(('poison','fire')): ('Spalona Toksyna', .08),
+ frozenset(('water','lightning')): ('Łańcuch Przewodzenia', .10),
+ frozenset(('water','ice')): ('Lodowy Wir', .08),
+ frozenset(('poison','ice')): ('Zatruty Szron', .07),
+ frozenset(('dark','lightning')): ('Burza Cieni', .08),
+ frozenset(('fire','water')): ('Chmura Pary', .07),
 }
 ELEMENT_ALIASES = {
  'ogien':'fire','ognia':'fire','fire':'fire','lod':'ice','lodu':'ice','ice':'ice',
  'blyskawice':'lightning','blyskawic':'lightning','lightning':'lightning',
  'dark':'dark','mrok':'dark','holy':'holy','arcane':'arcane',
- 'poison':'poison','trucizna':'poison',
+ 'poison':'poison','trucizna':'poison','water':'water','woda':'water',
+ 'void':'void','pustka':'void',
 }
 
 

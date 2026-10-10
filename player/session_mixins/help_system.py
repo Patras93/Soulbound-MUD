@@ -67,17 +67,21 @@ class SessionHelpSystemMixin:
             )
 
     async def show_where(self, args=""):
+            action = normalize_lookup_text(args or "")
+            if action in ("fame", "fama"):
+                # Region-based Fame also supports lazily generated dungeon floors.
+                await self.fame_v1702("tutaj")
+                return
             room = ROOMS.get(self.character.room_id)
             if not room:
                 await self.send("Nie mogę ustalić bieżącej lokacji. Użyj look.")
                 return
             await self.send(f"Jesteś tutaj: {room['name']}. Strefa: {room['zone']}.")
-            action = normalize_lookup_text(args or "")
             if action in ("cele", "miasto", "walk"):
                 await self.show_current_city_walk_destinations()
                 return
             if action in ("pomoc", "help", "?"):
-                await self.send("gdzie — aktualna lokacja i wyjścia; gdzie cele — cele prowadzenia w mieście; trasa <cel> — zaplanuj drogę; walk <cel> — rozpocznij prowadzenie.")
+                await self.send("gdzie — aktualna lokacja i wyjścia; gdzie fame / where fame — none, some, most lub all w bieżącym terenie; gdzie cele — cele prowadzenia w mieście; trasa <cel> — zaplanuj drogę; walk <cel> — rozpocznij prowadzenie.")
                 return
             await self.show_exits()
             await self.send("Szukasz miejsca? gdzie cele, trasa <cel>, walk <cel>.")
@@ -125,7 +129,7 @@ class SessionHelpSystemMixin:
                 "legendarnekontrakty / legendarycontracts - bardzo długie kontrakty z ogromnym Class XP, Soul XP i walutą",
                 "geody / geodes - geody w Sakwie Górnika; open geode / otwórz geodę - otwórz jedną geodę",
                 "unlock / odklucz / odblokuj - otwórz skrzynię bossową właściwym kluczem; poza skrzynią odblokuj kolejny Tier Broni Duszy",
-                "gdzie / where — bieżąca lokacja i kierunki; gdzie cele — lokalne cele walk; trasa <cel> — zaplanuj przejście",
+                "gdzie / where — lokacja i wyjścia; gdzie fame / where fame — status Fame terenu none/some/most/all; gdzie cele — lokalne cele walk; trasa <cel> — zaplanuj przejście",
                 "prace — status przetopu, automatycznego zbierania i kolejki skilli; działa także podczas przetapiania",
                 "combat concise / normal / full; combat ostatnie [liczba] — tryb i historia komunikatów walki",
                 "teren info <nazwa> - Soul, NPC, questy, bossowie, profesje i dojście w regionie",

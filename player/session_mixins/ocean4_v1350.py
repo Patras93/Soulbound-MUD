@@ -14,14 +14,14 @@ class SessionOcean4V1350Mixin:
         return conn
 
     def _naval_port_v1350(self):
-        return bool(self.ocean_port_name_v1000(self.character.room_id) or self.character.room_id=='v1310_ocean_departure')
+        return bool(self.ocean_port_name_v1000(self.character.room_id) or self.character.room_id in ('v1310_ocean_departure', 'v2000_ocean_hub'))
 
     async def ocean4_command_v1350(self,args=''):
         parts=str(args or '').lower().split()
         cmd=parts[0] if parts else 'pomoc'
         conn=self._naval_v1350();account=self.account_id
         if cmd in ('pomoc','help','info'):
-            await self.send('OCEAN 4.0 — FLOTA PvE. Komendy: ocean4 flota; ocean4 eskorta dodaj <nr> / usun <nr>; ocean4 napraw <nr> potwierdz; ocean4 cele; ocean4 atak korsarze/blokada/kraken/lewiatan/smok; ocean4 status; ocean4 rozkaz salwa/manewr/oslona/abordaz; ocean4 odwrot potwierdz; ocean4 rekordy.')
+            await self.send('OCEAN 4.0 — FLOTA PvE. Komendy: ocean4 flota; ocean4 eskorta dodaj <nr> / usun <nr>; ocean4 napraw <nr> potwierdz; ocean4 cele; ocean4 cele; ocean4 atak <cel> (także Ocean 5.0); ocean4 status; ocean4 rozkaz salwa/manewr/oslona/abordaz; ocean4 odwrot potwierdz; ocean4 rekordy.')
             await self.send('Dwa okręty eskortowe + aktywny okręt flagowy. Abordaż możliwy przeciw statkom poniżej 45% HP. Każda bitwa zachowuje stan po wylogowaniu. Nie potrzeba drugiej gildii.')
             return
         if cmd=='flota':

@@ -30,6 +30,39 @@ def monster_ai_necromancer_v1160(template):
     return any(token in name for token in ("nekroman", "necroman", "lich", "nekrom", "necrom"))
 
 
+def monster_ai_due_v1901(mob, template, now):
+    """Fast gate before gathering room allies; no world scan during cooldown."""
+    return (
+        int(getattr(mob, "combat_turn", 0) or 0) % 3 == 0
+        and float(now) >= float(getattr(mob, "monster_ai_next_action_v1160", 0) or 0)
+        and monster_ai_eligible_v1160(mob, template)
+    )
+
+
+def monster_ai_room_candidates_v1901(world, mob, template):
+    """Return combat-local AI candidates without rescanning the whole world.
+
+    Ordinary magic/elite monsters need ONLY living engaged allies. Necromancers
+    also need dead room occupants for their once-per-fight resurrection, so
+    keep the old all-mob search for that special case. Order is unchanged.
+    """
+    if monster_ai_necromancer_v1160(template):
+        occupants = (
+            other for other in world.mobs.values()
+            if other.room_id == mob.room_id
+            and (other.engaged_by == mob.engaged_by or not other.alive)
+        )
+        alive, dead = [], []
+        for other in occupants:
+            (alive if other.alive else dead).append(other)
+        return alive, dead
+    return (
+        [other for other in world.room_mobs(mob.room_id)
+         if other.engaged_by == mob.engaged_by],
+        [],
+    )
+
+
 def monster_ai_eligible_v1160(mob, template):
     if not mob or not getattr(mob, "alive", False) or not getattr(mob, "engaged_by", None):
         return False

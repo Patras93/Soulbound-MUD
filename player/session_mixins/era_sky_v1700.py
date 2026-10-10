@@ -97,6 +97,9 @@ def summon_upgrade_stones(level):
 
 from player.session_mixins.chaos_v1800 import SessionChaosV1800Mixin
 from systems.era_chaos_v1800 import ELEMENT_ALIASES
+from systems.summon_status_v1808 import apply_summon_status_v1808
+
+from core.performance_v2002 import measure_async
 
 class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
     def _v1700_conn(self):
@@ -132,12 +135,13 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             conn.execute('RELEASE SAVEPOINT v1700_summon')
             raise
 
-    def _v1702_summon_max_hp(self, kind, level=1):
+    def _v1702_summon_max_hp(self, kind, level=1, owner_hp=None):
         """Give each summon its own durable life pool, scaled to its owner."""
-        try:
-            owner_hp=max(1,int(self.max_hp()))
-        except (AttributeError,TypeError,ValueError):
-            owner_hp=max(100,int(getattr(self.character,'character_level',1) or 1)*100)
+        if owner_hp is None:
+            try:
+                owner_hp=max(1,int(self.max_hp()))
+            except (AttributeError,TypeError,ValueError):
+                owner_hp=max(100,int(getattr(self.character,'character_level',1) or 1)*100)
         kind_spec=SUMMONS[kind]
         factor={'pajak':.35,'wojownik':.80,'mag':.55,'lifeoak':.95,
                 'ancientoak':1.55,'wilk':.50,'sowa':.42,'niedzwiedz':1.1}.get(kind,.65)
@@ -173,13 +177,19 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         rows = conn.execute('SELECT summon_type,level,xp,hp,max_hp,active FROM summons_v1700 '
                             'WHERE account_id=?', (self.account_id,)).fetchall()
         changed = 0
+        # Owner HP is invariant within one synchronization; compute it once
+        # instead of repeating its full equipment/stat calculation per minion.
+        try:
+            owner_hp = max(1, int(self.max_hp()))
+        except (AttributeError, TypeError, ValueError):
+            owner_hp = max(100, int(getattr(self.character, 'character_level', 1) or 1) * 100)
         for r in rows:
             kind = r['summon_type']
             if kind not in SUMMONS:
                 continue
             owner_level = self._v1806_owner_summon_level(kind, r['level'])
             old_max = max(1, int(r['max_hp'] or 0))
-            new_max = self._v1702_summon_max_hp(kind, owner_level)
+            new_max = self._v1702_summon_max_hp(kind, owner_level, owner_hp=owner_hp)
             old_hp = max(0, int(r['hp'] or 0))
             # Preserve an actual death and the relative HP of a wounded summon.
             new_hp = (0 if old_hp <= 0 else
@@ -859,6 +869,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             await self.send(f'Wymieniono {owned} nasion na {owned*2} szyszek bez utraty wartości zapasów.');return
         await self.summons_v1700(raw)
 
+    @measure_async("summon.combat_turn", report_every=50)
     async def summon_combat_turn_v1700(self,mob):
         if not self.character or not mob or not mob.alive or mob.room_id!=self.character.room_id:return
         conn=self._v1700_conn()
@@ -871,7 +882,14 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         _v1800_team_roles={str(r['stance']) for r in rows if r['summon_type'] in SUMMONS}
         _v1800_team_bonus=1.06 if len(rows)>=2 and len(_v1800_team_roles)>=2 else 1.0
         # No loss of mercenary damage. Summons use their own extra attacks.
-        raw_power=max(1,int(max(self.physical_power(),self.spell_power())))
+        # Costs common to the whole summon volley are not recalculated for
+        # each hit. Tactic/formation stays per-hit because HP can change.
+        spell_power = max(1, int(self.spell_power()))
+        raw_power=max(1,int(max(self.physical_power(), spell_power)))
+        _walls,_workshop,_infirmary=self._v1700_city_bonuses()
+        # Owner maximum HP is invariant over the volley; avoid rebuilding
+        # equipment, professions and buffs for each animal/elemental hit.
+        owner_max_hp=max(1,int(self.max_hp()))
         for row in rows:
             if not mob.alive or mob.hp<=0:break
             spec=SUMMONS.get(row['summon_type'])
@@ -896,28 +914,27 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             name=summon_display(row['summon_type'],grade)
             factor*=SOULSTONE_TIERS[grade][3] if row['summon_type'] in ('wojownik','mag') else 1.0
             mastery=self._v1806_owner_summon_level(row['summon_type'],row['level'])
-            _walls,_workshop,_infirmary=self._v1700_city_bonuses()
             # Elementals always scale with the Mage's spell power (INT/WIS and
             # equipment), NOT physical strength or their obsolete summon XP.
-            caster_power=max(1,int(self.spell_power())) if elemental else raw_power
+            caster_power=spell_power if elemental else raw_power
             stance_factor=.8 if stance=='bron' else (.7 if stance=='wspieraj' else 1.0)
             formation_bonus,formation_guard=self._v1800_form_bonus()
             amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*(1+min(.28,.008*_workshop))))
             if formation_guard and self.skill_guard<=0:
-                self.skill_guard=max(1,int(self.max_hp()*formation_guard))
-            if self._v1800_tactic()=='harmonia' and self.current_hp<self.max_hp():
+                self.skill_guard=max(1,int(owner_max_hp*formation_guard))
+            if self._v1800_tactic()=='harmonia' and self.current_hp<owner_max_hp:
                 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
                 if not superboss_healing_blocked_v11179(self):
-                    self.current_hp=min(self.max_hp(),self.current_hp+max(1,int(self.max_hp()*.003)))
+                    self.current_hp=min(owner_max_hp,self.current_hp+max(1,int(owner_max_hp*.003)))
             if stance=='bron':
-                self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),max(1,int(self.max_hp()*.02)))
+                self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),max(1,int(owner_max_hp*.02)))
             if stance=='wspieraj':
-                self.current_hp=min(self.max_hp(),self.current_hp+max(1,int(self.max_hp()*.015)))
+                self.current_hp=min(owner_max_hp,self.current_hp+max(1,int(owner_max_hp*.015)))
             if elemental and elemental['element'] in ('lod','krysztal'):
                 # Ice and crystal specialize in shielding. Use the preexisting guard
                 # contract, consumed on the next incoming hit; don't overwrite buffs.
                 guard_base=(.025,.05,.085)[elemental['rank']] if elemental['element']=='lod' else (.02,.035,.06)[elemental['rank']]
-                barrier=max(1,int(self.max_hp() * min(.12,guard_base+min(.015,mastery*.0004))))
+                barrier=max(1,int(owner_max_hp * min(.12,guard_base+min(.015,mastery*.0004))))
                 self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),barrier)
             amount=await self.apply_boss_defense(mob,amount)
             amount=self.v0210_adjust_player_damage(amount)
@@ -925,16 +942,23 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             amount,_=v0314_adjust_damage_vs_template(MOB_TEMPLATES.get(mob.template_id,{}),amount,kind,name)
             # Chaos God phases suppress summoned blows only; old bosses unchanged.
             amount=max(1,int(amount*(1.0-.05*int(getattr(mob,'_v1800_chaos_phase',0) or 0))))
+            # Ancient Gods grow more resistant to summon swarms as their seals fall.
+            amount=max(1,int(amount*(1.0-.06*min(3,int(getattr(mob,'_v1900_god_phase',0) or 0)))))
             elemental_key=ELEMENT_ALIASES.get(elemental['element']) if elemental else ('dark' if necro and spec[3]=='magic' else None)
             damage=min(max(0,int(mob.hp)),max(1,int(amount)))
             if elemental_key:
                 bonus=await self._v1800_elemental_reaction(mob,elemental_key,damage)
                 damage=min(max(0,int(mob.hp)),damage+bonus)
             mob.hp-=damage
+            # Apply a REAL finite status only on a surviving target. Its DOT and
+            # one-action controls are processed by the shared enemy combat loop.
+            summon_status_text = apply_summon_status_v1808(
+                mob, row['summon_type'], damage,
+                MOB_TEMPLATES.get(mob.template_id, {}), elemental=elemental)
             if row['summon_type'] in ('lifeoak','ancientoak'):
                 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
                 if not superboss_healing_blocked_v11179(self):
-                    heal=min(max(0,self.max_hp()-self.current_hp),max(1,int(damage*.06)))
+                    heal=min(max(0,owner_max_hp-self.current_hp),max(1,int(damage*.06)))
                     self.current_hp+=heal
             target_name=str(MOB_TEMPLATES.get(mob.template_id, {}).get('name') or mob.template_id)
             msg=(f'{name} (przywołanie {getattr(self.character, "name", None) or "gracza"}, poziom {mastery}) '
@@ -944,6 +968,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 msg+=f' Mana -{elemental["upkeep"]} MP.'
             if necro:
                 msg+=f' Mana utrzymania -{necro[8]} MP.'
+            if summon_status_text:
+                msg += ' ' + summon_status_text
             await self.send_combat(msg,detail='essential')
             await self.server.party_combat_broadcast(self,msg,detail='essential')
             if mob.hp<=0:

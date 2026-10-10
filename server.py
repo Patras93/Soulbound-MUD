@@ -77,6 +77,28 @@ from systems.era_chaos_v1800 import install_chaos_v1800
 CHAOS_ERA_V1800 = install_chaos_v1800(
     ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 
+# v1.90.0 — authored Underground Kingdoms, Chaos dimensions and forge artifacts.
+from systems.underground_kingdoms_v1900 import install_underground_kingdoms_v1900
+from data.crafting_recipes import CRAFT_RECIPES
+UNDERGROUND_V1900 = install_underground_kingdoms_v1900(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    SHOP_SELLERS, CRAFT_RECIPES)
+
+
+# v2.00.0 - four linked worlds, islands and real PvE arenas; additive IDs only.
+from systems.parallel_worlds_v2000 import install_parallel_worlds_v2000
+PARALLEL_WORLDS_V2000 = install_parallel_worlds_v2000(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+from systems import ocean4_v1350 as _ocean5
+for _code,_name,_hp,_damage,_reward,_kind,_threat in (
+    ('perlowaflota','Flota Perłowych Sztormów',2500000,50000,490000,'siege',240000),
+    ('czarnaarmada','Czarna Armada Głębin',3900000,71000,750000,'siege',360000),
+    ('sztormowcy','Władcy Błyskawicznych Mórz',5200000,94000,1050000,'monster',490000),
+):
+    if _code in _ocean5.ENEMIES:raise RuntimeError('Ocean 5.0 collision: '+_code)
+    _ocean5.ENEMIES[_code]=(_name,_hp,_damage,_reward,_kind,_threat)
+    _ocean5.MATERIALS[_code]='soul_shard'
+
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
 HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
@@ -105,15 +127,13 @@ HELP_TOPICS['druid'] = [
 HELP_TOPICS['call'] = list(HELP_TOPICS['druid'])
 HELP_TOPICS['order'] = list(HELP_TOPICS['druid'])
 HELP_TOPICS['fame'] = [
-    'fame — tylko: You have no/some/most/all fame in this area. Każdy teren ma osobny wynik, w lochu liczą się wszystkie piętra.',
-    'fame log — zaliczone i oczekujące cele terenu. fame log wszystko — historia świata.',
-    'Fame przynosi po chwili jednorazowy EXP poziomu, Duszy, Biegłości klasowej i każdej statystyki. Profesje i narzędzia nie dostają EXP.',
-    'fame regiony — lista postępów świata; fame none / some / most / all — filtr regionów o danym stopniu ukończenia.',
-    'none = 0%, some = 1–49%, most = 50–99%, all = 100% unikalnych celów Fame w terenie.',
-    'Fame: cele pozostają jednorazowe na postać i teren; wszystkie poprzednie zaliczenia zostają w SQLite.',
-    'Więcej Fame: w terenach z istniejącymi bossami do sześciu celów naturalnych mobów; istniejące większe pule i tereny bez bossów pozostają bez zmian.',
-    'fame cele [strona] — lista celów w obecnym terenie; fame braki [strona] — tylko niezaliczone i oczekujące.',
-    'Wyniki są trwale zapisane w SQLite. Fame nie blokuje awansów i nie zmienia nagród EXP.',
+    'fame — liczba zdobytych punktów Fame na całym świecie i stan celów z aktualnego katalogu.',
+    'where fame / gdzie fame — status Fame bieżącego terenu: You have no/some/most/all fame in this area.',
+    'none 0%, some 1–49%, most 50–99%, all 100%. Loch sumuje wszystkie piętra.',
+    'fame log — zapis zabitych celów terenu; fame log wszystko — cały świat.',
+    'fame cele / fame braki — cele obecnego terenu i to, co jeszcze pozostało.',
+    'fame regiony — wszystkie tereny; fame none/some/most/all — filtr według stanu ukończenia.',
+    'Fame jest zaliczana od razu do SQLite po pierwszym zabiciu; jedynie premia EXP może nadejść później.',
 ]
 
 HELP_TOPICS['chowaniec'].extend([
@@ -149,6 +169,41 @@ HELP_TOPICS['reakcje'] = [
  'Ogień + lód, lód + błyskawice, ogień + błyskawice, mrok + światło i inne pary.',
  'Reakcje mają niewielkie dodatkowe obrażenia (do 10% trafienia), odnowienie 8 s i nie nadpisują dawnych szkół magii.'
 ]
+
+
+HELP_TOPICS['wymiary'] = [
+ 'wymiary — 4 krainy: Sny, Smoki, Duchy, Pustka. Z Wymiarów Chaosu w GÓRĘ.',
+ 'wymiary droga — najbliższy kierunek do Węzła Światów. Nie ma blokady poziomu ani pułapek.',
+ 'Każda kraina ma 18 pomieszczeń, cel Fame, 3 polowania, bossa i dwukierunkowe wyjścia.'
+]
+HELP_TOPICS['ocean5'] = [
+ 'ocean5 — trzy nowe archipelagi i dostęp do Portu Nieznanych Mórz z Węzła Światów w GÓRĘ.',
+ 'ocean4 cele / ocean4 atak <kod> — nowe i dotychczasowe bitwy flot. Istniejące statki pozostają.'
+]
+HELP_TOPICS['frakcje'] = [
+ 'frakcje lista/status; frakcje kontrakt <kod>; frakcje odbierz <kod>.',
+ 'Reputacja osobna dla siedmiu pokojowych frakcji. Kontrakt trwa do prawdziwego zabicia celu, solo lub w drużynie. Odnowienie 1 h.'
+]
+HELP_TOPICS['arena'] = [
+ 'arena lista; arena podejmij <kod>; arena status; arena odbierz <kod>.',
+ 'Hala Areny Legend z Portu Nieznanych Mórz w GÓRĘ. Cztery prawdziwe walki PvE, bez obowiązkowego PvP. Odnowienie 90 min.'
+]
+
+HELP_TOPICS['podziemia'] = [
+    'Podziemne Królestwa: z Rozdroża Bogów Chaosu zejdź w DÓŁ do Bramy.',
+    'PÓŁNOC: Królestwo Miedzianych Ech. WSCHÓD: Dwór Zarodnikowych Królów. POŁUDNIE: Obsydianowe Imperium.',
+    'ZACHÓD: Wymiary Chaosu; trzy wyraźnie opisane ścieżki i walki z bossami.',
+    'podziemia — przewodnik po krainach. Nie ma losowych pułapek ani nowej blokady poziomu.',
+]
+HELP_TOPICS['taktyka'].append(
+    'Przywołania 6.0: taktyka auto — bez własnego EXP; AI dobiera szturm, bastion albo harmonię '
+    'na podstawie HP właściciela i klasy wroga.')
+HELP_TOPICS['fame'].append(
+    'Fame 3.0: fame bestiariusz [strona] — odkryte gatunki i ukryte cele bieżącego terenu. '
+    'Stare punkty pozostają w SQLite; katalog starszych krain rozszerzono do maksymalnie 30 naturalnych celów.')
+HELP_TOPICS['reakcje'].append(
+    'Magia Żywiołów 4.0: także woda + błyskawice, woda + lód, trucizna + lód i inne reakcje '
+    'z ograniczeniem czasu, bez nieskończonego blokowania bossów.')
 
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)

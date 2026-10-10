@@ -98,8 +98,14 @@ async def _async_case():
     assert not record_fame_kill(conn,peers,mob,MOB_TEMPLATES[tid])
     assert conn.execute('SELECT COUNT(*) FROM fame_bosses_v1702').fetchone()[0]==2
     checks+=3
+    # v1.80.7: bare fame is now the WORLD counter; local status moved
+    # to fame tutaj / where fame, while the region list is explicit.
     report=' '.join(fame_report(conn,42))
-    assert zone in report and '1/' in report
+    assert 'Fame: 1 punkt' in report
+    local=' '.join(fame_report(conn,42,'tutaj',room_id=room))
+    assert 'some fame' in local or 'most fame' in local or 'all fame' in local
+    regional=' '.join(fame_report(conn,42,'regiony'))
+    assert '1/' in regional
     assert fame_report(conn,42,'all')
     assert fame_report(conn,42,'none')
     assert fame_report(conn,42,'some')

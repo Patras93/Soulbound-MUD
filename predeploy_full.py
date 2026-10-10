@@ -696,3 +696,32 @@ from validation.v1710_summons import run_regression as _summon_mastery_full_v171
 print(f'SUMMON MASTERY v1.70.10 FULL: {_summon_mastery_full_v1710()} checks PASS')
 from validation.v1710_guild800 import run_regression as _guild_full_v1710
 print(f'GUILD 800 v1.70.10 FULL: {_guild_full_v1710()} checks PASS')
+
+# v1.80.8: prove venom, burn, freeze and lightning on active summons.
+from validation.v1808_summon_status import run_regression as _summon_status_full_v1808
+print(f'SUMMON STATUS v1.80.8 FULL: {_summon_status_full_v1808()} checks PASS')
+
+# v1.90.0: verify authored routes, real drops/recipes and boss phases.
+from validation.v1900_ancient_kingdoms import run_regression as _ancient_full_v1900
+print(f'ANCIENT KINGDOMS v1.90.0 FULL: {_ancient_full_v1900()} checks PASS')
+
+# v1.90.1: ten AoE opponents use only local AI candidates; necromancy preserved.
+from validation.v1901_aoe_ai_performance import run_regression as _aoe_ai_perf_v1901
+print(f'AOE AI v1.90.1 FULL: {_aoe_ai_perf_v1901()} checks PASS')
+
+# v2.00.0: real map links and party-safe reputation/arena credits.
+from validation.v2000_parallel_worlds import run_regression as _v2000_full
+print(f'PARALLEL WORLDS v2.00.0 FULL: {_v2000_full()} checks PASS')
+
+# v2.00.1: compact catalogue must match the original numeric defaults.
+from validation.v2001_catalogue_streaming import run_regression as _catalogue_full_v2001
+print(f'CATALOGUE STREAMING v2.00.1 FULL: {_catalogue_full_v2001()} checks PASS')
+
+# v2.00.2: SQLite history retains 40 immediately durable events per player,
+# while minion synchronization avoids repeated owner HP calculations.
+from validation.v2002_engine_performance import run_regression as _engine_perf_v2002
+print(f"ENGINE PERFORMANCE v2.00.2 FULL: {_engine_perf_v2002()} checks PASS")
+
+# v2.00.3: independent cross-system performance regression.
+from validation.v2003_engine_optimization import run_regression as _engine_opt_full_v2003
+print(f'ENGINE OPTIMIZATION v2.00.3 FULL: {_engine_opt_full_v2003()} checks PASS')

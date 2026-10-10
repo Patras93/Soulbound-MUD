@@ -78,7 +78,7 @@ async def _run():
     assert not record_fame_kill(conn,[p],mob,MOB_TEMPLATES[tid])
     assert 'zaliczone (premia EXP oczekuje)' in ' '.join(fame_report(conn,80,'log',room_id=rid))
     checks+=3
-    assert fame_report(conn,80,'',room_id=rid)!=['You have no fame in this area.']
+    assert fame_report(conn,80,'tutaj',room_id=rid)!=['You have no fame in this area.']
     assert (await pay_due_fame(p))==0
     conn.execute('UPDATE fame_pending_v1703 SET due_at=? WHERE account_id=80',(time.time()-1,));conn.commit()
     assert (await pay_due_fame(p))==1
@@ -90,7 +90,7 @@ async def _run():
         expected = f'You have most fame in this area. Missing fame: {final_name}.'
     else:
         expected = 'You have some fame in this area.'
-    assert fame_report(conn,80,'',room_id=rid)==[expected]
+    assert fame_report(conn,80,'tutaj',room_id=rid)==[expected]
     checks+=5
     assert fame_report(conn,80,'log wszystko',room_id='temple')
     assert fame_report(conn,80,'none',room_id='temple')

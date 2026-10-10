@@ -27,6 +27,7 @@ from network.protocol_gameplay_utils import (
     verify_password,
 )
 from player.character import Character
+from core.promotion_patterns_v2003 import is_level_promotion_v2003
 
 import time
 import secrets
@@ -287,18 +288,7 @@ class SessionIOAuthCharacterMixin:
             if history_store and self.account_id is not None and not getattr(self, "history_replaying", False):
                 try:
                     _value = str(text or "").strip()
-                    _promotion_patterns = (
-                        r"^Level postaci wzrasta do \d+",
-                        r"^Broń Duszy osiąga Soul Level \d+",
-                        r"^.+: Biegłość rośnie do \d+",
-                        r"^.+: Wzniesienie rośnie do rangi \d+",
-                        r"^.+ osiąga poziom \d+",
-                        r"^.+ awansuje na Tier \d+",
-                        r"^.+: awansujesz na Rangę \d+",
-                        r"^.+ awansuje na Skill Level \d+",
-                        r"^Soul Weapon Mastery wzrasta do \d+",
-                    )
-                    if _value and any(re.match(_pattern, _value, re.IGNORECASE) for _pattern in _promotion_patterns):
+                    if _value and is_level_promotion_v2003(_value):
                         self.server.db.record_activity_v0560(self.account_id, "awans", _value, "")
                 except Exception as exc:
                     print(f"ACTIVITY_PROMOTION_LOG_ERROR: {type(exc).__name__}: {exc}", flush=True)

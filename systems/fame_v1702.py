@@ -58,9 +58,10 @@ def fame_region(room_id, rooms=None):
     return zone or 'Nieznana kraina'
 
 
-# An Alter-inspired spread of memorable Fame hunts. Legacy zones with more
-# than six targets are left untouched (including previously expanded zones).
-FAME_TARGET_GOAL_PER_REGION_V1802 = 6
+# An Alter-inspired spread of memorable Fame hunts. Preserve all older
+# target IDs, then grow only with unique natural species already present.
+# New Kingdoms use authored Fame; older zones can have as many as 30 if varied.
+FAME_TARGET_GOAL_PER_REGION_V1802 = 30
 
 
 def _fame_threat_rank(template_id):
@@ -81,7 +82,7 @@ def fame_catalog():
     """Deterministic Fame objectives from naturally placed enemies.
 
     * Keep EVERY old authored objective and EVERY v1.80.1 fallback objective.
-    * Where an existing Fame zone has fewer than six objectives, include
+    * Where an existing Fame zone has fewer than the target objective count, include
       powerful non-boss natural enemies until there are six (if available).
     * Zones with no prior authored Fame keep all their fallback targets.
     * Never use random instances, temporary summons or spawn repetition as new
@@ -234,10 +235,10 @@ def _fame_status(done, total):
 
 
 def fame_report(conn, account_id, raw='', room_id=None):
-    """At the player's location show *local* fame, not the world-wide total.
+    """Bare 'fame' gives the permanent world total; 'where fame' uses 'tutaj'.
 
     'fame regiony' lists all zones; none/some/most/all filter that list.
-    Optional room_id preserves the original API used by older tests/tools.
+    All totals come from existing permanent SQLite kill credits, never EXP.
     """
     ensure_schema(conn)
     cat = fame_catalog()
@@ -249,6 +250,14 @@ def fame_report(conn, account_id, raw='', room_id=None):
     # Permanent Fame is earned on kill. Pending describes only deferred EXP,
     # never an uncredited target. Old SQLite progress stays valid.
     args = str(raw or '').strip().lower().split()
+    if not args:
+        # Preserve old kills even if a future content update removes a target.
+        # A single (region, enemy) first defeat is exactly one point.
+        available = sum(len(targets) for targets in cat.values())
+        current = sum((region, bid) in defeated for region, bosses in cat.items()
+                      for bid in bosses)
+        return [f'Fame: {len(defeated)} punktów. Cele aktualnego świata: '
+                f'{current}/{available}. Teren: where fame lub gdzie fame.']
     if args and args[0] in ('cele', 'targets', 'braki'):
         if room_id is None:
             return ['FAME CELE: podgląd jest dostępny z bieżącej lokacji w świecie.']
@@ -280,6 +289,28 @@ def fame_report(conn, account_id, raw='', room_id=None):
         if page < pages:
             lines.append(f'Następna strona: fame {"braki" if only_missing else "cele"} {page+1}.')
         return lines
+    if args and args[0] in ('bestiariusz','encyklopedia','bestiary'):
+        if room_id is None:
+            return ['FAME BESTIARIUSZ: wejdź do terenu, aby wyświetlić jego potwory.']
+        zone=fame_region(room_id)
+        targets=sorted(cat.get(zone, ()), key=lambda mid:
+                       (str(MOB_TEMPLATES.get(mid, {}).get('name') or mid).casefold(),mid))
+        page=max(1,int(args[1])) if len(args)>1 and args[1].isdigit() else 1
+        page_size=10
+        pages=max(1,(len(targets)+page_size-1)//page_size)
+        if page>pages:
+            return [f'FAME BESTIARIUSZ: dostępne strony 1-{pages}.']
+        found=sum((zone,tid) in defeated for tid in targets)
+        lines=[f'FAME BESTIARIUSZ — {zone}: odkryto {found}/{len(targets)} gatunków. '
+               f'Strona {page}/{pages}.']
+        for tid in targets[(page-1)*page_size:page*page_size]:
+            known=(zone,tid) in defeated
+            t=MOB_TEMPLATES.get(tid,{})
+            lines.append(f'{str(t.get("name") or tid) if known else "Nieodkryty przeciwnik"}: '
+                         f'{"zaliczony" if known else "do odnalezienia"}.')
+        if page<pages:
+            lines.append(f'Dalej: fame bestiariusz {page+1}.')
+        return lines
     if args and args[0]=='log':
         all_regions=len(args)>1 and args[1] in ('wszystko','calosc','regiony','swiat')
         zone=fame_region(room_id) if room_id else None
@@ -304,9 +335,9 @@ def fame_report(conn, account_id, raw='', room_id=None):
         return lines
     mode = ''
     page = 1
-    local_tokens = ('', 'tutaj', 'tu', 'status', 'teren', 'lokacja')
+    local_tokens = ('tutaj', 'tu', 'status', 'teren', 'lokacja')
     global_tokens = ('regiony', 'krainy', 'swiat', 'świat', 'lista')
-    if not args or args[0] in local_tokens:
+    if args[0] in local_tokens:
         if room_id is not None:
             region = fame_region(room_id)
             bosses = cat.get(region, ())
@@ -335,9 +366,10 @@ def fame_report(conn, account_id, raw='', room_id=None):
                 else:
                     message += f' Missing fame: {name}.'
             return [message]
-        # Internal API without room_id: preserve global reporting for older callers.
+        return ['Fame terenu wymaga bieżącej lokacji. Wpisz where fame w grze.']
     elif args[0] in ('pomoc', 'help'):
-        return ['fame — jedno zdanie: You have no/some/most/all fame in this area (zależnie od bieżącego terenu).',
+        return ['fame — liczba zdobytych punktów Fame na całym świecie.',
+                'where fame / gdzie fame — status obecnego terenu: none, some, most lub all.',
                 'W lochu Fame sumuje wszystkie piętra; każdy teren ma własny status.',
                 'fame regiony — przegląd wszystkich terenów; fame none/some/most/all — filtr terenów.',
                 'fame log — historia aktualnego terenu; fame log wszystko — historia całego świata.',
@@ -353,7 +385,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
     elif args[0].isdigit():
         page = max(1, int(args[0]))
     else:
-        return ['FAME: fame — aktualny teren; fame regiony — cały świat; fame none/some/most/all — tereny według postępu.']
+        return ['FAME: fame — liczba punktów; where fame — obecny teren; fame regiony — cały świat; fame none/some/most/all — filtr terenów.']
 
     total = sum(len(values) for values in cat.values())
     collected = sum((region, boss) in defeated for region, bosses in cat.items() for boss in bosses)
@@ -378,7 +410,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
         lines.append(f'{region}: {done}/{n} Fame — {status}.')
     if page < pages:
         lines.append(f'Następna strona: fame {mode+" " if mode else "regiony "}{page+1}'.strip())
-    lines.append('fame — stan bieżącego terenu. Fame nie blokuje awansów ani nagród EXP.')
+    lines.append('fame — łączna liczba punktów; where fame — stan bieżącego terenu. Fame nie blokuje awansów ani nagród EXP.')
     return lines
 
 

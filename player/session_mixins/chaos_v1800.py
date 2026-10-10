@@ -9,6 +9,7 @@ FORMATIONS = {
     'szturm':('Ofensywa przywołań',1.08,0.0),
     'bastion':('Ochrona drużyny',.94,.04),
     'harmonia':('Wspomaganie i leczenie',.97,.015),
+    'auto':('Inteligentne dostosowanie do zagrożenia',1.0,0.0),
 }
 
 
@@ -28,12 +29,30 @@ class SessionChaosV1800Mixin:
         if not getattr(self.server.db,'_v1800_ready',False):
             ensure_combat_v1800(conn)
             self.server.db._v1800_ready=True
-        if hasattr(self,'_v1800_tactic_cache'):return self._v1800_tactic_cache
+        if hasattr(self,'_v1800_tactic_cache'):
+            return self._v1900_resolve_tactic(self._v1800_tactic_cache)
         row=conn.execute('SELECT formation FROM summon_tactics_v1800 WHERE account_id=?',(self.account_id,)).fetchone()
         result=str(row['formation']) if row else 'szturm'
         result=result if result in FORMATIONS else 'szturm'
         self._v1800_tactic_cache=result
-        return result
+        return self._v1900_resolve_tactic(result)
+
+    def _v1900_resolve_tactic(self, stored):
+        """Automatic, owner-level summon AI with bounded, readable decisions."""
+        if stored != 'auto':
+            return stored
+        if not getattr(self, 'character', None):
+            return 'szturm'
+        maximum = max(1, int(self.max_hp()))
+        if int(getattr(self, 'current_hp', maximum)) * 100 < maximum * 55:
+            return 'harmonia'
+        mob = (self.server.world.mobs.get(self.combat_mob_key)
+               if getattr(self, 'combat_mob_key', None) else None)
+        if mob and getattr(mob, 'alive', False):
+            template = MOB_TEMPLATES.get(mob.template_id, {})
+            if template.get('boss') or template.get('world_boss') or template.get('v1900_ancient_god'):
+                return 'bastion'
+        return 'szturm'
 
     async def tactics_v1800(self, raw=''):
         if not self.character:return
@@ -50,7 +69,7 @@ class SessionChaosV1800Mixin:
             return
         state=self._v1800_tactic()
         await self.send(f'TAKTYKA PRZYWOŁAŃ: {state} — {FORMATIONS[state][0]}. '
-                        'taktyka szturm / bastion / harmonia. Wybór nie zmienia EXP ani poziomów.')
+                        'taktyka szturm / bastion / harmonia / auto. Auto zmienia formację zależnie od HP i przeciwnika; nie zmienia EXP.')
 
     def _v1800_form_bonus(self):
         return FORMATIONS[self._v1800_tactic()][1:]
@@ -86,6 +105,34 @@ class SessionChaosV1800Mixin:
         await self.server.party_combat_broadcast(
             self, f'{template["name"]}: {phases[stage]}! Faza {stage}/3, '
                   f'odporność na ciosy przywołań rośnie.',detail='essential')
+
+    async def ancient_boss_phase_v1900(self, mob):
+        """Phases for the new gods, respecting earlier scripted superbosses."""
+        template=MOB_TEMPLATES.get(getattr(mob,'template_id',''),{})
+        if not template.get('v1900_ancient_god') or not getattr(mob,'alive',False):
+            return
+        maximum=max(1,int(self.mob_effective_max_hp_v11330(mob,template)))
+        current=max(0,int(mob.hp))
+        stage=sum(current*100<=maximum*threshold for threshold in (70,40,15))
+        old=int(getattr(mob,'_v1900_god_phase',0) or 0)
+        if stage<=old:
+            return
+        mob._v1900_god_phase=stage
+        names=('','Przełamanie Pierwszej Pieczęci','Gniew Pradawnych','Ostatnia Przysięga')
+        await self.server.party_combat_broadcast(self,
+            f'{template.get("name", "Pradawny Bóg")}: {names[stage]}! Faza {stage}/3. '
+            'Potężniejsze kontrataki i odporniejsze fazowo przywołania.',
+            detail='essential')
+
+    async def underground_guide_v1900(self, raw=''):
+        from systems.underground_kingdoms_v1900 import KINGDOMS,DIMENSIONS
+        await self.send('PODZIEMNE KRÓLESTWA: Rozdroże Bogów Chaosu -> DÓŁ. '
+                        'Z Bramy: północ, wschód, południe do krain; zachód do Wymiarów Chaosu.')
+        for _,zone,element,level,*_ in KINGDOMS:
+            await self.send(f'{zone}: sugerowana moc {level}, element {element}.')
+        for _,zone,element,level in DIMENSIONS:
+            await self.send(f'{zone}: próba poziomu {level}, element {element}.')
+        await self.send('Nie ma limitów poziomów ani pułapek; stare nieskończone lochy działają jak wcześniej.')
 
     async def chaos_bosses_v1800(self,raw=''):
         from systems.era_chaos_v1800 import CHAOS_REALMS

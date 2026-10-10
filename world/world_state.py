@@ -125,6 +125,9 @@ def treasure_chest_economy_stage_v11314(room_id):
     return max(1, min(800, max(fallback, target)))
 
 
+from core.performance_v2002 import measure_sync
+
+
 class World:
     def __init__(self):
         self.mobs = {}
@@ -267,22 +270,16 @@ class World:
             template_meta["auto_aggro"] = False
         if not any(r == room_id and t == spawn_template_id for r, t in MOB_SPAWNS):
             MOB_SPAWNS.append((room_id, spawn_template_id))
-        existing = [
-            m for m in self.mobs.values()
-            if m.room_id == room_id
-            and elite_source_template_id_v11338(
-                m.template_id, MOB_TEMPLATES.get(m.template_id, {})
-            ) == spawn_template_id
-        ]
-        if existing:
-            return existing[0]
-        n = 1 + sum(
-            1 for m in self.mobs.values()
-            if m.room_id == room_id
-            and elite_source_template_id_v11338(
-                m.template_id, MOB_TEMPLATES.get(m.template_id, {})
-            ) == spawn_template_id
-        )
+        # A single pass is sufficient. The previous code ran a second
+        # full-world count after establishing that there was no matching mob;
+        # that second count was guaranteed to be zero.
+        for existing in self.mobs.values():
+            if (existing.room_id == room_id
+                    and elite_source_template_id_v11338(
+                        existing.template_id, MOB_TEMPLATES.get(existing.template_id, {})
+                    ) == spawn_template_id):
+                return existing
+        n = 1
         key = f"{room_id}:{spawn_template_id}:{n}"
         template_id = self._elite_spawn_template_v11338(spawn_template_id)
         v0190_apply_combat_template(MOB_TEMPLATES[template_id])
@@ -1000,6 +997,7 @@ class World:
         # Zachowany alias dla starszego kodu/testów.
         return self.ensure_infinite_dungeon_floor(room_id)
 
+    @measure_sync("world.refresh", report_every=200)
     def refresh(self, force=False):
         """Refresh expirations/respawns with one mob pass.
 
@@ -1017,26 +1015,33 @@ class World:
         live_counts = {}
         live_by_room = {}
         for mob_key, mob in self.mobs.items():
+            # Most mobs are ordinary MobState instances. A direct state dict
+            # avoids repeated slow missing-attribute lookups across the world.
+            flags = vars(mob)
             # Summons never outlive their summoner or leave a stale fight running.
-            parent_key = getattr(mob, "monster_ai_parent_v1160", None)
+            parent_key = flags.get("monster_ai_parent_v1160")
             if parent_key:
                 parent = self.mobs.get(parent_key)
-                expired_add = now >= float(getattr(mob, "v016_expires_at", 0.0) or 0.0) > 0.0
+                expired_add = now >= float(flags.get("v016_expires_at", 0.0) or 0.0) > 0.0
                 if expired_add or not parent or not parent.alive or not parent.engaged_by:
                     mob.alive = False
                     mob.engaged_by = None
                     mob.respawn_at = float("inf")
                     mob.v016_expires_at = now - 1
-            expires = max(
-                float(getattr(mob, "v016_expires_at", 0.0) or 0.0),
-                float(getattr(mob, "v029_expires_at", 0.0) or 0.0),
-                float(getattr(mob, "v0140_event_expires_at", 0.0) or 0.0),
-            )
+            # Ordinary mobs have no expiry fields. Avoid three conversions
+            # and max() for every permanent mob every refresh tick.
+            expires = 0.0
+            if "v016_expires_at" in flags:
+                expires = max(0.0, float(flags["v016_expires_at"] or 0.0))
+            if "v029_expires_at" in flags:
+                expires = max(expires, float(flags["v029_expires_at"] or 0.0))
+            if "v0140_event_expires_at" in flags:
+                expires = max(expires, float(flags["v0140_event_expires_at"] or 0.0))
             if expires and expires <= now and not mob.engaged_by:
                 expired_keys.append(mob_key)
                 continue
 
-            if not (getattr(mob, "v016_ephemeral", False) and not mob.alive):
+            if not (flags.get("v016_ephemeral", False) and not mob.alive):
                 if not mob.alive and mob.respawn_at <= now:
                     current_template = MOB_TEMPLATES.get(mob.template_id, {})
                     source_template_id = elite_source_template_id_v11338(
@@ -1051,6 +1056,10 @@ class World:
                     mob.engaged_by = None
                     mob.aoe_engaged_by = None
                     mob.combat_turn = 0
+                    # Do not carry a previous death's poison/freeze/cooldowns
+                    # into a fresh respawn. No persistent SQLite fields.
+                    from systems.summon_status_v1808 import clear_summon_status_v1808
+                    clear_summon_status_v1808(mob)
                     mob.boss_opening_summoned_v1301 = False
                     mob.boss_last_summon_turn_v1281 = -1
                     mob.boss_add_seq_v1281 = 0

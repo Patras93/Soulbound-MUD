@@ -43,6 +43,7 @@ from player.session_mixins.imperial_economy_v1320 import SessionImperialEconomyV
 from player.session_mixins.imperial_economy_v1321 import SessionImperialEconomyV1321Mixin
 from player.session_mixins.living_empires_v1340 import SessionLivingEmpiresV1340Mixin
 from player.session_mixins.ocean4_v1350 import SessionOcean4V1350Mixin
+from player.session_mixins.eras_v2000 import SessionErasV2000Mixin
 from player.session_mixins.economy4_v1360 import SessionEconomy4V1360Mixin
 from player.session_mixins.legendary_achievements_v1370 import SessionLegendaryAchievementsV1370Mixin
 from player.session_mixins.forgotten_v1500 import SessionForgottenV1500Mixin
@@ -61,6 +62,7 @@ class Session(
     SessionLegendaryAchievementsV1370Mixin,
     SessionEconomy4V1360Mixin,
     SessionOcean4V1350Mixin,
+    SessionErasV2000Mixin,
     SessionLivingEmpiresV1340Mixin,
     SessionImperialEconomyV1321Mixin,
     SessionItemProtectionV1280Mixin,

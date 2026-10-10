@@ -64,7 +64,7 @@ def run_regression():
     assert any('zaliczone (premia EXP oczekuje)' in msg for msg in fame_report(db, 100, 'cele',room))
     assert any('do zdobycia' in msg for msg in fame_report(db, 100, 'braki',room))
     assert 'Jaskinie Goblinów' in fame_report(db, 100, 'cele',room)[0]
-    assert fame_report(db, 100, '', room)[0].startswith('You have ')
+    assert fame_report(db, 100, 'tutaj', room)[0].startswith('You have ')
     db.execute('UPDATE fame_pending_v1703 SET due_at=?', (time.time() - 1,))
     db.commit()
     async def pay():

@@ -1179,6 +1179,12 @@ def v0866_zone_threat_profile(zone):
     return result
 
 COMMAND_ALIASES = CommandAliasMap(COMMAND_ALIAS_DEFINITIONS)
+# v2.00.0: four distinct accessible PvE command families.
+COMMAND_ALIASES.update({
+    "wymiary":"wymiary", "swiaty":"wymiary",
+    "ocean5":"ocean5", "nieznanemorza":"ocean5",
+    "frakcje":"frakcje", "arena":"arena",
+})
 
 from data.items import ITEMS
 

@@ -81,9 +81,9 @@ def audit_v1264():
     merc_dps=owner.adaptive_member_mercenary_dps_v1261(owner)
     check(isinstance(player_dps,int) and player_dps>10**400,'unbounded player contribution')
     check(isinstance(merc_dps,int) and merc_dps>10**400,'unbounded three-merc contribution')
-    check(owner.adaptive_party_dps_v1261([owner])==player_dps+merc_dps,'party total exact')
-    check(adaptive_target_max_hp_v11330(10**6,player_dps+merc_dps,{'rank':'boss'}) > 10**400,
-          'boss HP tracks player and hires')
+    check(owner.adaptive_party_dps_v1261([owner])==player_dps,'party scaling excludes three mercenaries')
+    check(adaptive_target_max_hp_v11330(10**6,player_dps,{'rank':'boss'}) > 10**400,
+          'boss HP tracks real player without hires')
     check(adaptive_reward_multiplier_v11330(10**6,10**400)>5.0,
           'very difficult encounters pay increasing multiplier')
 
