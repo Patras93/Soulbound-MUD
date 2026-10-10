@@ -30,7 +30,12 @@ COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
 COPY predeploy_check.py /app/predeploy_check.py
 COPY predeploy_full.py /app/predeploy_full.py
 COPY Dockerfile /app/Dockerfile
+# v1.60.5: Testujemy pliki START/STOP w czasie budowania, chociaz Linux ich nie uruchamia.
+# Bez tego v1.60.4 mial FileNotFoundError: /app/START_Soulbound.bat.
+COPY START_Soulbound.bat START_Soulbound_UKRYTY.vbs Start-Soulbound-Windows.bat STOP_Soulbound.bat host_windows.py /app/
 RUN python /app/predeploy_check.py \
     && python /app/predeploy_full.py \
-    && rm -f /app/predeploy_check.py /app/predeploy_full.py /app/Dockerfile
+    && rm -f /app/predeploy_check.py /app/predeploy_full.py /app/Dockerfile \
+       /app/START_Soulbound.bat /app/START_Soulbound_UKRYTY.vbs \
+       /app/Start-Soulbound-Windows.bat /app/STOP_Soulbound.bat /app/host_windows.py
 CMD ["python", "-u", "/app/server.py"]

@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.60.4 - WINDOWS SERWER W TLE"
+LATEST_CHANGES_TITLE = "Soulbound v1.60.5 - NAPRAWA BUDOWANIA RAILWAY"
 LATEST_CHANGES = [
+    "v1.60.5: Naprawiono build Railway: do testow predeploy kopiowane sa pliki START/STOP Windows i po testach usuwane z obrazu Linux.",
     "v1.60.4: START_Soulbound.bat uruchamia serwer w tle bez otwartego okna CMD; STOP_Soulbound.bat zatrzymuje go bezpiecznie.",
     "v1.60.3: START_Soulbound.bat i STOP_Soulbound.bat; bezpieczne zamykanie z zapisem sesji przez lokalny uwierzytelniony kanal.",
     "Kopalnia: kop kierunki, kop 1..10 i kop <kierunek> wlaczaja stale auto-kopanie; kop off zatrzymuje.",

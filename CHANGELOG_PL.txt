@@ -1,3 +1,12 @@
+Soulbound v1.60.5 — NAPRAWA BUDOWANIA RAILWAY DLA START W TLE — 2026-10-10
+Aktualna paczka: v1.60.5 (2026-10-10)
+- Naprawiono blad FileNotFoundError: /app/START_Soulbound.bat podczas budowania Docker na Railway.
+- W Dockerfile pliki START_Soulbound.bat, START_Soulbound_UKRYTY.vbs, Start-Soulbound-Windows.bat, STOP_Soulbound.bat i host_windows.py sa kopiowane na czas obu testow predeploy.
+- Walidator Windows nadal sprawdza wszystkie osiem warunkow bez omijania ich na Linux.
+- Po pomyslnym predeploy Windowsowe pliki launchera i skrypty walidacji sa usuwane z finalnego obrazu Railway; serwer Linux nie uruchamia BAT ani VBS.
+- Nie zmieniono uruchamiania Soulbound na Windows, gry, map, walki, EXP ani struktury zapisow SQLite.
+- Przed wdrozeniem zrob kopie bazy postaci; zachowaj wolumen Railway.
+
 Soulbound v1.60.4 — SERWER WINDOWS W TLE — 2026-10-10
 Aktualna paczka: v1.60.4 (2026-10-10)
 - START_Soulbound.bat uruchamia teraz serwer w ukrytym oknie przez Windows Script Host; CMD znika po starcie.
