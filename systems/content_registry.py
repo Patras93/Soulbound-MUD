@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.80.0 - BOGOWIE CHAOSU, MAGIA I KLASY 5.0"
+LATEST_CHANGES_TITLE = "Soulbound v1.80.2 - WIECEJ FAME W KRAINACH"
 LATEST_CHANGES = [
+    "v1.80.2: rozszerzono Fame do 6 celow w regionach z bossami, bez zmiany starych zaliczen i nagrod; fame cele i fame braki.",
     "v1.80.0: taktyka szturm/bastion/harmonia, 12 bossow Chaosu, reakcje zywiolow i mistrzostwo uzyj dla 14 klas. Wszystkie stare przywolania i leczenie nadal dzialaja.",
     "v1.70.10: Druidzie Life Oak od poziomu 150, Ancient Oak od poziomu 400; postep zwierzat i konstruktow, skalowanie HP, Nekromanta z nowymi straznikami i metalowymi konstruktami.",
     "v1.70.9: 10 biomow, 41 nowych przywolan zwierzecych, rzadkie od poziomu 100, legendarne od 300; wiewiorka tylko w lesie i na lace.",

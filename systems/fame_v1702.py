@@ -58,17 +58,38 @@ def fame_region(room_id, rooms=None):
     return zone or 'Nieznana kraina'
 
 
+# An Alter-inspired spread of memorable Fame hunts. Legacy zones with more
+# than six targets are left untouched (including previously expanded zones).
+FAME_TARGET_GOAL_PER_REGION_V1802 = 6
+
+
+def _fame_threat_rank(template_id):
+    """Prefer significant natural enemies without touching their combat stats.
+
+    Stable, fixed authored HP/damage matter here: procedurally inferred level
+    may have an unrelated pseudo-random value and must not drive selection.
+    """
+    enemy = MOB_TEMPLATES.get(template_id, {})
+    return (int(enemy.get('max_hp') or 0),
+            int(enemy.get('damage') or 0),
+            int(enemy.get('soul_reward') or 0),
+            str(template_id))
+
+
 @lru_cache(maxsize=1)
 def fame_catalog():
-    """Fame targets for placed monsters, preserving all previously authored regions.
+    """Deterministic Fame objectives from naturally placed enemies.
 
-    Areas with at least one authored Fame opponent keep their EXACT old list.
-    In areas with no Fame at all, each naturally spawned mob type is a
-    one-time regional Fame target. This never awards a repeat-kill bonus.
+    * Keep EVERY old authored objective and EVERY v1.80.1 fallback objective.
+    * Where an existing Fame zone has fewer than six objectives, include
+      powerful non-boss natural enemies until there are six (if available).
+    * Zones with no prior authored Fame keep all their fallback targets.
+    * Never use random instances, temporary summons or spawn repetition as new
+      objectives. Names remain distinct to avoid indistinguishable Fame hunts.
     """
     from systems.content_registry import MOB_SPAWNS
     authored = {}
-    fallback = {}
+    candidates = {}
     for rid, mid in MOB_SPAWNS:
         if rid not in ROOMS:
             continue
@@ -76,17 +97,33 @@ def fame_catalog():
         if not template or not _eligible_natural_fame_enemy(template):
             continue
         zone = fame_region(rid)
+        candidates.setdefault(zone, set()).add(str(mid))
         if _is_fame_target(template):
             authored.setdefault(zone, set()).add(str(mid))
-        else:
-            fallback.setdefault(zone, set()).add(str(mid))
-    # Do not inflate completion in older regions: existing achievements and
-    # completed 'all' states remain valid after this update.
-    regions = set(authored) | set(fallback)
-    return {
-        zone: tuple(sorted(authored.get(zone) or fallback.get(zone, ())))
-        for zone in sorted(regions, key=str.casefold)
-    }
+    results = {}
+    for zone in sorted(candidates, key=str.casefold):
+        placed = candidates[zone]
+        old_authored = authored.get(zone, set())
+        # v1.80.1: no Fame zone -> all natural types give one Fame each.
+        if not old_authored:
+            results[zone] = tuple(sorted(placed))
+            continue
+        chosen = set(old_authored)
+        # Previously authored objectives keep their IDs and historical SQLite
+        # credit intact. Older areas gain additional, attainable targets.
+        seen_names = {str(MOB_TEMPLATES[t].get('name') or t).casefold()
+                      for t in chosen}
+        if len(chosen) < FAME_TARGET_GOAL_PER_REGION_V1802:
+            for tid in sorted(placed - chosen, key=_fame_threat_rank, reverse=True):
+                if len(chosen) >= FAME_TARGET_GOAL_PER_REGION_V1802:
+                    break
+                name = str(MOB_TEMPLATES[tid].get('name') or tid).casefold()
+                if name in seen_names:
+                    continue
+                seen_names.add(name)
+                chosen.add(tid)
+        results[zone] = tuple(sorted(chosen))
+    return results
 
 
 def _eligible_natural_fame_enemy(template):
@@ -177,6 +214,37 @@ def fame_report(conn, account_id, raw='', room_id=None):
         (account_id,))}
     defeated.difference_update(pending)
     args = str(raw or '').strip().lower().split()
+    if args and args[0] in ('cele', 'targets', 'braki'):
+        if room_id is None:
+            return ['FAME CELE: podgląd jest dostępny z bieżącej lokacji w świecie.']
+        zone = fame_region(room_id)
+        all_targets = cat.get(zone, ())
+        only_missing = args[0] == 'braki'
+        ordered = sorted(all_targets, key=lambda tid: (
+            str(MOB_TEMPLATES.get(tid, {}).get('name') or tid).casefold(), tid))
+        if only_missing:
+            ordered = [tid for tid in ordered if (zone, tid) not in defeated]
+        page = max(1, int(args[1])) if len(args) > 1 and args[1].isdigit() else 1
+        from math import ceil
+        page_size = 12
+        pages = max(1, ceil(len(ordered) / page_size))
+        if page > pages:
+            return [f'FAME: strona {page} nie istnieje. Dostępne strony: 1–{pages}.']
+        done = sum((zone, tid) in defeated for tid in all_targets)
+        pending_count = sum((zone, tid) in pending for tid in all_targets)
+        lines = [f'FAME {"BRAKI" if only_missing else "CELE"} — {zone}: '
+                 f'{done}/{len(all_targets)} zaliczono; '
+                 f'{pending_count} oczekuje. Strona {page}/{pages}.']
+        for tid in ordered[(page-1)*page_size:page*page_size]:
+            name = str(MOB_TEMPLATES.get(tid, {}).get('name') or tid)
+            status = ('oczekuje na nagrodę' if (zone, tid) in pending else
+                      'zaliczone' if (zone, tid) in defeated else 'do zdobycia')
+            lines.append(f'{name} — {status}.')
+        if not ordered:
+            lines.append('Brak celów Fame do wyświetlenia.')
+        if page < pages:
+            lines.append(f'Następna strona: fame {"braki" if only_missing else "cele"} {page+1}.')
+        return lines
     if args and args[0]=='log':
         all_regions=len(args)>1 and args[1] in ('wszystko','calosc','regiony','swiat')
         zone=fame_region(room_id) if room_id else None
@@ -239,6 +307,7 @@ def fame_report(conn, account_id, raw='', room_id=None):
                 'W lochu Fame sumuje wszystkie piętra; każdy teren ma własny status.',
                 'fame regiony — przegląd wszystkich terenów; fame none/some/most/all — filtr terenów.',
                 'fame log — historia aktualnego terenu; fame log wszystko — historia całego świata.',
+                'fame cele — wszystkie cele bieżącego terenu; fame braki — niezliczone cele.',
                 'none=0%, some=1–49%, most=50–99%, all=100% dostępnych celów Fame.']
     elif args[0] in ('none', 'some', 'most', 'all'):
         mode = args[0]

@@ -1,3 +1,16 @@
+Soulbound v1.80.2 — WIĘCEJ FAME W CAŁYM ŚWIECIE — 2026-10-10
+Aktualna paczka: v1.80.2 (kompletna baza v1.80.1).
+- Fame: rozszerzono pulę jednorazowych celów w istniejących terenach z bossami i elitami — do 6 różnych, naturalnie występujących rodzajów przeciwników na teren, o ile jest ich tyle. Najpierw zachowane wszystkie oryginalne cele, następnie najsilniejsi naturalni przeciwnicy danego terenu.
+- Tereny, które miały wcześniej więcej niż 6 celów, zachowują całą pulę; podobnie krainy, którym dodano Fame w v1.80.1. Nigdy nie usuwa się historycznych celów i zaliczeń gracza.
+- Fame zaliczana jest tylko raz na postać za dany rodzaj moba w danym terenie; współdzielona zgodnie z istniejącymi zasadami party. Powtarzane zabicia nie dają kolejnej nagrody Fame.
+- fame cele [strona] — lista wszystkich celów Fame w bieżącym terenie oraz stan zaliczenia. fame braki [strona] — tylko cele jeszcze niezaliczone lub oczekujące na nagrodę. Listy czytelne w NVDA, 12 wpisów na stronę.
+- Balans, statystyki, XP z walk, postacie, stare zaliczenia Fame, poziomy i zapis SQLite zachowano. Aktualizacja nie usuwa ani nie zeruje bazy danych. Ukończenie terenów może spaść poniżej 100% wskutek pojawienia się nowych, jeszcze niezaliczonych celów.
+- Wcześniejsze poprawki v1.80.1 (zwierzęta, Fame w pustych terenach, piwnica, leczenie) pozostają w paczce.
+- WERYFIKACJA na pełnym, załadowanym świecie: 152 tereny, 345 celów Fame w v1.80.1, 589 w v1.80.2 (+244); wszystkie stare cele zachowane. Jaskinie Goblinów 2→6; Nekropolia 1→6.
+- Testy mechanizmu Fame: 2 członków party zaliczonych przy jednym naturalnym zabiciu, duplikat bez drugiego zaliczenia, stary zapis SQLite nietknięty, zaplanowana wypłata EXP następuje tylko raz; nowa komenda pokazuje stany i brakujące cele — PASS.
+- Regresje istniejących systemów: v1702 — 28 kontroli PASS; v1800 — 103 testy treści i 18 testów runtime PASS. Test v1703 zatrzymuje się na asercji aktywacji przywołania także na oryginalnej paczce v1.80.1; nie traktowano go jako testu zaliczonego i nie przebudowywano niezwiązanych systemów.
+- Pełnych testów graczy online, produkcyjnej bazy SQLite ani długiej pętli walki nie wykonywano. Przed podmianą paczki zrób kopię aktywnej bazy danych.
+
 Soulbound v1.80.1 — FAME, ZWIERZĘTA, WALKA I PIWNICA ŚWIĄTYNI — 2026-10-10
 Aktualna paczka: v1.80.1 (pełna baza v1.80.0, bez resetu postaci i SQLite).
 - Fame: dodano jednorazowe cele za naturalnie występujące moby w 46 terenach, w których wcześniej nie było żadnego celu Fame (134 typy w bazowym katalogu świata).
