@@ -4148,3 +4148,25 @@ print(f'WINDOWS CLEAN STOP v1.70.5: {_clean_stop_v1705()} checks PASS')
 # v1.70.6: Windows detached start must not leave cmd.exe locking release folder.
 from validation.v1706_windows_no_locks import run_regression as _win_nolocks_v1706
 print(f'WINDOWS NO LOCKS v1.70.6: {_win_nolocks_v1706()} checks PASS')
+
+# v1.70.7: reproduce production druid gather with a character_level-only Character.
+from validation.v1707_druid_pinecone_fix import run_regression as _druid_pinecones_v1707
+print(f"DRUID PINECONES v1.70.7: {_druid_pinecones_v1707()} checks PASS")
+
+# v1.70.8: area-specific call, magic squirrel and real pet orders.
+from validation.v1708_druid_call import run_regression as _call_v1708
+print(f"DRUID CALL v1.70.8: {_call_v1708()} checks PASS")
+
+# v1.70.9: richer biome-dependent druid calls, level gates and squirrel biome.
+from validation.v1709_terrain_fauna import run_regression as _terrain_fauna_v1709
+print(f'TERRAIN FAUNA v1.70.9: {_terrain_fauna_v1709()} checks PASS')
+
+# v1.70.10: full companion scaling, constructs, oak gates and guild cap 800.
+from validation.v1710_summons import run_regression as _summon_mastery_v1710
+print(f'SUMMON MASTERY v1.70.10: {_summon_mastery_v1710()} checks PASS')
+from validation.v1710_guild800 import run_regression as _guild_v1710
+print(f'GUILD 800 v1.70.10: {_guild_v1710()} checks PASS')
+
+# v1.70.11: wounded live companions heal; dead/hidden do not resurrect.
+from validation.v1711_companion_healing import run_regression as _summon_heal_v1711
+print(f'COMPANION HEALING v1.70.11: {_summon_heal_v1711()} checks PASS')

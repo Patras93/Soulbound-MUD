@@ -72,6 +72,11 @@ from systems.sky_era_v1700 import install_sky_era_v1700
 SKY_ERA_V1700 = install_sky_era_v1700(
     ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 
+# v1.80.0 — additive Chaos God arenas and class mastery catalogue.
+from systems.era_chaos_v1800 import install_chaos_v1800
+CHAOS_ERA_V1800 = install_chaos_v1800(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
+
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
 HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
@@ -89,12 +94,15 @@ HELP_TOPICS['chowaniec'] = [
 ]
 HELP_TOPICS.setdefault('nekro', list(HELP_TOPICS['chowaniec']))
 HELP_TOPICS['druid'] = [
-    'Druid: Life Oak 80 MP + 2 szyszki; Ancient Oak 180 MP + 5 szyszek. Wilk, Sowa, Niedźwiedź wymagają Pieczęci Chowańców oraz MP.',
-    'druid zbierz — szyszki w lesie (odnowienie 90 sekund); druid szyszki — stan zapasów; druid wymien — wymiana starych nasion na szyszki.',
-    'chowaniec przywolaj lifeoak / ancientoak / wilk / sowa / niedzwiedz; chowaniec lista — aktualne HP każdego pomocnika.',
-    'Każdy pomocnik ma własne HP, otrzymuje obrażenia od wrogów i ginie przy 0 HP. Powrót wymaga ponownego kosztu many i materiałów.',
-    'Trzy aktywne przywołania łącznie. Zwierzęta i drzewa walczą automatycznie, a dęby wspierają leczenie.',
+    'call list — zwierzęta bieżącego terenu, w tym rzadkie (od poziomu 100) i legendarne (od 300); call <nazwa> przywołuje za manę bez Pieczęci Chowańców.',
+    'call squirrel / call wiewiorka — tylko lasy i łąki; wiewiórka rzuca 2–4 szyszki i ucieka; 20 MP, odnowienie 90 s.',
+    'Life Oak: 2 szyszki i 80 MP. Ancient Oak: 5 szyszek i 180 MP. Wpisz chowaniec przywolaj lifeoak/ancientoak.',
+    'order <zwierze|all> atakuj|bron|wspieraj|czekaj — kierowanie zachowaniem żywych zwierząt w walce.',
+    'druid szyszki — stan materiałów; druid wymien — wymiana starych nasion; druid zbierz wskazuje wiewiórkę.',
+    'Każdy przywołany pomocnik ma HP, może zginąć i wymaga ponownego przywołania po zalogowaniu; limit trzech aktywnych.',
 ]
+HELP_TOPICS['call'] = list(HELP_TOPICS['druid'])
+HELP_TOPICS['order'] = list(HELP_TOPICS['druid'])
 HELP_TOPICS['fame'] = [
     'fame — tylko: You have no/some/most/all fame in this area. Każdy teren ma osobny wynik, w lochu liczą się wszystkie piętra.',
     'fame log — zaliczone i oczekujące cele terenu. fame log wszystko — historia świata.',
@@ -116,6 +124,28 @@ HELP_TOPICS['miasto'] = ['miasto zaloz <nazwa> — własna osada; miasto buduj m
     'Mury: osłona; lazaret: leczenie; warsztat: obrażenia przywołań; targ: dochód co 2 godziny przez miasto zbierz. Wejście z przystani niebios.']
 HELP_TOPICS['przebudzenie'] = ['Klasy 4.0: przebudzenie ofensywa / obrona / wsparcie.',
     'Jednorazowa ścieżka rozwoju na główną klasę. Bonusy do ataku, osłony albo leczenia w realnej walce.']
+
+HELP_TOPICS['bogowie'] = [
+ 'Bogowie Chaosu: 4 krainy i 12 bossów; droga z Targu Osad Założycieli na zachód.',
+ 'Na HP 75%, 50%, 25% nowa faza walki zwiększa odporność bossa na ataki przywołań.',
+ 'Kronikarze mają prawdziwe odnawialne polowania. Komenda: bogowie.'
+]
+HELP_TOPICS['taktyka'] = [
+ 'Przywołania 5.0: taktyka szturm / bastion / harmonia. Formacja jest zapisana w SQLite.',
+ 'Szturm podnosi atak chowańców o 8%, bastion daje osłonę i obniża atak o 6%, harmonia wspiera odzyskiwanie HP.',
+ 'Ustalenie formacji nie usuwa starych rozkazów order ani poziomów pomocników.'
+]
+HELP_TOPICS['mistrzostwo'] = [
+ 'Klasy 5.0: mistrzostwo — nazwa umiejętności obecnej klasy. mistrzostwo uzyj — wykonanie.',
+ 'Od poziomu postaci 150, odnowienie 45 sekund, klasy magiczne koszt 110 MP.',
+ 'Wojownicy ofensywni atakują wskazany cel; Strażnik, Mec i Inżynier dają osłonę; Kapłan i Druid leczą.',
+ 'Wybrana wcześniej ścieżka przebudzenia pozostaje bez zmian.'
+]
+HELP_TOPICS['reakcje'] = [
+ 'Magia Żywiołów 3.0: kolejne różne żywioły przywołań trafiające ten sam cel mogą wywołać reakcję.',
+ 'Ogień + lód, lód + błyskawice, ogień + błyskawice, mrok + światło i inne pary.',
+ 'Reakcje mają niewielkie dodatkowe obrażenia (do 10% trafienia), odnowienie 8 s i nie nadpisują dawnych szkół magii.'
+]
 
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)

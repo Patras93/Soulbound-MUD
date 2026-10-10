@@ -520,6 +520,30 @@ class SessionCombatSkillsMixin:
                 )
                 mob = None
                 aoe_mobs = []
+                # A learned healing spell can target a living local summon by
+                # its visible name. Do not charge MP before verifying the target.
+                if kind == "heal" and not skill.get("mec_authored") and target_text:
+                    from player.session_mixins.era_sky_v1700 import SUMMONS
+                    summon_target=self._v1711_find_companion(target_text,include_party=True)
+                    if summon_target:
+                        owner,row=summon_target
+                        if int(row['hp'])>=int(row['max_hp']):
+                            await self.send(f"{skill['name']}: pomocnik ma pełne HP.")
+                            return
+                        class _SummonHpTarget:
+                            def max_hp(self):return int(row['max_hp'])
+                        amount=self.healing_skill_amount_v11196(skill,_SummonHpTarget(),skill_power)
+                        actual=self._v1711_heal_companion(owner,row,amount)
+                        if not actual:
+                            await self.send('Leczenie przywołania nie powiodło się (Nullify Healing lub cel nie jest już aktywny).')
+                            return
+                        self.current_mana-=mana_cost
+                        await self.grant_skill_use_xp(skill)
+                        await self.send(f"{skill['name']}: {SUMMONS[row['summon_type']][0]} odzyskuje {actual} HP. Mana: {self.current_mana}.")
+                        if owner is not self:
+                            await owner.send(f"{self.character.name} leczy {SUMMONS[row['summon_type']][0]} za {actual} HP.")
+                        if self.combat_mob_key:await self.ensure_realtime_combat()
+                        return
                 if kind == "group_heal":
                     recipients=list(
                         self.server.party_sessions(
@@ -537,7 +561,8 @@ class SessionCombatSkillsMixin:
                         session for session in recipients
                         if session.current_hp<session.max_hp()
                     ]
-                    if not injured:
+                    summon_injured=[(owner,row) for owner,row in self._v1711_companions_for_healing(include_party=True) if int(row['hp'])<int(row['max_hp'])]
+                    if not injured and not summon_injured:
                         await self.send(
                             f"{skill['name']}: nikt w drużynie w tej lokacji "
                             "nie potrzebuje leczenia."
@@ -547,7 +572,9 @@ class SessionCombatSkillsMixin:
                         session for session in injured
                         if not superboss_healing_blocked_v11179(session)
                     ]
-                    if not healable:
+                    from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+                    summon_healable=[(owner,row) for owner,row in summon_injured if not superboss_healing_blocked_v11179(owner)]
+                    if not healable and not summon_healable:
                         await self.send(
                             f"{skill['name']}: Nullify Healing blokuje leczenie "
                             "wszystkich rannych celów."
@@ -578,11 +605,22 @@ class SessionCombatSkillsMixin:
                                     f"{self.character.name} używa {skill['name']}. "
                                     f"Odzyskujesz {actual} HP."
                                 )
+                    from player.session_mixins.era_sky_v1700 import SUMMONS
+                    summoned_healed=[]
+                    for owner,row in summon_healable:
+                        class _SummonHpTarget:
+                            def max_hp(self):return int(row['max_hp'])
+                        value=self.healing_skill_amount_v11196(skill,_SummonHpTarget(),skill_power)
+                        gained=self._v1711_heal_companion(owner,row,value)
+                        if gained:
+                            summoned_healed.append((owner,row,gained))
+                            if owner is not self:
+                                await owner.send(f"{self.character.name} używa {skill['name']}: {SUMMONS[row['summon_type']][0]} odzyskuje {gained} HP.")
                     await self.grant_skill_use_xp(skill)
-                    total=sum(amount for _target,amount in healed)
+                    total=sum(amount for _target,amount in healed)+sum(amount for _,_,amount in summoned_healed)
                     await self.send(
                         f"{skill['name']}: uleczono {len(healed)} członków drużyny "
-                        f"w tej lokacji, łącznie {total} HP."
+                        f"w tej lokacji oraz {len(summoned_healed)} przywołań, łącznie {total} HP."
                         + (
                             f" Nullify Healing zablokował {blocked_count} cel(e)."
                             if blocked_count else ""
@@ -2316,6 +2354,10 @@ class SessionCombatSkillsMixin:
                             )
                         )
                         machine_note=(machine_note or "")+_reaction_note_v11339
+                        # 1.80.0: limited cross-attack elemental reactions also
+                        # work for existing AoE spells, without changing base XP.
+                        if damage>0 and _skill_element_v11339:
+                            damage+=await self._v1800_elemental_reaction(target,_skill_element_v11339,damage)
                         target.hp -= damage
                         total_damage += damage
                         marker = " Krytyk." if critical else ""
@@ -2681,6 +2723,8 @@ class SessionCombatSkillsMixin:
                     machine_note=""
                 else:
                     machine_note=""
+                if damage>0 and not _mec_percent_damage_exact and _inferred_element_v11339:
+                    damage+=await self._v1800_elemental_reaction(mob,_inferred_element_v11339,damage)
                 mob.hp -= damage
                 if (
                     skill.get("mec_authored")

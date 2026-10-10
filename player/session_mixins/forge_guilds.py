@@ -603,7 +603,8 @@ class SessionForgeGuildsMixin:
                 ("treasury1m","Milion w Skarbcu",treasury>=1_000_000),("guild10","Gildia Poziomu 10",level>=10),
                 ("guild50","Gildia Poziomu 50",level>=50),("guild100","Gildia Poziomu 100",level>=100),
                 ("guild200","Gildia Poziomu 200",level>=200),("guild300","Gildia Poziomu 300",level>=300),
-                ("guild600","Gildia Poziomu 600",level>=V0926_GUILD_MAX_LEVEL),
+                ("guild600","Gildia Poziomu 600",level>=600),
+                ("guild800","Gildia Poziomu 800",level>=V0926_GUILD_MAX_LEVEL),
                 ("deposit_1m_gold","Milion Złota Wpłacony",metrics.get("money_deposited",0)>=1_000_000*SILVER_PER_GOLD),
                 ("boss100","Stu Bossów Gildii",metrics.get("boss_kills",0)>=100),
                 ("crypt1000","Tysiąc Pięter",max_crypt>=1000),
@@ -1037,7 +1038,7 @@ class SessionForgeGuildsMixin:
             if action in ("rozbuduj","upgrade"):
                 if rank!="leader": await self.send("Tylko lider może wydawać skarbiec na rozbudowę Gildii."); return
                 grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
-                if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 600."); return
+                if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 800."); return
                 cost=v0926_guild_upgrade_cost(level); confirm=normalize_lookup_text(rest) in ("potwierdz","potwierdź","confirm","tak")
                 if not confirm:
                     await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_price_text(cost)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return

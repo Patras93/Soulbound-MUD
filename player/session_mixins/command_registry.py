@@ -15,6 +15,10 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'taktyka': ('tactics_v1800', (COMMAND_TEXT,), {}),
+    'mistrzostwo': ('class_mastery_v1800', (COMMAND_TEXT,), {}),
+    'bogowie': ('chaos_bosses_v1800', (COMMAND_TEXT,), {}),
+    'reakcje': ('reactions_info_v1800', (COMMAND_TEXT,), {}),
     'fame': ('fame_v1702', (COMMAND_TEXT,), {}),
     'mag': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
     'zywiolak': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
@@ -23,6 +27,8 @@ COMMAND_REGISTRY = {
     'chowance': ('summons_v1700', (COMMAND_TEXT,), {}),
     'nekro': ('necro_v1700', (COMMAND_TEXT,), {}),
     'druid': ('druid_v1700', (COMMAND_TEXT,), {}),
+    'call': ('druid_call_v1708', (COMMAND_TEXT,), {}),
+    'order': ('druid_order_v1708', (COMMAND_TEXT,), {}),
     'miasto': ('city_v1700', (COMMAND_TEXT,), {}),
     'przebudzenie': ('classes_v1700', (COMMAND_TEXT,), {}),
     'era60': ('era_legends_v1600', (COMMAND_TEXT,), {}),

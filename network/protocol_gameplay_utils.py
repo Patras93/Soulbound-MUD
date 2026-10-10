@@ -1021,7 +1021,8 @@ V0925_CRAFTBOX_ALIASES = {
 # ============================================================
 # v0.9.26 - GILDIA GRACZY: SKARBIEC / ROZWÓJ / RANGI
 # ============================================================
-V0926_GUILD_MAX_LEVEL = 600
+V0926_GUILD_MAX_LEVEL = 800
+V0926_GUILD_OLD_CAP = 600
 V0926_GUILD_LEGACY_MAX_LEVEL = 100
 V0926_GUILD_PREVIOUS_CAP = 400
 V0926_GUILD_DEFAULT_ROLES = {
@@ -1052,7 +1053,7 @@ V0926_GUILD_PERMISSION_LABELS = {
 
 def _v0926_legacy_guild_anchor_400():
     # v0.35.11 używało Generator Core MAX_LEVEL=400 jako kotwicy kosztu.
-    # Wyliczamy tę samą wartość bez zależności od nowego globalnego capu 600.
+    # Wyliczamy tę samą wartość bez zależności od aktualnego limitu 800.
     old_max = int(balance_math.MAX_LEVEL)
     try:
         balance_math.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
@@ -1061,7 +1062,7 @@ def _v0926_legacy_guild_anchor_400():
         balance_math.MAX_LEVEL = old_max
 
 def v0926_guild_upgrade_cost(current_level):
-    """Koszt rozwoju Gildii 1-600; poziomy 1-400 zachowują balans v0.35.11."""
+    """Koszt rozwoju Gildii 1-800; poziomy 1-600 zachowują wcześniejszy balans."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(current_level or 1)))
     if level >= V0926_GUILD_MAX_LEVEL:
         return 0
@@ -1078,22 +1079,24 @@ def v0926_guild_upgrade_cost(current_level):
     if level <= V0926_GUILD_PREVIOUS_CAP:
         extension=(float(level)/float(V0926_GUILD_LEGACY_MAX_LEVEL))**2.0
         return min(9_000_000_000_000_000_000,max(1,int(round(anchor*extension))))
-    # 401-600 kontynuuje krzywą od dokładnego kosztu poziomu 400.
+    # 401-800 kontynuuje niezmienioną krzywą od poziomu 400.
     cost_400=min(9_000_000_000_000_000_000,max(1,int(round(anchor*(4.0**2.0)))))
     extension=(float(level)/float(V0926_GUILD_PREVIOUS_CAP))**2.0
     return min(9_000_000_000_000_000_000,max(1,int(round(cost_400*extension))))
 
 def v0926_guild_bonus_percent(level):
-    """Bonus Gildii 1-600; 1-400 identyczne z v0.35.11, potem dalszy wzrost."""
+    """Poziomy 1-600 bez zmian; 601-800 daje dalszy, łagodny wzrost do 35%."""
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
         return balance_math.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
     if level <= V0926_GUILD_PREVIOUS_CAP:
         progress=(level-V0926_GUILD_LEGACY_MAX_LEVEL)/(V0926_GUILD_PREVIOUS_CAP-V0926_GUILD_LEGACY_MAX_LEVEL)
         return min(23,11+int(round(12*(progress**0.90))))
-    # Po starym capie 400 bonus nadal rośnie, do 29% na poziomie 600.
-    progress=(level-V0926_GUILD_PREVIOUS_CAP)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_PREVIOUS_CAP)
-    return min(29,23+int(round(6*(progress**0.90))))
+    if level <= V0926_GUILD_OLD_CAP:
+        progress=(level-V0926_GUILD_PREVIOUS_CAP)/(V0926_GUILD_OLD_CAP-V0926_GUILD_PREVIOUS_CAP)
+        return min(29,23+int(round(6*(progress**0.90))))
+    progress=(level-V0926_GUILD_OLD_CAP)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_OLD_CAP)
+    return min(35,29+int(round(6*(progress**0.90))))
 
 
 def v0926_bool_word(value):

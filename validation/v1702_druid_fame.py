@@ -25,7 +25,7 @@ async def _async_case():
     class Dummy(SessionSkyV1700Mixin):
         def __init__(self,aid):
             self.account_id=aid;self.server=SimpleNamespace(db=db)
-            self.character=SimpleNamespace(class_name='Druid',room_id='whisper_grove',level=250)
+            self.character=SimpleNamespace(class_name='Druid',room_id='whisper_grove',character_level=250)
             self.current_mana=0;self.combat_mob_key=None
         async def send(self,message):messages.append(str(message))
         def active_class_names(self):return ('Druid',)
@@ -60,16 +60,18 @@ async def _async_case():
     await druid.summons_v1700('przywolaj ancientoak')
     assert db.item_qty(42,cone)==4 and druid.current_mana==mana
     checks+=2
-    await druid.druid_v1700('zbierz')
+    await druid.druid_call_v1708('squirrel')
     assert db.item_qty(42,cone)>=6
     count=db.item_qty(42,cone)
-    await druid.druid_v1700('zbierz')
+    await druid.druid_call_v1708('squirrel')
     assert db.item_qty(42,cone)==count
     checks+=2
     druid.character.room_id='square'
     conn.execute('UPDATE druid_pinecones_v1702 SET last_gather=0 WHERE account_id=42')
-    await druid.druid_v1700('zbierz')
+    druid.current_mana=0
+    await druid.druid_call_v1708('squirrel')
     assert db.item_qty(42,cone)==count
+    druid.current_mana=500
     checks+=1
     db.add_item(42,'v1700_nature_seed',3)
     await druid.druid_v1700('wymien')
@@ -77,8 +79,10 @@ async def _async_case():
     assert db.item_qty(42,cone)==count+6
     checks+=2
     druid.character.room_id='whisper_grove'
+    # v1.70.10: Ancient Oak unlocks at character level 400.
+    druid.character.character_level=400
     await druid.summons_v1700('przywolaj ancientoak')
-    assert db.item_qty(42,cone)==count+1 and druid.current_mana==mana-180
+    assert db.item_qty(42,cone)==count+1 and druid.current_mana==320
     checks+=2
     # Register first real kill to each of two eligible party members, never twice.
     catalog=fame_catalog()

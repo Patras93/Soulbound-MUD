@@ -4029,7 +4029,7 @@ def progression_600_and_leader_disband_audit_v0360():
         "guild": int(V0926_GUILD_MAX_LEVEL),
     }
     metrics["caps"]=caps
-    check("all_main_caps_800", all(v==800 for k,v in caps.items() if k != "guild") and caps["guild"] == 600, caps)
+    check("all_main_caps_800", all(v==800 for v in caps.values()), caps)
     check("soul_tiers_80", int(SOUL_MAX_TIER)==80 and len(SOUL_TIER_THRESHOLDS)==80 and int(SOUL_TIER_THRESHOLDS[-1])==800)
     check("tool_tiers_80", int(TOOL_MAX_TIER)==80 and len(TOOL_TIER_THRESHOLDS)==80 and int(TOOL_TIER_THRESHOLDS[-1])==800)
     check("profession_rank_cap_800", int(PROFESSION_RANK_THRESHOLDS[-1])==800)
@@ -4096,11 +4096,13 @@ def progression_600_and_leader_disband_audit_v0360():
     check("guild_bonus_legacy_preserved",
           v0926_guild_bonus_percent(100)==11 and v0926_guild_bonus_percent(200)==15
           and v0926_guild_bonus_percent(300)==19 and v0926_guild_bonus_percent(400)==23
-          and v0926_guild_bonus_percent(600)==29,
-          [v0926_guild_bonus_percent(x) for x in (100,200,300,400,600)])
+          and v0926_guild_bonus_percent(600)==29 and v0926_guild_bonus_percent(800)==35,
+          [v0926_guild_bonus_percent(x) for x in (100,200,300,400,600,800)])
     check("guild_cost_monotonic_extension",
           v0926_guild_upgrade_cost(399)>0 and v0926_guild_upgrade_cost(400)>=v0926_guild_upgrade_cost(399)
-          and v0926_guild_upgrade_cost(500)>=v0926_guild_upgrade_cost(400))
+          and v0926_guild_upgrade_cost(500)>=v0926_guild_upgrade_cost(400)
+          and v0926_guild_upgrade_cost(799)>=v0926_guild_upgrade_cost(600)
+          and v0926_guild_upgrade_cost(800)==0)
 
     try:
         import inspect

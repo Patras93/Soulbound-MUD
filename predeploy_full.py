@@ -683,3 +683,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+from validation.v1708_druid_call import run_regression as _call_full_v1708
+print(f"DRUID CALL v1.70.8 FULL: {_call_full_v1708()} checks PASS")
+
+# v1.70.9: richer biome-dependent druid calls, level gates and squirrel biome.
+from validation.v1709_terrain_fauna import run_regression as _terrain_fauna_v1709
+print(f'TERRAIN FAUNA v1.70.9: {_terrain_fauna_v1709()} checks PASS')
+
+# v1.70.10: preserve former guild economy while extending ceiling to 800.
+from validation.v1710_summons import run_regression as _summon_mastery_full_v1710
+print(f'SUMMON MASTERY v1.70.10 FULL: {_summon_mastery_full_v1710()} checks PASS')
+from validation.v1710_guild800 import run_regression as _guild_full_v1710
+print(f'GUILD 800 v1.70.10 FULL: {_guild_full_v1710()} checks PASS')

@@ -373,8 +373,13 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.70.6 - START I STOP BEZ BLOKOWANIA FOLDERU"
+LATEST_CHANGES_TITLE = "Soulbound v1.80.0 - BOGOWIE CHAOSU, MAGIA I KLASY 5.0"
 LATEST_CHANGES = [
+    "v1.80.0: taktyka szturm/bastion/harmonia, 12 bossow Chaosu, reakcje zywiolow i mistrzostwo uzyj dla 14 klas. Wszystkie stare przywolania i leczenie nadal dzialaja.",
+    "v1.70.10: Druidzie Life Oak od poziomu 150, Ancient Oak od poziomu 400; postep zwierzat i konstruktow, skalowanie HP, Nekromanta z nowymi straznikami i metalowymi konstruktami.",
+    "v1.70.9: 10 biomow, 41 nowych przywolan zwierzecych, rzadkie od poziomu 100, legendarne od 300; wiewiorka tylko w lesie i na lace.",
+    "v1.70.8: call list, call squirrel, call <zwierze>, order <zwierze> <rozkaz>; szyszki za mane od wiewiorki, bez Pieczeci Chowancow.",
+    "v1.70.7: druid zbierz prawidlowo odczytuje poziom postaci i przyznaje szyszki bez AttributeError SB-5AD59274.",
     "v1.70.6: START uruchamia Pythona bez pozostawiania CMD; STOP czeka na zapis SQLite i zamkniecie launchera. Aktualizator chroni folder przed podmiana podczas pracy.",
     "v1.70.5: Windows host_windows.py prawidlowo odroznia SystemExit(0) przy STOP od awarii; bledy.log bez falszywych alarmow.",
     "v1.70.4: Wpisanie fame pokazuje tylko bieżący teren: You have no/some/most/all fame in this area. Fame log i regiony zachowane.",
@@ -2810,9 +2815,12 @@ HELP_TOPICS['fame'] = [
 ]
 
 HELP_TOPICS['druid'] = [
-    'Druid: chowaniec przywolaj lifeoak (2 szyszki, 80 MP) lub ancientoak (5 szyszek, 180 MP).',
-    'druid zbierz — szyszki w Gaju Szeptów i leśnych krainach, odnawiane co 90 sekund.',
-    'druid szyszki — stan materiałów i koszty; druid wymien — wymiana starych Nasion Gaju (1 na 2 szyszki).',
-    'chowaniec aktywuj lifeoak/ancientoak — ponownie zużywa szyszki i manę; zwierzęta nadal wymagają pieczęci i many.',
-    'Wszystkie przywołania walczą automatycznie. Brak many lub materiałów = brak kosztu.'
+    'call list — zwierzęta zależne od bieżącego terenu; call <nazwa> — przywołanie za manę bez Pieczęci Chowańców.',
+    'call squirrel — tylko las i łąka, wiewiórka rzuca 2–4 szyszki i odchodzi, 20 MP, 90 s odnowienia.',
+    'chowaniec przywolaj lifeoak — 2 szyszki + 80 MP; ancientoak — 5 szyszek + 180 MP.',
+    'order <zwierzę|all> atakuj|bron|wspieraj|czekaj — wydawanie rozkazów.',
+    'druid szyszki — zasoby; druid wymien — wymiana dawnych nasion; druid zbierz odsyła do call squirrel.',
+    'Zwierzęta i dęby mają HP, mogą zginąć i wymagają ponownego wezwania po zalogowaniu.'
 ]
+HELP_TOPICS['call'] = list(HELP_TOPICS['druid'])
+HELP_TOPICS['order'] = list(HELP_TOPICS['druid'])

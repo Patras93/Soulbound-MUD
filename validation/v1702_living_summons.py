@@ -41,7 +41,7 @@ async def verify():
             self.account_id=aid
             self.current_mana=5000
             self.current_hp=1000
-            self.character=SimpleNamespace(level=200,room_id='somewhere')
+            self.character=SimpleNamespace(level=200,character_level=200,room_id='somewhere')
             self.combat_mob_key=None
             self.cls=cls
             self.server=SimpleNamespace(db=db,party_combat_broadcast=self.party)
@@ -127,7 +127,7 @@ async def verify():
     assert up['level']==6 and up['hp']==0 and up['max_hp']>row['max_hp']
     assert necro2.current_mana<before and db.item_qty(9,'v1700_soul_stone')<100
     checks+=2
-    assert len(SUMMONS)==20 and len(SUMMON_MANA)==20
+    assert len(SUMMONS)>=20 and len(SUMMON_MANA)==len(SUMMONS)
     checks+=2
     con.close()
     return checks

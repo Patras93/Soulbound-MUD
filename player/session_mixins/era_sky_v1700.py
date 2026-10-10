@@ -12,9 +12,9 @@ SUMMONS={
  'mag':('Szkielet Maga','Nekromanta',{'v1700_dragon_tooth':2},'magic',.72),
  'lifeoak':('Life Oak','Druid',{'v1702_pinecone':2},'magic',.52),
  'ancientoak':('Ancient Oak','Druid',{'v1702_pinecone':5},'magic',.85),
- 'wilk':('Wilk Runiczny','Druid',{'v1700_bond_token':1},'physical',.44),
- 'sowa':('Sowa Gwiezdna','Druid',{'v1700_bond_token':1},'magic',.46),
- 'niedzwiedz':('Niedźwiedź Runiczny','Druid',{'v1700_bond_token':2},'physical',.66),
+ 'wilk':('Wilk Runiczny','Druid',{},'physical',.44),
+ 'sowa':('Sowa Gwiezdna','Druid',{},'magic',.46),
+ 'niedzwiedz':('Niedźwiedź Runiczny','Druid',{},'physical',.66),
 }
 
 
@@ -23,10 +23,18 @@ SUMMONS={
 # The original uncolored v1.70.0 stone is the red tier: NO DATA LOSS.
 from systems.soulstones_v1701 import SOULSTONE_TIERS, STONE_ALIASES, STONE_BY_KEY
 from systems.mage_elementals_v1702 import ELEMENTALS, ELEMENTS, RANKS, resolve_elemental
+from systems.druid_call_v1708 import ANIMALS, terrain_animals, biome_for_room, normalize_animal
+from systems.necro_constructs_v1710 import NECRO_MINIONS, summon_key
 SUMMONS.update({key:(spec['name'],'Mag',{},'magic',spec['damage']) for key,spec in ELEMENTALS.items()})
+SUMMONS.update({key:(spec['name'],'Druid',{},spec['damage_kind'],spec['damage']) for key,spec in ANIMALS.items() if key not in SUMMONS})
+SUMMONS.update({key:(spec[0],'Nekromanta',spec[3],spec[4],spec[5]) for key,spec in NECRO_MINIONS.items()})
 SUMMON_MANA = {'pajak':45,'wojownik':90,'mag':120,'lifeoak':80,
                'ancientoak':180,'wilk':50,'sowa':55,'niedzwiedz':110}
 SUMMON_MANA.update({key: spec['mana'] for key,spec in ELEMENTALS.items()})
+SUMMON_MANA.update({key: spec['mana'] for key,spec in ANIMALS.items()})
+SUMMON_MANA.update({key: spec[2] for key,spec in NECRO_MINIONS.items()})
+# Druids unlock living oaks much later than ordinary woodland calls.
+DRUID_OAK_MIN_LEVEL={'lifeoak':150, 'ancientoak':400}
 
 
 def stone_for_enemy(enemy_level, is_boss=False, roll=None):
@@ -74,6 +82,10 @@ def ensure_schema(conn):
         conn.execute('ALTER TABLE summons_v1700 ADD COLUMN hp INTEGER NOT NULL DEFAULT 0')
     if 'max_hp' not in summon_cols:
         conn.execute('ALTER TABLE summons_v1700 ADD COLUMN max_hp INTEGER NOT NULL DEFAULT 0')
+    if 'xp' not in summon_cols:
+        conn.execute('ALTER TABLE summons_v1700 ADD COLUMN xp INTEGER NOT NULL DEFAULT 0')
+    if 'stance' not in summon_cols:
+        conn.execute("ALTER TABLE summons_v1700 ADD COLUMN stance TEXT NOT NULL DEFAULT 'atakuj'")
     if 'market_claim' not in city_cols:
         conn.execute('ALTER TABLE cities_v1700 ADD COLUMN market_claim INTEGER NOT NULL DEFAULT 0')
     conn.commit()
@@ -83,7 +95,10 @@ def summon_upgrade_stones(level):
     return max(1,1+(max(1,int(level))-1)//3)
 
 
-class SessionSkyV1700Mixin:
+from player.session_mixins.chaos_v1800 import SessionChaosV1800Mixin
+from systems.era_chaos_v1800 import ELEMENT_ALIASES
+
+class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
     def _v1700_conn(self):
         conn=self.server.db.conn
         if not getattr(self.server.db,'_v1700_ready',False):
@@ -122,7 +137,7 @@ class SessionSkyV1700Mixin:
         try:
             owner_hp=max(1,int(self.max_hp()))
         except (AttributeError,TypeError,ValueError):
-            owner_hp=max(100,int(getattr(self.character,'level',1) or 1)*100)
+            owner_hp=max(100,int(getattr(self.character,'character_level',1) or 1)*100)
         kind_spec=SUMMONS[kind]
         factor={'pajak':.35,'wojownik':.80,'mag':.55,'lifeoak':.95,
                 'ancientoak':1.55,'wilk':.50,'sowa':.42,'niedzwiedz':1.1}.get(kind,.65)
@@ -131,7 +146,54 @@ class SessionSkyV1700Mixin:
             factor=(.40,.65,.95)[elemental['rank']]
             if elemental['element'] in ('lod','krysztal'):
                 factor*=1.35
+        if kind in ANIMALS:
+            factor=ANIMALS[kind]['hp_factor']
+        if kind in NECRO_MINIONS:
+            factor=NECRO_MINIONS[kind][6]
         return max(40,int(owner_hp*factor*(1+max(0,int(level)-1)*.075)))
+
+    def _v1710_refresh_summon_health(self, conn):
+        """Refresh living HP limits after stats/EQ/level change without free healing.
+
+        Keep the HP ratio, preserve deaths and mastery. Only writes when power
+        really changes, so idle time has no extra database traffic.
+        """
+        rows=conn.execute('SELECT summon_type,level,hp,max_hp FROM summons_v1700 '
+                          'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
+        changed=0
+        for r in rows:
+            kind=r['summon_type']
+            if kind not in SUMMONS:continue
+            old=max(1,int(r['max_hp']))
+            new=self._v1702_summon_max_hp(kind,r['level'])
+            if old==new:continue
+            life=max(1,min(new,(int(r['hp'])*new+old-1)//old))
+            conn.execute('UPDATE summons_v1700 SET hp=?,max_hp=? '
+                         'WHERE account_id=? AND summon_type=? AND active=1 AND hp>0',
+                         (life,new,self.account_id,kind))
+            changed+=1
+        if changed:conn.commit()
+        return changed
+
+    def _v1710_earn_summon_xp(self, conn, kind, damage):
+        """Steady combat mastery, no level cap; stone skeletons keep stone levels."""
+        if kind in ('wojownik','mag') or kind not in SUMMONS:return False
+        row=conn.execute('SELECT level,xp FROM summons_v1700 WHERE account_id=? AND summon_type=?',
+                         (self.account_id,kind)).fetchone()
+        if not row:return False
+        level=max(1,int(row['level']));xp=max(0,int(row['xp']))
+        owner=max(1,int(max(self.physical_power(),self.spell_power())))
+        earned=max(1,min(35,2+int(max(0,damage)//max(1,owner//6))))
+        xp+=earned; grew=False
+        # Increasing quadratic requirements keep high-level grind meaningful.
+        while xp>=50+level*level*12:
+            xp-=50+level*level*12
+            level+=1;grew=True
+        conn.execute('UPDATE summons_v1700 SET level=?,xp=? WHERE account_id=? AND summon_type=?',
+                     (level,xp,self.account_id,kind))
+        if grew:self._v1710_refresh_summon_health(conn)
+        conn.commit()
+        return grew
 
     def _v1702_prepare_summon_lives(self,conn):
         """One-time backfill of pre-HP live pets. Dead (max_hp>0) stay dead."""
@@ -176,6 +238,108 @@ class SessionSkyV1700Mixin:
         conn.execute('UPDATE summons_v1700 SET hp=?,max_hp=? WHERE account_id=? AND summon_type=?',
                      (new_hp,new_max,self.account_id,kind));conn.commit()
 
+    def _v1711_companions_for_healing(self, include_party=False):
+        """Living, active summons of local allies only; never foreign/hidden/dead."""
+        sessions=[self]
+        if include_party:
+            sessions=list(self.server.party_sessions(
+                self.account_id, same_room=self.character.room_id) or ())
+            if self not in sessions:sessions.append(self)
+        results=[]
+        for owner in sessions:
+            if (getattr(owner,'closed',False) or not owner.character
+                    or owner.character.room_id!=self.character.room_id
+                    or owner.current_hp<=0):continue
+            conn=owner._v1700_conn()
+            owner._v1702_prepare_summon_lives(conn)
+            owner._v1710_refresh_summon_health(conn)
+            for row in conn.execute('SELECT summon_type,level,soul_rank,hp,max_hp '
+                                    'FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',
+                                    (owner.account_id,)).fetchall():
+                kind=row['summon_type']
+                if kind in SUMMONS and owner._v1700_class(SUMMONS[kind][1]):
+                    results.append((owner,row))
+        return results
+
+    def _v1711_find_companion(self, name, include_party=False):
+        wanted=ascii_fold(name)
+        if not wanted:return None
+        found=[]
+        for owner,row in self._v1711_companions_for_healing(include_party):
+            key=row['summon_type']; grade=int(row['soul_rank'] or 0)
+            names={ascii_fold(key),ascii_fold(SUMMONS[key][0]),ascii_fold(summon_display(key,grade))}
+            if wanted in names:
+                found.append((owner,row))
+        # Own creature takes precedence. Ambiguous party matches are not guessed.
+        own=[target for target in found if target[0] is self]
+        if own:return own[0]
+        return found[0] if len(found)==1 else None
+
+    def _v1711_heal_companion(self, owner, row, amount):
+        """Heal surviving summoned ally without resurrecting a dead one.
+
+        SQL guard and transactional update prevent an obsolete row snapshot from
+        restoring HP after a summon was destroyed or dismissed.
+        """
+        from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+        if superboss_healing_blocked_v11179(owner):return 0
+        amount=max(0,int(amount))
+        if amount<=0:return 0
+        conn=owner._v1700_conn()
+        current=conn.execute('SELECT hp,max_hp FROM summons_v1700 '
+                             'WHERE account_id=? AND summon_type=? AND active=1 AND hp>0',
+                             (owner.account_id,row['summon_type'])).fetchone()
+        if not current:return 0
+        before=int(current['hp']);maximum=int(current['max_hp'])
+        restored=min(amount,max(0,maximum-before))
+        if restored<=0:return 0
+        cur=conn.execute('UPDATE summons_v1700 SET hp=hp+? '
+                         'WHERE account_id=? AND summon_type=? AND active=1 AND hp=? AND max_hp=?',
+                         (restored,owner.account_id,row['summon_type'],before,maximum))
+        conn.commit()
+        return restored if cur.rowcount==1 else 0
+
+    async def _v1711_summon_heal_command(self, raw):
+        if not self.character:return
+        from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+        value=ascii_fold(raw)
+        targets=self._v1711_companions_for_healing()
+        if not value:
+            await self.send('Użycie: chowaniec lecz <nazwa> albo chowaniec lecz wszystko. Czar kosztuje manę i nie wskrzesza pokonanych pomocników.')
+            return
+        if superboss_healing_blocked_v11179(self):
+            await self.send('Nullify Healing blokuje leczenie przywołań.')
+            return
+        if value in ('wszystko','all'):
+            selected=[(owner,row) for owner,row in targets if int(row['hp'])<int(row['max_hp'])]
+        else:
+            match=self._v1711_find_companion(value)
+            if not match:
+                await self.send('Nie masz aktywnego, żywego przywołania o tej nazwie. Sprawdź chowaniec lista.')
+                return
+            selected=[match] if int(match[1]['hp'])<int(match[1]['max_hp']) else []
+        if not selected:
+            await self.send('Żadne żywe przywołanie nie potrzebuje leczenia. Martwy pomocnik wymaga ponownego przywołania.')
+            return
+        cost=60 if len(selected)==1 else 85+25*(len(selected)-1)
+        if self.current_mana<cost:
+            await self.send(f'Za mało many: leczenie wymaga {cost} MP, masz {self.current_mana}.')
+            return
+        restored=[]
+        for owner,row in selected:
+            # Hybrid heal scales with summoner HP and the caster's magic/healing.
+            power=max(1,int(self.healing_power_v1125()))
+            amount=max(1,int(row['max_hp']*.25)+power//5)
+            actual=self._v1711_heal_companion(owner,row,amount)
+            if actual:
+                restored.append((row['summon_type'],actual))
+        if not restored:
+            await self.send('Nie udało się uleczyć przywołań. Mana nie została pobrana.')
+            return
+        self.current_mana-=cost
+        names=', '.join(f'{SUMMONS[k][0]} +{hp} HP' for k,hp in restored)
+        await self.send(f'Wyleczono: {names}. Mana -{cost} MP; pozostało {self.current_mana} MP.')
+
     async def summon_take_enemy_hit_v1702(self,mob,raw_damage=None,roll=None):
         """An enemy can attack and destroy a real summon instead of its master.
 
@@ -187,11 +351,13 @@ class SessionSkyV1700Mixin:
         # minions active in combat even if the database remembers them.
         conn=self._v1700_conn()
         self._v1702_prepare_summon_lives(conn)
-        pets=[r for r in conn.execute('SELECT summon_type,level,hp,max_hp FROM summons_v1700 '
+        self._v1710_refresh_summon_health(conn)
+        pets=[r for r in conn.execute('SELECT summon_type,level,hp,max_hp,stance FROM summons_v1700 '
                 'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
               if r['summon_type'] in SUMMONS and self._v1700_class(SUMMONS[r['summon_type']][1])]
         if not pets:return False
-        if (random.random() if roll is None else roll)>=.32:return False
+        if (random.random() if roll is None else roll)>=(.52 if any(
+                r['stance']=='bron' for r in pets) else .32):return False
         chosen=random.choice(pets)
         hp=int(chosen['hp']);maximum=max(1,int(chosen['max_hp']))
         # A real monster hit. The percentage floor prevents companions from
@@ -204,6 +370,14 @@ class SessionSkyV1700Mixin:
         kind=chosen['summon_type']
         if kind in ('ancientoak','niedzwiedz') or kind.startswith(('zywiolak_lod','zywiolak_krysztal')):
             hit=max(1,int(hit*.75))
+        if kind in NECRO_MINIONS and NECRO_MINIONS[kind][7]=='obrona':
+            hit=max(1,int(hit*.72))
+        if kind in ANIMALS and ANIMALS[kind]['role']=='obrona':
+            hit=max(1,int(hit*.80))
+        # Veteran guardians learn to brace, but damage reduction never exceeds 40%.
+        if kind in NECRO_MINIONS or kind in ANIMALS:
+            reduction=min(.15,max(0,int(chosen['level'])-1)*.002)
+            hit=max(1,int(hit*(1-reduction)))
         hit=min(hp,hit)
         remaining=max(0,hp-hit)
         conn.execute('UPDATE summons_v1700 SET hp=?,active=? '
@@ -288,11 +462,13 @@ class SessionSkyV1700Mixin:
         if not parts or parts[0] in ('info','lista','status','pomoc'):
             conn=self._v1700_conn()
             self._v1702_prepare_summon_lives(conn)
+            self._v1710_refresh_summon_health(conn)
             rows=conn.execute('SELECT summon_type,level,active,soul_rank,hp,max_hp FROM summons_v1700 WHERE account_id=? ORDER BY summon_type',(self.account_id,)).fetchall()
-            await self.send('CHOWAŃCE: chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>. Do 3 aktywnych. Każdy ma HP, może zginąć; powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
+            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>. Do 3 aktywnych. Każdy ma HP, może zginąć; powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
             await self.send('Nekromanta: pająk — 2 zwykłe zęby; wojownik — 1 smoczy ząb; mag — 2 smocze zęby. Dziewięć kolorów Kamieni Duszy ulepsza wojowników i magów. nekro wyrwij; nekro scal <kolor>.')
-            await self.send('Druid: Life Oak — 2 szyszki i 80 MP; Ancient Oak — 5 szyszek i 180 MP; wilk, sowa, niedźwiedź — Pieczęcie Chowańców i mana. Szyszki zbierasz w lesie: druid zbierz. Stare nasiona wymienisz: druid wymien.')
+            await self.send('Druid: call list (zwierzęta na aktualnym terenie), call <zwierzę>, call squirrel (wiewiórka dostarcza szyszki za 20 MP), order <zwierzę> <atakuj|bron|wspieraj|czekaj>. Bez Pieczęci Chowańców. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP.')
             await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
+            await self.send('Nekromanta: nekro lista — konstrukty, nieumarli, materiały, mana, wymagane poziomy. nekro przywolaj metal / gliniany / kostny_straznik itd. Rozkazy: order <nazwa|all> <atakuj|bron|wspieraj|czekaj>.')
             if not rows:await self.send('Nie masz jeszcze przywołań.')
             for row in rows:
                 spec=SUMMONS.get(row['summon_type'])
@@ -302,6 +478,8 @@ class SessionSkyV1700Mixin:
                     state='aktywny' if row['active'] else ('nieprzywołany/pokonany' if int(row['hp'])<=0 else 'schowany')
                     await self.send(f"{summon_display(row['summon_type'],grade)}: poziom {row['level']}, {color}, {state}, HP {row['hp']}/{row['max_hp']}.")
             return
+        if parts[0] in ('lecz','heal'):
+            await self._v1711_summon_heal_command(' '.join(parts[1:]));return
         if parts[0]=='scal' and len(parts)>1:
             await self._v1701_forge(parts[1]);return
         if parts[0] in ('dusza','wyrywanie','wyrwij'):
@@ -311,6 +489,8 @@ class SessionSkyV1700Mixin:
             await self.send('Użycie: chowaniec przywolaj pajak / wojownik / mag / lifeoak / ancientoak / wilk / sowa / niedzwiedz. Mag: mag lista; mag przywolaj ogien mniejszy|zwykly|potezny. Kamienie Duszy: chowaniec ulepsz mag <kolor>.')
             return
         action,kind=parts[0],parts[1]
+        if action in ('przywolaj','stworz','aktywuj','schowaj'):
+            kind=summon_key(' '.join(parts[1:]))
         aliases={'pająk':'pajak','szkielet':'wojownik','skelet':'wojownik',
                  'life':'lifeoak','ancient':'ancientoak','niedzwiedź':'niedzwiedz','mage':'mag'}
         kind=aliases.get(kind,kind)
@@ -318,6 +498,23 @@ class SessionSkyV1700Mixin:
         if spec is None:
             await self.send('Nieznany typ. Wpisz chowaniec lista.');return
         name,required_class,costs,_,_=spec
+        # `chowaniec przywolaj/aktywuj` must not bypass local `call` fauna or level requirements.
+        if kind in ANIMALS and action in ('przywolaj','aktywuj'):
+            from data.rooms import ROOMS
+            here=biome_for_room(ROOMS.get(self.character.room_id,{}),self.character.room_id)
+            if kind not in terrain_animals(here):
+                await self.send('To zwierzę nie występuje na bieżącym terenie. Wpisz call list.');return
+            minimum=ANIMALS[kind].get('min_level',0)
+            if int(getattr(self.character,'character_level',1) or 1)<minimum:
+                await self.send(f'To zwierzę wymaga poziomu postaci {minimum}.');return
+        if kind in DRUID_OAK_MIN_LEVEL and action in ('przywolaj','aktywuj'):
+            minimum=DRUID_OAK_MIN_LEVEL[kind]
+            if int(getattr(self.character,'character_level',1) or 1)<minimum:
+                await self.send(f'{name} wymaga poziomu Druida {minimum}. Nie zużyto many ani szyszek.');return
+        if kind in NECRO_MINIONS and action in ('przywolaj','aktywuj'):
+            min_level=NECRO_MINIONS[kind][1]
+            if int(getattr(self.character,'character_level',1) or 1)<min_level:
+                await self.send(f'{name} wymaga poziomu postaci {min_level}. Materiały i mana nie zostały zużyte.');return
         if not self._v1700_class(required_class):
             await self.send(f'Tylko aktywny {required_class} może używać tego przywołania.');return
         if self.combat_mob_key and action in ('przywolaj','ulepsz'):
@@ -444,44 +641,118 @@ class SessionSkyV1700Mixin:
         await self.send(f'Wyrywasz duszę z konającego przeciwnika. Zdobywasz {qty} x {tier[1]}. Mana -{mana_cost} MP, pozostało {self.current_mana} MP.')
 
     async def necro_v1700(self,raw=''):
-        if ascii_fold(raw).startswith('wyrwij'):
+        query=ascii_fold(raw)
+        if query in ('lista','konstrukty','przywolania','pomoc'):
+            await self.send('NEKROMANTA — konstrukty i nieumarli. Wybierz: nekro przywolaj <nazwa>. Mana za przywołanie i utrzymanie w walce; materiały z kopalni, drwalstwa i łupów. Limit 3 aktywnych. Ulepszanie szkieletów: Kamienie Duszy.')
+            for key,spec in NECRO_MINIONS.items():
+                mat=', '.join(f'{n} x {qty}' for n,qty in spec[3].items())
+                await self.send(f'{spec[0]} ({key}): poziom {spec[1]}+, {spec[2]} MP, utrzymanie {spec[8]} MP/atak, {mat}; rola: {spec[7]}.')
+            await self.send('Szkielety: pajak (zęby zwykłe), wojownik i mag (smocze zęby). Wojownik/mag rosną dzięki Kamieniom Duszy i statystykom właściciela; pozostałe przywołania ćwiczą się w walce.')
+            return
+        if query.startswith('wyrwij'):
             await self._v1700_rip_soul()
         elif ascii_fold(raw).startswith('scal '):
             await self._v1701_forge(ascii_fold(raw)[5:])
         else:
             await self.summons_v1700(raw)
 
+    async def druid_call_v1708(self, raw=''):
+        """Area-sensitive druid calls; a squirrel brings materials then leaves."""
+        if not self._v1700_class('Druid'):
+            await self.send('Tylko Druid może użyć call.');return
+        from data.rooms import ROOMS
+        area=biome_for_room(ROOMS.get(self.character.room_id, {}), self.character.room_id)
+        available=terrain_animals(area)
+        druid_level=max(1,int(getattr(self.character,'character_level',1) or 1))
+        cmd=ascii_fold(raw)
+        if not cmd or cmd in ('list','lista','zwierzeta'):
+            await self.send(f'CALL LIST — teren: {area}. Dostępne zwierzęta:')
+            for kind in available:
+                if kind=='squirrel':
+                    await self.send('wiewiórka (squirrel) — 20 MP, przynosi szyszki i ucieka; nie zajmuje miejsca w drużynie.')
+                else:
+                    desc=ANIMALS[kind]
+                    unlock=desc.get('min_level',0)
+                    locked=f' — wymaga poziomu Druida {unlock}' if druid_level<unlock else ''
+                    await self.send(f"{desc['name']} ({desc['call']}) — {desc['mana']} MP; {desc['role']}; {desc['rarity']}{locked}.")
+            return
+        kind=normalize_animal(cmd)
+        if kind not in available:
+            await self.send('Tego zwierzęcia nie przywołasz na tym terenie. Wpisz call list.');return
+        if kind!='squirrel' and druid_level<ANIMALS[kind].get('min_level',0):
+            await self.send(f'Ten pomocnik wymaga poziomu Druida {ANIMALS[kind]["min_level"]}. Twoja mana i materiały pozostały bez zmian.');return
+        if self.combat_mob_key:
+            await self.send('Przywołanie zwierzęcia wymaga zakończenia walki.');return
+        if kind=='squirrel':
+            cost=20
+            conn=self._v1700_conn();now=int(time.time())
+            row=conn.execute('SELECT last_gather FROM druid_pinecones_v1702 WHERE account_id=?',(self.account_id,)).fetchone()
+            remain=90-(now-int(row['last_gather']) if row else 9999)
+            if remain>0:
+                await self.send(f'Wiewiórka wróci najwcześniej za {remain} s.');return
+            if not await self._v1701_need_mana(cost):return
+            amount=2+min(2,max(0,int(self.character.character_level)//200))
+            conn.execute('SAVEPOINT v1708_squirrel')
+            try:
+                self.server.db.add_item(self.account_id,'v1702_pinecone',amount,commit=False)
+                conn.execute('INSERT INTO druid_pinecones_v1702(account_id,last_gather) VALUES(?,?) ON CONFLICT(account_id) DO UPDATE SET last_gather=excluded.last_gather',(self.account_id,now))
+                conn.execute('RELEASE SAVEPOINT v1708_squirrel');conn.commit()
+            except Exception:
+                conn.execute('ROLLBACK TO SAVEPOINT v1708_squirrel');conn.execute('RELEASE SAVEPOINT v1708_squirrel');raise
+            self.current_mana-=cost
+            await self.send(f'Przybiega wiewiórka, rzuca w Ciebie {amount} szyszkami i ucieka. Otrzymujesz {amount} Szyszki Pradawnego Gaju. Mana -{cost} MP. Razem: {self._v1700_qty("v1702_pinecone")}.')
+            return
+        await self.summons_v1700(f'przywolaj {kind}')
+
+    async def druid_order_v1708(self, raw=''):
+        """Orders alter real summoned companions' combat behavior."""
+        if not (self._v1700_class('Druid') or self._v1700_class('Nekromanta')):
+            await self.send('Rozkazy wymagają klasy Druida lub Nekromanty.');return
+        allowed=lambda kind: kind in ANIMALS if self._v1700_class('Druid') else kind in SUMMONS and SUMMONS[kind][1]=='Nekromanta'
+        text=ascii_fold(raw).split()
+        if text in (['list'],['lista']):
+            conn=self._v1700_conn()
+            rows=conn.execute('SELECT summon_type,stance FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
+            active=[r for r in rows if allowed(r['summon_type'])]
+            if not active:
+                await self.send('Nie masz aktywnych przywołań. Sprawdź call list albo nekro lista.');return
+            for r in active:
+                await self.send(f"{SUMMONS[r['summon_type']][0]}: {r['stance']}.")
+            return
+        if len(text)<2:
+            await self.send('Rozkazy: order <pomocnik|all> <atakuj|bron|wspieraj|czekaj>. Możesz też wpisać order list.');return
+        stance={'atakuj':'atakuj','attack':'atakuj','bron':'bron','defend':'bron',
+                'wspieraj':'wspieraj','support':'wspieraj','czekaj':'czekaj','stay':'czekaj'}.get(text[-1])
+        if stance is None:
+            await self.send('Dostępne rozkazy: atakuj, bron, wspieraj, czekaj.');return
+        name=' '.join(text[:-1]);conn=self._v1700_conn()
+        if name in ('all','wszystkie'):
+            active=[r['summon_type'] for r in conn.execute('SELECT summon_type FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)) if allowed(r['summon_type'])]
+            if not active:
+                await self.send('Nie masz aktywnych zwierząt do wydawania rozkazów.');return
+            conn.executemany('UPDATE summons_v1700 SET stance=? WHERE account_id=? AND summon_type=?',[(stance,self.account_id,k) for k in active]);conn.commit()
+            await self.send(f'Rozkaz {stance} otrzymują {len(active)} zwierzęta.');return
+        kind=normalize_animal(name) if self._v1700_class('Druid') else summon_key(name)
+        if not allowed(kind):
+            await self.send('Nieznane przywołanie. Wpisz call list albo nekro lista.');return
+        cur=conn.execute('UPDATE summons_v1700 SET stance=? WHERE account_id=? AND summon_type=? AND active=1 AND hp>0',(stance,self.account_id,kind))
+        conn.commit()
+        if not cur.rowcount:
+            await self.send('Najpierw przywołaj żywego pomocnika przez call lub nekro przywolaj.');return
+        await self.send(f"{SUMMONS[kind][0]} otrzymuje rozkaz: {stance}.")
+
     async def druid_v1700(self,raw=''):
         if not self._v1700_class('Druid'):
             await self.send('Tylko Druid może używać magii natury.');return
         cmd=ascii_fold(raw)
         if cmd in ('szyszki','materialy','materiały'):
-            await self.send(f'Szyszki Pradawnego Gaju: {self._v1700_qty("v1702_pinecone")}. Life Oak: 2 szyszki i 80 MP, Ancient Oak: 5 szyszek i 180 MP. Zbierz: druid zbierz (w lesie). Wymień stare nasiona: druid wymien.')
+            await self.send(f'Szyszki Pradawnego Gaju: {self._v1700_qty("v1702_pinecone")}. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP. Zdobywaj: call squirrel. Wymień stare nasiona: druid wymien.')
             return
         if cmd in ('zbierz','zbierz szyszki','szukaj szyszek'):
-            if self.combat_mob_key:
-                await self.send('Zbieranie szyszek wymaga zakończenia walki.');return
-            from data.rooms import ROOMS
-            room=ROOMS.get(self.character.room_id,{})
-            where=ascii_fold(' '.join((self.character.room_id,str(room.get('name','')),str(room.get('zone','')))))
-            # Nie zbiera się szyszek w miastach, kopalniach ani na morzu.
-            forest=('gaj','las ','lasu','lesn','puszcz','forest','wood','bor ','boru','zagaj','grove','zorzy')
-            if not any(token in where for token in forest):
-                await self.send('Szyszki znajdziesz w leśnych lokacjach, np. w Gaju Szeptów albo Ogrodach Wiecznej Zorzy.');return
-            conn=self._v1700_conn(); now=int(time.time())
-            row=conn.execute('SELECT last_gather FROM druid_pinecones_v1702 WHERE account_id=?',(self.account_id,)).fetchone()
-            remain=90-(now-int(row[0]) if row else 9999)
-            if remain>0:
-                await self.send(f'Zbieranie szyszek będzie możliwe za {remain} s.');return
-            qty=2+min(2,max(0,int(self.character.level)//200))
-            conn.execute('SAVEPOINT v1702_gather')
-            try:
-                self.server.db.add_item(self.account_id,'v1702_pinecone',qty,commit=False)
-                conn.execute('INSERT INTO druid_pinecones_v1702(account_id,last_gather) VALUES(?,?) ON CONFLICT(account_id) DO UPDATE SET last_gather=excluded.last_gather',(self.account_id,now))
-                conn.execute('RELEASE SAVEPOINT v1702_gather');conn.commit()
-            except Exception:
-                conn.execute('ROLLBACK TO SAVEPOINT v1702_gather');conn.execute('RELEASE SAVEPOINT v1702_gather');raise
-            await self.send(f'Zbierasz {qty} szyszki Pradawnego Gaju. Łącznie: {self._v1700_qty("v1702_pinecone")}. Następny zbiór za 90 sekund.')
+            await self.send('Szyszki przynosi wiewiórka. Wpisz call squirrel (koszt 20 MP, odnowienie 90 s).')
+            return
+        if cmd in ('lista','zwierzeta','zwierzęta','call list'):
+            await self.druid_call_v1708('list')
             return
         if cmd in ('wymien','wymien nasiona','wymien nasiono'):
             old='v1700_nature_seed'; owned=self._v1700_qty(old)
@@ -504,8 +775,13 @@ class SessionSkyV1700Mixin:
         if not self.character or not mob or not mob.alive or mob.room_id!=self.character.room_id:return
         conn=self._v1700_conn()
         self._v1702_prepare_summon_lives(conn)
-        rows=conn.execute('SELECT summon_type,level,soul_rank FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
+        self._v1710_refresh_summon_health(conn)
+        rows=conn.execute('SELECT summon_type,level,soul_rank,stance FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
         if not rows:return
+        # Mixed assault/guard/support orders produce a small tactical synergy.
+        # Calculated from the existing active summon rows: no new timers or tables.
+        _v1800_team_roles={str(r['stance']) for r in rows if r['summon_type'] in SUMMONS}
+        _v1800_team_bonus=1.06 if len(rows)>=2 and len(_v1800_team_roles)>=2 else 1.0
         # No loss of mercenary damage. Summons use their own extra attacks.
         raw_power=max(1,int(max(self.physical_power(),self.spell_power())))
         for row in rows:
@@ -513,10 +789,18 @@ class SessionSkyV1700Mixin:
             spec=SUMMONS.get(row['summon_type'])
             if not spec or not self._v1700_class(spec[1]):continue
             name,_,_,kind,factor=spec
+            stance=row['stance'] if 'stance' in row.keys() else 'atakuj'
+            if stance=='czekaj':continue
             elemental=ELEMENTALS.get(row['summon_type'])
             if elemental:
                 # Alter Aeon-style sustaining energy: no mana means no elemental strike.
                 upkeep=elemental['upkeep']
+                if self.current_mana<upkeep:
+                    continue
+                self.current_mana-=upkeep
+            necro=NECRO_MINIONS.get(row['summon_type'])
+            if necro:
+                upkeep=necro[8]
                 if self.current_mana<upkeep:
                     continue
                 self.current_mana-=upkeep
@@ -526,7 +810,19 @@ class SessionSkyV1700Mixin:
             mastery=max(1,int(row['level']))
             _walls,_workshop,_infirmary=self._v1700_city_bonuses()
             caster_power=max(1,int(self.spell_power())) if elemental else raw_power
-            amount=max(1,int(caster_power*factor*(1+mastery*.07)*(1+min(.28,.008*_workshop))))
+            stance_factor=.8 if stance=='bron' else (.7 if stance=='wspieraj' else 1.0)
+            formation_bonus,formation_guard=self._v1800_form_bonus()
+            amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*(1+min(.28,.008*_workshop))))
+            if formation_guard and self.skill_guard<=0:
+                self.skill_guard=max(1,int(self.max_hp()*formation_guard))
+            if self._v1800_tactic()=='harmonia' and self.current_hp<self.max_hp():
+                from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+                if not superboss_healing_blocked_v11179(self):
+                    self.current_hp=min(self.max_hp(),self.current_hp+max(1,int(self.max_hp()*.003)))
+            if stance=='bron':
+                self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),max(1,int(self.max_hp()*.02)))
+            if stance=='wspieraj':
+                self.current_hp=min(self.max_hp(),self.current_hp+max(1,int(self.max_hp()*.015)))
             if elemental and elemental['element'] in ('lod','krysztal'):
                 # Ice and crystal specialize in shielding. Use the preexisting guard
                 # contract, consumed on the next incoming hit; don't overwrite buffs.
@@ -537,16 +833,25 @@ class SessionSkyV1700Mixin:
             amount=self.v0210_adjust_player_damage(amount)
             from world.machine_expansion import v0314_adjust_damage_vs_template
             amount,_=v0314_adjust_damage_vs_template(MOB_TEMPLATES.get(mob.template_id,{}),amount,kind,name)
+            # Chaos God phases suppress summoned blows only; old bosses unchanged.
+            amount=max(1,int(amount*(1.0-.05*int(getattr(mob,'_v1800_chaos_phase',0) or 0))))
+            elemental_key=ELEMENT_ALIASES.get(elemental['element']) if elemental else ('dark' if necro and spec[3]=='magic' else None)
             damage=min(max(0,int(mob.hp)),max(1,int(amount)))
+            if elemental_key:
+                bonus=await self._v1800_elemental_reaction(mob,elemental_key,damage)
+                damage=min(max(0,int(mob.hp)),damage+bonus)
             mob.hp-=damage
             if row['summon_type'] in ('lifeoak','ancientoak'):
                 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
                 if not superboss_healing_blocked_v11179(self):
                     heal=min(max(0,self.max_hp()-self.current_hp),max(1,int(damage*.06)))
                     self.current_hp+=heal
+            self._v1710_earn_summon_xp(conn,row['summon_type'],damage)
             msg=f'{name} (poziom {mastery}) atakuje za {damage} obrażeń. Przeciwnik: {max(0,mob.hp)} HP.'
             if elemental:
                 msg+=f' Mana -{elemental["upkeep"]} MP.'
+            if necro:
+                msg+=f' Mana utrzymania -{necro[8]} MP.'
             await self.send_combat(msg,detail='essential')
             await self.server.party_combat_broadcast(self,msg,detail='essential')
             if mob.hp<=0:

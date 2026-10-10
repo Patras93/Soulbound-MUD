@@ -266,6 +266,7 @@ class SessionCombatRealtimeMixin:
                 await self.mercenary_combat_turn_v1170(mob)
                 if not mob.alive or mob.hp <= 0:
                     return
+                await self.chaos_boss_phase_v1800(mob)
                 await self.summon_combat_turn_v1700(mob)
                 if not mob.alive or mob.hp <= 0:
                     return

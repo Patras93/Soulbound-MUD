@@ -1,3 +1,111 @@
+Soulbound v1.80.0 — ARMIE, BOGOWIE CHAOSU, MAGIA ŻYWIOŁÓW I KLASY 5.0 — 2026-10-10
+Aktualna paczka: v1.80.0 (baza: pełna v1.70.11).
+Baza: kompletna paczka v1.70.11. Bez resetu postaci, bazy SQLite, profili przywołań ani starych progów EXP.
+- Przywołania 5.0: taktyka szturm / bastion / harmonia — osobny trwały wybór formacji w SQLite; nie zastępuje komendy order ani limitu trzech przywołań. Szturm +8% obrażeń, bastion -6% obrażeń i osłona, harmonia -3% obrażeń oraz niewielkie leczenie (z poszanowaniem Nullify Healing).
+- Bossowie 7.0: cztery nowe krainy Bogów Chaosu; 17 połączonych nowych pomieszczeń, 12 unikalnych bossów (w tym cztery superbossy), 12 odnawialnych polowań. Brak losowych pułapek, normalne wyjścia i powroty; wejście od Targu Osad Założycieli na zachód.
+- Fazy bossów 75/50/25% HP są odrębnymi stanami instancji; każda kolejna zwiększa odporność na ataki przywołanych istot bez zmiany obrażeń starego świata.
+- Magia żywiołów 3.0: reakcje kolejnych różnych żywiołów przywołań i czarów graczy na tym samym przeciwniku (ogień/lód/błyskawice/mrok itd.); dodatkowe obrażenia maksymalnie 10% trafienia i odnowienie 8 sekund. Nie zastępuje starych skilli.
+- Klasy 5.0: każda z 14 klas ma własną mistrzowską zdolność przez mistrzostwo / mistrzostwo uzyj. Wymagany poziom 150, odnowienie 45 sekund, klasy magiczne 110 many. Odmowa nie pobiera zasobów ani nie uruchamia odnowienia.
+- Nowa pomoc: help taktyka, help mistrzostwo, help reakcje, help bogowie. Nazwy i opisy dla NVDA.
+- Bez zmian w EXP postaci, Duszy, statystyk, profesji i narzędzi, sile najemników, Fame, wcześniejszych zadaniach i poziomie gildii do 800.
+- WYNIKI TESTÓW: uruchomienie kompletnego silnika z kodem 0 (2999 lokacji); 103 kontrole mapy, bossów, połączeń, questów i przedmiotów PASS; 18 kontroli taktyk, SQLite, odnawiania mistrzostwa, faz bossów i reakcji PASS; rejestr 4 nowych komend PASS.
+- Audyt wersji i kontraktów semantycznych zaliczył początkowe kontrole. Pełny predeploy_check.py i predeploy_full.py przekroczyły dostępny limit czasu po uruchomieniu bootstrapa — NIE są oznaczone jako PASS. Przed wdrożeniem produkcyjnym zalecany test obu audytów w docelowym środowisku.
+- Testy z prawdziwymi graczami i wieloma drużynami nie były wykonywane. Wykonaj kopię bazy SQLite przed aktualizacją.
+- Nie wykonano żadnych operacji na GitHub ani Railway.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.11 — LECZENIE PRZYWOŁAŃ — 2026-10-10
+Aktualna paczka: v1.70.11 (baza: pełna v1.70.10).
+Baza: kompletna v1.70.10. Bez resetowania postaci, gildii i przywołań.
+- chowaniec lecz <typ> / chowaniec lecz wszystko: leczenie żywych, aktywnych pomocników właściciela za manę; rośnie ze statystykami leczenia postaci.
+- Zwykłe klasowe zaklęcia lecznicze można skierować na aktywne przywołanie swoje lub lokalnego członka drużyny przez podanie nazwy pomocnika.
+- Grupowe zaklęcia lecznicze obejmują również ranne, żywe przywołania drużyny w tej samej lokacji bez drugiego poboru many.
+- Martwe lub schowane przywołania nie mogą być uzdrowione; po śmierci wymagają normalnego ponownego przywołania i kosztów materiałów/MP. Nullify Healing nadal blokuje uzdrawianie.
+- Nie zmieniono HP potworów, nagród EXP, przyrostu poziomów, ekonomii, rozwoju gildii ani limitów aktywnych przywołań.
+- Testy: 14 kontroli leczenia przywołań PASS; dotychczasowe testy v1.70.10 (86 przywołań, 2009 gildia) PASS; predeploy_check.py PASS; predeploy_full.py PASS (89 raportów, 0 błędów blokujących, 0 ostrzeżeń między systemami).
+- Leczenie grupowe i wskazywanie przywołania sprawdzono także statycznie w kodzie; rzeczywista gra z wieloma graczami pozostaje do sprawdzenia po instalacji.
+- Wdrożenie: backup SQLite przed aktualizacją, zachowanie wolumenu Railway; nie wykonano operacji na serwerze ani GitHubie.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.10 — SKALOWANIE PRZYWOŁAŃ I KONSTRUKTY NEKROMANTY — 2026-10-10
+Aktualna paczka: v1.70.10 (baza: pełna v1.70.9).
+- Pełne przeliczenie maksymalnego HP żyjących przywołań po zmianie statystyk/EQ/poziomu właściciela, z zachowaniem procentowego HP: bez darmowego leczenia.
+- Przywołania Druida i nowe konstrukty/nieumarli Nekromanty zdobywają trwałe XP i poziomy z udziału w walce. Wymagane XP rośnie z poziomem, bez odbierania postępu.
+- Szkielety Wojownika/Maga zachowują rozwój poziomu przez kolorowe Kamienie Duszy; skalują się z mocą właściciela, jak dotychczas. Również szkielety pająków uczą się w walce.
+- Life Oak dostępny od poziomu Druida 150; Ancient Oak od poziomu 400. Odmowa na niższym poziomie nie zabiera szyszek ani many.
+- Dodano 17 typów konstruktów i nieumarłych Nekromanty: gliniany, drewniany, kościany strażnik, bestia ciała, konstrukty miedzi/żelaza/stali/mithrilu, kryształowa czaszka, zombie, ghul, widmo, mumia, wampir, demon cienia, obsydianowy strażnik, runiczny tytan.
+- Nekro lista: wymagane poziomy, materiały, mana i rola; nekro przywolaj <nazwa> przywołuje, order <nazwa> <rozkaz> kieruje sługami.
+- Składniki oparte o istniejące surowce górnictwa, drwalstwa i dropów; wymagania wiele surowców dla potężnych konstruktów. Mana pobierana przy przywołaniu i przy ataku konstrukta.
+- Konstrukty obronne wytrzymują więcej uderzeń, ale wszystkie przywołania mają śmiertelne HP; ponowny login wymaga opłacenia nowego wezwania; limity i stare dane zostają.
+- Testy v1.70.10: przywołania 86 PASS, Gildia 800: 2009 PASS; wcześniejsza fauna Druida 498 PASS; składnia Python PASS. Pełny predeploy_check.py przekroczył limit czasu przy inicjalizacji świata, nie ma potwierdzonego wyniku końcowego; pełny predeploy_full.py nie został oznaczony jako ukończony.
+- Gildie mają teraz poziomy 1-800 (wcześniej 1-600). Koszty wcześniejszych ulepszeń i bonusy na poziomach 1-600 bez zmian; bonus gildii 600=29%, 800=35%, dalszy progres jest płynny.
+- Osiągnięcie za poziom 600 pozostaje, dodano osiągnięcie za 800; opis pomocy, komunikat maksymalnego poziomu i walidator spójne z nowym limitem.
+- Nie zmieniono progów EXP postaci, profesji, narzędzi, Fame, najemników ani danych świata.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.9 — DRUID: ZWIERZĘTA Z TERENU I RZADKIE PRZYWOŁANIA — 2026-10-10
+Aktualna paczka: v1.70.9 (2026-10-10)
+Baza: kompletna v1.70.8.
+- Call list rozpoznaje 10 biomów: las, łąka, góry, bagno, woda, jaskinia, miasto, pustynia, niebo, śnieg.
+- Dodano 41 odrębnych zwierzęcych pomocników (poza 18 wcześniejszymi), także rzadkie i legendarne. Każdy ma własny koszt MP, HP, rodzaj obrażeń i rolę (atak/obrona/wsparcie).
+- Zwykłe zwierzęta dostępne od początku; rzadkie od poziomu 100, legendarne od 300. Lista oznacza wymagania; próba wezwania nieodblokowanego pomocnika nie pobiera many.
+- Wiewiórka (call squirrel / call wiewiorka) występuje tylko w lesie i na łące. Na pustyni, oceanie, w jaskini, mieście i górach nie można zdobywać szyszek tą komendą. Szyszki z zapasów graczy nie przepadają.
+- Przywołania nadal kosztują manę, mają śmiertelne HP, mogą otrzymywać rozkazy order, a po ponownym zalogowaniu trzeba je wezwać na nowo.
+- Bez Pieczęci Chowańców; bez zmian EXP, Fame, skalowania najemników, klasy Nekromanty, kosztów Life Oak/Ancient Oak, obecnych postaci ani SQLite.
+- Testy lokalne: 498 kontroli terenów/przywołań PASS; 27 kontroli v1.70.8 PASS; 36 kontroli szyszek v1.70.7 PASS; pełna kompilacja Python PASS.
+- Historyczny predeploy_check.py uruchomiony, ale przekroczył limit podczas składania świata po zaliczonych szybkich etapach; predeploy_full.py nie jest oznaczony jako zaliczony.
+- Zalecane przeprowadzenie obu predeploy w środowisku docelowym przed wdrożeniem oraz backup bazy SQLite.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.8 — DRUID: CALL LIST, WIEWIÓRKA I ROZKAZY — 2026-10-10
+Aktualna paczka: v1.70.8 (2026-10-10)
+Baza: pełna v1.70.7.
+- call list: zwierzęta dostępne dla Druida w bieżącym terenie, także miasta, góry, bagna, woda i podziemia.
+- call <nazwa>: wezwanie zwierzęcia za manę, bez Pieczęci Chowańców; własne HP, śmierć w walce i ponowne wezwanie po logowaniu.
+- call squirrel / call wiewiorka: wiewiórka przybiega, rzuca 2–4 szyszkami i ucieka. Koszt: 20 MP; odnowienie 90 s, bez zajmowania limitu towarzyszy.
+- Life Oak / Ancient Oak nadal pobierają 2/5 szyszek oraz odpowiednio 80/180 MP, bez dublowania opłaty.
+- order <zwierzę|all> atakuj|bron|wspieraj|czekaj: sterowanie rolą zwierząt; obrona wzmacnia osłonę, wsparcie leczy.
+- Stara komenda druid zbierz wskazuje teraz call squirrel; nie wydaje darmowych materiałów.
+- Zachowano stare zapasy szyszek, poziomy i aktywne przywołania ze starszych zapisów. Kolumnę stance dodaje bezpieczna migracja SQLite.
+- Nowe testy regresji w walidatorze v1.70.8; brak zmian w EXP profesji i nagrodach Fame.
+- Testy lokalne: 27 kontroli call/order PASS; 36 kontroli zgodności szyszek PASS; Python compileall PASS; weryfikacja wersji i braku Pieczęci Chowańców PASS.
+- Szybki predeploy_check.py: rozpoczął się poprawnie, ale przekroczył limit czasu podczas ładowania świata; pełnego predeploy_full.py nie potwierdzono dla tej wersji.
+- Przed wdrożeniem produkcyjnym: uruchomić oba predeploy i wykonać test na kopii bazy SQLite; Windows i Railway nie były modyfikowane.
+- Inspiracja Alter Aeon: tam wiewiórka dostarcza żołędzie, w Soulbound świadomie używamy szyszek.
+
+--------------------------------------------------------------------------------
+Soulbound v1.70.7 — NAPRAWA SZYSZEK DRUIDA (SB-5AD59274) — 2026-10-10
+Aktualna paczka: v1.70.7 (2026-10-10)
+Baza: kompletna v1.70.6; tylko naprawa błędu i testy regresji.
+
+- NAPRAWIONO SB-5AD59274: druid zbierz zgłaszał AttributeError
+  player/session_mixins/era_sky_v1700.py:476, ponieważ używał
+  nieistniejącego pola character.level zamiast character.character_level.
+- Przyznawanie szyszek działa teraz dla prawdziwej postaci, także na
+  poziomach 1–199 (2 szyszki), 200–399 (3 szyszki) i 400+ (4 szyszki).
+- Zachowano 90-sekundowe odnowienie, leśne miejsca zbioru i blokadę w walce.
+  Komenda druid zbierz nie wymaga many; czary przywołania drzew nadal
+  pobierają wymagane szyszki i MP.
+- Naprawiono tę samą pomyłkę w zapasowym obliczeniu HP przywołania,
+  stosowanym, gdy nie jest jeszcze dostępna pełna pula HP właściciela.
+- Dodano test v1707_druid_pinecone_fix.py sprawdzający rzeczywisty układ
+  atrybutów Character bez sztucznego level, sześć progów zbioru, odnowienie,
+  blokadę poza lasem / podczas walki oraz obliczanie HP.
+- Poprawiono wcześniejszy test Druida, który błędnie tworzył fikcyjne pole level.
+- Nie zmieniono postaci, nagród Fame, EXP, profesji, ekwipunku, bossów,
+  przywołań, zębów, Kamieni Duszy ani układu tabel SQLite.
+- Dla istniejącego zgłoszenia SB-5AD59274 status 'naprawiony' administrator
+  może ustawić po potwierdzeniu działania na swoim serwerze.
+
+TESTY:
+- Nowy test zbioru i atrybutów postaci: 34 kontrole PASS.
+- predeploy_check.py: PASS, kod 0 (w tym nowy test v1.70.7).
+- predeploy_full.py: PASS, kod 0; 89 raportów, 0 błędów blokujących,
+  0 ostrzeżeń między systemami.
+- Audyt połączeń świata, Deep Dungeon, bossów, skrzyń, klas i Oceanu: PASS.
+- Testy wykonane lokalnie, bez wdrożenia na Windows lub Railway.
+
+--------------------------------------------------------------------------------
 Soulbound v1.70.6 — WINDOWS: START/STOP BEZ BLOKOWANIA FOLDERU — 2026-10-10
 Aktualna paczka: v1.70.6 (2026-10-10)
 Baza: kompletna v1.70.5. Nie zmieniono postaci, Fame, EXP, przywolan ani swiata.
