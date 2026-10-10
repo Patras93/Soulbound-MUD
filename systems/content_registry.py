@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.80.2 - WIECEJ FAME W KRAINACH"
+LATEST_CHANGES_TITLE = "Soulbound v1.80.5 - TEST SQLITE WINDOWS"
 LATEST_CHANGES = [
+    "v1.80.5: test CITY SERVICES zamyka polaczenie SQLite przed usunieciem pliku tymczasowego (Windows WinError 32).",
+    "v1.80.4: naprawiono zgodnosc audytu XP z Windows i zwalnianie plikow SQLite po testach; tester zapisuje pelny log.",
     "v1.80.2: rozszerzono Fame do 6 celow w regionach z bossami, bez zmiany starych zaliczen i nagrod; fame cele i fame braki.",
     "v1.80.0: taktyka szturm/bastion/harmonia, 12 bossow Chaosu, reakcje zywiolow i mistrzostwo uzyj dla 14 klas. Wszystkie stare przywolania i leczenie nadal dzialaja.",
     "v1.70.10: Druidzie Life Oak od poziomu 150, Ancient Oak od poziomu 400; postep zwierzat i konstruktow, skalowanie HP, Nekromanta z nowymi straznikami i metalowymi konstruktami.",

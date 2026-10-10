@@ -1,3 +1,40 @@
+Soulbound v1.80.5 — NAPRAWA TESTU SQLITE CITY SERVICES NA WINDOWS — 2026-10-10
+Aktualna paczka: v1.80.5 (pełna gra oparta o v1.80.4).
+- Na podstawie logu TESTY_Soulbound z Windows 11 / Python 3.14.7 zidentyfikowano blokowanie test.db podczas sprzątania katalogu tymczasowego po teście CITY SERVICES v1.22.5.
+- W admin/city_services_fast_v1225.py połączenie Database.conn jest teraz zawsze zamykane w finally, także w razie niepowodzenia asercji.
+- Po zamknięciu test otwiera tymczasową bazę ponownie, sprawdza PRAGMA integrity_check i bezwarunkowo zamyka drugie połączenie przez contextlib.closing; katalog może zostać bezpiecznie usunięty także na Windows.
+- Żadnych zmian produkcyjnego SQLite, schematu, postaci, balansu, walki, nagród, przywołań, Fame (589 celów) ani skryptów Windows START/STOP.
+- Tester pozostaje: uruchom TESTUJ_Soulbound.bat i prześlij logs/TESTY_Soulbound.log. Takie same predeploy_check.py i predeploy_full.py wykonuje Dockerfile na Railway.
+- Rozpoznany wynik poprzedniej wersji v1.80.4 z logu użytkownika: predeploy_check FAIL na WinError 32 w CITY SERVICES; predeploy_full PASS (kod 0, 4 symulowanych graczy).
+- Wynik testów nowej v1.80.5: lokalny Python 3.13.5 Linux — CITY SERVICES 37/37 PASS, predeploy_check.py PASS (kod 0), predeploy_full.py FULL AUDIT PASS (0 ostrzeżeń między systemami), kompilacja zmienionego kodu PASS oraz ZIP testzip PASS.
+- Dla Windows 11 / Python 3.14.7 i Railway potrzebne jest jeszcze ponowne uruchomienie dostarczonego testera / builda, bo nie było dostępu do tych środowisk produkcyjnych.
+- Przed wdrożeniem produkcyjnym wykonaj kopię wolumenu/bazy SQLite; nie wykonywano operacji na Railway ani GitHub.
+
+--------------------------------------------------------------------------------
+Soulbound v1.80.4 — POPRAWKI TESTOW WINDOWS I RAILWAY — 2026-10-10
+Aktualna paczka: v1.80.4 (pelna gra v1.80.3, 589 celow Fame i tester Windows).
+- Naprawiono porownanie sciezek w predeploy_check.py: bezpieczne as_posix() dla plikow analizowanych statycznie. Wczesniej Windows meldowal falszywe omijanie bramek EXP, poniewaz sciezki z \ nie pasowaly do sciezek zapisanych z /; logika prawdziwego XP pozostaje bez zmian.
+- W testerze Windows oznaczono swiadomie dozwolona obsluge niedostepnego sys.stdout.reconfigure, aby audyt nie zglaszal przypadkowego polkniecia wyjatku. Bledy wykonywania testow nadal trafiaja do logu.
+- Naprawiono zamykanie polaczenia SQLite w validation/v1390_world_stress.py oraz validation/stability_v1178.py. Samo with sqlite3.connect() nie zamyka polaczenia, co na Windows prowadzi do WinError 32 przy usuwaniu bazy z katalogu tymczasowego. Jawne closing() zwalnia deskryptor przed kasowaniem katalogu.
+- Bez zmian w balansie, profesjach, Fame, statystykach, przywolaniach, postaciach, logice EXP i schemacie bazy danych. Testy korzystaja z oddzielnych tymczasowych baz.
+- Polecenie: TESTUJ_Soulbound.bat, potem podeslij logs/TESTY_Soulbound.log; Python 3.12 zalecany (zgodny z obrazem Railway). Python 3.14 ma dodatkowe roznice wersji i wymaga osobnego sprawdzenia na Windows.
+- Weryfikacja Linux/Python 3.13.5: predeploy_check.py PASS (kod 0); predeploy_full.py PASS (kod 0); stres 4 wirtualnych graczy, 3360 operacji i 1110 kontroli SQLite, 0 bledow; audyt koncowy 0 bledow i 0 ostrzezen. Srodowisko Windows/Python 3.14.7 i Docker Python 3.12 wymagaja osobnego potwierdzenia po uruchomieniu dostarczonej paczki.
+- Nie wykonywano operacji GitHub ani wdrozen produkcyjnych.
+
+--------------------------------------------------------------------------------
+Soulbound v1.80.3 — TESTY RAILWAY NA WINDOWS I KOREKTA TESTU MAGA — 2026-10-10
+Aktualna paczka: v1.80.3 (pelna gra z v1.80.2, lacznie z 589 celami Fame).
+- Nowy TESTUJ_Soulbound.bat w katalogu gry. Enter uruchamia kolejno predeploy_check.py i predeploy_full.py, dokladnie w kolejnosci budowania obrazu Railway.
+- testuj_soulbound_windows.py przekazuje wyniki na ekran i zapisuje jeden log w logs/TESTY_Soulbound.log, wraz z pelnym tracebackiem, kodami zakonczenia i informacja PASS/FAIL. Log jest nadpisywany przy nastepnym uruchomieniu.
+- Kazdy test dostaje oddzielna tymczasowa baze SQLite i losowy lokalny port, bez uzywania produkcyjnej bazy postaci. Testy mozna przerwac Ctrl+C; log zachowuje dotychczasowy wynik.
+- W przypadku braku Pythona 3.12 lub nowszego plik BAT zapisuje czytelny blad do logu. Zalecany Python 3.12, tak jak na Railway.
+- Poprawiono test validation/v1702_mage_elementals.py: testowa postac ma imie, zgodnie z obiektem postaci gry. W komunikacie walki przywolania zastosowano bezpieczna nazwe zastepcza, jesli obiekt postaci nie ma pola name. Zapobiega to AttributeError z logu budowania Railway.
+- Zachowano dotychczasowe Fame, poziomy, skille, przywolania i balans. Nie ma migracji schematu bazy ani resetu postaci.
+- UWAGA: pliki testowe pracuja na kopii gry; produkcyjna baza powinna byc nadal kopiowana przed kazda aktualizacja.
+- Weryfikacja: test Maga zaliczyl 58 kontroli. Pelne testy predeploy w docelowym srodowisku Windows/Linux nalezy sprawdzic w wygenerowanym logu. Samo uruchomienie gry na Windows nie oznacza zaliczenia testow Railway.
+- Bez operacji na GitHub ani Railway. Wyniki aktualizacji opisane w tym CHANGELOG_PL.txt, bez osobnych plikow raportow w ZIP.
+
+--------------------------------------------------------------------------------
 Soulbound v1.80.2 — WIĘCEJ FAME W CAŁYM ŚWIECIE — 2026-10-10
 Aktualna paczka: v1.80.2 (kompletna baza v1.80.1).
 - Fame: rozszerzono pulę jednorazowych celów w istniejących terenach z bossami i elitami — do 6 różnych, naturalnie występujących rodzajów przeciwników na teren, o ile jest ich tyle. Najpierw zachowane wszystkie oryginalne cele, następnie najsilniejsi naturalni przeciwnicy danego terenu.

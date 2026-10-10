@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from contextlib import closing
 import asyncio
 import re
 from pathlib import Path
@@ -182,7 +183,7 @@ def audit_stability_v1178():
                   f'account {acct} event history remains ordered and isolated')
         con.commit()
         con.close()
-        with sqlite3.connect(os.path.join(folder, 'combat.db')) as reopened:
+        with closing(sqlite3.connect(os.path.join(folder, 'combat.db'))) as reopened:
             check(reopened.execute('SELECT count(*) FROM combat_events_v0320').fetchone()[0] == 160,
                   'all 160 historical events survive SQLite restart')
     return {'checks': checks, 'errors': errors, 'error_count': len(errors),

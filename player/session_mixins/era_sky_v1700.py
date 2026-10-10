@@ -893,7 +893,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                     self.current_hp+=heal
             self._v1710_earn_summon_xp(conn,row['summon_type'],damage)
             target_name=str(MOB_TEMPLATES.get(mob.template_id, {}).get('name') or mob.template_id)
-            msg=(f'{name} (przywołanie {self.character.name}, poziom {mastery}) '
+            msg=(f'{name} (przywołanie {getattr(self.character, "name", None) or "gracza"}, poziom {mastery}) '
                  f'trafia {target_name} za {damage} obrażeń. '
                  f'{target_name}: {max(0,mob.hp)} HP.')
             if elemental:

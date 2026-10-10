@@ -30,7 +30,7 @@ async def run_async():
     db=DB();msgs=[]
     class Mage(SessionSkyV1700Mixin):
         def __init__(self):
-            self.character=SimpleNamespace(room_id='somewhere',class_name='Mag')
+            self.character=SimpleNamespace(room_id='somewhere',class_name='Mag',name='Mag Testowy')
             self.account_id=42;self.combat_mob_key=None;self.current_mana=0
             self.current_hp=500;self.skill_guard=0
             self.server=SimpleNamespace(db=db,party_combat_broadcast=self.party)

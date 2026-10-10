@@ -8,6 +8,7 @@ bounded synthetic stress test, NOT a claim about Railway network latency.
 from __future__ import annotations
 
 import asyncio
+from contextlib import closing
 import os
 import sqlite3
 import statistics
@@ -108,7 +109,7 @@ def run_stress_v1390(*, players: int = 4, rounds: int = 80) -> dict:
         finally:
             db.conn.close()
         # Re-open a second, independent connection to prove on-disk persistence.
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             verify(conn.execute('PRAGMA integrity_check').fetchone()[0] == 'ok',
                    'SQLite integrity after restart')
             for index, aid in enumerate(ids):

@@ -3364,7 +3364,7 @@ _direct_xp_bypasses_v11342 = []
 for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
         continue
-    _relative_v11342=str(_source_path_v11342.relative_to(_root))
+    _relative_v11342=_source_path_v11342.relative_to(_root).as_posix()
     try:
         _tree_v11342=ast.parse(
             _source_path_v11342.read_text(encoding="utf-8"),
