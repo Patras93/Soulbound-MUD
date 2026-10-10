@@ -4076,3 +4076,9 @@ _docker_guard_v1403 = _run_docker_generator_guard_v1403()
 if _docker_guard_v1403['errors']:
     raise RuntimeError('Railway stale Generator Core: ' + '; '.join(_docker_guard_v1403['errors']))
 print(f"RAILWAY GENERATOR GUARD v1.40.3: {_docker_guard_v1403['checks']} checks PASS")
+
+# v1.40.4: reproduce Railway /app without .dockerignore, incl. negative tests.
+from validation.v1404_railway_stage import run_railway_stage_regression_v1404 as _run_railway_stage_regression_v1404
+_stage_v1404 = _run_railway_stage_regression_v1404()
+assert not _stage_v1404['errors'] and _stage_v1404['tests'] == 5
+print("RAILWAY STAGE v1.40.4: 5 source/image/negative checks PASS")

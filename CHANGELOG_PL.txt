@@ -1,3 +1,17 @@
+Soulbound v1.40.4 — NAPRAWA PREDEPLOY RAILWAY W OBRAZIE DOCKER
+Aktualna paczka: v1.40.4 (2026-10-10)
+=====================================================
+- Naprawiono crash FileNotFoundError: /app/.dockerignore w validation/v1403_docker_guard.py.
+- Docker uzywa .dockerignore do filtrowania kontekstu, ale nie kopiuje go do /app.
+- W katalogu zrodlowym kontrola nadal weryfikuje regule wykluczenia starego pliku.
+- W obrazie bez .dockerignore kontrola weryfikuje obecnosc bezpiecznego RUN rm -f
+  oraz jego kolejnosc PRZED uruchomieniem obu predeployow.
+- Test regresyjny odtwarza obie sytuacje oraz wykrywa stary Generator Core,
+  brak czyszczenia i pozostale importy generatora.
+- Generator Core pozostaje usuniety. Balans, nagrody, zapisane konta i EXP
+  wszystkich 14 profesji oraz 14 narzedzi z v1.40.2 pozostaja bez zmian.
+- Bez migracji bazy; Railway/GitHub bez zmian po stronie uzytkownika.
+
 Soulbound v1.40.3 — RAILWAY: USUNIECIE STAREGO GENERATOR CORE
 Aktualna paczka: v1.40.3 (2026-10-10)
 =====================================================

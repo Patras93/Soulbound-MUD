@@ -4,8 +4,8 @@ from pathlib import Path
 import re
 
 
-def run_docker_generator_guard_v1403():
-    root = Path(__file__).resolve().parents[1]
+def run_docker_generator_guard_v1403(root=None):
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
     checks = 0
     errors = []
 
@@ -16,11 +16,19 @@ def run_docker_generator_guard_v1403():
             errors.append(reason)
 
     docker = (root / 'Dockerfile').read_text(encoding='utf-8')
-    ignore = (root / '.dockerignore').read_text(encoding='utf-8')
+    ignore_path = root / '.dockerignore'
+    # Docker reads .dockerignore when creating the build context but does not
+    # copy it into /app. Validate its pattern in the unpacked source folder;
+    # in the Railway image, rely on the explicit cleanup before predeploy.
+    ignore = ignore_path.read_text(encoding='utf-8') if ignore_path.is_file() else None
     src_core = root / 'core' / 'generator_core.py'
     check(not src_core.exists(), 'retired Generator Core still in source tree')
-    check('core/generator_core.py' in ignore.splitlines(),
-          'Docker context must exclude retired core/generator_core.py')
+    if ignore is None:
+        check('RUN rm -f /app/core/generator_core.py && test ! -e /app/core/generator_core.py' in docker,
+              'Docker image without .dockerignore must explicitly remove retired Generator Core')
+    else:
+        check('core/generator_core.py' in ignore.splitlines(),
+              'Docker context must exclude retired core/generator_core.py')
     copy = docker.find('COPY core /app/core')
     remove = docker.find('RUN rm -f /app/core/generator_core.py && test ! -e /app/core/generator_core.py')
     audit = docker.find('RUN python /app/predeploy_check.py')

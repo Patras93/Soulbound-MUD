@@ -373,8 +373,10 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v1.40.3 - RAILWAY: OCHRONA PRZED STARYM GENERATOREM"
+LATEST_CHANGES_TITLE = "Soulbound v1.40.4 - RAILWAY: TEST DOCKERIGNORE W OBRAZIE"
 LATEST_CHANGES = [
+    "v1.40.4: poprawiono predeploy wewnatrz obrazu Docker: .dockerignore nie jest kopiowany do /app, wiec audyt sprawdza bezpieczny krok usuniecia generatora.",
+    "Nowy test osobno sprawdza zrodla oraz obraz bez .dockerignore i odrzuca przywrocony generator lub brak zabezpieczenia. Bez zmian EXP, nagrod i postaci.",
     "v1.40.3: naprawa budowania Railway: Docker ignoruje i usuwa pozostaly core/generator_core.py przed kontrolami. Bez przywracania generatora.",
     "Wymagania EXP profesji i narzedzi od poziomu 100 jak w v1.40.2; wszystkie nagrody i zapisy bez zmian.",
     "v1.40.2: wszystkie 14 narzedzi ma plynnie wyzsze wymagania EXP od poziomu 100, identyczna krzywa jak profesje (150 x1.12, 200 x1.30, 400 x2.60, 600 x6, 799 x12).",
