@@ -178,10 +178,10 @@ def run_exhaustive():
           f'{len(ADDITIONAL_TCP_CASES)} scenariuszy dodatkowych na pierwszym kliencie')
     print(f'RZECZYWISTE TCP: {len(READ_TCP_CASES) + len(ADDITIONAL_TCP_CASES)} wariantow komend '
           '(w tym powtorzone nazwy z innymi argumentami), testowane w ostatniej bramce.')
-    print(f'QUESTY NPC PRZEJSCIE FABULY: 0/{base["quests"]} kompletnych scenariuszy TCP; NOT TESTED.')
+    print(f'QUESTY NPC PRZEJSCIE FABULY: 0/{base["quests"]} w TYM MODULE; osobne scenariusze NPC/TCP sa na koncu predeploy.')
     print('POKRYCIE WYKONANIA: TESTOWANE OSOBNO przez TCP i dedykowane scenariusze.')
     print('NOT TESTED: kompletne wykonanie wszystkich 373 handlerow we wszystkich stanach gry.')
-    print('NOT TESTED: fabularne ukonczenie i odbior wszystkich questow u NPC przez TCP.')
+    print('NOT TESTED w tym module: fabularne ukonczenie i odbior wszystkich questow przez TCP; pojedyncze rzeczywiste questy bada osobny autogracz.')
     if errors:
         for error in errors[:50]:
             print('AUDYT FAIL: ' + error)

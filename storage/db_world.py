@@ -425,6 +425,40 @@ class DatabaseWorldMixin:
         self.conn.commit()
         return cur.rowcount > 0
 
+    def mark_room_discovered_with_points_v2322(self, account_id, room_id, ep_points):
+        """Atomically save a new room, its EP award, and lifetime totals.
+
+        Previously discovered rooms are intentionally unchanged (no duplicate
+        EP or re-award on login). Existing SQLite saves need no reset.
+        """
+        points = max(1, min(30, int(ep_points)))
+        with self.conn:
+            cursor = self.conn.execute(
+                "INSERT OR IGNORE INTO exploration_rooms(account_id,room_id) VALUES(?,?)",
+                (account_id, str(room_id)),
+            )
+            if cursor.rowcount <= 0:
+                return False
+            self.conn.execute(
+                "INSERT INTO exploration_room_points_v2322(account_id,room_id,ep_points) "
+                "VALUES(?,?,?)", (account_id, str(room_id), points),
+            )
+            for metric, value in (("rooms_discovered", 1), ("explorer_points", points)):
+                self.conn.execute(
+                    "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
+                    "ON CONFLICT(account_id,stat_key) DO UPDATE SET "
+                    "value=lifetime_statistics.value+excluded.value,updated_at=CURRENT_TIMESTAMP",
+                    (account_id, metric, value),
+                )
+        return True
+
+    def exploration_room_point_awards_v2322(self, account_id):
+        rows = self.conn.execute(
+            "SELECT room_id, ep_points FROM exploration_room_points_v2322 WHERE account_id=?",
+            (account_id,),
+        ).fetchall()
+        return {str(row['room_id']): int(row['ep_points']) for row in rows}
+
     def discovered_room_ids(self, account_id):
         rows = self.conn.execute(
             "SELECT room_id FROM exploration_rooms WHERE account_id=?",

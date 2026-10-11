@@ -477,7 +477,10 @@ for key, zone, stage, names, desc, normal_a, normal_b, rare_spec, mini_spec, mat
         _dragon_spawn(rid, normal1 if idx % 2 == 0 else normal2, 2)
         _dragon_spawn(rid, normal2 if idx % 2 == 0 else normal1, 1)
     _dragon_spawn(rooms[5], rare, 1)
-    _dragon_spawn(rooms[6], mini, 1)
+    # v2.32.1: Matka Popiolu belongs to her named lair (room 8), not
+    # Popielna Gran (room 7). Other zones retain their authored layouts.
+    # She remains an ordinary respawning mini-boss; do not use one-time spawns.
+    _dragon_spawn(rooms[7] if key == "ashen" else rooms[6], mini, 1)
     if lord:
         _dragon_spawn(rooms[7], lord, 1)
 
@@ -789,6 +792,10 @@ def dragon_world_audit_v1130():
     for rid, mid in DRAGON_WORLD_SPAWNS:
         if rid not in ROOMS or mid not in MOB_TEMPLATES:
             errors.append(f"invalid dragon spawn: {rid}->{mid}")
+    # Regression: a boss named after its lair must actually spawn there.
+    ash_matron_rooms = [rid for rid, mid in DRAGON_WORLD_SPAWNS if mid == "dragon_ash_matron"]
+    if ash_matron_rooms != ["dragon_ashen_08"]:
+        errors.append(f"Matka Popiolu missing from her lair: {ash_matron_rooms!r}")
     if gate not in (ROOMS["titan_valley_throne"].get("exits") or {}).values():
         errors.append("Dolina Tytanów is not connected to Smoczy Świat")
     return {

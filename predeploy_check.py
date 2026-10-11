@@ -4260,3 +4260,11 @@ print(f"MISTRZOWIE / MODULY FLOTY v2.20.1: {_check_v2201()} checks PASS")
 # v2.30.0: additional authored AI, mastery and ocean release regression.
 from validation.v2300_world_professions_ocean import run_regression as _v2300_regression
 print(f'WIELKA ERA v2.30.0 AI / PROFESJE / OCEAN: {_v2300_regression()} checks PASS')
+
+# v2.32.1: live spawn, fixed lair and respawn of Matka Popiolu.
+from validation.v2321_ash_matron_spawn import run_regression as _matron_spawn_v2321
+print(f"MATKA POPIOLU v2.32.2 FAST: {_matron_spawn_v2321()} checks PASS")
+
+# v2.32.2: automatic EP for silent guided transitions and one-time award.
+from validation.v2322_auto_exploration import run_regression as _auto_ep_v2322
+print(f"AUTO EP v2.32.3: {_auto_ep_v2322()} checks PASS")

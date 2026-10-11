@@ -42,9 +42,10 @@ def run_contract():
             else: os.environ['SOULBOUND_DB'] = save_db
             if save_host is None: os.environ.pop('SOULBOUND_HOST', None)
             else: os.environ['SOULBOUND_HOST'] = save_host
-    assert len(gate.STAGES) == 8; checks += 1
+    assert len(gate.STAGES) == 9; checks += 1
     assert gate.STAGES[-1][1] == 'validation/v2102_tcp_six_players.py'; checks += 1
-    assert gate.STAGES[-3][1] == 'validation/v2302_coverage_contract.py'; checks += 1
+    assert gate.STAGES[-2][1] == 'validation/v2320_autonomous_routes.py'; checks += 1
+    assert gate.STAGES[-4][1] == 'validation/v2302_coverage_contract.py'; checks += 1
     assert len(coverage.READ_TCP_CASES) == len(set(coverage.READ_TCP_CASES)); checks += 1
     assert len(coverage.ADDITIONAL_TCP_CASES) == len(set(coverage.ADDITIONAL_TCP_CASES)); checks += 1
     assert set(coverage.NEGATIVE_TCP_CASES) <= set(coverage.ADDITIONAL_TCP_CASES); checks += 1

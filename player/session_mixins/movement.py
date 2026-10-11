@@ -350,6 +350,14 @@ class SessionMovementMixin:
                     commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
                 )
                 await self.register_uoss_deep_dungeon_visit_v11331(target)
+                # v2.32.2: prowadzenie moze pominac look() dla NVDA.
+                # Samo dotarcie do nowej lokacji przyznaje wtedy EP + EXP
+                # automatycznie, dokladnie raz przez mark_room_discovered().
+                if not show_room:
+                    # Starsze symulatory ruchu sa uproszczonymi atrapami sesji.
+                    # Prawdziwa Session dziedziczy discover_current_room().
+                    if hasattr(self, "discover_current_room"):
+                        await self.discover_current_room(announce=True)
                 if callable(getattr(self, 'remember_catacomb_floor_v2010', None)):
                     self.remember_catacomb_floor_v2010(target)
                 if callable(getattr(self, "grand_expedition_visit_v1260", None)):

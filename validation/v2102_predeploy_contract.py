@@ -32,7 +32,7 @@ def run_regression():
             0 < int(env['SOULBOUND_PORT']) < 65536,
             'RAILWAY_VOLUME_MOUNT_PATH' not in env,
             'SOULBOUND_ADMIN_ACCOUNTS' not in env,
-            len(gate.STAGES) == 8,
+            len(gate.STAGES) == 9,
             [step[1] for step in gate.STAGES] == [
                 'predeploy_check.py', 'predeploy_full.py',
                 'validation/v2200_master_depths_ai.py',
@@ -40,6 +40,7 @@ def run_regression():
                 'validation/v2300_world_professions_ocean.py',
                 'validation/v2302_coverage_contract.py',
                 'validation/v2310_event_contract.py',
+                'validation/v2320_autonomous_routes.py',
                 'validation/v2102_tcp_six_players.py',
             ],
             gate.STAGES[-1][1] == 'validation/v2102_tcp_six_players.py',

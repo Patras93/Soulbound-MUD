@@ -373,8 +373,12 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.31.0 - PRAWDZIWE ZDARZENIA QUESTOW"
+LATEST_CHANGES_TITLE = "Soulbound v2.32.3 - WINDOWS SQLITE EP CLEANUP"
 LATEST_CHANGES = [
+    "v2.32.3: zamknieto oba fizyczne polaczenia SQLite po tescie automatycznego wielopunktowego EP. Windows WinError 32 przy usuwaniu real.sqlite przestaje blokowac FAST/FULL; nowa regresja sprawdza faktyczne zamkniecie uchwytow i usuwalnosc pliku. Bez zmian punktacji EP, balansu i danych postaci.",
+    "v2.32.2: automatyczne 2-8+ EP za nowa lokacje zalezne od poziomu, sekretu i bossa, osobny pelny EXP Cap za kazdy EP, zapis EP w SQLite, poprawny bilans eksploracji. Prowadzenie bez look() tez odkrywa pokój tylko raz na konto. Naprawiono test Matki Popiolu z uwzglednieniem skalowanych szablonow bossa. Bez resetowania SQLite i balansu.",
+    "v2.32.1: Matka Popiolu odradza sie w Legowisku Matki Popiolu zamiast na Popielnej Grani. Przed wydaniem tester sprawdza prawdziwy spawn World(), obecność, brak wedrowania i odrodzenie. Nie zmieniono SQLite, nagrod ani innych bossow.",
+    "v2.32.0: realne TCP: rozmowa z Kaplanem Elorem, oferta, przyjecie zadania przez leadera, dzielenie z piecioma innymi klientami, odmowa nagrody przed ukonczeniem, zejscie do piwnicy, zabicie szczura i trwały postep SQLite po restarcie. Planer tras i dziewiec obowiazkowych bramek. Nadal NOT TESTED pozostale calosciowe scenariusze NPC i 1526 odbiorow nagrod.",
     "v2.31.0: tester uruchamia realne metody postepu questow w SQLite dla dostepnych rodzajow, sprawdza izolacje kont, limity, restart, porzucenie oraz brak progresu po ukonczeniu. Pozostale typy i kompletna fabula/NPC pozostaja jawnie NOT TESTED. Osiem bramek Windows; bez zmian mechaniki gry.",
     "v2.30.2: szerszy predeploy Windows, 7 bramek, kontrola wszystkich handlerow i typow questow, izolacja postepu kont oraz rzeczywiste dodatkowe scenariusze TCP. Raport nadal jasno odroznia brak testu pelnej gry od PASS.",
     "v2.30.1: naprawa blokady tymczasowej bazy po testach 6 graczy TCP na Windows, nowe testy jawnego zamykania SQLite, bez zmian balansu i zapisow postaci.",

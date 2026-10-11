@@ -2,6 +2,7 @@
 """Private bootstrap for six-player test. Only invoked with guarded TEST env."""
 from __future__ import annotations
 import os
+import json
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -36,6 +37,22 @@ def main():
         db.conn.commit()
     finally:
         db.conn.close()
+    # v2.32.0: obtain *runtime* room layout after NPC private-room relocation
+    # and world topology generation. Static data/npcs.py locations are stale.
+    from validation.v2320_autonomous_routes import shortest_route
+    sol_room = server.NPCS['archivist']['room']
+    doran_room = server.NPCS['doran']['room']
+    journey = {
+        'to_sol': shortest_route(server.ROOMS, 'temple', sol_room),
+        'to_doran': shortest_route(server.ROOMS, sol_room, doran_room),
+        'sol_room': sol_room,
+        'doran_room': doran_room,
+    }
+    if journey['to_sol'] is None or journey['to_doran'] is None:
+        raise RuntimeError('Runtime NPC courier route unreachable: '+repr(journey))
+    if len(journey['to_sol']) > 100 or len(journey['to_doran']) > 100:
+        raise RuntimeError('Courier NPC route too long; inspect world topology')
+    print('TEST_AUTOPLAYER_ROUTE_JSON:'+json.dumps(journey,ensure_ascii=False),flush=True)
     print('TEST_TCP_ACCOUNTS_READY', flush=True)
     server.main()
 

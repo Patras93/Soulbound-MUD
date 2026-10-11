@@ -628,17 +628,17 @@ class SessionExplorationProgressMixin:
                             "Użyj sekret / secret, aby go zbadać."
                         )
 
-            is_new = self.server.db.mark_room_discovered(
-                self.account_id, room_id
+            from systems.exploration_point_values_v2322 import room_explorer_points_v2322
+            room_meta = ROOMS[room_id]
+            ep_points = room_explorer_points_v2322(room_meta)
+            # Room history + EP and lifetime totals are saved atomically.
+            is_new = self.server.db.mark_room_discovered_with_points_v2322(
+                self.account_id, room_id, ep_points
             )
             if not is_new:
                 return False
 
-            self.server.db.add_lifetime_stat(self.account_id, "rooms_discovered", 1)
-            room_meta = ROOMS[room_id]
-
-            # v1.11.32: Explorer Points jak w klasycznych MUD-ach.
-            # Każda nowa lokacja w terenie daje 1 EP dokładnie raz oraz Character EXP.
+            # Different rooms grant different EP, not a flat +1 per room.
             zone_for_ep = str(room_meta.get("zone") or "Nieznany teren")
             room_stage=max(
                 1,
@@ -656,24 +656,30 @@ class SessionExplorationProgressMixin:
             # v2.10.3: every first-time EP yields the current full character
             # award cap (not a flat 50-5000 XP scaled by the room's stage).
             from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103
-            ep_xp = exploration_point_xp_v2103(self.character)
-            for message in self.add_character_xp_with_event(
-                ep_xp,
-                content_level=room_stage,
-                content_scaled=True,
-            ):
-                if announce:
-                    await self.send(message)
-            self.server.db.add_lifetime_stat(self.account_id, "explorer_points", 1)
+            ep_xp_total = 0
+            for _ in range(ep_points):
+                # Each individual EP awards the CURRENT character EXP cap;
+                # the existing EXP Bank handles overflow per award.
+                ep_xp = exploration_point_xp_v2103(self.character)
+                ep_xp_total += ep_xp
+                for message in self.add_character_xp_with_event(
+                    ep_xp,
+                    content_level=room_stage,
+                    content_scaled=True,
+                ):
+                    if announce:
+                        await self.send(message)
             await self.advance_class_guild_quest_v11132("explore", 1)
             if announce:
-                zone_ep_total = len(EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ()))
-                zone_ep_now = sum(
-                    1 for rid in EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ())
-                    if rid in self.server.db.discovered_room_ids(self.account_id)
+                from systems.exploration_point_values_v2322 import zone_explorer_points_v2322
+                zone_ep_now, zone_ep_total = zone_explorer_points_v2322(
+                    EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ()),
+                    self.server.db.discovered_room_ids(self.account_id),
+                    self.server.db.exploration_room_point_awards_v2322(self.account_id),
+                    ROOMS,
                 )
                 await self.send(
-                    f"Punkt eksploracji: +1 EP, +{ep_xp} EXP postaci. "
+                    f"Odkrycie lokacji: +{ep_points} EP, +{ep_xp_total} EXP postaci. "
                     f"{zone_for_ep}: {zone_ep_now} z {zone_ep_total} EP."
                 )
 
@@ -843,13 +849,21 @@ class SessionExplorationProgressMixin:
             world_count = sum(1 for rid in ALL_EXPLORATION_ROOMS if rid in discovered)
             world_pct = int(world_count * 100 / max(1, len(ALL_EXPLORATION_ROOMS)))
 
+            from systems.exploration_point_values_v2322 import zone_explorer_points_v2322
+            awards = self.server.db.exploration_room_point_awards_v2322(self.account_id)
+            earned_world_ep = self.server.db.lifetime_stat(self.account_id, "explorer_points")
             if norm in ("all", "wszystko", "lista", "list"):
                 await self.send(
-                    f"EKSPLORACJA ŚWIATA: {world_count} z {len(ALL_EXPLORATION_ROOMS)}, {world_pct}%."
+                    f"EKSPLORACJA ŚWIATA: {world_count} z {len(ALL_EXPLORATION_ROOMS)}, {world_pct}%. "
+                    f"Łącznie zdobyte EP: {earned_world_ep}."
                 )
                 for zone in sorted(TRACKED_EXPLORATION_ZONES, key=normalize_lookup_text):
                     count, total, pct = self.exploration_percent(zone)
-                    await self.send(f"{zone}: {count} z {total}, {pct}%.")
+                    earned, possible = zone_explorer_points_v2322(
+                        EXPLORATION_ZONE_ROOMS.get(zone, ()), discovered, awards, ROOMS
+                    )
+                    await self.send(f"{zone}: {count} z {total} lokacji, {pct}%; "
+                                    f"EP {earned} z {possible}.")
                 return
 
             zone = ROOMS[self.character.room_id]["zone"]
@@ -863,13 +877,17 @@ class SessionExplorationProgressMixin:
                     return
                 zone = found[0]
             count, total, pct = self.exploration_percent(zone)
+            ep_earned, ep_possible = zone_explorer_points_v2322(
+                EXPLORATION_ZONE_ROOMS.get(zone, ()), discovered, awards, ROOMS
+            )
             await self.send(
                 f"{zone}: {pct}% odkryta. {count} z {total} lokacji. "
-                f"Punkty eksploracji: {count} z {total} EP, pozostało {max(0, total-count)}."
+                f"Punkty eksploracji: {ep_earned} z {ep_possible} EP, "
+                f"pozostało {max(0, ep_possible-ep_earned)}."
             )
             await self.send(
                 f"Cały świat: {world_pct}% odkryty. {world_count} z {len(ALL_EXPLORATION_ROOMS)} lokacji. "
-                f"Łączne EP: {world_count}."
+                f"Łącznie zdobyte EP: {earned_world_ep}."
             )
 
     async def show_region_progress(self, zone=None):

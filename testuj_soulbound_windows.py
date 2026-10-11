@@ -29,6 +29,7 @@ STAGES = (
     ('SCENARIUSZE 5.0: AI / 42 RECEPTURY / OCEAN', 'validation/v2300_world_professions_ocean.py', 180),
     ('AUDYT POKRYCIA WZDLUZ I WSZERZ', 'validation/v2302_coverage_contract.py', 180),
     ('ZADANIA — PRAWDZIWE ZDARZENIA I IZOLACJA', 'validation/v2310_event_contract.py', 180),
+    ('AUTOGRACZ — MAPA, NPC, SCIEZKI', 'validation/v2320_autonomous_routes.py', 180),
     ('6 KLIENTOW TCP + RESTART', 'validation/v2102_tcp_six_players.py', 900),
 )
 
@@ -143,14 +144,14 @@ def main():
             logfile.write(msg + '\n')
             logfile.flush()
 
-        say('SOULBOUND v2.31.0 - TESTY ZDARZEN QUESTOW I TCP')
+        say('SOULBOUND v2.32.3 - WINDOWS SQLITE EP CLEANUP')
         say('Start: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
         say('Python: '+sys.version.splitlines()[0])
         say('System: '+platform.platform())
         say('Folder gry: '+str(ROOT))
         say('Baza prawdziwych graczy: NIE UZYWANA, tylko tymczasowe SQLite')
         say('TCP: tylko 127.0.0.1, maksymalnie 6 graczy testowych')
-        say('PASS wymaga wykonania wszystkich osmiu etapow; sam FAST to za malo.')
+        say('PASS wymaga wykonania wszystkich dziewieciu etapow; sam FAST to za malo.')
         say('-' * 72)
         try:
             for title, filename, timeout in STAGES:
@@ -180,7 +181,7 @@ def main():
         for title, ret in status:
             say(('PASS' if ret == 0 else 'FAIL') + ' - ' + title + ' (kod '+str(ret)+')')
         good = len(status) == len(STAGES) and all(ret == 0 for _,ret in status)
-        say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 8 ETAPOW' if good else
+        say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 9 ETAPOW' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))
         say('Log do przeslania: '+str(LOG))
         say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))

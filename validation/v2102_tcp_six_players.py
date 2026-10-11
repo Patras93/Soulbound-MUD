@@ -8,6 +8,7 @@ Never connect to a running player's server; start an isolated child instead.
 from __future__ import annotations
 
 import asyncio
+import json
 from contextlib import closing, suppress
 import os
 from pathlib import Path
@@ -26,7 +27,9 @@ PLAYERS = 6
 PASSWORD = 'test_only_tcp_2026_password'
 BOOT_TIMEOUT = 240
 PROMPT_TIMEOUT = 40
-COMMAND_TIMEOUT = 12
+# Heavy real-time combat can postpone quest replies; timeout stays finite and
+# a genuinely stuck command still fails the gate (unlike silent retry PASS).
+COMMAND_TIMEOUT = 30
 
 
 def guarded_child_env(directory, port):
@@ -127,7 +130,7 @@ class TcpPlayer:
                 await asyncio.wait_for(self.writer.wait_closed(), 2)
 
 
-async def exercise(names, port, *, after_restart=False):
+async def exercise(names, port, *, after_restart=False, routes=None):
     clients = [TcpPlayer(account, name, port) for account, name in names]
     checks = 0
     try:
@@ -170,6 +173,9 @@ async def exercise(names, port, *, after_restart=False):
                   f'{len(NEGATIVE_TCP_CASES)} bledne argumenty, waluta bez zmian PASS', flush=True)
 
         if after_restart:
+            # v2.32.0: a genuine NPC quest and combat kill must survive restart.
+            from validation.v2320_autonomous_tcp import check_after_restart
+            checks += await check_after_restart(clients, routes)
             times = [t for c in clients for t in c.times]
             return {'checks': checks, 'logged_in': PLAYERS, 'commands': len(times),
                     'average_ms': round(statistics.mean(times), 1),
@@ -196,6 +202,11 @@ async def exercise(names, port, *, after_restart=False):
         if any('drużyn' not in item.lower() and 'druzyn' not in item.lower() for item in results):
             raise AssertionError('Party status did not arrive on all clients')
         checks += PLAYERS
+        # v2.32.0: invoke the actual NPC dialogue, player command router,
+        # basement navigation, combat and quest progress on private TCP.
+        from validation.v2320_autonomous_tcp import run_actual_npc_journey
+        journey = await run_actual_npc_journey(clients)
+        checks += journey['checks']
         times = [t for c in clients for t in c.times]
         return {'checks': checks, 'logged_in': PLAYERS,
                 'commands': len(times), 'average_ms': round(statistics.mean(times), 1),
@@ -271,7 +282,14 @@ def _run_server_cycle(temp, db_path, names, *, after_restart=False):
                 cwd=str(ROOT), env=env, stdin=subprocess.DEVNULL,
                 stdout=sink, stderr=subprocess.STDOUT)
             wait_for_world_server(proc, path)
-            result = asyncio.run(exercise(names, port, after_restart=after_restart))
+            route_lines = [line.split('TEST_AUTOPLAYER_ROUTE_JSON:',1)[1]
+                           for line in path.read_text(encoding='utf-8').splitlines()
+                           if line.startswith('TEST_AUTOPLAYER_ROUTE_JSON:')]
+            if len(route_lines) != 1:
+                raise AssertionError('Missing actual NPC route from private TCP child')
+            routes = json.loads(route_lines[0])
+            result = asyncio.run(exercise(names, port, after_restart=after_restart,
+                                          routes=routes))
         if proc.poll() is not None:
             raise RuntimeError('Private server stopped while clients were active')
         # The test must also verify that the server did not log an unhandled exception.
@@ -301,6 +319,20 @@ def _check_db(db_path):
         if integrity != 'ok' or len(rows) != PLAYERS or chars != PLAYERS:
             raise AssertionError(f'Persistence failure: SQLite {integrity}, accounts={len(rows)}, characters={chars}')
         return chars
+
+
+def _check_autoplayer_delivery(db_path):
+    """The private courier quest must be persisted after the TCP player exits."""
+    with closing(sqlite3.connect(db_path)) as conn:
+        row = conn.execute("""
+            SELECT q.status, q.completion_count
+            FROM quests AS q JOIN accounts AS a ON a.id = q.account_id
+            WHERE a.username = 'tcpcheck1'
+              AND q.quest_id = 'sol_starter_blacksmith_delivery'
+        """).fetchone()
+        if row is None or row[0] != 'completed' or int(row[1]) != 1:
+            raise AssertionError('Courier reward not durably recorded: '+repr(row))
+        return 1
 
 
 def run_sqlite_cleanup_regression():
@@ -386,7 +418,9 @@ def main():
             count = _check_db(db_path)
             print(f"TCP RESTART: {second['logged_in']}/6 relogged; "
                   f"{second['commands']} commands; {second['checks']} checks PASS", flush=True)
-            print(f'SQLite after restart: {count} original characters; integrity PASS', flush=True)
+            _check_autoplayer_delivery(db_path)
+            print(f'SQLite after restart: {count} original characters; integralnosc PASS; '
+                  'kurier Sol -> Doran zakonczony w SQLite PASS', flush=True)
     except Exception as exc:
         print('TCP 6 GRACZY: FAIL: ' + str(exc), flush=True)
         return 1
