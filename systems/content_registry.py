@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.32.3 - WINDOWS SQLITE EP CLEANUP"
+LATEST_CHANGES_TITLE = "Soulbound v2.32.4 - RAILWAY DOCKER QUALITY GATE"
 LATEST_CHANGES = [
+    "v2.32.4: Dockerfile kopiuje testuj_soulbound_windows.py przed FAST/FULL na Railway, dzieki czemu testy validation/v2102_predeploy_contract.py i v2302_coverage_contract.py moga poprawnie importowac kontroler; po buildzie usuwa modul testowy z obrazu runtime. Nowy test sprawdza COPY, kolejnosc i cleanup. Bez zmian mechaniki gry i SQLite.",
     "v2.32.3: zamknieto oba fizyczne polaczenia SQLite po tescie automatycznego wielopunktowego EP. Windows WinError 32 przy usuwaniu real.sqlite przestaje blokowac FAST/FULL; nowa regresja sprawdza faktyczne zamkniecie uchwytow i usuwalnosc pliku. Bez zmian punktacji EP, balansu i danych postaci.",
     "v2.32.2: automatyczne 2-8+ EP za nowa lokacje zalezne od poziomu, sekretu i bossa, osobny pelny EXP Cap za kazdy EP, zapis EP w SQLite, poprawny bilans eksploracji. Prowadzenie bez look() tez odkrywa pokój tylko raz na konto. Naprawiono test Matki Popiolu z uwzglednieniem skalowanych szablonow bossa. Bez resetowania SQLite i balansu.",
     "v2.32.1: Matka Popiolu odradza sie w Legowisku Matki Popiolu zamiast na Popielnej Grani. Przed wydaniem tester sprawdza prawdziwy spawn World(), obecność, brak wedrowania i odrodzenie. Nie zmieniono SQLite, nagrod ani innych bossow.",

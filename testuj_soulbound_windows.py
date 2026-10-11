@@ -144,7 +144,7 @@ def main():
             logfile.write(msg + '\n')
             logfile.flush()
 
-        say('SOULBOUND v2.32.3 - WINDOWS SQLITE EP CLEANUP')
+        say('SOULBOUND v2.32.4 - RAILWAY DOCKER QUALITY GATE')
         say('Start: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
         say('Python: '+sys.version.splitlines()[0])
         say('System: '+platform.platform())

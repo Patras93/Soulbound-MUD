@@ -29,6 +29,9 @@ COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
 COPY predeploy_check.py /app/predeploy_check.py
 COPY predeploy_full.py /app/predeploy_full.py
+# v2.32.4: Railway needs the Windows quality-gate module imported by
+# validation/v2102_predeploy_contract.py and v2302_coverage_contract.py.
+COPY testuj_soulbound_windows.py /app/testuj_soulbound_windows.py
 COPY Dockerfile /app/Dockerfile
 # v1.60.5: Testujemy pliki START/STOP w czasie budowania, chociaz Linux ich nie uruchamia.
 # Bez tego v1.60.4 mial FileNotFoundError: /app/START_Soulbound.bat.
@@ -40,5 +43,6 @@ RUN python /app/predeploy_check.py \
        /app/START_Soulbound.bat /app/START_Soulbound_UKRYTY.vbs \
        /app/Start-Soulbound-Windows.bat /app/STOP_Soulbound.bat /app/host_windows.py \
        /app/uruchom_w_tle.py /app/windows_launcher_state.py \
-       /app/stop_soulbound_windows.py /app/aktualizuj_soulbound.py
+       /app/stop_soulbound_windows.py /app/aktualizuj_soulbound.py \
+       /app/testuj_soulbound_windows.py
 CMD ["python", "-u", "/app/server.py"]

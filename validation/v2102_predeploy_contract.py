@@ -14,6 +14,18 @@ def run_regression():
     import testuj_soulbound_windows as gate
     from validation.v2102_tcp_six_players import run_contract
     checks = run_contract()
+    # Railway image contains only explicitly COPY-ed sources. Without this
+    # module, importing the Windows gate in this self-test fails even though
+    # running from the complete Windows source tree succeeds.
+    docker_source = (ROOT / 'Dockerfile').read_text(encoding='utf-8')
+    copy_gate = 'COPY testuj_soulbound_windows.py /app/testuj_soulbound_windows.py'
+    build_gate = 'RUN python /app/predeploy_check.py'
+    assert copy_gate in docker_source.splitlines(), 'Dockerfile does not COPY the quality gate into Railway'
+    checks += 1
+    assert docker_source.index(copy_gate) < docker_source.index(build_gate), 'The quality gate must exist before predeploy starts'
+    checks += 1
+    assert '/app/testuj_soulbound_windows.py' in docker_source[docker_source.index(build_gate):], 'Remove the build-only gate after tests'
+    checks += 1
     with tempfile.TemporaryDirectory(prefix='sb-gate-selftest-') as directory:
         temp = Path(directory)
         saved_env = {k: os.environ.get(k) for k in ('RAILWAY_VOLUME_MOUNT_PATH', 'SOULBOUND_ADMIN_ACCOUNTS')}

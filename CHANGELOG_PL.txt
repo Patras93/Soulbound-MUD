@@ -1,3 +1,10 @@
+Soulbound v2.32.4 — Naprawa predeploy Docker na Railway — 2026-10-11
+Aktualna paczka: v2.32.4 (kompletny ZIP na bazie v2.32.3, bez wdrozenia).
+- PRZYCZYNA: Dockerfile kopiowal katalog validation, ale nie kopiowal testuj_soulbound_windows.py. Walidacja v2102_predeploy_contract.py importuje ten modul; Railway przerywal FAST na ModuleNotFoundError, pomimo 9/9 PASS lokalnie na Windows.
+- NAPRAWA: COPY testuj_soulbound_windows.py do /app w etapie Docker przed uruchomieniem predeploy_check.py i predeploy_full.py. Po udanych testach dodatkowy plik testowy jest usuwany z finalnego obrazu. Kontrole brakujacego COPY, kolejnosci i cleanup sa na stale dodane do regresji bramki jakosci.
+- TESTY: kontrola kompilacji Python, bezposredni test wymaganych importow w sztucznym katalogu Docker COPY oraz FAST/FULL w odtworzonym katalogu obrazu. Samo wdrozenie wymaga potwierdzenia logow Railway.
+- ZGODNOSC: bez zmian produkcyjnego SQLite, profesji, EXP Banku, wielopunktowego EP, Matki Popiolu, walki, NPC i postaci. Nie wymaga migracji danych. Wydanie kompletne; nie tworzy osobnych TXT poza istniejącym CHANGELOG_PL.txt.
+
 Soulbound v2.32.3 — Windows SQLite: naprawa blokady w testerze EP — 2026-10-11
 Aktualna paczka: v2.32.3 (kompletny ZIP na bazie v2.32.2, bez wdrozenia).
 - PRZYCZYNA: log z Windows 11/Python 3.14.7 wykazal WinError 32 podczas kasowania testowej real.sqlite w validation/v2322_auto_exploration.py. Kontekst `with sqlite3.connect(...)` konczyl transakcje, ale pozostawial otwarty uchwyt SQLite. Blad dotknal FAST i FULL; siedem pozostalych etapow bylo PASS.
