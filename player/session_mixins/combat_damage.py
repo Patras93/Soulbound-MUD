@@ -739,6 +739,16 @@ class SessionCombatDamageMixin:
                 await self.send(
                     f"Ocena zagrożenia: {rating['label']}."
                 )
+                # v2.00.6: screen-reader-friendly location vs actual mob tier.
+                _room_region = ROOMS.get(str(self.character.room_id), {})
+                _region_stage = _room_region.get("region_stage_v2006")
+                if _region_stage is not None:
+                    await self.send(
+                        f"Teren: {_room_region.get('zone', 'Świat')}; "
+                        f"etap lokacji {_region_stage}, "
+                        f"etap przeciwnika {int(template.get('generator_level', 1) or 1)}. "
+                        "Dalsze obozy, ruiny i wymiary mogą być trudniejsze."
+                    )
                 adaptive = rating["adaptive"]
                 adaptive_state = (
                     "aktualna skala aktywnego starcia"

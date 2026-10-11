@@ -4203,3 +4203,7 @@ print(f'ENGINE OPTIMIZATION v2.00.3 FAST: {_engine_opt_v2003()} checks PASS')
 # v2.00.5: normal bandits no longer gain disproportionate low-level HP-based damage.
 from validation.v2005_beginner_encounters import run_regression as _beginner_v2005
 print(f"BEGINNER ENCOUNTERS v2.00.5 FAST: {_beginner_v2005()} checks PASS")
+
+# v2.00.6: prevent pseudo-random difficulty for beginner world mobs.
+from validation.v2006_region_balance import run_regression as _regions_v2006
+print(f'REGIONAL WORLD v2.00.6 FAST: {_regions_v2006()} checks PASS')

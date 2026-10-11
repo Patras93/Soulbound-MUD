@@ -1,3 +1,13 @@
+Soulbound v2.00.6 — Regionalny balans świata i naprawa etapów potworów — 2026-10-11
+Aktualna paczka: v2.00.6 (pełna v2.00.5 z poprawką regionów i etapów).
+- NAPRAWIONE: zapętlone wywołania dwóch dawnych funkcji liczących poziom potwora (RecursionError przy inicjalizacji katalogów); potwory bez przypisanego generator_level nie dostają już przypadkowej siły 1–400 wyliczonej z nazwy. Goblin miał w ten sposób etap 112 mimo bazowych 60 HP i 7 obrażeń. Etap jest teraz szacowany z autorskich HP i obrażeń, jeśli nie ma jawnego poziomu.
+- REGIONALNY BALANS: tereny początkowe, Dzicz, Gobliny, Bandyci i Ruiny Strażnicy mają jawne etapy terenowe; trudność rośnie wraz z wędrówką do dalszych części obozu i jaskiń. Poprawiono też nadpisywanie etapów przy wejściu do pokoju: jawne wartości nie są już losowane ponownie; nowe przedmieścia miasta otrzymują bezpieczny etap zamiast losowego 1–800.
+- ETAPY: bezpieczne miasta/gildia 1; łąki 5; Dzicz zwykle 12–20; Jaskinie Goblinów 18–40; Obozowiska Bandytów 17–40; Ruiny Strażnicy od 20. To orientacyjne etapy zawartości, nie blokady wejścia.
+- CONSIDER: na objętych zmianą terenach podaje etap lokacji i faktyczny etap przeciwnika. Tekst czytelny dla NVDA.
+- ZACHOWANE: jawne wysokopoziomowe etapy dalszych światów, piętra lochów, bossowie, elity, świat bez limitu EXP i pełna moc pomocników. Najemnicy i przywołania nie zwiększają trudności potworów.
+- SQLite i postacie nietknięte; starych baz nie zamienia się ani nie migruje. Zmiana wyłącznie w danych świata i obliczeniach etapów.
+- TESTY: validation/v2006_region_balance.py + istniejące szybkie i pełne audyty oraz TESTUJ_Soulbound.bat.
+
 Soulbound v2.00.5 — Balans bandytów i ochrony początkujących — 2026-10-11
 - Naprawiono nadmierne adaptacyjne zwiększanie obrażeń zwykłych mobów przeciw niskopoziomowym graczom (np. bandyci przeciw postaci na poziomie 8 z wysoką Kondycją/HP).
 - Dodatkowa adaptacyjna presja zwykłego potwora jest na niskich poziomach ograniczona do 1,5x jego obrażeń oczekiwanych po obronie; ochrona płynnie słabnie wraz z poziomem i zanika od poziomu 65.

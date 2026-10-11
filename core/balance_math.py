@@ -478,7 +478,36 @@ def runtime_room_level(room_id: str, room: dict, rooms: dict | None = None) -> i
     if room_id.startswith("temple_basement") and room.get("zone") == "Piwnica Świątyni":
         _assign_runtime_number("ROOMS", room, "generator_level", 1)
         return 1
+    # v2.00.6: a reviewed, authored zone stage is authoritative.  The legacy
+    # loader used to overwrite it on entering a room, sometimes with a hash
+    # in 1..800 (even on a beginner road). Keep recommended mastery as a floor.
+    try:
+        authored = int(room.get("generator_level", 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        authored = 0
+    if authored > 0:
+        try:
+            recommended_floor = max(0, int(room.get("recommended_mastery", 0) or 0))
+        except (TypeError, ValueError, OverflowError):
+            recommended_floor = 0
+        lvl = clamp(max(authored, recommended_floor), 1, MAX_LEVEL)
+        if lvl != authored:
+            _assign_runtime_number("ROOMS", room, "generator_level", lvl)
+        return lvl
+
     lvl = semantic_floor_level(room)
+    if lvl is None:
+        # Dynamically attached starter-area rooms should not inherit a random
+        # high stage. Other worlds/dungeons preserve their explicit floor and
+        # advanced-world rules below.
+        starter_zone_levels = {
+            "Miasto Dusz": 1, "Gildia Dusz": 1,
+            "Przedmieścia Miasta Dusz": 3, "Łąki": 5,
+            "Dzicz": 12, "Wybrzeże": 16,
+            "Jaskinie Goblinów": 21, "Obozowiska Bandytów": 22,
+            "Ruiny Strażnicy": 25,
+        }
+        lvl = starter_zone_levels.get(str(room.get("zone", "")))
     if lvl is None:
         text = f"{room_id} {room.get('zone','')} {room.get('name','')}".lower()
         m = re.search(r"(?:floor|level|poziom|pietro|piętro)[_ -]*(\d{1,5})", text)

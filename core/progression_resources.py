@@ -161,6 +161,8 @@ def v0190_mob_stage(template):
     # zwiększonych przez generator.
     if template.get("v019_stage") is not None:
         return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("v019_stage") or 1)))
+    if template.get("generator_level") is not None:
+        return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("generator_level") or 1)))
     if template.get("crypt_floor") is not None:
         return max(1, min(CHARACTER_MAX_LEVEL, int(template.get("crypt_floor") or 1)))
     if template.get("astral_floor") is not None:
@@ -178,11 +180,10 @@ def v0190_mob_stage(template):
         return max(200,min(CHARACTER_MAX_LEVEL,190 + band*5))
     if template.get("required_mastery") is not None:
         return max(1,min(CHARACTER_MAX_LEVEL,int(template.get("required_mastery") or 1)))
-    try:
-        if "v0866_mob_progression_power" in globals():
-            return max(1,min(CHARACTER_MAX_LEVEL,int(round(v0866_mob_progression_power(template)))))
-    except Exception as exc:
-        print(f"MOB_PROGRESSION_POWER_FALLBACK_ERROR: {type(exc).__name__}: {exc}", flush=True)
+    # v2.00.6: do not call v0866_mob_progression_power() here: that
+    # compatibility function invokes v0190_apply_combat_template() for
+    # unlevelled mobs, which calls this method. The old route recursed.
+    # Derive a stable one-time estimate directly from authored numbers.
     hp=max(1,float(template.get("max_hp",1) or 1))
     dmg=max(1,float(template.get("damage",1) or 1))
     estimate=max(1.0, ((hp/80.0)**0.45)*8.0 + ((dmg/5.0)**0.55)*4.0)
@@ -237,7 +238,11 @@ def v0190_apply_combat_template(template):
                 if stage is not None:
                     break
     if stage is None:
-        stage = 1 + int(balance_math.stable_unit(str(template.get("name", "mob"))) * 399)
+        # v2.00.6: names are NOT difficulty levels.  The legacy name hash made
+        # the starter Goblin a stage-112 monster.  Derive an implicit stage from
+        # authored combat stats; explicit dungeon, zone and boss stages above
+        # always take precedence.  This never reads player level or followers.
+        stage = v0190_mob_stage(template)
     stage = max(1, min(CHARACTER_MAX_LEVEL, int(stage)))
     rank = balance_math.mob_rank(template)
     template["generator_level"] = stage

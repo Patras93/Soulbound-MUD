@@ -373,7 +373,7 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.00.5 - BALANS POCZATKUJACYCH"
+LATEST_CHANGES_TITLE = "Soulbound v2.00.6 - REGIONY I SKALOWANIE SWIATA"
 LATEST_CHANGES = [
     "v2.00.3: szybsze przejscia swiata, jednoczesne dostarczanie komunikatow wielu klientom, przywolania, SQLite, NVDA i test obciazenia TCP.",
     "v2.00.2: szybkie rozliczanie serii przywolan; pojedynczy odczyt premii miasta, jedna kalkulacja mocy Maga, pojedyncze wyszukiwanie moba; opcjonalne pomiary wydajnosci i usuniecie podwojonego komunikatu frakcji.",
