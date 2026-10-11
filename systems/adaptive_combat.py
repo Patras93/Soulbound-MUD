@@ -121,6 +121,28 @@ def adaptive_target_incoming_fraction_v11330(template, party_size=1):
     return min(0.22, base * party_pressure)
 
 
+def adaptive_beginner_incoming_target_v2005(template, player_level, base_expected, desired):
+    """Avoid adaptive one-shots from *ordinary* enemies against new players.
+
+    Adaptive HP pressure remains intact for experienced players and for bosses.
+    For low-level characters, never let a common enemy multiply its authored
+    expected damage by an enormous factor solely because the player has high HP
+    from Constitution/equipment. The raw authored strike is never reduced.
+    Hires/summons neither raise nor lower this limit and remain fully effective.
+    """
+    base = max(1.0, float(base_expected))
+    target = max(base, float(desired))
+    if adaptive_combat_rank_v11330(template) != "normal":
+        return target
+    level = max(1, int(player_level or 1))
+    if level >= 65:
+        return target
+    # Level 1-15: up to +50% relative to the authored, defense-aware strike.
+    # Smoothly release the protection as players advance; no lvl-9 cliff.
+    multiplier = 1.50 * (1.10 ** max(0, level - 15))
+    return max(base, min(target, base * multiplier))
+
+
 def adaptive_combat_audit_v11330():
     errors = []
     ranks = ("normal", "elite", "rare", "mini", "boss", "world_boss")

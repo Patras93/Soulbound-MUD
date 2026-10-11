@@ -18,6 +18,7 @@ from systems.adaptive_combat import (
     adaptive_reward_multiplier_v11330,
     adaptive_target_incoming_fraction_v11330,
     adaptive_target_max_hp_v11330,
+    adaptive_beginner_incoming_target_v2005,
 )
 from systems.elite_variants import elite_average_enemy_multiplier_v11338
 from systems.elemental_combat import elemental_expected_incoming_multiplier_v11339
@@ -238,6 +239,12 @@ class SessionCombatDamageMixin:
                 base_raw = max(1, int(template.get("damage", 1) or 1))
                 base_expected = max(
                     1.0, float(self.consider_enemy_expected_hit(template))
+                )
+                desired = adaptive_beginner_incoming_target_v2005(
+                    template,
+                    getattr(self.character, "character_level", 1),
+                    base_expected,
+                    desired,
                 )
                 if base_expected >= desired:
                     return 1.0
@@ -572,6 +579,12 @@ class SessionCombatDamageMixin:
                     * adaptive_target_incoming_fraction_v11330(
                         template, party_size
                     ),
+                )
+                adaptive_floor = adaptive_beginner_incoming_target_v2005(
+                    template,
+                    getattr(self.character, "character_level", 1),
+                    base_enemy_hit,
+                    adaptive_floor,
                 )
                 enemy_hit = (
                     max(base_enemy_hit, adaptive_floor)

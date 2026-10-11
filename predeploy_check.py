@@ -4199,3 +4199,7 @@ print(f"ENGINE PERFORMANCE v2.00.2 FAST: {_engine_perf_v2002()} checks PASS")
 # v2.00.3: room/50-target/AoE history, NVDA and concurrent TCP recipients.
 from validation.v2003_engine_optimization import run_regression as _engine_opt_v2003
 print(f'ENGINE OPTIMIZATION v2.00.3 FAST: {_engine_opt_v2003()} checks PASS')
+
+# v2.00.5: normal bandits no longer gain disproportionate low-level HP-based damage.
+from validation.v2005_beginner_encounters import run_regression as _beginner_v2005
+print(f"BEGINNER ENCOUNTERS v2.00.5 FAST: {_beginner_v2005()} checks PASS")

@@ -1,5 +1,13 @@
+Soulbound v2.00.5 — Balans bandytów i ochrony początkujących — 2026-10-11
+- Naprawiono nadmierne adaptacyjne zwiększanie obrażeń zwykłych mobów przeciw niskopoziomowym graczom (np. bandyci przeciw postaci na poziomie 8 z wysoką Kondycją/HP).
+- Dodatkowa adaptacyjna presja zwykłego potwora jest na niskich poziomach ograniczona do 1,5x jego obrażeń oczekiwanych po obronie; ochrona płynnie słabnie wraz z poziomem i zanika od poziomu 65.
+- Bazowych obrażeń potworów nie osłabiono. Elity, minibossowie i bossowie zachowują dotychczasową trudność; nie zmieniano HP potworów, EXP, Fame, dropu ani nagród.
+- Najemnicy i przywołania nadal nie podnoszą HP ani obrażeń mobów; zachowują pełną siłę, autonomiczne akcje i leczenie.
+- Komenda consider wyświetla prognozę uwzględniającą tę samą ochronę co rzeczywista walka.
+- Dodano regresje niskich poziomów, wysokiej Kondycji, mobów zwykłych i bossów; sprawdzane w testach Windows/Railway.
+
 Soulbound v2.00.4 — Poprawa testów awansu NVDA i wykrywania ukrytych błędów — 2026-10-11
-Aktualna paczka: v2.00.4 (kompletna v2.00.3 i poprawiony test stabilności).
+Aktualna paczka: v2.00.5 (kompletna v2.00.4 i poprawiony balans niskich poziomów).
 - Naprawiono izolowane środowisko testu stabilności v1.17.8: metoda send() korzystała z pomocnika is_level_promotion_v2003 bez udostępnienia importu w przestrzeni uruchamianych metod. Test potrafił wypisać ACTIVITY_PROMOTION_LOG_ERROR: NameError i mimo tego zgłaszać PASS.
 - Test symuluje teraz rzeczywisty zapis informacji o awansie, sprawdza poprawny brak zapisu zwykłego ciosu oraz wykrywa wszelkie komunikaty o przechwyconym wyjątku. Takie błędy odtąd blokują szybki i pełny audyt.
 - Właściwy kod sesji gracza już miał poprawny import funkcji. Nie zmieniono zachowania rozpoznawania awansów ani historii rozgrywki, EXP, Fame, skalowania mobów, AoE, komunikatów NVDA i SQLite.
