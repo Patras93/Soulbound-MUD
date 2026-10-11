@@ -24,6 +24,7 @@ from systems.elite_variants import elite_average_enemy_multiplier_v11338
 from systems.elemental_combat import elemental_expected_incoming_multiplier_v11339
 from systems.party_synergies import party_synergy_damage_multiplier_v11338
 from data.mobs import MOB_TEMPLATES
+from data.rooms import ROOMS  # v2.00.7: CONSIDER region stage (SB-30B15AD1)
 
 MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124 = 1.20
 

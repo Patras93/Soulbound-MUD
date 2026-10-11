@@ -1,3 +1,22 @@
+Soulbound v2.00.8 — Mocniejsze żywiołaki Maga — 2026-10-11
+Aktualna paczka: v2.00.8 (pełna v2.00.7 z poprawką obrażeń żywiołaków).
+- WYKRYTO: żywiołaki zadawały obrażenia z surowego spell_power, bez uwzględnienia pełnego zwykłego magicznego ciosu Maga (Broń Duszy, premie klasy, rasy, setów, wyposażenia i szacunkowe krytyki).
+- DODANO: minimalną efektywną moc żywiołaków odniesioną do prognozowanego magicznego ataku właściciela. Silniejsze dotychczasowe uderzenia nie są obniżane (max ze starego i nowego wyniku).
+- BŁYSKAWICE: największe obrażenia; OGIEŃ: silny ofensywny; LÓD i KRYSZTAŁ: odpowiednio mniejsze obrażenia w zamian za istniejące bariery/efekty obronne. Wyższe rangi pozostają mocniejsze.
+- Zachowano wpływ rozkazów bron/wspieraj, formacji, premii warsztatu, obrony bossów, odporności, statusów żywiołów, rzeczywistych kosztów MP i całkowitego braku ataku bez MP.
+- Skalowanie liczy magiczną moc właściciela raz na całą turę przywołań. Nie zwiększa HP/obrażeń mobów i nie zmienia siły najemników, Druida czy Nekromanty.
+- Bez zmian SQLite, postaci, EXP, Fame, dropu, istniejących światów i nagród. TESTUJ_Soulbound.bat, PROFILUJ_Soulbound.bat, Railway i NVDA zachowane. Bez GitHuba.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.7 — Naprawa CONSIDER / SB-30B15AD1 — 2026-10-11
+Aktualna paczka: v2.00.7 (pełna v2.00.6 z naprawą diagnostyki regionów).
+- NAPRAWIONE: NameError: ROOMS is not defined w player/session_mixins/combat_damage.py, zgłoszenie SB-30B15AD1. Metoda consider_mob używała ROOMS bez importu podczas wyświetlania etapu terenu, co przerywało analizę przeciwnika na nowym regionalnym balansie.
+- Zastosowano minimalną poprawkę importu rzeczywistego katalogu pomieszczeń data.rooms. CONSIDER wyświetla etap lokacji, etap przeciwnika, HP i prognozę obrażeń dla NVDA, bez rozpoczynania walki.
+- Dodano test regresyjny wykonywany w predeploy_check.py i predeploy_full.py: ten sam kod asynchronicznej komendy CONSIDER, bez sztucznego podstawiania ROOMS, obóz Goblinów, głębsze jaskinie, starsze pomieszczenia i brak wskazanego celu.
+- BEZ ZMIAN balansu regionów, HP, obrażeń, EXP, Fame, ekwipunku, najemników, przywołań, postaci i schematu SQLite. Nie dodano ani nie zmieniono bazy danych w ZIP. Zachowano TESTUJ_Soulbound.bat, PROFILUJ_Soulbound.bat i konfigurację Railway; GitHub niewykorzystywany.
+- Zalecany TESTUJ_Soulbound.bat na Windows oraz ponowne consider goblin po aktualizacji serwera.
+
+--------------------------------------------------------------------------------
 Soulbound v2.00.6 — Regionalny balans świata i naprawa etapów potworów — 2026-10-11
 Aktualna paczka: v2.00.6 (pełna v2.00.5 z poprawką regionów i etapów).
 - NAPRAWIONE: zapętlone wywołania dwóch dawnych funkcji liczących poziom potwora (RecursionError przy inicjalizacji katalogów); potwory bez przypisanego generator_level nie dostają już przypadkowej siły 1–400 wyliczonej z nazwy. Goblin miał w ten sposób etap 112 mimo bazowych 60 HP i 7 obrażeń. Etap jest teraz szacowany z autorskich HP i obrażeń, jeśli nie ma jawnego poziomu.

@@ -41,6 +41,7 @@ async def run_async():
         def max_hp(self):return 1000
         def physical_power(self):return 10
         def spell_power(self):return self.magic_power
+        def consider_player_expected_hit(self):return self.magic_power*8
         async def apply_boss_defense(self,mob,amount):return amount
         def v0210_adjust_player_damage(self,amount):return amount
         async def mob_defeated(self,mob):raise AssertionError('mob not expected to die')
@@ -91,6 +92,10 @@ async def run_async():
         checks+=3
         assert preadjust and all(d>0 for d in preadjust)
         before_damage=preadjust[0]
+        # v2.00.8: elementals no longer ignore the Mage's real magical
+        # action scaling. Lesser fire has a 65% effective owner-hit floor.
+        assert before_damage>=int(mage.magic_power*8*.65)-1
+        checks+=1
         mage.magic_power=400  # INT/WIS and equipment: physical power unchanged
         mage.current_mana=500
         preadjust.clear()

@@ -733,3 +733,11 @@ print(f"BEGINNER ENCOUNTERS v2.00.5 FULL: {_beginner_v2005()} checks PASS")
 # v2.00.6: prevent pseudo-random difficulty for beginner world mobs.
 from validation.v2006_region_balance import run_regression as _regions_v2006
 print(f'REGIONAL WORLD v2.00.6 FULL: {_regions_v2006()} checks PASS')
+
+# v2.00.7: actual CONSIDER must display region stage without NameError.
+from validation.v2007_consider_region_import import run_regression as _consider_v2007
+print(f"CONSIDER REGION v2.00.7 FULL: {_consider_v2007()} checks PASS")
+
+# v2.00.8: Elementals inherit the Mage's real magical striking power.
+from validation.v2008_elemental_damage import run_regression as _elemental_damage_v2008
+print(f'MAGE ELEMENTAL DAMAGE v2.00.8: {_elemental_damage_v2008()} checks PASS')

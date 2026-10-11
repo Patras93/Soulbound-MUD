@@ -98,6 +98,7 @@ def summon_upgrade_stones(level):
 from player.session_mixins.chaos_v1800 import SessionChaosV1800Mixin
 from systems.era_chaos_v1800 import ELEMENT_ALIASES
 from systems.summon_status_v1808 import apply_summon_status_v1808
+from systems.elemental_damage_v2008 import effective_elemental_strike_v2008
 
 from core.performance_v2002 import measure_async
 
@@ -890,6 +891,14 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         # Owner maximum HP is invariant over the volley; avoid rebuilding
         # equipment, professions and buffs for each animal/elemental hit.
         owner_max_hp=max(1,int(self.max_hp()))
+        # Use the Mage's real expected magical attack as a reference. Old
+        # summon scaling remains a damage floor. One calculation per volley,
+        # rather than recomputing equipment and criticals for each elemental.
+        owner_expected_magic = spell_power
+        if any(r['summon_type'] in ELEMENTALS for r in rows):
+            expected_attack = getattr(self, 'consider_player_expected_hit', None)
+            if callable(expected_attack):
+                owner_expected_magic = max(spell_power, float(expected_attack()))
         for row in rows:
             if not mob.alive or mob.hp<=0:break
             spec=SUMMONS.get(row['summon_type'])
@@ -919,7 +928,13 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             caster_power=spell_power if elemental else raw_power
             stance_factor=.8 if stance=='bron' else (.7 if stance=='wspieraj' else 1.0)
             formation_bonus,formation_guard=self._v1800_form_bonus()
-            amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*(1+min(.28,.008*_workshop))))
+            workshop_bonus=(1+min(.28,.008*_workshop))
+            amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*workshop_bonus))
+            if elemental:
+                amount=effective_elemental_strike_v2008(
+                    amount, elemental, owner_expected_magic, stance_factor,
+                    formation_bonus, _v1800_team_bonus, workshop_bonus,
+                )
             if formation_guard and self.skill_guard<=0:
                 self.skill_guard=max(1,int(owner_max_hp*formation_guard))
             if self._v1800_tactic()=='harmonia' and self.current_hp<owner_max_hp:

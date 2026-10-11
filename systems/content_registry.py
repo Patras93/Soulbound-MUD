@@ -373,8 +373,11 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.00.6 - REGIONY I SKALOWANIE SWIATA"
+LATEST_CHANGES_TITLE = "Soulbound v2.00.8 - MOC ZYWIOLAKOW MAGA"
 LATEST_CHANGES = [
+    "v2.00.8: żywiołaki Maga zadają minimum obrażeń wynikające z rzeczywistego magicznego uderzenia właściciela, zachowując starsze wysokie obrażenia, rangi i bariery.",
+    "v2.00.7: naprawiony NameError ROOMS w consider / con podczas opisu regionu; dodano testy komendy na terenach poczatkujacych i dawnych lokacjach, bez zmiany balansu.",
+    "v2.00.6: regionalny balans swiata; Gobliny, Bandyci i dalsze jaskinie maja recznie ustawione etapy zamiast przypadkowego poziomu z nazwy.",
     "v2.00.3: szybsze przejscia swiata, jednoczesne dostarczanie komunikatow wielu klientom, przywolania, SQLite, NVDA i test obciazenia TCP.",
     "v2.00.2: szybkie rozliczanie serii przywolan; pojedynczy odczyt premii miasta, jedna kalkulacja mocy Maga, pojedyncze wyszukiwanie moba; opcjonalne pomiary wydajnosci i usuniecie podwojonego komunikatu frakcji.",
     "v2.00.1: katalog wartosci liczbowych wczytywany strumieniowo z pliku skompresowanego, z pelna zgodnoscia wartosci i mniejszym zuzyciem pamieci przy starcie.",
