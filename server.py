@@ -62,6 +62,9 @@ FORGOTTEN_WORLD_V1500 = install_forgotten_world_v1500(
 from world.world_state import World as _WorldV1500
 from systems.echo_dungeon_v1500 import install_echo_dungeon_v1500
 ECHO_DUNGEON_V1500 = install_echo_dungeon_v1500(ROOMS, ITEMS, _WorldV1500)
+# v2.10.0 additive side chambers over the final runtime dungeon registry.
+from systems.titans_v2100 import install_titans_v2100
+TITANS_V2100 = install_titans_v2100(ROOMS, ITEMS, _WorldV1500)
 
 from systems.era_legends_v1600 import install_era_legends_v1600
 ERA_LEGENDS_V1600 = install_era_legends_v1600(
@@ -90,6 +93,16 @@ from systems.parallel_worlds_v2000 import install_parallel_worlds_v2000
 PARALLEL_WORLDS_V2000 = install_parallel_worlds_v2000(
     ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS)
 from systems import ocean4_v1350 as _ocean5
+# v2.20.0: four connected, authored deep-ocean routes and fleet encounters.
+from systems.ocean_depths_v2200 import install as _install_ocean_depths_v2200
+OCEAN_DEPTHS_V2200 = _install_ocean_depths_v2200(
+    ROOMS, NPCS, SHOPS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS, SHOP_SELLERS, _ocean5)
+from systems.mastery_crafting_v2201 import install as _install_mastery_craft_v2201
+MASTERY_RECIPES_V2201 = _install_mastery_craft_v2201(ITEMS)
+from systems.ocean_sagas_v2300 import install as _install_ocean_sagas_v2300
+OCEAN_SAGAS_V2300 = _install_ocean_sagas_v2300(ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, _ocean5)
+
+
 for _code,_name,_hp,_damage,_reward,_kind,_threat in (
     ('perlowaflota','Flota Perłowych Sztormów',2500000,50000,490000,'siege',240000),
     ('czarnaarmada','Czarna Armada Głębin',3900000,71000,750000,'siege',360000),
@@ -102,6 +115,19 @@ for _code,_name,_hp,_damage,_reward,_kind,_threat in (
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
 HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
+HELP_TOPICS['mistrzprof'] = [
+    'Mistrzowie Świata 6.0: mistrzprof lista/status <profesja>/wybierz <profesja> <1..3>. Specjalizacje na poziomach 100, 250, 450.',
+    'mistrzprof zamowienie / odbierz / porzuc <profesja>; mistrzprof receptury / wykonaj <profesja>. Wyrób wymaga surowców Oceanu 5.0 i pierwszej specjalizacji.',
+    'Nagroda to wysokie srebro (przeliczane na złoto). Specjalizacje zwiększają wypłatę kontraktu; EXP profesji i narzędzi oraz obecne zamówienia bez zmian.',
+]
+HELP_TOPICS['legendy5'] = ['Ocean 5.1: Skarbiec Milczących Wód z Rowu Lewiatana; Nawa Potępionych Żagli z Archipelagu Wiecznych Burz.', 'W Porcie Nieznanych Mórz przejdź północny wschód do Głębin. W nowych regionach są bossowie, kontrakty i bitwy: ocean4 atak legenda_cisza / legenda_nawa.']
+HELP_TOPICS['glebiny5'] = [
+    'Ocean 5.0 Głębie Lewiatana: z Portu Nieznanych Mórz północny wschód, potem cztery drogi do osobnych krain.',
+    'Rów Lewiatana, Zatopiona Stolica, Rafy Szeptów i Archipelag Wiecznych Burz mają NPC, zadania i bossów.',
+    'Ocean4 cele / ocean4 atak glebiny_row, glebiny_stolica, glebiny_rafy, glebiny_burze; pełny zapis bitew w istniejącym SQLite.',
+]
+HELP_TOPICS["tytani"] = ["tytani lista/info/status/obrona — 8 Tytanow na glebokosci 50, 100, 150 i dalej co 50 pieter. Zawsze opcjonalne.","Tytani maja cztery fazy i zapowiadane potezne ataki; tytani obrona zmniejsza zapowiedziany cios. Powrot: poludnie lub wyjscie.","Pierwsza wygrana daje legendarny artefakt. Premia Esencji powtarza sie po 24 h. Nagrody postaci/druzyny z EXP Banku zachowane."]
+HELP_TOPICS["lochy7"] = ["lochy7 — dodatkowe odnogi co 25 pieter bez pulapek. Co 50 legowisko Tytana, na pozostalych progach 25 sekretna komnata.","W sekretnej komnacie wpisz lochy7 sekret. Nagroda osobista jednokrotna, zapis w SQLite. Wyjscie: poludnie lub wyjscie."]
 HELP_TOPICS['niebo'] = [
     'Niebo 1.0: wejście z Kamiennego Mostu Traktatów w GÓRĘ; podniebna przystań i 3 krainy.',
     'niebo bossowie, niebo profesje. Dziewięć walk z bossami; trzy legendarne trony.',

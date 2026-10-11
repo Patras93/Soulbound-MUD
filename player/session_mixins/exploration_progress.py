@@ -653,7 +653,10 @@ class SessionExplorationProgressMixin:
                     ),
                 ),
             )
-            ep_xp = max(50, min(5000, 50 + room_stage * 10))
+            # v2.10.3: every first-time EP yields the current full character
+            # award cap (not a flat 50-5000 XP scaled by the room's stage).
+            from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103
+            ep_xp = exploration_point_xp_v2103(self.character)
             for message in self.add_character_xp_with_event(
                 ep_xp,
                 content_level=room_stage,

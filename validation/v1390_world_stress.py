@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Four simulated players against real Soulbound persistence and encounter math.
+"""Up to six simulated players against real Soulbound persistence and encounter math.
 
 No sockets or production accounts are accessed. Requires the usual world bootstrap
 (import server) before a fresh Database can be opened. This is a regression and
@@ -18,8 +18,8 @@ from pathlib import Path
 
 
 def run_stress_v1390(*, players: int = 4, rounds: int = 80) -> dict:
-    if not (1 <= players <= 4 and 1 <= rounds <= 500):
-        raise ValueError("test boundary: 1–4 players, 1–500 rounds")
+    if not (1 <= players <= 6 and 1 <= rounds <= 500):
+        raise ValueError("test boundary: 1–6 players, 1–500 rounds")
     from core.classes_skills import CLASSES, RACES
     from core.progression_resources import character_xp_to_next
     from systems.adaptive_combat import (adaptive_target_max_hp_v11330,
@@ -119,7 +119,7 @@ def run_stress_v1390(*, players: int = 4, rounds: int = 80) -> dict:
                 verify(conn.execute('SELECT xp FROM professions WHERE account_id=? '
                                     'AND profession=?', (aid, 'Wędkarstwo')).fetchone()[0]
                        == 25 * rounds, f'player {index} relog fishing')
-        # Stress adaptive math for 1–4 players, 0–12 mercenaries and
+        # Stress adaptive math for 1–6 players, 0–12 mercenaries and
         # 4 encounter tiers, without making any balancing changes.
         for party_size in range(1, 5):
             for mercenaries in (0, 4, 12):
@@ -147,7 +147,7 @@ def run_stress_v1390(*, players: int = 4, rounds: int = 80) -> dict:
         'mean_actor_batch_ms': round(statistics.mean(timings_ms), 3),
         'p95_actor_batch_ms': round(sorted(timings_ms)[int((len(timings_ms)-1)*0.95)], 3),
         'max_actor_batch_ms': round(max(timings_ms), 3),
-        'scope': '4 virtual asyncio actors; disposable real SQLite; no live TCP clients',
+        'scope': 'up to 6 virtual asyncio actors; disposable real SQLite; no live TCP clients',
     }
     return metrics
 

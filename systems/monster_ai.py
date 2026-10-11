@@ -7,6 +7,7 @@ Existing authored bosses, quest NPCs and UOSS encounters keep their scripts.
 import time
 
 from data.mobs import MOB_TEMPLATES
+from systems.tactical_ai_v2200 import role as tactical_role_v2200, select_support as tactical_support_v2200
 
 SUPPORT_COOLDOWN = 14.0
 SUPPORT_DURATION = 10.0
@@ -70,7 +71,7 @@ def monster_ai_eligible_v1160(mob, template):
         return False
     if getattr(mob, "monster_ai_summoned_v1160", False):
         return False
-    return bool(template.get("elite_affix") or template.get("damage_type") == "magic" or monster_ai_necromancer_v1160(template))
+    return bool(template.get("elite_affix") or template.get("damage_type") == "magic" or monster_ai_necromancer_v1160(template) or tactical_role_v2200(template))
 
 
 def _max_hp(mob, template):
@@ -104,6 +105,12 @@ def monster_ai_plan_v1160(mob, template, live_allies, dead_allies=(), now=None):
     if turn < 3 or turn % 3 or now < float(getattr(mob, "monster_ai_next_action_v1160", 0) or 0):
         return None
     engaged = [a for a in live_allies if a.alive and a.room_id == mob.room_id and a.engaged_by == mob.engaged_by]
+    # v2.20: only monsters explicitly tagged with a role use the new tactics.
+    def _cap_v2200(other):
+        return _max_hp(other, template if other.key == mob.key else MOB_TEMPLATES.get(other.template_id, template))
+    support = tactical_support_v2200(mob, template, engaged, now, _cap_v2200)
+    if support:
+        return support
     heal_targets = [mob] + [a for a in engaged if a.key != mob.key]
     injured = []
     for ally in heal_targets:

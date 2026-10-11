@@ -15,6 +15,9 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'mistrzprof': ('master_professions_v2200', (COMMAND_TEXT,), {}),
+    'tytani': ('titan_command_v2100', (COMMAND_TEXT,), {}),
+    'lochy7': ('dungeon_secrets_command_v2100', (COMMAND_TEXT,), {}),
     'wymiary': ('dimensions_v2000', (COMMAND_TEXT,), {}),
     'ocean5': ('ocean5_v2000', (COMMAND_TEXT,), {}),
     'frakcje': ('factions_v2000', (COMMAND_TEXT,), {}),
@@ -224,6 +227,9 @@ COMMAND_REGISTRY = {
     'efekty': ('show_active_effects_v11331', (), {}),
     'level': ('show_character_level', (), {}),
     'xp': ('show_character_xp', (), {}),
+    'experience': ('show_experience_cap_v2009', (COMMAND_TEXT,), {}),
+    'expbank': ('show_exp_bank_v2011', (COMMAND_TEXT,), {}),
+    'your': ('show_experience_cap_v2009', (COMMAND_TEXT,), {}),
     'mana': ('handle_mana_command', (COMMAND_TEXT,), {}),
     'declension': ('show_name_declension', (), {}),
     'skills': ('show_skills', (COMMAND_TEXT,), {}),
@@ -458,6 +464,13 @@ for _alias in ("lowcy", "łowcy", "tablicalowcow", "hunterboard"):
 
 for _alias in ("mercenary", "mercenaries", "tawerna"):
     COMMAND_CATALOG.add_alias(_alias, "najemnik" if _alias == "mercenary" else "najemnicy", source="player/session_mixins/command_registry.py")
+
+for _alias, _target in (("piętro", "pietro"), ("floor", "pietro"),
+                        ("expcap", "experience"), ("experiencecap", "experience"),
+                        ("capexp", "experience"), ("exp", "experience")):
+    COMMAND_CATALOG.add_alias(_alias, _target, source='player/session_mixins/command_registry.py')
+for _safe in (REST_SAFE_COMMANDS, GUIDE_SAFE_COMMANDS, DOWNED_SAFE_COMMANDS):
+    _safe.update(("experience", "your", "expbank"))
 
 # v1.13.42: czytelne polskie polecenie jest kanoniczne, ale zachowujemy
 # angielskie odpowiedniki dla graczy używających starych skrótów.

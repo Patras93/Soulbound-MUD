@@ -283,7 +283,7 @@ class SessionClassProgressionMixin:
 
     async def grant_class_xp(
         self, total_xp, single_level_cap=False, *,
-        content_level=None, content_scaled=False
+        content_level=None, content_scaled=False, overcap=False
     ):
             active = self.active_class_names()
             if not active:
@@ -304,8 +304,16 @@ class SessionClassProgressionMixin:
                 total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
                 self.mentor_record_activity_v03051()
 
-            self.session_summary_add("class_xp", total_xp)
             base_share, remainder = divmod(total_xp, len(active))
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            allocated = [banked_experience_v2011(
+                self.server.db, self.account_id,
+                base_share + (1 if idx < remainder else 0), 'class',
+                self.class_mastery_level(class_name),
+                source_key=class_name, overcap=overcap)
+                for idx, class_name in enumerate(active)]
+            total_xp = sum(allocated)
+            self.session_summary_add("class_xp", total_xp)
             _guild_note=f" Bonus Gildii +{_guild_pct}%: +{total_xp-base_total_xp}." if total_xp>base_total_xp else ""
             _event_note=" Event x2 EXP." if base_total_xp>original_total_xp else ""
             await self.send(
@@ -314,7 +322,7 @@ class SessionClassProgressionMixin:
             )
 
             for index, class_name in enumerate(active):
-                share = base_share + (1 if index < remainder else 0)
+                share = allocated[index]
                 result = self.server.db.add_class_mastery_xp(
                     self.account_id,
                     class_name,

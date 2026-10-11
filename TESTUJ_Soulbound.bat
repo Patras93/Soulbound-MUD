@@ -13,7 +13,7 @@ set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 set "PYTHONDONTWRITEBYTECODE=1"
 echo.
-echo SOULBOUND: TESTY TAKIE JAK NA RAILWAY
+echo SOULBOUND: 8 ETAPOW: PELNY AUDYT GRY, QUESTY, KOMENDY, 6 GRACZY TCP
 echo Wynik zostanie zapisany w logs\TESTY_Soulbound.log
 echo Aby przerwac testy, nacisnij Ctrl+C.
 echo.

@@ -339,12 +339,27 @@ def v0190_quest_stage(quest):
     return max(1,min(CHARACTER_MAX_LEVEL,int(round(base + min(30,math.sqrt(needed)*2)))))
 
 def v0190_quest_currency_reward(quest):
+    """Consistent payout in internal silver; never discard gold/mithril fields.
+
+    Normal quests always pay at least one Gold equivalent. Explicit manually
+    authored zero-currency contracts retain their intentional item-only value.
+    """
     quest = quest or {}
-    if quest.get("generator_level") is not None:
-        return max(0, int(quest.get("reward_silver", 0) or 0))
+    from core.bootstrap_economy_professions import legacy_currency_to_coins
+    authored = legacy_currency_to_coins(
+        quest.get('reward_silver', 0), quest.get('reward_gold', 0),
+        quest.get('reward_mithril', 0))
+    manual = quest.get('manual_currency_reward_coins')
+    if manual is not None:
+        return max(0, int(manual))
+    if quest.get('currency_reward_mode') == 'manual':
+        return authored
+    if quest.get('generator_level') is not None:
+        return max(100, authored)
     stage = v0190_quest_stage(quest)
-    workload = max(1.0, min(8.0, math.sqrt(max(1, int(quest.get("needed",1) or 1)))))
-    return int(round(balance_math.currency_for_stage(stage) * max(2.0, workload) * (.72 if quest.get("repeatable") else 1.0)))
+    workload = max(1.0, min(8.0, math.sqrt(max(1, int(quest.get('needed', 1) or 1)))))
+    computed = int(round(balance_math.currency_for_stage(stage) * max(2.0, workload) * (.72 if quest.get('repeatable') else 1.0)))
+    return max(100, authored, computed)
 
 def v0190_quest_stat_reward(quest):
     quest = quest or {}

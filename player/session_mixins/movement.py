@@ -4,6 +4,8 @@
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import asyncio
 import sys
+import re
+from collections import deque
 from core.classes_skills import ROOMS
 from core.mines_threat import (
     DIRECTION_WALK_LABELS,
@@ -137,6 +139,96 @@ class SessionMovementMixin:
             await self.look()
             return True
 
+    async def change_dungeon_floor_v2009(self, raw=""):
+            """Find the stairs from any room and walk through ordinary move().
+
+            No teleport, no skipping guards/checkpoints, no skipping floors.
+            Party followers run the same normal per-player entry validation.
+            """
+            direction_text = str(raw or '').strip().lower()
+            direction_text = direction_text.replace('ó', 'o').replace('ł', 'l').replace('ę', 'e')
+            direction_text = direction_text.replace('w gore', 'gora').replace('w dol', 'dol')
+            if direction_text in ('gora', 'up', 'wyzej', 'w gore'):
+                direction = 'up'
+            elif direction_text in ('dol', 'dool', 'down', 'nizej', 'zejdz'):
+                direction = 'down'
+            else:
+                await self.send('Użycie: pietro gora albo pietro dol. Przejście tylko o jedno piętro przez prawdziwe schody.')
+                return
+            if self.combat_mob_key or self.moving or self.guiding:
+                await self.send('Najpierw zakończ walkę lub trwające prowadzenie.')
+                return
+            start = str(self.character.room_id)
+            from systems.dungeons_regions import (
+                crypt_floor_number, astral_floor_number, mythic_crypt_floor_number,
+                mythic_astral_floor_number, giant_fortress_floor_number,
+            )
+            from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
+            from world.magitek_infinite import magitek_floor_number
+            from systems.echo_dungeon_v1500 import echo_identity
+            from core.progression_resources import mine_floor_number
+
+            def _catacombs(room):
+                found = re.match(r'^(?:v0900_)?catacomb_f([1-3])_', str(room))
+                return int(found.group(1)) if found else None
+
+            def _echo(room):
+                ident = echo_identity(room)
+                return int(ident[0]) if ident else None
+
+            family = None
+            for label, parser in (
+                ('Katakumby', _catacombs), ('Krypta', crypt_floor_number),
+                ('Mityczna Krypta', mythic_crypt_floor_number),
+                ('Wieża Astralna', astral_floor_number),
+                ('Mityczna Wieża Astralna', mythic_astral_floor_number),
+                ('Twierdza Gigantów', giant_fortress_floor_number),
+                ('UOSS Deep Dungeon', uoss_deep_dungeon_floor_number_v11331),
+                ('Labirynt Echa', _echo), ('Kompleks Magitek', magitek_floor_number),
+                ('Kopalnia Głębinowa', mine_floor_number),
+            ):
+                level = parser(start)
+                if level is not None:
+                    family = (label, parser, level)
+                    break
+            if family is None:
+                await self.send('Nie jesteś na rozpoznanym piętrze. Użyj normalnych kierunków.')
+                return
+            label, parser, level = family
+            # Route only INSIDE the same floor; the final crossing is a
+            # separate move() that enforces all usual dungeon locks.
+            queue = deque([(start, [])])
+            visited = {start}
+            route = None
+            while queue:
+                room_id, steps = queue.popleft()
+                room = ROOMS.get(room_id) or {}
+                for step, dest in room.get('exits', {}).items():
+                    if step != direction:
+                        continue
+                    destination_floor = parser(dest)
+                    if ((destination_floor is not None and abs(destination_floor - level) == 1)
+                            or (destination_floor is None and not (level > 1 or direction == 'down'))):
+                        route = steps + [(step, dest)]
+                        break
+                if route is not None:
+                    break
+                for step, dest in room.get('exits', {}).items():
+                    if dest not in visited and parser(dest) == level:
+                        visited.add(dest)
+                        queue.append((dest, steps + [(step, dest)]))
+            if route is None:
+                await self.send(f'{label}, piętro {level}: brak schodów w wybranym kierunku.')
+                return
+            await self.send(f'{label}, piętro {level}: idziesz do schodów. Ruch normalny, blokady bossów obowiązują.')
+            for step, expected in route:
+                previous = str(self.character.room_id)
+                await self.move(step)
+                if str(self.character.room_id) != str(expected):
+                    await self.send('Przejście zatrzymane przez blokadę, walkę lub brak dostępu.')
+                    return
+            await self.send(f'{label}: jesteś w {ROOMS.get(self.character.room_id, {}).get("name", self.character.room_id)}.')
+
     def movement_delay(self, direction, guided=False):
             base = GUIDE_STEP_DELAY if guided else WALK_STEP_DELAY
             if direction in ("up", "down"):
@@ -258,6 +350,8 @@ class SessionMovementMixin:
                     commit=not bool(getattr(self, "_party_follow_batch_save_v11123", False)),
                 )
                 await self.register_uoss_deep_dungeon_visit_v11331(target)
+                if callable(getattr(self, 'remember_catacomb_floor_v2010', None)):
+                    self.remember_catacomb_floor_v2010(target)
                 if callable(getattr(self, "grand_expedition_visit_v1260", None)):
                     await self.grand_expedition_visit_v1260(target)
                 if hasattr(self, "ocean_contract_step_v1001"):

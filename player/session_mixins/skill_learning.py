@@ -723,6 +723,10 @@ class SessionSkillLearningMixin:
                 )),
             )
             gain=self.apply_double_xp(gain)
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            gain=banked_experience_v2011(
+                self.server.db, self.account_id, gain, 'skill', skill_level,
+                source_key=skill['id'])
             result = self.server.db.add_skill_xp(
                 self.account_id, skill["id"], gain
             )
@@ -760,7 +764,11 @@ class SessionSkillLearningMixin:
                     if protocol_specials is not None:
                         if str(skill.get("mec_special","")) not in set(protocol_specials):
                             continue
-                    self.server.db.add_skill_xp(self.account_id, passive["id"], passive_gain)
+                    passive_level = max(1, int(self.skill_progress_data(passive).get('level', 1)))
+                    passive_paid = banked_experience_v2011(
+                        self.server.db, self.account_id, passive_gain,
+                        'skill', passive_level, source_key=passive['id'])
+                    self.server.db.add_skill_xp(self.account_id, passive["id"], passive_paid)
             return result
 
     def skill_scale_value(self, scale):

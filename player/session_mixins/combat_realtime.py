@@ -36,6 +36,7 @@ from systems.monster_ai import (
     monster_ai_room_candidates_v1901, monster_ai_due_v1901,
 )
 from systems.summon_status_v1808 import summon_status_enemy_turn_v1808
+from systems.titans_v2100 import titan_round_v2100, titan_attack_multiplier_v2100
 from systems.monster_magic import (
     monster_magic_apply_v1151, monster_magic_tick_v1151,
     monster_magic_player_action_v1151, monster_magic_action_interval_v1151,
@@ -566,6 +567,13 @@ class SessionCombatRealtimeMixin:
                                         continue
                                 if _mini_left:
                                     enemy_mob.uoss_helper_mini_rounds_v1146 = _mini_left - 1
+                                # v2.10.0: one NVDA-critical phase/telegraph per
+                                # mob turn, before ordinary optional AI actions.
+                                _titan_notice_v2100 = titan_round_v2100(
+                                    enemy_mob, MOB_TEMPLATES[enemy_mob.template_id])
+                                if _titan_notice_v2100:
+                                    await self.server.party_combat_broadcast(
+                                        self, _titan_notice_v2100, detail="essential")
                                 _elite_template_v11338 = MOB_TEMPLATES[enemy_mob.template_id]
                                 _elite_regen_v11338 = elite_regen_amount_v11338(
                                     _elite_template_v11338,
@@ -1119,6 +1127,7 @@ class SessionCombatRealtimeMixin:
                                         * (1.0 + .09 * max(0,min(3,int(getattr(enemy_mob,'_v1900_god_phase',0) or 0)))
                                            if _enemy_template.get('v1900_ancient_god') else 1.0)
                                         * _elite_enemy_mult_v11338
+                                        * titan_attack_multiplier_v2100(enemy_mob, _enemy_template, target_session)
                                         * monster_ai_attack_multiplier_v1160(enemy_mob)
                                         * adaptive_skills_v1250(
                                             enemy_mob, _enemy_template,

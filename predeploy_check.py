@@ -4215,3 +4215,48 @@ print(f"CONSIDER REGION v2.00.7 FAST: {_consider_v2007()} checks PASS")
 # v2.00.8: Elementals inherit the Mage's real magical striking power.
 from validation.v2008_elemental_damage import run_regression as _elemental_damage_v2008
 print(f'MAGE ELEMENTAL DAMAGE v2.00.8: {_elemental_damage_v2008()} checks PASS')
+
+# v2.00.9: Alter-style personal EXP cap + boss Fame + safe real stairs.
+from validation.v2009_expcap_fame_stairs import run_regression as _cap_stairs_v2009
+print(f'EXP CAP / FAME / STAIRS v2.00.9 FAST: {_cap_stairs_v2009()} checks PASS')
+
+# v2.00.10: unlocked portal-to-portal movement, party checks and catacombs.
+from validation.v2010_unlocked_portals import run_regression as _portals_v2010
+print(f'UNLOCKED PORTALS v2.00.10 FAST: {_portals_v2010()} checks PASS')
+
+# v2.00.11: persistent, per-axis overflow and cap-safe repayment.
+from validation.v2011_experience_bank import run_regression as _xp_bank_v2011
+print(f"EXP BANK v2.00.11 FAST: {_xp_bank_v2011()} checks PASS")
+
+# v2.10.0: persistent Titan ledger, optional rooms and NVDA telegraphs.
+from validation.v2100_titans import run_regression as _titans_v2100
+print(f"TYTANI / LOCHY v2.10.0 FAST: {_titans_v2100()} checks PASS")
+
+# v2.10.2: six-player TCP harness may run only on localhost/test SQLite.
+from validation.v2102_tcp_six_players import run_contract as _tcp6_guard_v2102
+print(f"TCP SIX PLAYERS v2.10.2 SAFE CONFIG: {_tcp6_guard_v2102()} checks PASS")
+
+# Release gate itself must fail reliably for bad subprocesses / timeouts.
+from validation.v2102_tcp_six_players import run_sqlite_cleanup_regression as _check_sqlite_close_v2301
+print(f'TCP SQLITE CLEANUP v2.30.1: {_check_sqlite_close_v2301()} checks PASS')
+
+from validation.v2102_predeploy_contract import run_regression as _quality_gate_selftest_v2102
+print(f"QUALITY GATE v2.10.2 FAST: {_quality_gate_selftest_v2102()} controller checks PASS")
+
+# v2.10.3: every authored/generated quest pays the intended gold equivalent;
+# queued Fame and each EP grant the full individual EXP cap.
+from validation.v2103_fame_exploration_quest_currency import run_regression as _milestone_gold_v2103
+_reward_contract_v2103 = _milestone_gold_v2103()
+print(f"FAME/EP/QUEST GOLD v2.10.3 FAST: {_reward_contract_v2103} PASS")
+
+# v2.20.0: regressions on mastery ledgers, local tactics and reciprocal Ocean exits.
+from validation.v2200_master_depths_ai import run_regression as _check_v2200
+print(f"AI / PROFESJE / OCEAN v2.20.0 FAST: {_check_v2200()} checks PASS")
+
+# v2.20.1: craft and ship modules end-to-end isolated SQLite regression.
+from validation.v2201_fleet_mastery import run_regression as _check_v2201
+print(f"MISTRZOWIE / MODULY FLOTY v2.20.1: {_check_v2201()} checks PASS")
+
+# v2.30.0: additional authored AI, mastery and ocean release regression.
+from validation.v2300_world_professions_ocean import run_regression as _v2300_regression
+print(f'WIELKA ERA v2.30.0 AI / PROFESJE / OCEAN: {_v2300_regression()} checks PASS')

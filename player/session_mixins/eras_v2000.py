@@ -32,7 +32,8 @@ class SessionErasV2000Mixin:
         await self.send('OCEAN 5.0: Port Nieznanych Mórz. Z Węzła Światów w GÓRĘ; północ Perły, wschód Otchłań, zachód Burze. Bitwy flot nadal obsługuje ocean4.')
         for slug,title,_element,level,*_ in ISLANDS:
             await self.send(f'{slug}: {title}; zalecany poziom {level}; 8 pomieszczeń, 5 typów mobów i boss Fame.')
-        await self.send('Nowe cele flot: ocean4 cele, ocean4 atak perlowaflota / czarnaarmada / sztormowcy. Dotychczasowe statki i ulepszenia pozostają.')
+        await self.send('Nowe trasy Głębin Lewiatana: z Portu Nieznanych Mórz na PÓŁNOCNY WSCHÓD. Cztery regiony z bossami, NPC i polowaniami.')
+        await self.send('Cele flot: ocean4 cele; także ocean4 atak glebiny_row / glebiny_stolica / glebiny_rafy / glebiny_burze. Dotychczasowe statki zostają.')
 
     async def factions_v2000(self,args=''):
         if not self.character:return

@@ -18,6 +18,8 @@ from storage.db_guilds import DatabaseGuildMixin
 from storage.db_crafting_extensions import DatabaseCraftingExtensionsMixin
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from storage.db_world_crises_v1220 import DatabaseWorldCrisesV1220Mixin
+from storage.db_experience_bank_v2011 import DatabaseExperienceBankV2011Mixin
+from storage.db_titans_v2100 import DatabaseTitansV2100Mixin
 
 
 
@@ -77,6 +79,8 @@ def ensure_admin_error_status_v1371(conn):
 
 
 class Database(
+    DatabaseTitansV2100Mixin,
+    DatabaseExperienceBankV2011Mixin,
     DatabaseWorldCrisesV1220Mixin,
     DatabaseMercenariesMixin,
     DatabaseCraftingExtensionsMixin,
@@ -107,6 +111,8 @@ class Database(
         self.install_crafting_extensions_schema()
         self.create_mercenary_schema()
         self.create_world_crises_schema_v1220()
+        self.create_experience_bank_schema_v2011()
+        self.create_titans_schema_v2100()
         self.create_city_services_schema_v1225()
         # v1.22.4: persistent but minimal admin diagnostics; no passwords or tokens.
         self.conn.executescript("""

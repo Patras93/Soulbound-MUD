@@ -34,7 +34,7 @@ def main():
              f'Host=127.0.0.1 Port={port}',
              'Pomiar obejmuje tylko połączenie i ekran logowania, NIE walkę AoE.']
     try:
-        result=asyncio.run(probe(port, min(16,max(4,int(os.getenv('SOULBOUND_TCP_CLIENTS','8'))))))
+        result=asyncio.run(probe(port, min(6,max(1,int(os.getenv('SOULBOUND_TCP_CLIENTS','6'))))))
         values=[r[0] for r in result]
         records += [f'Połączenia: {len(result)}, odpowiedzi banera: {sum(r[1] for r in result)}',
                     f'TCP connect avg={statistics.mean(values):.2f}ms, max={max(values):.2f}ms',

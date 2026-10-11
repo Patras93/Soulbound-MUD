@@ -1,3 +1,143 @@
+Soulbound v2.31.0 — Autonomiczny Test Engine 6.0: Zdarzenia Questow — 2026-10-11
+Aktualna paczka: v2.31.0 (pelny ZIP na bazie v2.30.2; BEZ wdrozenia).
+- Wprowadzono walidator validation/v2400_real_quest_events.py. Zamiast sztucznego ustawiania progressu uruchamia on rzeczywiste metody DatabaseQuestMixin dla dostepnych rodzajow questow: kill, collect, collect_resource, profession_action, party_contract, craft_set i collect_resource_set. Testuje postep, izolacje kont, limit naliczania, brak naliczania po ukonczeniu i porzuceniu oraz reset przy ponownym przyjeciu. Wyniki prezentuje wedlug rodzaju questa.
+- Dodano szybki test kontrolny validation/v2310_event_contract.py i wlaczono pelne badanie wszystkich zgodnych questow do predeploy_full.py, na juz zaladowanym katalogu calego swiata.
+- TESTUJ_Soulbound.bat: osiem niezaleznych bramek. Wszystkie dzialaja w odizolowanym srodowisku testowym; szosta i poprzednie pozostaja zachowane, tester 6 graczy TCP nadal obowiazkowy.
+- LIMIT POKRYCIA: uruchomienie metod postepu i bazowych scenariuszy TCP NIE jest tozsame z przejsciem przez 1526 NPC, fizycznymi dropami, pelna walka i odebraniem wszystkich nagrod. Takie questy/scenariusze musza nadal miec status NOT TESTED, nie mozna raportowac 100 procent przejscia gry. Kazde nowe wydanie ma rozszerzac faktyczne pokrycie, nie ukrywac brakow.
+- WYNIK PRZED WYDANIEM (Linux, Python 3.13.5): pelen audyt 1526 questow PASS; 1526 rzeczywistych wywolan handlera przyjecia w SQLite (bez NPC/TCP); 1286 realnych zdarzen postepu, 1064 osiagniete cele zdarzen w DB, 240 questow bez bezposredniego typu zdarzenia; 10444 kontrole nowego testera PASS. Pelen odbior wszystkich questow przez NPC/TCP nadal 0/1526 NOT TESTED. Weryfikacja BAT na Windows 11/Python 3.14.7 wymagana osobno.
+- ZGODNOSC: zachowano cala poprzednia zawartosc, SQLite, EXP Bank, Fame, EP, AI, balans, Ocean, profesje, najemnikow i poprzednie testy. Nie dotykano bazy graczy ani nie instalowano nic na serwerze.
+
+Soulbound v2.30.2 — Test Engine 5.0: Audyt gry wzdluz i wszerz (etap I) — 2026-10-11
+Aktualna paczka: v2.30.2 (pelny ZIP na bazie v2.30.1; BEZ automatycznego wdrozenia).
+- PREDEPLOY WINDOWS: TESTUJ_Soulbound.bat uruchamia teraz 7 niezaleznych, obowiazkowych etapow. Nowa bramka kontroluje bezpieczenstwo uruchomienia testow i dokumentuje pokrycie. Dotychczasowy FAST, FULL, AI, profesje, Ocean, flota i szesciu klientow TCP pozostaja obowiazkowe.
+- PELNY AUDYT KATALOGU: po zaladowaniu swiata w predeploy_full.py sprawdzane sa wszystkie zarejestrowane handlery (obecnosc + sygnatury), kazdy alias, wszystkie definicje questow i ich 17 znanych typow; nieznany nowy typ zatrzymuje predeploy, dopoki nie zostanie dodany do audytu.
+- SQLITE QUESTOW: kazdy quest przechodzi dodatkowe probki niezaleznosci stanu dwoch kont: rozpoczecie, postep, ukonczenie, restart i porzucenie jednego gracza nie moze zapisac nic drugiemu. Testy wykonuje sie na SQLite w pamieci; nie na prawdziwych postaciach.
+- PRAWDZIWE TCP: do dotychczasowych prob 6 graczy dodano 14 komend m.in. podglad questow, receptur i modulow floty oraz cztery bledne wywolania. Tester sprawdza obecnosc odpowiedzi, brak zglaszanego wyjatku i niezmiennosc pieniedzy po blednych poleceniach. Nadal zachowuje dwa starty serwera i ponowne logowanie postaci.
+- IZOLACJA: wszystkie testy gry moga operowac tylko na tymczasowych bazach, a test TCP tylko na 127.0.0.1. Nie zmienia sie produkcyjnej SQLite, map, walki, przywolan, EXP Banku, pelnego cap Fame/EP, cen ani nagrod.
+- GRANICE POKRYCIA: PELNE SPRAWDZENIE KATALOGU to nie pelne przejscie wszystkich questow u NPC, wszystkich argumentow komend ani kazdego wariantu walki. Takie scenariusze sa jawnie NOT TESTED i nie wolno nazywac ich PASS. W kolejnych krokach nalezy dodawac fixture rzeczywistych zdarzen do kazdego rodzaju questa i rodzin komend.
+- WYNIKI TESTOW W SRODOWISKU LINUX: FAST PASS, FULL PASS (w tym 23 337 sprawdzen nowego audytu, 9156 kontroli izolacji kont), 31 testow kontrolera nowej bramki PASS, 30 historycznych testow bramki PASS. TCP 6/6 graczy, 184 komendy pierwsza runda (w tym 14 nowych), 150 komend po restarcie; razem 334. SQLite PASS i bezpieczne usuniecie bazy testowej PASS.
+- Testy Windows 11, Python 3.14: uruchomic TESTUJ_Soulbound.bat i potwierdzic 7/7 PASS. Nie wdrazac po FAIL; raport pozostaje w logs/TESTY_Soulbound.log.
+
+Soulbound v2.30.1 — Naprawa blokady SQLite po teście 6 graczy na Windows — 2026-10-11
+Aktualna paczka: v2.30.1 (pełny ZIP na bazie v2.30.0; bez wdrożenia).
+- PRZYCZYNA WinError 32: w validation/v2102_tcp_six_players.py funkcja _check_db() używała składni `with sqlite3.connect(...)`, która zarządza transakcją, ale NIE zamyka połączenia. Po poprawnych logowaniach i restarcie Windows nie mógł skasować tymczasowego pliku six_players.sqlite; końcowy etap prawidłowo zgłaszał FAIL.
+- NAPRAWA: jawne zamknięcie połączenia SQLite także przy błędzie weryfikacji; serwer testowy nadal musi zakończyć oba cykle, a wszystkie 6 bramek predeploy musi zakończyć się kodem 0.
+- REGRESJA: nowy test sprawdza oba warianty (sukces i wyjątek), weryfikuje fizyczne zamknięcie połączeń i możliwość zmiany nazwy/usunięcia testowego pliku. Kontrola działa również na systemach innych niż Windows; jest obowiązkowa w FAST i FULL.
+- BEZ ZMIANY GRY: nie dotknięto danych produkcyjnych, nagród EXP, Fame/EP cap, banku EXP, profesji, map, komend, bossów, AI ani plików zapisów. Zachowano wszystkie poprzednie pliki. Zmiany tylko w testerze, wersji i opisie wydania.
+- TESTY WYKONANE W SRODOWISKU LINUX / Python 3.13.5: wszystkie 6 etapów Windowsowego testera uruchomione na odizolowanych bazach SQLite — PASS; FAST PASS, FULL PASS, testy 320/241/236 PASS, nowy test 7 kontroli zamknięcia połączeń PASS; TCP 6/6 kont i postaci, 168 komend przed restartem, 150 po restarcie (łącznie 318), integralność SQLite i usunięcie katalogu testowego PASS. Sprawdzenie na Windows 11 i Python 3.14.7 nadal OBOWIAZKOWE przed wdrożeniem.
+
+Soulbound v2.30.0 — Wielka Era Taktyki, Mistrzów i Oceanu — 2026-10-11
+Aktualna paczka: v2.30.0 (kompletny ZIP na bazie v2.20.1; bez automatycznego wdrożenia).
+- AI 5.1: role szamana/uzdrowiciela, dowódcy, strażnika, maga, nekromanty i łowcy są rozpoznawane z istniejących nazw zwykłych mobów na całym świecie. Lokalne AI uruchamia się najwyżej raz na trzy tury i respektuje cooldown; chronione skrypty bossów, najemników i przywołań pozostają nienaruszone. Bez dodawania nowych skanów całego świata ani obniżania obrażeń graczy.
+- PROFESJE 6.1: 28 autorskich receptur mistrzowskich poziomów 250 i 450 (14 x 2) oprócz dotychczasowych 14 receptur poziomu 100, łącznie 42. Komendy: mistrzprof receptury <profesja> [1..3], mistrzprof wykonaj <profesja> [1..3]. Wymagają odpowiedniego poziomu i odblokowania specjalizacji. Wyższy wyrób zużywa poprzedni i rzeczywiste materiały; zasady atomic SQLite chronią przed darmowym duplikowaniem. Stary zapis specjalizacji/profesji/EXP zachowany.
+- OCEAN 5.1: dwie dodatkowe opcjonalne trasy: Skarbiec Milczących Wód i Nawa Potępionych Żagli, 8 lokacji, 6 zwykłych przeciwników, 2 bossów, 2 NPC i 2 odnawialne questy. Nowe bitwy floty: ocean4 atak legenda_cisza / legenda_nawa; zapowiadany o jedną turę wcześniej dodatkowy atak, z możliwością reakcji rozkazem osłona/manewr. Historyczne cele i balans starych bitew pozostają bez zmian.
+- PREDEPLOY WINDOWS: 6 obowiązkowych bramek FAST, FULL, dotychczasowe testy 2.20.0/2.20.1, 236 nowych kontroli 2.30.0, 6 klientów TCP z restartem. Odróżnianie audytu rejestru komend/questów od rzeczywistych scenariuszy wykonania pozostaje obowiązkowe; niewykonane scenariusze to NOT TESTED, nie PASS.
+- ZGODNOŚĆ: wszystkie stare pliki, SQLite, postacie, checkpointy, EXP Bank oraz pełen cap Fame i EP zachowane. Nie wykonano żadnej operacji na produkcyjnym serwerze ani bazie graczy.
+- TESTY WYKONANE: predeploy_check.py PASS (kod 0); predeploy_full.py PASS (kod 0); v2.20.0 320 kontroli PASS; v2.20.1 241 kontroli PASS; v2.30.0 236 kontroli PASS; kontroler predeploy 30 PASS. Pełny audyt potwierdził 962 aliasy, 373 handlery i 1526 definicji questów. Rzeczywisty test TCP: 6/6 graczy i drużyna, 168 komend przed restartem + 150 po restarcie = 318, po restarcie 6/6 kont oraz SQLite integrity PASS. Test na własnym Windows 11 nadal wymagany przed wdrożeniem. Pełne wykonanie wszystkich wariantów komend i questów pozostaje NOT TESTED.
+
+Soulbound v2.20.1 — Mistrzowskie Wyroby i Moduły Floty — 2026-10-11
+Aktualna paczka: v2.20.1 (pełny ZIP na bazie v2.20.0). Wdrożenie ręczne dopiero po PASS testów Windows.
+- Kolejny etap v2.20.0 bez kasowania starszych plików, tabel SQLite i postępów postaci. Wdrożenie tylko po ręcznej decyzji użytkownika i PASS na Windows.
+- PROFESJE 6.0: 14 rzeczywistych receptur po jednej na profesję; mistrzprof receptury <profesja> i mistrzprof wykonaj <profesja>. Wymagają poziomu profesji 100, pierwszej odblokowanej specjalizacji oraz prawdziwych surowców Oceanu 5.0. Materiały zabierane atomowo z ekwipunku lub właściwych magazynów profesji, produkt do inwentarza. EXP profesji i narzędzia korzysta z dotychczasowej krzywej rozwoju.
+- OCEAN 5.0: cztery moduły okrętów: działo (+20% bazowej siły ofensywnej danego okrętu), kadłub (-18% obrażeń od ostrzału), bariera (-16% obrażeń od morskich potworów), nawigator (+4500 obrażeń w manewrze). Instalacja: ocean4 modul lista / zaloz <statek> <1..4> / zdejmij <statek> <slot>; tylko w porcie, nie w aktywnej bitwie. Moduły przypisane do statku i zapisywane w nowej tabeli ocean5_ship_modules_v2201; demontaż zwraca przedmiot do ekwipunku.
+- TEST ENGINE: osobny audyt 14 receptur, zabrakniętych materiałów, nieuprawnionego montażu, podwójnej instalacji, zapisów SQLite po ponownym otwarciu i bonusów w bitwie. Włączony do FAST, FULL i piątego etapu testera Windows.
+- Nie ruszono EXP Banku, Fame/EP cap, starych bossów, portali, istniejącego ekwipunku, klas, najemników, ani maksymalnej liczby 6 aktywnych graczy.
+- WYNIKI TESTÓW LOKALNYCH: predeploy_check.py PASS (kod wyjścia 0), predeploy_full.py PASS (kod wyjścia 0), 241 testów receptur/floty PASS, 320 dotychczasowych scenariuszy PASS, 6 historycznych testów Ocean 4.0 PASS. Pełny audyt: 962 aliasy, 373 komendy, 1524 questy — rejestr/definicje i SQLite, nie wszystkie możliwe scenariusze wykonania. Test realnych 6 klientów TCP: 6/6 logowań, 168 komend pierwszej rundy, 150 po restarcie; 6/6 ponownych logowań, integralność SQLite PASS. Test na Windows 11 użytkownika nadal wymagany przed wdrożeniem.
+
+Soulbound v2.20.0 — Era Mistrzów i Głębin (AI 5.0 / Profesje 6.0 / Ocean 5.0 / Test Engine 4.0) — 2026-10-11
+Aktualna paczka: v2.20.0 (pełna aktualizacja na bazie v2.10.3). Wdrożenie wyłącznie ręcznie po PASS Windows.
+- INTELIGENTNI PRZECIWNICY 5.0: opcjonalne role uzdrowiciela, obrońcy i dowódcy w nowej zawartości. Korzystają z rzeczywistej lokalnej walki i starego ograniczenia akcji/cooldownu. Nie rusza bossów skryptowych, super bossów, statystyk postaci ani obrażeń najemników.
+- PROFESJE 6.0: nowe `mistrzprof` z katalogiem 14 profesji i 42 specjalizacji. Wybory od 100/250/450 poziomu, docelowo można opanować wszystkie ścieżki. Mistrzowskie zamówienia postępują od faktycznych czynności zapisanych już w tabeli `professions.actions`; zapłata w srebrze z premią +10% za odblokowaną specjalizację, odnawianie 1 godzina. Bez resetu XP, narzędzi i dotychczasowych zamówień. Nie wprowadzono jeszcze nowych receptur specjalizacji.
+- OCEAN 5.0: 4 autorskie trasy z istniejącego Portu Nieznanych Mórz: Rów Lewiatana, Zatopiona Stolica, Rafy Szeptów, Archipelag Wiecznych Burz. 17 lokacji łącznie z nowym węzłem, 12 mobów i 4 bossów, 4 questy i NPC, 4 handlowe materiały oraz 4 nowe cele istniejących bitew flot. Bez usuwania poprzednich archipelagów i okrętów. Nie dodano jeszcze nowych modułów statków ani nowych mechanik bitew morskich.
+- SQLITE: tabele `profession_specialties_v2200` i `profession_master_orders_v2200` dodawane wyłącznie `CREATE TABLE IF NOT EXISTS`; żadnej destrukcyjnej migracji. Konto/gracz i zamówienia odseparowane. Powtórne odebranie tej samej nagrody zablokowane atomowo.
+- PREDEPLOY 4.0: nowe scenariusze testowe walidujące nawigację nowych lokacji, jednostki AI, realne zaliczanie działań profesji, wycenę i jednorazowość wypłat, 4 cele flot i stare dane SQLite. Dalsze testy TCP 6 graczy, FAST/FULL i katalogu 1520+ questów zachowane. NOT TESTED dla pozostałych fabularnych ścieżek TCP; PASS nie znaczy 100% przejścia wszystkich questów w sieci.
+- WYDAJNOŚĆ/NVDA: taktyki ograniczone do lokalnej walki i tylko potworów oznaczonych rolą; tekstowe kierunki i krótkie komunikaty. Zachowano EXP Bank, pełny cap EXP za Fame/EP, balans świata i dotychczasowe komendy.
+- TESTY WYKONANE LOKALNIE: predeploy_check.py PASS, predeploy_full.py PASS (w tym katalog 962 aliasów, 373 komend, 1524 questów i 13751 kontroli katalogu), 320 dodatkowych scenariuszy PASS, sześć klientów TCP 6/6 PASS (318 komend łącznie, restart 6/6, SQLite integrity PASS). Plik BAT na Windows 11 wymaga własnego uruchomienia.
+- OGRANICZENIA: to pierwsza implementowana odsłona czterech dużych systemów; szerokie gałęzie morskich wypraw, specjalistyczne receptury i komplet wykonywalnych scenariuszy wszystkich komend wymagają kolejnych etapów. Stan PASS wymaga uruchomienia `TESTUJ_Soulbound.bat` u użytkownika na Windows.
+
+--------------------------------------------------------------------------------
+Soulbound v2.10.3 — Fame i EP pełny EXP Cap, pieniądze za questy — 2026-10-11
+Aktualna paczka: v2.10.3 (pełny ZIP na bazie v2.10.2), bez GitHuba i bez zmian zapisanych postaci.
+- FAME: każda oczekująca, jednorazowa premia Fame wypłaca aktualny pełny zwykły cap EXP postaci, Duszy i osobno każdej statystyki. Rozdział klas otrzymuje pulę wystarczającą na pełny cap każdej aktywnej klasy. Wypłata wciąż jest odroczona i jednorazowa, ze starym identyfikatorem SQLite, bez dodatkowych punktów Fame.
+- EP: każde PIERWSZE odkrycie lokacji przyznaje pełny cap EXP postaci, zamiast stałej 50–5000. Ponowne odwiedziny nie przyznają EP ani EXP; postęp i zapis odkryć zachowane.
+- EXP BANK: premie z eventów, gildii i mentora nadal przechodzą przez istniejące bankowanie nadwyżek. Brak zmiany progów poziomów, zasad walki, EXP za questy i profesji.
+- PIENIĄDZE ZA QUESTY: poprawiono obliczanie faktycznej wypłaty także z reward_gold i reward_mithril (nie tylko reward_silver). Zadania bez ręcznie ustalonej nagrody pieniężnej otrzymują minimum równowartości 1 złota; dodatnie nagrody wyrównuje istniejąca krzywa ekonomii. Jawne kontrakty w trybie manual mogą celowo pozostać bez gotówki i są chronione przed automatem.
+- PREDEPLOY WINDOWS: oba audyty FAST i FULL sprawdzają bieżący cap, rzeczywisty mechanizm kolejkowania Fame (pierwsza wypłata i brak powtórnej), nową nagrodę EP, ręczne zasady waluty oraz cały katalog questów. Oddzielny etap sześciu graczy TCP, SQLite i restart serwera zachowany.
+- NVDA: komunikat Fame podaje odrębne capy postaci, Duszy, statystyk i klas; komunikat EP wypisuje faktyczny cap. Bez osobnego TXT z raportem.
+- Weryfikacja: jeżeli Windows TESTUJ_Soulbound.bat wykryje niezaliczony etap, wynik końcowy pozostaje FAIL; bez automatycznego wdrożenia.
+
+--------------------------------------------------------------------------------
+Soulbound v2.10.2 — Pelny predeploy: 6 klientow TCP i restart — 2026-10-11
+Aktualna paczka: v2.10.2 (pełna aktualizacja v2.10.1; bez zmian mechaniki gry i postaci).
+- AUDYT WSZYSTKICH KOMEND I QUESTOW: pelny predeploy sprawdza kazdy alias i kanoniczny handler przez rzeczywisty katalog gry, metadane dispatchera, wszystkie definicje questow, powiazania NPC, poprzedniki zadan i przedmioty nagrod. Wszystkie wykryte bledy blokujace koncza test jako FAIL.
+- CYKL QUESTOW SQLite: na wylacznie pamieciowej testowej bazie dla kazdego questa osobno wykonywane sa start, zapis postepu, ukonczenie, ponowne rozpoczecie i porzucenie z weryfikacja zachowania historii. To test operacji bazy, NIE automatyczne przejscie fabularne wszystkich zadan.
+- ROZSZERZONY TEST TCP: szesc postaci wykonuje rownolegle 25 roznorodnych komend informacyjnych w kazdym z dwoch cykli serwera, oprocz zaproszen druzyny i sprawdzenia kont po restarcie.
+- POKRYCIE UCZCIWE: raport jawnie wypisuje NOT TESTED dla wszystkich niestworzonych scenariuszy argumentow/stanu i faktycznego wykonania/odbioru kazdego zadania u NPC. PASS oznacza zaliczenie zdefiniowanych kontroli, nie stuprocentowy test kazdej sciezki rozgrywki.
+- NAPRAWA DWOCH ALIASOW: historyczne exp i frakcje mialy w pliku konfiguracji inne cele niz ostateczny parser; wyrownano konfiguracje do aktualnej implementacji, bez zmiany uzywanej komendy i logiki gry.
+- TESTUJ_Soulbound.bat uruchamia trzy bramki: predeploy_check.py, predeploy_full.py i autentyczną próbę sześciu osobnych graczy TCP na localhost (127.0.0.1). Każda bramka ma osobny wynik PASS/FAIL, a zbiorczy wynik trafia do istniejącego logs/TESTY_Soulbound.log. Nie wdrażaj, jeśli choć jedna bramka zgłasza FAIL.
+- Test TCP uruchamia osobny proces serwera na losowym porcie i w osobnym katalogu SQLite; przygotowuje dokładnie 6 tymczasowych kont i 6 postaci, loguje je, wykonuje równoległe polecenia who/status/look/tytani lista/expbank, tworzy drużynę, przyjmuje pięć zaproszeń i weryfikuje widoczność wszystkich 6 członków. Sprawdza też integralność testowej bazy i raportuje pomiary czasu odpowiedzi.
+- Pełny audyt zawiera dodatkowo deterministyczną symulację sześciu postaci z prawdziwymi operacjami SQLite (poprzednio 4) bez udziału żywych klientów.
+- Testy TCP uruchamiaja pelny serwer DWUKROTNIE na tej samej bazie testowej: po pierwszej rundzie sprawdzaja integrity_check oraz stan szesciu kont i postaci; po restarcie ponownie loguja wszystkich i weryfikuja zachowanie zapisow. Test nie twierdzi, ze wykonuje prawdziwe walki przez TCP.
+- Kontroler bramek ma 29 testow zabezpieczen, obejmujacych awarie procesu, blad kodu wyjscia i wymuszone przekroczenie limitu czasu. Testy zostaly wlaczone do FAST i FULL.
+- Windowsowy tester ma twarde limity czasu na kazdy etap (8/10/15 minut), sprawdza kod wyjscia kazdego z trzech etapow, raportuje przerwania, brak plikow i awarie procesu jako FAIL. Blokuje wynik PASS, jesli ktorakolwiek bramka nie zostala zakonczona.
+- Osobny STRESS_TCP_Soulbound.bat nie laczy sie juz z produkcyjnym serwerem: uruchamia szesc prawdziwych, ale izolowanych sesji w nowym procesie na loopback.
+- Usunieto dziedziczenie wskaznikow na katalog Railway volume, seed swiata i danych administracyjnych przez proces testowy.
+- Testy nie zmieniaja balansu, skilli, EXP, checkpointow, ekwipunku ani istniejacych migracji SQLite.
+- ZABEZPIECZENIA: wyłącznie 127.0.0.1; osobny proces i tymczasowa baza; nadpisanie zmiennych PORT, SOULBOUND_DB, Railway i uprawnień administracyjnych w procesie testowym; nigdy nie łączy się z działającym serwerem. Test nie wykonuje rzeczywistych walk bossów: pozostałe audyty pokrywają osobno logikę walki, AoE i nagrody.
+- Wydanie jest zgodne z Python 3.12+; testy TCP mają ograniczenia czasu na start i odpowiedzi, z diagnostyką błędów na końcu istniejącego logu Windows.
+- Zachowano wszystkie systemy, postacie, lochy, EXP Bank i nagrody bez zmian balansu oraz bez destrukcyjnych migracji SQLite.
+
+--------------------------------------------------------------------------------
+Soulbound v2.10.1 — Naprawa audytu wejścia do Labiryntu Echa — 2026-10-11
+Aktualna paczka: v2.10.1 (pełna aktualizacja v2.10.0; baza v2.00.11 zachowana).
+- NAPRAWIONE: predeploy_full.py zgłaszał broken_exit przy v1500_echo_entry / down / v1500_echo_1_gate i kończył FAIL, mimo działającego generatora pięter Labiryntu Echa.
+- PRZYCZYNA: nakładka Tytanów 9.0 na ensure_infinite_dungeon_floor delegowała do generatora Echa, ale nie przekazywała jego znacznika możliwości dynamicznego generowania; pełny audyt nie miał podstaw do uznania przyszłego piętra za prawidłowe wyjście.
+- Poprawka zachowuje znacznik wyłącznie gdy faktycznie posiadała go poprzednia metoda. Kontrola nie została wyłączona ani poluzowana: nieistniejące, nieobsługiwane wyjścia nadal blokują wydanie.
+- Dodano osobny test regresji zachowania tego znacznika (109 kontroli PASS); pelny predeploy pozostaje do ponownego uruchomienia na Windows/Railway.
+- Nie zmieniono mapy, portali, checkpointów, skalowania obrażeń, nagród, Fame, EXP Banku, SQLite, postaci ani ekwipunku. Zapis graczy pozostaje kompatybilny.
+
+--------------------------------------------------------------------------------
+Soulbound v2.10.0 — Przebudzenie Pradawnych Tytanów i Nieskończone Lochy 7.0 — 2026-10-11
+Aktualna paczka: v2.10.0 (pełna aktualizacja v2.00.11, zachowane 100% starszej zawartości).
+- SUPERBOSSOWIE 9.0: osiem autorskich Tytanów (Ragnor, Velira, Ormak, Morven, Althira, Vardun, Kaelor, Nharon). Powracają cyklicznie co 50 pięter w opcjonalnych komnatach istniejących lochów. Wymagane jest dotarcie tam normalną trasą; brak darmowego teleportu lub nowych ograniczeń poziomu.
+- WALKA: Tytani mają cztery fazy HP (70/40/15), indywidualne nazwy mocnych ataków i zapowiedź przed uderzeniem. Komenda `tytani obrona` redukuje zapowiedziany cios dla konkretnego gracza. Stary fizyczny/magiczny system obrażeń, żywioły, leczenie, AoE, najemnicy, przywołania, reakcje i EXP Bank pozostają.
+- NIESKOŃCZONE LOCHY 7.0: co 25 pięter opcjonalna odnoga. Co 50 legowisko Tytana, na pozostałych progach 25 sekretna komnata. Tworzone tylko przy odwiedzeniu. Bez pułapek, bez resetowania bossów, checkpointów i już odkrytych przejść. Obejmuje Krypty, Wieże, Mityczne warianty, Deep Dungeon, Labirynt Echa, Magitek i Twierdzę Gigantów, w istniejących obsługiwanych zakresach pięter.
+- NAGRODY: osiem różnych legendarnych artefaktów EQ za pierwsze pokonanie danego Tytana, trwały zapis zaliczenia każdego legowiska, osobista Esencja Tytana odnawiana po 24 h; sekrety dają jednorazową Esencję każdej postaci. Typowe nagrody EXP z walk w pełni przechodzą przez dotychczasowy EXP Cap i EXP Bank.
+- SQLITE: dodane tylko trzy osobne tabele titan_records_v2100, titan_floor_clears_v2100, titan_secrets_v2100. Istniejące postacie, przedmioty, sejwy, Fame, EXP, bank i postępy bez migracji destrukcyjnej. Przygotuj kopię baz SQLite przed aktualizacją.
+- NVDA: `tytani lista/info/status/obrona`, `lochy7` i `lochy7 sekret`, opisy drzwi przy progu, wyjście POŁUDNIE lub `wyjscie` z komnaty i komunikaty krytyczne o fazach/atakach. Pomoc `lochy50` i starsze komendy bez zmian.
+- WYDAJNOŚĆ: bez pętli w tle, bez skanowania całego świata przy ataku Tytana, tworzenie tylko odwiedzonego legowiska. Istniejące mechanizmy oszczędnego skanowania mobów zachowane.
+- OGRANICZENIA: nowe artefakty są osobistą nagrodą za pierwszą wygraną, nie dodatkowymi recepturami. Tryb długich walk powinien zostać przetestowany również przez żywych graczy na Windows/Railway przed produkcją.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.11 — Trwały EXP Bank — 2026-10-11
+Aktualna paczka: v2.00.11 (pełna aktualizacja v2.00.10; brak GitHuba).
+- EXP Bank: nadwyżka z pojedynczej nagrody ponad limit experience cap lub doublecap nie przepada.
+- SQLite: nowa tabela experience_bank_v2011 (osobna dla konta i konkretnej osi/klasy/statu/profesji/narzędzia/umiejętności); bez zmian w istniejących tabelach postaci.
+- Wypłata banku: gdy następna nagroda wykorzystuje mniej niż bieżący cap, bank dopłaca różnicę. Nigdy nie przekracza capu jednej nagrody.
+- Komenda expbank: status banku po kategoriach, czytelny dla NVDA. Komenda experience cap zachowana.
+- Dotychczasowy EXP, wymagania poziomów, zbalansowane nagrody, Fame, drop, najemnicy, przywołania i portale bez zmian.
+- Testy regresyjne: walidacja limitu, dwóch bossów, trwałości banku SQLite oraz izolacji 7 rodzajów EXP.
+
+Soulbound v2.00.10 — Portale między odblokowanymi piętrami — 2026-10-11
+Aktualna paczka: v2.00.10 (pełna v2.00.9; poprawiona nawigacja portalami).
+- POPRAWIONE: portal <piętro> oraz astralportal <poziom> działają także z ODPOWIEDNIEGO ODBLOKOWANEGO checkpointu wewnątrz zwykłej i Mitycznej Krypty/Wieży. Np. na 30. piętrze: portal 10, portal 20 (jeśli dane piętro już odblokowano). Przejścia co 10 pięter; brak dostępu do nieodblokowanych celów i obcych lochów.
+- Bez argumentu na odblokowanym checkpointcie nadal działa powrót do bramy; portal wyjdz / astralportal wyjdz zachowuje dotychczasowe działanie. `portal lista` pokazuje odblokowane piętra.
+- DRUŻYNA: portal uruchamia lokalny lider, a każdy towarzysz musi mieć docelowe piętro odblokowane; nieuprawnieni gracze i walczący zostają na miejscu. Cel i położenie zapisują się standardowo w SQLite.
+- KATAKUMBY: portal 1/2/3 działa między odkrytymi piętrami Katakumb pod Świątynią; odwiedzone piętra zapisują się trwale (osoby aktualnie na wyższym piętrze mają odblokowane również niższe). Portal przy wejściu do katakumb działa do znanych pięter; portal wyjdz wraca do Piwnicy. Nie ma odblokowywania przyszłych pięter.
+- Komenda `pietro gora` / `pietro dol` wprowadzona w v2.00.9 nie jest już rejestrowana — właściwa nawigacja między odblokowanymi checkpointami odbywa się portalami. Zwykłe schody/kierunki pozostają dostępne.
+- DODANE testy portali w obu audytach. Zmieniono wyłącznie nawigację i czytelność komunikatów NVDA. Bez zmiany EXP cap, Fame, walki, bossów, obrażeń, łupów, klas, postaci czy struktury SQLite.
+
+--------------------------------------------------------------------------------
+Soulbound v2.00.9 — EXP Cap w stylu Alter Aeon, bossowie Fame, schody między piętrami — 2026-10-11
+Aktualna paczka: v2.00.9 (pełna v2.00.8, limit EXP na nagrodę, Fame bossów i ruch między piętrami).
+- EXP CAP: nowa komenda experience cap, your experience cap, expcap, capexp. Pokazuje dla aktualnej postaci limity EXP z jednego przyznania postaci, Duszy, każdej aktywnej klasy, każdej statystyki, profesji, narzędzi i skilli (zależne od poziomu każdej osi, do 800).
+- Standardowy EXP cap rośnie wraz z wymaganiami kolejnych poziomów (nie zmieniono wymaganego EXP do poziomu); boss o etapie co najmniej równym poziomowi gracza może dać maksymalnie doublecap = 2 x cap. Jest to limit pojedynczej nagrody, nie limit gromadzonego EXP. Wartości przed ograniczeniem w wiadomości po walce są oznaczone; faktyczna wypłata jest wyliczana po zastosowaniu capu. Nie dodano redukcji za powtarzanie terenów (denting).
+- W istniejących punktach naliczania walki, nagród klas, Duszy, postaci, statystyk, skilli, profesji i narzędzi zastosowano cap wypłaty PO bonusach eventowych; wypracowane poziomy i dotychczasowy EXP pozostają bez zmian. Nie zmieniono limitów statystyk, statystyk postaci ani profilu grindu/EXP-to-next.
+- FAME: uzupełniono znaczniki bossów krypt, wież i ich mitycznych wariantów, pięter Magitek i Twierdzy, a także minibossów i bossów Katakumb. Osobny boss na osobnym piętrze daje osobny jednorazowy cel Fame, także w dynamicznie tworzonych lochach. Zabicie tego samego bossa ponownie nie daje drugiego punktu; SQLite Fame jest kompatybilne wstecz.
+- PIĘTRA: nowa komenda pietro gora / pietro dol (także piętro i floor), szuka prawdziwych schodów z dowolnej sali na aktualnym piętrze. Ruch odbywa się poprzez standardowe kroki, wraz z drużyną, nigdy teleportem i nigdy ponad jednym poziomem. Nie omija wymaganych bossów ani kontroli dostępu, a Katakumby 1–3 mają schody w obie strony. Działa w Kryptach, Wieżach, Mitycznych Krypcie i Wieży oraz innych rozpoznanych piętrowych lochach.
+- 375 nowych kontroli regresji w obu audytach; tester Windows, PROFILUJ_Soulbound.bat, Rail­way, SQLite i pozostały kod zachowane. Tylko kompletne wydanie ZIP, bez GitHuba.
+
+--------------------------------------------------------------------------------
 Soulbound v2.00.8 — Mocniejsze żywiołaki Maga — 2026-10-11
 Aktualna paczka: v2.00.8 (pełna v2.00.7 z poprawką obrażeń żywiołaków).
 - WYKRYTO: żywiołaki zadawały obrażenia z surowego spell_power, bez uwzględnienia pełnego zwykłego magicznego ciosu Maga (Broń Duszy, premie klasy, rasy, setów, wyposażenia i szacunkowe krytyki).

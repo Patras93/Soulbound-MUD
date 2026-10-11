@@ -158,12 +158,16 @@ class SessionRuntimeStateMixin:
 
     def add_character_xp_with_event(
         self, amount, single_level_cap=False, *,
-        content_level=None, content_scaled=False
+        content_level=None, content_scaled=False, overcap=False
     ):
             amount=self.scale_progression_xp_v11342(
                 amount,content_level,content_scaled=content_scaled
             )
             actual = self.apply_double_xp(amount)
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            actual = banked_experience_v2011(
+                self.server.db, self.account_id, actual, 'character',
+                self.character.character_level, overcap=overcap)
             self.session_summary_add("character_xp", actual)
             return self.character.add_character_xp(
                 actual, single_level_cap=single_level_cap

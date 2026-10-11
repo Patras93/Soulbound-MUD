@@ -510,6 +510,10 @@ class SessionProfessionStorageMixin:
             else:
                 tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
             tool_xp = self.apply_double_xp(tool_xp)
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            tool_xp = banked_experience_v2011(
+                self.server.db, self.account_id, tool_xp, 'tool', level,
+                source_key=tool_type)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             xp = int(row["xp"]) + max(0, int(tool_xp))
             uses = int(row["uses"]) + 1
@@ -1169,6 +1173,13 @@ class SessionProfessionStorageMixin:
                 tool_xp=max(0,int(round(tool_xp*(1.0+_title_pct/100.0))))
             actual_profession_xp = self.apply_double_xp(actual_profession_xp)
             tool_xp = self.apply_double_xp(tool_xp)
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            actual_profession_xp = banked_experience_v2011(
+                self.server.db, self.account_id, actual_profession_xp,
+                'profession', plevel, source_key=profession)
+            tool_xp = banked_experience_v2011(
+                self.server.db, self.account_id, tool_xp, 'tool',
+                tlevel_preview, source_key=tool_type)
             self.session_summary_add("profession_xp", actual_profession_xp, profession)
             self.session_summary_add("tool_xp", tool_xp, tool_type)
             pxp = int(prow["xp"]) + actual_profession_xp

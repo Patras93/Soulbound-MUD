@@ -2,6 +2,7 @@
 """Accessible Ocean 4.0 commands; standalone against NPC, no PvP."""
 from __future__ import annotations
 from systems import ocean4_v1350 as navy
+from systems import ocean5_modules_v2201 as ship_modules
 from world.ocean_expansion import DEEP_OCEAN_ROOMS
 from data.catalogs import ITEMS
 
@@ -21,7 +22,7 @@ class SessionOcean4V1350Mixin:
         cmd=parts[0] if parts else 'pomoc'
         conn=self._naval_v1350();account=self.account_id
         if cmd in ('pomoc','help','info'):
-            await self.send('OCEAN 4.0 — FLOTA PvE. Komendy: ocean4 flota; ocean4 eskorta dodaj <nr> / usun <nr>; ocean4 napraw <nr> potwierdz; ocean4 cele; ocean4 cele; ocean4 atak <cel> (także Ocean 5.0); ocean4 status; ocean4 rozkaz salwa/manewr/oslona/abordaz; ocean4 odwrot potwierdz; ocean4 rekordy.')
+            await self.send('OCEAN 4.0 — FLOTA PvE. Komendy: ocean4 flota; ocean4 eskorta dodaj <nr> / usun <nr>; ocean4 napraw <nr> potwierdz; ocean4 cele; ocean4 atak <cel> (także Ocean 5.0); ocean4 status; ocean4 rozkaz salwa/manewr/oslona/abordaz; ocean4 odwrot potwierdz; ocean4 rekordy; ocean4 modul lista / zaloz <statek> <1..4> / zdejmij <statek> <slot>.')
             await self.send('Dwa okręty eskortowe + aktywny okręt flagowy. Abordaż możliwy przeciw statkom poniżej 45% HP. Każda bitwa zachowuje stan po wylogowaniu. Nie potrzeba drugiej gildii.')
             return
         if cmd=='flota':
@@ -32,6 +33,28 @@ class SessionOcean4V1350Mixin:
         if cmd=='cele':
             for key,enemy in navy.ENEMIES.items():
                 await self.send(f'{key}: {enemy[0]}. Typ: {enemy[4]}. Nagroda za zwycięstwo: {enemy[3]} srebra i surowce.')
+            return
+        if cmd=='modul':
+            if len(parts)==1 or parts[1]=='lista':
+                for no,(slot,item,name) in ship_modules.MODULES.items():
+                    await self.send(f'{no}. {name} — slot {slot}, przedmiot {item}. Wytwórz: mistrzprof receptury <profesja>.')
+                for sh in navy.fleet_status(conn,account):
+                    mods=ship_modules.modules(conn,account,sh['id'])
+                    await self.send(f'Statek {sh["id"]}: '+(', '.join(f'{slot}: {iid}' for slot,iid in mods.items()) or 'brak modułów'))
+                return
+            if not self._naval_port_v1350():
+                await self.send('Moduły można montować tylko w porcie.');return
+            if len(parts)!=4 or parts[1] not in ('zaloz','zdejmij'):
+                await self.send('Użycie: ocean4 modul zaloz <numer statku> <1..4> lub ocean4 modul zdejmij <numer statku> <slot>.');return
+            try:
+                ship_id=int(parts[2])
+                if parts[1]=='zaloz':
+                    name=ship_modules.equip(conn,account,ship_id,parts[3])
+                    await self.send('Zamontowano: '+name)
+                else:
+                    item=ship_modules.remove(conn,account,ship_id,parts[3])
+                    await self.send('Zwrócono do ekwipunku: '+ITEMS.get(item,{}).get('name',item))
+            except ValueError as exc:await self.send(str(exc))
             return
         if cmd=='rekordy':
             rows=navy.records(conn,account)
@@ -64,7 +87,7 @@ class SessionOcean4V1350Mixin:
             self.character.silver=balance;self.character.gold=0;self.character.mithril=0
             await self.send(f'Naprawiono statek. Koszt {price} srebra.');return
         if cmd=='atak' and len(parts)==2:
-            if not (self._naval_port_v1350() or self.character.room_id in DEEP_OCEAN_ROOMS):
+            if not (self._naval_port_v1350() or self.character.room_id in DEEP_OCEAN_ROOMS or str(self.character.room_id).startswith(('v2200_', 'v2300_'))):
                 await self.send('Wypłyń do portu lub na szlak oceanu, aby rozpocząć bitwę flot.');return
             try:name,hp,n=navy.begin(conn,account,parts[1])
             except ValueError as e:await self.send(str(e));return
@@ -80,6 +103,7 @@ class SessionOcean4V1350Mixin:
             except ValueError as e:await self.send(str(e));return
             await self.send(f'Tura {r.get("turn",0)}: {parts[1]}, zadano {r["damage"]} obrażeń. Wróg: {r.get("enemy_hp",0)}/{r.get("enemy_max_hp",0)} HP.')
             if r.get('hazard') and r['enemy_damage']:await self.send('UWAGA: morski potwór uruchomił specjalny atak żywiołowy!')
+            if r.get('hazard_notice'):await self.send(r['hazard_notice'])
             if r['enemy_damage']:await self.send(f'Kontratak przeciwnika: {r["enemy_damage"]} obrażeń podzielonych między okręty.')
             for name,h,m in r['losses']:await self.send(f'{name}: kadłub {h}/{m}.')
             if r['outcome']=='zwyciestwo':

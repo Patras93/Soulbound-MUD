@@ -15,6 +15,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="soulbound-full-audit-") as directory:
         os.environ["SOULBOUND_DB"] = os.path.join(directory, "audit.db")
         os.environ["SOULBOUND_FULL_AUDIT"] = "1"
+        os.environ["SOULBOUND_HOST"] = "127.0.0.1"  # Always private during audits.
         os.environ.pop("SOULBOUND_HISTORICAL_AUDITS", None)
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
@@ -78,15 +79,15 @@ def main():
         from validation.admin_error_cleanup_v1371_test import run_admin_error_commands_v1371
         assert run_admin_error_commands_v1371()["errors"] == 0
         print("ADMIN ERROR COMMANDS v1.37.1: 9 dispatch, permissions and confirmation tests PASS")
-        # v1.39.0: four deterministic virtual sessions sharing real disposable
+        # v1.39.0: six deterministic virtual sessions sharing real disposable
         # SQLite. Does not open player sockets or touch the deployment database.
         from validation.v1390_world_stress import run_stress_v1390
-        _stress_v1390 = run_stress_v1390(players=4, rounds=120)
+        _stress_v1390 = run_stress_v1390(players=6, rounds=120)
         assert not _stress_v1390['errors'], _stress_v1390['failures'][:20]
         print(f"WORLD STRESS v1.39.0: {_stress_v1390['simulated_operations']} operations, "
               f"{_stress_v1390['checks']} checks, "
               f"p95={_stress_v1390['p95_actor_batch_ms']}ms, "
-              "4 virtual players, 0 errors; NOT live TCP load")
+              "6 virtual players, 0 errors; NOT live TCP load")
         # v1.40.0: one boss must never grant two rewards when party, AoE and
         # mercenary kill callbacks interleave on the same event loop.
         from validation.v1400_combat_stability import run_combat_stability_v1400
@@ -681,6 +682,11 @@ def main():
             server._BOOT_SOCKET.close()
 
 
+        # v2.10.3: live reward gateways, Fame queue, all quest money definitions.
+        from validation.v2103_fame_exploration_quest_currency import run_regression as _reward_v2103
+        _reward_result_v2103 = _reward_v2103()
+        print(f"FAME/EP/QUEST GOLD v2.10.3 FULL: {_reward_result_v2103} PASS")
+
 if __name__ == "__main__":
     main()
 
@@ -741,3 +747,56 @@ print(f"CONSIDER REGION v2.00.7 FULL: {_consider_v2007()} checks PASS")
 # v2.00.8: Elementals inherit the Mage's real magical striking power.
 from validation.v2008_elemental_damage import run_regression as _elemental_damage_v2008
 print(f'MAGE ELEMENTAL DAMAGE v2.00.8: {_elemental_damage_v2008()} checks PASS')
+
+# v2.00.9: one per-award cap; boss overcap; permanent SQLite Fame; real stairs.
+from validation.v2009_expcap_fame_stairs import run_regression as _cap_stairs_full_v2009
+print(f'EXP CAP / FAME / STAIRS v2.00.9 FULL: {_cap_stairs_full_v2009()} checks PASS')
+
+# v2.00.10: unlocked portal-to-portal movement, party checks and catacombs.
+from validation.v2010_unlocked_portals import run_regression as _portals_v2010
+print(f'UNLOCKED PORTALS v2.00.10 FULL: {_portals_v2010()} checks PASS')
+
+# v2.00.11: persistent, per-axis overflow and cap-safe repayment.
+from validation.v2011_experience_bank import run_regression as _xp_bank_v2011
+print(f"EXP BANK v2.00.11 FULL: {_xp_bank_v2011()} checks PASS")
+
+# v2.10.0: repeat the scoped gameplay regression in the full audit.
+from validation.v2100_titans import run_regression as _titans_v2100
+print(f"TYTANI / LOCHY v2.10.0 FULL: {_titans_v2100()} checks PASS")
+
+# The real six-player TCP stage is executed separately by TESTUJ_Soulbound.bat.
+from validation.v2102_tcp_six_players import run_contract as _tcp6_guard_v2102
+print(f"TCP SIX PLAYERS v2.10.2 FULL SAFE CONFIG: {_tcp6_guard_v2102()} checks PASS; "
+      "real TCP tests run as Windows stage 3")
+
+# Repeat the controller contract during the exhaustive predeploy.
+from validation.v2102_tcp_six_players import run_sqlite_cleanup_regression as _check_sqlite_close_v2301
+print(f'TCP SQLITE CLEANUP v2.30.1: {_check_sqlite_close_v2301()} checks PASS')
+
+from validation.v2102_predeploy_contract import run_regression as _quality_gate_selftest_v2102
+print(f"QUALITY GATE v2.10.2 FULL: {_quality_gate_selftest_v2102()} controller checks PASS")
+
+# v2.10.2: enumerate ALL  command aliases and quest definitions, exercise SQLite for each.
+from validation.v2102_command_quest_coverage import main as _command_quest_coverage_v2102
+_command_quest_coverage_v2102()
+
+# v2.30.2: exhaustive registry and per-quest cross-account persistence tests.
+from validation.v2302_exhaustive_game_coverage import run_exhaustive as _v2302_exhaustive
+_v2302_exhaustive()
+
+# v2.31.0: do not synthesize quest progress. Replay real database-event methods
+# for every compatible quest and report other kinds as NOT TESTED.
+from validation.v2400_real_quest_events import run_event_coverage as _real_events_v2310
+_real_events_v2310()
+
+# v2.20.0: independent end-to-end fixture checks in FULL too.
+from validation.v2200_master_depths_ai import run_regression as _check_v2200
+print(f"AI / PROFESJE / OCEAN v2.20.0 FULL: {_check_v2200()} checks PASS")
+
+# v2.20.1: craft and ship modules end-to-end isolated SQLite regression.
+from validation.v2201_fleet_mastery import run_regression as _check_v2201
+print(f"MISTRZOWIE / MODULY FLOTY v2.20.1: {_check_v2201()} checks PASS")
+
+# v2.30.0: additional authored AI, mastery and ocean release regression.
+from validation.v2300_world_professions_ocean import run_regression as _v2300_regression
+print(f'WIELKA ERA v2.30.0 AI / PROFESJE / OCEAN: {_v2300_regression()} checks PASS')

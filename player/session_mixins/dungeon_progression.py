@@ -261,6 +261,7 @@ class SessionDungeonProgressionMixin:
                     continue
 
                 member.previous_room_id = member.character.room_id
+                member.previous_room_id = member.character.room_id
                 member.character.room_id = target
                 member.server.db.save_character(member.character)
                 moved.append(member)
@@ -767,11 +768,18 @@ class SessionDungeonProgressionMixin:
                 content_scaled=content_scaled,
             )
             amount=self.apply_double_xp(amount)
-            for message in self.character.add_stat_progress(
-                amount,targets=targets
-            ):
-                await self.send(message)
-            return amount
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            # Per-stat bank: no shared pool that could duplicate XP for six stats.
+            target_names = list(targets) if targets is not None else list(self.character.STAT_PROGRESS_FIELDS)
+            awarded = []
+            for stat_name in target_names:
+                paid = banked_experience_v2011(
+                    self.server.db, self.account_id, amount, 'stat',
+                    self.character.character_level, source_key=stat_name)
+                awarded.append(paid)
+                for message in self.character.add_stat_progress(paid, targets=(stat_name,)):
+                    await self.send(message)
+            return min(awarded) if awarded else 0
 
     async def grant_combat_quest_stat_xp(
         self, raw_reward, repeatable=False, source_label="Quest walki", *,
@@ -792,6 +800,10 @@ class SessionDungeonProgressionMixin:
                     self.character, stat_name, raw_reward, repeatable
                 )
                 granted = self.apply_double_xp(granted)
+                from systems.experience_bank_v2011 import banked_experience_v2011
+                granted=banked_experience_v2011(
+                    self.server.db, self.account_id, granted, 'stat',
+                    self.character.character_level, source_key=stat_name)
                 applied.append(granted)
                 for msg in self.character.add_stat_progress(granted, targets=(stat_name,)):
                     await self.send(msg)
@@ -806,7 +818,7 @@ class SessionDungeonProgressionMixin:
 
     async def grant_soul_xp(
         self, amount, single_level_cap=False, *,
-        content_level=None, content_scaled=False
+        content_level=None, content_scaled=False, overcap=False
     ):
             old_level = self.character.soul_level
             amount=self.scale_progression_xp_v11342(
@@ -820,6 +832,10 @@ class SessionDungeonProgressionMixin:
                 amount = max(0, int(round(amount * (1.0 + _mentor_pct / 100.0))))
                 self.mentor_record_activity_v03051()
 
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            amount = banked_experience_v2011(
+                self.server.db, self.account_id, amount, 'soul',
+                self.character.soul_level, overcap=overcap)
             self.session_summary_add("soul_xp", amount)
             messages = self.character.add_soul_xp(
                 amount, single_level_cap=single_level_cap
@@ -839,7 +855,7 @@ class SessionDungeonProgressionMixin:
             return self.character.soul_level > old_level
 
     async def grant_combat_soul_xp_v11350(
-        self, amount, *, content_level=None, content_scaled=True
+        self, amount, *, content_level=None, content_scaled=True, overcap=False
     ):
             """Stable combat Soul XP gateway immune to late legacy overrides."""
             return await SessionDungeonProgressionMixin.grant_soul_xp(
@@ -847,9 +863,98 @@ class SessionDungeonProgressionMixin:
                 amount,
                 single_level_cap=False,
                 content_level=content_level,
-                content_scaled=content_scaled,
+                content_scaled=content_scaled, overcap=overcap,
             )
 
+
+    def checkpoint_portal_origin_v2010(self, *, room_id, gate_rooms, kind,
+                                         current_floor, is_checkpoint):
+            """A cleared checkpoint is a portal origin, not only a way out."""
+            if room_id in gate_rooms:
+                return True
+            return bool(
+                current_floor is not None
+                and is_checkpoint(current_floor)
+                and self.checkpoint_portal_unlocked_v11331(kind, current_floor)
+            )
+
+    def catacomb_floor_v2010(self, room_id=None):
+            room_id = str(room_id if room_id is not None else self.character.room_id)
+            match = re.match(r'^(?:v0900_)?catacomb_f([1-3])_', room_id)
+            return int(match.group(1)) if match else None
+
+    def catacomb_unlocked_floors_v2010(self):
+            return sorted({
+                int(value) for value in self.server.db.collection_entry_ids(
+                    self.account_id, 'catacomb_portal_floors_v2010'
+                ) if str(value) in ('1', '2', '3')
+            })
+
+    def remember_catacomb_floor_v2010(self, room_id):
+            floor = self.catacomb_floor_v2010(room_id)
+            if floor is None or self.account_id is None:
+                return
+            # Existing characters already on floor 2 or 3 must not lose
+            # access to all preceding levels after updating the server.
+            known = self.catacomb_unlocked_floors_v2010()
+            for visited in range(1, floor + 1):
+                if visited not in known:
+                    self.server.db.add_collection_entry(
+                        self.account_id, 'catacomb_portal_floors_v2010', str(visited)
+                    )
+
+    async def use_catacomb_portal_v2010(self, raw):
+            from world.world_expansion_v import CATACOMB_LEVELS_V0900
+            if self.combat_mob_key:
+                await self.send('Nie można używać portalu Katakumb podczas walki.')
+                return
+            party_key = self.party_key()
+            if self.portal_requires_local_leader_v12811():
+                await self.send('W drużynie portal uruchamia lider stojący w tej samej sali.')
+                return
+            here = str(self.character.room_id)
+            current_floor = self.catacomb_floor_v2010(here)
+            if current_floor is not None:
+                self.remember_catacomb_floor_v2010(here)
+            known = self.catacomb_unlocked_floors_v2010()
+            value = self.normalize_room_query(raw)
+            if not value or value in ('lista','list','status'):
+                await self.send('Portal Katakumb: odblokowane piętra: '
+                    + (', '.join(map(str,known)) if known else 'brak')
+                    + '. Użyj portal 1, portal 2 albo portal 3.')
+                return
+            if value in ('wyjdz','wyjdź','wyjscie','wyjście','exit','out'):
+                target = 'temple_basement_deep_nest'
+                floor = None
+            elif value in ('1','2','3'):
+                floor = int(value)
+                target = CATACOMB_LEVELS_V0900[floor][0]
+                if floor not in known:
+                    await self.send(f'Piętro {floor} Katakumb nie jest jeszcze odblokowane.')
+                    return
+            else:
+                await self.send('Użycie: portal 1, portal 2, portal 3 lub portal wyjdz.')
+                return
+            old = here
+            candidates = (list(self.server.party_sessions(self.account_id,same_room=old))
+                          if party_key == self.account_id else [self])
+            if self not in candidates: candidates.append(self)
+            moved=[]; skipped=[]
+            for member in candidates:
+                if not member or not getattr(member,'character',None): continue
+                if member.combat_mob_key:
+                    skipped.append(f'{member.character.name}: trwa walka'); continue
+                if floor is not None and floor not in member.catacomb_unlocked_floors_v2010():
+                    skipped.append(f'{member.character.name}: piętro {floor} nieodblokowane'); continue
+                member.previous_room_id = member.character.room_id
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+            for member in moved:
+                await member.send(f'Portal Katakumb: {"wyjście" if floor is None else f"piętro {floor}"}.')
+                await member.look()
+            if skipped: await self.send('Nie przeniesiono: ' + '; '.join(skipped) + '.')
 
     def checkpoint_portal_floors_v11331(self, kind):
             floors = self.server.db.instance_checkpoint_floors(
@@ -888,7 +993,7 @@ class SessionDungeonProgressionMixin:
                 + "."
             )
             await self.send(
-                "Checkpointy są co 10 pięter/poziomów i działają w obie strony."
+                "Checkpointy są co 10 pięter. Z dowolnego odblokowanego checkpointu możesz przejść portalem do innego odblokowanego checkpointu."
             )
 
     async def party_checkpoint_portal_exit_v11331(
@@ -969,7 +1074,7 @@ class SessionDungeonProgressionMixin:
                 )
                 await self.send(
                     "Przy Mitycznej Astralnej Bramie: astralportal <10/20/30/...>. "
-                    "Na checkpointcie: astralportal albo astralportal wyjdz."
+                    "Na checkpointcie: astralportal <odblokowane pietro> albo astralportal wyjdz."
                 )
                 return
 
@@ -981,7 +1086,7 @@ class SessionDungeonProgressionMixin:
             await self.send(
                 f"Przy Astralnej Bramie: astralportal "
                 f"<{ASTRAL_MIN_FLOOR}/{ASTRAL_MIN_FLOOR + 10}/...>. "
-                "Na checkpointcie: astralportal albo astralportal wyjdz."
+                "Na checkpointcie: astralportal <odblokowane pietro> albo astralportal wyjdz."
             )
 
     async def use_astral_portal(self, raw):
@@ -1077,10 +1182,13 @@ class SessionDungeonProgressionMixin:
                     f"{max(floors) if floors else 'brak'}."
                 )
                 return
-            if room_id != gate:
+            if not self.checkpoint_portal_origin_v2010(
+                room_id=room_id, gate_rooms=(gate,), kind=kind,
+                current_floor=current_floor, is_checkpoint=is_checkpoint,
+            ):
                 await self.send(
-                    f"{label} do wybranego checkpointu działa przy bramie tej Wieży. "
-                    "Na checkpointcie użyj astralportal wyjdz."
+                    f"{label}: przejście na odblokowane piętro działa przy Bramie "
+                    "lub na odblokowanym checkpointcie co 10 pięter."
                 )
                 return
 
@@ -1115,6 +1223,7 @@ class SessionDungeonProgressionMixin:
                         "nie jest odblokowany"
                     )
                     continue
+                member.previous_room_id = member.character.room_id
                 member.character.room_id = target
                 member.server.db.save_character(member.character)
                 moved.append(member)
@@ -1144,7 +1253,7 @@ class SessionDungeonProgressionMixin:
                 )
                 await self.send(
                     "Przy Bramie Mitycznej Krypty: portal <10/20/30/...>. "
-                    "Na checkpointcie: portal albo portal wyjdz."
+                    "Na checkpointcie: portal <odblokowane pietro> albo portal wyjdz."
                 )
                 return
 
@@ -1155,7 +1264,7 @@ class SessionDungeonProgressionMixin:
             )
             await self.send(
                 "Przy wejściu Krypty: portal <10/20/30/...>. "
-                "Na checkpointcie: portal albo portal wyjdz."
+                "Na checkpointcie: portal <odblokowane pietro> albo portal wyjdz."
             )
 
     async def use_crypt_portal(self, raw):
@@ -1178,6 +1287,10 @@ class SessionDungeonProgressionMixin:
                 return
 
             room_id = str(self.character.room_id)
+            if (self.catacomb_floor_v2010(room_id) is not None
+                    or room_id == 'temple_basement_deep_nest'):
+                await self.use_catacomb_portal_v2010(raw)
+                return
             normal_floor = crypt_floor_number(room_id)
             mythic_floor = mythic_crypt_floor_number(room_id)
             mythic_context = (
@@ -1255,10 +1368,13 @@ class SessionDungeonProgressionMixin:
                 if mythic_context
                 else ("crypt_hall", "crypt_entrance")
             )
-            if room_id not in allowed_gates:
+            if not self.checkpoint_portal_origin_v2010(
+                room_id=room_id, gate_rooms=allowed_gates, kind=kind,
+                current_floor=current_floor, is_checkpoint=is_checkpoint,
+            ):
                 await self.send(
-                    f"{label} do wybranego checkpointu działa przy wejściu tej Krypty. "
-                    "Na checkpointcie użyj portal wyjdz."
+                    f"{label}: przejście na odblokowane piętro działa przy wejściu "
+                    "lub na odblokowanym checkpointcie co 10 pięter."
                 )
                 return
 
@@ -1315,6 +1431,7 @@ class SessionDungeonProgressionMixin:
                 if member.auto_herbalism or member.auto_herbalism_task:
                     await member.stop_auto_herbalism(announce=False)
 
+                member.previous_room_id = member.character.room_id
                 member.character.room_id = target
                 member.server.db.save_character(member.character)
                 moved.append(member)

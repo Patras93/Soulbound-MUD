@@ -373,8 +373,20 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.00.8 - MOC ZYWIOLAKOW MAGA"
+LATEST_CHANGES_TITLE = "Soulbound v2.31.0 - PRAWDZIWE ZDARZENIA QUESTOW"
 LATEST_CHANGES = [
+    "v2.31.0: tester uruchamia realne metody postepu questow w SQLite dla dostepnych rodzajow, sprawdza izolacje kont, limity, restart, porzucenie oraz brak progresu po ukonczeniu. Pozostale typy i kompletna fabula/NPC pozostaja jawnie NOT TESTED. Osiem bramek Windows; bez zmian mechaniki gry.",
+    "v2.30.2: szerszy predeploy Windows, 7 bramek, kontrola wszystkich handlerow i typow questow, izolacja postepu kont oraz rzeczywiste dodatkowe scenariusze TCP. Raport nadal jasno odroznia brak testu pelnej gry od PASS.",
+    "v2.30.1: naprawa blokady tymczasowej bazy po testach 6 graczy TCP na Windows, nowe testy jawnego zamykania SQLite, bez zmian balansu i zapisow postaci.",
+    "v2.30.0: globalne role AI na zwyklych potworach, 42 receptury mistrzowskie w 14 profesjach, 2 nowe legendarne szlaki oceanu i 6 obowiazkowych etapow predeploy Windows. Bez resetu SQLite, Fame, EP i EXP Banku.",
+    "v2.20.0: Ocean 5.0 cztery nowe regiony, 16 lokacji, 16 przeciwnikow i bossow, 4 questy i 4 cele flot; Inteligentni Przeciwnicy 5.0 — role potworow w nowych regionach; Mistrzowie Profesji 6.0 — 14 profesji, 42 sciezki i zamowienia zalezne od rzeczywistych czynnosci. Predeploy v4.0: dodatkowe testy scenariuszy SQLite/AI/mapy, stare audyty i 6 graczy TCP zachowane.",
+    "v2.10.3: Fame i kazdy EP daja pelny aktualny EXP Cap przez EXP Bank. Questy zawsze rozliczaja srebro, zloto i mithril; zwykle zadania bez waluty dostaja minimum 1 zloto. Pelny predeploy wykrywa regresje nagrod i testuje wszystkie questy.",
+    "v2.10.2: TESTUJ_Soulbound uruchamia FAST, FULL (wszystkie aliasy, komendy, questy i SQLite) oraz 6 klientow TCP na localhost, z druzyna, wieloma komendami i restartem; testowa baza. Braki scenariuszy raportowane jako NOT TESTED.",
+    "v2.10.1: naprawiony znacznik dynamicznego generatora Labiryntu Echa w audycie wyjsc; brak zmian checkpointow i starszych zapisow.",
+    "v2.10.0: osiem Tytanow co 50 pieter, sekretne komnaty co 25 pieter, fazy 70/40/15, tytani obrona, artefakty, osobisty bonus 24h i trwale zapisy SQLite. Komendy tytani i lochy7; stare portale i EXP Bank bez zmian.",
+    "v2.00.11: EXP Bank w SQLite zapisuje nadwyzki ponad cap z osobnym saldem dla kazdej osi. expbank pokazuje saldo; wolne miejsce w nastepnej nagrodzie wyplaca bank bez przekraczania capu.",
+    "v2.00.10: portal N i astralportal N przenosza z odblokowanego checkpointu bezposrednio na inny odblokowany checkpoint zwyklych i mitycznych Krypt/Wiez; Katakumby portal 1/2/3 zapisane jako odwiedzone; zachowane limity, Fame, exp i SQLite.",
+    "v2.00.9: experience cap / your experience cap do 800, doublecap trudnych bossow, Fame na kolejnych pietrach oraz pietro gora / pietro dol przez prawdziwe schody; bez resetu SQLite.",
     "v2.00.8: żywiołaki Maga zadają minimum obrażeń wynikające z rzeczywistego magicznego uderzenia właściciela, zachowując starsze wysokie obrażenia, rangi i bariery.",
     "v2.00.7: naprawiony NameError ROOMS w consider / con podczas opisu regionu; dodano testy komendy na terenach poczatkujacych i dawnych lokacjach, bez zmiany balansu.",
     "v2.00.6: regionalny balans swiata; Gobliny, Bandyci i dalsze jaskinie maja recznie ustawione etapy zamiast przypadkowego poziomu z nazwy.",

@@ -191,14 +191,15 @@ def v1124_rebalance_positive_quest_currency():
             continue
 
         if current <= 0:
-            # Deliberately item-only / progression-only quests stay item-only.
-            continue
+            # v2.10.3: non-manual quests must have an actual coin reward.
+            # Explicit manual (including item-only) contracts are handled above.
+            current = 0
 
         result["positive_quests"] += 1
         result["max_before_silver"] = max(result["max_before_silver"], int(current))
 
         target = v1124_quest_income_target(quest)
-        floor = max(1, int(round(target * 0.60)))
+        floor = max(100, int(round(target * 0.60)))
         cap = max(floor, int(round(target * 1.60)))
         balanced = max(floor, min(cap, int(current)))
 

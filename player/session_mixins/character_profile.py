@@ -28,6 +28,7 @@ from core.progression_600 import (
 )
 from core.progression_resources import character_xp_to_next, class_mastery_xp_to_next
 from systems.content_registry import QUESTS
+from systems.experience_cap_v2009 import experience_cap_v2009
 
 
 class SessionCharacterProfileMixin:
@@ -122,6 +123,67 @@ class SessionCharacterProfileMixin:
             await self.send(
                 f"EXP postaci: {c.character_xp} z {needed}. "
                 f"Brakuje {missing} EXP do Levelu {c.character_level + 1}."
+            )
+
+    async def show_experience_cap_v2009(self, raw=""):
+            """NVDA-friendly personal cap status, including Alter-style English."""
+            c = self.character
+            level = min(800, max(1, int(c.character_level or 1)))
+            soul = min(800, max(1, int(c.soul_level or 1)))
+            classes = self.active_class_names()
+            class_levels = [max(1, int(self.class_mastery_level(name))) for name in classes]
+            class_level = min(class_levels) if class_levels else level
+            await self.send(
+                f"Your experience cap: {experience_cap_v2009('character', level)} EXP "
+                f"per award (character level {level}/800)."
+            )
+            await self.send(
+                f"Soul experience cap: {experience_cap_v2009('soul', soul)} EXP "
+                f"(Soul Level {soul}/800)."
+            )
+            await self.send(
+                f"Class experience cap: {experience_cap_v2009('class', class_level)} "
+                f"EXP per class (lowest active mastery {class_level}/800)."
+            )
+            await self.send(
+                f"Stat experience cap: {experience_cap_v2009('stat', level)} EXP "
+                "per stat, based on character level. Stats stay unlimited."
+            )
+            for name, kind in (("Profession", "profession"),
+                               ("Tool", "tool"), ("Skill", "skill")):
+                await self.send(
+                    f"{name} experience cap at level {level}: "
+                    f"{experience_cap_v2009(kind, level)} EXP. "
+                    "Each individual profession, tool or skill uses its own level."
+                )
+            await self.send(
+                "Doublecap: a suitably strong boss can grant up to twice the normal "
+                "cap. Limits apply to individual awards, not EXP required for a level. "
+                "Existing levels, bonuses, currency, loot and Fame remain unchanged."
+            )
+
+    async def show_exp_bank_v2011(self, raw=""):
+            """Persistent balances per character, Soul, class, skill, stat, profession and tool."""
+            rows = self.server.db.experience_bank_rows_v2011(self.account_id)
+            entries = [(kind, key, amount) for kind, key, amount in rows if amount > 0]
+            await self.send("EXP BANK — niewypłacone doświadczenie po przekroczeniu capu.")
+            if not entries:
+                await self.send("EXP Bank: pusty. Nadwyżki nie są gromadzone.")
+            else:
+                labels = {'character': 'Postać', 'soul': 'Dusza', 'class': 'Klasa',
+                          'stat': 'Statystyka', 'profession': 'Profesja',
+                          'tool': 'Narzędzie', 'skill': 'Umiejętność'}
+                totals = {}
+                for kind, key, amount in entries:
+                    totals[kind] = totals.get(kind, 0) + amount
+                    await self.send(f"{labels.get(kind, kind)} {key}: {amount} EXP w banku.")
+                await self.send("EXP Bank razem według kategorii: " + "; ".join(
+                    f"{labels.get(kind, kind)} {amount}"
+                    for kind, amount in sorted(totals.items())) + ".")
+            await self.send(
+                "Nadwyżka zapisuje się automatycznie. Gdy kolejna nagroda jest "
+                "mniejsza od aktualnego capu, wolne miejsce uzupełnia EXP Bank. "
+                "Wypłata wraz z bieżącą nagrodą nigdy nie przekracza jej capu."
             )
 
     async def show_score(self):

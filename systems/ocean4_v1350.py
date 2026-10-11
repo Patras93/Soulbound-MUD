@@ -45,6 +45,9 @@ def init(conn):
       PRIMARY KEY(account_id,enemy));
     ''')
     conn.commit()
+    # v2.20.1: legacy navy-only callers must get the additive ship-module schema too.
+    from systems import ocean5_modules_v2201 as modules
+    modules.init(conn)
 
 
 def max_hp(row):
@@ -173,15 +176,22 @@ def action(conn, account, move, *, now=None):
             conn.execute("UPDATE ocean4_battles_v1350 SET active=0,resolved_at=?,last_outcome='porazka' WHERE account_id=?",(now,account))
             return {'outcome':'porazka','damage':0,'enemy_damage':0,'losses':[], 'reward':0}
         turn=int(b['turn'])+1
-        power=sum((18000 + 8000*int(s['ship_class']) + 5200*int(s['hull']) + 1200*int(s['navigation'])) for s in ships)
+        from systems.ocean5_modules_v2201 import bonuses as _module_bonuses
+        _gear = {int(s['id']):_module_bonuses(conn,account,int(s['id'])) for s in ships}
+        power=sum((18000 + 8000*int(s['ship_class']) + 5200*int(s['hull']) + 1200*int(s['navigation']))
+                  * (120 if 'dzialo' in _gear[int(s['id'])] else 100)//100 for s in ships)
         speed=sum(int(s['sails']) for s in ships)
         if move=='salwa':damage=power
-        elif move=='manewr':damage=round(power*.77)+speed*1100
+        elif move=='manewr':damage=round(power*.77)+speed*1100+sum(4500 for s in ships if 'nawigacja' in _gear[int(s['id'])])
         elif move=='oslona':damage=round(power*.35)
         else:damage=round(power*1.55)
         # Boss mechanics are audible/visible through a plain-text battle report.
         hazard=(turn%3==0 and kind=='monster')
         counter=int(enemy_attack*(1+.06*turn)*(1.65 if hazard else 1))
+        from systems.ocean_sagas_v2300 import hazard as _saga_hazard
+        saga_mult, saga_notice = _saga_hazard(b['enemy'],turn,move)
+        counter=counter*saga_mult//100
+        hazard = hazard or (saga_mult>100)
         if move=='oslona':counter=round(counter*.34)
         elif move=='manewr':counter=round(counter*.63)
         if kind=='siege' and turn%4==0:counter=round(counter*1.3)
@@ -192,6 +202,8 @@ def action(conn, account, move, *, now=None):
             alive=len(ships)
             for s in ships:
                 harm=max(1000,(counter+alive-1)//alive)
+                if 'kadlub' in _gear[int(s['id'])]: harm=max(1,harm*82//100)
+                if kind=='monster' and 'ochrona' in _gear[int(s['id'])]: harm=max(1,harm*84//100)
                 if move=='manewr': harm=max(500,harm-int(s['sails'])*700)
                 before=_hp(conn,account,s)
                 after=max(0,before-harm)
@@ -223,7 +235,7 @@ def action(conn, account, move, *, now=None):
         return {'outcome':outcome,'damage':damage,'enemy_damage':counter if new_hp>0 else 0,'enemy_hp':new_hp,
                 'enemy_max_hp':int(b['enemy_max_hp']),'turn':turn,'losses':losses,'reward':earned,
                 'material':MATERIALS[b['enemy']] if outcome=='zwyciestwo' else None,
-                'hazard':hazard, 'balance':_wallet(conn,account) if outcome=='zwyciestwo' else None}
+                'hazard':hazard, 'hazard_notice':saga_notice, 'balance':_wallet(conn,account) if outcome=='zwyciestwo' else None}
 
 
 

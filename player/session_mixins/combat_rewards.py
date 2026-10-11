@@ -26,6 +26,7 @@ from systems.equipment_crafting import (
 )
 from systems.drop_excitement import authored_drop_chance_v11329
 from systems.dungeon_experience_v1285 import dungeon_recipient_xp_v1286
+from systems.experience_cap_v2009 import capped_experience_v2009, combat_overcap_v2009
 from systems.legendary_reborn import boss_legendary_roll_v1150
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
 from systems.elemental_combat import mob_element_affinities_v11339
@@ -286,6 +287,24 @@ class SessionCombatRewardsMixin:
                 recipients = sorted(
                     recipients, key=lambda s: s.character.name.lower()
                 )
+                # v2.10.0: personal first-clear trophy and 24h reward ledger.
+                # All eligible co-located party members keep their full base XP.
+                if template.get("v2100_titan"):
+                    _tslug = str(template["v2100_titan"])
+                    _tfamily = str(template.get("v2100_family") or "")
+                    _tfloor = int(template.get("v2100_floor") or 0)
+                    for _winner in recipients:
+                        _reward = _winner.server.db.record_titan_defeat_v2100(
+                            _winner.account_id, _tslug, _tfamily, _tfloor)
+                        if _reward["first_floor"]:
+                            await _winner.send(f"TYTAN: pierwsze zwycięstwo w {_tfamily}, piętro {_tfloor}. Zapisano na stałe.")
+                        if _reward["first_titan"]:
+                            _rid = _reward["relic"]
+                            await _winner.record_item_collection(
+                                _rid, source=str(template.get("name", "Tytan")), announce=True)
+                            await _winner.send(f"TYTAN: legendarny artefakt {ITEMS[_rid]['name']} otrzymany po raz pierwszy.")
+                        if _reward["essence"]:
+                            await _winner.send(f"TYTAN: +{_reward['essence']} Esencji Pradawnego Tytana. Bonus osobisty odnawia się po 24 godzinach.")
                 # v1.70.2: fame is earned once per genuinely defeated, placed boss,
                 # for each eligible member present in the same room.
                 from systems.fame_v1702 import record_fame_kill
@@ -627,16 +646,24 @@ class SessionCombatRewardsMixin:
                         ),
                     )
                     raw_stat_reward=session.apply_double_xp(raw_stat_reward)
+                    _overcap_v2009 = combat_overcap_v2009(template, session.character.character_level)
+                    from systems.experience_bank_v2011 import banked_experience_v2011
                     stat_rewards=[]
-                    for stat_name in session.character.STAT_PROGRESS_FIELDS:
-                        stat_rewards.append(raw_stat_reward)
+                    with session.server.db.conn.deferred_commits():
+                        for stat_name in session.character.STAT_PROGRESS_FIELDS:
+                            stat_paid = banked_experience_v2011(
+                                session.server.db, session.account_id, raw_stat_reward,
+                                'stat', session.character.character_level,
+                                source_key=stat_name, overcap=_overcap_v2009)
+                            stat_rewards.append(stat_paid)
+                    for stat_name, stat_paid in zip(session.character.STAT_PROGRESS_FIELDS, stat_rewards):
                         for msg in session.character.add_stat_progress(
-                            raw_stat_reward,
+                            stat_paid,
                             targets=(stat_name,),
                             single_level_cap=False,
                         ):
                             await session.send(msg)
-                    stat_reward_text=str(raw_stat_reward)
+                    stat_reward_text=str(min(stat_rewards)) if stat_rewards else '0' 
 
                     soul_xp_reward = min(
                         V019_SAFE_INT,
@@ -652,7 +679,7 @@ class SessionCombatRewardsMixin:
                     await session.grant_combat_soul_xp_v11350(
                         soul_xp_reward,
                         content_level=v0190_mob_stage(template),
-                        content_scaled=True,
+                        content_scaled=True, overcap=_overcap_v2009,
                     )
 
                     class_xp_reward = min(
@@ -721,20 +748,22 @@ class SessionCombatRewardsMixin:
                         f"elite reward x{_elite_reward_mult_v11338:.2f}; "
                         f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
                         f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; "
-                        "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie.",
+                        "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie. "
+                        "Kwoty wyświetlone przed capem; faktyczna wypłata zależy od poziomu i doublecap bossa. "
+                        "Sprawdź: experience cap.",
                         detail="full",
                     )
                     await session.grant_class_xp(
                         class_xp_reward,
                         single_level_cap=False,
                         content_level=v0190_mob_stage(template),
-                        content_scaled=True,
+                        content_scaled=True, overcap=_overcap_v2009,
                     )
                     for _msg in session.add_character_xp_with_event(
                         character_xp_reward,
                         single_level_cap=False,
                         content_level=v0190_mob_stage(template),
-                        content_scaled=True,
+                        content_scaled=True, overcap=_overcap_v2009,
                     ):
                         await session.send(_msg)
                     await self.server.events.publish(

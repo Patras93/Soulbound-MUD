@@ -34,8 +34,12 @@ def ensure_schema(conn):
 
 def _is_fame_target(template):
     """Authored Fame enemies; fallback targets are chosen only in empty regions."""
-    return bool(template.get('boss') or template.get('world_boss')
-                or template.get('fame_mob') or template.get('fame_target')) and not (
+    return bool(any(template.get(key) for key in (
+                'boss', 'world_boss', 'fame_mob', 'fame_target',
+                'crypt_boss', 'astral_boss', 'mythic_crypt_boss',
+                'mythic_astral_boss', 'giant_fortress_boss', 'magitek_boss',
+                'v0900_miniboss', 'v0900_final_boss', 'uoss_superboss',
+            ))) and not (
                 template.get('uoss_superboss_add') or template.get('monster_ai_summoned_v1160'))
 
 
@@ -49,6 +53,9 @@ def fame_region(room_id, rooms=None):
         patterns = (
             (r'^mythic_astral_floor_', 'Mityczna Wieża Astralna'),
             (r'^mythic_crypt_floor_', 'Mityczna Krypta'),
+            (r'^astral_floor_', 'Wieża Astralna'),
+            (r'^giant_fortress_floor_', 'Twierdza Gigantów'),
+            (r'^magitek_floor_', 'Nieskończony Kompleks Magitek'),
             (r'^crypt_floor_', 'Krypta Nieskończona'),
             (r'^v1500_echo_[0-9]+_', 'Nieskończony Labirynt Echa'),
         )
@@ -101,6 +108,35 @@ def fame_catalog():
         candidates.setdefault(zone, set()).add(str(mid))
         if _is_fame_target(template):
             authored.setdefault(zone, set()).add(str(mid))
+    # v2.00.9: dungeon bosses on generated floors must count as separate
+    # objectives, not a single generic species. The floor is part of the
+    # template id, and the region still groups the entire dungeon.
+    # No repeat farming: persistent SQLite keys are unchanged.
+    dungeon_fields = (
+        ('crypt_floor', 'crypt_floor_'),
+        ('astral_floor', 'astral_floor_'),
+        ('mythic_crypt_floor', 'mythic_crypt_floor_'),
+        ('mythic_astral_floor', 'mythic_astral_floor_'),
+        ('giant_fortress_floor', 'giant_fortress_floor_'),
+        ('magitek_floor', 'magitek_floor_'),
+    )
+    for mid, template in MOB_TEMPLATES.items():
+        if not _is_fame_target(template) or not _eligible_natural_fame_enemy(template):
+            continue
+        for field, prefix in dungeon_fields:
+            try:
+                floor = int(template.get(field, 0) or 0)
+            except (TypeError, ValueError):
+                floor = 0
+            if floor <= 0:
+                continue
+            room_id = prefix + str(floor)
+            zone = fame_region(room_id)
+            if zone == 'Nieznana kraina':
+                continue
+            candidates.setdefault(zone, set()).add(str(mid))
+            authored.setdefault(zone, set()).add(str(mid))
+            break
     results = {}
     for zone in sorted(candidates, key=str.casefold):
         placed = candidates[zone]
@@ -188,6 +224,13 @@ def _fame_target_identity(mob, catalog, template=None):
                        if str(MOB_TEMPLATES.get(bid, {}).get('name') or '').casefold().strip() == name]
             if len(matches) == 1:
                 return zone, matches[0]
+    # Infinite dungeons may materialize after the cached global Fame
+    # catalog was built. Credit the genuine floor boss anyway; stable IDs
+    # retain first-kill-only semantics across server restarts.
+    if _is_fame_target(template) and template_id:
+        for zone in zones:
+            if zone != 'Nieznana kraina':
+                return zone, lineage[-1] if lineage else template_id
     return None
 
 
@@ -434,22 +477,28 @@ async def pay_due_fame(session):
         count=0
         for region,bid,name,raw_amount in rows:
             if getattr(session,'closed',False) or not session.character:break
-            xp=max(1,int(raw_amount))
-            # Old and current character levels/progression use their ordinary
-            # APIs, so this bonus respects the current XP requirements.
+            # v2.10.3: queued Fame is one permanent award per boss, but each
+            # progression axis receives its own CURRENT full award cap. Old
+            # pending Fame rows receive the same updated payout on delivery.
+            from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
+            caps = fame_cap_awards_v2103(session)
             fame_content_level=max(1,int(session.character.character_level))
-            await session.grant_combat_soul_xp_v11350(xp,content_level=fame_content_level,content_scaled=True)
-            await session.grant_class_xp(xp,single_level_cap=False,content_level=fame_content_level,content_scaled=True)
-            await session.grant_stat_xp_v11342(xp,targets=None,content_level=fame_content_level,content_scaled=True)
-            for line in session.add_character_xp_with_event(xp,single_level_cap=False,content_level=fame_content_level,content_scaled=True):
+            await session.grant_combat_soul_xp_v11350(caps['soul'],content_level=fame_content_level,content_scaled=True)
+            if caps['class_total']:
+                await session.grant_class_xp(caps['class_total'],single_level_cap=False,content_level=fame_content_level,content_scaled=True)
+            await session.grant_stat_xp_v11342(caps['stat'],targets=None,content_level=fame_content_level,content_scaled=True)
+            for line in session.add_character_xp_with_event(caps['character'],single_level_cap=False,content_level=fame_content_level,content_scaled=True):
                 await session.send(line)
             session.server.db.save_character(session.character)
             conn.execute('UPDATE fame_pending_v1703 SET delivered=1 '
                          'WHERE account_id=? AND region=? AND boss_id=? AND delivered=0',
                          (session.account_id,region,bid))
             conn.commit()
-            await session.send(f'FAME — {region}: {name}, ZALICZONE. Premia: +{xp} EXP '
-                               'do poziomu, Duszy, Biegłości i każdej statystyki. '
+            await session.send(f'FAME — {region}: {name}, ZALICZONE. Pełny cap EXP: '
+                               f'postać +{caps["character"]}, Dusza +{caps["soul"]}, '
+                               f'każda statystyka +{caps["stat"]}; '
+                               'każda aktywna klasa otrzymuje swój cap Biegłości. '
+                               'Wypłaty po bonusach podlegają EXP Bankowi. '
                                'Bez EXP profesji i narzędzi.')
             count+=1
         return count
