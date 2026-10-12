@@ -4272,3 +4272,7 @@ print(f"AUTO EP v2.32.3: {_auto_ep_v2322()} checks PASS")
 # v2.32.5: all high-level outdoor terrain + dungeon depth (no live SQLite).
 from validation.v2325_deep_dungeon_pressure import run_regression as _check_deep_dungeon_v2325
 print(f"HIGH AREAS v2.32.5 FAST: {_check_deep_dungeon_v2325()} checks PASS")
+
+# v2.32.12: auto-kopanie nie moze gubic preserve_auto_mining w ruchu.
+from validation.v23212_auto_mining_move import run_static_regression as _mine_move_static_v23212
+print(f"AUTO MINING MOVE v2.32.12 FAST: {_mine_move_static_v23212()} checks PASS")

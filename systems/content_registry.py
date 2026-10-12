@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.32.5 - WSZYSTKIE WYSOKIE TERENY I BALANS DRUZYN"
+LATEST_CHANGES_TITLE = "Soulbound v2.32.12 - AUTO KOPANIE / RUCH FIX WINDOWS"
 LATEST_CHANGES = [
+    "v2.32.6: pelny predeploy 9 etapow z osobnej paczki ZIP bez zatrzymania serwera. Bramka PASS i SHA256 przed wdrozeniem, bez zmian danych i mechaniki gry.",
     "v2.32.5: wszystkie wysokie tereny, w tym Krypty, Wieze, Magitek, Deep Dungeon, Ocean, Archipelag, wymiary i wydarzenia. Poziom przeciwnika oraz terenu podnosi HP i zadawane obrazenia, kiedy grupa ma duzo nizszy poziom. Bez blokad poziomu, bez kar dla najemnikow; CONSIDER zgodny z walka; Railway/SQLite bez zmian.",
     "v2.32.4: Dockerfile kopiuje testuj_soulbound_windows.py przed FAST/FULL na Railway, dzieki czemu testy validation/v2102_predeploy_contract.py i v2302_coverage_contract.py moga poprawnie importowac kontroler; po buildzie usuwa modul testowy z obrazu runtime. Nowy test sprawdza COPY, kolejnosc i cleanup. Bez zmian mechaniki gry i SQLite.",
     "v2.32.3: zamknieto oba fizyczne polaczenia SQLite po tescie automatycznego wielopunktowego EP. Windows WinError 32 przy usuwaniu real.sqlite przestaje blokowac FAST/FULL; nowa regresja sprawdza faktyczne zamkniecie uchwytow i usuwalnosc pliku. Bez zmian punktacji EP, balansu i danych postaci.",

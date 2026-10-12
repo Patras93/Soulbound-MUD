@@ -27,7 +27,7 @@ VERSION_PATTERN = re.compile(r'^\s*VERSION\s*=\s*[\'"]([0-9]+(?:\.[0-9]+){2})[\'
 RELEASE_PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 SKIP_PARTS = {'__pycache__', 'logs', '.git'}
 SQLITE_SUFFIXES = ('.db', '.db-wal', '.db-shm', '.sqlite', '.sqlite-wal', '.sqlite-shm', '.sqlite3', '.sqlite3-wal', '.sqlite3-shm')
-PROTECTED_FILENAMES = {'.env', 'soulbound_control.json'}
+PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt'}
 
 
 class UpdateError(Exception):

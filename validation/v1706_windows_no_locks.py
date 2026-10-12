@@ -27,6 +27,7 @@ def run_regression():
     with tempfile.TemporaryDirectory(prefix='soulbound1706-') as folder:
         base=Path(folder)
         shutil.copy2(ROOT/'host_windows.py',base/'host_windows.py')
+        (base/'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n",encoding='utf-8')
         (base/'server.py').write_text('print("TEST LAUNCH",flush=True)\n',encoding='utf-8')
         proc = subprocess.run([sys.executable,str(base/'host_windows.py')], cwd=base,
              stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=25)

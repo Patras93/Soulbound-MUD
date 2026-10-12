@@ -1,3 +1,75 @@
+Soulbound v2.32.12 — NAPRAWA AUTO-KOPANIA I RUCHU (Windows) — 2026-10-12
+Aktualna paczka: v2.32.12
+- NAPRAWA: auto-kopanie w kopalni moglo sie zatrzymac z TypeError: _move_v0380() got an unexpected keyword argument 'preserve_auto_mining', gdy wydobycie przebijalo tunel, lub podczas automatycznego przejscia w wybranym kierunku.
+- Przyczyna: dwie stare nakladki na Session.move (podsumowanie krypt v0.38.0 i brama Magitek v0.38.2) nie przekazywaly parametrow ruchu do poprzedniej implementacji. Obie przekazuja teraz *args i **kwargs bez zmiany logiki ograniczen, dziennika krypt ani blokady bossow Magitek.
+- Ruch wykonywany przez auto-kopanie nadal zachowuje prace automatu; zwykle reczne chodzenie nadal moze zatrzymac auto-kopanie zgodnie z obecnymi zasadami.
+- PREDEPLOY: dodano test regresji sygnatur nakladek w szybkim etapie oraz test przeplywu argumentow przez obie nakladki w pelnym audycie. Wszystkie testy bez rzeczywistej bazy graczy.
+- Zachowano v2.32.11 PREDEPLOY ULTIMATE 60 PLUS; brak zmian balansu, EXP, lochow i schematu SQLite; bez GitHub i bez wdrozenia.
+
+Soulbound v2.32.11 — PREDEPLOY SQLITE/TCP HOTFIX (Windows) — 2026-10-12
+Aktualna paczka: v2.32.11
+- Naprawa trzech bledow predeploy podczas recznego TESTUJ_Soulbound.bat rozpakowanego w Downloads: etapy 25, 49 i 60 wymagaja realnej bazy kont do sprawdzenia migracji klonu. Tester przed uruchomieniem pozostalych etapow szuka prawdziwej bazy tylko w jawnie podanym SOULBOUND_ULTRA_SOURCE_DB / SOULBOUND_DB, katalogu gry lub standardowej instalacji C:\Soulbound-MUD\soulbound.db (Windows); potwierdza istnienie tabel kont/postaci tylko w trybie read-only. Jesli brak realnej bazy, przerywa przed czasochlonnymi testami z komunikatem jak wskazac sciezke. Nigdy nie podstawia sztucznej bazy do testow migracji.
+- TESTUJ_Soulbound.bat moze przyjac sciezke bazy jako pierwszy argument w cudzyslowie; PREDEPLOY_NOWEJ_WERSJI.bat uruchomiony z produkcyjnej instalacji nadal podaje zrodlo automatycznie. Baza prawdziwych graczy tylko read-only; wszelkie zmiany wykonywane na odseparowanym klonie w katalogu TEMP.
+- Etap 50: zachowano 3 osobne fale po 30 rzeczywistych sesji banerowych localhost, wydluzono limit na polski komunikat logowania 20 -> 55 sekund, dodano czas kazdej fali, identyfikacje klienta przy bledzie i wycinek logu testowego serwera. To nie jest test 90 zalogowanych graczy ani sztuczny PASS: brak banera nadal daje FAIL.
+- TESTUJ_Soulbound.bat uaktualniony z mylnego napisu 50 etapow na 60 PLUS. 60 etapow i >5000 regresji PLUS pozostaja wymagane do autoryzacji. Zadne FAIL nie uprawnia do wdrozenia; SHA256, potwierdzenie WDRAZAM i izolacja testow pozostaja aktywne.
+- Zero zmian w balansie wysokich terenow v2.32.5, EXP, itemach, potworach, rasach, klasach, questach, SQLite schemacie gry, uruchamianiu serwera i aktualizatorze. Paczka nie zawiera danych prawdziwych postaci; brak osobnego raportu TXT.
+- Walidacja Linux nie stanowi dowodu, ze caly PREDEPLOY 60/60 PLUS przejdzie na docelowym Windows i z aktualna baza.
+
+Soulbound v2.32.10 — PREDEPLOY ULTIMATE 60/60 PLUS (Windows) — 2026-10-12
+Aktualna paczka: v2.32.10
+- Pozostaje 60 obowiązkowych etapów. Nie ma osobnego STRESS ani sztucznie dodanych etapów.
+- Etap 60, oprócz migracji KLONU bazy aktualnego serwera (bez modyfikowania oryginału), sprawdza integralność, FK, zachowanie wszystkich istniejących wierszy/tabel oraz kolumn, indeksów, wyzwalaczy i widoków SQLite. Celowe zmiany schematu wymagają aktualizacji kontraktu.
+- RZECZYWISTE REGRESJE PLUS: deterministyczne własności funkcji skalowania mobów (różne głębokości, poziomy, obrażenia i HP), transakcje przenoszenia itemów między kontami z kontrolą zachowania ilości, próbą błędnego transferu i wymuszonym ROLLBACK; postęp questu od rzeczywistego typu KILL i izolacja dwóch kont. Łącznie co najmniej 5000 osobno sprawdzonych asercji, a nie 5000 odrębnych graczy.
+- Wynik ULTIMATE 60 PLUS wymaga osobnego komunikatu "PLUS CHECKS PASS" i PASS wszystkich 60 głównych etapów. Stare 60/60 bez PLUS, 50/50, 25/25 i 9/9 nie odblokowują aktualizatora. Suma SHA256 ZIP obowiązkowa.
+- Przed testami wypisywana jest lista plikow gry, ktore roznia sie od aktualnej instalacji. To kontrola plikowa wymagajaca oceny uzytkownika, nie automatyczny dowod niezmiennosci balansu.
+- Brak zmian balansujących grę, klas, ras, XP ani zapisu produkcyjnych postaci. Pełna paczka źródeł do Windows, bez bazy kont. Wdrożenie zawsze po świadomym WDRAZAM.
+- WAŻNE: testy PLUS pokrywają konkretne własności, nie każdą komendę, możliwy stan ani całą przyszłą rozgrywkę. Wynik Linux trzeba potwierdzić na Windows przed wdrożeniem.
+
+Soulbound v2.32.9 — PREDEPLOY ULTIMATE 60/60 (Windows) — 2026-10-12
+Aktualna paczka: v2.32.9
+- Nowa bramka ULTIMATE 60/60: poprzednie 50 etapow plus dziesiec dodatkowych, niezaleznie uruchamianych regresji. Dowolny FAIL, brak pliku testowego lub brak snapshotu SQLite blokuje wdrozenie.
+- Etapy 51-59: audyt wszystkich zarejestrowanych handlerow i aliasow / izolacja komend i questow; zaliczanie zlecen lowcow i najemnikow; presja glebokich lochow; portale i checkpointy druzyny; zamowienia i nagrody 14 profesji; trwalosc automatycznej eksploracji; cykl zadan klasowych; poziomy i koszty gildii; leczenie towarzyszy w druzynie.
+- Etap 60: SQLite Backup API kopiuje aktualna baze TYLKO DO ODCZYTU do TEMP; migracja na odizolowanym klonie i porownanie podpisow zawartosci wszystkich istniejacych tabel przed i po; integrity_check, foreign_key_check. Celowe migracje zmieniajace dane wymagaja uprzedniej jawnej aktualizacji tego kontraktu.
+- Zabezpieczenia: ULTIMATE-60, 60 wymaganych zaliczonych etapow oraz suma SHA256 testowanego ZIP sa warunkiem odblokowania aktualizatora; poprzednie wyniki 9/9, 25/25 i 50/50 NIE pozwalaja wdrozyc nowej wersji.
+- Nie dodano osobnego STRESS. Usunieto z nowej paczki osobny uruchamiacz i jego skrypt; krotkie testy TCP pozostaja czescia predeployu (6 zalogowanych klientow, 20 i 3 x 30 polaczen do lokalnego serwera testowego).
+- Instalacja: ZAINSTALUJ_PREDEPLOY.bat przenosi same narzedzia testowe do dzialajacego folderu gry. PREDEPLOY_NOWEJ_WERSJI.bat sprawdza ZIP w izolacji; WDROZ_PO_PREDEPLOY.bat wymaga PASS i wpisania WDRAZAM. Zadna z tych operacji testowych nie nadpisuje baz kont ani zapisow swiata.
+- Brak zmian balansu, klas, profesji i baz SQLite w kodzie rozgrywki. Serwer przez Tailscale i aktywna baza pozostaja nietkniete. Testy na Linux nie zastepuja walidacji na Windows 11.
+- Zastrzezenia: audyt aliasow/komend sprawdza rejestry, sygnatury i wybrane scenariusze; nie wykonuje wszystkich 962 aliasow we wszystkich stanach. Scenariusze 51-59 dotycza konkretnych mechanik, nie kazdej mozliwej kombinacji. Nie sa to wielogodzinne testy obciazenia.
+
+Soulbound v2.32.8 — PREDEPLOY ULTIMATE 50/50 + STRESS (Windows) — 2026-10-12
+Aktualna paczka: v2.32.8
+- NOWA BRAMKA: 25 dotychczasowych etapow ULTRA plus 25 dalszych kontroli: katalog komend i questow, kopalnie i ich trwalosc, zywioly, AoE, krzywe EXP graczy/profesji/narzedzi, zamowienia, respawny, Fame/EXP cap, swiaty, fauna, poczatkowe walki, consider, Tytani, scenariusze Windows i krolestwa.
+- TESTY TRWALOSCI: przerwanie procesu testowego przed COMMIT, 4 rownolegli pisarze WAL / 400 commitow, odrzucenie zlosliwych ZIP-ow, weryfikacja ze stary ULTRA PASS i zmieniony ZIP nie uprawniaja do wdrozenia, zgodnosc danych kluczowych tabel po migracji klona produkcyjnej bazy.
+- TEST TCP: osobny test 3 fal po 30 jednoczesnych POLACZEN BANEROWYCH na prywatnym localhost; nie jest to 90 zalogowanych graczy ani test 90 walk. Zalogowanych szesciu graczy sprawdza osobno istniejacy etap 9.
+- STRESS_ULTIMATE_Soulbound.bat: opcjonalny test dlugosci 3 min (mozna podac minuty 1..120 i klientow 1..100); wlasny serwer 127.0.0.1, nowa testowa baza; mierzy czas odpowiedzi banera, a nie wydajnosc walk. Wynik w logs/STRESS_ULTIMATE.log. Oddzielny STRESS nie jest wymagany do ULTIMATE 50/50.
+- PREDEPLOY nowej paczki dziala na kopii w TEMP i nie dotyka aktywnej bazy, portu 4000 ani Tailscale. Wymagana kopia produkcyjnego SQLite do testu migracji, tylko do odczytu; jesli brak, FAIL zamiast pozornego PASS.
+- WDROZ_PO_PREDEPLOY.bat wymaga ULTIMATE 50/50 PASS plus zgodnosci SHA256, zgodnosci wersji i wyraznego WDRAZAM. Stary wynik ULTRA-25 juz nie wystarczy.
+- BEZ ZMIANY ROZGRYWKI: schema i balans bez zmian. Paczka nie zawiera soulbound.db, -wal, -shm ani danych kont. Istniejace autostart, watchdog, backupy i Tailscale sa zachowane.
+- OGRANICZENIA: testy w tym ZIP nie obejmuja wszystkich mozliwych akcji kazdego gracza ani tygodniowego soak; test Windows/NTFS wymagany na komputerze docelowym. PASS stwierdza powodzenie zadeklarowanych scenariuszy, nie gwarantuje braku wszystkich bledow.
+
+Soulbound v2.32.7 — PREDEPLOY ULTRA 25/25 dla Windows — 2026-10-12
+Aktualna paczka: v2.32.7
+- NOWA BRAMKA: 9 dotychczasowych etapow i 16 dodatkowych, wszystkie obowiazkowe. Wymagane 25/25 PASS; kazdy FAIL blokuje WDROZ_PO_PREDEPLOY.bat. Wynik w logs/TESTY_Soulbound.log i Soulbound_PREDEPLOY/logs.
+- 10-21: audyty 14 klas i ras, profesji, mapy/questow, wysokopoziomowych lochow, bossow, najemnikow, cen i ekonomii, progresji regionalnej, EXP/Fame i zachowania Windows. Część powtarza istniejące kontrole niezaleznie — nie oznacza pokrycia wszystkich zachowan w kazdej klasie i lokacji.
+- TCP POPRAWKA TESTU: po autentycznym zabiciu przeciwnika test czeka na zatwierdzenie postepu questu widoczne z osobnego polaczenia SQLite (limit 30 sekund), zanim wylaczy testowy serwer. Brak COMMIT po limicie daje FAIL; nie wstawiamy postepu recznie.
+- 22: rzeczywiste sprawdzenie backup/restore SQLite WAL z zapisem przy otwartym polaczeniu, kontrola integralnosci i brak utraty starej kopii przy bledzie.
+- 23: symulacja awarii i ponawiania startu przez watchdog; osobny test prawidlowego STOP bez restartu. Bez zabijania serwera produkcyjnego.
+- 24: 20 jednoczesnych polaczen TCP i powitania na osobnym serwerze localhost z wlasna baza SQLite i portem. To test dostepnosci, nie 20 zalogowanych postaci ani pomiar walki.
+- 25: bezpieczny sqlite3.backup z prawdziwej bazy produkcyjnej otwartej w mode=ro do tymczasowego folderu, migracja schematu na KOPII, kontrola integralnosci, bez utraty istniejacych tabel i kolumn. Brak bazy => FAIL. Prawdziwa baza nie jest modyfikowana.
+- Wynik ULTRA wyznacza kod zakonczenia procesu i kompletny log, nie sam napis PASS. Paczka ZIP zabezpieczona SHA256; wdrozenie tylko po swiadomym wpisaniu WDRAZAM. Zaden test ani instalator nie nadpisuje bazy postaci.
+- Zmiany obejmuja jedynie predeploy, testy i numer wersji; logika rozgrywki oraz balans v2.32.5 sa bez zmian. Docker i lokalny Windows pozostaja oddzielnymi srodowiskami. Wymagane ponowne testy na docelowym Windows, jezeli ktorykolwiek etap zachowuje sie inaczej.
+- Nie wykonano wdrozenia ani GitHub. Nie dodano zadnych raportow TXT oprocz tego istniejacego CHANGELOG_PL.txt.
+
+Aktualna paczka: v2.32.6
+Soulbound v2.32.6 — PREDEPLOY PRZED WDROZENIEM (Windows 11) — 2026-10-12
+- NOWA PROCEDURA: nowa paczka ZIP trafia do NOWE_WERSJE, PREDEPLOY_NOWEJ_WERSJI.bat przeprowadza 9 etapow testow na rozpakowanej kopii w folderze tymczasowym. Serwer produkcyjny i prawdziwe postacie nie sa otwierane, zatrzymywane ani modyfikowane.
+- ZABEZPIECZENIE: WDROZ_PO_PREDEPLOY.bat dopuszcza instalacje tylko po wyniku PASS, dla dokladnie tej samej paczki ZIP (SHA256), po wpisaniu WDRAZAM. Gdy wynik FAIL lub ZIP zmieniony, nie wdraza.
+- WDROZENIE: dotychczasowy aktualizator wykonuje stop, kopie kodu i danych oraz restart, zachowujac SQLite i konfiguracje. Sam predeploy nie robi deployu.
+- ZAKLADKA TESTOW: automatyczna selekcja najnowszej paczki Soulbound-MUD-vX.Y.Z*.zip z folderu NOWE_WERSJE albo argument pelnej sciezki ZIP. Log i wynik w folderze Soulbound_PREDEPLOY obok produkcji.
+- OCHRONA ZAPISU SWIATA: wlaczono blokade nadpisywania soulbound_world_seed.txt w aktualizatorze; ZIP zawiera wzorcowy seed dla testow Docker, ale nie nadpisuje on faktycznego seed graczy.
+- INSTALATOR NARZEDZI: ZAINSTALUJ_PREDEPLOY.bat kopiuje narzedzia predeploy i poprawiony aktualizator do dzialajacego folderu C:\Soulbound-MUD bez dotykania SQLite ani kodu serwera. Potem mozna przetestowac te paczke v2.32.6 przed jej wdrozeniem.
+- Brak nowych mechanik gry, zmian statystyk, wymagan poziomow, nagrod, schematu bazy i portu 4000. Nie wymaga wipe ani migracji SQLite. Testy lokalne nie buduja rzeczywistego kontenera Docker na Railway.
+
 WINDOWS: AUTOMATYCZNY RESTART PO AWARII SERWERA — Soulbound v2.32.5 — 2026-10-12
 - Nowy supervisor_windows.py nadzoruje proces gry uruchamiany przez host_windows.py; gdy gra nieoczekiwanie konczy prace, nadzorca wznawia ja bez potrzeby klikania START. Nie zmienia to portu TCP 4000, adresu Tailscale, statystyk ani schematu SQLite.
 - Uwierzytelniony STOP_Soulbound.bat zapisuje znacznik recznego zamkniecia powiazany z identyfikatorem nadzorcy, ZANIM wysle STOP do serwera. Po prawidlowym STOP watchdog konczy prace i nie wznowi gry. Rownoczesny drugi start nie tworzy drugiego nadzorcy (mutex Windows i kontrola PID).

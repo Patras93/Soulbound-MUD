@@ -470,10 +470,10 @@ Session.mob_defeated = _mob_defeated_v0380
 
 
 _move_before_v0380 = Session.move
-async def _move_v0380(self, direction):
+async def _move_v0380(self, direction, *args, **kwargs):
     old_room = self.character.room_id if self.character else None
     old_kind, _ = _v0380_crypt_identity(old_room)
-    result = await _move_before_v0380(self, direction)
+    result = await _move_before_v0380(self, direction, *args, **kwargs)
     new_room = self.character.room_id if self.character else None
     new_kind, _ = _v0380_crypt_identity(new_room)
     if new_kind:

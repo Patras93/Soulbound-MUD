@@ -21,6 +21,8 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        from validation.v23212_auto_mining_move import run_runtime_regression as _mine_move_runtime_v23212
+        print(f"AUTO MINING MOVE v2.32.12 RUNTIME: {_mine_move_runtime_v23212()} checks PASS")
         from validation.v1705_windows_clean_stop import run_regression as _clean_stop_v1705
         print(f'WINDOWS CLEAN STOP v1.70.5 FULL: {_clean_stop_v1705()} checks PASS')
         from validation.v1704_short_fame import run_regression as _fame_short_v1704

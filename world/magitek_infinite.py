@@ -463,7 +463,7 @@ def _v0382_magitek_descent_blocked_for_player(self, room_id, direction="down"):
 Session.magitek_descent_blocked_for_player = _v0382_magitek_descent_blocked_for_player
 
 _move_before_v0382 = Session.move
-async def _move_v0382(self, direction):
+async def _move_v0382(self, direction, *args, **kwargs):
     if self.character and self.magitek_descent_blocked_for_player(self.character.room_id, direction):
         boss = self.server.world.live_magitek_boss(self.character.room_id)
         boss_name = MOB_TEMPLATES.get(getattr(boss, "template_id", ""), {}).get("name", "boss Magitek")
@@ -472,7 +472,7 @@ async def _move_v0382(self, direction):
             "Pokonaj go pierwszy raz, aby odblokować dalszy zjazd na stałe."
         )
         return
-    return await _move_before_v0382(self, direction)
+    return await _move_before_v0382(self, direction, *args, **kwargs)
 
 _move_v0382._magitek_infinite_v0382 = True
 Session.move = _move_v0382

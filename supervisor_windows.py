@@ -33,7 +33,7 @@ def report(message: str, *, error: bool = False) -> None:
         LOGS.mkdir(parents=True, exist_ok=True)
         with LOG.open('a', encoding='utf-8') as f:
             f.write(f'{when} | {message}\n')
-    except OSError:
+    except OSError:  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
         pass
     stream = sys.stderr if error else sys.stdout
     if stream is not None:

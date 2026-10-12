@@ -18,6 +18,7 @@ def run_regression():
     with tempfile.TemporaryDirectory(prefix='soulbound-stop-check-') as folder:
         root = Path(folder)
         shutil.copy2(ROOT / 'host_windows.py', root / 'host_windows.py')
+        (root / 'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n", encoding='utf-8')
         for code in (0, 7):
             (root / 'server.py').write_text(f'import sys\nprint("FAKE SERVER: exit {code}", flush=True)\nsys.exit({code})\n', encoding='utf-8')
             outcome = subprocess.run(

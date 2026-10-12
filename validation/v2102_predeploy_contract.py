@@ -44,8 +44,8 @@ def run_regression():
             0 < int(env['SOULBOUND_PORT']) < 65536,
             'RAILWAY_VOLUME_MOUNT_PATH' not in env,
             'SOULBOUND_ADMIN_ACCOUNTS' not in env,
-            len(gate.STAGES) == 9,
-            [step[1] for step in gate.STAGES] == [
+            len(gate.STAGES) == 60,
+            [step[1] for step in gate.STAGES[:9]] == [
                 'predeploy_check.py', 'predeploy_full.py',
                 'validation/v2200_master_depths_ai.py',
                 'validation/v2201_fleet_mastery.py',
@@ -55,7 +55,7 @@ def run_regression():
                 'validation/v2320_autonomous_routes.py',
                 'validation/v2102_tcp_six_players.py',
             ],
-            gate.STAGES[-1][1] == 'validation/v2102_tcp_six_players.py',
+            gate.STAGES[8][1] == 'validation/v2102_tcp_six_players.py',
             all(step[2] >= 120 for step in gate.STAGES),
         ):
             assert ok, 'Gate safety or completeness assertion failed'

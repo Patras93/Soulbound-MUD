@@ -44,7 +44,7 @@ def main() -> int:
                         return 0
                     print('UWAGA: nadzorca jeszcze dziala; sprawdz logs\\watchdog.log.')
                     return 4
-            except (OSError, KeyError, ValueError, TypeError):
+            except (OSError, KeyError, ValueError, TypeError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
                 pass
             print('Soulbound nie jest uruchomiony przez START_Soulbound.bat w tym folderze.')
             return 2
@@ -87,7 +87,7 @@ def main() -> int:
                     current = json.loads(stop_request.read_text(encoding='utf-8'))
                     if current.get('run_id') == request_run_id:
                         stop_request.unlink(missing_ok=True)
-                except (OSError, ValueError):
+                except (OSError, ValueError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
                     pass
 
         # The loopback socket requires the private per-process token, so it

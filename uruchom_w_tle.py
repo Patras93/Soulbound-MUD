@@ -37,7 +37,7 @@ def _already_running() -> bool:
             info = json.loads(state_file.read_text(encoding='utf-8'))
             if Path(str(info.get('root', ''))).resolve() == ROOT and process_alive(int(info['pid'])):
                 return True
-        except (OSError, ValueError, KeyError, TypeError):
+        except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
             pass
     info_file = LOGS / 'soulbound_control.json'
     if info_file.is_file():

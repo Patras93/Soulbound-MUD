@@ -288,8 +288,23 @@ def _run_server_cycle(temp, db_path, names, *, after_restart=False):
             if len(route_lines) != 1:
                 raise AssertionError('Missing actual NPC route from private TCP child')
             routes = json.loads(route_lines[0])
+            if after_restart:
+                _durable_rat_quest_progress(db_path,label='after restart, before login')
             result = asyncio.run(exercise(names, port, after_restart=after_restart,
                                           routes=routes))
+            if not after_restart:
+                # The UI can announce 1/10 while the combat reward transaction
+                # is still finishing. Do not SIGTERM the private server until
+                # an INDEPENDENT SQLite reader proves that the event committed.
+                deadline=time.monotonic()+30
+                while True:
+                    durable=_durable_rat_quest_progress(db_path,label='commit verification')
+                    if any(status=='active' and int(progress)>=1 for status,progress in durable):
+                        print('TCP QUEST DURABILITY: kill committed before restart PASS',flush=True)
+                        break
+                    if time.monotonic() >= deadline:
+                        raise AssertionError('Real kill visible to client, but not committed within 30 sec')
+                    time.sleep(.5)
         if proc.poll() is not None:
             raise RuntimeError('Private server stopped while clients were active')
         # The test must also verify that the server did not log an unhandled exception.
@@ -320,6 +335,16 @@ def _check_db(db_path):
             raise AssertionError(f'Persistence failure: SQLite {integrity}, accounts={len(rows)}, characters={chars}')
         return chars
 
+
+def _durable_rat_quest_progress(db_path, *, label):
+    # Read from a completely independent SQLite connection, never from the
+    # live event-loop transaction. This is diagnostic AND a durability gate.
+    with closing(sqlite3.connect(db_path,timeout=10)) as conn:
+        rows=conn.execute("SELECT q.status,q.progress FROM quests q JOIN accounts a "
+                          "ON q.account_id=a.id WHERE a.username='tcpcheck1' "
+                          "AND q.quest_id='temple_rats'").fetchall()
+    print(f'TCP DURABLE RAT QUEST [{label}]: {rows!r}',flush=True)
+    return rows
 
 def _check_autoplayer_delivery(db_path):
     """The private courier quest must be persisted after the TCP player exits."""
@@ -409,6 +434,7 @@ def main():
             names = [(f'tcpcheck{i+1}', f'Testtcp{i+1}') for i in range(PLAYERS)]
             first = _run_server_cycle(temp, db_path, names)
             count = _check_db(db_path)
+            durable = _durable_rat_quest_progress(db_path,label='after first stop')
             print(f"TCP ROUND 1: {first['logged_in']}/6 players; "
                   f"{first['commands']} commands; {first['checks']} checks PASS", flush=True)
             print(f"TCP latency: avg {first['average_ms']} ms; p95 {first['p95_ms']} ms; "

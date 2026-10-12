@@ -13,7 +13,9 @@ set "PYTHONIOENCODING=utf-8"
 set "PYTHONUNBUFFERED=1"
 set "PYTHONDONTWRITEBYTECODE=1"
 echo.
-echo SOULBOUND: 9 ETAPOW: PELNY AUDYT GRY, QUESTY, KOMENDY, 6 GRACZY TCP
+echo SOULBOUND: 60 ETAPOW PLUS - pelny audyt, SQLite LIVE tylko RO, 6 graczy TCP + 3x30 sesji
+if not "%~1"=="" set "SOULBOUND_ULTRA_SOURCE_DB=%~1"
+if defined SOULBOUND_ULTRA_SOURCE_DB echo SQLITE SOURCE: %SOULBOUND_ULTRA_SOURCE_DB%
 echo Wynik zostanie zapisany w logs\TESTY_Soulbound.log
 echo Aby przerwac testy, nacisnij Ctrl+C.
 echo.
