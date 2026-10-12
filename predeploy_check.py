@@ -4268,3 +4268,7 @@ print(f"MATKA POPIOLU v2.32.2 FAST: {_matron_spawn_v2321()} checks PASS")
 # v2.32.2: automatic EP for silent guided transitions and one-time award.
 from validation.v2322_auto_exploration import run_regression as _auto_ep_v2322
 print(f"AUTO EP v2.32.3: {_auto_ep_v2322()} checks PASS")
+
+# v2.32.5: all high-level outdoor terrain + dungeon depth (no live SQLite).
+from validation.v2325_deep_dungeon_pressure import run_regression as _check_deep_dungeon_v2325
+print(f"HIGH AREAS v2.32.5 FAST: {_check_deep_dungeon_v2325()} checks PASS")

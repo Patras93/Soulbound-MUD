@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import os
 from pathlib import Path
+from windows_launcher_state import process_alive
 import socket
 import subprocess
 import sys
@@ -30,6 +31,14 @@ def _log(message: str, *, error: bool = False) -> None:
 
 
 def _already_running() -> bool:
+    state_file = LOGS / 'soulbound_supervisor.json'
+    if state_file.is_file():
+        try:
+            info = json.loads(state_file.read_text(encoding='utf-8'))
+            if Path(str(info.get('root', ''))).resolve() == ROOT and process_alive(int(info['pid'])):
+                return True
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
     info_file = LOGS / 'soulbound_control.json'
     if info_file.is_file():
         try:
@@ -54,7 +63,7 @@ def main() -> int:
     if sys.version_info < (3, 12):
         _log('Wymagany Python 3.12 lub nowszy.', error=True)
         return 2
-    if not (ROOT / 'start_windows_bootstrap.py').is_file() or not (ROOT / 'server.py').is_file():
+    if not (ROOT / 'supervisor_windows.py').is_file() or not (ROOT / 'server.py').is_file():
         _log('Brakuje plikow serwera. Rozpakuj kompletna paczke.', error=True)
         return 2
     try:
@@ -68,12 +77,12 @@ def main() -> int:
         env = os.environ.copy()
         env.update({'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8', 'PYTHONUNBUFFERED': '1', 'SOULBOUND_LOG_DIR': str(LOGS)})
         process = subprocess.Popen(
-            [interpreter, '-u', str(ROOT / 'start_windows_bootstrap.py')],
+            [interpreter, '-u', str(ROOT / 'supervisor_windows.py')],
             cwd=str(ROOT), env=env, stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             close_fds=True, creationflags=flags,
         )
-        _log(f'Uruchomiono Soulbound w tle bez CMD; PID launchera={process.pid}. Sprawdz logs\\serwer.log.')
+        _log(f'Uruchomiono Soulbound w tle bez CMD; PID nadzorcy={process.pid}. Sprawdz logs\\serwer.log.')
         return 0
     except (OSError, ValueError, RuntimeError) as exc:
         _log(f'BLAD URUCHAMIANIA: {type(exc).__name__}: {exc}', error=True)

@@ -1,0 +1,44 @@
+2026-10-12 00:03:27 | START | Uruchomiono proces Soulbound.
+2026-10-12 00:03:28 | STDOUT | Soulbound bootstrap port open: ('0.0.0.0', 4000)
+2026-10-12 00:03:50 | STDOUT | Soulbound v2.32.5 World Core nasłuchuje: ('0.0.0.0', 4000)
+2026-10-12 00:03:50 | STDOUT | HOST=0.0.0.0
+2026-10-12 00:03:50 | STDOUT | PORT=4000 (source=default)
+2026-10-12 00:03:50 | STDOUT | Railway TCP application port=brak
+2026-10-12 00:03:50 | STDOUT | Baza danych: soulbound.db
+2026-10-12 00:03:50 | STDOUT | Lokacje: 3243
+2026-10-12 00:03:50 | STDOUT | Limit klientów: 100
+2026-10-12 00:03:50 | STDOUT | Soulbound Windows: bezpieczne zatrzymanie przez STOP_Soulbound.bat jest aktywne.
+2026-10-12 00:06:31 | STDOUT | [PERF SLOW COMMAND] quit: 8.778s
+2026-10-12 00:24:03 | STDOUT | [PERF SLOW COMMAND] quit: 32.454s
+2026-10-12 00:24:58 | STDOUT | Soulbound: zamykanie serwera na zlecenie STOP_Soulbound.bat.
+2026-10-12 00:24:58 | STDOUT | Soulbound: zakonczenie sesji i zapis SQLite zakonczone.
+2026-10-12 00:24:59 | STOP | Kod zakonczenia serwera: 0
+2026-10-12 00:27:22 | BACKUP start OK | C:\Soulbound-MUD_BACKUPS\soulbound-start-20261012-002721-947036.db
+2026-10-12 00:27:22 | START | Uruchomiono proces Soulbound.
+2026-10-12 00:27:22 | STDOUT | Soulbound bootstrap port open: ('0.0.0.0', 4000)
+2026-10-12 00:27:45 | STDOUT | Soulbound v2.32.5 World Core nasłuchuje: ('0.0.0.0', 4000)
+2026-10-12 00:27:45 | STDOUT | HOST=0.0.0.0
+2026-10-12 00:27:45 | STDOUT | PORT=4000 (source=default)
+2026-10-12 00:27:45 | STDOUT | Railway TCP application port=brak
+2026-10-12 00:27:45 | STDOUT | Baza danych: soulbound.db
+2026-10-12 00:27:45 | STDOUT | Lokacje: 3243
+2026-10-12 00:27:45 | STDOUT | Limit klientów: 100
+2026-10-12 00:27:45 | STDOUT | Soulbound Windows: bezpieczne zatrzymanie przez STOP_Soulbound.bat jest aktywne.
+2026-10-12 00:30:43 | STDOUT | [PERF SLOW COMMAND] quit: 4.937s
+2026-10-12 09:51:21 | BACKUP start OK | C:\Soulbound-MUD_BACKUPS\soulbound-start-20261012-095121-358349.db
+2026-10-12 09:51:21 | START | Uruchomiono proces Soulbound.
+2026-10-12 09:51:21 | STDOUT | Soulbound bootstrap port open: ('0.0.0.0', 4000)
+2026-10-12 09:51:46 | STDOUT | Soulbound v2.32.5 World Core nasłuchuje: ('0.0.0.0', 4000)
+2026-10-12 09:51:46 | STDOUT | HOST=0.0.0.0
+2026-10-12 09:51:46 | STDOUT | PORT=4000 (source=default)
+2026-10-12 09:51:46 | STDOUT | Railway TCP application port=brak
+2026-10-12 09:51:46 | STDOUT | Baza danych: soulbound.db
+2026-10-12 09:51:46 | STDOUT | Lokacje: 3243
+2026-10-12 09:51:46 | STDOUT | Limit klientów: 100
+2026-10-12 09:51:46 | STDOUT | Soulbound Windows: bezpieczne zatrzymanie przez STOP_Soulbound.bat jest aktywne.
+2026-10-12 10:51:21 | BACKUP hourly OK | C:\Soulbound-MUD_BACKUPS\soulbound-hourly-20261012-105121-552692.db
+2026-10-12 11:28:25 | STDOUT | [PERF SLOW WORLD TICK] 0.364s; moves=396; mobs=4081
+2026-10-12 11:42:18 | STDOUT | [PERF SLOW COMMAND] jewelcraft: 20.067s
+2026-10-12 11:42:49 | STDOUT | [PERF SLOW COMMAND] jewelcraft: 20.056s
+2026-10-12 11:51:21 | BACKUP hourly OK | C:\Soulbound-MUD_BACKUPS\soulbound-hourly-20261012-115121-748260.db
+2026-10-12 11:59:58 | STDOUT | [PERF SLOW WORLD TICK] 0.214s; moves=457; mobs=4081

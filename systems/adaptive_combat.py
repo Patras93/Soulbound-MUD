@@ -67,7 +67,87 @@ def adaptive_combat_rank_v11330(template):
     return "normal"
 
 
-def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template):
+# v2.32.5: Make *all* high-level hunting grounds meaningful. An authored
+# depth/region/stage determines an enemy's threat; player stats remain uncapped
+# and there are no entry locks or caps on companion damage.
+V2325_DEEP_DUNGEON_FLOOR_KEYS = (
+    "crypt_floor", "mythic_crypt_floor", "astral_floor", "mythic_astral_floor",
+    "giant_fortress_floor", "magitek_floor", "profession_dungeon_floor",
+    "uoss_deep_dungeon_floor",
+)
+V2325_HIGH_AREA_STAGE_KEYS = (
+    "terrain_room_stage_v0362", "generator_level",
+    "recommended_mastery", "recommended_level", "v019_stage",
+)
+
+
+def adaptive_dungeon_floor_v2325(template):
+    """Read explicit dungeon-depth tags, if any (kept for earlier callers)."""
+    if not isinstance(template, dict) or template.get("training_dummy"):
+        return 0
+    depths = []
+    for key in V2325_DEEP_DUNGEON_FLOOR_KEYS:
+        try:
+            value = int(template.get(key) or 0)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if value > 0:
+            depths.append(value)
+    return max(depths, default=0)
+
+
+def adaptive_encounter_stage_v2325(template, room=None):
+    """Authoritative threat stage for a fight in a dungeon or high-level area.
+
+    Prefer real floor/room metadata, with template stage also covering event
+    enemies, Ocean encounters, high-tier bosses and dynamically created mobs.
+    A noncombat hub or training dummy never gets a threat stage. Avoid relying
+    on template ``level`` (which often means a different progression system).
+    """
+    if not isinstance(template, dict) or template.get("training_dummy"):
+        return 0
+    candidates = [adaptive_dungeon_floor_v2325(template)]
+    for data in (template, room):
+        if not isinstance(data, dict):
+            continue
+        if data.get("training_dummy"):
+            return 0
+        candidates.append(adaptive_dungeon_floor_v2325(data))
+        for key in V2325_HIGH_AREA_STAGE_KEYS:
+            try:
+                stage = int(data.get(key) or 0)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if stage > 0:
+                candidates.append(stage)
+    return max(candidates)
+
+
+def adaptive_dungeon_pressure_v2325(template, character_level, room=None):
+    """Return (HP multiplier percent, incoming damage multiplier) for high areas.
+
+    This uses the area's *actual recommended combat stage*, not the party's
+    combined power or an arbitrary name. Floor/area depth may be unlimited;
+    relative extra HP/damage saturates after a 600-level mismatch for sensible
+    encounter timing, while the authored base difficulty keeps increasing.
+    """
+    if character_level is None:
+        return 100, 1.0
+    stage = adaptive_encounter_stage_v2325(template, room)
+    # Only high-level terrain is affected; low level enemies and novice areas
+    # retain their existing combat balance and beginner damage protection.
+    if stage < 100:
+        return 100, 1.0
+    level = max(1, int(character_level))
+    gap = min(600, max(0, stage - level - 25))
+    if not gap:
+        return 100, 1.0
+    hp_percent = 100 + (60 * gap // 100) + (10 * gap * gap // 10_000)
+    damage_multiplier = 1.0 + 0.38 * (gap / 100.0)
+    return hp_percent, round(damage_multiplier, 4)
+
+
+def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=None, room=None):
     """Target enough HP for several seconds of the current party's real output."""
     base = max(1, int(base_max_hp or 1))
     # Use decimal, not a floating-point product: massive player/mercenary DPS
@@ -91,6 +171,11 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template):
         target = max(base, int(
             (Decimal(target) * elite_multiplier).to_integral_value(rounding=ROUND_CEILING)
         ))
+    # Parties far below their hunting-ground stage cannot turn a stage-400
+    # encounter into stage-100 farming just by grouping.
+    hp_percent, _ = adaptive_dungeon_pressure_v2325(template, party_level, room)
+    if hp_percent > 100:
+        target = (target * hp_percent + 99) // 100
     return target
 
 
@@ -113,12 +198,17 @@ def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
 
 
 
-def adaptive_target_incoming_fraction_v11330(template, party_size=1):
-    """Desired average HP pressure per one mob action against one player."""
+def adaptive_target_incoming_fraction_v11330(template, party_size=1, player_level=None, room=None):
+    """Per-action health pressure, including high-level regions and dungeons.
+
+    Ordinary and level-appropriate fights retain their old balance.
+    """
     rank = adaptive_combat_rank_v11330(template)
     base = float(V11330_TARGET_HP_FRACTION_PER_MOB_ACTION[rank])
     party_pressure = min(1.28, 1.0 + 0.04 * max(0, int(party_size or 1) - 1))
-    return min(0.22, base * party_pressure)
+    normal = min(0.22, base * party_pressure)
+    _, underlevel_multiplier = adaptive_dungeon_pressure_v2325(template, player_level, room)
+    return min(0.45, normal * underlevel_multiplier)
 
 
 def adaptive_beginner_incoming_target_v2005(template, player_level, base_expected, desired):

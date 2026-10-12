@@ -373,8 +373,9 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v2.32.4 - RAILWAY DOCKER QUALITY GATE"
+LATEST_CHANGES_TITLE = "Soulbound v2.32.5 - WSZYSTKIE WYSOKIE TERENY I BALANS DRUZYN"
 LATEST_CHANGES = [
+    "v2.32.5: wszystkie wysokie tereny, w tym Krypty, Wieze, Magitek, Deep Dungeon, Ocean, Archipelag, wymiary i wydarzenia. Poziom przeciwnika oraz terenu podnosi HP i zadawane obrazenia, kiedy grupa ma duzo nizszy poziom. Bez blokad poziomu, bez kar dla najemnikow; CONSIDER zgodny z walka; Railway/SQLite bez zmian.",
     "v2.32.4: Dockerfile kopiuje testuj_soulbound_windows.py przed FAST/FULL na Railway, dzieki czemu testy validation/v2102_predeploy_contract.py i v2302_coverage_contract.py moga poprawnie importowac kontroler; po buildzie usuwa modul testowy z obrazu runtime. Nowy test sprawdza COPY, kolejnosc i cleanup. Bez zmian mechaniki gry i SQLite.",
     "v2.32.3: zamknieto oba fizyczne polaczenia SQLite po tescie automatycznego wielopunktowego EP. Windows WinError 32 przy usuwaniu real.sqlite przestaje blokowac FAST/FULL; nowa regresja sprawdza faktyczne zamkniecie uchwytow i usuwalnosc pliku. Bez zmian punktacji EP, balansu i danych postaci.",
     "v2.32.2: automatyczne 2-8+ EP za nowa lokacje zalezne od poziomu, sekretu i bossa, osobny pelny EXP Cap za kazdy EP, zapis EP w SQLite, poprawny bilans eksploracji. Prowadzenie bez look() tez odkrywa pokój tylko raz na konto. Naprawiono test Matki Popiolu z uwzglednieniem skalowanych szablonow bossa. Bez resetowania SQLite i balansu.",

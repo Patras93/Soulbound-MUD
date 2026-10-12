@@ -93,6 +93,10 @@ def v1000_mob(mob_id, name, stage, *, boss=False, magic=False, drops=None, mecha
         "stat_reward": max(120, stage // 2),
         "class_xp_reward": max(1800, stage * (42 if boss else 14)),
         "soul_reward": max(1200, stage * (20 if boss else 8)),
+        # v2.32.5: preserve the original encounter's authored combat stage.
+        # Some old ocean sectors have no room-level stage metadata, so
+        # underleveled parties otherwise faced low-threat encounters here.
+        "generator_level": stage,
         "drops": dict(drops or {}),
         "v1000_ocean": True,
     }

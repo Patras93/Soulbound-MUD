@@ -1,3 +1,46 @@
+WINDOWS: AUTOMATYCZNY RESTART PO AWARII SERWERA — Soulbound v2.32.5 — 2026-10-12
+- Nowy supervisor_windows.py nadzoruje proces gry uruchamiany przez host_windows.py; gdy gra nieoczekiwanie konczy prace, nadzorca wznawia ja bez potrzeby klikania START. Nie zmienia to portu TCP 4000, adresu Tailscale, statystyk ani schematu SQLite.
+- Uwierzytelniony STOP_Soulbound.bat zapisuje znacznik recznego zamkniecia powiazany z identyfikatorem nadzorcy, ZANIM wysle STOP do serwera. Po prawidlowym STOP watchdog konczy prace i nie wznowi gry. Rownoczesny drugi start nie tworzy drugiego nadzorcy (mutex Windows i kontrola PID).
+- Przy powtarzajacych sie szybkich awariach odstepy zwiekszaja sie od 5 do 60 sekund, a po szesciu bledach do 300 sekund. Dzieki temu uszkodzona konfiguracja nie powoduje petli szybkich restartow. Zdarzenia widoczne w logs/watchdog.log.
+- Dodano STATUS_Soulbound.bat: status nadzorcy PID i test otwarcia portu 4000, bez wprowadzania zmian w grze.
+- AUTOSTART_WLACZ_Soulbound.bat nadal dziala jak dotychczas; wystarczy, ze uzytkownik zaloguje sie do Windows. Zanik zasilania i fizycznie wylaczony komputer NIE MOGA zostac naprawione przez watchdog.
+- Zachowano bez zmian backup przed startem, przy zamknieciu, co godzine oraz BACKUP_TERAZ_Soulbound.bat. Po awarii ponowny start tez wykonuje kopie.
+- BEZPIECZENSTWO MIGRACJI: w tym archiwum celowo NIE MA plikow soulbound.db, soulbound.db-wal, soulbound.db-shm ani soulbound_world_seed.txt, zeby nie nadpisac postepow graczy po migracji Railway. To KOMPLETNY KOD gry z narzedziami Windows, do rozpakowania na obecna instalacje po jej prawidlowym zatrzymaniu. NIE USUWAJ folderu z obecna baza. Backupy w Soulbound-MUD_BACKUPS pozostaja nienaruszone.
+- INSTALACJA: (1) zrob BACKUP_TERAZ_Soulbound.bat; (2) STOP_Soulbound.bat i upewnij sie, ze port 4000 jest wolny; (3) rozpakuj ZIP i skopiuj folder Soulbound-MUD na ISTNIEJACY folder, zgadzajac sie na podmiane plikow kodu; (4) nie ruszaj soulbound.db ani dodatkowych WAL/SHM; (5) uruchom START_Soulbound.bat. Nie zmieniaj fizycznej sciezki gry bez ponownego wlaczenia autostartu.
+- TEST: kontrola skladni Python, przebiegu restart-stop w izolowanym mocku, kontrola ZIP. Rzeczywisty Windows 11 + Tailscale wymaga potwierdzenia na komputerze uzytkownika.
+
+WINDOWS 11: AUTOSTART + OCHRONA PRZY AWARII PRADU — paczka Soulbound v2.32.5 — 2026-10-12
+- Bez zmian w rozgrywce, balansie, wersji gry i schemacie SQLite. Oryginalna baza migracyjna pozostala w paczce.
+- AUTOSTART_WLACZ_Soulbound.bat: zapisuje wpis do folderu Autostart zalogowanego uzytkownika, bez uprawnien administratora. Serwer ruszy po jego zalogowaniu do Windows. Nie jest to usluga systemowa i NIE uruchomi PC po zaniku pradu. Jesli PC nie loguje sie automatycznie, serwer nie wystartuje do czasu zalogowania.
+- AUTOSTART_WYLACZ_Soulbound.bat: usuwa wlasny wpis autostartu; nie rusza danych ani dzialajacej gry. Jesli katalog gry zostanie przeniesiony, wlacz autostart ponownie w nowej lokalizacji.
+- Regularne kopie SQLite (co 3600 sekund pracy host_windows.py), dodatkowo przed uruchomieniem serwera i po jego prawidlowym zamknieciu. Polecenie BACKUP_TERAZ_Soulbound.bat tworzy kopie reczna.
+- Kopie wykonuje sqlite3.Connection.backup, a nie niebezpieczne kopiowanie aktywnego pliku db/WAL/SHM. Po ukończeniu wymaga PRAGMA integrity_check=ok i samodzielnego trybu DELETE, nastepnie publikuje plik atomowo.
+- Folder backupow znajduje sie OBOK katalogu gry: Soulbound-MUD_BACKUPS. Zachowujemy 48 godzinnych, 14 koncowych, 2 startowe i 14 recznych migawek (nie zawiera usunietych kopii z Railway). Obok kopii SQLite odkładamy aktualny soulbound_world_seed.txt, jesli istnieje.
+- Awaria zasilania: nie jest mozliwe wykonanie kopii w chwili utraty pradu; zapisane transakcje SQLite WAL zwykle przezyja restart, ale nie ma stuprocentowej gwarancji. Godzinne kopie chronia przed gorszym scenariuszem. Zalecany UPS i wlaczenie 'Restore on AC Power Loss' w UEFI, jezeli komputer ma sam wracac po zaniku zasilania. Bez tego host i Tailscale beda niedostepne.
+- WAZNE: te kopie zawieraja konta i poufne dane. Nie publikuj archiwum ani backupow. Przed uruchomieniem nowej paczki zatrzymaj dzialajacy Soulbound przez STOP_Soulbound.bat. NIE nadpisuj najnowszej aktywnej bazy stara kopia migracyjna: przenies ze starego folderu najnowsze soulbound.db i world_seed po bezpiecznym zatrzymaniu, albo zachowaj aktualny folder, podmieniajac jedynie wymienione skrypty.
+- TESTY: walidacja skladni Python, test kopii z aktywnego SQLite WAL, kontrola ok/DELETE i retencji, sprawdzenie struktury calosci ZIP (testy NT/Windows 11 oraz automatyczny restart wymagaja potwierdzenia na docelowym komputerze).
+
+MIGRACJA RAILWAY -> WINDOWS — pakiet danych Soulbound v2.32.5 — 2026-10-11
+- To wariant kompletnego wydania v2.32.5 z dolaczona baza uzytkownika, nie kolejna wersja rozgrywki.
+- Odtworzono spojny SQLite ze sciagnietych /data/soulbound.db i soulbound.db-wal, przy obecnosci soulbound.db-shm; zapisano niezalezny snapshot SQLite metoda backup, a wynikowy plik przelaczono w tryb DELETE (bez zaleznosci od bocznych plikow WAL/SHM).
+- Sprawdzenie pobranej bazy: PRAGMA integrity_check = ok, PRAGMA foreign_key_check = 0 bledow; 147 tabel, 9 kont, 8 postaci, 788 wpisow w tabeli inventory.
+- Gotowa baza Soulbound-MUD/soulbound.db. Nie kopiowac ponownie starych -wal/-shm do tego folderu. W trakcie dzialania aplikacja moze automatycznie utworzyc nowy WAL.
+- UWAGA DOTYCZACA SEEDU: archiwum zawiera soulbound_world_seed.txt z paczki v2.32.5. Jesli seed z aktywnego wolumenu Railway (/data/soulbound_world_seed.txt) rozni sie od paczkowego, nalezy go zastapic ORYGINALNYM plikiem przed pierwszym uruchomieniem na Windows. To zachowuje generowany uklad swiata. Tozsamosc obu seedow nie zostala potwierdzona.
+- Na Windows: rozpakowac do nowego, pustego katalogu; uruchomic START_Soulbound.bat (wymaga Python >= 3.12). Domyslnie SOULBOUND_DB wskazuje wzgledem katalogu uruchomienia na soulbound.db, SOULBOUND_PORT to 4000. Dla dostepu przez Tailscale nalezy dopuszczyc TCP 4000 w Zaporze Windows i uzyc adresu Tailscale hosta.
+- Nie kasowac danych Railway, dopoki po restarcie i ponownym logowaniu nie zostana sprawdzone postacie, ekwipunek, gildie, questy i postepy. Kopia odzwierciedla stan tylko na czas pobrania; ewentualne pozniejsze zapisy na Railway nie zostaly zsynchronizowane.
+- Zawiera osobiste dane kont graczy i hashe hasel. Nie publikowac ZIP ani bazy publicznie; przechowywac kopie w bezpiecznym miejscu.
+- Test serwera TCP wykonano tylko w izolowanym srodowisku Linux, nie pelny test end-to-end Windows 11 + Tailscale. Zalecana kontrola po rozpakowaniu na docelowym komputerze.
+
+Soulbound v2.32.5 — Wszystkie wysokie tereny: realna presja 300–400 i balans drużyn — 2026-10-11
+Aktualna paczka: v2.32.5 (kompletny ZIP na bazie v2.32.4, bez wdrozenia).
+- GLEBOKIE EXPOWISKA: na pietrach Krypt, Mitycznych Krypt, Wiez Astralnych, Mitycznych Wiez, Twierdzy Gigantow, Magitek, lochow profesyjnych i UOSS Deep Dungeon wykorzystywana jest roznica miedzy numerem pietra a rzeczywistym poziomem graczy.
+- DRUZYNA okolo lvl 100 nie bedzie juz traktowala pieter 300 i 400 jak tego samego przeciwnika z lvl 100: realne HP starcia rosnie proporcjonalnie do liczby poziomow ponizej glebokosci; wrog zadaje wyrazniejsza presje HP przy swoich akcjach. Poczatek podbicia po 25 poziomach roznicy. Mnozniki rosnace, a nie twarda blokada.
+- OCEAN 2.0: przy tworzeniu dawnych oceanicznych potworow zachowujemy ich oryginalny poziom zagrozenia; czesc sektorow nie ma wlasnego poziomu w metadanych pokoju. Wszystkie wysokie tereny uwzgledniaja rowniez klasyczne v019_stage megalochow i gauntletow.
+- SKALOWANIE DRUZYNOWE: HP starcia uwzglednia poziom najwyzej rozwinietej postaci w lokalnej druzynie, a zagrozenie obrazeniami jest liczone osobno dla kazdego atakowanego gracza. Mocniejszy sojusznik moze rzeczywiscie pomoc slabszym. Najemnicy i przywolania zachowuja pelne obrazenia, bez limitow i kar; nie sa dodatkowymi slotami druzyny przy adaptacji HP.
+- NISKIE TERENY bez zmian: regiony ponizej poziomu 100 oraz obszary w zasiegu +25 do poziomu postaci zachowuja poprzednie HP i obrazenia; nie ruszano nagrod, dropu, receptur, progow EXP, profesji ani klas.
+- CONSIDER pokazuje ten sam nowy poziom zagrozenia co rzeczywisty pojedynek, bez rozpoczynania walki. SQLite, postacie, checkpointy, stan odblokowan, Infinity Floors, Railway Docker i predeploy pozostaja zgodne. Nie wymaga migracji ani wipe.
+- REGRESJA: validation/v2325_deep_dungeon_pressure.py testuje pietra 1, 100, 125, 200, 300, 400, 600, poziom druzyny, zwykly swiat, silniejszego sojusznika i wielkie liczby; FAST predeploy zatrzymuje publikacje po bledzie. Samo wdrozenie Railway nie zostalo wykonane.
+
 Soulbound v2.32.4 — Naprawa predeploy Docker na Railway — 2026-10-11
 Aktualna paczka: v2.32.4 (kompletny ZIP na bazie v2.32.3, bez wdrozenia).
 - PRZYCZYNA: Dockerfile kopiowal katalog validation, ale nie kopiowal testuj_soulbound_windows.py. Walidacja v2102_predeploy_contract.py importuje ten modul; Railway przerywal FAST na ModuleNotFoundError, pomimo 9/9 PASS lokalnie na Windows.

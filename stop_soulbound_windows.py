@@ -8,7 +8,7 @@ from pathlib import Path
 import socket
 import sys
 import time
-from windows_launcher_state import wait_gone
+from windows_launcher_state import wait_gone, process_alive
 
 ROOT = Path(__file__).resolve().parent
 CANDIDATES = (ROOT / 'logs' / 'soulbound_control.json',
@@ -24,6 +24,28 @@ def main() -> int:
                 if Path(str(entry.get('root', ''))).resolve() == ROOT:
                     found.append((candidate, entry))
         if not found:
+            # Nadzorca moze byc w opoznionej probie ponownego uruchomienia.
+            watch = ROOT / 'logs' / 'soulbound_supervisor.json'
+            try:
+                entry = json.loads(watch.read_text(encoding='utf-8'))
+                pid = int(entry['pid'])
+                rid = str(entry['run_id'])
+                if (Path(str(entry.get('root', ''))).resolve() == ROOT and
+                        len(rid) >= 32 and process_alive(pid)):
+                    request = ROOT / 'logs' / 'soulbound_stop_request.json'
+                    temp = request.with_name(request.name + f'.{os.getpid()}.new')
+                    try:
+                        temp.write_text(json.dumps({'run_id': rid, 'root': str(ROOT)}), encoding='utf-8')
+                        os.replace(temp, request)
+                    finally:
+                        temp.unlink(missing_ok=True)
+                    if wait_gone(pid, timeout=15):
+                        print('Soulbound: nadzorca zatrzymany w trakcie oczekiwania na restart.')
+                        return 0
+                    print('UWAGA: nadzorca jeszcze dziala; sprawdz logs\\watchdog.log.')
+                    return 4
+            except (OSError, KeyError, ValueError, TypeError):
+                pass
             print('Soulbound nie jest uruchomiony przez START_Soulbound.bat w tym folderze.')
             return 2
         META, meta = found[0]
@@ -39,13 +61,47 @@ def main() -> int:
                 launcher_pid = int(state['pid'])
         except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: no marker in older releases
             pass
+        # Prosimy nadzorce o NIEwznawianie gry po autoryzowanym STOP.
+        supervisor_state = META.parent / 'soulbound_supervisor.json'
+        stop_request = META.parent / 'soulbound_stop_request.json'
+        request_run_id = ''
+        state = {}
+        try:
+            state = json.loads(supervisor_state.read_text(encoding='utf-8'))
+            if (Path(str(state.get('root', ''))).resolve() == ROOT and
+                isinstance(state.get('run_id'), str) and len(state['run_id']) >= 32 and
+                int(state.get('pid', -1)) == launcher_pid):
+                request_run_id = state['run_id']
+                request_temp = stop_request.with_name(stop_request.name + f'.{os.getpid()}.new')
+                try:
+                    request_temp.write_text(json.dumps({'run_id': request_run_id, 'root': str(ROOT)}), encoding='utf-8')
+                    os.replace(request_temp, stop_request)
+                finally:
+                    request_temp.unlink(missing_ok=True)
+        except (OSError, ValueError, TypeError, KeyError):
+            request_run_id = ''
+
+        def undo_unsent_request() -> None:
+            if request_run_id:
+                try:
+                    current = json.loads(stop_request.read_text(encoding='utf-8'))
+                    if current.get('run_id') == request_run_id:
+                        stop_request.unlink(missing_ok=True)
+                except (OSError, ValueError):
+                    pass
+
         # The loopback socket requires the private per-process token, so it
         # cannot accidentally shut down another Python program.
-        with socket.create_connection(('127.0.0.1', port), timeout=4) as connection:
-            connection.settimeout(5)
-            connection.sendall(('STOP ' + token + '\n').encode('ascii'))
-            reply = connection.recv(128).decode('ascii', 'replace').strip()
+        try:
+            with socket.create_connection(('127.0.0.1', port), timeout=4) as connection:
+                connection.settimeout(5)
+                connection.sendall(('STOP ' + token + '\n').encode('ascii'))
+                reply = connection.recv(128).decode('ascii', 'replace').strip()
+        except (OSError, ValueError, UnicodeError):
+            undo_unsent_request()
+            raise
         if reply != 'ZATRZYMYWANIE':
+            undo_unsent_request()
             print('BLAD: Soulbound nie potwierdzil polecenia STOP. Niczego nie zabito.')
             return 3
         print('Soulbound: rozpoczęto bezpieczne zamykanie i zapis postaci.')

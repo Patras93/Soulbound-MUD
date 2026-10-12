@@ -168,8 +168,13 @@ class SessionCombatDamageMixin:
                 members = self.adaptive_party_members_v11330(mob)
                 party_dps = self.adaptive_party_dps_v1261(members)
                 base_max = max(1, int(template.get("max_hp", 1) or 1))
+                party_level = max(
+                    max(1, int(getattr(member.character, "character_level", 1) or 1))
+                    for member in members
+                )
                 target_max = adaptive_target_max_hp_v11330(
-                    base_max, party_dps, template
+                    base_max, party_dps, template, party_level=party_level,
+                    room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                 )
                 old_max = max(
                     base_max,
@@ -234,7 +239,9 @@ class SessionCombatDamageMixin:
                     1.0,
                     float(self.max_hp())
                     * adaptive_target_incoming_fraction_v11330(
-                        template, party_size
+                        template, party_size,
+                        player_level=getattr(self.character, "character_level", 1),
+                        room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                     ),
                 )
                 base_raw = max(1, int(template.get("damage", 1) or 1))
@@ -529,8 +536,13 @@ class SessionCombatDamageMixin:
                 party_dps = self.adaptive_party_dps_v1261(members)
 
                 base_max_hp = max(1, int(template.get("max_hp", 1) or 1))
+                party_level = max(
+                    max(1, int(getattr(member.character, "character_level", 1) or 1))
+                    for member in members
+                )
                 projected_max_hp = adaptive_target_max_hp_v11330(
-                    base_max_hp, party_dps, template
+                    base_max_hp, party_dps, template, party_level=party_level,
+                    room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                 )
                 active_max_hp = max(
                     0, int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0)
@@ -578,7 +590,9 @@ class SessionCombatDamageMixin:
                     1.0,
                     float(self.max_hp())
                     * adaptive_target_incoming_fraction_v11330(
-                        template, party_size
+                        template, party_size,
+                        player_level=getattr(self.character, "character_level", 1),
+                        room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                     ),
                 )
                 adaptive_floor = adaptive_beginner_incoming_target_v2005(

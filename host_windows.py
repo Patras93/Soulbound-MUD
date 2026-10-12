@@ -10,6 +10,7 @@ import json
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
+from soulbound_backup_windows import create_backup
 import re
 import secrets
 import subprocess
@@ -36,7 +37,9 @@ def _setup_logger(name: str, filename: str) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     logger.propagate = False
-    logger.handlers.clear()
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
     sink = RotatingFileHandler(
         LOG_DIR / filename,
         maxBytes=MAX_LOG_BYTES,
@@ -83,6 +86,21 @@ def _forward(stream, kind: str, all_log: logging.Logger, error_log: logging.Logg
         stream.close()
 
 
+
+def _backup_safely(reason: str, all_log: logging.Logger, error_log: logging.Logger) -> None:
+    try:
+        result = create_backup(reason)
+        all_log.info("BACKUP %s OK | %s", reason, result)
+    except Exception as exc:
+        all_log.error("BACKUP %s BLAD | %s: %s", reason, type(exc).__name__, exc)
+        error_log.error("BACKUP %s BLAD | %s: %s", reason, type(exc).__name__, exc)
+
+
+def _backup_hourly(stop_signal: threading.Event, all_log: logging.Logger, error_log: logging.Logger) -> None:
+    while not stop_signal.wait(3600):
+        _backup_safely("hourly", all_log, error_log)
+
+
 def run_server(entry: Path | None = None) -> int:
     """Return child's exit status; do not restart a failing server automatically."""
     source = Path(entry) if entry is not None else ROOT / "server.py"
@@ -102,6 +120,7 @@ def run_server(entry: Path | None = None) -> int:
     print(f"Soulbound — logi serwera: {LOG_DIR / 'serwer.log'}", flush=True)
     print(f"Soulbound — logi bledow: {LOG_DIR / 'bledy.log'}", flush=True)
     print("Ctrl+C zatrzymuje serwer. Logi sa zapisywane w UTF-8.", flush=True)
+    _backup_safely("start", all_log, error_log)
     all_log.info("START | Uruchomiono proces Soulbound.")
     try:
         process = subprocess.Popen(
@@ -136,6 +155,9 @@ def run_server(entry: Path | None = None) -> int:
     ]
     for t in threads:
         t.start()
+    backup_stop = threading.Event()
+    backup_worker = threading.Thread(target=_backup_hourly, args=(backup_stop, all_log, error_log), daemon=True)
+    backup_worker.start()
     try:
         code = process.wait()
     except KeyboardInterrupt:
@@ -147,8 +169,14 @@ def run_server(entry: Path | None = None) -> int:
         except subprocess.TimeoutExpired:
             process.kill()
             code = process.wait()
+    backup_stop.set()
+    backup_worker.join(timeout=90)
     for t in threads:
         t.join(timeout=5)
+    if backup_worker.is_alive():
+        all_log.warning("BACKUP: watek godzinowy nadal dziala; koncowa kopia moze zostac utworzona po jego zakonczeniu.")
+    else:
+        _backup_safely("stop", all_log, error_log)
     all_log.info("STOP | Kod zakonczenia serwera: %s", code)
     try:
         if RUN_STATE.is_file():

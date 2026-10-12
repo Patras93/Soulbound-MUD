@@ -34,6 +34,7 @@ def _combat_damage_methods():
     )], type_ignores=[]))
     context = {
         "MOB_TEMPLATES": MOB_TEMPLATES,
+        "ROOMS": {},
         "adaptive_beginner_incoming_target_v2005": adaptive_beginner_incoming_target_v2005,
         "adaptive_target_incoming_fraction_v11330": adaptive_target_incoming_fraction_v11330,
         "adaptive_target_max_hp_v11330": adaptive_target_max_hp_v11330,
