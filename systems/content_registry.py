@@ -373,8 +373,14 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v3.10.5 - SYNCHRONIZACJA WERSJI PREDEPLOY"
+LATEST_CHANGES_TITLE = "Soulbound v3.31.0 - DLUGOTERMINOWY ROZWOJ WSZYSTKICH POZIOMOW"
 LATEST_CHANGES = [
+    "v3.31.0: wszystkie progresje zdobywajace EXP potrzebuja x5 wiecej EXP do kolejnego poziomu: postac, 14 klas, Dusza, skille, Bron Duszy, statystyki, 14 profesji, 14 narzedzi i Wzniesienie. Takze poziomy 1-49.",
+    "v3.31.0: NIE ZMIENIONO wyplacanego EXP, EXP Bank, Multi Cap, nagrod, dropu, zdobytych poziomow, zapisanego postepu ani limitow. Zachowane historyczne krzywe i roznice trudnosci profesji. Wymagania liczone na biezaco.",
+    "v3.30.0: naprawiono 56 nieoddawalnych zadan profesji w Erze Legend (v3.10 i v3.20): kazde zadanie ma prawidlowy typ narzedzia dla swojej profesji.",
+    "v3.30.0: rozbudowano bramki predeploy o audyt 2134 nagrod questowych, celow fabularnych, tras NPC i rzeczywistych zdarzen postepu w izolowanej SQLite. Bez resetowania postaci i zmian krzywych EXP.",
+    "v3.20.0: JEDNO WIELKIE WYDANIE — fabula starego i nowego swiata, mistrzostwo 14 klas, 14 profesji, eksploracja 3.0, ekspedycje 2.0, superbossowie 8.0 i odnawialne Kroniki. Pomoc: help legendy.",
+    "v3.20.0: nowe kampanie, sale i bossowie dodane bez kasowania starych NPC, questow, klasy, danych SQLite i bez ograniczania Multi Cap. 42 prawdziwe umiejetnosci klasowe mozna opanowac u dawnych nauczycieli.",
     "v3.10.5: naprawiono niespojnosc wersji w komendzie changes i bramce PREDEPLOY. VERSION, CHANGELOG_PL i LATEST_CHANGES_TITLE teraz wskazuja v3.10.5. Bez zmian rozgrywki, SQLite, kont i postaci.",
     "v3.10.4: koncowy pelny audyt NPC poprawnie otrzymuje migawke oryginalnych identyfikatorow i przechodzi testy bez zmniejszenia rygoru kontroli.",
     "v3.10.3: finalny predeploy porownuje tozsamosc wszystkich pierwotnych NPC zamiast wymagac niezmiennej liczby po testach. Nadal wykrywa znikniecia, wspoldzielone pokoje, brak wyjsc i popsute sklepy. Bez zmian danych gry i SQLite.",

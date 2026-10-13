@@ -4296,6 +4296,51 @@ for _class_name, _skills in CLASS_SKILLS.items():
                 f"Biegłość klasy {_skill['unlock']}."
             )
 
+# v3.20.0 — true learnable class mastery skills. Existing class trainers and
+# automatic queues use the canonical CLASS_SKILLS catalogue; no replacement of
+# old skills, levels, class names, effects, or SQLite data.
+_MASTER_ARTS_V3200 = {
+    'Wojownik': ('Przełamanie Korony', 'Szarża Stu Sztandarów', 'Przysięga Twardej Stali'),
+    'Berserker': ('Krwawa Kometa', 'Huragan Gniewu', 'Ryk Ostatniej Bitwy'),
+    'Łotrzyk': ('Cięcie Tysiąca Cieni', 'Noc Ostrzy', 'Maska Doskonałego Ataku'),
+    'Łowca': ('Strzała Spadającej Gwiazdy', 'Grad Strzał Dziczy', 'Instynkt Mistrza Tropu'),
+    'Mnich': ('Uderzenie Pustej Dłoni', 'Fala Duchowej Energii', 'Medytacja Siedmiu Bram'),
+    'Strażnik': ('Gromowy Cios Bastionu', 'Fala Żelaznej Obrony', 'Niezłomna Przysięga'),
+    'Mag': ('Złamanie Zaklęcia Eonów', 'Burza Dziewięciu Sfer', 'Koncentracja Arkana'),
+    'Nekromanta': ('Dotyk Wiecznego Milczenia', 'Taniec Dusz Przodków', 'Rytuał Czarnego Znaku'),
+    'Kapłan': ('Sąd Świetlistego Kręgu', 'Światło na Wszystkich Wrogów', 'Modlitwa Nieśmiertelnych'),
+    'Czarownik': ('Pieśń Otchłani', 'Rozdarcie Przestworzy', 'Pakt Bez Imienia'),
+    'Druid': ('Korzeń Pierwszego Drzewa', 'Zew Starej Puszczy', 'Przymierze Dziczy'),
+    'Psionik': ('Pęknięcie Rzeczywistości', 'Kaskada Wspomnień', 'Skupienie Siedmiu Myśli'),
+    'Mec': ('Działo Wszechświata', 'Orbitalna Salwa Meca', 'Przeciążenie Reaktora'),
+    'Inżynier': ('Precyzyjna Detonacja', 'Salwa Nanomechanizmów', 'Hiperkalibracja'),
+}
+for _master_class, _master_kind, *_ in CLASSES:
+    _one, _many, _focus = _MASTER_ARTS_V3200[_master_class]
+    _magic = _master_kind == 'magic'
+    _scale = ('intelligence' if _magic else 'dexterity' if _master_class in ('Łotrzyk', 'Łowca', 'Mnich', 'Inżynier') else 'strength')
+    _prefix = 'v3200_'+_master_class.lower()
+    CLASS_SKILLS.setdefault(_master_class, []).extend((
+        {'id':_prefix+'_signature','name':_one,'aliases':[_one.lower()],
+         'natural_tags':['mistrzostwo','precyzyjny','legenda'],
+         'unlock':260,'kind':'damage','cooldown':12,'mana':42 if _magic else 0,
+         'desc':'Mistrzowski atak skupiony na jednym celu; skaluje się ze statystyką klasy.',
+         'scale':_scale,'mult':3.15},
+        {'id':_prefix+'_area','name':_many,'aliases':[_many.lower()],
+         'natural_tags':['mistrzostwo','aoe','obszar'],
+         'unlock':420,'kind':'aoe_damage','cooldown':18,'mana':62 if _magic else 0,
+         'desc':'Mistrzowski atak obszarowy na wszystkich dostępnych wrogów w pokoju.',
+         'scale':_scale,'mult':2.60},
+        {'id':_prefix+'_focus','name':_focus,'aliases':[_focus.lower()],
+         'natural_tags':['mistrzostwo','wzmocnienie'],
+         'unlock':600,'kind':'boost','cooldown':25,'mana':48 if _magic else 0,
+         'desc':'Wzmocnienie mistrzostwa zwiększa moc kolejnych umiejętności.',
+         'boost':1.50,'duration':14},
+    ))
+
+
+
+
 # Czytelna kolejność dla skills, nauczycieli i Kodeksu Klasowego.
 for _class_name in CLASS_SKILLS:
     CLASS_SKILLS[_class_name].sort(

@@ -1,3 +1,44 @@
+Soulbound v3.31.0 — DLUGOTERMINOWY ROZWOJ WSZYSTKICH POZIOMOW — 2026-10-13
+Aktualna paczka: v3.31.0
+
+- CALY SYSTEM EXP: wymagany EXP do nastepnego awansu x5 wzgledem v3.30.0 na wszystkich poziomach, rowniez 1–49: postac, biegosc kazdej z 14 klas, Soul Level, kazdy skill, Bron Duszy, szesc statystyk (bez limitu), 14 profesji, 14 narzedzi oraz rangi Wzniesienia. Dotychczasowe wzajemne roznice trudnosci i wysokie progi po poziomie 50 sa zachowane.
+- WYLACZNIE PROGI: absolutnie bez ciecia nagrod, dropu, EXP za walki, zadania, materialy, sprzedaz, skille i akcje; bez zmiany EXP Bank, Multi Cap, czasu czynnosci, kosztow, zapisanych poziomow/rang lub postepu XP. Brak nowych limitow.
+- BEZPIECZNA ARYTMETYKA: saturacja samej liczby wymaganego XP na istniejacym bezpiecznym maksimum calkowitoliczbowym; statystyki pozostaja bez limitu.
+- TESTY: walidacja wszystkich glownych osi XP w zestawie historycznych regresji i nowej bramce v3.31.0 w PREDEPLOY SZYBKI/PELNY. Nadal wymagany Windows ULTIMATE 60/60 PLUS przed wdrozeniem.
+- ZACHOWANE: pelna zawartosc v3.30.0, SQLite, postacie, profesje, skille, wlasne pokoje NPC, nowe questy, 42 umiejetnosci i poprawki jubilerstwa.
+
+==============================================================================
+Soulbound v3.30.0 — WIELKI AUDYT GRYWALNOSCI — 2026-10-13
+Aktualna paczka: v3.30.0
+
+- NAPRAWIONY BLAD Z PRAWDZIWEGO RUNTIME: 56 zadan profesji w obu rozszerzeniach Era Legend (po 4 na kazda z 14 profesji) mialo nagrode EXP profesji bez reward_tool_type. Odbior nagrody odmawial bezpiecznego ukonczenia. Teraz kazda z 56 definicji wskazuje prawidlowy istniejacy typ narzedzia, bez dodatkowego niezamierzonego EXP narzedzia.
+- WERYFIKACJA WSZYSTKICH NAGROD: nowy audyt uruchamia rzeczywista funkcje validate_quest_rewards_v1106 dla wszystkich 2134 zadan. Kazdy brak materialu nagrody, ujemna ilosc albo niepoprawny typ narzedzia blokuje predeploy zamiast ujawnic sie podczas grania.
+- FABULA I DOSTEPNOSC: skan poprzednikow wszystkich questow (w tym petli), dostepnosci giverow i celow fabularnych nowych 392 zadan, szlakow do NPC i bossow, przejsc dwukierunkowych, osobnych pokojow oraz sprawdzenie tekstow questow pod katem pustych pol i znakow kontrolnych psujacych NVDA.
+- PRAWDZIWE ZDARZENIA: 392 nowe zadania obejmuja 112 realnych zdarzen rozmowy u NPC, 188 realnych metod rejestracji pokonania przeciwnika i 92 realne metody kolekcjonowania przedmiotu na izolowanym SQLite. Testy przeciw zlym celom oraz ponownego otwarcia SQLite i zachowania postepu.
+- WALKA/EKSPEDYCJE: kontrola 42 umiejetnosci klasowych, osmiu bossow z fazami i dwoma zywiolami, osiagniecia aren i potworow na szlakach. Bez zmiany balansu HP/obrazen i bez obcinania nagrod.
+- RZEMIOSLO: zachowany test zakupienia rud zelaza i wykonania dwoch pierscieni, niezmieniona receptura (dwie rudy na sztuke). Przetop, 14 profesji i nagrody sprawdzaja tez starsze bramki predeploy.
+- STABILNOSC WINDOWS I NVDA: nowe bramki w predeploy_check.py i predeploy_full.py. Pelne sprawdzanie realnej bazy i TCP nadal prowadzi oddzielny Windows ULTIMATE 60/60 PLUS przed wdrozeniem.
+- ZAKRES TESTOW: kontrola skladni, schematu i zdarzen nie oznacza przejscia kazdego z 2134 questow przez aktywna walke/TCP ani pomiaru rzeczywistej mowy NVDA. Te ograniczenia sa jawne. Nie zmieniamy plikow SQLite, danych kont, EXP progow, Multi Cap ani ekonomii.
+- POLITYKA: kompletna paczka ZIP, brak raportow TXT poza istniejacym CHANGELOG_PL.txt, brak GitHuba i brak automatycznego wdrozenia.
+
+==============================================================================
+Soulbound v3.20.0 — SIEDEM LEGEND: WIELKI DODATEK — 2026-10-13
+Aktualna paczka: v3.20.0
+
+- JEDNO DUZE WYDANIE: wszystkie 7 zaplanowanych kierunkow rozwoju na bazie v3.10.5. Bez usuwania starej zawartosci i bez resetowania postaci.
+- FABULA 4.0: 32 osobne historie rozmieszczone w istniejacych dostepnych strefach, kazda ma 5 etapow, wlasnego NPC, przeciwnikow, dowody i zakonczenie; 24 dodatkowe kampanie w 8 nowych krainach, kazda ma 5 etapow i narracyjnego NPC.
+- EKSPLORACJA 3.0: 24 nowe odgalezienia po 8 pokoi (192 pokoje) w nowych krainach i 128 nowych pokoi starych stref; lacznie +320 katalogowych pokoi (bez liczby dodatkowych prywatnych gabinetow NPC), z odwracalnymi przejsciami i bez losowych pulapek.
+- MISTRZOSTWO KLAS: 42 rzeczywiste, dostepne w istniejacym systemie nauki skille 14 klas (po 3) na Bieglosci 260, 420 i 600; nowe dwa rozdzialy klasowych zadan na klase. Zachowane starsze zdolnosci i auto-kolejki.
+- PROFESJE 5.0: dwa dalsze etapy zamowien mistrzowskich dla kazdej z 14 profesji. Cele zarejestrowane w istniejacym katalogu, wysokie nagrody EXP profesji, bez spowalniania otrzymywanego EXP.
+- EKSPEDYCJE 2.0: cztery dalsze etapy ekspedycyjne kazdej nowej krainy, do starych finalow i nowej sali superbossa. Granie solo albo w druzynie bez sztywnych blokad.
+- SUPERBOSSOWIE 8.0: osiem nowych bossow, rozne pary zywiolow, istniejacy silnik faz 75/50/25% HP i komunikaty NVDA, wysokie nagrody bez sztucznych limitow mocy.
+- KRONIKI BOHATEROW: 24 dalsze odnawialne kontrakty po 1 godzinie (po 3 na kraine) z niezaleznym postepem SQLite.
+- ZGODNOSC: stare pokoje, zadania, przedmioty, sklepy, profesje, klasy, postacie, waluta, Multi Cap, EXP Bank i SQLite. Nowe ID tylko z prefiksem v3200_. Brak wipe, GitHuba, nowych tabel i zewnetrznych plikow raportowych.
+- JUBILERSTWO: test kupowania rudy zelaza w Kuzni, skladania w Sakwie Gornika i wykonywania dwoch ZELAZNYCH PIERSCIENI (2 rudy/szt., 4 rudy na dwusztukowe zlecenie Mirelli). Zakup obsluguje teraz rowniez "kup 2 ruda zelaza". Komunikaty po zakupie, craft i przy brakach podaja stany rudy (sakwa + inventory); warianty jakosci nadal zaliczaja quest.
+- REGRESJE v3.20.0: nowe 392 questy, 320 pokoi, 56 NPC, 8 wielofazowych superbossow, 42 klasowe skille; wykrywanie kolizji NPC, osiagalnosci pokoi, połączeń zwrotnych, braku zaslonietych wyjsc i rzeczywistej obslugi rud w izolowanej SQLite. Naprawiono skale obrazen nowych umiejetnosci Łotrzyka, Łowcy, Mnicha i Inzyniera zgodnie z bazowymi atrybutami klas.
+- BEZPIECZENSTWO: przed wdrozeniem koniecznie osobny Windows PREDEPLOY NOWEJ WERSJI (60/60 PLUS) nowego ZIP; PASS starej paczki nie uprawnia do wdrozenia.
+
+==============================================================================
 Soulbound v3.10.5 — SYNCHRONIZACJA WERSJI PREDEPLOY — 2026-10-13
 Aktualna paczka: v3.10.5
 

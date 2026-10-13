@@ -109,6 +109,12 @@ V3100_LEGENDS_STATS = _install_legends_v3100(
     ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
     HELP_TOPICS, HELP_TOPIC_ALIASES,
 )
+# v3.20.0: seven linked expansions across both old and new worlds.
+from world.legends_v3200 import install as _install_legends_v3200
+V3200_LEGENDS_STATS = _install_legends_v3200(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES,
+)
 # Exploration's lookup was built earlier by the native runtime; refresh it once
 # after the new rooms have been safely installed.
 from world.generation_systems import v0130_refresh_exploration_catalog as _v3100_ep_refresh

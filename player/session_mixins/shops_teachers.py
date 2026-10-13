@@ -368,6 +368,18 @@ class SessionShopsTeachersMixin:
 
             if not found and requested_tool and requested_tool in possible:
                 found = (requested_tool, possible[requested_tool])
+            # v3.20.0: zakup ilości po nazwie, np. "kup 2 ruda żelaza".
+            # Zachowujemy dotychczasowe "kup <numer oferty> <ilość>".
+            if not found:
+                amount_name = re.fullmatch(r"(\d+)\s+(.+)", raw_query)
+                if amount_name:
+                    named = find_by_name(possible, amount_name.group(2))
+                    if named:
+                        quantity = int(amount_name.group(1))
+                        if quantity < 1:
+                            await self.send("Liczba sztuk musi być większa od zera.")
+                            return
+                        found = named
             if not found:
                 found = find_by_name(possible, raw_query)
 
@@ -488,6 +500,17 @@ class SessionShopsTeachersMixin:
                 await self.send(
                     f"Kupujesz: {quantity} szt. {item['name']}. Koszt: "
                     + purchase_cost_text + "."
+                )
+            if item_id == "iron_ore":
+                in_bag = self.server.db.storage_qty(self.account_id, "bag", "iron_ore")
+                in_inventory = self.server.db.item_qty(self.account_id, "iron_ore")
+                total_ore = in_bag + in_inventory
+                await self.send(
+                    f"Ruda żelaza trafia do Sakwy Górnika. Masz teraz {total_ore} rud żelaza "
+                    f"(sakwa {in_bag}, ekwipunek {in_inventory}). "
+                    "Jeden Żelazny Pierścień Jubilerski potrzebuje 2 rud; "
+                    "zlecenie Mirelli na dwa pierścienie wymaga łącznie 4 rud. "
+                    "Wykonuj w Pracowni Jubilerskiej komendą jubilerstwo Żelazny Pierścień Jubilerski."
                 )
             if cashback > 0:
                 await self.send(

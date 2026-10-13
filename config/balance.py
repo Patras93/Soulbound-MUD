@@ -174,10 +174,22 @@ def _scale_required_xp_by_points_v1408(required_xp: int, points: int) -> int:
                max(required_xp, (required_xp * points + 5000) // 10000))
 
 
+# v3.31.0: one extra requirement-only factor for EVERY permanent XP axis.
+# Character, class, Soul, all skills, Soul Weapon, six uncapped stats,
+# 14 professions, 14 tools, and Ascension. NEVER scale payouts, banked EXP,
+# Multi Cap, existing levels, or requirement cap limits.
+ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 = 5
+
+
+def scale_all_progress_requirements_v3310(required_xp: int) -> int:
+    return min(9_000_000_000_000_000_000,
+               max(1, int(required_xp)) * ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310)
+
+
 def scale_player_requirement_v1407(required_xp: int, level: int) -> int:
     """Legacy API: v1.40.8 player-axes requirement curve."""
-    return _scale_required_xp_by_points_v1408(
-        required_xp, player_extra_requirement_points_v1407(level))
+    return scale_all_progress_requirements_v3310(_scale_required_xp_by_points_v1408(
+        required_xp, player_extra_requirement_points_v1407(level)))
 
 
 def stat_extra_requirement_points_v1408(value: int) -> int:
@@ -187,8 +199,8 @@ def stat_extra_requirement_points_v1408(value: int) -> int:
 
 
 def scale_stat_requirement_v1408(required_xp: int, value: int) -> int:
-    return _scale_required_xp_by_points_v1408(
-        required_xp, stat_extra_requirement_points_v1408(value))
+    return scale_all_progress_requirements_v3310(_scale_required_xp_by_points_v1408(
+        required_xp, stat_extra_requirement_points_v1408(value)))
 
 
 def profession_late_requirement_points_v1401(level: int) -> int:
@@ -205,7 +217,8 @@ def profession_xp_requirement_v1401(base: int, profession: str | None, level: in
     )))
     points = profession_late_requirement_points_v1401(level)
     # Exact historical value at <=49; round half-up for later progression.
-    return old_requirement if points == 10000 else max(1, (old_requirement * points + 5000) // 10000)
+    prior = old_requirement if points == 10000 else max(1, (old_requirement * points + 5000) // 10000)
+    return scale_all_progress_requirements_v3310(prior)
 
 
 # v1.40.2: synchronize TOOLS with the smooth late-game profession
@@ -218,7 +231,8 @@ def tool_xp_requirement_v1402(base: int, tool_type: str | None, level: int) -> i
         int(base) * float(TOOL_XP_REQUIREMENT_MULTIPLIERS.get(str(tool_type), 1.0))
     )))
     points = profession_late_requirement_points_v1401(level)
-    return original if points == 10000 else max(1, (original * points + 5000) // 10000)
+    prior = original if points == 10000 else max(1, (original * points + 5000) // 10000)
+    return scale_all_progress_requirements_v3310(prior)
 
 
 # v0.50.3: final combat pressure applied after all historical world/dungeon

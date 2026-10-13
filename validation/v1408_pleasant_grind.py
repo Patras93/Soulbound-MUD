@@ -68,19 +68,19 @@ def run_pleasant_grind_v1408():
         actual_prof = profession_xp_requirement_v1401(
             v0190_requirement('profession', level), 'Górnictwo', level)
         expected_prof = (original_prof * profession_late_requirement_points_v1401(level) + 5000) // 10000
-        check(actual_prof == expected_prof, f'profession {level}: one multiplier only')
+        check(actual_prof == expected_prof * 5, f'profession {level}: legacy formula plus universal x5')
         original_tool = v0190_requirement('tool', level) * 2
         actual_tool = tool_xp_requirement_v1402(v0190_requirement('tool', level), 'mining', level)
         expected_tool = (original_tool * profession_late_requirement_points_v1401(level) + 5000) // 10000
-        check(actual_tool == expected_tool, f'tool {level}: one multiplier only')
+        check(actual_tool == expected_tool * 5, f'tool {level}: legacy formula plus universal x5')
 
         baseline = 100000000
         # Test both progression scalers independently, no side-effect on XP rewards.
         check(scale_player_requirement_v1407(baseline, level) ==
-              (baseline * player_extra_requirement_points_v1407(level) + 5000) // 10000,
+              5 * ((baseline * player_extra_requirement_points_v1407(level) + 5000) // 10000),
               f'player {level}: one multiplier')
         check(scale_stat_requirement_v1408(baseline, level) ==
-              (baseline * stat_extra_requirement_points_v1408(level) + 5000) // 10000,
+              5 * ((baseline * stat_extra_requirement_points_v1408(level) + 5000) // 10000),
               f'stat {level}: one gentler multiplier')
         check(stat_extra_requirement_points_v1408(level) <= player_extra_requirement_points_v1407(level),
               f'stat {level}: not harder than player')

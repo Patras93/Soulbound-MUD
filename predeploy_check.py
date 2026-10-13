@@ -4350,3 +4350,17 @@ print(f"FRONTY ERA LEGEND v3.10.2 FAST: {_fronts_fast_v3102(_fronts_runtime_v310
 from validation.v3101_single_npc import run_regression as _single_npc_v3101_fast
 import server as _s3101
 print(f"JEDEN NPC NA POKOJ v3.10.1 FAST: {_single_npc_v3101_fast(_s3101.ROOMS, _s3101.NPCS, _s3101.SINGLE_NPC_ROOMS_V3101, _s3101.SHOP_SELLERS)} checks PASS")
+
+# v3.20.0: one release gate for all seven expansions and genuine ore -> ring
+# purchase / professional-storage / two-crafts lifecycle. Uses TEMP SQLite.
+from validation.v3200_seven_legends import check_all as _check_all_legends_v3200
+_check_all_legends_v3200()
+
+# v3.30.0: actual reward-turnin guard and v3.20 story events on isolated SQLite.
+from validation.v3300_gameplay_audit import run_audit as _v3300_gameplay_audit
+import server as _v3300_audit_runtime
+_v3300_gameplay_audit(_v3300_audit_runtime)
+
+# v3.31.0: full coverage of every XP level requirement, reward-only invariants.
+from validation.v3310_all_xp_requirements import run_regression as _all_xp_v3310
+print(f"ALL PROGRESSION XP v3.31.0: {_all_xp_v3310()} checks PASS")

@@ -8,6 +8,7 @@ spells or all planned expansion stages are finished.
 from __future__ import annotations
 
 from data.catalog_mutations import catalog_assign, catalog_set_path
+from systems.mastery_crafting_v2201 import TOOL_TYPES as PROFESSION_REWARD_TOOL_TYPES
 
 # Authored realm identity, lore, places, foes and bosses. Each has a unique
 # campaign (one-shot) and a repeatable expedition, backed by existing SQLite.
@@ -192,6 +193,10 @@ def install(rooms, npcs, mobs, spawns, quests, items, help_topics, help_aliases)
         if reward_profession:
             value["reward_profession"] = reward_profession
             value["reward_profession_xp"] = stage * (165 if not repeatable else 125)
+            # Quest turn-in requires a real, valid profession tool type even
+            # when no extra tool XP is awarded. Without it the 28 orders
+            # could be accepted but never rewarded.
+            value["reward_tool_type"] = PROFESSION_REWARD_TOOL_TYPES[reward_profession]
         if target_npc:
             value["target_npc"] = target_npc
         return add(quests, "QUESTS", key, value)

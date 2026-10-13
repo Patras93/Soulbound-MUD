@@ -92,10 +92,7 @@ def run_regression():
             req=profession_xp_requirement_v1401(v0190_requirement('profession',lv),name,lv)
             assert req>0
             original=max(1,int(round(v0190_requirement('profession',lv)*PROFESSION_XP_REQUIREMENT_MULTIPLIERS[name])))
-            if lv<50:
-                assert req==original, (name,lv,req,original)
-            elif lv>=50:
-                assert req>original, (name,lv,req,original)
+            assert req>original, (name,lv,req,original)
             if lv>=100:
                 assert req>=profession_xp_requirement_v1401(v0190_requirement('profession',50),name,50)
             checks+=2

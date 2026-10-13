@@ -76,8 +76,8 @@ def run_progression_from50_regression_v1407():
                 )
             check(required == scale_player_requirement_v1407(historical, i),
                   f'{name} level{i}: authoritative formula')
-            check(required == historical if i < 50 else required > historical,
-                  f'{name} level{i}: original <50, harder from 50')
+            check(required > historical,
+                  f'{name} level{i}: v3.31.0 harder on every level')
             check(required <= func(i + 1) if i < 799 else required > 0,
                   f'{name} level{i}: requirements grow')
         check(profession_late_requirement_points_v1401(i) == 10000 if i < 50
@@ -123,8 +123,8 @@ def run_progression_from50_regression_v1407():
             historical = late_game_xp_requirement(value, historical_base, terminal)
             check(required == scale_stat_requirement_v1408(historical, value),
                   f'{stat}: stat {value} uses requirement-only scaling')
-            check(required == historical if value < 50 else required >= historical,
-                  f'{stat}: stat {value} original <50, never less from 50')
+            check(required > historical or required == SAFE_INT,
+                  f'{stat}: stat {value} v3.31.0 harder on every level')
             check(required >= previous, f'{stat}: no decrease at stat {value}')
             previous = required
         for very_high in (1001, 5000, 1000000):

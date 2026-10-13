@@ -360,6 +360,16 @@ class SessionCraftingMixin:
                 await self.send("Brakuje składników:")
                 for line in missing:
                     await self.send(line + ".")
+                if recipe_id == "jewel_iron_ring":
+                    in_bag = self.server.db.storage_qty(self.account_id, "bag", "iron_ore")
+                    in_inventory = self.server.db.item_qty(self.account_id, "iron_ore")
+                    await self.send(
+                        f"Żelazny Pierścień Jubilerski: 2 rudy żelaza na jeden pierścień. "
+                        f"Masz: Sakwa Górnika {in_bag}, ekwipunek {in_inventory}, "
+                        f"razem {in_bag + in_inventory}. "
+                        "Zlecenie Mirelli na 2 pierścienie wymaga łącznie 4 rud. "
+                        "Rudy kupisz w Kuźni Dusz."
+                    )
                 return False
 
             action_seconds = self.recipe_action_seconds(
@@ -516,6 +526,13 @@ class SessionCraftingMixin:
                 await self.send(
                     f"{action_name.capitalize()}: {crafted_name} "
                     f"x{quantity}. Przedmiot trafia do {destination}."
+                )
+            if recipe_id == "jewel_iron_ring":
+                remaining_iron = self.available_recipe_item("iron_ore")
+                await self.send(
+                    f"Żelazny Pierścień Jubilerski: zużyto 2 rudy żelaza; "
+                    f"zostało {remaining_iron}. Jeśli wykonujesz dwa pierścienie na zlecenie Mirelli, "
+                    "potrzeba 4 rud łącznie. Warianty jakości pierścienia też zaliczają zlecenie."
                 )
             if _masterpiece_v12812 and crafting_output_is_quality_equipment_v03054(output_id):
                 await self.send(f'ARCYDZIEŁO! Materiał, mistrzostwo i narzędzie podniosły jakość: {crafted_name}.')

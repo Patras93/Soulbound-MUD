@@ -68,8 +68,8 @@ def run_profession_xp_regression_v1401():
                 f'{profession} level{level}: session/helper match')
             check(new >= prior_requirement, f'{profession} level{level}: nondecreasing required EXP')
             check(growth >= prior_growth, f'{profession} level{level}: smooth nondecreasing multiplier')
-            check(new == original if level < 50 else new > original,
-                  f'{profession} level{level}: exact original <50, strictly more >=50')
+            check(new > original,
+                  f'{profession} level{level}: v3.31.0 requirement larger at every level')
             prior_requirement, prior_growth = new, growth
         check(next_level_xp(800, profession) == 0,
               f'{profession}: cap 800')
