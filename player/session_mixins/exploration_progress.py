@@ -653,22 +653,42 @@ class SessionExplorationProgressMixin:
                     ),
                 ),
             )
-            # v2.10.3: every first-time EP yields the current full character
-            # award cap (not a flat 50-5000 XP scaled by the room's stage).
-            from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103
-            ep_xp_total = 0
+            # v3.00.4: each first-time Explorer Point awards the SAME four
+            # independent progression paths as Fame: character, soul, every
+            # active class and each of the six stats. No profession/tool XP.
+            # No split between axes; existing Multi Cap/EXP Bank gateways apply.
+            from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
+            ep_xp_total = ep_soul_total = ep_class_total = ep_stat_total = 0
             for _ in range(ep_points):
-                # Each individual EP awards the CURRENT character EXP cap;
-                # the existing EXP Bank handles overflow per award.
-                ep_xp = exploration_point_xp_v2103(self.character)
-                ep_xp_total += ep_xp
+                caps = fame_cap_awards_v2103(self)
+                ep_xp_total += caps["character"]
+                ep_soul_total += caps["soul"]
+                ep_class_total += caps["class_total"]
+                ep_stat_total += caps["stat"]
+                # Match Fame's award flags and order; character level is the
+                # Fame content reference, while the room determines how many EP.
+                ep_content_level = max(1, int(self.character.character_level))
+                await self.grant_combat_soul_xp_v11350(
+                    caps["soul"], content_level=ep_content_level, content_scaled=True
+                )
+                if caps["class_total"]:
+                    await self.grant_class_xp(
+                        caps["class_total"], single_level_cap=False,
+                        content_level=ep_content_level, content_scaled=True
+                    )
+                await self.grant_stat_xp_v11342(
+                    caps["stat"], targets=None,
+                    content_level=ep_content_level, content_scaled=True
+                )
                 for message in self.add_character_xp_with_event(
-                    ep_xp,
-                    content_level=room_stage,
-                    content_scaled=True,
+                    caps["character"], single_level_cap=False,
+                    content_level=ep_content_level, content_scaled=True,
                 ):
                     if announce:
                         await self.send(message)
+            # Fame also persists the character after all four grant gateways;
+            # saved room discovery remains one-time and account-isolated.
+            self.server.db.save_character(self.character)
             await self.advance_class_guild_quest_v11132("explore", 1)
             if announce:
                 from systems.exploration_point_values_v2322 import zone_explorer_points_v2322
@@ -679,7 +699,12 @@ class SessionExplorationProgressMixin:
                     ROOMS,
                 )
                 await self.send(
-                    f"Odkrycie lokacji: +{ep_points} EP, +{ep_xp_total} EXP postaci. "
+                    f"Odkrycie lokacji: +{ep_points} EP. "
+                    f"EXP jak Fame (osobno): postać +{ep_xp_total}, "
+                    f"Dusza +{ep_soul_total}, każda aktywna klasa +{ep_class_total}, "
+                    f"każda statystyka +{ep_stat_total}. "
+                    f"Wypłaty podlegają Multi Cap i EXP Bankowi; "
+                    f"bez EXP profesji i narzędzi. "
                     f"{zone_for_ep}: {zone_ep_now} z {zone_ep_total} EP."
                 )
 
@@ -841,6 +866,23 @@ class SessionExplorationProgressMixin:
             discovered = self.server.db.discovered_room_ids(self.account_id)
             count = sum(1 for rid in room_ids if rid in discovered)
             return count, len(room_ids), int(count * 100 / len(room_ids))
+
+    async def show_exploration_points_v3007(self, args=""):
+            """Fast, NVDA-friendly EP total from the existing durable SQLite counter.
+
+            `ep` never grants points and cannot modify progress. `ep region` and
+            `ep all` delegate to the existing exploration summary.
+            """
+            target = normalize_lookup_text(args or "")
+            if target in ("", "total", "suma", "punkty", "points", "status"):
+                total = int(self.server.db.lifetime_stat(self.account_id, "explorer_points") or 0)
+                await self.send(f"Exploration Points (EP): {total}. Wpisz ep region lub ep all po szczegóły.")
+            elif target in ("region", "strefa", "tutaj"):
+                await self.show_exploration("")
+            elif target in ("all", "wszystko", "lista", "swiat", "świat"):
+                await self.show_exploration("all")
+            else:
+                await self.send("Użycie: ep — łączna liczba punktów; ep region — aktualna strefa; ep all — wszystkie strefy.")
 
     async def show_exploration(self, args=""):
             raw = str(args or "").strip()

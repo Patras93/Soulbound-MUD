@@ -62,7 +62,7 @@ class DatabaseProgressionMixin:
         if class_name in active_names:
             return False, "Ta klasa jest już aktywna."
         if len(active_names) >= MULTICLASS_MAX_ACTIVE:
-            return False, "Masz już maksymalnie 3 aktywne klasy."
+            return False, f"Masz już maksymalnie {MULTICLASS_MAX_ACTIVE} aktywnych klas."
 
         used_slots = {
             int(row["active_slot"])
@@ -165,6 +165,67 @@ class DatabaseProgressionMixin:
             "WHERE account_id=? AND queue_type=? ORDER BY position",
             (account_id, queue_type),
         ).fetchall()
+
+    def auto_enroll_learned_skills_v3005(self, account_id, entries):
+        """One-time automatic queue enrollment; never resurrect manual removals.
+
+        ``entries`` is an authored-order iterable of (queue_type, skill_id),
+        pre-filtered for explicitly learned, active-use skills by the session.
+        Existing configured queue ordering and saved user OFF choice survive.
+        """
+        existing = self.conn.execute(
+            "SELECT 1 FROM skill_queue_auto_enrollment_v3005 WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+        if existing:
+            return 0
+        settings = self.conn.execute(
+            "SELECT enabled FROM skill_queue_settings WHERE account_id=?",
+            (account_id,),
+        ).fetchone()
+        previous = self.conn.execute(
+            "SELECT COUNT(*) FROM skill_queue WHERE account_id=?", (account_id,),
+        ).fetchone()[0]
+        positions = {
+            str(row["queue_type"]): int(row["pos"])
+            for row in self.conn.execute(
+                "SELECT queue_type, MAX(position) AS pos FROM skill_queue "
+                "WHERE account_id=? GROUP BY queue_type", (account_id,),
+            )
+        }
+        known_rows = {
+            str(row["skill_id"]) for row in self.conn.execute(
+                "SELECT skill_id FROM skill_queue WHERE account_id=?", (account_id,),
+            )
+        }
+        added = 0
+        for queue_type, skill_id in entries:
+            if queue_type not in ("physical", "magic", "feedback"):
+                continue
+            if skill_id in known_rows:
+                continue
+            positions[queue_type] = positions.get(queue_type, 0) + 1
+            self.conn.execute(
+                "INSERT INTO skill_queue(account_id,queue_type,position,skill_id) VALUES(?,?,?,?)",
+                (account_id, queue_type, positions[queue_type], skill_id),
+            )
+            known_rows.add(skill_id)
+            added += 1
+        # Mark only after all writes succeed, in the same transaction.
+        self.conn.execute(
+            "INSERT INTO skill_queue_auto_enrollment_v3005(account_id) VALUES(?)",
+            (account_id,),
+        )
+        # No previous queue: start automatic casting for legacy characters.
+        # With a configured queue and explicit OFF, honor player preference.
+        if added and (not settings or previous == 0):
+            self.conn.execute(
+                "INSERT INTO skill_queue_settings(account_id,enabled) VALUES(?,1) "
+                "ON CONFLICT(account_id) DO UPDATE SET enabled=1",
+                (account_id,),
+            )
+        self.conn.commit()
+        return added
 
     def skill_queue_enabled(self, account_id):
         # v1.17.8: auto combat checks this in the skill rotation. Avoid a

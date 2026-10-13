@@ -100,17 +100,33 @@ class SessionCharacterProfileMixin:
             await self.send(await self.active_effects_status_text_v11331())
 
     async def show_character_level(self):
-            """Krótki poziom postaci 1-800, niezależny od Soul Levelu."""
+            """Every earned character/class/stat/skill/profession/tool level, NVDA-friendly."""
+            from systems.level_overview_v23216 import level_overview_lines_v23216
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
-                await self.send(f"Poziom postaci: {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
-                return
-            needed = character_xp_to_next(c.character_level)
-            missing = max(0, int(needed) - int(c.character_xp))
-            await self.send(
-                f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. "
-                f"EXP {c.character_xp} z {needed}. Brakuje {missing} EXP do Levelu {c.character_level + 1}."
-            )
+                await self.send(f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
+            else:
+                needed = character_xp_to_next(c.character_level)
+                missing = max(0, int(needed) - int(c.character_xp))
+                await self.send(
+                    f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. "
+                    f"EXP {c.character_xp} z {needed}. Brakuje {missing} EXP do Levelu {c.character_level + 1}."
+                )
+            if c.soul_level >= SOUL_MAX_LEVEL:
+                await self.send(f'Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. Soul XP: maksimum.')
+            else:
+                soul_need = max(0, int(c.soul_xp_to_next()))
+                soul_xp = max(0, int(c.soul_xp))
+                await self.send(
+                    f'Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. '
+                    f'Soul XP {soul_xp} z {soul_need}. '
+                    f'Brakuje {max(0, soul_need - soul_xp)} Soul XP do poziomu {c.soul_level + 1}.'
+                )
+                if c.soul_progress_is_tier_locked():
+                    await self.send('Soul XP zablokowany do odblokowania kolejnego Soul Tier.')
+            for line in level_overview_lines_v23216(
+                    self.server.db.conn, self.account_id, c.class_name):
+                await self.send(line)
 
     async def show_character_xp(self):
             """Stan EXP postaci z dokładną liczbą brakującą do następnego Levelu."""
@@ -126,40 +142,34 @@ class SessionCharacterProfileMixin:
             )
 
     async def show_experience_cap_v2009(self, raw=""):
-            """NVDA-friendly personal cap status, including Alter-style English."""
-            c = self.character
-            level = min(800, max(1, int(c.character_level or 1)))
-            soul = min(800, max(1, int(c.soul_level or 1)))
-            classes = self.active_class_names()
-            class_levels = [max(1, int(self.class_mastery_level(name))) for name in classes]
-            class_level = min(class_levels) if class_levels else level
+            """NVDA-friendly live unified Multi Cap; no artificial maximum."""
+            from systems.multi_cap_v23215 import multi_cap_calculation_v23217
+            result = multi_cap_calculation_v23217(self.server.db.conn, self.account_id)
+            if result is None:
+                await self.send("Nie można odczytać Multi Cap z bazy postaci.")
+                return
+            cap, levels, parts, cap_parts = result
+            await self.send(f"MULTI CAP EXP: {cap} EXP za pojedynczą nagrodę.")
+            await self.send(f"Suma faktycznie rozwiniętych poziomów: {levels}.")
+            await self.send("Składniki: " + "; ".join(
+                f"{name}: {amount} poziomów, +{cap_parts[name]} EXP"
+                for name, amount in parts.items()) + ".")
+            await self.send("Przyrost co 10 poziomów: 1-10 +500; 11-20 +1000; "
+                            "21-30 +5000; 31-40 +7500; dalej stawka +2500 co 10 poziomów, bez końca.")
             await self.send(
-                f"Your experience cap: {experience_cap_v2009('character', level)} EXP "
-                f"per award (character level {level}/800)."
+                "Ten sam limit dotyczy osobno każdej nagrody dla postaci, "
+                "każdej klasy, Duszy, statystyki, skilla, profesji i narzędzia. "
+                "EXP nie jest dzielony między kategorie."
             )
             await self.send(
-                f"Soul experience cap: {experience_cap_v2009('soul', soul)} EXP "
-                f"(Soul Level {soul}/800)."
+                "Walka nie rozwija profesji ani narzędzi. Rozwój profesji i "
+                "narzędzi podnosi jednak Multi Cap do przyszłych walk. "
+                "Nieodblokowane skille i klasy nie podnoszą limitu."
             )
             await self.send(
-                f"Class experience cap: {experience_cap_v2009('class', class_level)} "
-                f"EXP per class (lowest active mastery {class_level}/800)."
-            )
-            await self.send(
-                f"Stat experience cap: {experience_cap_v2009('stat', level)} EXP "
-                "per stat, based on character level. Stats stay unlimited."
-            )
-            for name, kind in (("Profession", "profession"),
-                               ("Tool", "tool"), ("Skill", "skill")):
-                await self.send(
-                    f"{name} experience cap at level {level}: "
-                    f"{experience_cap_v2009(kind, level)} EXP. "
-                    "Each individual profession, tool or skill uses its own level."
-                )
-            await self.send(
-                "Doublecap: a suitably strong boss can grant up to twice the normal "
-                "cap. Limits apply to individual awards, not EXP required for a level. "
-                "Existing levels, bonuses, currency, loot and Fame remain unchanged."
+                "Doublecap silnego bossa: do " + str(cap * 2)
+                + " EXP na nagrodę. Nadwyżki trafiają do EXP Banku. "
+                  "Multi Cap nie podnosi sam nagród ani progów awansu."
             )
 
     async def show_exp_bank_v2011(self, raw=""):

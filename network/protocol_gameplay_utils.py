@@ -6,7 +6,7 @@ from data import catalog_mutations as _catalog_mut
 HELP_TOPIC_ALIASES.update({
     "bosskodex": "boss_codex", "bosscodex": "boss_codex",
     "kodeksbossow": "boss_codex", "kodeksbossów": "boss_codex",
-    "exploration": "eksploracja", "postep": "eksploracja", "postęp": "eksploracja",
+    "ep": "eksploracja", "exploration": "eksploracja", "postep": "eksploracja", "postęp": "eksploracja",
     "bestiary": "bestiariusz", "bestia": "bestiariusz",
     "achievements": "osiagniecia", "achievement": "osiagniecia",
     "osiągnięcia": "osiagniecia",
@@ -22,7 +22,9 @@ HELP_TOPICS["eksploracja"] = [
     "mapa / map - procent bieżącego regionu i tylko odkryte nazwy lokacji; nieodkryte miejsca pozostają ukryte.",
     "mapa all / map all - procent wszystkich regionów oraz status nagrody za 100 procent.",
     "eksploracja / exploration - procent bieżącej strefy i całego świata; exploration all - lista większych stref.",
+    "ep - łączna liczba zdobytych Exploration Points z trwałego zapisu SQLite; ep region - szczegóły obecnej strefy; ep all - wszystkie strefy. Odczyt nie przyznaje EP ani EXP.",
     "progress - ogólny postęp; progress region - szczegóły bieżącego regionu.",
+    "Każdy nowy Explorer Point (EP) nagradza tak jak Fame: EXP postaci, Duszy, każdej aktywnej klasy i każdej statystyki osobno. Multi Cap i EXP Bank obowiązują, bez EXP profesji i narzędzi.",
     "100 procent większej strefy daje Soul XP, walutę, unikalną Pamiątkę Odkrywcy, tytuł i osiągnięcie.",
 ]
 HELP_TOPICS["osiagniecia"] = [

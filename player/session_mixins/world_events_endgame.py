@@ -437,7 +437,7 @@ class SessionWorldEventsEndgameMixin:
 
     async def show_ascension_v021(self,args=""):
             q=normalize_lookup_text(args); rows={str(r["track"]):r for r in self.server.db.ascension_rows_v021(self.account_id)}
-            await self.send("WZNIESIENIE KLAS — po Biegłości 600, bez resetu")
+            await self.send(f"WZNIESIENIE KLAS — po Biegłości {CLASS_MASTERY_MAX_LEVEL}, bez resetu")
             shown=0
             for cname,_,_,_ in CLASSES:
                 if q and q not in normalize_lookup_text(cname): continue
@@ -447,7 +447,7 @@ class SessionWorldEventsEndgameMixin:
                 if level<CLASS_MASTERY_MAX_LEVEL and not q: continue
                 nxt=v0210_ascension_xp_to_next(rank)
                 await self.send(f"{cname}: Biegłość {level}/{CLASS_MASTERY_MAX_LEVEL}; Wzniesienie {rank}/{V021_ASCENSION_MAX_RANK}; " + (f"XP {xp} z {nxt}." if nxt else "maksymalna Ranga Wzniesienia.")); shown+=1
-            if not shown: await self.send("Żadna klasa nie osiągnęła jeszcze Biegłości 600.")
+            if not shown: await self.send(f"Żadna klasa nie osiągnęła jeszcze Biegłości {CLASS_MASTERY_MAX_LEVEL}.")
             await self.send(f"Łączna Ranga Wzniesienia: {self.v0210_total_ascension_rank()}.")
 
     async def handle_world_tier_v021(self,args=""):
@@ -464,7 +464,7 @@ class SessionWorldEventsEndgameMixin:
             if not 1<=tier<=V021_WORLD_TIER_MAX:
                 await self.send("World Tier musi być od 1 do 10."); return
             if tier>=2 and not self.v0210_any_class_at_400():
-                await self.send("World Tier 2+ wymaga co najmniej jednej klasy z Biegłością 600."); return
+                await self.send(f"World Tier 2+ wymaga co najmniej jednej klasy z Biegłością {CLASS_MASTERY_MAX_LEVEL}."); return
             need=V021_WORLD_TIER_ASCENSION_REQUIREMENT[tier]; total=self.v0210_total_ascension_rank()
             if total<need:
                 await self.send(f"World Tier {tier} wymaga łącznej Rangi Wzniesienia {need}. Masz {total}."); return

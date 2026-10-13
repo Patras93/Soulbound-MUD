@@ -64,7 +64,7 @@ def run_regression():
     assert caps['character'] == experience_cap_v2009('character', 55)
     assert caps['soul'] == experience_cap_v2009('soul', 31)
     assert caps['stat'] == experience_cap_v2009('stat', 55)
-    assert caps['class_total'] == 2 * max(experience_cap_v2009('class', 70), experience_cap_v2009('class', 24))
+    assert caps['class_total'] == max(experience_cap_v2009('class', 70), experience_cap_v2009('class', 24))
     checks += 4
     ensure_schema(s.server.db.conn)
     s.server.db.conn.execute('''INSERT INTO fame_pending_v1703

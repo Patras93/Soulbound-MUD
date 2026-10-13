@@ -147,6 +147,7 @@ COMMAND_ALIAS_DEFINITIONS = {'chron': 'protecteq', 'chronione': 'protecteq', 'oc
  'ekspedycja': 'expedition',
  'ekspedycje': 'expeditions',
  'eksploracja': 'exploration',
+ 'ep': 'ep',
  'ekwipunek': 'inventory',
  'enchant': 'zaklinaj',
  'enchanting': 'zaklinanie',

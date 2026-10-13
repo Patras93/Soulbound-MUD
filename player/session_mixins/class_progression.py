@@ -186,8 +186,9 @@ class SessionClassProgressionMixin:
                 "Usunięcie: multiclass remove <klasa>."
             )
             await self.send(
-                "Maksymalnie 3 klasy łącznie. Class XP z każdego zabitego moba "
-                "jest dzielony równo między wszystkie aktywne klasy."
+                f"Maksymalnie {MULTICLASS_MAX_ACTIVE} klas łącznie. Class XP z każdego zabitego moba "
+                "jest przyznawany osobno w pełnej wartości każdej aktywnej klasie. "
+                "Każda klasa ma własną Biegłość, Multi Cap i EXP Bank."
             )
             await self.send(
                 "Klasa główna i jej Broń Duszy nie zmieniają się. "
@@ -304,21 +305,23 @@ class SessionClassProgressionMixin:
                 total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
                 self.mentor_record_activity_v03051()
 
-            base_share, remainder = divmod(total_xp, len(active))
+            # v2.32.18: pełna nagroda za źródło trafia oddzielnie do KAŻDEJ klasy.
+            # Nie istnieje jedna pula XP do podziału pomiędzy klasy.
             from systems.experience_bank_v2011 import banked_experience_v2011
             allocated = [banked_experience_v2011(
                 self.server.db, self.account_id,
-                base_share + (1 if idx < remainder else 0), 'class',
+                total_xp, 'class',
                 self.class_mastery_level(class_name),
                 source_key=class_name, overcap=overcap)
-                for idx, class_name in enumerate(active)]
-            total_xp = sum(allocated)
-            self.session_summary_add("class_xp", total_xp)
-            _guild_note=f" Bonus Gildii +{_guild_pct}%: +{total_xp-base_total_xp}." if total_xp>base_total_xp else ""
+                for class_name in active]
+            overall_awarded = sum(allocated)
+            self.session_summary_add("class_xp", overall_awarded)
+            _guild_note=f" Bonus Gildii +{_guild_pct}%." if _guild_pct else ""
             _event_note=" Event x2 EXP." if base_total_xp>original_total_xp else ""
             await self.send(
-                f"EXP klas: {total_xp}. Aktywne klasy: {len(active)}. "
-                "Pula jest dzielona między aktywne klasy." + _event_note + _guild_note
+                f"EXP klas: {overall_awarded} łącznie. Aktywne klasy: {len(active)}. "
+                "Każda klasa otrzymuje własną pełną nagrodę (do Multi Cap), bez podziału."
+                + _event_note + _guild_note
             )
 
             for index, class_name in enumerate(active):
@@ -345,7 +348,7 @@ class SessionClassProgressionMixin:
                 if result["level"] >= CLASS_MASTERY_MAX_LEVEL:
                     if ascension:
                         nxt=(f" z {ascension['next_xp']}" if ascension['next_xp'] else " — maksimum")
-                        await self.send(f"{class_name}: +{result['gain']} EXP klasy. Biegłość 600; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
+                        await self.send(f"{class_name}: +{result['gain']} EXP klasy. Biegłość {CLASS_MASTERY_MAX_LEVEL}; Wzniesienie {ascension['rank']}, XP {ascension['xp']}{nxt}.")
                     else:
                         await self.send(f"{class_name}: +{result['gain']} EXP klasy. Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum.")
                 else:

@@ -28,19 +28,26 @@ def _production_consider_class():
         if isinstance(n, ast.ImportFrom) and n.module in ('data.rooms', 'data.catalogs')
         and any(alias.name == 'ROOMS' for alias in n.names)
     ]
-    # No artificial ROOMS global: import list comes only from production code.
+    real_combat_imports = [
+        n for n in tree.body
+        if isinstance(n, ast.ImportFrom) and n.module == 'systems.adaptive_combat'
+        and any(alias.name == 'adaptive_encounter_stage_v2325' for alias in n.names)
+    ]
+    assert real_combat_imports, 'missing real combat-stage import for CONSIDER'
+    # No artificial globals: imports come only from the production source.
     cls = ast.ClassDef(name='SessionCombatDamageMixin', bases=[], keywords=[],
                        body=[method], decorator_list=[])
-    module = ast.fix_missing_locations(ast.Module(body=real_room_imports + [cls], type_ignores=[]))
+    module = ast.fix_missing_locations(ast.Module(body=real_room_imports + real_combat_imports + [cls], type_ignores=[]))
     env = {'MOB_TEMPLATES': MOB_TEMPLATES, 'CHARACTER_MAX_LEVEL': CHARACTER_MAX_LEVEL}
     exec(compile(module, str(source), 'exec'), env)
     assert env.get('ROOMS') is ROOMS, 'consider_mob requires a real module-level ROOMS import'
+    assert callable(env.get('adaptive_encounter_stage_v2325')), 'missing stage calculator in CONSIDER'
     return env['SessionCombatDamageMixin']
 
 
-async def _exercise(cls, room_id, query):
+async def _exercise(cls, room_id, query, template_id='goblin'):
     class World:
-        mob = SimpleNamespace(template_id='goblin')
+        mob = SimpleNamespace(template_id=template_id)
         def refresh(self):
             pass
         def room_mobs(self, _room):
@@ -94,14 +101,20 @@ def run_regression():
         checks += 1
         assert any('Adaptive Combat' in m for m in msgs), msgs
         checks += 1
+        # In a higher-level area, NVDA must speak the danger warning.
+        assert any('UWAGA: przeciwnik ma zalecany etap' in m for m in msgs), msgs
+        checks += 1
         assert msgs[-1].startswith('Consider jest tylko oceną'), msgs[-1]
         checks += 1
 
-    # Old rooms without region metadata must keep their full pre-v2.00.6 text.
-    msgs = asyncio.run(_exercise(cls, 'temple_basement', 'goblin'))
+    # The actual starter-room enemy is a level-1 Temple Rat, not a bandit or
+    # goblin from an advanced hunting area. Avoid false danger warnings here.
+    msgs = asyncio.run(_exercise(cls, 'temple_basement', '', 'temple_rat'))
     assert not any(m.startswith('Teren:') for m in msgs), msgs
     checks += 1
     assert any('Adaptive Combat' in m for m in msgs)
+    checks += 1
+    assert not any('UWAGA: przeciwnik ma zalecany etap' in m for m in msgs)
     checks += 1
     assert msgs[-1].startswith('Consider jest tylko oceną'), msgs[-1]
     checks += 1

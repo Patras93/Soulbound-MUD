@@ -102,6 +102,18 @@ MASTERY_RECIPES_V2201 = _install_mastery_craft_v2201(ITEMS)
 from systems.ocean_sagas_v2300 import install as _install_ocean_sagas_v2300
 OCEAN_SAGAS_V2300 = _install_ocean_sagas_v2300(ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, _ocean5)
 
+# v3.10.0: install the eight legendary realms AFTER all old authored roads.
+# Never overwrite previous routes, NPCs, quests, data or player progress.
+from world.legends_v3100 import install as _install_legends_v3100
+V3100_LEGENDS_STATS = _install_legends_v3100(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES,
+)
+# Exploration's lookup was built earlier by the native runtime; refresh it once
+# after the new rooms have been safely installed.
+from world.generation_systems import v0130_refresh_exploration_catalog as _v3100_ep_refresh
+_v3100_ep_refresh()
+
 
 for _code,_name,_hp,_damage,_reward,_kind,_threat in (
     ('perlowaflota','Flota Perłowych Sztormów',2500000,50000,490000,'siege',240000),
@@ -230,6 +242,13 @@ HELP_TOPICS['fame'].append(
 HELP_TOPICS['reakcje'].append(
     'Magia Żywiołów 4.0: także woda + błyskawice, woda + lód, trucizna + lód i inne reakcje '
     'z ograniczeniem czasu, bez nieskończonego blokowania bossów.')
+
+# v3.10.1: give each NPC a private, bidirectionally connected room AFTER all
+# historical/new content is registered. No existing route is overwritten.
+from systems.npc_single_room_v3101 import install as _install_single_npc_v3101
+SINGLE_NPC_ROOMS_V3101 = _install_single_npc_v3101(ROOMS, NPCS, SHOP_SELLERS)
+# All added annexes must also be visible to Exploration Points.
+_v3100_ep_refresh()
 
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)

@@ -11,7 +11,10 @@ import socket
 import tempfile
 
 
+_original_npc_ids_v3103 = None  # Immutable baseline captured by main().
+
 def main():
+    global _original_npc_ids_v3103
     with tempfile.TemporaryDirectory(prefix="soulbound-full-audit-") as directory:
         os.environ["SOULBOUND_DB"] = os.path.join(directory, "audit.db")
         os.environ["SOULBOUND_FULL_AUDIT"] = "1"
@@ -21,6 +24,31 @@ def main():
             probe.bind(("127.0.0.1", 0))
             os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
         import server
+        _original_npc_ids_v3103 = frozenset(server.NPCS)
+        from validation.v3101_single_npc import run_regression as _single_npc_v3101
+        print(f"JEDEN NPC NA POKOJ v3.10.1 FULL: {_single_npc_v3101(server.ROOMS, server.NPCS, server.SINGLE_NPC_ROOMS_V3101, server.SHOP_SELLERS)} checks PASS")
+        from validation.v3100_legends_foundation import run_regression_full as _legends_full_v3100
+        print(f"LEGENDY v3.10.0 FULL: {_legends_full_v3100(server)} checks PASS")
+        from validation.v3007_ep_command import run_regression as _ep_command_v3007
+        print(f"EP KOMENDA v3.00.7 FULL: {_ep_command_v3007()} checks PASS")
+        from validation.v3007_boris_fishing_quests import run_regression as _boris_v3007
+        print(f"BORYS WEDKARSTWO v3.00.7 FULL: {_boris_v3007()} checks PASS")
+        from validation.v3006_queue_help import run_regression as _queue_help_v3006
+        print(f"QUEUE HELP v3.00.6 FULL: {_queue_help_v3006(vars(server))} checks PASS")
+        from validation.v3005_auto_learn_queue import test as _auto_queue_v3005
+        print(f"AUTO CZARY I SKILLE / BEZ LIMITU v3.00.5 FULL: {_auto_queue_v3005()} checks PASS")
+        from validation.v3004_ep_fame import run_regression as _ep_fame_v3004
+        print(f"EP JAK FAME v3.00.4 FULL: {_ep_fame_v3004()} checks PASS")
+        from validation.v3004_teacher_learn import run_regression as _teacher_learn_v3004
+        print(f"TEACHER LEARN v3.00.4 FULL: {_teacher_learn_v3004()} checks PASS")
+        from validation.v3002_help_wipe_mercenaries import run_regression as _help_wipe_v3002
+        print(f"HELP / WIPE NAJEMNIKOW v3.00.3 FULL: {_help_wipe_v3002()} checks PASS")
+        from validation.v3001_hybrid_equipment import run_regression as _hybrid_v3001
+        print(f'EQ MULTICLASS v3.00.1 FULL: {_hybrid_v3001()} checks PASS')
+        from validation.v3000_underlevel_balance import run_regression as _underlevel_v3000
+        print(f'BALANS TRUDNOSCI v3.00.0 FULL: {_underlevel_v3000()} checks PASS')
+        from validation.v23213_stop_supervisor import run_regression as _stop_supervisor_v23213
+        print(f'STOP + WATCHDOG v2.32.13 FULL: {_stop_supervisor_v23213()} checks PASS')
         from validation.v23212_auto_mining_move import run_runtime_regression as _mine_move_runtime_v23212
         print(f"AUTO MINING MOVE v2.32.12 RUNTIME: {_mine_move_runtime_v23212()} checks PASS")
         from validation.v1705_windows_clean_stop import run_regression as _clean_stop_v1705
@@ -35,6 +63,8 @@ def main():
         print(f'DRUID PINECONES + FAME v1.70.2 FULL: {_druid_fame_v1702()} checks PASS')
         from validation.v1701_colored_souls import run_regression as _colored_souls_v1701
         print(f"COLORED SOULSTONES v1.70.1 FULL: {_colored_souls_v1701(server)} checks PASS")
+        from validation.v3102_front_officers import run_regression as _fronts_v3102
+        print(f"FRONTY ERA LEGEND v3.10.2 FULL: {_fronts_v3102(server)} checks PASS")
         from validation.v1600_era_legends import run_era_legends_v1600
         _era_v1600=run_era_legends_v1600(server)
         assert not _era_v1600['errors'], _era_v1600['errors'][:20]
@@ -822,3 +852,31 @@ print(f"MATKA POPIOLU v2.32.2 FULL: {_matron_spawn_v2321()} checks PASS")
 # v2.32.2: automatic EP for silent guided transitions and one-time award.
 from validation.v2322_auto_exploration import run_regression as _auto_ep_v2322
 print(f"AUTO EP v2.32.3: {_auto_ep_v2322()} checks PASS")
+
+# v2.32.15: full regression of persistent 14-class ownership / global cap.
+from validation.v23215_multi_cap import run_regression as _multi_cap_v23215
+print(f'MULTI CAP + MULTICLASS 14 v2.32.15 FULL: {_multi_cap_v23215()} checks PASS')
+
+# v2.32.16: level shows all owned levels; final Multi Cap matches live EXP pipeline.
+from validation.v23216_level_overview import run_regression as _level_overview_v23216
+print(f'LEVEL OVERVIEW v2.32.16 FULL: {_level_overview_v23216()} checks PASS')
+
+# v2.32.17: shared non-linear 10-level Multi Cap and Soul XP under level.
+from validation.v23217_curve_soul_level import run_regression as _curve_soul_v23217
+print(f'MULTI CAP CURVE + SOUL XP v2.32.17: {_curve_soul_v23217()} checks PASS')
+
+# v2.32.18: each active class and axis gets full independent Multi Cap.
+from validation.v23218_full_cap_per_axis import run_regression as _full_axis_v23218
+print(f'FULL MULTI CAP PER AXIS v2.32.18: {_full_axis_v23218()} checks PASS')
+
+# v2.32.19: real profession and sale XP bank integration.
+from validation.v23219_profession_cap_balance import run_regression as _prof_cap_v23219
+print(f'PROFESSION / TOOL MULTI CAP v2.32.19 FULL: {_prof_cap_v23219()} checks PASS')
+
+# v3.10.4 - final invariant AFTER every historical audit and dynamic fixture.
+# Snapshot was captured at the beginning of main(); fail closed if it is unavailable.
+assert _original_npc_ids_v3103 is not None, "Missing baseline snapshot for the final NPC predeploy"
+# This catches a late test or content generator putting two NPCs back together.
+from validation.v3101_single_npc import run_regression as _single_npc_final_v3101
+import server as _world_final_v3101
+print(f"JEDEN NPC NA POKOJ v3.10.1 PO CALYM AUDYCIE: {_single_npc_final_v3101(_world_final_v3101.ROOMS, _world_final_v3101.NPCS, _world_final_v3101.SINGLE_NPC_ROOMS_V3101, _world_final_v3101.SHOP_SELLERS, original_npc_ids=_original_npc_ids_v3103)} checks PASS")

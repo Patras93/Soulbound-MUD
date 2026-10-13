@@ -95,6 +95,7 @@ class SessionHelpSystemMixin:
                 "historia / history / lifetime - trwała Historia postaci: walki, questy, kontrakty, profesje, zbiory, eksploracja i Bestiariusz",
                 "bufor / bufory [xp|loot|quest|system|chat|party|tell|walka|all] [1-100] - sesyjne bufory ostatnich komunikatów; działa też historia xp / historia loot / historia quest",
                 "eksploracja / exploration [all] - procent odkrycia stref i świata",
+                "ep - całkowita liczba zdobytych Exploration Points; ep region - bieżąca strefa; ep all - pełne zestawienie",
                 "osiagniecia / achievements - Bronze, Silver, Gold i Platinum",
                 "najemnik rozwoj [imię] - poziom równy twojemu; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> - dowolna zmiana bez grindu i kosztu",
                 "kryzysy / kryzys start|status|ratuj|odbierz - wielkie wydarzenia świata w 4 krainach",
@@ -155,7 +156,7 @@ class SessionHelpSystemMixin:
                 "zasłoń / zaslon [off] - Strażnik chroni drużynę w tej samej lokacji, przejmując aggro wspólnego przeciwnika",
                 "pc tekst - czat drużyny",
                 "charyzma / charisma - szósta statystyka; rabat sklepowy i limit drużyny",
-                "multiclass / klasy - opcjonalne 1-3 aktywne klasy i Biegłość klas",
+                "multiclass / klasy - do 14 aktywnych klas i osobna Biegłość każdej klasy",
                 "multiclass add klasa / remove klasa - dodaj lub wyłącz klasę dodatkową",
                 "stats / staty - statystyki czytane osobno; staty info - baza, efektywne wartości, EQ i mechanika",
                 "hp / zdrowie - szybkie bieżące i maksymalne HP oraz Mana",
@@ -167,11 +168,11 @@ class SessionHelpSystemMixin:
                 "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
                 "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
                 "help skill <nazwa> / help <nazwa skilla> / skill info <nazwa> - pełny help każdej umiejętności/spella w grze",
-                "kolejka / kolejka lista - pokaż zapisane skille i czary; każda kolejka ma 20 aktywnych slotów na Levelu 1 i +1 slot co 10 Leveli, do 80 na Levelu 600; kolejka dodaj automatycznie włącza rotację",
+                "kolejka / kolejka lista - pokaż zapisane skille i czary; każda kolejka ma 40 aktywnych slotów na Levelu 1 i +1 slot co 10 Leveli, do 120 na Levelu 800; kolejka dodaj automatycznie włącza rotację",
                 "kolejka usuń <nr>, kolejka wyczyść [typ], kolejka góra/dół i kolejka on/off - pełne zarządzanie rotacją; pasywki nie zajmują slotów",
                 "aoe on / aoe off - globalnie włącza lub ogranicza ofensywne efekty wielocelowe; help aoe pokazuje zasady targetowania i party",
                 "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
-                "learn / naucz / ucz <nazwa, numer lub naturalna kategoria> - np. naucz leczenie, tarcza, ciecie, pocisk, ogien",
+                "learn / naucz / ucz - tylko przy nauczycielu aktywnej klasy: lista skilli, wymagania i ceny; learn <numer lub nazwa> uczy wybranej umiejetnosci",
                 "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
                 "forma lista / forma wybierz <nazwa lub nr> / forma auto - formy Broni Duszy; relic / relikt pozostają zgodnymi aliasami",
                 "portfel / money / saldo - jedno wspólne saldo automatycznie pokazane jako mithril, złoto i srebro",
@@ -610,8 +611,8 @@ class SessionHelpSystemMixin:
 
             if not key or key == "kategorie":
                 await self.send("POMOC — KATEGORIE")
-                await self.send("START: help podstawy, help progresja600, help informacje, help komendy, help nawigacja.")
-                await self.send("POSTAĆ: help statystyki, help hp, help score, help dusza, help ekwipunek, help klasy, help rasy, help multiclass, help moogle board.")
+                await self.send("START: help podstawy, help progresja800, help multiclass, help wzniesienie, help worldtier, help informacje, help komendy, help nawigacja.")
+                await self.send("POSTAĆ: help statystyki, help hp, help score, help level, help dusza, help ekwipunek, help klasy, help rasy, help multiclass, help wzniesienie, help worldtier, help moogle board.")
                 await self.send("WALKA: help walka, help statusy, help wimpy, help bossowie, help superbossy, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
                 await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help era60, help kontynent, help labirynt echa, help podziemia, help eksploracja, help bestiariusz, help atlas, help krypta, help portale, help sklepy.")
                 await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help archeologia, help kartografia, help craftmastery.")

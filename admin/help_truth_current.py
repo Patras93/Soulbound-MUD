@@ -45,13 +45,13 @@ def _normalize_help_line_v11328(line, slot_count, topic=""):
     if _historical_help_line_v11328(text):
         return text
 
-    # Safe current-progression replacements for known 1-600 axes only.
+    # Safe current-progression replacements for known 1-800 axes only.
     # Do not blindly rewrite every number 400: a local subsystem may have its
     # own legitimate cap unrelated to Character/Class/Soul/profession growth.
     always_replacements = (
-        ("maksymalnie 50 na Levelu 400", "maksymalnie 80 na Levelu 600"),
-        ("50 na Levelu 400", "80 na Levelu 600"),
-        ("10 na Levelu 1", "20 na Levelu 1"),
+        ("maksymalnie 50 na Levelu 400", "maksymalnie 120 na Levelu 800"),
+        ("50 na Levelu 400", "120 na Levelu 800"),
+        ("10 na Levelu 1", "40 na Levelu 1"),
     )
     for old, new in always_replacements:
         text = text.replace(old, new)
@@ -61,7 +61,7 @@ def _normalize_help_line_v11328(line, slot_count, topic=""):
         "podstawy", "score", "level", "xp", "statystyki", "dusza",
         "soul", "aoe", "umiejetnosci", "skille", "kolejka",
         "profesje", "tempo_profesji", "narzedzia", "narzedzia200",
-        "wiecej_ryb", "generator", "progresja600", "hp_mobow",
+        "wiecej_ryb", "generator", "progresja600", "progresja800", "hp_mobow",
         "soul_xp_bloki", "hp_bossow_lochow", "expowiska",
         "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie",
         "jubilerstwo2", "archeologia", "kartografia", "inzynier",
@@ -80,11 +80,12 @@ def _normalize_help_line_v11328(line, slot_count, topic=""):
         marker in text.casefold() for marker in axis_markers
     ):
         for old, new in (
-            ("1-400", "1-600"),
-            ("1–400", "1–600"),
-            ("do levelu 400", "do levelu 600"),
-            ("do Levelu 400", "do Levelu 600"),
-            ("na Levelu 400", "na Levelu 600"),
+            ("1-400", "1-800"),
+            ("1–400", "1–800"),
+            ("1-600", "1-800"),
+            ("1–600", "1–800"),
+            ("do levelu 400", "do levelu 800"),
+            ("do Levelu 400", "do Levelu 800"),
         ):
             text = text.replace(old, new)
 
@@ -144,18 +145,27 @@ def refresh_help_truth_current_v11328():
 
     HELP_TOPICS["podstawy"] = [
         f"Soulbound ma obecnie {class_count} klas, {race_count} ras i {profession_count} profesji.",
-        "Główne osie progresji postaci rozwijają się 1-600; bazowe statystyki postaci nie mają twardego limitu.",
+        "Główne osie progresji postaci rozwijają się 1-800; bazowe statystyki postaci nie mają twardego limitu.",
         "Najważniejsze komendy: help, look/l, exits, hp, score, staty, dusza, eq, quest, profesje, atlas, prowadz/walk, con i k/atakuj.",
         "Generator uzupełnia brakujące/proceduralne wartości; ręcznie authored treść ma pierwszeństwo i nie jest globalnie nadpisywana tylko dlatego, że istnieje Generator.",
         "Soulbound jest projektowany jako długoterminowy grind bez klasycznego końca po jednym zestawie EQ: sklep, crafting, dropy, lochy i bossowie mają różne role.",
     ]
 
-    HELP_TOPICS["progresja600"] = [
-        "Character Level, Biegłość klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się 1-600.",
-        "Bazowe statystyki postaci są bez twardego limitu.",
-        "Nieskończone instancje mogą skalować zagrożenie dalej niż główna oś 600.",
-        "score, level/lvl, xp, staty info, dusza info i profesje info pokazują bieżący postęp z runtime.",
+    HELP_TOPICS["progresja800"] = [
+        "Character Level, Biegłość każdej z 14 klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się od 1 do 800.",
+        "Bazowe statystyki postaci rozwijają się bez twardego limitu. Soul Tier rozwija się do 80.",
+        "Po osiągnięciu Biegłości 800 nadwyżka Class XP może rozwijać Wzniesienie danej klasy (rangi 0-1000), bez resetu.",
+        "Nieskończone lochy mogą dalej skalować trudność, niezależnie od poziomu 800 postaci.",
+        "score, level/lvl, xp, staty info, dusza info i profesje info pokazują bieżący postęp z gry.",
     ]
+    # Dawne nazwy tematów zostają, ale nie publikują nieaktualnych limitów.
+    HELP_TOPICS["progresja600"] = list(HELP_TOPICS["progresja800"])
+    HELP_TOPICS["progresja400"] = ["Historyczna nazwa. Aktualnie: help progresja800."]
+    HELP_TOPIC_ALIASES.update({
+        "progresja 800": "progresja800", "progression800": "progresja800",
+        "progresja 600": "progresja800", "progression600": "progresja800",
+        "progresja 400": "progresja800", "progression400": "progresja800",
+    })
 
     HELP_TOPICS["generator"] = [
         "Generator Core nie ma prawa spłaszczać ręcznie zaprojektowanej zawartości: authored wins, Generator uzupełnia braki i proceduralne rekordy.",
@@ -190,7 +200,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["umiejetnosci"] = [
-        f"Każda z {class_count} klas ma własny katalog umiejętności, a nauczony skill ma osobny Skill Level 1-600.",
+        f"Każda z {class_count} klas ma własny katalog umiejętności, a nauczony skill ma osobny Skill Level 1-800.",
         "Zwykłe skille klasowe nie mają cooldownu ponownego użycia; wyjątki są jawnie opisanymi specjalnymi mechanikami.",
         "Pasywki po nauczeniu działają automatycznie i nie zajmują slotów auto-kolejki.",
         "help skill <nazwa> pokazuje klasę, wymaganie, Manę, target, skalowanie, właściwości, Skill Level oraz specjalny timer, jeśli naprawdę istnieje.",
@@ -200,13 +210,14 @@ def refresh_help_truth_current_v11328():
 
     HELP_TOPICS["kolejka"] = [
         "Auto-kolejka rozdziela skille według realnej roli; pasywki nie zajmują slotów.",
-        "Na Character Level 1 każda dostępna kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1, do 80 na Levelu 600.",
-        "kolejka dodaj <skill>, kolejka lista [fizyczna|magiczna|feedback], kolejka usuń <nr>, kolejka wyczyść, kolejka góra/dół i kolejka on/off zarządzają rotacją.",
+        "Nauczone u nauczyciela aktywne skille i czary trafiają automatycznie do rotacji; starsze nauczone skille są dodawane jednorazowo.",
+        "Kolejki fizyczna, magiczna i Feedback nie mają limitu zapisanych ani aktywnych miejsc. Pasywki działają bez kolejki.",
+        "kolejka lista [fizyczna|magiczna|feedback] [strona] pokazuje 25 pozycji na stronę dla NVDA; kolejka usuń <nr>, kolejka wyczyść, kolejka góra/dół i kolejka on/off zarządzają rotacją; ręczne dodaj jest opcjonalne.",
         "Skill z kolejki nie zastępuje zwykłego autoataku Broni Duszy.",
     ]
 
     HELP_TOPICS["dusza"] = [
-        "Broń Duszy ma Soul Level 1-600 i osobną Soul Weapon Mastery 1-600.",
+        "Broń Duszy ma Soul Level 1-800, do 80 Soul Tierów i osobną Soul Weapon Mastery 1-800.",
         "Soul Weapon Mastery rozwija zwykły autoatak; skille klasowe rozwijają własny Skill Level.",
         "Liczba trafień autoataku wynika z końcowej Szybkości, a Haste zwiększa serię dodatkowo.",
         "dusza info pokazuje Soul XP, Tier, Próby i następny cel.",
@@ -214,7 +225,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["profesje"] = [
-        f"Soulbound ma {profession_count} profesji 1-600 i tyle samo przypisanych narzędzi; narzędzie kupuje się tylko raz na postać.",
+        f"Soulbound ma {profession_count} profesji 1-800 i tyle samo przypisanych narzędzi; narzędzie kupuje się tylko raz na postać.",
         "Zbieractwo: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo. Rzemiosła: Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie. Eksploracja: Archeologia i Kartografia.",
         "zamowienia / zamówienia obsługuje wszystkie profesje; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
         "Czasy aktywności są authored, a nie losowane przez Generator. help tempo_profesji pokazuje bieżące czasy bazowe i minimalne.",
@@ -298,7 +309,7 @@ def refresh_help_truth_current_v11328():
     HELP_TOPICS["ekwipunek"] = [
         f"Aktualna siatka ma {slot_count} logicznych typów EQ; podwójne są pierścienie, talizmany, kolczyki i akcesoria.",
         "eq info pokazuje statystyki, properties, sockety, sety i bieżące wymagania. porownaj <item> porównuje z aktualnie założonym sprzętem.",
-        "Klasowe EQ klas fizycznych daje Siłę + Zręczność + Kondycję; magiczne daje Inteligencję + Siłę Woli + Kondycję.",
+        "Fizyczne EQ zachowuje główne bonusy i dodatkowo daje Inteligencję, Siłę Woli i Magic Attack. Magiczne EQ dodatkowo daje Siłę, Zręczność i Attack (MultiClass EQ).",
         "Sklep klasowy ma trzy realne style: ofensywny, pancerny i zbalansowany. Mieszanie stylów tej samej klasy nadal liczy się do progów setu 2/4/6/8.",
         "Źródła EQ mają osobną tożsamość: sklep = przewidywalny set, Kowalstwo = masterwork/customizacja, Krypta = rarity+losowy affix, boss = mocniejszy/unikalny drop, UOSS = specjalne efekty/wardy/status-proof.",
         "shop info i porownaj czytają linię Tożsamość EQ. Gdy przedmiot ma określony etap źródła, czytają też Etap źródła EQ.",
@@ -336,7 +347,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["materialy_eq"] = [
-        f"Materiałowe corpse-drop EQ obejmuje aktualną siatkę {slot_count} logicznych typów i progresję wymaganej Biegłości 1-600.",
+        f"Materiałowe corpse-drop EQ obejmuje aktualną siatkę {slot_count} logicznych typów; Biegłość klasy rośnie do 800, a konkretne EQ ma własny próg wymagania.",
         "Każdy wariant ma source_progression_stage równy required_mastery i własną tożsamość dropu z moba.",
         "Materiał, losowy wariant, statystyki, properties, rarity i sockety tworzą osobny build; nie jest to kopia sklepu ani craftu.",
         "eq info / porownaj pokazują realny roll konkretnego przedmiotu.",
@@ -373,7 +384,7 @@ def refresh_help_truth_current_v11328():
         "statek pokazuje/rozwija Kadłub, Żagle, Ładownię i Nawigację; zegluj / sail obsługuje ruch po sektorach.",
         "handel morski pokazuje oferty; handel morski wez <nr>, handel morski oddaj, handel morski porzuc obsługują kontrakt. Zmiana wód/objazd nie zeruje aktywnego handlu, dopóki pozostajesz na morzu.",
         "Lider może przekazać przyjęty handel obecnym członkom drużyny zgodnie z aktualną logiką party.",
-        "Połów głębinowy używa zwykłego Wędkarstwa/Wędki 1-600, nie jest osobną profesją.",
+        "Połów głębinowy używa zwykłego Wędkarstwa/Wędki 1-800, nie jest osobną profesją.",
     ]
 
     HELP_TOPICS["superbossy"] = [
@@ -386,17 +397,39 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["archeologia"] = [
-        "Archeologia jest profesją 1-600. Pędzel Archeologa kupujesz tylko raz na postać.",
+        "Archeologia jest profesją 1-800. Pędzel Archeologa kupujesz tylko raz na postać.",
         "W odpowiednich ruinach/kryptach/świątyniach/archiwach użyj wykop; archeologia kolekcja pokazuje znaleziska.",
         "Pierwsze odkrycie konkretnego znaleziska ma premię XP i wysoką wartość kolekcjonerską.",
         "Archeologia ma odnawialne zlecenia i zamówienia; szczegóły pokazuje bieżący NPC/quest runtime.",
     ]
 
     HELP_TOPICS["kartografia"] = [
-        "Kartografia jest profesją 1-600. Kompas Mierniczy kupujesz tylko raz na postać.",
+        "Kartografia jest profesją 1-800. Kompas Mierniczy kupujesz tylko raz na postać.",
         "mapuj mierzy odwiedzaną lokację; pierwszy pomiar dopisuje ją do Atlasu Kartografa i daje premię odkrywcy.",
         "Kartografia ma odnawialne zlecenia i zamówienia; atlas odkrycia pokazuje długoterminową eksplorację świata.",
     ]
+
+    HELP_TOPICS["multiclass"] = [
+        f"W Soulbound można rozwijać wszystkie {class_count} klas; każda ma własną Biegłość 1-800 i osobny Class XP.",
+        "Każda aktywna klasa otrzymuje pełną własną nagrodę Class XP (do Multi Cap), nie ułamek wspólnej puli.",
+        "Zmiana aktywnych klas nie resetuje wyuczonych skilli ani zdobytej Biegłości.",
+        "Fizyczne i magiczne wyposażenie zyskuje uzupełniające bonusy MultiClass EQ. Zobacz: help ekwipunek.",
+    ]
+    HELP_TOPICS["wzniesienie"] = [
+        "wzniesienie / ascension pokazuje klasy, które osiągnęły Biegłość 800; nie resetuje Biegłości ani statystyk.",
+        "Dalszy Class XP po osiągnięciu Biegłości 800 rozwija odrębne Wzniesienie danej klasy do rangi 1000.",
+        "wzniesienie <klasa> pokazuje wskazaną klasę. World Tier 2+ wymaga przynajmniej jednej klasy z Biegłością 800.",
+        "Wyższe World Tiery mogą dodatkowo wymagać łącznych Rang Wzniesienia; wpisz help worldtier.",
+    ]
+    HELP_TOPICS["ascension_v021"] = list(HELP_TOPICS["wzniesienie"])
+    HELP_TOPICS["worldtier_v021"] = [
+        "worldtier pokazuje osobistą trudność świata od 1 do 10; worldtier <1-10> ustawia ją poza walką.",
+        "Wyższe Tiery podnoszą HP, obrażenia przeciwników i nagrody. Tier 2+ wymaga klasy z Biegłością 800.",
+        "Dla Tierów 3+ liczy się łączna Ranga Wzniesienia, którą pokazuje komenda wzniesienie.",
+        "Brak obowiązkowego PvP i automatycznego ataku pasywnych mobów.",
+    ]
+    HELP_TOPICS["worldtier"] = list(HELP_TOPICS["worldtier_v021"])
+    HELP_TOPIC_ALIASES.update({"wzniesienia": "wzniesienie", "ascension": "wzniesienie", "wzniesienie": "wzniesienie", "world tier": "worldtier", "poziom swiata": "worldtier", "poziomswiata": "worldtier"})
 
     # Group canonical commands under the actual current HELP topics.
     command_help_groups = {
@@ -503,7 +536,7 @@ def help_freshness_audit_v11328():
             if bad:
                 stale_rows.append(f"{topic}:{bad}")
             if (
-                ("1-400" in line or "1–400" in line)
+                any(v in line for v in ("1-400", "1–400", "1-600", "1–600"))
                 and "progresja400" not in str(topic).casefold()
                 and any(
                     marker in folded
@@ -526,7 +559,7 @@ def help_freshness_audit_v11328():
         errors.append("stale public HELP rows: " + ", ".join(stale_rows[:40]))
 
     expected = {
-        "podstawy": ("authored", "1-600"),
+        "podstawy": ("authored", "1-800"),
         "walka": ("nie mają cooldownu", "charakterystyczne"),
         "aoe": ("aoe on", "drużyn"),
         "profesje": ("4-8%", "x1.75"),

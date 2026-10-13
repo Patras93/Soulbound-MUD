@@ -211,14 +211,36 @@ class DatabaseAccountsMixin:
         ).fetchone()
         return str(row["username"]) if row else ""
 
+    def _delete_character_mercenary_data_v3002(self, character_account_id):
+        """Wipe character-bound mercenaries, including tables without account FK.
+
+        Mercenary tables use character_account_id (rather than account_id) and
+        have no REFERENCES accounts CASCADE. Wiping a primary character used
+        to leave its hires and tactics on the durable login id; deleting a
+        secondary character leaked orphaned contracts too.
+        """
+        char_id = int(character_account_id)
+        self.conn.execute(
+            "DELETE FROM mercenary_contracts WHERE character_account_id=?", (char_id,)
+        )
+        self.conn.execute(
+            "DELETE FROM mercenary_progress_v1220 WHERE character_account_id=?", (char_id,)
+        )
+
     def wipe_characters_for_master(self, master_account_id):
-        """Usuń postacie/progres konta, ale zachowaj login i hasło konta."""
+        """Usuń postacie/progres/najemników konta, zachowując login i hasło."""
         master_account_id = int(master_account_id)
         rows = self.conn.execute(
             "SELECT character_account_id FROM account_characters WHERE master_account_id=? ORDER BY slot",
             (master_account_id,),
         ).fetchall()
         char_ids = [int(row["character_account_id"]) for row in rows]
+
+        # Najemnicy nie mają ON DELETE CASCADE i używają innego klucza niż
+        # pozostałe tabele. Czyść ich kontrakty i zapis taktyki dla KAŻDEJ
+        # usuwanej postaci, zanim skasujesz profil techniczny.
+        for char_id in char_ids:
+            self._delete_character_mercenary_data_v3002(char_id)
 
         # Ukryte konta profili można bezpiecznie usunąć — FK CASCADE czyści ich dane.
         for char_id in char_ids:
@@ -231,7 +253,11 @@ class DatabaseAccountsMixin:
             tables = self.conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             ).fetchall()
-            protected = {"accounts", "account_characters", "account_wallet"}
+            protected = {
+                "accounts", "account_characters", "account_wallet",
+                # These belong to the LOGIN account, never to the character.
+                "account_emails_v1223", "email_password_reset_v1223", "password_recovery_v1222",
+            }
             for table_row in tables:
                 table = str(table_row["name"])
                 if table in protected:
@@ -283,6 +309,8 @@ class DatabaseAccountsMixin:
         slot = int(row["slot"])
         name = str(row["name"])
 
+        # Również "usuń jedną postać" musi czyścić trwałe najmy i ich taktyki.
+        self._delete_character_mercenary_data_v3002(character_account_id)
         if character_account_id != master_account_id:
             # Ukryty profil postaci. Usunięcie konta technicznego uruchamia
             # ON DELETE CASCADE dla całego progresu i samego powiązania slotu.
@@ -295,7 +323,11 @@ class DatabaseAccountsMixin:
             tables = self.conn.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
             ).fetchall()
-            protected = {"accounts", "account_characters", "account_wallet"}
+            protected = {
+                "accounts", "account_characters", "account_wallet",
+                # These belong to the LOGIN account, never to the character.
+                "account_emails_v1223", "email_password_reset_v1223", "password_recovery_v1222",
+            }
             for table_row in tables:
                 table = str(table_row["name"])
                 if table in protected:
@@ -331,6 +363,12 @@ class DatabaseAccountsMixin:
         removed = 0
         for master_id in masters:
             removed += self.wipe_characters_for_master(master_id)
+        # Tylko JAWNY globalny wipe: po usunieciu wszystkich postaci
+        # sprzatamy rowniez historyczne osierocone wynajmy i taktyki.
+        # Nie robimy tego przy zwyklym starcie ani migracji SQLite.
+        self.conn.execute("DELETE FROM mercenary_contracts")
+        self.conn.execute("DELETE FROM mercenary_progress_v1220")
+        self.conn.commit()
         return removed, masters
 
     def master_accounts(self):

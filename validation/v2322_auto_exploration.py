@@ -37,7 +37,7 @@ def run_regression():
 
     # Compile the exact production methods in a small isolated namespace;
     # the historical mixin cannot be imported until the complete world has booted.
-    from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103
+    from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103, fame_cap_awards_v2103
     from systems.exploration_point_values_v2322 import room_explorer_points_v2322, zone_explorer_points_v2322
     progress_src = (ROOT / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
     progress_tree = ast.parse(progress_src)
@@ -90,15 +90,36 @@ def run_regression():
             self.counters[(account_id, key)] = self.counters.get((account_id, key), 0) + amount
         def claim_exploration_reward(self, account_id, zone):
             return False
+        def save_character(self, character):
+            self.add_lifetime_stat(-1, 'save_character_calls', 1)
 
     class Session(RealMixin):
         def __init__(self, db, account_id):
             self.server = SimpleNamespace(db=db)
             self.account_id = account_id
-            self.character = SimpleNamespace(room_id='ep2322_room', character_level=184, silver=0)
+            self.character = SimpleNamespace(room_id='ep2322_room', character_level=184, soul_level=80, silver=0)
             self.awards = []
+            self.soul_awards = []
+            self.class_awards = []
+            self.stat_awards = []
             self.messages = []
+        def active_class_names(self):
+            return ('Wojownik', 'Mag')
+        def class_mastery_level(self, name):
+            return 33 if name == 'Wojownik' else 19
+        async def grant_combat_soul_xp_v11350(self, amount, **kwargs):
+            assert kwargs.get('content_scaled') is True
+            self.soul_awards.append(int(amount))
+        async def grant_class_xp(self, amount, **kwargs):
+            assert kwargs.get('single_level_cap') is False
+            assert kwargs.get('content_scaled') is True
+            self.class_awards.append(int(amount))
+        async def grant_stat_xp_v11342(self, amount, **kwargs):
+            assert kwargs.get('targets') is None
+            assert kwargs.get('content_scaled') is True
+            self.stat_awards.append(int(amount))
         def add_character_xp_with_event(self, amount, **kwargs):
+            assert kwargs.get('single_level_cap') is False
             assert kwargs.get('content_scaled') is True
             self.awards.append(int(amount))
             return []
@@ -131,6 +152,17 @@ def run_regression():
     checks += 1
     cap = exploration_point_xp_v2103(a.character)
     assert a.awards == [cap] * expected_ep and b.awards == [cap] * expected_ep
+    checks += 1
+    fame_caps = fame_cap_awards_v2103(a)
+    for session in (a, b):
+        assert session.soul_awards == [fame_caps['soul']] * expected_ep
+        assert session.class_awards == [fame_caps['class_total']] * expected_ep
+        assert session.stat_awards == [fame_caps['stat']] * expected_ep
+        assert len(session.awards) == len(session.soul_awards) == len(session.class_awards) == len(session.stat_awards)
+        checks += 4
+    assert db.counters[(-1, 'save_character_calls')] == 2
+    checks += 1
+    assert all(not any(w in msg.lower() for w in ('profesja +', 'narzędzie +')) for msg in a.messages)
     checks += 1
     assert a.messages.count(next(m for m in a.messages if 'Odkrycie lokacji: +3 EP' in m)) == 1
     checks += 1

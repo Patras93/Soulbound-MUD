@@ -36,7 +36,7 @@ COPY Dockerfile /app/Dockerfile
 # v1.60.5: Testujemy pliki START/STOP w czasie budowania, chociaz Linux ich nie uruchamia.
 # Bez tego v1.60.4 mial FileNotFoundError: /app/START_Soulbound.bat.
 COPY START_Soulbound.bat START_Soulbound_UKRYTY.vbs Start-Soulbound-Windows.bat STOP_Soulbound.bat host_windows.py /app/
-COPY uruchom_w_tle.py windows_launcher_state.py stop_soulbound_windows.py aktualizuj_soulbound.py /app/
+COPY uruchom_w_tle.py windows_launcher_state.py windows_runtime_state.py stop_soulbound_windows.py aktualizuj_soulbound.py /app/
 RUN python /app/predeploy_check.py \
     && python /app/predeploy_full.py \
     && rm -f /app/predeploy_check.py /app/predeploy_full.py /app/Dockerfile \

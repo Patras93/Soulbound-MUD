@@ -1568,7 +1568,7 @@ for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
         f"{_class_name}. Typ: {_CLASS_TYPE_LABEL_V03032.get(_class_type, _class_type)}. Broń Duszy: {_soul_weapon}.",
         CLASS_DESCRIPTIONS.get(_class_name, ""),
         _scale_text,
-        f"Biegłość klasy: 1-600. Umiejętności/spelle w aktualnej puli: {_skill_count}.",
+        f"Biegłość klasy: 1-{CLASS_MASTERY_MAX_LEVEL}. Umiejętności/spelle w aktualnej puli: {_skill_count}.",
         f"Nauczyciel: {_teacher_name}. Lokacja: {_teacher_room}.",
         f"Komendy: skills {_class_name}; kodeksklasowy {_class_name}; help skill <nazwa>; multiclass.",
     ]
@@ -1577,7 +1577,7 @@ for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
 
 HELP_TOPICS["klasy"] = [
     "Soulbound ma 14 klas: " + ", ".join(row[0] for row in CLASSES) + ".",
-    "Każda klasa ma Biegłość 1-600, własną Broń Duszy, pasywy i pulę skilli/spelli.",
+    f"Każda klasa ma Biegłość 1-{CLASS_MASTERY_MAX_LEVEL}, własną Broń Duszy, pasywy i pulę skilli/spelli.",
     "help <klasa> otwiera osobną pomoc klasy, np. help wojownik, help kapłan, help mag.",
     "skills pokazuje szczegóły umiejętności aktywnych klas; skills all pokazuje nazwy wszystkich umiejętności wszystkich 14 klas.",
     "spells / spels / czary pokazuje czary aktywnych klas magicznych; spells all / spels all pokazuje czary wszystkich klas magicznych.",

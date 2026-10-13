@@ -19,12 +19,14 @@ import time
 import traceback
 
 from windows_launcher_state import process_alive
+from windows_runtime_state import fallback_dir, write_state, read_state, remove_matching
 
 ROOT = Path(__file__).resolve().parent
 LOGS = ROOT / 'logs'
 STATE = LOGS / 'soulbound_supervisor.json'
 REQUEST = LOGS / 'soulbound_stop_request.json'
 LOG = LOGS / 'watchdog.log'
+ALT_STATE = fallback_dir(ROOT) / 'soulbound_supervisor.json'
 
 
 def report(message: str, *, error: bool = False) -> None:
@@ -59,7 +61,8 @@ def read_json(path: Path) -> dict:
 
 
 def stop_requested(run_id: str) -> bool:
-    return read_json(REQUEST).get('run_id') == run_id
+    return (read_json(REQUEST).get('run_id') == run_id or
+            read_json(fallback_dir(ROOT) / 'soulbound_stop_request.json').get('run_id') == run_id)
 
 
 def mutex_handle():
@@ -91,6 +94,9 @@ def supervise(run_server_fn=None, *, pause_fn=time.sleep, now_fn=time.monotonic,
         report('WATCHDOG: inny nadzorca dla tego katalogu juz pracuje.')
         return 0
     run_id = secrets.token_hex(24)
+    previous_supervisor = (os.environ.get('SOULBOUND_SUPERVISOR_PID'), os.environ.get('SOULBOUND_SUPERVISOR_RUN_ID'))
+    os.environ['SOULBOUND_SUPERVISOR_PID'] = str(os.getpid())
+    os.environ['SOULBOUND_SUPERVISOR_RUN_ID'] = run_id
     started = now_fn()
     cycles = 0
     consecutive_short = 0
@@ -103,7 +109,12 @@ def supervise(run_server_fn=None, *, pause_fn=time.sleep, now_fn=time.monotonic,
             # Also protected by named mutex, but leave a guard in case mutex unavailable.
             report('WATCHDOG: nadzorca juz uruchomiony.')
             return 0
-        atomic_json(STATE, {'pid': os.getpid(), 'root': str(ROOT), 'run_id': run_id, 'started': datetime.now().isoformat(timespec='seconds')})
+        state_data = {'pid': os.getpid(), 'root': str(ROOT), 'run_id': run_id, 'started': datetime.now().isoformat(timespec='seconds')}
+        atomic_json(STATE, state_data)
+        try:
+            write_state(fallback_dir(ROOT) / 'soulbound_supervisor.json', state_data)
+        except OSError as exc:
+            report(f'WATCHDOG UWAGA: kopia metadanych sterowania niedostepna: {exc}', error=True)
         report('WATCHDOG START: automatyczne uruchamianie po awarii wlaczone.')
         while True:
             if stop_requested(run_id):
@@ -149,11 +160,21 @@ def supervise(run_server_fn=None, *, pause_fn=time.sleep, now_fn=time.monotonic,
                 break
         return result
     finally:
+        for key, old in zip(('SOULBOUND_SUPERVISOR_PID', 'SOULBOUND_SUPERVISOR_RUN_ID'), previous_supervisor):
+            if old is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = old
         info = read_json(STATE)
         if info.get('run_id') == run_id and info.get('pid') == os.getpid():
             STATE.unlink(missing_ok=True)
+        try:
+            remove_matching(fallback_dir(ROOT) / 'soulbound_supervisor.json', 'run_id', run_id, root=ROOT)
+        except OSError as exc:
+            report(f'WATCHDOG UWAGA: nie usunieto pomocniczego stanu: {exc}', error=True)
         if stop_requested(run_id):
             REQUEST.unlink(missing_ok=True)
+            (fallback_dir(ROOT) / 'soulbound_stop_request.json').unlink(missing_ok=True)
         if isinstance(mutex, tuple):
             mutex[0].CloseHandle(mutex[1])
         report('WATCHDOG: nadzorca zakonczyl prace.')

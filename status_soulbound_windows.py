@@ -7,12 +7,15 @@ from pathlib import Path
 import socket
 import sys
 from windows_launcher_state import process_alive
+from windows_runtime_state import fallback_dir, read_state
 ROOT = Path(__file__).resolve().parent
 LOGS = ROOT / 'logs'
 
 def status():
     try:
-        info = json.loads((LOGS / 'soulbound_supervisor.json').read_text(encoding='utf-8'))
+        info = read_state(LOGS / 'soulbound_supervisor.json')
+        if not info:
+            info = read_state(fallback_dir(ROOT) / 'soulbound_supervisor.json')
         pid = int(info['pid'])
         alive = info.get('root') == str(ROOT) and process_alive(pid)
     except (OSError, KeyError, ValueError, TypeError):

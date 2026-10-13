@@ -41,7 +41,7 @@ NEGATIVE_TCP_CASES = ADDITIONAL_TCP_CASES[-4:]
 # Recognized kinds are checked against all live definitions.  A newly added
 # kind MUST be explicitly reviewed and included here or the gate fails.
 SUPPORTED_QUEST_KINDS = {
-    'collect', 'collect_category', 'collect_resource', 'collect_resource_set',
+    'collect', 'collect_category', 'collect_distinct_category', 'collect_resource', 'collect_resource_set',
     'craft_set', 'deliver_npc', 'discover_secret', 'explore_frontier',
     'kill', 'legendary_rare', 'mini_dungeon', 'party_contract',
     'profession_action', 'talk_class_teacher', 'talk_npc',

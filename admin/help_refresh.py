@@ -1335,12 +1335,13 @@ def refresh_help_truth_v11197():
     ]
 
     HELP_TOPICS["kolejka"] = [
-        "Auto-kolejka rozdziela skille według ich realnej roli: fizyczne, magiczne i Feedback. Pasywki nie zajmują slotów.",
-        "Mec: melee i ranged trafiają do kolejki fizycznej, magic i support do magicznej, a skille gałęzi Feedback do osobnej kolejki Feedback. Starsze wpisy są przenoszone automatycznie bez kasowania konfiguracji.",
-        "Na Character Level 1 każda dostępna kolejka ma 20 aktywnych slotów; co 10 Leveli dochodzi +1 slot, aż do 80 na Levelu 600.",
-        "W każdej rundzie kolejka może uruchomić maksymalnie jeden gotowy skill, ale nie zastępuje zwykłego autoataku Bronią Duszy. Pełna kolejka nie blokuje Soul Weapon Mastery ani właściwości Broni Duszy.",
-        "kolejka dodaj <skill> zapisuje aktywny skill w prawidłowej kolejce i automatycznie włącza rotację.",
-        "kolejka lista [fizyczna|magiczna|feedback], kolejka usuń <numer>, kolejka wyczyść [typ], kolejka góra/dół oraz kolejka on/off zarządzają rotacją.",
+        "Auto-kolejka dzieli aktywne umiejętności na fizyczne, magiczne i Feedback. Pasywki działają automatycznie, bez kolejki.",
+        "Nowo nauczony u nauczyciela aktywny czar lub skill automatycznie trafia do właściwej rotacji; kolejka dodaj jest opcjonalne.",
+        "Wcześniej poznane aktywne skille są uzupełniane jednorazowo; ręczne usunięcie nie zostaje cofnięte przy kolejnym logowaniu.",
+        "Kolejki fizyczna, magiczna i Feedback są bez limitu aktywnych i zapisanych miejsc. Level postaci nie narzuca liczby slotów.",
+        "W rundzie walki kolejka używa gotowego skilla zgodnie z maną, celem, specjalnymi timerami i aktywnymi klasami. Nie zastępuje zwykłego autoataku Broni Duszy.",
+        "kolejka lista [fizyczna|magiczna|feedback] [strona] pokazuje 25 wpisów na stronę, czytelnie dla NVDA.",
+        "kolejka on/off, kolejka usuń <numer>, kolejka wyczyść i kolejka góra/dół pozwalają sterować rotacją. Ręczne kolejka off jest zachowywane.",
     ]
 
     HELP_TOPICS["dusza"] = [
@@ -1518,7 +1519,7 @@ def help_truth_audit_v11197():
 
     canonical_600 = (
         "podstawy", "score", "level", "xp", "umiejetnosci", "skille",
-        "kolejka", "dusza", "profesje", "generator",
+        "dusza", "profesje", "generator",
     )
     current_800 = {"podstawy", "score", "level", "xp", "dusza"}
     for name in canonical_600:
@@ -1548,10 +1549,15 @@ def help_truth_audit_v11197():
             errors.append(f"HELP profesje: missing reward identity {needle}")
 
     queue = topic_text("kolejka")
-    if "20" not in queue or "80" not in queue:
-        errors.append("HELP kolejka: must state current 20->80 slot curve")
-    if "50 na Levelu 400" in queue or "70" in queue:
-        errors.append("HELP kolejka: stale queue capacity")
+    if "bez limitu" not in queue and "nie mają limitu" not in queue:
+        errors.append("HELP kolejka: missing unlimited rotation semantics")
+    if "automatycznie" not in queue or "nauczyciela" not in queue:
+        errors.append("HELP kolejka: missing automatic learned-skill enrollment")
+    if any(stale in queue.casefold() for stale in (
+        "aktywnych slotów; co 10", "aż do 80 na levelu", "maksymalnie 120 na levelu",
+        "co 10 leveli dochodzi", "20 aktywnych slotów",
+    )):
+        errors.append("HELP kolejka: obsolete level-based slot limits")
 
     skills = topic_text("umiejetnosci")
     if "nie mają cooldownu" not in skills or "V-MAX" not in skills:

@@ -223,9 +223,16 @@ class SessionCombatRewardsMixin:
                     for session in sorted(recipients, key=lambda s: s.character.name.lower()):
                         _xp_v1281 = min(V019_SAFE_INT, max(1, int(_base_xp_v1281)))
                         _xp_v1281 = session.apply_double_xp(_xp_v1281)
+                        from systems.experience_bank_v2011 import banked_experience_v2011
                         for _stat in session.character.STAT_PROGRESS_FIELDS:
+                            _stat_paid = banked_experience_v2011(
+                                session.server.db, session.account_id, _xp_v1281,
+                                'stat', session.character.character_level, source_key=_stat,
+                                overcap=combat_overcap_v2009(
+                                    template, session.character.character_level),
+                            )
                             for _msg in session.character.add_stat_progress(
-                                _xp_v1281, targets=(_stat,), single_level_cap=False,
+                                _stat_paid, targets=(_stat,), single_level_cap=False,
                             ):
                                 await session.send(_msg)
                         await session.grant_combat_soul_xp_v11350(
@@ -717,8 +724,8 @@ class SessionCombatRewardsMixin:
                         (session.class_mastery_level(_name) for _name in _active_classes_v1286),
                         default=1,
                     )
-                    # Class XP splits evenly between active classes, so use
-                    # the lowest class requirement to protect multiclass alts.
+                    # Each class receives this entire reward independently.
+                    # Use the lowest class requirement to protect newer multiclass alts.
                     class_xp_reward = dungeon_recipient_xp_v1286(
                         template, "class", class_xp_reward, _class_level_v1286,
                         combat_multiplier=xp_mult,

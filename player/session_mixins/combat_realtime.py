@@ -160,6 +160,13 @@ class SessionCombatRealtimeMixin:
                     )),
                 )
                 gain=self.apply_double_xp(gain)
+                # Soul Weapon mastery also uses the unified per-award Multi Cap.
+                # The dedicated skill ledger keeps its overflow separate.
+                from systems.experience_bank_v2011 import banked_experience_v2011
+                gain=banked_experience_v2011(
+                    self.server.db, self.account_id, gain, 'skill', level,
+                    source_key='soul_weapon_mastery',
+                )
                 result=self.character.add_soul_weapon_mastery_xp(gain)
                 self.session_summary_add("soul_weapon_mastery_xp", gain)
                 if result["level_ups"]:

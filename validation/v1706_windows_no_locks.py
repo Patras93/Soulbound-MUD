@@ -19,14 +19,15 @@ def run_regression():
         checks+=1
     assert 'cwd=str(ROOT)' in (ROOT/'uruchom_w_tle.py').read_text(encoding='utf-8')
     checks+=1
-    assert 'wait_gone(launcher_pid' in (ROOT/'stop_soulbound_windows.py').read_text(encoding='utf-8')
+    assert "process_alive(int(pidinfo['pid']))" in (ROOT/'stop_soulbound_windows.py').read_text(encoding='utf-8')
     checks+=1
-    assert 'wait_gone(pid' in (ROOT/'aktualizuj_soulbound.py').read_text(encoding='utf-8')
+    assert 'stop_soulbound_windows.py' in (ROOT/'aktualizuj_soulbound.py').read_text(encoding='utf-8')
     checks+=1
     # Isolated launch exercising the original host and its process marker.
     with tempfile.TemporaryDirectory(prefix='soulbound1706-') as folder:
         base=Path(folder)
         shutil.copy2(ROOT/'host_windows.py',base/'host_windows.py')
+        shutil.copy2(ROOT/'windows_runtime_state.py',base/'windows_runtime_state.py')
         (base/'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n",encoding='utf-8')
         (base/'server.py').write_text('print("TEST LAUNCH",flush=True)\n',encoding='utf-8')
         proc = subprocess.run([sys.executable,str(base/'host_windows.py')], cwd=base,

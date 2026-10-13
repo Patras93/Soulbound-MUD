@@ -1,3 +1,266 @@
+Soulbound v3.10.5 — SYNCHRONIZACJA WERSJI PREDEPLOY — 2026-10-13
+Aktualna paczka: v3.10.5
+
+- NAPRAWA: PREDEPLOY v3.10.4 blokowal wydanie: runtime=3.10.4, changelog=3.10.4, latest_changes=3.10.3. Ujednolicono wersje 3.10.5 w runtime, CHANGELOG_PL i LATEST_CHANGES_TITLE.
+- KOMENDA changes: dodano informacje o naprawie z v3.10.4 i biezacym v3.10.5, zachowujac historie.
+- ZACHOWANO: pelny audyt NPC z v3.10.4, rygor bezpiecznej instalacji i zgodnosc z NVDA; brak zmian w mechanice, balansie, swiatach, NPC, kontach i SQLite.
+- TESTY: archiwum i skladnia 546 plikow Python oraz kontrola zgodnosci wersji. Windows ULTIMATE 60/60 PLUS musi byc uruchomiony ponownie dla tego ZIP; nie wdrazac, jesli wynik nie jest PASS.
+
+==============================================================================
+Soulbound v3.10.4 — NAPRAWA ZASIEGU ZMIENNEJ W PELNYM PREDEPLOY — 2026-10-13
+Aktualna paczka: v3.10.4
+
+- NAPRAWA BLOKERA: Windows ULTIMATE 60/60 PLUS v3.10.3 przechodzil 59/60 etapow, a PELNY AUDYT konczyl sie NameError: _original_npc_ids_v3103 is not defined. Migawka identyfikatorow NPC byla zapisana lokalnie w main(), podczas gdy koncowa kontrola jest wykonywana po zakonczeniu main() w historycznym bloku audytow.
+- MIGAWKA NPC: teraz niemutowalny frozenset oryginalnych identyfikatorow NPC jest prawidlowo przekazywany do koncowej kontroli. Brak migawki powoduje blad zamiast pominiecia ochrony. Kazdy oryginalny NPC nadal musi byc obecny, a wszystkie pokoje NPC musza pozostac indywidualne i dostepne.
+- NIE OSLABIAMY TESTOW: weryfikacja sklepikarzy, nauczycieli, wyjsc, NPC i przyjmij 1/2 bez zmian; nie ukrywamy wyjatkow i nie kasujemy walidacji.
+- ZERO ZMIAN ROZGRYWKI / SQLITE: zachowano wszystkie 565 plikow, profesje, klasy, questy, NPC, ekwipunek, EXP, dane kont i postaci; tylko predeploy_full.py, wersja i niniejszy changelog sa zmienione.
+- WYMAGANY NOWY TEST NA WINDOWS: PREDEPLOY_NOWEJ_WERSJI.bat ma wykazac PASS wszystkich 60/60 PLUS na TYM ZIP-ie. Nie wdrazac przy FAIL; wynik starego ZIP nie uprawnia do wdrozenia.
+
+==============================================================================
+Soulbound v3.10.3 — BEZPIECZNY AUDYT NPC — 2026-10-13
+Aktualna paczka: v3.10.3
+
+- Poprawiono koncowy predeploy v3.10.1: testy historyczne moga rejestrowac dodatkowe wpisy NPC, ale nie moga usunac ZADNEGO NPC obecnego na starcie.
+- Poczatkowa kontrola nadal wymaga dokladnej liczby NPC. Koncowa kontrola porownuje identyfikatory oryginalnych NPC; wszystkie NPC (takze dodatkowe) nadal musza miec unikatowe zajete pokoje, istniejące pokoje i poprawne drogi powrotne.
+- Zachowano kontrolę kwatermistrzów, nauczycieli, Świątyni Odrodzenia i przyjmij 1/2. Dodano negatywne testy znikniecia NPC i kolizji pokoju.
+- Bez zmian w rozgrywce, balansie, EXP, danych postaci i schemacie SQLite. Przed wdrozeniem wykonac NOWY predeploy Windows 60/60 PLUS. Nie wdrazac po FAIL.
+
+==============================================================================
+Soulbound v3.10.2 — FRONTY ERY LEGEND + OSOBNE NPC — 2026-10-13
+Aktualna paczka: v3.10.2
+
+- NAPRAWA AUDYTU v1.60: dawna kontrola oficerów frontów Bazaltu i Szronu wymagała bezpośrednio starego pokoju, chociaż v3.10.1 celowo przeniosła ich do oddzielnych, dostępnych gabinetów.
+- RZECZYWISTE ZABEZPIECZENIE: kontrola nadal wymaga właściwego NPC przy właściwym froncie, poprawnego połączenia w obie strony przez maksymalnie 3 przejścia w aneksie, dokładnie jednego NPC w jego izbie i obecności oryginalnego zadania/bossa.
+- TESTY NEGATYWNE: brakujący i odłączony oficer powodują błąd; nie usuwamy audytu i nie omijamy go.
+- Bez zmian w zapisach SQLite, już istniejących kontach, postaciach, przedmiotach, EXP, Multi Cap, łowiskach, nowej fabule i oddzielnych pokojach NPC. Zachowany skrót `przyjmij 1`.
+- Wymagany NOWY predeploy Windows 60/60 PLUS dla tego pliku ZIP przed instalacją.
+
+==============================================================================
+Soulbound v3.10.1 — OSOBNE POKOJE KAŻDEGO NPC + PRZYJMIJ 1 — 2026-10-13
+Aktualna paczka: v3.10.1
+
+- KAŻDY NPC OSOBNO: w całym katalogu historycznych i nowych krain każdy zarejestrowany NPC ma własną izbe. Rozdzielono pokoje, w których przebywało kilku NPC, bez usuwania żadnego z nich. Dotyczy także Świątyni Odrodzenia, targów, 14 klas i profesji. Kwatermistrzowie zostają w dawnych sklepach, a nauczyciele otrzymują własne sale.
+- BEZPIECZNE PRZEJŚCIA: oryginalne pokoje i wyjścia pozostają, obok nich powstają odwracalne przejścia do gabinetów, galerii i skrzydeł. Odrębne pokoje zachowują krainę i nawigację NVDA.
+- PRZYJMIJ 1: po wejściu do pokoju danego NPC `przyjmij 1` wybiera pierwszą jego ofertę bez `quest list` i bez nazwy questa. `przyjmij 2` wybiera drugą i tak dalej. Poprzednie składnie nadal działają.
+- Questy, konta, postacie, EXP, Soul, Multi Cap, profesje, nauczyciele, handlarze, bossowie i dane SQLite pozostają zachowane. Żadna migracja bazy ani kasowanie rekordów nie są potrzebne.
+- Ta aktualizacja wymaga NOWEGO Windowsowego testu 60/60 PLUS przed `WDRAZAM`.
+
+==============================================================================
+Soulbound v3.10.0 — ERA NIESKOŃCZONYCH LEGEND: FUNDAMENT FABUŁY — 2026-10-13
+Aktualna paczka: v3.10.0
+
+- ZAKRES TEGO WYDANIA: pierwszy grywalny etap projektu v3.10.0, NIE wszystkie pierwotnie proponowane systemy. Nowe skille klasowe, finałowe systemy Profesji 5.0 i zaawansowane mechaniki bossów są planowane dalej, nie zgłaszamy ich jako gotowe.
+- NOWY ŚWIAT: 8 osobnych krain — Dolina Upadłych Koron, Khar-Dum, Szmaragdowa Dzicz, Morze Zapomnianych Dusz, Pustkowia Chaosu, Cytadela Wieczności, Kraina Owadów i Kraina Elfów. 141 nowych połączonych pokoi w tym Sala Drogowskazów (wejście: Plac Dusz, północny zachód), Galeria Ośmiu Bram, 40 sal ekspedycji. Nowe nazwy, opisy i drogi powrotne, bez losowych pułapek.
+- FABUŁA 3.0: 168 nowych zadań, w tym 40 rozdziałów historii ośmiu krain, 32 rozdziały fabularne w istniejącym świecie, 16 zadań ekspedycji, 24 odnawialne Kroniki, 28 rozdziałów klasowych (wszystkie 14 klas) i 28 zamówień mistrzowskich 14 profesji. Realne cele: zabij, przynieś przedmiot, porozmawiaj z postacią. Trwały zapis istniejącymi tabelami SQLite i łańcuch wymagań requires_quest.
+- KRAINY: 53 nowych NPC, 48 szablonów przeciwników i bossów, 80 zapisów odrodzeń mobów, 8 przedmiotów fabularnych z łupów. Osiem głównych bossów krain + osiem finałowych bossów ekspedycji; umiejętności walki i skalowanie oparte na istniejącym silniku, bez obietnicy nowych mechanik fazowych.
+- EXP: duże skalujące nagrody EXP postaci, klas, Duszy, statystyk i profesji przez istniejące funkcje; bez zmiany progów, Multi Cap, EXP Bank, przyznawania Fame i EP. Nowe obszary dodane do istniejącego atlasu eksploracji, help legendy prowadzi do lokacji i NPC.
+- PEŁNA WSTECZNA ZGODNOŚĆ: zachowano stare konta, postacie, ekwipunek, poziomy, skille, Multiclass 14, poprzednie questy i całą bazę SQLite; brak wipe i operacji kasujących. Nowe rekordy questów mają unikatowe ID z prefiksem v3100_ i nie nadpisują poprzednich.
+- BEZPIECZEŃSTWO: predeploy testuje stary świat, nowe połączenia, poprawność celów, wymagania łańcuchów, spawny i braki kolizji; Windows 60/60 PLUS jest obowiązkowy przed WDRAZAM. Nie wdrażać przy FAIL.
+
+==============================================================================
+Soulbound v3.00.7 — BORYS: 48 ZLECEŃ RYBNYCH + EP — 2026-10-13
+Aktualna paczka: v3.00.7
+
+- RYBAK BORYS: 48 nowych godzinnych zadań obok dotychczasowej Proby Rybaka na 30 ryb: 4 podstawowe zadania na ryby rzeczne, jeziorne, morskie, oceaniczne; 32 zlecenia na nazwane gatunki ryb, 8 zamowien na rozne zestawy gatunkow z kilku wod oraz 4 proby na 3, 6, 12 i 20 odmiennych gatunkow.
+- RÓŻNORODNOŚĆ: obok istniejącej próby ogólnej są cztery niezależne zlecenia: rzeka, jezioro, morze i ocean. Dodatkowo Borys zleca m.in. pstragi, wegorze, szczupaki, drapiezniki, ryby astralne, mityczne i legendarne; kazdy cel ma rzeczywiste wystepowanie w istniejącym katalogu polowow.
+- NALICZANIE: tylko ryby faktycznie zlowione po przyjeciu questa; zmiany trafiaja do SQLite przez oryginalne zdarzenia polowow. Ryb w siatce/ekwipunku nie mozna sprzedac przed oddaniem, jesli maja zostac wykorzystane do danego zlecenia. Questy przyjmuja wiele rownoleglych postepow tego samego polowu. Warianty rzadkie liczone kanonicznie jak bazowy gatunek.
+- NAGRODY: indywidualne, rosnace z trudnoscia, wieksze za zestawy i katalogowanie odmiennych gatunkow. EXP profesji Wedkarstwo i narzedzia Wedka oraz monety. Kazde zadanie odnawia sie niezaleznie po dotychczasowym godzinowym cooldownie.
+- OBSLUGA NVDA: porozmawiaj z Borysem i uzyj quest list Borys; quest info <numer> i quest accept <numer>; po ukonczeniu oddaj zadanie u Borysa.
+- BEZ RESETU: stare questy, konta, postacie, EQ, Soul, Multi Cap, EXP Bank i schemat SQLite bez zmian. Borys nadal sprzedaje wedke; Neris nadal prowadzi swoje zlecenia.
+- KOMENDA EP: wpisz ep po całkowitą liczbę zdobytych Exploration Points. ep region pokazuje bieżącą strefę, ep all wszystkie strefy. Odczyt trwałego licznika SQLite; bez modyfikacji EP, bez przyznawania EXP i bez resetu. Działa również przy odpoczynku, prowadzeniu oraz powaleniu. Dodano help ep i wpis w help komendy.
+- TESTY: gatunki i katalog zlecen Borysa, postepy na SQLite, lista NPC, odczyt EP z SQLite (23 kontrole), brak zapisu przy komendzie EP. Wymagany Windows PREDEPLOY 60/60 PLUS i osobne WDRAZAM.
+
+==============================================================================
+Soulbound v3.00.6 — NAPRAWA POMOCY KOLEJKI I PREDEPLOY — 2026-10-12
+Aktualna paczka: v3.00.6
+
+- NAPRAWA BLOKERA: pelny audyt v3.00.5 wykrywal stara pomoc, poniewaz historyczny moduł HELP ponownie wstawial opis limitow slotow. Ujednolicono go z systemem kolejek bez limitu.
+- HELP KOLEJKA: wyjasnia automatyczne dodawanie nowo nauczonych czarow i skilli, jednorazowy import znanych skilli, trzy kolejki bez limitu, 25 wynikow na strone, komendy on/off/usun/wyczysc oraz zasady walki.
+- TESTY: osobna kontrola dwoch warstw pomocy i historycznego audytu prawdy; blokada w razie regresji do dawnych limitow.
+- BEZ ZMIAN MECHANIKI: auto-czary, MultiClass, EXP, Multi Cap, skill queue, EQ, konta, postacie oraz SQLite zachowane. Wymagany nowy test Windows 60/60 PLUS i osobne WDRAZAM.
+
+==============================================================================
+Soulbound v3.00.5 — AUTOMATYCZNE CZARY I SKILLE MULTICLASS / KOLEJKA BEZ LIMITU — 2026-10-12
+Aktualna paczka: v3.00.5
+
+- AUTO-NAUKA = AUTO-UŻYCIE: kazdy nowo nauczony u nauczyciela aktywny czar lub skill trafia automatycznie do wlasciwej kolejki fizycznej, magicznej albo Feedback. Nie trzeba wpisywac kolejka dodaj. Podczas zwyklej walki atakuj/autoatak silnik wybiera kolejne mozliwe skille; przestrzega many, rzeczywistych cooldownow, typu celu, aktywnosci klasy i innych zasad.
+- ZNANE PRZED AKTUALIZACJA: jednorazowe, zachowujace kolejnosc istniejacej kolejki dolaczenie juz nauczonych aktywnych umiejetnosci. Trwale oznaczenie wykonania w nowej niewielkiej tabeli SQLite; po recznym usunieciu skill nie wraca przy kolejnych logowaniach. Nowa tabela jest bezpiecznie dodawana bez usuwania starych danych.
+- PASYWKI / UZYTKOWE: pasywne bonusy pozostaja automatyczne, a niebojowe utility oraz boosty pasywne nie sa bezsensownie odpalane podczas walki.
+- KOLEJKA BEZ LIMITU: fizyczna, magiczna i Feedback nie maja limitu aktywnych miejsc; level postaci nie ogranicza juz liczby zapamietanych skilli. Nie ma przyspieszenia tempa atakow: zwykly autoatak Broni Duszy, wymagania i rotacja pozostaja bez zmian.
+- MANUAL CONTROL: kolejka off/on, usun, wyczysc, gora/dol i opcjonalne dodaj nadal dzialaja. Wylaczona przez gracza istniejąca kolejka nie wlacza sie samoczynnie tylko dlatego, ze postac nauczyla sie nowego skilla.
+- OPTYMALIZACJA: odczyt znanych umiejetnosci jest buforowany w sesji; kosztowne czyszczenie/normalizacja calej kolejki zachodza raz na aktywna postac, nie przy kazdym takcie walki.
+- NVDA: kolejka wyswietla maksymalnie 25 wpisow na strone i przyjmuje kolejka lista fizyczna 2, magiczna 2, feedback 2. Learn podaje automatyczne dopisanie do rotacji.
+- BEZ RESETU: postacie, poprzednio zdobyta Bieglosc, EXP, Multi Cap, Soul, profesje, EQ, nauczone skille i zapis SQLite pozostaja. Przed wdrozeniem wymagany Windows PREDEPLOY 60/60 PLUS na paczce ZIP.
+
+==============================================================================
+Soulbound v3.00.4 — LEARN U NAUCZYCIELI + EP JAK FAME — 2026-10-12
+Aktualna paczka: v3.00.4
+
+- KOMENDA LEARN BEZ ARGUMENTU: dziala tylko w sali nauczyciela jednej z aktywnych klas i wypisuje lekcje, status znany/dostepny/zablokowany, cene oraz wymagania. Nie trzeba najpierw wpisywac talk.
+- LEARN <NUMER> ma identyczna numeracje jak talk <nauczyciel>, takze gdy inne umiejetnosci na liscie sa jeszcze zablokowane. Brak potajemnego przestawiania numerow przy wyzszych progach Bieglosci.
+- LEARN <NAZWA> / NAUCZ / UCZ nadal dziala u nauczyciela. Poza sala nauczyciela aktywnej klasy nauka jest zabroniona; pozostaje ochrona przed nauka podczas walki i wymagania Bieglosci, oplaty oraz zapis poznanych skilli.
+- LOOK / L przy odpowiednim nauczycielu przypomina lokalne komendy learn. Help nauczyciele/learn i opis lekcji sa zaktualizowane dla NVDA.
+- EXPLORER POINTS JAK FAME: kazdy nowy EP (odkryta lokacja) daje osobno EXP postaci, Duszy, kazdej aktywnej klasy (Bieglosc) i kazdej z szesciu statystyk bojowych. Kazda os otrzymuje swoja pelna nagrode tak jak Fame — bez dzielenia przez 14 klas ani inne osie. EXP Bank i globalny Multi Cap sa wciaz stosowane przez oryginalne metody naliczania.
+- JEDNORAZOWOSC: ponowne wejscie do odkrytego pokoju nie daje ponownie EP ani zadnego z EXP. Komunikaty odkrycia pokazuja oddzielne nagrody czytelne w NVDA. EP nie daje EXP do profesji, narzedzi ani skilli.
+- BEZ RESETU: nie zmieniono poziomow, EXP juz zdobytego, klas, Multiclass 14, Multi Cap, EQ, SQLite, kont, postaci ani zapisanych postepow. Przed wdrozeniem wymagany pelny Windows PREDEPLOY 60/60 PLUS.
+
+==============================================================================
+Soulbound v3.00.3 — BEZPIECZNE WIPE NAJEMNIKOW / SQLITE ULTIMATE 60 PLUS — 2026-10-12
+Aktualna paczka: v3.00.3
+
+- NAPRAWA NIEUDANEGO PREDEPLOY 60/60 PLUS v3.00.2: automatyczne usuwanie starych sierot najemnikow podczas otwierania SQLite zmienialo tabele mercenary_contracts i mercenary_progress_v1220 w tescie migracji. Naprawiono bez oslabiania bramki integralnosci.
+- START I MIGRACJA: serwer NIE kasuje historycznych kontraktow, EXP ani taktyk najemnikow podczas samego uruchomienia. Pelna integralnosc istniejacych danych zachowana. Nie ma nowego schematu SQLite.
+- JAWNY WIPE: usuniecie jednej postaci i wipe postaci konta nadal usuwa tylko ich najemnikow. Globalny wipe wszystkich postaci dodatkowo czyści wszystkie historyczne sieroty najemnikow dopiero PO potwierdzonym poleceniu administratora.
+- STARE DANE PO POPRZEDNIM WIPE: nie da sie pewnie odroznic starego kontraktu od nowego kontraktu na postaci o tym samym ID; wersja nie kasuje takich wynajmow automatycznie.
+- ZACHOWANO: wszystkie poprawki helpow Bieglosci 800 z v3.00.2, EQ 3.00.1, balans 3.00.0, 14 klas, Multi Cap, EXP, poziomy, SQLite i inne systemy. Nowa paczka wymaga ponownego testu ULTIMATE 60/60 PLUS na Windows przed wdrozeniem.
+
+Soulbound v3.00.2 — AKTUALIZACJA HELP / BIEGLOSC 800 / NAPRAWA WIPE NAJEMNIKOW — 2026-10-12
+Aktualna paczka: v3.00.2
+
+- ZAKRES: zaktualizowano publiczne HELP dla progresji 1-800 (14 klas, Soul, Skill, postac, 14 profesji i narzedzia), Soul Tier 80, Multiclass 14, hybrydowego EQ, Wzniesien i World Tier.
+- WZNIESIENIE: rozpoczyna sie po osiagnieciu Bieglosci 800 danej klasy; kazda klasa rozwija rangi 0-1000 osobno. Poprawiono rowniez komunikaty EXP i zablokowanego World Tier 2+.
+- POMOC: help progresja800 to nowa glowna pozycja; help progresja400 i help progresja600 dzialaja jako historyczne aliasy do AKTUALNYCH zasad. help wzniesienie / help ascension, help worldtier i help multiclass otrzymaly biezace teksty czytelne dla NVDA.
+- KOLEJKA: poprawiono nieaktualne wartosci slotow — teraz 40 na Levelu 1 i 120 na Levelu 800, zgodnie z kodem gry.
+- PROFIL: aktualne zakresy Soul Level 800, Soul Weapon Mastery 800 i Soul Tier 80. Rezonans Głębi zachowuje oryginalny prog wyposazenia Bieglosc 600 — to wymog EQ, a NIE cap klasy.
+- WIPE NAJEMNIKOW: naprawiono zapomniane kontrakty i zapis rozwoju/taktyk najemnikow po wipe postaci. Wipe postaci konta / wipe wszystkich / usuniecie jednej postaci czysci wlasne mercenary_contracts i mercenary_progress_v1220, w tym postac przypisana do glownego konta. Nigdy nie kasuje kontraktow innych pozostawionych postaci.
+- STARE SIEROTY: przy otwieraniu bazy porzadkowane sa tylko historyczne wpisy najemnikow, ktorych ID nie wskazuje zadnej istniejacej postaci. Jesli po dawnym wipe utworzono juz postac z tym samym ID, jej wpisy nie sa ruszane automatycznie, aby nie skasowac aktualnych wynajmow. W grze mozna uzyc najemnik odeslij wszyscy, aby pozegnac juz odziedziczonych najemnikow.
+- BEZ ZMIAN W ROZWOJU: nie zmieniono EXP, Multi Cap, statystyk, obrazen, poziomow, zywych postaci, schematu SQLite ani mechaniki Wzniesienia i World Tier. W wipe zachowano dane logowania i e-mail konta.
+- TESTY: 46 regresji helpow, kasowania najemnikow i SQLite oraz izolacji kont. Przed wdrozeniem na Windows wykonaj PREDEPLOY ULTIMATE 60/60 PLUS.
+
+Soulbound v3.00.1 — WYPOSAZENIE HYBRYDOWE DLA MULTICLASS 14 — 2026-10-12
+Aktualna paczka: v3.00.1
+
+- FIZYCZNE EQ: fizyczne elementy zbroi, setow i akcesoriow daja dodatkowo Inteligencje, Sile Woli i Magic Attack. Magiczne EQ otrzymuje dodatkowo Sile, Zrecznosc i Attack. Bonus hybrydowy zalezy od budzetu posiadanego EQ, a nie od klasy gracza; rozwoj klas nie jest karany.
+- BEZ NISZCZENIA EQ: statystyki zrodlowe, runy, sockety, ulepszenia, enchanty, sety, ceny, przedmioty i zapis SQLite pozostaja bez zmian. Hybrydowe dodatki sa obliczane przy noszeniu rowniez dla starszych egzemplarzy i nowo generowanego wyposazenia. Przedmioty faktycznie hybrydowe z dwiema rownowaznymi liniami nie dostaja duplikatow.
+- NVDA: eq info pokazuje jawnie dodatki MultiClass EQ; porownaj i automatyczna ocena EQ uwzglednia te same statystyki i Attack/Magic Attack.
+- BALANS: zwykle bonusy sa proporcjonalne do mocy starego EQ (20% glownych statystyk na brakujaca os i 30% ataku na brakujacy kanal), a nie pelna kopia mocy obu archetypow.
+- TESTY: osobne testy statycznego, sklepowego, magicznego, fizycznego, hybrydowego i niewyposazalnego przedmiotu. Pelny PREDEPLOY ULTIMATE 60/60 PLUS na Windows wymagany przed wdrozeniem.
+
+Soulbound v3.00.0 — SILNIEJSI PRZECIWNICY BEZ SZTYWNYCH BLOKAD — 2026-10-12
+Aktualna paczka: v3.00.0
+
+- WYSOKIE POZIOMY MOBOW: dotychczasowe skalowanie od etapu 100 uzupelniono o plynny bonus zagrozenia na kazdym terenie z zalecanym etapem, takze 1-99. Powazna roznica miedzy poziomem gracza a zalecanym etapem zwieksza HP moba i realne obrazenia jego odpowiedzi, a nie tylko liczbe HP z szablonu.
+- SOFT SCALING: brak zakazu wejscia, brak blokady walki, brak automatycznej niesmiertelnosci przeciwnika. Pierwsze 5 poziomow roznicy nie doklada kary. Trudnosc rosnie wraz z roznica poziomow; normalni przeciwnicy w zgodnych poziomowo obszarach sa bez zmian.
+- NOVICE SAFETY: zwykle potwory w prawdziwych obszarach poczatkowych nadal korzystaja z ochrony przed sztucznymi instant-killami. Potwory w obszarach o zalecanym etapie znacznie powyzej poziomu postaci nie sa traktowane jako poczatkowe.
+- CONSIDER: informacja o zalecanym etapie i levelu gracza, czytelna dla NVDA; prognoza HP/obrazen korzysta z tego samego algorytmu co walka.
+- ZACHOWANO: statystyki bez limitu, 14 klas, dotychczasowa moc atakow najemnikow i przywolan, pelny Multi Cap, nagrody, EXP Bank, profesje i ich progi, questy i ekonomie. Postacie i struktura SQLite bez zmian; nie dodano zadnych nowych systemow.
+- TESTY: izolowane regresje roznic poziomow, normalnych i elitarnych przeciwnikow, poczatkujacych, CONSIDER, duzych liczb i grup. Predeploy 60/60 PLUS na docelowym Windows wymagany PRZED wdrozeniem.
+
+Soulbound v2.32.19 — BALANS PROFESJI, NARZEDZI I MULTI CAP — 2026-10-12
+Aktualna paczka: v2.32.19
+
+- EXP ZA ZBIERANIE/CRAFT: kazda nagroda profesji i uzywanego narzedzia korzysta z pelnego globalnego Multi Cap, niezaleznie. Wczesniej te czynnosci omijaly limit. Nadwyzka zachowana w oddzielnych kontach EXP Bank (profesja oraz narzedzie).
+- SPRZEDAZ MATERIALOW: zwykla i hurtowa sprzedaz korzystaja z Multi Cap. Jedna sprzedaz to jedna nagroda, bez mnozenia capu przez liczbe sztuk. Nadwyzka EXP pozostaje w banku danej profesji.
+- EXP BANK: bezpieczna wyplata 1:1 — z banku moze dojsc maksymalnie tyle EXP, ile uzyskano jako nowa wyplacona nagrode, i nigdy ponad globalny cap. 1 XP nie wyplaca juz calego milionowego capu. Zadnego resetowania lub kasowania sald.
+- TEMPO ROZWOJU: wymagany EXP od poziomu 50 dla wszystkich 14 profesji i narzedzi rosnie mocniej na wysokich poziomach (płynne punkty: poziom 50 x1.05; 100 x8; 200 x50; 400 x140; 600 x285; 799 x500 wzgledem historycznej bazy). Pierwsze 49 poziomow, zdobycze EXP, czasy zbierania i przyrosty za jakosc bez zmian.
+- MULTICLASS 14, SOUL, LEVEL, Multi Cap co 10 poziomow, wszystkie stare postacie i tabele SQLite bez zmian. Brak zmian w EXP juz zdobytym oraz poziomach.
+- TESTY: model czasu awansu, niezalezne banki, przypadki wysokich poziomow i brak przyznawania EXP profesji za zwykla walke; wymagany pelny PREDEPLOY 60/60 PLUS na Windows przed wdrozeniem.
+
+Soulbound v2.32.18 — PELNY MULTI CAP DLA KAZDEJ DZIEDZINY — 2026-10-12
+Aktualna paczka: v2.32.18
+
+- GLOBALNY MULTI CAP jest jeden liczbowo, lecz jest maksymalnym limitem
+  KAZDEJ OSOBNEJ nagrody EXP. Np. Multi Cap 26000 oznacza do 26000 EXP
+  dla Sily, osobno dla Zrecznosci, Duszy, kazdej klasy, skilla, profesji
+  i narzedzia. Nie jest to pula dzielona miedzy systemy ani gwarantowana
+  kwota nagrody. Trudnosc moba, jakosc materialu i czynnosc nadaja EXP.
+- NAPRAWA MULTICLASS 14: Class XP nie jest juz dzielony przez aktywne klasy.
+  Kazda aktywna klasa otrzymuje pelna osobna nagrode z tego samego zrodla
+  (do Multi Cap, lub do Doublecap dla kwalifikowanego bossa).
+  Kazda klasa zachowuje osobny poziom i oddzielny EXP Bank.
+- Fame: usunieto historyczne mnozenie nagrody klas przez liczbe klas,
+  bo dawniej bylo ono wymagane przez podzial. Fame/EP NIE dostaja przez
+  to nowych ogromnych nagrod; to nadal zwykle nagrody per wydarzenie.
+- Profesje i narzedzia dostaja XP tylko za odpowiednie czynnosci,
+  a nie za walke. Rozwój profesji nadal zwieksza globalny Multi Cap.
+- ZACHOWANO wszystkie postacie, XP, drop, SQLite, balans pozostalych
+  nagrod, rosnacy co 10 poziomow Multi Cap, level i STOP/Watchdog.
+- DODANO regresje osobnego EXP 14 klas, per-class bank, bez podzialu
+  i bez mnozenia nagrod Fame. Pelny predeploy 60/60 PLUS obowiazkowy
+  przed wdrozeniem na Windows; nie wdrozono automatycznie.
+
+Soulbound v2.32.17 — ROSNACY MULTI CAP I SOUL XP W LEVEL — 2026-10-12
+Aktualna paczka: v2.32.17
+
+- ROSNACY MULTI CAP dla WSZYSTKICH trwale zdobytych poziomow postaci:
+  1-10 +500 EXP za poziom, 11-20 +1000, 21-30 +5000, 31-40 +7500,
+  41-50 +10000, i dalej +2500 do stawki za kazdy nastepny blok 10 poziomow,
+  bez koncowego limitu. Stawki sumuja sie od poziomu 1 kazdej dziedziny;
+  nie liczymy samej sumy poziomow globalnie jak jednej kategorii.
+- Dotyczy postaci, kazdej odkrytej klasy (do 14), Duszy, Soul Tier, Broni Duszy,
+  kazdej bazowej statystyki, poznanych skilli, profesji, narzedzi i wzniesien.
+  Niepoznanych skilli/klas, tymczasowych bonusow, mobow i pieter NIE liczymy.
+- Jedna wartosc limitu, stosowana osobno do kazdej nagrody XP, bez wspolnego
+  zuzywania puli. EXP Bank, Doublecap bossow i wysokie nagrody zachowane.
+  Multi Cap NIE PODNOSI samych nagrod ani nie zmienia wymaganych XP na awans.
+- KOMENDA LEVEL: pokazuje takze rzeczywisty postep Soul Level — Soul XP
+  aktualne, wymagane na kolejny poziom, ile brakuje, lub MAX/stan blokady
+  Soul Tier. Ostatnia linia zawsze Your experience cap is N EXP.
+- EXP CAP i LEVEL pokazuja dokladnie ten sam limit, jaki nalicza silnik nagrod.
+- Progresja 14 klas, profesji i narzedzi niezmieniona; walka nie daje XP
+  profesji i narzedzi. Wszystkie postacie, poziomy, banki XP i SQLite zachowane.
+- Zachowano STOP/Watchdog, kopie Windows i predeploy ULTIMATE 60 PLUS.
+- Przed wdrozeniem wymagany wynik 60/60 PLUS na Windows dla tej paczki.
+
+Soulbound v2.32.16 — LEVEL: PELNE POZIOMY I EXP CAP — 2026-10-12
+Aktualna paczka: v2.32.16
+
+- Komenda level pokazuje wszystkie rzeczywiscie posiadane poziomy: postac (i EXP
+  do nastepnego poziomu), Dusza, Soul Tier, Bron Duszy, kazda odblokowana klasa,
+  wszystkie bazowe statystyki, wszystkie nauczone skille, profesje, narzedzia oraz
+  wzniesienia. Nieaktywnych klas nie pomijamy, nieznanych skilli nie dopisujemy.
+- Krotkie paczki wypisywanych poziomow sa czytelne dla NVDA i nie obcinaja dlugich
+  list skilli; ostatni komunikat brzmi: Your experience cap is N EXP.
+- Wyswietlany cap jest dokladnie tym samym Multi Capem co w komendzie expcap
+  i w rzeczywistym naliczaniu EXP: 500 razy suma posiadanych trwalych poziomow.
+- Nowa regresja porownuje wyswietlany cap z silnikiem, sprawdza kazdy system,
+  nieaktywne klasy, 45 skilli bez ucinania, niepoznane skille i brak zapisu SQLite.
+- Nie zmieniono balansu, progow EXP, XP Bank, walki, 14 klas, STOP/Watchdog,
+  predeploy ani schematu SQLite. Bez plikow raportow TXT poza CHANGELOG_PL.txt.
+- Wymagany pełny PREDEPLOY 60/60 PLUS na Windows przed wdrozeniem.
+
+Soulbound v2.32.15 — MULTI CAP EXP I MULTICLASS 14 — 2026-10-12
+Aktualna paczka: v2.32.15
+
+- MULTI CAP: kazdy posiadany poziom daje +500 do globalnego EXP Capu: postac,
+  Dusza, Soul Tier, Bron Duszy, kazda odkryta klasa, kazda trwala statystyka,
+  nauczone skille, profesje, narzedzia i wzniesienia. Poziomy niepoznanych skilli,
+  niepoznanych klas, mobow, przedmiotow i pieter nie sa liczone.
+- TEN SAM CAP limituje oddzielnie kazda przyznawana nagrode XP. Nagrody
+  Fame i EP pozostaja na poprzednich poziomach, by nie przyspieszyc grindu. Kategorie EXP nie
+  kradna sobie puli. Doublecap bossow = 2x Multi Cap; nadwyzki zachowuje EXP Bank.
+- MULTICLASS: mozna wlaczyc wszystkie 14 klas; kazda ma trwaly, osobny poziom
+  Bieglosci i EXP. Klasa glowna i Bron Duszy nie zmieniaja sie, nie kasujemy
+  zapisanych poziomow klas nieaktywnych. Class XP jest dzielony miedzy aktywne
+  klasy; nagrody z zadan specjalnych respektuja kazda odrebna klase.
+- UDERZENIA BRONIA DUSZY rowniez respektuja Multi Cap i EXP Bank.
+- WALKA NIE PRZYZNAJE EXP profesjom ani narzedziom. Rozwoj profesji przez ich
+  czynnosci podnosi tylko globalny Multi Cap na nastepne nagrody.
+- Bez resetowania postaci i bez modyfikacji schematu SQLite. STOP/Watchdog,
+  predeploy 60 PLUS, backupy Windows i pozostale systemy sa zachowane.
+- Komenda expcap/experience pokazuje wspolny cap i skladniki dla NVDA.
+- UWAGA: aktualizacja wymaga pelnego predeploy 60/60 PLUS na Windows przed
+  wdrozeniem; dopiero po PASS mozna instalowac.
+
+Soulbound v2.32.14 — NAPRAWA TESTU STARTU WINDOWS (PREDEPLOY) — 2026-10-12
+Aktualna paczka: v2.32.14
+- NAPRAWA PREDEPLOY: test WINDOWS BACKGROUND v1.60.4 blednie wymagal `exit /b %errorlevel%` w widocznym starterze. Od v2.32.13 starter uzywa `setlocal EnableDelayedExpansion` i poprawnego `exit /b !errorlevel!` w blokach IF, zeby przekazac rzeczywisty kod bledu procesu.
+- Test sprawdza teraz OBIE galezie uruchamiania (`py -3` i `python`), ustawienie EnableDelayedExpansion i niezwloczne przekazanie kodu procesu. Celowo zmodyfikowane lub niepelne startery nadal daja FAIL; nie wylaczono kontroli ani nie usunieto etapu.
+- Nie zmieniono uruchamiacza, serwera, nadzorcy ani logiki STOP z v2.32.13. Nie zmieniono rozgrywki, balansu, EXP, postaci, schematu SQLite ani danych.
+- Zachowano wymagane PREDEPLOY ULTIMATE 60/60 PLUS i kontrole rzeczywistej bazy na jej odizolowanej kopii. Nie wdrozono automatycznie; wymagany ponowny wynik PASS dla tego ZIP i potwierdzenie WDRAZAM.
+- Pakiet kompletny ZIP, bez dodatkowych raportow TXT. Testy lokalne Linux nie zastępuja kontroli 60/60 na docelowym Windows.
+
+Soulbound v2.32.13 — STOP I NADZORCA BEZ RECZNEGO KONCZENIA PROCESOW (Windows) — 2026-10-12
+Aktualna paczka: v2.32.13
+- NAPRAWA KRYTYCZNA: STOP_Soulbound.bat przekazuje prawdziwy kod zakonczenia Pythona. Nie wolno otrzymac kodu 0, gdy serwer nie potwierdzil STOP.
+- POPRAWKA WATCHDOG: identyfikatory procesu nadzorcy i launchera sa rozne. STOP kieruje znacznik zamkniecia do wlasciwego nadzorcy, zanim wysle uwierzytelnione polecenie do serwera.
+- KOPIA STEROWANIA: plik tokenu STOP oraz stan nadzorcy i launchera zapisywane sa dodatkowo w osobnym folderze TEMP powiazanym ze sciezka instalacji. Gdy zniknie logs/soulbound_control.json, STOP moze uzyc zweryfikowanej kopii. Serwer przechowuje ponadto PID i identyfikator nadzorcy w danych tokenu, gdy oba pliki watchdog znikna.
+- BEZPIECZENSTWO: brak tokenu przy zajetym porcie 4000 daje FAIL; nie ma taskkill /F ani zabijania nieznanych procesow. STOP czeka na zamkniecie serwera, launchera, nadzorcy oraz zwolnienie portu. Brak potwierdzenia blokuje aktualizacje.
+- AKTUALIZATOR: sprawdza aktywnego nadzorce nawet przy chwilowo wolnym porcie (ochrona przed restartem w czasie podmiany plikow); wydluzono bezpieczny czas oczekiwania.
+- REGRESJA: prawdziwy lokalny protokol STOP z poprawnym i niepoprawnym stanem, awaria glownego pliku sterowania, nadzorca w trybie backoff, wynik BAT; test bez produkcyjnej SQLite i bez procesow Windows. Zachowano PREDEPLOY ULTIMATE 60 PLUS jako wymaganie przed wdrozeniem.
+- BRAK ZMIAN ROZGRYWKI: nie zmieniono balansu, postaci, EXP, mapy, lochow ani schematu SQLite. Paczka nie zawiera produkcyjnej bazy ani nowych raportow TXT. Nie wdrozono automatycznie.
+- UWAGA: prawdziwe zatrzymanie i ponowny start serwera na docelowym Windows wymagaja potwierdzenia w praktyce; lokalna symulacja nie zastepuje tego testu.
+
 Soulbound v2.32.12 — NAPRAWA AUTO-KOPANIA I RUCHU (Windows) — 2026-10-12
 Aktualna paczka: v2.32.12
 - NAPRAWA: auto-kopanie w kopalni moglo sie zatrzymac z TypeError: _move_v0380() got an unexpected keyword argument 'preserve_auto_mining', gdy wydobycie przebijalo tunel, lub podczas automatycznego przejscia w wybranym kierunku.

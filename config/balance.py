@@ -30,7 +30,7 @@ CHARACTER_MAX_LEVEL = 800
 CLASS_MASTERY_MAX_LEVEL = 800
 CLASS_MASTERY_XP_BASE = 1000
 CLASS_MASTERY_XP_STEP = 250
-MULTICLASS_MAX_ACTIVE = 3
+MULTICLASS_MAX_ACTIVE = 14
 SKILL_MAX_LEVEL = 800
 SKILL_XP_BASE = 50
 SKILL_XP_STEP = 8
@@ -90,24 +90,24 @@ TOOL_XP_REQUIREMENT_MULTIPLIERS = {
     "mining": 2.0,
 }
 
-# v1.40.8: mocniejsza, lecz plynnna progresja od poziomu 50.
+# v2.32.19: profesje i narzedzia: wymagany EXP rośnie znacznie wolniej niz potencjalna szybkosc materialow, dzieki czemu wysokie levele wymagaja pracy.
 # Mnozniki sa CALKOWITE wzgledem starej (przed v1.40.1/v1.40.7)
 # krzywej, NIE nakladaja sie ponownie na punkty z v1.40.7.
 # Poziomy <=49 i zdobywane EXP pozostaja nietkniete.
 # 10000 punktow = x1.00. Profesje i narzedzia maja wspolna krzywa.
 PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401 = (
     (49, 10000),
-    (50, 10100),    # x1.01
-    (75, 15000),    # x1.50
-    (100, 20000),   # x2.00
-    (150, 30000),   # x3.00
-    (200, 40000),   # x4.00
-    (300, 60000),   # x6.00
-    (400, 80000),   # x8.00
-    (500, 120000),  # x12.0
-    (600, 160000),  # x16.0
-    (700, 205000),  # x20.5
-    (799, 250000),  # x25.0
+    (50, 10500),    # x1.05 - initially gentle
+    (75, 45000),    # x4.5
+    (100, 80000),   # x8
+    (150, 240000),  # x24
+    (200, 500000),  # x50
+    (300, 900000),  # x90
+    (400, 1400000), # x140
+    (500, 2000000), # x200
+    (600, 2850000), # x285
+    (700, 3800000), # x380
+    (799, 5000000), # x500
 )
 
 # Poziom postaci, biegosc klasy, Dusza, Bron Duszy, skille, wzniesienie.

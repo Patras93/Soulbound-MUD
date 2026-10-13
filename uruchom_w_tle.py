@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 from windows_launcher_state import process_alive
+from windows_runtime_state import fallback_dir
 import socket
 import subprocess
 import sys
@@ -31,23 +32,23 @@ def _log(message: str, *, error: bool = False) -> None:
 
 
 def _already_running() -> bool:
-    state_file = LOGS / 'soulbound_supervisor.json'
-    if state_file.is_file():
-        try:
-            info = json.loads(state_file.read_text(encoding='utf-8'))
-            if Path(str(info.get('root', ''))).resolve() == ROOT and process_alive(int(info['pid'])):
-                return True
-        except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
-            pass
-    info_file = LOGS / 'soulbound_control.json'
-    if info_file.is_file():
-        try:
-            metadata = json.loads(info_file.read_text(encoding='utf-8'))
-            if Path(str(metadata.get('root', ''))).resolve() == ROOT:
-                with socket.create_connection(('127.0.0.1', int(metadata['port'])), timeout=0.4):
+    for state_file in (LOGS / 'soulbound_supervisor.json', fallback_dir(ROOT) / 'soulbound_supervisor.json'):
+        if state_file.is_file():
+            try:
+                info = json.loads(state_file.read_text(encoding='utf-8'))
+                if Path(str(info.get('root', ''))).resolve() == ROOT and process_alive(int(info['pid'])):
                     return True
-        except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: stale metadata; port is checked independently
-            pass
+            except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
+                pass
+    for info_file in (LOGS / 'soulbound_control.json', fallback_dir(ROOT) / 'soulbound_control.json'):
+        if info_file.is_file():
+            try:
+                metadata = json.loads(info_file.read_text(encoding='utf-8'))
+                if Path(str(metadata.get('root', ''))).resolve() == ROOT:
+                    with socket.create_connection(('127.0.0.1', int(metadata['port'])), timeout=0.4):
+                        return True
+            except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: stale metadata; port is checked independently
+                pass
     # A port already occupied by another program is not safe to replace.
     try:
         with socket.create_connection(('127.0.0.1', 4000), timeout=0.4):

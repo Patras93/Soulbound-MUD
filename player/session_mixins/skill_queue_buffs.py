@@ -10,13 +10,71 @@ from player.session_mixins.shops_teachers import CHARACTER_MAX_LEVEL
 from player.session_mixins.skill_learning import CLASS_SKILLS, SKILL_MAX_LEVEL
 
 
+# Immutable authored catalog; constant-time lookup prevents 14-class rotations
+# repeatedly searching thousands of skill definitions each combat round.
+_SKILLS_BY_ID_V3005 = {
+    str(skill["id"]): skill
+    for skills in CLASS_SKILLS.values()
+    for skill in skills
+}
+
+
 class SessionSkillQueueBuffsMixin:
     def skill_by_id(self, skill_id):
-            for class_name, skills in CLASS_SKILLS.items():
-                for skill in skills:
-                    if skill["id"] == skill_id:
-                        return skill
-            return None
+            return _SKILLS_BY_ID_V3005.get(str(skill_id))
+
+    def auto_queue_eligible_v3005(self, skill):
+            if not skill:
+                return False
+            kind = str(skill.get("kind", "")).lower()
+            if kind in ("passive", "utility"):
+                return False
+            if kind == "boost" and not skill.get("active_special") and str(skill.get("mec_special", "")) != "vmax":
+                return False
+            return not self.is_mec_protocol_v10013(skill)
+
+    def auto_enroll_existing_skills_v3005(self):
+            """Import old learned spells once, without undoing manual queue edits."""
+            if not getattr(self, "account_id", None) or not getattr(self, "character", None):
+                return 0
+            if getattr(self, "_auto_seeded_account_v3005", None) == self.account_id:
+                return 0
+            learned = set(self.server.db.learned_skill_ids(self.account_id))
+            self._auto_queue_known_v3005 = (self.account_id, learned)
+            entries = [
+                (self.skill_queue_type(skill), str(skill["id"]))
+                for class_skills in CLASS_SKILLS.values()
+                for skill in class_skills
+                if str(skill["id"]) in learned and self.auto_queue_eligible_v3005(skill)
+            ]
+            added = self.server.db.auto_enroll_learned_skills_v3005(self.account_id, entries)
+            self._auto_seeded_account_v3005 = self.account_id
+            return added
+
+    def auto_register_learned_skill_v3005(self, skill):
+            """Newly learned spell/skill joins auto rotation immediately."""
+            if not self.auto_queue_eligible_v3005(skill):
+                return "passive"
+            cached = getattr(self, "_auto_queue_known_v3005", None)
+            if cached and cached[0] == self.account_id:
+                cached[1].add(str(skill["id"]))
+            queue_type = self.skill_queue_type(skill)
+            was_seeded = getattr(self, "_auto_seeded_account_v3005", None) == self.account_id
+            if not was_seeded:
+                # Includes the skill just learned, alongside all older ones.
+                self.auto_enroll_existing_skills_v3005()
+            result = self.server.db.add_skill_queue_entry(self.account_id, queue_type, skill["id"])
+            if result[0]:
+                self.skill_queue_cursors[queue_type] = 0
+            # If this character has no explicitly disabled prior rotation,
+            # learning should start autocasting without an extra command.
+            if not self.server.db.skill_queue_enabled(self.account_id):
+                row = self.server.db.conn.execute(
+                    "SELECT COUNT(*) FROM skill_queue WHERE account_id=?", (self.account_id,)
+                ).fetchone()
+                if int(row[0]) == 1:
+                    self.server.db.set_skill_queue_enabled(self.account_id, True)
+            return queue_type
 
     def is_mec_protocol_v10013(self, skill):
             return bool(
@@ -148,17 +206,13 @@ class SessionSkillQueueBuffsMixin:
             return max(levels) if levels else 0
 
     def skill_queue_capacity(self, queue_type):
-            # Sloty rosną wyłącznie z Character Level, nie z Biegłości klasy:
-            # Level 1=40, 10=41, 100=50, 200=60, 400=80, 600=100.
-            if self.skill_queue_active_mastery(queue_type) <= 0:
-                return 0
-            character_level = max(1, min(CHARACTER_MAX_LEVEL, int(self.character.character_level)))
-            return min(40 + CHARACTER_MAX_LEVEL // 10, 40 + character_level // 10)
+            # v3.00.5: brak limitu liczby wpisów. 0 means unavailable role.
+            return None if self.skill_queue_active_mastery(queue_type) > 0 else 0
 
     def skill_queue_entries(self, queue_type, active_only=False):
             rows = list(self.server.db.skill_queue_rows(self.account_id, queue_type))
-            if active_only:
-                rows = rows[: self.skill_queue_capacity(queue_type)]
+            if active_only and self.skill_queue_capacity(queue_type) == 0:
+                return []
             return rows
 
     def skill_queue_find_position(self, query):
@@ -213,7 +267,8 @@ class SessionSkillQueueBuffsMixin:
                     return row["queue_type"], int(row["position"]), skill
             return None, None, None
 
-    async def show_skill_queue(self, queue_type=None):
+    async def show_skill_queue(self, queue_type=None, page=1):
+            self.auto_enroll_existing_skills_v3005()
             removed_unlearned = self.cleanup_unlearned_skill_queue_v11356()
             removed_protocols = self.cleanup_mec_protocols_from_queue_v10013()
             moved = self.normalize_skill_queue_types_v1125()
@@ -247,40 +302,44 @@ class SessionSkillQueueBuffsMixin:
                 rows = self.skill_queue_entries(current_type)
                 label = self.skill_queue_type_label(current_type).capitalize()
                 if mastery <= 0:
-                    await self.send(
-                        f"Kolejka {label}: 0 aktywnych slotów. "
-                        "Nie masz aktywnej klasy lub gałęzi tego typu."
-                    )
+                    await self.send(f"Kolejka {label}: klasa/gałąź nieaktywna, {len(rows)} zapisanych.")
                 else:
-                    await self.send(
-                        f"Kolejka {label}: {len(rows)} zapisanych, {capacity} aktywnych slotów. "
-                        f"Level postaci: {self.character.character_level}."
-                    )
+                    await self.send(f"Kolejka {label}: {len(rows)} zapisanych, bez limitu slotów.")
                 if not rows:
                     await self.send(f"Kolejka {label}: pusta.")
                     continue
-                for row in rows:
+                # NVDA-friendly: do not send thousands of individual lines at once.
+                page_size = 25
+                pages = max(1, (len(rows) + page_size - 1) // page_size)
+                selected_page = max(1, min(int(page), pages))
+                if pages > 1:
+                    await self.send(
+                        f"Kolejka {label}: strona {selected_page}/{pages}, "
+                        f"pozycje {1 + (selected_page - 1) * page_size}–"
+                        f"{min(selected_page * page_size, len(rows))}. "
+                        "Następna strona: kolejka lista <typ> <numer strony>."
+                    )
+                for row in rows[(selected_page - 1) * page_size:selected_page * page_size]:
                     skill = self.skill_by_id(row["skill_id"])
                     name = skill["name"] if skill else row["skill_id"]
                     position = int(row["position"])
                     class_name = self.skill_class_name(skill) if skill else "nieznana klasa"
                     if class_name not in self.active_class_names():
                         active_text = "uśpiony: klasa nieaktywna"
-                    elif position <= capacity:
-                        active_text = "aktywny"
                     else:
-                        active_text = "uśpiony ponad limitem"
+                        active_text = "aktywny"
                     await self.send(
                         f"Slot {position}. {name}. Typ {label.lower()}. Klasa {class_name}. {active_text}."
                     )
             await self.send(
-                "Komendy: kolejka lista [fizyczna|magiczna|feedback], kolejka dodaj <skill>, "
+                "Komendy: kolejka lista [fizyczna|magiczna|feedback] [strona], kolejka dodaj <skill>, "
                 "kolejka usuń <numer>, kolejka usuń fizyczna <slot> / magiczna <slot> / feedback <slot>, "
                 "kolejka wyczyść [fizyczna|magiczna|feedback], kolejka góra <typ> <slot>, "
-                "kolejka dół <typ> <slot>, kolejka on, kolejka off. Dodanie skilla automatycznie włącza kolejkę."
+                "kolejka dół <typ> <slot>, kolejka on, kolejka off. Nauka skilla automatycznie dodaje go do rotacji; nie ma limitu miejsc."
             )
 
     async def handle_skill_queue(self, raw):
+            self.auto_enroll_existing_skills_v3005()
             self.cleanup_unlearned_skill_queue_v11356()
             self.normalize_skill_queue_types_v1125()
             text = str(raw or "").strip()
@@ -305,15 +364,19 @@ class SessionSkillQueueBuffsMixin:
                 await self.send("Auto kolejka skilli wyłączona.")
                 return
             if action in ("status", "lista", "list", "show"):
-                list_type = self.normalize_description_query(value)
+                list_parts = value.split()
+                page = int(list_parts[-1]) if list_parts and list_parts[-1].isdigit() else 1
+                list_type = self.normalize_description_query(" ".join(
+                    list_parts[:-1] if list_parts and list_parts[-1].isdigit() else list_parts
+                ))
                 if list_type in ("f", "fiz", "fizyczna", "fizyczne", "physical"):
-                    await self.show_skill_queue("physical")
+                    await self.show_skill_queue("physical", page=page)
                 elif list_type in ("m", "mag", "magiczna", "magiczne", "magic"):
-                    await self.show_skill_queue("magic")
+                    await self.show_skill_queue("magic", page=page)
                 elif list_type in ("b", "fb", "feedback", "feetback", "sprzezenie"):
-                    await self.show_skill_queue("feedback")
+                    await self.show_skill_queue("feedback", page=page)
                 else:
-                    await self.show_skill_queue()
+                    await self.show_skill_queue(page=page)
                 return
             if action in ("fizyczna", "fizyczne", "physical"):
                 await self.show_skill_queue("physical")
@@ -353,18 +416,9 @@ class SessionSkillQueueBuffsMixin:
                     )
                     return
                 queue_type = self.skill_queue_type(skill)
-                capacity = self.skill_queue_capacity(queue_type)
-                if capacity <= 0:
+                if self.skill_queue_capacity(queue_type) == 0:
                     await self.send(
-                        f"Nie masz aktywnych slotów kolejki {self.skill_queue_type_label(queue_type)}."
-                    )
-                    return
-                current = self.skill_queue_entries(queue_type)
-                if len(current) >= capacity:
-                    await self.send(
-                        f"Kolejka {self.skill_queue_type_label(queue_type)} jest pełna: "
-                        f"{len(current)} z {capacity} slotów. Level postaci {self.character.character_level}. "
-                        "Rozwijaj Level postaci, aby odblokować więcej slotów."
+                        f"Nie masz aktywnej klasy/gałęzi dla kolejki {self.skill_queue_type_label(queue_type)}."
                     )
                     return
                 ok, result = self.server.db.add_skill_queue_entry(
@@ -376,7 +430,7 @@ class SessionSkillQueueBuffsMixin:
                 self.server.db.set_skill_queue_enabled(self.account_id, True)
                 await self.send(
                     f"Dodano do kolejki {self.skill_queue_type_label(queue_type)}: "
-                    f"{skill['name']}. Slot {result} z {capacity}. "
+                    f"{skill['name']}. Pozycja {result}, bez limitu. "
                     "Auto kolejka została włączona. Jeśli walka już trwa, wpis może zostać użyty od najbliższej automatycznej akcji."
                 )
                 return
@@ -812,7 +866,11 @@ class SessionSkillQueueBuffsMixin:
             skill_class = self.skill_class_name(skill)
             if skill_class not in self.active_class_names():
                 return False
-            if not self.server.db.knows_skill(self.account_id, skill["id"]):
+            known_cache = getattr(self, "_auto_queue_known_v3005", None)
+            if known_cache and known_cache[0] == self.account_id:
+                if str(skill["id"]) not in known_cache[1]:
+                    return False
+            elif not self.server.db.knows_skill(self.account_id, skill["id"]):
                 return False
             if not self.skill_mastery_unlocked(skill):
                 return False
@@ -863,15 +921,17 @@ class SessionSkillQueueBuffsMixin:
             return True
 
     async def try_auto_skill_queue(self, mob):
+            self.auto_enroll_existing_skills_v3005()
             if not self.server.db.skill_queue_enabled(self.account_id):
                 return False
 
-            # v1.13.56: stale rows for skills never learned are purged before
-            # mastery gates are considered, so gaining Biegłość can never activate
-            # an unlearned skill left in an old queue.
-            self.cleanup_unlearned_skill_queue_v11356()
-            # Existing pre-v1.12.5 Mec entries are corrected lazily before use.
-            self.normalize_skill_queue_types_v1125()
+            # Expensive repairs run once per character session, not every
+            # combat tick across thousands of multiclass skills. New queue
+            # entries always get their correct type via skill_queue_type().
+            if getattr(self, "_queue_ready_account_v3005", None) != self.account_id:
+                self.cleanup_unlearned_skill_queue_v11356()
+                self.normalize_skill_queue_types_v1125()
+                self._queue_ready_account_v3005 = self.account_id
             queue_types = ("physical", "magic", "feedback")
             preferred = self.skill_queue_next_type
             if preferred not in queue_types:

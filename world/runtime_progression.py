@@ -111,12 +111,12 @@ def v0210_create_endless_gauntlet_room_definition(room_id):
     return room_id,((room_id,v0210_endless_gauntlet_template(round_no)),)
 
 HELP_TOPICS["ascension_v021"]=[
-    "wzniesienie / ascension pokazuje progresję klasy po osiągnięciu Biegłości 600. Biegłość nie resetuje się.",
+    f"wzniesienie / ascension pokazuje progresję klasy po osiągnięciu Biegłości {CLASS_MASTERY_MAX_LEVEL}. Biegłość nie resetuje się.",
     "Każdy dalszy Class XP trafia do Rangi Wzniesienia. Maksymalna ranga techniczna to 1000; wymagania rosną do ekstremalnego endgame.",
 ]
 HELP_TOPICS["worldtier_v021"]=[
     "worldtier / poziomswiata pokazuje lub ustawia osobisty World Tier 1-10. Zmiana jest możliwa tylko poza walką.",
-    "Wyższy Tier zwiększa efektywną wytrzymałość i obrażenia przeciwników oraz nagrody. Tier 2+ wymaga Biegłości 600 i dalszych Rang Wzniesienia.",
+    f"Wyższy Tier zwiększa efektywną wytrzymałość i obrażenia przeciwników oraz nagrody. Tier 2+ wymaga Biegłości {CLASS_MASTERY_MAX_LEVEL}; wyższe Tiery mogą wymagać też Rang Wzniesienia.",
     "World Tier nie włącza auto-aggro: PASSIVE WORLD nadal obowiązuje.",
 ]
 HELP_TOPICS["mythicsets_v021"]=[
@@ -1394,9 +1394,9 @@ HELP_TOPICS["generator"] = [
     "Balance Validator sprawdza zakresy osi 1-600, dodatnie wartości oraz monotoniczność także nielimitowanej krzywej statystyk.",
 ]
 HELP_TOPICS["level"] = [
-    "Level postaci ma zakres 1-600. EXP postaci pochodzi z walki, questów i aktywności profesyjnych.",
-    "Próg EXP i nagrody wylicza Generator Core; nie są wpisywane osobno dla poziomów ani przeciwników.",
-    "Level postaci zwiększa bazowe HP, Manę i moc. Biegłość, Soul, Skill Level i profesje mają własne osie 1-600, a statystyki rozwijają się bez twardego limitu.",
+    "Komenda level pokazuje wszystkie rzeczywiste poziomy: postać, Dusza, Soul Tier, Broń Duszy, każda odblokowana klasa (w tym nieaktywna), statystyki, poznane skille, profesje, narzędzia i wzniesienia.",
+    "Na końcu wyniku: Your experience cap is N EXP. To jeden globalny Multi Cap: +500 EXP za każdy trwały poziom, bez podwójnego liczenia i bez dzielenia puli pomiędzy systemy.",
+    "Walka nie rozwija profesji ani narzędzi. Poziomy profesji i narzędzi podnoszą globalny cap. Komenda expcap wyświetla zbiorczy podział capu.",
 ]
 HELP_TOPICS["klasy"] = [
     "Soulbound ma 14 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-600 i są liczone przez Generator Core.",

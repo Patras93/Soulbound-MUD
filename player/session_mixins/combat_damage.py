@@ -19,6 +19,7 @@ from systems.adaptive_combat import (
     adaptive_target_incoming_fraction_v11330,
     adaptive_target_max_hp_v11330,
     adaptive_beginner_incoming_target_v2005,
+    adaptive_encounter_stage_v2325,
 )
 from systems.elite_variants import elite_average_enemy_multiplier_v11338
 from systems.elemental_combat import elemental_expected_incoming_multiplier_v11339
@@ -253,6 +254,7 @@ class SessionCombatDamageMixin:
                     getattr(self.character, "character_level", 1),
                     base_expected,
                     desired,
+                    room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),
                 )
                 if base_expected >= desired:
                     return 1.0
@@ -600,6 +602,7 @@ class SessionCombatDamageMixin:
                     getattr(self.character, "character_level", 1),
                     base_enemy_hit,
                     adaptive_floor,
+                    room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),
                 )
                 enemy_hit = (
                     max(base_enemy_hit, adaptive_floor)
@@ -754,6 +757,16 @@ class SessionCombatDamageMixin:
                 await self.send(
                     f"Ocena zagrożenia: {rating['label']}."
                 )
+                _danger_stage = adaptive_encounter_stage_v2325(
+                    template, ROOMS.get(str(self.character.room_id), {})
+                )
+                _hero_level = max(1, int(getattr(self.character, "character_level", 1) or 1))
+                if _danger_stage >= _hero_level + 12:
+                    await self.send(
+                        f"UWAGA: przeciwnik ma zalecany etap {_danger_stage}, "
+                        f"a twój Level postaci to {_hero_level}. "
+                        "Walka będzie znacznie trudniejsza; nie ma blokady poziomu."
+                    )
                 # v2.00.6: screen-reader-friendly location vs actual mob tier.
                 _room_region = ROOMS.get(str(self.character.room_id), {})
                 _region_stage = _room_region.get("region_stage_v2006")

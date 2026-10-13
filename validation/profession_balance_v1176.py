@@ -111,6 +111,13 @@ def audit_profession_balance_v1176(*, runtime=False):
             return []
         def save_character(self, character):
             return None
+        # Historical quality regression runs without a real SQLite bank.
+        # Only this dummy keeps uncapped numbers so it can test material
+        # differentiation; live XP-cap behavior is tested in v23219.
+        def multi_cap_v23215(self, account):
+            return 10 ** 30
+        def allocate_experience_bank_v2011(self, account, amount, kind, key, cap):
+            return min(max(0, int(amount)), max(0, int(cap)))
 
     class Practice(SessionProfessionStorageMixin):
         def __init__(self, profession, tool):

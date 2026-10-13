@@ -403,6 +403,12 @@ def _item_matches_quest_category_v0611(item_id, category):
         return base in FISH_RESOURCE_IDS
     if category == "fish_river":
         return base in RIVER_FISH_ATLAS
+    if category == "fish_lake":
+        return base in LAKE_FISH_ATLAS
+    if category == "fish_sea":
+        return base in SEA_FISH_ATLAS
+    if category == "fish_ocean":
+        return base in OCEAN_FISH_ATLAS
     if category == "ore":
         return base in ORE_RESOURCE_IDS
     if category == "wood":

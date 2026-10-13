@@ -147,6 +147,45 @@ def adaptive_dungeon_pressure_v2325(template, character_level, room=None):
     return hp_percent, round(damage_multiplier, 4)
 
 
+
+# v3.00.0: dangerous enemies do not become trivial merely because a lower-level
+# character owns powerful gear, many classes or high-stat mercenaries. This is a
+# *soft* encounter modifier: it never locks a fight, alters the player's data,
+# penalizes the ally's own damage or changes experience rewards directly.
+def adaptive_underlevel_pressure_v3000(template, character_level, room=None):
+    """(HP percent, incoming multiplier), measured against authored stage.
+
+    Every genuine recommended stage is covered, including level 1-99 regions.
+    The first five levels of mismatch are grace; after that the challenge rises
+    continuously relative to the hero's level. Large gaps saturate *only the
+    relative bonus* for computational safety; authored dungeon/floor difficulty
+    continues its own unbounded scaling.
+    """
+    if character_level is None:
+        return 100, 1.0
+    stage = adaptive_encounter_stage_v2325(template, room)
+    if stage <= 0:
+        return 100, 1.0
+    level = max(1, int(character_level))
+    deficit = max(0, stage - level - 5)
+    if deficit == 0:
+        return 100, 1.0
+    # Compare as integers first: infinite floor IDs may exceed float limits.
+    denominator = max(15, (level + 1) // 2)
+    relative_gap = (16.0 if deficit >= 16 * denominator
+                    else deficit / denominator)
+    hp_percent = 100 + round(75.0 * relative_gap + 14.0 * relative_gap ** 1.5)
+    incoming = 1.0 + min(3.8, 0.42 * relative_gap)
+    return hp_percent, round(incoming, 4)
+
+
+def adaptive_combined_pressure_v3000(template, character_level, room=None):
+    """Keep previous high-area guarantees; strengthen any underleveled area."""
+    old_hp, old_damage = adaptive_dungeon_pressure_v2325(template, character_level, room)
+    new_hp, new_damage = adaptive_underlevel_pressure_v3000(template, character_level, room)
+    return max(old_hp, new_hp), max(old_damage, new_damage)
+
+
 def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=None, room=None):
     """Target enough HP for several seconds of the current party's real output."""
     base = max(1, int(base_max_hp or 1))
@@ -173,7 +212,7 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=
         ))
     # Parties far below their hunting-ground stage cannot turn a stage-400
     # encounter into stage-100 farming just by grouping.
-    hp_percent, _ = adaptive_dungeon_pressure_v2325(template, party_level, room)
+    hp_percent, _ = adaptive_combined_pressure_v3000(template, party_level, room)
     if hp_percent > 100:
         target = (target * hp_percent + 99) // 100
     return target
@@ -207,11 +246,11 @@ def adaptive_target_incoming_fraction_v11330(template, party_size=1, player_leve
     base = float(V11330_TARGET_HP_FRACTION_PER_MOB_ACTION[rank])
     party_pressure = min(1.28, 1.0 + 0.04 * max(0, int(party_size or 1) - 1))
     normal = min(0.22, base * party_pressure)
-    _, underlevel_multiplier = adaptive_dungeon_pressure_v2325(template, player_level, room)
+    _, underlevel_multiplier = adaptive_combined_pressure_v3000(template, player_level, room)
     return min(0.45, normal * underlevel_multiplier)
 
 
-def adaptive_beginner_incoming_target_v2005(template, player_level, base_expected, desired):
+def adaptive_beginner_incoming_target_v2005(template, player_level, base_expected, desired, room=None):
     """Avoid adaptive one-shots from *ordinary* enemies against new players.
 
     Adaptive HP pressure remains intact for experienced players and for bosses.
@@ -225,6 +264,11 @@ def adaptive_beginner_incoming_target_v2005(template, player_level, base_expecte
     if adaptive_combat_rank_v11330(template) != "normal":
         return target
     level = max(1, int(player_level or 1))
+    # A high-level area's enemy is not a harmless beginner mob. Keeping the
+    # original 1.5x novice protection here let level-1 players face level-80
+    # foes without feeling the intended threat. Ordinary novice zones retain it.
+    if adaptive_encounter_stage_v2325(template, room) >= level + 12:
+        return target
     if level >= 65:
         return target
     # Level 1-15: up to +50% relative to the authored, defense-aware strike.

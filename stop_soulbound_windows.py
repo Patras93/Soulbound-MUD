@@ -1,132 +1,180 @@
 # -*- coding: utf-8 -*-
-"""Stop only the Soulbound instance belonging to this extracted folder."""
+"""Gracefully stop only this Soulbound instance and its crash supervisor.
+
+Never kills processes. Any missing/ambiguous control information must block a
+release, rather than claiming that the game has stopped.
+"""
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import socket
 import sys
 import time
-from windows_launcher_state import wait_gone, process_alive
+
+from windows_launcher_state import process_alive
+from windows_runtime_state import fallback_dir, read_state, write_state, remove_matching
 
 ROOT = Path(__file__).resolve().parent
-CANDIDATES = (ROOT / 'logs' / 'soulbound_control.json',
-              Path(os.environ.get('TEMP') or os.environ.get('TMP') or ROOT) / 'Soulbound-MUD-logs' / 'soulbound_control.json')
+LOGS = ROOT / 'logs'
+ALT = fallback_dir(ROOT)
+CONTROL_FILES = (LOGS / 'soulbound_control.json', ALT / 'soulbound_control.json',
+                 Path(os.getenv('TEMP') or os.getenv('TMP') or ROOT) / 'Soulbound-MUD-logs' / 'soulbound_control.json')
+SUPERVISOR_FILES = (LOGS / 'soulbound_supervisor.json', ALT / 'soulbound_supervisor.json')
+LAUNCHER_FILES = (LOGS / 'soulbound_launcher.json', ALT / 'soulbound_launcher.json')
+REQUEST_FILES = (LOGS / 'soulbound_stop_request.json', ALT / 'soulbound_stop_request.json')
+
+
+def same_root(data: dict) -> bool:
+    try:
+        return bool(data.get('root')) and Path(str(data['root'])).resolve() == ROOT
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def live_state(files, *, supervisor: bool) -> dict:
+    for path in files:
+        entry = read_state(path)
+        if not same_root(entry):
+            continue
+        try:
+            pid = int(entry['pid'])
+        except (TypeError, ValueError, KeyError):
+            continue
+        if pid <= 0 or not process_alive(pid):
+            continue
+        if supervisor and (not isinstance(entry.get('run_id'), str) or len(entry['run_id']) < 32):
+            continue
+        return entry
+    return {}
+
+
+def port_open(port: int = 4000) -> bool:
+    try:
+        with socket.create_connection(('127.0.0.1', port), timeout=.3):
+            return True
+    except OSError:
+        return False
+
+
+def request_watchdog(watch: dict) -> None:
+    if not watch:
+        return
+    request = {'run_id': watch['run_id'], 'root': str(ROOT)}
+    # The primary request is mandatory: failing to inform the watchdog is fatal.
+    write_state(REQUEST_FILES[0], request)
+    try:
+        write_state(REQUEST_FILES[1], request)
+    except OSError:
+        print('UWAGA: pomocniczy znacznik STOP niedostepny; glowny zostal zapisany.', flush=True)
+
+
+def undo_watchdog_request(watch: dict) -> None:
+    if watch:
+        for request in REQUEST_FILES:
+            try:
+                remove_matching(request, 'run_id', watch['run_id'], root=ROOT)
+            except OSError:
+                print('UWAGA: nie mozna cofnac niepotwierdzonego STOP. Sprawdz logs\\watchdog.log.', flush=True)
+
+
+def controls() -> list[tuple[Path, dict]]:
+    found = []
+    for path in CONTROL_FILES:
+        data = read_state(path)
+        if not same_root(data):
+            continue
+        try:
+            port = int(data['port'])
+            token = str(data['token'])
+            pid = int(data['pid'])
+        except (ValueError, TypeError, KeyError):
+            continue
+        if 1024 <= port <= 65535 and len(token) >= 32 and pid > 0 and process_alive(pid):
+            found.append((path, data))
+    return found
+
+
+def authenticated_stop(found: list[tuple[Path, dict]], launcher: dict) -> dict:
+    for path, metadata in found:
+        # An active host can authenticate the exact child PID. Reject stale
+        # metadata; if the host state itself is missing, the token still protects us.
+        if launcher and int(launcher.get('server_pid', -1)) != int(metadata['pid']):
+            continue
+        try:
+            with socket.create_connection(('127.0.0.1', int(metadata['port'])), timeout=4) as connection:
+                connection.settimeout(6)
+                connection.sendall(('STOP ' + str(metadata['token']) + '\n').encode('ascii'))
+                reply = connection.recv(128).decode('ascii', 'replace').strip()
+            if reply == 'ZATRZYMYWANIE':
+                return metadata
+        except (OSError, ValueError, UnicodeError):
+            continue
+    return {}
+
+
+def finished(control: dict, launcher: dict, watch: dict) -> bool:
+    for pidinfo in (launcher, watch, control):
+        if pidinfo and process_alive(int(pidinfo['pid'])):
+            return False
+    # The original port must be free; never overwrite game code while another
+    # process occupies it, even if the old Soulbound already exited.
+    return not port_open(4000)
 
 
 def main() -> int:
+    watch = {}
+    requested = False
     try:
-        found = []
-        for candidate in CANDIDATES:
-            if candidate.is_file():
-                entry = json.loads(candidate.read_text(encoding='utf-8'))
-                if Path(str(entry.get('root', ''))).resolve() == ROOT:
-                    found.append((candidate, entry))
+        watch = live_state(SUPERVISOR_FILES, supervisor=True)
+        launcher = live_state(LAUNCHER_FILES, supervisor=False)
+        found = controls()
+        if not watch:
+            # Server-generated, token-protected metadata also carries the
+            # watchdog identity; usable when BOTH watchdog JSON copies vanish.
+            for _, meta in found:
+                try:
+                    candidate_pid = int(meta['supervisor_pid'])
+                    candidate_id = str(meta['supervisor_run_id'])
+                    if candidate_pid > 0 and len(candidate_id) >= 32 and process_alive(candidate_pid):
+                        watch = {'pid': candidate_pid, 'run_id': candidate_id, 'root': str(ROOT)}
+                        break
+                except (KeyError, TypeError, ValueError):
+                    continue
         if not found:
-            # Nadzorca moze byc w opoznionej probie ponownego uruchomienia.
-            watch = ROOT / 'logs' / 'soulbound_supervisor.json'
-            try:
-                entry = json.loads(watch.read_text(encoding='utf-8'))
-                pid = int(entry['pid'])
-                rid = str(entry['run_id'])
-                if (Path(str(entry.get('root', ''))).resolve() == ROOT and
-                        len(rid) >= 32 and process_alive(pid)):
-                    request = ROOT / 'logs' / 'soulbound_stop_request.json'
-                    temp = request.with_name(request.name + f'.{os.getpid()}.new')
-                    try:
-                        temp.write_text(json.dumps({'run_id': rid, 'root': str(ROOT)}), encoding='utf-8')
-                        os.replace(temp, request)
-                    finally:
-                        temp.unlink(missing_ok=True)
-                    if wait_gone(pid, timeout=15):
-                        print('Soulbound: nadzorca zatrzymany w trakcie oczekiwania na restart.')
-                        return 0
-                    print('UWAGA: nadzorca jeszcze dziala; sprawdz logs\\watchdog.log.')
-                    return 4
-            except (OSError, KeyError, ValueError, TypeError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
-                pass
-            print('Soulbound nie jest uruchomiony przez START_Soulbound.bat w tym folderze.')
-            return 2
-        META, meta = found[0]
-        port = int(meta['port'])
-        token = str(meta['token'])
-        if not (1024 <= port <= 65535 and len(token) >= 32):
-            raise ValueError('nieprawidlowe dane sterowania')
-        launcher_pid = None
-        launcher_state = META.parent / 'soulbound_launcher.json'
-        try:
-            state = json.loads(launcher_state.read_text(encoding='utf-8'))
-            if Path(str(state.get('root', ''))).resolve() == ROOT:
-                launcher_pid = int(state['pid'])
-        except (OSError, ValueError, KeyError, TypeError):  # AUDIT_INTENTIONAL_PASS: no marker in older releases
-            pass
-        # Prosimy nadzorce o NIEwznawianie gry po autoryzowanym STOP.
-        supervisor_state = META.parent / 'soulbound_supervisor.json'
-        stop_request = META.parent / 'soulbound_stop_request.json'
-        request_run_id = ''
-        state = {}
-        try:
-            state = json.loads(supervisor_state.read_text(encoding='utf-8'))
-            if (Path(str(state.get('root', ''))).resolve() == ROOT and
-                isinstance(state.get('run_id'), str) and len(state['run_id']) >= 32 and
-                int(state.get('pid', -1)) == launcher_pid):
-                request_run_id = state['run_id']
-                request_temp = stop_request.with_name(stop_request.name + f'.{os.getpid()}.new')
-                try:
-                    request_temp.write_text(json.dumps({'run_id': request_run_id, 'root': str(ROOT)}), encoding='utf-8')
-                    os.replace(request_temp, stop_request)
-                finally:
-                    request_temp.unlink(missing_ok=True)
-        except (OSError, ValueError, TypeError, KeyError):
-            request_run_id = ''
-
-        def undo_unsent_request() -> None:
-            if request_run_id:
-                try:
-                    current = json.loads(stop_request.read_text(encoding='utf-8'))
-                    if current.get('run_id') == request_run_id:
-                        stop_request.unlink(missing_ok=True)
-                except (OSError, ValueError):  # AUDIT_INTENTIONAL_PASS: opcjonalny plik stanu Windows
-                    pass
-
-        # The loopback socket requires the private per-process token, so it
-        # cannot accidentally shut down another Python program.
-        try:
-            with socket.create_connection(('127.0.0.1', port), timeout=4) as connection:
-                connection.settimeout(5)
-                connection.sendall(('STOP ' + token + '\n').encode('ascii'))
-                reply = connection.recv(128).decode('ascii', 'replace').strip()
-        except (OSError, ValueError, UnicodeError):
-            undo_unsent_request()
-            raise
-        if reply != 'ZATRZYMYWANIE':
-            undo_unsent_request()
-            print('BLAD: Soulbound nie potwierdzil polecenia STOP. Niczego nie zabito.')
-            return 3
-        print('Soulbound: rozpoczęto bezpieczne zamykanie i zapis postaci.')
-        for _ in range(150):  # 30 seconds to finish and remove our token file.
-            if not META.is_file():
-                if launcher_pid and not wait_gone(launcher_pid, timeout=15):
-                    print('UWAGA: serwer zapisal dane, ale launcher nadal dziala. Folder moze byc zajety.')
-                    return 4
-                print('Soulbound: serwer i launcher zakonczone, folder mozna aktualizowac.')
+            if launcher or port_open():
+                print('BLAD: port 4000 lub launcher dziala, lecz brak uwierzytelnionego sterowania Soulbound. Nie zamykam procesu.', flush=True)
+                return 3
+            if watch:
+                request_watchdog(watch)
+                requested = True
+                print('Soulbound: nadzorca oczekuje na restart; prosze o jego zatrzymanie.', flush=True)
+            else:
+                print('Soulbound: serwer i nadzorca juz sa zatrzymane.', flush=True)
                 return 0
-            try:
-                current = json.loads(META.read_text(encoding='utf-8'))
-                if current.get('token') != token:
-                    if launcher_pid and not wait_gone(launcher_pid, timeout=15):
-                        print('UWAGA: stary launcher nie zakonczyl pracy.')
-                        return 4
-                    print('Soulbound: uruchomiona zostala nowa instancja; stara zamknieta.')
-                    return 0
-            except (OSError, ValueError):  # AUDIT_INTENTIONAL_PASS: control file may disappear during shutdown
-                pass
-            time.sleep(.2)
-        print('UWAGA: serwer potwierdzil STOP, ale nie zakonczyl zamykania w 30 s. Sprawdz okno START i logs\\serwer.log. Nie wymuszono zabicia procesu.')
+        else:
+            if watch:
+                request_watchdog(watch)  # BEFORE STOP prevents crash auto-restart.
+                requested = True
+            accepted = authenticated_stop(found, launcher)
+            if not accepted:
+                if requested:
+                    undo_watchdog_request(watch)
+                print('BLAD: brak potwierdzenia STOP od serwera. Nie zatrzymano go na sile.', flush=True)
+                return 3
+            print('Soulbound: serwer potwierdzil STOP. Czekam na zapis SQLite i zamkniecie nadzorcy.', flush=True)
+        started = time.monotonic()
+        while time.monotonic() - started < 135:
+            if finished(accepted if found else {}, launcher, watch):
+                print('Soulbound: potwierdzono zakonczenie serwera, launchera i nadzorcy. Port 4000 wolny.', flush=True)
+                return 0
+            time.sleep(.25)
+        print('BLAD: nie wszystkie procesy zakonczyly prace lub port 4000 pozostaje zajety. Aktualizacja zabroniona.', flush=True)
         return 4
-    except (OSError, ValueError, KeyError, TypeError, UnicodeError) as exc:
-        print(f'BLAD: nie mozna polaczyc sie z uruchomionym Soulbound: {exc}. Inne programy nie zostaly zatrzymane.')
+    except (OSError, ValueError, TypeError, UnicodeError, KeyError) as exc:
+        # The watchdog request remains in place after a failure unless the
+        # socket explicitly rejected STOP; never risk an unplanned restart.
+        print(f'BLAD: STOP nie powiodl sie: {type(exc).__name__}: {exc}. Nie wymuszono zabicia procesu.', flush=True)
         return 3
 
 

@@ -414,6 +414,12 @@ class SessionSalesMixin:
                 )),
             )
             actual_xp = self.apply_double_xp(actual_xp)
+            # v2.32.19: selling a large stored batch is ONE award, subject
+            # to the same account-wide Multi Cap, not cap x sold quantity.
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            actual_xp = banked_experience_v2011(
+                self.server.db, self.account_id, actual_xp,
+                'profession', level, source_key=profession)
             xp = int(prow["xp"]) + actual_xp
             actions = int(prow["actions"])
             cap = profession_max_level(profession)

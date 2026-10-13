@@ -64,9 +64,9 @@ def run_tool_xp_regression_v1402():
         for kind in TOOL_TYPES_V1402:
             check(session.valid_tool_type(kind), f'{kind}: valid tool type')
 
-    checkpoints = {49: 10000, 50: 10100, 75: 15000, 100: 20000, 150: 30000,
-                   200: 40000, 300: 60000, 400: 80000, 500: 120000,
-                   600: 160000, 700: 205000, 799: 250000}
+    checkpoints = {49: 10000, 50: 10500, 75: 45000, 100: 80000, 150: 240000,
+                   200: 500000, 300: 900000, 400: 1400000, 500: 2000000,
+                   600: 2850000, 700: 3800000, 799: 5000000}
     for level, points in checkpoints.items():
         check(profession_late_requirement_points_v1401(level) == points,
               f'growth checkpoint {level}')

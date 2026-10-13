@@ -1339,7 +1339,7 @@ def v03035_related_quest_flow_audit():
         for recipe in table.values()
         if recipe.get("output")
     }
-    category_targets = {"fish", "fish_river", "ore", "wood", "herb"}
+    category_targets = {"fish", "fish_river", "fish_lake", "fish_sea", "fish_ocean", "ore", "wood", "herb"}
     checked = 0
     for quest_id, quest in QUESTS.items():
         kind = quest.get("kind")
@@ -3075,7 +3075,7 @@ def full_game_predeploy_audit_v0336():
             _value=_mob.get(_field)
             if isinstance(_value,str): valid_kill_targets.add(_value)
             elif isinstance(_value,(list,tuple,set)): valid_kill_targets.update(map(str,_value))
-    valid_collect_categories={'fish','fish_river','ore','wood','herb'}
+    valid_collect_categories={'fish','fish_river','fish_lake','fish_sea','fish_ocean','ore','wood','herb'}
     npc_display_names={str(_npc.get('name') or '').casefold() for _npc in NPCS.values()}
     for qid,q in QUESTS.items():
         kind=q.get('kind'); target=q.get('target')

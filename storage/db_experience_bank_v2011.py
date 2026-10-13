@@ -5,6 +5,10 @@ from systems.experience_cap_v2009 import KINDS
 
 
 class DatabaseExperienceBankV2011Mixin:
+    def multi_cap_v23215(self, account_id):
+        from systems.multi_cap_v23215 import multi_cap_experience_v23215
+        return multi_cap_experience_v23215(self.conn, account_id)
+
     def create_experience_bank_schema_v2011(self):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS experience_bank_v2011 (
@@ -28,7 +32,8 @@ class DatabaseExperienceBankV2011Mixin:
     def allocate_experience_bank_v2011(self, account_id, amount, kind, source_key, cap):
         """Deposit surplus; use spare capacity on this *same* award to repay bank.
 
-        At most `cap` XP are paid now, so the Alter-style limit is respected.
+        At most `cap` XP are paid now; bank withdrawal also cannot exceed
+        the XP earned by the current activity (1:1 repayment). No XP is lost.
         Different stat/class/profession/tool/skill accounts never mingle.
         """
         kind = str(kind).lower()
@@ -50,7 +55,9 @@ class DatabaseExperienceBankV2011Mixin:
         ).fetchone()
         balance = max(0, int(row[0])) if row else 0
         fresh = min(amount, cap)
-        repay = min(balance, cap - fresh)
+        # v2.32.19: old 1-XP actions could drain almost a full cap from bank.
+        # At most one bank XP per newly earned, capped XP; nothing is lost.
+        repay = min(balance, cap - fresh, fresh)
         paid = fresh + repay
         new_balance = balance + amount - fresh - repay
         if new_balance != balance:

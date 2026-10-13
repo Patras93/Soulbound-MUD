@@ -334,6 +334,10 @@ build_world_expansion_i()
 build_high_end_mob_pack()
 build_world_expansion_ii()
 
+# v3.00.7: 44 independent Borys fishing contracts, built from real fish atlases.
+from systems.boris_fishing_quests_v3007 import install_boris_quests_v3007
+install_boris_quests_v3007(QUESTS, NPCS, ITEMS)
+
 # v0.25.1 — UNIFIED DEEP MINE
 # Jedyna aktywna kopalnia to Kopalnia Głębinowa. Wszystkie historyczne
 # rejestracje MINING_ROOMS poza jej wejściem i mine_floor_N są usuwane.
@@ -1118,9 +1122,12 @@ def configure_v0856_help_categories():
     ]
     HELP_TOPICS["nauczyciele"] = [
         "teachers / nauczyciele pokazuje nauczycieli klasowych.",
-        "Skilla można nauczyć się u nauczyciela właściwej aktywnej klasy po osiągnięciu wymaganej Biegłości.",
+        "Samo learn / naucz / ucz przy nauczycielu aktywnej klasy pokazuje lekcje, wymagania Biegłości, ceny i numery.",
+        "learn <numer> i learn <nazwa> ucza wybranej umiejetnosci; poza sala nauczyciela nauka nie jest mozliwa.",
+        "Numery learn sa identyczne jak numery skilli w talk <nauczyciel>, takze dla jeszcze zablokowanych umiejetnosci.",
         "Koszt nauki może być obniżany przez reputację Gildii klasowej.",
     ]
+    HELP_TOPICS["learn"] = list(HELP_TOPICS["nauczyciele"])
 
 configure_v0856_help_categories()
 
@@ -1465,3 +1472,4 @@ HELP_TOPICS['zywiolaki'] = [
     'Przywołania Maga nie wymagają materiałów Nekromanty i nie wykorzystują jego Kamieni Duszy.',
 ]
 HELP_TOPIC_ALIASES.update({'elementale':'zywiolaki','elemental':'zywiolaki','zywiol':'zywiolaki'})
+

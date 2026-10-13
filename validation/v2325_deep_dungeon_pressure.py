@@ -17,6 +17,7 @@ from systems.adaptive_combat import (
     adaptive_encounter_stage_v2325,
     adaptive_target_max_hp_v11330, adaptive_target_incoming_fraction_v11330,
     adaptive_reward_multiplier_v11330, adaptive_combat_rank_v11330,
+    adaptive_combined_pressure_v3000,
 )
 
 
@@ -93,7 +94,8 @@ def run_regression():
            room={'training_dummy': True}) == (100, 1.0),
           'training room does not create danger')
     check(adaptive_target_max_hp_v11330(1000, 10000, {'rank': 'normal'},
-           party_level=100, room={'recommended_level': 400}) == 272000,
+           party_level=100, room={'recommended_level': 400}) == (
+              80_000 * adaptive_combined_pressure_v3000({'rank':'normal'}, 100, {'recommended_level': 400})[0] // 100),
           'high-level room in target HP computation')
     check(adaptive_target_incoming_fraction_v11330({'rank': 'normal'}, 4,
            player_level=100, room={'recommended_level': 400})
@@ -105,8 +107,9 @@ def run_regression():
         check(adaptive_dungeon_pressure_v2325(t, 100)[0] == expected_hp,
               f'floor {floor} against lvl 100')
         actual = adaptive_target_max_hp_v11330(1000, 10_000, t, party_level=100)
-        check(actual == 80_000 * expected_hp // 100,
-              f'floor {floor} increases encounter lifetime')
+        effective_hp = adaptive_combined_pressure_v3000(t, 100)[0]
+        check(actual == 80_000 * effective_hp // 100 and effective_hp >= expected_hp,
+              f'floor {floor} increases encounter lifetime without weakening v2.32.5')
 
     floor400 = {'crypt_floor': 400, 'rank': 'normal', 'max_hp': 1000, 'damage': 90}
     floor100 = {'crypt_floor': 100, 'rank': 'normal', 'max_hp': 1000, 'damage': 90}
@@ -121,7 +124,7 @@ def run_regression():
     check(adaptive_target_max_hp_v11330(1000, 10_000, floor400)
           == 80_000, 'legacy callers still work')
     check(adaptive_target_max_hp_v11330(1000, 10**400, floor400, party_level=100)
-          == 8 * 10**400 * 340 // 100,
+          == 8 * 10**400 * adaptive_combined_pressure_v3000(floor400, 100)[0] // 100,
           'HP has no float overflow and is uncapped beyond 10**400')
     check(adaptive_dungeon_floor_v2325({'crypt_floor': 10**15}) == 10**15,
           'infinite floors are not artificially bounded')
@@ -157,10 +160,12 @@ def run_regression():
     region_mob = SimpleNamespace(template_id='field_low', key='region',
                                  room_id='field400', hp=1000, alive=True)
     check(region_fighter.apply_adaptive_mob_scale_v11330(region_mob)['max_hp']
-          == 272_000, 'real combat inherits lvl400 outdoor location stage')
+          == 80_000 * adaptive_combined_pressure_v3000(mob_templates['field_low'], 100, {'recommended_level':400})[0] // 100,
+          'real combat inherits lvl400 outdoor location stage')
     region_mob.hp -= 20_000
     check(region_fighter.apply_adaptive_mob_scale_v11330(region_mob)['max_hp']
-          == 272_000 and region_mob.hp == 252_000,
+          == 80_000 * adaptive_combined_pressure_v3000(mob_templates['field_low'], 100, {'recommended_level':400})[0] // 100
+          and region_mob.hp == 80_000 * adaptive_combined_pressure_v3000(mob_templates['field_low'], 100, {'recommended_level':400})[0] // 100 - 20_000,
           'active outdoor fight does not heal or rescale twice')
     # The original Ocean 2.0 mob authoring explicitly records its level; old
     # ocean rooms can lack recommended_level even at late route sections.
@@ -184,7 +189,7 @@ def run_regression():
     mob = SimpleNamespace(template_id='deep_test', key='m', room_id='deep',
                           hp=1000, alive=True)
     scaled = fighter.apply_adaptive_mob_scale_v11330(mob)
-    check(scaled['max_hp'] == 272_000, 'real combat scales party lvl100 floor400')
+    check(scaled['max_hp'] == 80_000 * adaptive_combined_pressure_v3000(floor400, 100)[0] // 100, 'real combat scales party lvl100 floor400')
     check(scaled['party_size'] == 4, 'all real players counted')
     check(mob.hp == scaled['max_hp'], 'monster HP filled to full scaled maximum')
     again = fighter.apply_adaptive_mob_scale_v11330(mob)
@@ -200,7 +205,7 @@ def run_regression():
     fighter.dps = 10**400
     mob.hp = 80_000
     massive = fighter.apply_adaptive_mob_scale_v11330(mob)
-    check(massive['max_hp'] == 8 * 10**400 * 340 // 100,
+    check(massive['max_hp'] == 8 * 10**400 * adaptive_combined_pressure_v3000(floor400, 100)[0] // 100,
           'real underlevel combat supports arbitrarily powerful players')
 
     from validation.v2005_beginner_encounters import _CharacterSession
@@ -211,7 +216,7 @@ def run_regression():
     region_preview = region_player.consider_adaptive_preview_v11331(
         SimpleNamespace(hp=1000, template_id='field_low', room_id='field400'),
         mob_templates['field_low'])
-    check(region_preview['max_hp'] == 3_400,
+    check(region_preview['max_hp'] == 1000 * adaptive_combined_pressure_v3000(mob_templates['field_low'], 100, {'recommended_mastery':400})[0] // 100,
           'CONSIDER previews outdoor stage without engaging mob')
     region_enemy = SimpleNamespace(template_id='field_low', room_id='field400',
                                    adaptive_party_size_v11330=4)

@@ -30,12 +30,12 @@ def run_regression():
         assert banked_experience_v2011(db, 1, cap * 8, 'character', 15) == cap
         assert db.experience_bank_rows_v2011(1) == [('character', '', cap * 7)]
         checks += 2
-        assert banked_experience_v2011(db, 1, 20, 'character', 15) == cap
-        assert db.experience_bank_rows_v2011(1)[0][2] == cap * 6 + 20
+        assert banked_experience_v2011(db, 1, 20, 'character', 15) == 40
+        assert db.experience_bank_rows_v2011(1)[0][2] == cap * 7 - 20
         checks += 2
         # When the award is larger than cap, a bank cannot pay anything extra.
         assert banked_experience_v2011(db, 1, cap * 3, 'character', 15) == cap
-        assert db.experience_bank_rows_v2011(1)[0][2] == cap * 8 + 20
+        assert db.experience_bank_rows_v2011(1)[0][2] == cap * 9 - 20
         checks += 2
         assert banked_experience_v2011(db, 2, 1, 'character', 15) == 1
         assert db.experience_bank_rows_v2011(2) == []

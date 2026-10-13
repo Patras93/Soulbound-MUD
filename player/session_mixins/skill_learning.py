@@ -569,7 +569,7 @@ class SessionSkillLearningMixin:
                 "Przy nauczycielu komenda learn <numer> używa lokalnej listy jego klasy."
             )
             await self.send(
-                "Każdy nauczony skill ma własny Skill Level 1-600 i XP. "
+                f"Każdy nauczony skill ma własny Skill Level 1-{SKILL_MAX_LEVEL} i XP. "
                 "Lista pokazuje tylko skille odblokowane na aktualnej Biegłości klasy."
             )
 
@@ -1837,13 +1837,16 @@ class SessionSkillLearningMixin:
 
             class_name = teacher["teacher_class"]
             mastery = self.class_mastery_level(class_name)
-            class_skills = [
-                skill
-                for skill in CLASS_SKILLS.get(class_name, [])
-                if skill["id"] in self.server.db.learned_skill_ids(self.account_id)
-                or mastery >= int(skill.get("unlock", 1) or 1)
-            ]
-            value = raw.strip()
+            # v3.00.4: numery learn zawsze odpowiadaja pelnej liscie
+            # nauczyciela (talk), nawet gdy czesc skilli jest zablokowana.
+            # Poprzednie odfiltrowanie zmienialo numery learn <nr>.
+            class_skills = list(CLASS_SKILLS.get(class_name, []))
+            value = str(raw or "").strip()
+            if not value:
+                # Samo learn dziala wylacznie w sali nauczyciela aktywnej
+                # klasy i pokazuje te same numery, ceny oraz wymagania co talk.
+                await self.teacher_lesson(teacher)
+                return
             normalized = self.normalize_description_query(value)
             if normalized.startswith("sie ") or normalized.startswith("się "):
                 split = value.split(maxsplit=1)
@@ -1872,7 +1875,8 @@ class SessionSkillLearningMixin:
                 if not skill:
                     skill = self.natural_learn_skill_from_input(
                         value,
-                        class_skills,
+                        [candidate for candidate in class_skills
+                         if mastery >= int(candidate.get("unlock", 1) or 1)],
                     )
 
             if not skill:
@@ -1911,6 +1915,7 @@ class SessionSkillLearningMixin:
                 return
 
             self.server.db.learn_skill(self.account_id, skill["id"])
+            auto_role = self.auto_register_learned_skill_v3005(skill)
             await self.send(
                 f"{teacher['name']} uczy cię umiejętności klasy "
                 f"{class_name}: {skill['name']}. Cena: {cost_text}."
@@ -1918,3 +1923,12 @@ class SessionSkillLearningMixin:
             await self.send(
                 f"Nauczono. {skill['name']} zaczyna na Skill Level 1."
             )
+            if auto_role == "passive":
+                await self.send("Ta umiejętność działa automatycznie lub nie wymaga kolejki.")
+            else:
+                await self.send(
+                    f"Automatyczne używanie: {skill['name']} dodano do kolejki "
+                    f"{self.skill_queue_type_label(auto_role)} bez limitu miejsc. "
+                    "Podczas ataku zostanie użyty, kiedy będzie gotowy. "
+                    "Możesz wyłączyć automatyczne skille komendą kolejka off."
+                )

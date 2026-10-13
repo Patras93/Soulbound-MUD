@@ -2,6 +2,7 @@
 """Quest progress calculation and progress announcements."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 from network.protocol_gameplay_utils import V0929_RIVER_FISH_STORAGE_IDS
+from core.progression_resources import LAKE_FISH_ATLAS, SEA_FISH_ATLAS, OCEAN_FISH_ATLAS
 from player.session_mixins.character_profile import SOUL_TRIAL_QUEST_IDS
 from player.session_mixins.crafting import CRAFT_MATERIAL_STORAGE_IDS
 from player.session_mixins.exp_terrain import QUESTS
@@ -18,6 +19,9 @@ class SessionQuestProgressMixin:
             mapping = {
                 "fish": (FISH_STORAGE_IDS, "net", "ryb"),
                 "fish_river": (V0929_RIVER_FISH_STORAGE_IDS, "net", "ryb rzecznych"),
+                "fish_lake": (frozenset(LAKE_FISH_ATLAS), "net", "ryb jeziornych"),
+                "fish_sea": (frozenset(SEA_FISH_ATLAS), "net", "ryb morskich"),
+                "fish_ocean": (frozenset(OCEAN_FISH_ATLAS), "net", "ryb oceanicznych"),
                 "ore": (ORE_STORAGE_IDS, "bag", "rud"),
                 "wood": (WOOD_STORAGE_IDS, "woodpile", "sztuk drewna"),
                 "herb": (HERB_STORAGE_IDS, "herbbag", "ziół"),

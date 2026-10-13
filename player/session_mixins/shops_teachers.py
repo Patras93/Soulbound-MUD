@@ -514,7 +514,8 @@ class SessionShopsTeachersMixin:
                 )
             await self.send(
                 "Użyj prowadz <nazwa lokacji>, aby dojść do odpowiedniej sali, "
-                "potem talk <nauczyciel>. Każdy skill pokazuje cenę nauki."
+                "potem learn (lista i ceny) lub talk <nauczyciel>. "
+                "Nauka jest dostepna tylko przy nauczycielu aktywnej klasy."
             )
 
     async def teacher_lesson(self, npc):
@@ -569,7 +570,8 @@ class SessionShopsTeachersMixin:
                     f"Aktualna Biegłość klasy {class_name}: {self.class_mastery_level(class_name)}."
                 )
                 await self.send(
-                    "Nauka: learn <numer>, naucz <pełna nazwa> albo "
+                    "Nauka: samo learn pokazuje ponownie te lekcje; "
+                    "learn <numer>, naucz <pełna nazwa> albo "
                     "naturalnie, np. naucz leczenie, naucz tarcza, "
                     "naucz ciecie, naucz pocisk, naucz ogien. "
                     f"Każdy nauczony skill rozwija własny Skill Level 1-{SKILL_MAX_LEVEL}. "

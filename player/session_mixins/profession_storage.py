@@ -336,6 +336,17 @@ class SessionProfessionStorageMixin:
                 self.mentor_record_activity_v03051()
             actual_prof_xp = self.apply_double_xp(actual_prof_xp)
             tool_xp = self.apply_double_xp(tool_xp)
+            # v2.32.19: the ordinary gather/craft route MUST obey the same
+            # independent full Multi Cap as class, quest, order and skill XP.
+            # Preserve all surplus in separate SQLite profession/tool ledgers.
+            from systems.experience_bank_v2011 import banked_experience_v2011
+            actual_prof_xp = banked_experience_v2011(
+                self.server.db, self.account_id, actual_prof_xp,
+                'profession', plevel, source_key=profession)
+            if tool_progress:
+                tool_xp = banked_experience_v2011(
+                    self.server.db, self.account_id, tool_xp,
+                    'tool', tlevel_preview, source_key=tool_type)
             self.session_summary_add("profession_xp", actual_prof_xp, profession)
             if tool_progress:
                 self.session_summary_add("tool_xp", tool_xp, tool_type)

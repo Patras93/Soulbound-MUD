@@ -82,7 +82,10 @@ class _CharacterSession(SessionCombatDamageMixin):
 
 def run_regression():
     count = 0
-    normal = MOB_TEMPLATES["bandit"]
+    # Explicitly model an introductory, level-1 bandit. Global world bootstrap
+    # can assign the *same* base template to a tougher authored region. The
+    # beginner shield must protect the former, not immunize the latter.
+    normal = dict(MOB_TEMPLATES["bandit"], generator_level=1, v019_stage=1)
     assert normal["damage"] == 9
     count += 1
     for level in (1, 8, 15):
@@ -97,6 +100,13 @@ def run_regression():
         )
         assert preview["enemy_hit"] <= 9 * 1.5 + 0.01
         count += 1
+    # The same creature placed in a genuinely higher-level region must be
+    # dangerous for a novice. This is now an explicit regression contract.
+    high_zone_template = dict(normal, recommended_level=50)
+    novice = _CharacterSession(8, 1000)
+    scary = SimpleNamespace(template_id="bandit", adaptive_party_size_v11330=1)
+    assert novice.adaptive_enemy_damage_multiplier_v11330(scary, high_zone_template) > 1.56
+    count += 1
     # Raw authored damage must not be artificially weakened, even at level 1.
     player = _CharacterSession(8, 80)
     mob = SimpleNamespace(template_id="bandit", adaptive_party_size_v11330=1)

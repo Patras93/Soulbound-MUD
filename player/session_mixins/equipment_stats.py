@@ -16,6 +16,7 @@ from core.player_math import (
     speed_from_dexterity,
 )
 from core.mines_threat import ITEMS
+from systems.equipment_multiclass_v3001 import crossover_bonus_v3001
 from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL
 from core.progression_resources import class_type_for_name
 from network.protocol_gameplay_utils import v03042_upgrade_defense_bonus, v03042_upgrade_primary_stat, v03042_upgrade_stat_bonus
@@ -199,6 +200,10 @@ class SessionEquipmentStatsMixin:
                 for stat, amount in item.get("soulbound_balance_stats", {}).items():
                     if stat in totals:
                         totals[stat] += int(amount)
+                # Cross-class bonuses stack beside authored gear stats once per worn piece.
+                _cross_stats, _cross_power = crossover_bonus_v3001(item)
+                for stat, amount in _cross_stats.items():
+                    totals[stat] += int(amount)
 
                 # v1.11.78: Soulbound zachowuje użyteczną progresję Board przed 150; od 150 +20, potem +2/Level.
                 if item.get("cyborg_board_scaling") == "character_level":
@@ -236,6 +241,9 @@ class SessionEquipmentStatsMixin:
                 for stat,amount in (_relic.get("soulbound_balance_stats") or {}).items():
                     if stat in totals:
                         totals[stat]+=int(amount)
+                _cross_stats, _cross_power = crossover_bonus_v3001(_relic)
+                for stat, amount in _cross_stats.items():
+                    totals[stat] += int(amount)
             class_stats = self.class_set_stat_bonus_totals()
             for stat, amount in class_stats.items():
                 totals[stat] += int(amount)
@@ -255,12 +263,18 @@ class SessionEquipmentStatsMixin:
                 totals["magic_attack"] += int(item.get("magic_attack", 0) or 0)
                 totals["magic_defense"] += int(item.get("magic_defense", 0) or 0)
                 totals["weapon_power"] += int(item.get("weapon_power", 0) or 0)
+                _cross_stats, _cross_power = crossover_bonus_v3001(item)
+                for key, amount in _cross_power.items():
+                    totals[key] += int(amount)
             _relic_id, _relic = self.active_soul_weapon_relic_v11176()
             if _relic:
                 totals["attack"] += int(_relic.get("attack", 0) or 0)
                 totals["magic_attack"] += int(_relic.get("magic_attack", 0) or 0)
                 totals["magic_defense"] += int(_relic.get("magic_defense", 0) or 0)
                 totals["weapon_power"] += int(_relic.get("weapon_power", 0) or 0)
+                _cross_stats, _cross_power = crossover_bonus_v3001(_relic)
+                for key, amount in _cross_power.items():
+                    totals[key] += int(amount)
             if cache is not None:
                 cache["flat_power"] = dict(totals)
             return totals

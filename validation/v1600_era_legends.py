@@ -52,7 +52,46 @@ def run_era_legends_v1600(server):
             check(quest.get('target') in mobs,'quest target '+realm+'/'+str(i))
     for slug,_,room,target,quest_id in FRONTS:
         check(room in rooms and target in mobs and quest_id in quests,'front '+slug)
-        check(npcs.get('v1600_war_npc_'+slug,{}).get('room')==room,'front NPC '+slug)
+        npc_id='v1600_war_npc_'+slug
+        actual_room=npcs.get(npc_id,{}).get('room')
+        # Before v3.10.1 the officer stood on the battlefront itself. Once
+        # each NPC received a separate office, that room remains a walkable
+        # annex of the SAME front; testing only raw equality is obsolete.
+        def at_own_accessible_front():
+            if room not in rooms or actual_room not in rooms:
+                return False
+            occupants=[name for name,npc in npcs.items()
+                       if npc.get('room')==actual_room]
+            if occupants != [npc_id]:
+                return False
+            if actual_room==room:
+                return True
+            if not actual_room.startswith('npc_v3101_private_'):
+                return False
+            # Shortest corridor through purpose-built NPC annexes only.
+            visited={room}
+            walk=deque([(room,0)])
+            while walk:
+                current,depth=walk.popleft()
+                if depth>=3:
+                    continue
+                for direction,nxt in rooms[current].get('exits',{}).items():
+                    if nxt in visited or nxt not in rooms:
+                        continue
+                    if not nxt.startswith('npc_v3101_'):
+                        continue
+                    reverse={'north':'south','south':'north','east':'west','west':'east',
+                             'up':'down','down':'up','northeast':'southwest',
+                             'southwest':'northeast','northwest':'southeast',
+                             'southeast':'northwest'}.get(direction)
+                    if reverse is None or rooms[nxt].get('exits',{}).get(reverse)!=current:
+                        continue
+                    if nxt==actual_room:
+                        return True
+                    visited.add(nxt)
+                    walk.append((nxt,depth+1))
+            return False
+        check(at_own_accessible_front(),'front NPC '+slug)
     for slug,target,_ in HUNTS:
         check(target in mobs and f'v1600_hunt_{slug}' in quests,'hunt '+slug)
     for k in ('glebiny','meduzy','cesarz'):

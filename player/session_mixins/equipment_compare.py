@@ -11,6 +11,7 @@ from network.protocol_gameplay_utils import (
 )
 from systems.equipment_crafting import CLASS_SET_STAT_NAMES
 from systems.items_resources import MATERIAL_PROPERTY_NAMES
+from systems.equipment_multiclass_v3001 import crossover_bonus_v3001
 
 
 class SessionEquipmentCompareV0600Mixin:
@@ -36,6 +37,12 @@ class SessionEquipmentCompareV0600Mixin:
             "magic_defense": int(item.get("magic_defense", 0) or 0),
             "weapon_power": int(item.get("weapon_power", 0) or 0),
         }
+
+        _cross_stats, _cross_power = crossover_bonus_v3001(item)
+        for key, amount in _cross_stats.items():
+            stats[key] = stats.get(key, 0) + int(amount)
+        for key, amount in _cross_power.items():
+            power[key] = power.get(key, 0) + int(amount)
 
         reforge = self.server.db.equipment_reforge(self.account_id, item_id)
         affix = str(reforge["affix"]) if reforge else str(item.get("affix") or "")

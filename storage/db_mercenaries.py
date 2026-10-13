@@ -20,6 +20,10 @@ class DatabaseMercenariesMixin:
             actions INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY(character_account_id,role)
         )""")
+        # v3.00.3: NIE usuwaj sierot najemnikow przy starcie/migracji.
+        # Startup (takze na kopii bazy podczas predeploy) musi zachowac
+        # wszystkie istniejace kontrakty, taktyki oraz EXP. Jedynie jawne
+        # wipe/delete_character powinno usuwac dane najemnikow.
         self.conn.commit()
 
     def mercenary_progress_v1220(self, character_account_id, role):

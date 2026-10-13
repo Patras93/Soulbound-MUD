@@ -11,6 +11,7 @@ from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 from soulbound_backup_windows import create_backup
+from windows_runtime_state import fallback_dir, write_state, remove_matching
 import re
 import secrets
 import subprocess
@@ -21,6 +22,7 @@ import traceback
 ROOT = Path(__file__).resolve().parent
 LOG_DIR = Path(os.environ.get("SOULBOUND_LOG_DIR") or (ROOT / "logs")).resolve()
 RUN_STATE = LOG_DIR / "soulbound_launcher.json"
+ALT_RUN_STATE = fallback_dir(ROOT) / "soulbound_launcher.json"
 MAX_LOG_BYTES = 5 * 1024 * 1024
 BACKUP_COUNT = 5
 
@@ -117,6 +119,7 @@ def run_server(entry: Path | None = None) -> int:
     env.update({"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
     env["SOULBOUND_CONTROL_TOKEN"] = secrets.token_hex(32)
     env["SOULBOUND_CONTROL_FILE"] = str(LOG_DIR / "soulbound_control.json")
+    env["SOULBOUND_CONTROL_FALLBACK_FILE"] = str(fallback_dir(ROOT) / "soulbound_control.json")
     print(f"Soulbound — logi serwera: {LOG_DIR / 'serwer.log'}", flush=True)
     print(f"Soulbound — logi bledow: {LOG_DIR / 'bledy.log'}", flush=True)
     print("Ctrl+C zatrzymuje serwer. Logi sa zapisywane w UTF-8.", flush=True)
@@ -144,8 +147,13 @@ def run_server(entry: Path | None = None) -> int:
     # the game's control socket and SQLite have shut down.
     try:
         state_tmp = RUN_STATE.with_suffix('.new')
-        state_tmp.write_text(json.dumps({'root': str(ROOT), 'pid': os.getpid(), 'server_pid': process.pid}), encoding='utf-8')
+        launch_info = {'root': str(ROOT), 'pid': os.getpid(), 'server_pid': process.pid}
+        state_tmp.write_text(json.dumps(launch_info), encoding='utf-8')
         os.replace(state_tmp, RUN_STATE)
+        try:
+            write_state(ALT_RUN_STATE, launch_info)
+        except OSError as exc:
+            all_log.warning('Brak pomocniczego znacznika launchera: %s', exc)
     except OSError as exc:
         all_log.warning('Nie mozna zapisac znacznika procesu launchera: %s', exc)
     guard = threading.Lock()
@@ -185,6 +193,10 @@ def run_server(entry: Path | None = None) -> int:
                 RUN_STATE.unlink(missing_ok=True)
     except (OSError, ValueError, TypeError) as exc:
         all_log.warning('Nie mozna usunac znacznika launchera: %s', exc)
+    try:
+        remove_matching(ALT_RUN_STATE, 'pid', os.getpid(), root=ROOT)
+    except OSError as exc:
+        all_log.warning('Nie usunieto pomocniczego znacznika launchera: %s', exc)
     if code:
         error_log.error("STOP | Kod zakonczenia serwera: %s", code)
         print(f"Serwer zakonczyl prace z kodem: {code}", file=sys.stderr, flush=True)

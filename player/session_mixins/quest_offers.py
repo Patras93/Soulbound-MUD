@@ -156,7 +156,8 @@ class SessionQuestOffersMixin:
                     f"Nagroda: {currency_reading_text(reward_coins, 0, 0)}."
                 )
             await self.send(
-                "Przyjmowanie: quest accept <numer> albo quest przyjmij <numer>. "
+                "Przyjmowanie: przyjmij <numer>, np. przyjmij 1. "
+                "Nie trzeba wpisywać quest ani podawać nazwy zadania. "
                 "Szczegóły: quest info <numer>."
             )
             return quest_ids

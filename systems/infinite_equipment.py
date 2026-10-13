@@ -282,8 +282,8 @@ def register_infinite_equipment_variant(
     deep_desc = (
         f"Rezonans Głębi {rank}: źródło {source_label}, "
         f"efektywny etap {effective_stage}. "
-        "Wymaganie założenia pozostaje w normalnej progresji 1-600; "
-        "głębokość wzmacnia egzemplarz, nie podnosi limitu Biegłości."
+        "Wymaganie założenia wynosi Biegłość 600 (próg wariantu Rezonansu Głębi); "
+        "głębokość wzmacnia egzemplarz, ale Biegłość klasy nadal rozwija się do 800."
     )
     data["desc"] = (old_desc + " " + deep_desc).strip()
 

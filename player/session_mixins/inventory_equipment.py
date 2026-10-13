@@ -32,6 +32,7 @@ from systems.equipment_crafting import (
     jewelry_socket_capacity,
 )
 from systems.items_resources import CLASS_EQUIPMENT_SETS
+from systems.equipment_multiclass_v3001 import crossover_bonus_v3001, crossover_text_v3001
 from world.generation_systems import V014_TREASURE_MAP_ITEM, V0243_EREN_SECRET_MAP_ITEM
 
 
@@ -468,6 +469,10 @@ class SessionInventoryEquipmentMixin:
                             _flat.append(f"{_label} +{_value}")
                     if _flat:
                         extra += " Power: " + ", ".join(_flat) + "."
+                if item:
+                    _multi_eq = crossover_text_v3001(item)
+                    if _multi_eq:
+                        extra += " " + _multi_eq
                 if item and item.get("stats"):
                     fixed_stats = ", ".join(
                         f"{CLASS_SET_STAT_NAMES.get(stat, stat)} +{amount}"
@@ -674,6 +679,11 @@ class SessionInventoryEquipmentMixin:
                 max(0, int(v or 0)) * self.auto_equipment_stat_weight_v11196(stat)
                 for stat, v in (item.get("soulbound_balance_stats") or {}).items()
             )
+            _cross_stats, _cross_power = crossover_bonus_v3001(item)
+            stats += sum(
+                max(0, int(v)) * self.auto_equipment_stat_weight_v11196(stat)
+                for stat, v in _cross_stats.items()
+            )
             affix_stat = str(item.get("affix") or "")
             affix = max(0, int(item.get("affix_amount", 0) or 0)) * self.auto_equipment_stat_weight_v11196(affix_stat)
             upgrade_stat = v03042_upgrade_primary_stat(item, affix_stat)
@@ -689,6 +699,8 @@ class SessionInventoryEquipmentMixin:
             flat_power += max(0, int(item.get("attack", 0) or 0)) * (1.0 if physical else 0.30)
             flat_power += max(0, int(item.get("weapon_power", 0) or 0)) * (1.0 if physical else 0.30)
             flat_power += max(0, int(item.get("magic_attack", 0) or 0)) * (1.0 if magic or "Mec" in active else 0.30)
+            flat_power += _cross_power.get("attack",0) * (1.0 if physical else 0.30)
+            flat_power += _cross_power.get("magic_attack",0) * (1.0 if magic or "Mec" in active else 0.30)
             flat_power += max(0, int(item.get("magic_defense", 0) or 0)) * 0.65
             # Source-backed special defenses must participate in AUTO EQ too.
             # Ward values are fractions (0.65 = 65%), while status proofs are
@@ -1702,6 +1714,7 @@ class SessionInventoryEquipmentMixin:
                 f"Zakładasz: {item['name']}. "
                 f"Slot: {EQUIPMENT_SLOT_NAMES.get(actual_slot, actual_slot)}. "
                 f"Obrona przedmiotu +{item.get('defense', 0)}.{rarity}{affix}{fixed_stats}{balance_stats}"
+                + (" " + crossover_text_v3001(item) if crossover_text_v3001(item) else "")
             )
             if returned_gems:
                 await self.send(

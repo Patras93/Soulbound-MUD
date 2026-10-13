@@ -435,6 +435,15 @@ class SessionPerceptionMapsMixin:
                 await self.send(
                     "NPC: " + ", ".join(npcs) + "."
                 )
+            # v3.00.4: informacja o learn tylko w sali nauczyciela
+            # jednej z AKTYWNYCH klas postaci (NVDA / look).
+            _local_teacher_id, _local_teacher = self.teacher_here_for_active_class()
+            if _local_teacher:
+                await self.send(
+                    f"Nauczyciel klasy {_local_teacher['teacher_class']}: "
+                    "wpisz learn, aby zobaczyc lekcje, wymagania i ceny; "
+                    "learn <numer> albo learn <nazwa>, aby nauczyc sie skilla."
+                )
 
             followers = self.nearby_mercenaries_v1226()
             if followers:

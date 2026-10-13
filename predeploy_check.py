@@ -4273,6 +4273,80 @@ print(f"AUTO EP v2.32.3: {_auto_ep_v2322()} checks PASS")
 from validation.v2325_deep_dungeon_pressure import run_regression as _check_deep_dungeon_v2325
 print(f"HIGH AREAS v2.32.5 FAST: {_check_deep_dungeon_v2325()} checks PASS")
 
+# v3.00.0: challenge below minimum recommended level on ALL authored tiers.
+from validation.v3000_underlevel_balance import run_regression as _underlevel_v3000
+print(f'BALANS TRUDNOSCI v3.00.0 FAST: {_underlevel_v3000()} checks PASS')
+
 # v2.32.12: auto-kopanie nie moze gubic preserve_auto_mining w ruchu.
 from validation.v23212_auto_mining_move import run_static_regression as _mine_move_static_v23212
 print(f"AUTO MINING MOVE v2.32.12 FAST: {_mine_move_static_v23212()} checks PASS")
+
+# v2.32.13: authenticated STOP, watchdog and fail-closed deployment.
+from validation.v23213_stop_supervisor import run_regression as _stop_supervisor_v23213
+print(f'STOP + WATCHDOG v2.32.13 FAST: {_stop_supervisor_v23213()} checks PASS')
+
+# v2.32.15: global cap, all 14 classes, SQLite XP ledgers and overflow.
+from validation.v23215_multi_cap import run_regression as _multi_cap_v23215
+print(f'MULTI CAP + MULTICLASS 14 v2.32.15 FAST: {_multi_cap_v23215()} checks PASS')
+
+# v2.32.16: level shows all owned levels; final Multi Cap matches live EXP pipeline.
+from validation.v23216_level_overview import run_regression as _level_overview_v23216
+print(f'LEVEL OVERVIEW v2.32.16 FAST: {_level_overview_v23216()} checks PASS')
+
+# v2.32.17: shared non-linear 10-level Multi Cap and Soul XP under level.
+from validation.v23217_curve_soul_level import run_regression as _curve_soul_v23217
+print(f'MULTI CAP CURVE + SOUL XP v2.32.17: {_curve_soul_v23217()} checks PASS')
+
+# v2.32.18: each active class and axis gets full independent Multi Cap.
+from validation.v23218_full_cap_per_axis import run_regression as _full_axis_v23218
+print(f'FULL MULTI CAP PER AXIS v2.32.18: {_full_axis_v23218()} checks PASS')
+
+# v2.32.19: gathering, crafting, sale XP, banks and progression thresholds.
+from validation.v23219_profession_cap_balance import run_regression as _prof_cap_v23219
+print(f'PROFESSION / TOOL MULTI CAP v2.32.19 FAST: {_prof_cap_v23219()} checks PASS')
+
+# v3.00.1: Hybrid physical/magic equipment regressions.
+from validation.v3001_hybrid_equipment import run_regression as _hybrid_v3001
+print(f"EQ MULTICLASS v3.00.1 FAST: {_hybrid_v3001()} checks PASS")
+
+# v3.00.2: current help and character wipe including mercenary contracts/tactics.
+from validation.v3002_help_wipe_mercenaries import run_regression as _help_wipe_v3002
+print(f"HELP / WIPE NAJEMNIKOW v3.00.3 FAST: {_help_wipe_v3002()} checks PASS")
+
+# v3.00.4: LEARN only next to active class teacher; same numbered list as talk.
+from validation.v3004_teacher_learn_fast import run_regression_fast as _teacher_learn_v3004
+print(f"TEACHER LEARN v3.00.4 FAST: {_teacher_learn_v3004()} checks PASS")
+
+# v3.00.4: EP uses exactly the Fame progression axes, independently per point.
+from validation.v3004_ep_fame_fast import run_regression_fast as _ep_fame_v3004
+print(f"EP JAK FAME v3.00.4 FAST: {_ep_fame_v3004()} checks PASS")
+
+# v3.00.5: real source methods for automatic learned skill enrollment / queue limit removal.
+from validation.v3005_auto_learn_queue import test as _auto_queue_v3005
+print(f"AUTO CZARY I SKILLE / BEZ LIMITU v3.00.5 FAST: {_auto_queue_v3005()} checks PASS")
+
+# v3.00.6: historical HELP cannot overwrite current unlimited skill queue semantics.
+from validation.v3006_queue_help import run_regression as _queue_help_v3006
+print(f"QUEUE HELP v3.00.6 FAST: {_queue_help_v3006()} checks PASS")
+
+# v3.00.7: Boris species/set/discovery order contracts with isolated SQLite.
+from validation.v3007_boris_fishing_quests import run_regression_fast as _boris_v3007
+print(f"BORYS WEDKARSTWO v3.00.7 FAST: {_boris_v3007()} checks PASS")
+
+# v3.00.7: short read-only EP command without new schema or character writes.
+from validation.v3007_ep_command import run_regression_fast as _ep_command_fast_v3007
+print(f"EP KOMENDA v3.00.7 FAST: {_ep_command_fast_v3007()} checks PASS")
+
+# v3.10.0: additive authored realms and old-world story regression (isolated).
+from validation.v3100_legends_foundation import run_regression_fast as _legends_fast_v3100
+print(f"LEGENDY v3.10.0 FAST: {_legends_fast_v3100()} checks PASS")
+
+# v3.10.2: historical fronts remain accessible after 1-NPC room isolation.
+from validation.v3102_front_officers import run_regression as _fronts_fast_v3102
+import server as _fronts_runtime_v3102
+print(f"FRONTY ERA LEGEND v3.10.2 FAST: {_fronts_fast_v3102(_fronts_runtime_v3102)} checks PASS")
+
+# v3.10.1: dedicated no-shared-NPC invariant on the real assembled world.
+from validation.v3101_single_npc import run_regression as _single_npc_v3101_fast
+import server as _s3101
+print(f"JEDEN NPC NA POKOJ v3.10.1 FAST: {_single_npc_v3101_fast(_s3101.ROOMS, _s3101.NPCS, _s3101.SINGLE_NPC_ROOMS_V3101, _s3101.SHOP_SELLERS)} checks PASS")

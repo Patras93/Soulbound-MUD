@@ -3,7 +3,7 @@
 from core.bootstrap_economy_professions import currency_price_text
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import time
-from core.progression_600 import soul_tier_title_for_class
+from core.progression_600 import SOUL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_WEAPON_MASTERY_MAX_LEVEL, soul_tier_title_for_class
 from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.quest_npc import player_item_display_name_v0335
 from player.session_mixins.shops_teachers import currency_reading_text
@@ -204,7 +204,7 @@ class SessionSocialExpansionMixin:
         await self.send(f"Level postaci: {int(row['character_level'])}/800; Character XP {int(row['character_xp'])}. Klasy/Biegłość: {class_text}.")
         _soul_tier=int(row['soul_tier'])
         _soul_title=soul_tier_title_for_class(_soul_tier, str(row['class_name']))
-        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/600; Soul Tier {_soul_tier}/60 — {_soul_title}; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/600.")
+        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/{SOUL_MAX_LEVEL}; Soul Tier {_soul_tier}/{SOUL_MAX_TIER} — {_soul_title}; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
         await self.send(
             "Statystyki: "
             f"Siła {int(row['strength'])}; Zręczność {int(row['dexterity'])}; Kondycja {int(row['constitution'])}; "

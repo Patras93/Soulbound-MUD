@@ -141,46 +141,31 @@ def port_open(port: int) -> bool:
 
 
 def stop_local_server(root: Path) -> bool:
-    # Only the authenticated local STOP channel can shut down Soulbound.
-    control = [root / 'logs' / 'soulbound_control.json',
-               Path(os.environ.get('TEMP') or os.environ.get('TMP') or str(root)) / 'Soulbound-MUD-logs' / 'soulbound_control.json']
-    is_running = False
-    for meta in control:
-        if not meta.is_file():
-            continue
-        try:
-            info = json.loads(meta.read_text(encoding='utf-8'))
-            if Path(str(info.get('root',''))).resolve() != root.resolve():
+    # Always use the authenticated STOP, even when the port is momentarily
+    # free: an active crash supervisor could restart mid-copy.
+    from windows_runtime_state import fallback_dir, read_state
+    from windows_launcher_state import process_alive
+
+    logs = (root / 'logs', fallback_dir(root))
+    tracked = False
+    for folder in logs:
+        for filename in ('soulbound_control.json', 'soulbound_supervisor.json', 'soulbound_launcher.json'):
+            entry = read_state(folder / filename)
+            try:
+                if (entry.get('root') == str(root) and process_alive(int(entry['pid']))):
+                    tracked = True
+            except (TypeError, ValueError, KeyError):
                 continue
-        except (OSError, ValueError, TypeError):
-            raise UpdateError(f'Nie mozna odczytac sterowania serwera: {meta}. Przerwano aktualizacje.')
-        is_running = True
-        break
-    if is_running:
-        print('Serwer dziala. Wysylam bezpieczne STOP i czekam na zapis postaci...', flush=True)
-        result = subprocess.run([sys.executable, str(root / 'stop_soulbound_windows.py')], cwd=Path(os.environ.get('TEMP') or tempfile.gettempdir()), timeout=65)
-        if result.returncode != 0:
-            raise UpdateError('STOP nie potwierdzil bezpiecznego zamkniecia. Nie podmieniam plikow.')
-        for _ in range(80):
-            if not port_open(4000):
-                break
-            time.sleep(0.25)
-        else:
-            raise UpdateError('Port 4000 nadal zajety po STOP. Przerwano przed kopiowaniem.')
-    elif port_open(4000):
-        raise UpdateError('Port 4000 jest zajety, ale brak potwierdzonego sterowania Soulbound. Zatrzymaj serwer recznie; nie podmieniam plikow.')
-    # Windows launcher may take a moment to flush its pipes AFTER server STOP.
-    state_file = root / 'logs' / 'soulbound_launcher.json'
-    if state_file.is_file():
-        try:
-            info = json.loads(state_file.read_text(encoding='utf-8'))
-            if Path(str(info.get('root', ''))).resolve() == root.resolve():
-                pid = int(info['pid'])
-                if not wait_gone(pid, timeout=20):
-                    raise UpdateError('Proces launchera nadal blokuje folder gry. Wstrzymano podmiane plikow.')
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            raise UpdateError(f'Nie mozna sprawdzic procesu launchera: {exc}') from exc
-    return is_running
+    # Stop utility itself checks both control copies, all owned PIDs,
+    # watchdog state and port 4000. Never regard a free port as proof by itself.
+    print('Weryfikuje uwierzytelniony STOP serwera i nadzorcy...', flush=True)
+    result = subprocess.run([sys.executable, '-u', str(root / 'stop_soulbound_windows.py')],
+                            cwd=Path(os.environ.get('TEMP') or tempfile.gettempdir()), timeout=180)
+    if result.returncode != 0:
+        raise UpdateError(f'STOP nie potwierdzil bezpiecznego zamkniecia (kod {result.returncode}). Nie podmieniam plikow.')
+    if port_open(4000):
+        raise UpdateError('Port 4000 nadal zajety po STOP. Aktualizacja wstrzymana.')
+    return tracked
 
 
 def backup_existing(root: Path, backup: Path) -> None:

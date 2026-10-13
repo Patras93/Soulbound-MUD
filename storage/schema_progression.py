@@ -161,6 +161,13 @@ def create_progression_schema(self):
                         FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
                     );
 
+        -- v3.00.5: one-time import of existing learned skills into automatic rotation.
+        -- Separately tracked so manual queue removals stay removed on later logins.
+        CREATE TABLE IF NOT EXISTS skill_queue_auto_enrollment_v3005 (
+                        account_id INTEGER PRIMARY KEY,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    );
+
         CREATE TABLE IF NOT EXISTS job_ability_slots_v11154 (
                         account_id INTEGER NOT NULL,
                         slot_type TEXT NOT NULL,
