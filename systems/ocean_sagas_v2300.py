@@ -70,6 +70,9 @@ def hazard(enemy, turn, command):
 
     No random damage. Previous-turn warning lets a blind player choose guard.
     """
+    if str(enemy).startswith('imperium_'):
+        from systems.legends_ocean_v5000 import ocean_hazard
+        return ocean_hazard(enemy,turn,command)
     if enemy not in ('legenda_cisza','legenda_nawa'):
         return 100, ''
     cycle=4 if enemy=='legenda_cisza' else 5

@@ -6,6 +6,15 @@ canonical tool set without importing world/mining runtime modules.
 """
 
 CHARACTER_BOUND_TOOL_IDS = frozenset({
+    "hunting_knife",
+    "farming_hoe",
+    "husbandry_kit",
+    "shipwright_hammer",
+    "mason_trowel",
+    "engineer_kit",
+    "merchant_scale",
+    "navigation_sextant",
+
     "fishing_rod",
     "pickaxe",
     "saw",

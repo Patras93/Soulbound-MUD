@@ -22,7 +22,7 @@ from core.progression_resources import (
     SEA_FISHING_ROOMS,
     WOODCUTTING_ROOMS,
 )
-from systems.content_registry import CRYPT_MAX_FLOOR, INFINITE_CRYPT_STEP_RATE, MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
+from systems.content_registry import CRYPT_BOSS_FLOORS, CRYPT_MAX_FLOOR, INFINITE_CRYPT_STEP_RATE, MOB_SPAWNS, MOB_TEMPLATES, NPCS, QUESTS
 from systems.dungeon_names import dungeon_mob_display_name_v11336
 from systems.items_resources import (
     CLASS_EQUIPMENT_SLOT_DEFS,

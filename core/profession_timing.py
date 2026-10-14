@@ -23,6 +23,14 @@ TOOL_ACTION_BASE_SECONDS = {
     "enchanting": 21,
     "archaeology": 20,
     "cartography_profession": 14,
+    "hunting": 22,
+    "farming": 28,
+    "animal_husbandry": 26,
+    "shipbuilding": 38,
+    "masonry": 30,
+    "engineering": 36,
+    "trading": 25,
+    "sailing": 40,
 }
 
 TOOL_ACTION_MIN_SECONDS = {
@@ -40,6 +48,14 @@ TOOL_ACTION_MIN_SECONDS = {
     "enchanting": 7,
     "archaeology": 5,
     "cartography_profession": 3,
+    "hunting": 5,
+    "farming": 6,
+    "animal_husbandry": 6,
+    "shipbuilding": 9,
+    "masonry": 7,
+    "engineering": 9,
+    "trading": 5,
+    "sailing": 8,
 }
 
 

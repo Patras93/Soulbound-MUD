@@ -129,6 +129,18 @@ V4000_IMPERIUM_STATS = _install_imperium_v4000(
     HELP_TOPICS, HELP_TOPIC_ALIASES, _ocean5,
 )
 
+# v5.00.0: additive quest, boss, ocean, dungeon and profession expansion.
+from world.war_of_gods_v5000 import install as _install_war_of_gods_v5000
+V5000_WAR_OF_GODS = _install_war_of_gods_v5000(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES,
+)
+
+# v6.00.1: eight 120-stage action-backed paths and private reachable mentors.
+# Register before NPC isolation and before final exploration map refresh.
+from systems.profession_paths_v601 import install as _install_profession_paths_v601
+V601_PROFESSION_PATHS = _install_profession_paths_v601(ROOMS, NPCS, QUESTS, ITEMS)
+
 # Exploration's lookup was built earlier by the native runtime; refresh it once
 # after the new rooms have been safely installed.
 from world.generation_systems import v0130_refresh_exploration_catalog as _v3100_ep_refresh
@@ -146,7 +158,7 @@ for _code,_name,_hp,_damage,_reward,_kind,_threat in (
 
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
-HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES)
+HELP_ATLAS_V1602 = install_help_atlas_v1602(HELP_TOPICS, HELP_TOPIC_ALIASES, TOOL_PROFESSION_MAP)
 HELP_TOPICS['mistrzprof'] = [
     'Mistrzowie Świata 6.0: mistrzprof lista/status <profesja>/wybierz <profesja> <1..3>. Specjalizacje na poziomach 100, 250, 450.',
     'mistrzprof zamowienie / odbierz / porzuc <profesja>; mistrzprof receptury / wykonaj <profesja>. Wyrób wymaga surowców Oceanu 5.0 i pierwszej specjalizacji.',
@@ -276,6 +288,14 @@ MOB_NAME_AUDIT_V1142 = audit_runtime_mob_names_v1142(MOB_TEMPLATES)
 if MOB_NAME_AUDIT_V1142["error_count"]:
     raise RuntimeError("Mob name cleanup audit failed: " + "; ".join(MOB_NAME_AUDIT_V1142["errors"][:100]))
 
+# v6.00: additive use for farm/hunting goods in established professions.
+from systems.new_professions import install_legacy_profession_recipes as _v600_install_recipes
+from systems.equipment_crafting import COOK_RECIPES as _v600_cook_recipes
+V600_OLD_PROFESSION_INTEGRATION = _v600_install_recipes(ITEMS, _v600_cook_recipes, CRAFT_RECIPES)
+HELP_TOPICS["profesje6"] = ["Nowe profesje: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Wpisz profesje6 lista; profesje6 kup <profesja>; profesje6 czynnosci <profesja>; profesje6 praca <profesja> <czynność> [próg]; profesje6 zamowienie <profesja>; profesje6 oddaj <profesja>.", "Siedem progów: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie można kupić tylko raz na postać; poziomy 1–800."]
+HELP_TOPICS["profesje6"].append("Droga Mistrza 6.00.1: 120 questów na każdą z ośmiu nowych profesji, po kolei od 1 do 800; u nowych mistrzów wpisz quest list, przyjmij 1, oddaj quest 1. Liczą się tylko wskazane czynności i progi pracy.")
+HELP_TOPICS["profesje"] = ["Soulbound ma 22 profesje i 22 narzędzia, wszystkie z poziomami 1–800.", "Osiem nowych profesji: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Komendy nowych: profesje6 lista, profesje6 czynnosci <profesja>, profesje6 praca <profesja> <czynność> [próg].", "Stare 14 profesji, ich materiały, zadania i narzędzia działają nadal."] + [line for line in HELP_TOPICS.get("profesje",[]) if "1-600" not in line and "8 profesji" not in line]
+
 from systems.combat_xp_repair_v11346 import COMBAT_XP_ZERO_AUDIT_V11346
 if COMBAT_XP_ZERO_AUDIT_V11346["error_count"]:
     raise RuntimeError("Combat XP zero audit failed: " + "; ".join(COMBAT_XP_ZERO_AUDIT_V11346["errors"]))
@@ -287,6 +307,31 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     # encodes legacy assumptions (globally unique display names, old split-
     # currency normalization) that are not release-blocking in current Soulbound.
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
+    # The original v0.33.6 audit had an exact 14-job catalog assertion.
+    # In v6, validate the full 22-job extension explicitly instead of
+    # weakening/rewriting its hash-locked legacy function. All other
+    # original failures still remain release-blocking.
+    if str(VERSION).startswith('6.'):
+        from systems.new_professions import PROFESSIONS as _v600_professions
+        _v600_legacy_names = {
+            'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',
+            'Gotowanie', 'Alchemia', 'Kowalstwo', 'Jubilerstwo',
+            'Krawiectwo', 'Garbarstwo', 'Stolarstwo', 'Zaklinanie',
+            'Archeologia', 'Kartografia',
+        }
+        assert set(PROFESSION_RANK_NAMES) == _v600_legacy_names | set(_v600_professions), (
+            'Legacy or new profession catalog changed unexpectedly',
+            sorted(set(PROFESSION_RANK_NAMES) ^ (_v600_legacy_names | set(_v600_professions))))
+        _v600_legacy_ext = [e for e in FULL_GAME_PREDEPLOY_AUDIT_V0336['errors']
+                            if e[0] == 'profession_catalog_mismatch'
+                            and set(e[1]) == _v600_legacy_names | set(_v600_professions)
+                            and set(e[2]) == _v600_legacy_names]
+        if len(_v600_legacy_ext) == 1:
+            FULL_GAME_PREDEPLOY_AUDIT_V0336['catalog_extension_v600'] = '14 old + 8 new verified'
+            FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'] = [
+                e for e in FULL_GAME_PREDEPLOY_AUDIT_V0336['errors']
+                if e not in _v600_legacy_ext]
+            FULL_GAME_PREDEPLOY_AUDIT_V0336['error_count'] = len(FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'])
 else:
     FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
         "version": "0.70.0", "skipped_at_runtime": True,

@@ -102,108 +102,24 @@ class DatabaseAccountsMixin:
         ).fetchone() is not None
 
     def create_account_verified_email_v1223(self, username, password, email):
-        """Create the login and its verified email atomically, never orphan a login."""
-        from network.account_email_v1223 import normalized_email_v1223
-        email = normalized_email_v1223(email)
-        if email is None:
-            raise ValueError("Nieprawidlowy email")
-        salt, digest = hash_password(password)
-        with self.conn:
-            cur = self.conn.execute(
-                "INSERT INTO accounts(username,password_salt,password_hash) VALUES(?,?,?)",
-                (username, salt, digest),
-            )
-            self.conn.execute(
-                "INSERT INTO account_emails_v1223(account_id,email,verified_at) VALUES(?,?,?)",
-                (cur.lastrowid, email, int(time.time())),
-            )
-        return cur.lastrowid
+        """Deprecated: new accounts use regular create_account and in-game codes."""
+        raise ValueError("Zakładanie konta tą metodą jest wyłączone.")
 
     def attach_verified_email_v1223(self, account_id, email):
-        from network.account_email_v1223 import normalized_email_v1223
-        email = normalized_email_v1223(email)
-        if email is None or self.is_character_profile(account_id):
-            raise ValueError("Nieprawidlowy email lub konto techniczne")
-        with self.conn:
-            self.conn.execute(
-                "INSERT INTO account_emails_v1223(account_id,email,verified_at) VALUES(?,?,?) "
-                "ON CONFLICT(account_id) DO UPDATE SET email=excluded.email, "
-                "verified_at=excluded.verified_at",
-                (int(account_id), email, int(time.time())),
-            )
-            # Old mailbox must not be able to redeem a pending reset after change.
-            self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (int(account_id),))
+        """Deprecated: existing stored addresses remain private but cannot be changed."""
+        raise ValueError("Ta metoda została wyłączona.")
 
     def issue_email_reset_v1223(self, username, *, now=None):
-        """Hash-only stored token and per-account rate limit. Plaintext sent once."""
-        target = self.master_account_by_name(str(username or "").strip())
-        if target is None:
-            return None
-        account_id = int(target["id"])
-        email = self.verified_account_email_v1223(account_id)
-        if not email:
-            return None
-        now = int(time.time() if now is None else now)
-        prev = self.conn.execute(
-            "SELECT issued_at FROM email_password_reset_v1223 WHERE account_id=?",
-            (account_id,),
-        ).fetchone()
-        if prev is not None and now - int(prev["issued_at"]) < 300:
-            return None
-        code = secrets.token_hex(8).upper()
-        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
-        self.conn.execute(
-            "INSERT INTO email_password_reset_v1223(account_id,token_hash,issued_at,expires_at,attempts) "
-            "VALUES(?,?,?,?,0) ON CONFLICT(account_id) DO UPDATE SET "
-            "token_hash=excluded.token_hash,issued_at=excluded.issued_at,"
-            "expires_at=excluded.expires_at,attempts=0",
-            (account_id, digest, now, now + 900),
-        )
-        self.conn.commit()
-        return account_id, email, code
+        """Deprecated: fail-closed even if SMTP settings remain configured."""
+        return None
 
     def revoke_email_reset_v1223(self, account_id):
         self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (int(account_id),))
         self.conn.commit()
 
     def reset_password_by_email_v1223(self, username, code, new_password, *, now=None):
-        if not isinstance(new_password, str) or not 10 <= len(new_password) <= 256:
-            return False
-        code = str(code or "").strip().upper()
-        if len(code) != 16 or any(c not in "0123456789ABCDEF" for c in code):
-            return False
-        target = self.master_account_by_name(str(username or "").strip())
-        if target is None:
-            return False
-        account_id = int(target["id"])
-        now = int(time.time() if now is None else now)
-        digest = hashlib.sha256(code.encode("ascii")).hexdigest()
-        self.conn.execute("BEGIN IMMEDIATE")
-        try:
-            row = self.conn.execute(
-                "SELECT token_hash,expires_at,attempts FROM email_password_reset_v1223 WHERE account_id=?",
-                (account_id,),
-            ).fetchone()
-            valid = (row is not None and int(row["expires_at"]) >= now
-                     and int(row["attempts"]) < 5
-                     and hmac.compare_digest(str(row["token_hash"]), digest))
-            if not valid:
-                self.conn.execute(
-                    "UPDATE email_password_reset_v1223 SET attempts=attempts+1 "
-                    "WHERE account_id=? AND expires_at>=? AND attempts<5",
-                    (account_id, now),
-                )
-                self.conn.commit()
-                return False
-            salt, ph = hash_password(new_password)
-            self.conn.execute("UPDATE accounts SET password_salt=?,password_hash=? WHERE id=?", (salt, ph, account_id))
-            self.conn.execute("DELETE FROM email_password_reset_v1223 WHERE account_id=?", (account_id,))
-            self.conn.execute("DELETE FROM password_recovery_v1222 WHERE account_id=?", (account_id,))
-            self.conn.commit()
-            return True
-        except BaseException:
-            self.conn.rollback()
-            raise
+        """Deprecated: only reset_password_with_code_v1222 may change a password."""
+        return False
 
     def account_name(self, account_id):
         row = self.conn.execute(

@@ -1,3 +1,4 @@
+from systems.war_of_gods_bosses_v5000 import effective_elemental_template
 # v4.20.0: bound, AST-identical method implementations (MRO unchanged)
 from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
 import player.session_methods_v4200.combatrealtime_part01 as _sb420_src_01

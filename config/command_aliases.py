@@ -955,10 +955,11 @@ COMMAND_ALIAS_DEFINITIONS.update({
     "accountrecovery": "accountrecovery", "recoverycode": "accountrecovery",
 })
 
-# v1.22.3: verified account e-mail for recovery (not in-game mail).
+# v5.00.1: in-game password recovery codes, no e-mail route.
 COMMAND_ALIAS_DEFINITIONS.update({
-    "konto": "accountemail", "emailkonto": "accountemail",
-    "kontoemail": "accountemail", "accountemail": "accountemail",
+    "konto": "accountrecovery", "kodkonta": "accountrecovery",
+    "emailkonto": "accountemail", "kontoemail": "accountemail",
+    "accountemail": "accountemail",
 })
 
 # v1.26.0: solo/party multi-region expedition.

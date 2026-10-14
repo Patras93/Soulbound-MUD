@@ -31,7 +31,7 @@ def run_regression_fast():
     check('if not teacher:' in content['learning'], 'teacher absence guarded')
     check('if self.combat_mob_key:' in content['learning'], 'combat guard preserved')
     check('class_skills = list(CLASS_SKILLS.get(class_name, []))' in content['learning'], 'full indices without filtered renumbering')
-    check('if not value:' in content['learning'] and 'await self.teacher_lesson(teacher)' in content['learning'], 'bare learn lists')
+    check('if not value:' in content['learning'] and 'await self.teacher_lesson(teacher, only_available=True)' in content['learning'], 'bare learn lists only unlocked unknown')
     check('if mastery < int(skill["unlock"]):' in content['learning'], 'mastery guarded')
     check('self.pay_training_cost(training_cost)' in content['learning'], 'fee remains')
     check('self.server.db.learn_skill(' in content['learning'], 'durable learned skill')

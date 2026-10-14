@@ -1,8 +1,21 @@
+import re, secrets, hashlib, hmac, random, math, time, json, os
+import unicodedata
+from core import balance_math
+from typing import Optional
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
 import network.v420_chests as _sb420_topsrc01
 import network.v420_lookups as _sb420_topsrc02
 
 from data import catalog_mutations as _catalog_mut
+from data.help_base_catalog_v405 import make_help_topic_aliases_v405, make_help_topics_v405
+from systems.dungeons_regions import (GIANT_FORTRESS_BOSS_FLOORS, CRYPT_BOSS_FLOORS, ASTRAL_BOSS_FLOORS, MYTHIC_BOSS_FLOORS, is_giant_fortress_boss_floor, is_crypt_boss_floor, is_astral_boss_floor)
+from data.items import ITEMS
+from core.mines_threat import GUIDE_DESTINATION_ALIASES
+from core.progression_resources import RIVER_FISH_ATLAS
+from systems.items_resources import CLASS_SHOP_CLASSES_BY_ROOM, FISH_STORAGE_IDS, ORE_STORAGE_IDS, WOOD_STORAGE_IDS, HERB_STORAGE_IDS, base_fish_species_id
+from systems.content_registry import CRAFT_MATERIAL_STORAGE_IDS, QUESTS, NPCS, MOB_TEMPLATES
+HELP_TOPIC_ALIASES = make_help_topic_aliases_v405()
+HELP_TOPICS = make_help_topics_v405()
 
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.

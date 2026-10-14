@@ -959,3 +959,27 @@ from validation.v4210_balanced_requirements import run_regression as _xp_v4210
 print(f"ROWNE EXP v4.21.0 FULL: {_xp_v4210()} checks PASS")
 from validation.v4211_independent_xp_rewards import run_regression as _v4211_independent_rewards
 print(f"NIEZALEZNE NAGRODY EXP v4.21.1: {_v4211_independent_rewards()} checks PASS")
+
+# v5.00.0: full catalog, phase logic and reward independence check.
+from validation.v5000_war_of_gods import run_regression as _v5000_war_of_gods
+print(f"WOJNA BOGOW v5.00.0 FULL: {_v5000_war_of_gods()} PASS")
+from validation.v5000_crafting_runtime import run_regression as _v5000_craft_real
+print(f"v5.00.0 NOWE RECEPTURY SQLITE: {_v5000_craft_real()} checks PASS")
+from validation.v2400_real_quest_events import run_event_coverage as _v5000_event_runtime
+_v5000_events = _v5000_event_runtime({k:v for k,v in __import__('server').QUESTS.items() if k.startswith('v500_')})
+assert _v5000_events['accepted_via_handler']==200 and _v5000_events['executed']==163 and not _v5000_events['errors']
+print(f"v5.00.0 QUEST SQLITE: {_v5000_events['checks']} checks PASS")
+from validation.v5000_ocean_runtime import run_regression as _v5000_ocean_real
+print(f"v5.00.0 OCEAN REAL SQLITE: {_v5000_ocean_real()} checks PASS")
+
+# v5.00.1: registration/login/owner code recovery, old e-mail paths disabled.
+from validation.v5001_recovery_codes import audit_v5001_recovery_codes as _recovery_v5001
+print(f"KODY W GRZE v5.00.1 FULL: {_recovery_v5001()} checks PASS")
+
+# v5.00.1: list only skills currently eligible to be learned.
+from validation.v5001_learn_available import audit_v5001_learn_available as _learn_available_v5001
+print(f"LEARN DOSTEPNE v5.00.1 FULL: {_learn_available_v5001()} checks PASS")
+
+# v6.00.1: all eight full 120-stage journeys; real action/tier, SQLite, NPC tests.
+from validation.v601_profession_paths import run_regression as _v601_paths
+print(f"DROGA MISTRZA 8x120 v6.00.1: {_v601_paths()} checks PASS")

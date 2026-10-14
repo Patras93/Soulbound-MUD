@@ -2,8 +2,6 @@
 """Admin commands, wipe and unlock helpers."""
 
 from core.bootstrap_economy_professions import ADMIN_ACCOUNT_NAMES
-from network.account_email_v1223 import smtp_ready_v1223, send_code_v1223
-import smtplib
 import os
 import time
 import sqlite3
@@ -66,7 +64,6 @@ class SessionAdminToolsMixin:
                 await self.send("admin goto <room_id> / administrator teleport <room_id> — teleport testowy.")
                 await self.send("admin give <item_id> [ilość] / administrator daj <item_id> [ilość].")
                 await self.send("admin haslo reset <login> - jednorazowy kod do prywatnego przekazania właścicielowi konta.")
-                await self.send("admin haslo wyslij <login> - wyślij kod resetowania na zweryfikowany e-mail.")
                 await self.send("admin pomoc gracze / serwer / swiat / postacie - Admin Tools 2.0.")
                 await self.send("Wyczysc naprawione POTWIERDZAM - usuwa wyłącznie oznaczone jako naprawione błędy SB, nie postacie.")
                 await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
@@ -89,26 +86,8 @@ class SessionAdminToolsMixin:
             parts = raw.split()
             first = self.normalize_description_query(parts[0]) if parts else ""
             if first in ("haslo", "hasło", "password"):
-                if len(parts) != 3 or self.normalize_description_query(parts[1]) not in ("reset", "kod", "wyslij"):
-                    await self.send("Użycie: admin haslo reset <login> / admin haslo wyslij <login>.")
-                    return
-                if self.normalize_description_query(parts[1]) == "wyslij":
-                    if not smtp_ready_v1223():
-                        await self.send("SMTP nie jest skonfigurowany.")
-                        return
-                    issued = self.server.db.issue_email_reset_v1223(parts[2])
-                    if issued is None:
-                        await self.send("Nie wysłano kodu: brak zweryfikowanego e-maila, limit lub konto nie istnieje.")
-                        return
-                    aid, recipient, code = issued
-                    try:
-                        await send_code_v1223(recipient, "reset", code)
-                    except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
-                        self.server.db.revoke_email_reset_v1223(aid)
-                        await self.send("Błąd SMTP. Kod nie został wysłany.")
-                        return
-                    self.server.db.record_admin_action_v1224(self.server.db.account_name(self.master_account_id), "haslo_wyslij", parts[2])
-                    await self.send("Wysłano kod resetowania do właściciela konta. Starego hasła nie wysyłamy.")
+                if len(parts) != 3 or self.normalize_description_query(parts[1]) not in ("reset", "kod"):
+                    await self.send("Użycie: admin haslo reset <login>.")
                     return
                 target = self.server.db.master_account_by_name(parts[2])
                 if not target:

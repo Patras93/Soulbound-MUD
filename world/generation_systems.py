@@ -1,3 +1,57 @@
+from core.progression_resources import FISHING_ROOMS  # bound dependency
+from core.progression_resources import FRESHWATER_FISHING_ROOMS  # bound dependency
+from core.progression_resources import HERBALISM_ROOMS  # bound dependency
+from core.progression_resources import LAKE_FISHING_ROOMS  # bound dependency
+from core.progression_resources import MARINE_FISHING_ROOMS  # bound dependency
+from core.progression_resources import MEADOW_HERBALISM_ROOMS  # bound dependency
+from core.progression_resources import OCEAN_FISHING_ROOMS  # bound dependency
+from core.progression_resources import RIVER_FISHING_ROOMS  # bound dependency
+from core.progression_resources import SEA_FISHING_ROOMS  # bound dependency
+from core.bootstrap_economy_professions import SILVER_PER_GOLD  # bound dependency
+from config.balance import V019_QUEST_COIN  # bound dependency
+from config.balance import V019_SOUL_KILL_NORMAL  # bound dependency
+from core.progression_resources import WOODCUTTING_ROOMS  # bound dependency
+import math  # bound dependency
+from core.progression_resources import v0190_log_curve  # bound dependency
+from world.dynamic_content import ACHIEVEMENT_TRACKS  # restored modularization dependency
+from world.dynamic_content import ALL_EXPLORATION_ROOMS  # restored modularization dependency
+from world.dynamic_content import BOSS_COLLECTION_CATALOG  # restored modularization dependency
+from config.balance import CHARACTER_MAX_LEVEL  # restored modularization dependency
+from world.dynamic_content import CHEST_COLLECTION_CATALOG  # restored modularization dependency
+from world.dynamic_content import EQUIPMENT_COLLECTION_CATALOG  # restored modularization dependency
+from world.dynamic_content import EXPLORATION_REWARD_ITEMS  # restored modularization dependency
+from world.economy_quests import EXPLORATION_ZONE_MIN_ROOMS  # restored modularization dependency
+from world.dynamic_content import EXPLORATION_ZONE_ROOMS  # restored modularization dependency
+from core.progression_resources import FISHING_ECOLOGY_PREFERRED_IDS  # restored modularization dependency
+from core.progression_resources import FISHING_WATER_TYPE_OVERRIDES  # restored modularization dependency
+from core.mines_threat import GUIDE_DESTINATION_ALIASES  # restored modularization dependency
+from systems.content_registry import HELP_TOPICS  # restored modularization dependency
+from systems.content_registry import HELP_TOPIC_ALIASES  # restored modularization dependency
+from core.classes_skills import HERB_ATLAS_ROOM_MIN_LEVELS  # restored modularization dependency
+from data.items import ITEMS  # restored modularization dependency
+from systems.content_registry import MOB_SPAWNS  # restored modularization dependency
+from data.mobs import MOB_TEMPLATES  # restored modularization dependency
+from data.npcs import NPCS  # restored modularization dependency
+from data.quests import QUESTS  # restored modularization dependency
+from world.dynamic_content import RARE_MOB_COLLECTION_CATALOG  # restored modularization dependency
+from world.expansions import REGIONAL_SET_BONUSES  # restored modularization dependency
+from data.rooms import ROOMS  # restored modularization dependency
+from world.dynamic_content import TRACKED_EXPLORATION_ZONES  # restored modularization dependency
+from world.expansions import TREASURE_CHESTS  # restored modularization dependency
+from world.dynamic_content import UNIQUE_ITEM_COLLECTION_CATALOG  # restored modularization dependency
+from core.bootstrap_economy_professions import V019_SAFE_INT  # restored modularization dependency
+from core.bootstrap_economy_professions import V0250_WORLD_SEED  # restored modularization dependency
+from world.dynamic_content import _collection_slug  # restored modularization dependency
+from world.economy_quests import ensure_profession_quest_currency_v098  # restored modularization dependency
+import hashlib  # restored modularization dependency
+from storage.db_shared import normalize_lookup_text  # restored modularization dependency
+from world.economy_quests import normalize_profession_requirements_v0866  # restored modularization dependency
+from world.economy_quests import normalize_quest_progress_tracking_v0866  # restored modularization dependency
+import random  # restored modularization dependency
+import re  # restored modularization dependency
+import time  # restored modularization dependency
+from core.progression_resources import v0190_apply_combat_template  # restored modularization dependency
+from core.progression_resources import v0190_economy_sink  # restored modularization dependency
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
 import world.v420_generation_random as _sb420_topsrc01
 import world.v420_generation_mobs as _sb420_topsrc02

@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "4.21.1"
+VERSION = "6.00.1"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -1308,3 +1308,29 @@ def tool_tier_bonus_chance(level):
 # endgame może operować milionami, miliardami i bilionami.
 # ============================================================
 V019_SAFE_INT = 8_000_000_000_000_000_000
+
+# v6.00.0 professions/tool rank catalogs.
+TOOL_PROFESSION_MAP['hunting']='Łowiectwo'
+PROFESSION_RANK_NAMES['Łowiectwo']=tuple(f"{suffix} Łowiectwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['hunting']=tuple(f"Nóż Łowiecki - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['farming']='Rolnictwo'
+PROFESSION_RANK_NAMES['Rolnictwo']=tuple(f"{suffix} Rolnictwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['farming']=tuple(f"Motyka Rolnicza - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['animal_husbandry']='Hodowla zwierząt'
+PROFESSION_RANK_NAMES['Hodowla zwierząt']=tuple(f"{suffix} Hodowla zwierząt" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['animal_husbandry']=tuple(f"Przybory Hodowlane - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['shipbuilding']='Okrętownictwo'
+PROFESSION_RANK_NAMES['Okrętownictwo']=tuple(f"{suffix} Okrętownictwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['shipbuilding']=tuple(f"Młot Okrętowy - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['masonry']='Murarstwo'
+PROFESSION_RANK_NAMES['Murarstwo']=tuple(f"{suffix} Murarstwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['masonry']=tuple(f"Kielnia Murarska - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['engineering']='Inżynieria'
+PROFESSION_RANK_NAMES['Inżynieria']=tuple(f"{suffix} Inżynieria" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['engineering']=tuple(f"Zestaw Inżynierski - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['trading']='Kupiectwo'
+PROFESSION_RANK_NAMES['Kupiectwo']=tuple(f"{suffix} Kupiectwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['trading']=tuple(f"Waga Kupiecka - stopień {i}" for i in range(1,81))
+TOOL_PROFESSION_MAP['sailing']='Żeglarstwo'
+PROFESSION_RANK_NAMES['Żeglarstwo']=tuple(f"{suffix} Żeglarstwo" for suffix in ("Uczeń", "Adept", "Czeladnik", "Mistrz", "Arcymistrz", "Legenda", "Astralny", "Wieczny"))
+TOOL_TIER_NAMES['sailing']=tuple(f"Sekstant Nawigacyjny - stopień {i}" for i in range(1,81))

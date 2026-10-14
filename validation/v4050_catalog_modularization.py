@@ -24,6 +24,7 @@ def _hash(value):
     return hashlib.sha256(json.dumps(value,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode('utf-8')).hexdigest()
 
 def run_regression():
+    from core.bootstrap_economy_professions import VERSION
     from data import help_base_catalog_v405 as help_catalog
     from data import world_description_catalog_v405 as descriptions
     import server
@@ -45,7 +46,7 @@ def run_regression():
         counts+=7
     assert len(server.CLASS_SKILLS)==14
     counts+=1
-    assert len(server.QUESTS)==2701
+    assert len(server.QUESTS)== (3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701)
     counts+=1
     assert all(name in server.__dict__ for name in ('HELP_TOPICS','HELP_TOPIC_ALIASES','NPC_DESCRIPTIONS'))
     counts+=1

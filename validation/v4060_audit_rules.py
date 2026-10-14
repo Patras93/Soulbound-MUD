@@ -11,13 +11,14 @@ DEPENDENCIES = {'generator_numeric_only_audit_v03018': ['CATALOG_VALIDATION_AUDI
 
 
 def run_regression():
+    from core.bootstrap_economy_professions import VERSION
     from admin import audit_rules_v406
     import server
     import admin.audits as legacy
     count = 0
     assert len(NAMES) == 14
     count += 1
-    assert len(server.CLASS_SKILLS) == 14 and len(server.QUESTS) == 2701
+    assert len(server.CLASS_SKILLS) == 14 and len(server.QUESTS) == (3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701)
     count += 2
     wrappers = ast.parse((ROOT / 'admin/audits.py').read_text(encoding='utf-8'))
     pure_source = ast.parse((ROOT / 'admin/audit_rules_v406.py').read_text(encoding='utf-8'))

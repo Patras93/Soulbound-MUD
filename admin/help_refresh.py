@@ -3,6 +3,41 @@ from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb41
 import admin.v410_help_refresh as _sb410_mod_v410_help_refresh
 import admin.v410_help_audits as _sb410_mod_v410_help_audits
 
+# v6.00.0: insert all historically aliased HELP targets before the earliest
+# old HELP/alias audits run. Keep the v4 catalog factory byte-for-byte intact.
+_V600_EARLY_HELP_TARGETS = {
+        'alchemia': ['Alchemia: korzystaj z moździerza, ziół i poznanych receptur.'],
+        'atlas': ['Atlas: lista poznanych zasobów, ryb, rud oraz odkryć świata.'],
+        'charyzma': ['Charyzma: cecha postaci wpływająca na interakcje społeczne.'],
+        'druzyny': ['Drużyny: zapraszaj graczy, korzystaj z pomocy w walce i wspólnych zadań.'],
+        'drwalstwo': ['Drwalstwo: ścinaj drzewa piłą i przerabiaj drewno w istniejącym rzemiośle.'],
+        'dusza': ['Dusza: rozwój duszy postaci i Broni Duszy.'],
+        'ekwipunek': ['Ekwipunek: sprawdzaj, zakładaj i zdejmuj przedmioty.'],
+        'gornictwo': ['Górnictwo: wydobywaj różne rudy kilofem, rozwijając profesję i narzędzie.'],
+        'gracze': ['Gracze: komunikacja, drużyny, lista online i wspólne wyprawy.'],
+        'klasy': ['Klasy: postacie wieloklasowe i umiejętności dostępne u nauczycieli.'],
+        'nauczyciele': ['Nauczyciele: wpisz learn w ich pokoju, aby sprawdzić dostępne umiejętności.'],
+        'nazwy_skilli': ['Nazwy umiejętności sprawdzisz w kodeksie klasowym i u nauczyciela.'],
+        'odmiana_imienia': ['Odmiana imienia służy poprawnym komunikatom postaci w języku polskim.'],
+        'pieniadze': ['Waluta świata: sto srebra to jedno złoto; milion złota to jeden mithril.'],
+        'podstawy': ['Podstawy: help, look, exits, status, ekwipunek, profesje i questy.'],
+        'pojemniki': ['Pojemniki: służą do przechowywania materiałów i przedmiotów postaci.'],
+        'profesje': ['Profesje: rozwijaj czynności i własne narzędzia; nowe zawody: profesje6 lista.'],
+        'rasy': ['Rasy: pochodzenie postaci i jego cechy, dostępne podczas tworzenia postaci.'],
+        'receptury': ['Receptury: wykorzystuj materiały, aby tworzyć przedmioty.'],
+        'rzemioslo': ['Rzemiosło: przerabiaj surowce na użyteczne wyposażenie i materiały.'],
+        'sklepy': ['Sklepy: sprawdzaj ofertę sprzedawców i kupuj tylko potrzebne przedmioty.'],
+        'smierc': ['Śmierć: postać odradza się w Świątyni Odrodzenia; postęp zostaje zachowany.'],
+        'statystyki': ['Statystyki: Siła, Zręczność, Kondycja, Inteligencja i Wola.'],
+        'umiejetnosci': ['Umiejętności: learn u nauczyciela; pełna lista w kodeksie klasowym.'],
+        'wedkarstwo': ['Wędkarstwo: łów ryby w odpowiednich wodach, używając wędki.'],
+        'zielarstwo': ['Zielarstwo: zbieraj zioła i wykorzystuj je w gotowaniu oraz alchemii.'],
+        'zwloki': ['Zwłoki: po walce sprawdź ciało przeciwnika, aby odzyskać łupy i klucze.'],
+
+}
+for _topic_v600, _lines_v600 in _V600_EARLY_HELP_TARGETS.items():
+    HELP_TOPICS.setdefault(_topic_v600, list(_lines_v600))
+
 
 
 

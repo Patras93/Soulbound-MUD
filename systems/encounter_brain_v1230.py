@@ -17,6 +17,9 @@ _ELEMENTS = ('fire', 'ice', 'lightning', 'dark', 'poison', 'shadow', 'holy')
 
 def boss_tactics_phase_v1230(mob, template, now=None):
     """One phase per threshold for ordinary bosses; no outgoing player damage cap."""
+    if template.get('v500_ancient_profile') is not None:
+        from systems.war_of_gods_bosses_v5000 import unique_phase
+        return unique_phase(mob, template, now)
     if not mob or not getattr(mob, 'alive', False) or mob.hp <= 0:
         return None
     if any(template.get(flag) for flag in PROTECTED_FLAGS if flag not in ('mini_boss', 'world_boss', 'crypt_boss', 'astral_boss', 'mythic_crypt_boss', 'mythic_astral_boss')):

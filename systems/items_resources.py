@@ -4,6 +4,9 @@ import systems.v410_resource_registration as _sb410_mod_v410_resource_registrati
 import systems.v410_material_profiles as _sb410_mod_v410_material_profiles
 
 from data import catalog_mutations as _catalog_mut
+from data.items import ITEMS
+from core.progression_600 import PROGRESSION_400_LEVELS, CLASS_MASTERY_MAX_LEVEL
+from core.progression_resources import (_register_world_resource_items, FISH_RESOURCE_IDS, ORE_RESOURCE_IDS, WOOD_RESOURCE_IDS, HERB_RESOURCE_IDS)
 import math
 from core.profession_drop_rates_v1149 import resource_variant_chances_v1149, mining_vein_chances_v1149
 import random

@@ -1,11 +1,24 @@
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
+import math
 
 import world.v410_world_economy as _sb410_mod_v410_world_economy
 import world.v410_infinite_floors as _sb410_mod_v410_infinite_floors
 
 from data import catalog_mutations as _catalog_mut
 from systems.dungeon_names import dungeon_mob_display_name_v11336
-from systems.dungeons_regions import crypt_floor_display_name
+from systems.dungeons_regions import ASTRAL_MIN_FLOOR, crypt_floor_display_name, profession_dungeon_room_id, crypt_depth_multiplier, CRYPT_BOSS_FLOORS, ASTRAL_BOSS_FLOORS, MYTHIC_BOSS_FLOORS
+from core.progression_600 import PROGRESSION_400_LEVELS, SOUL_MAX_LEVEL
+from core.bootstrap_economy_professions import legacy_currency_to_coins, profession_for_tool_type, GLOBAL_MOB_HP_MULTIPLIER
+from data.items import ITEMS
+from core.mines_threat import v0866_mob_progression_power
+from data.rooms import ROOMS
+from data.crafting_recipes import CRAFT_RECIPES
+from data.alchemy_recipes import ALCHEMY_RECIPES
+from systems.equipment_crafting import JEWELCRAFT_RECIPES, COOK_RECIPES
+from systems.content_registry import MOB_TEMPLATES, QUESTS, NPCS, HELP_TOPICS, HELP_TOPIC_ALIASES
+from systems.items_resources import CORPSE_MATERIAL_TIER_BY_KEY, CORPSE_MATERIAL_ITEM_IDS, WOOD_STORAGE_IDS, HERB_STORAGE_IDS, FISH_STORAGE_IDS, ORE_STORAGE_IDS, rare_resource_variant_id, FISH_RARE_VARIANTS, WOOD_RARE_VARIANTS, HERB_RARE_VARIANTS, CLASS_EQUIPMENT_ITEM_IDS
+from world.v600_price_config import (V0861_BASE_SHOP_PRICES_SILVER, V0861_CLASS_TIER_BASE_SILVER, V0861_CLASS_SLOT_PRICE_FACTOR)
+from world.equipment_help import configure_material_corpse_equipment, corpse_material_tier_for_template, equipment_progression_mastery_for_template_v0919, corpse_material_tier_for_mastery_v0919
 
 def rebalance_economy_v0861(*args, **kwargs):
     """Compatibility entrypoint; rebound to the unchanged native implementation."""

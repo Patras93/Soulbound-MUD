@@ -623,3 +623,30 @@ ITEMS.update({
 })
 
 __all__ = ['ITEMS']
+
+# v6.00.0: narzędzia i towary nowych profesji.
+ITEMS.update({
+    'hunting_knife': {"name":'Nóż Łowiecki',"type":"tool","tool_type":'hunting',"price":1200,"currency":"silver","desc":"Narzędzie profesji Łowiectwo, poziomy 1-800; tylko jedno na postać."},
+    'farming_hoe': {"name":'Motyka Rolnicza',"type":"tool","tool_type":'farming',"price":1200,"currency":"silver","desc":"Narzędzie profesji Rolnictwo, poziomy 1-800; tylko jedno na postać."},
+    'husbandry_kit': {"name":'Przybory Hodowlane',"type":"tool","tool_type":'animal_husbandry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Hodowla zwierząt, poziomy 1-800; tylko jedno na postać."},
+    'shipwright_hammer': {"name":'Młot Okrętowy',"type":"tool","tool_type":'shipbuilding',"price":1200,"currency":"silver","desc":"Narzędzie profesji Okrętownictwo, poziomy 1-800; tylko jedno na postać."},
+    'mason_trowel': {"name":'Kielnia Murarska',"type":"tool","tool_type":'masonry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Murarstwo, poziomy 1-800; tylko jedno na postać."},
+    'engineer_kit': {"name":'Zestaw Inżynierski',"type":"tool","tool_type":'engineering',"price":1200,"currency":"silver","desc":"Narzędzie profesji Inżynieria, poziomy 1-800; tylko jedno na postać."},
+    'merchant_scale': {"name":'Waga Kupiecka',"type":"tool","tool_type":'trading',"price":1200,"currency":"silver","desc":"Narzędzie profesji Kupiectwo, poziomy 1-800; tylko jedno na postać."},
+    'navigation_sextant': {"name":'Sekstant Nawigacyjny',"type":"tool","tool_type":'sailing',"price":1200,"currency":"silver","desc":"Narzędzie profesji Żeglarstwo, poziomy 1-800; tylko jedno na postać."},
+    'hunt_meat': {"name":'Mięso Łowne',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'field_grain': {"name":'Zboże z Pola',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'farm_wool': {"name":'Wełna Hodowlana',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'ship_parts': {"name":'Elementy Okrętu',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'stone_blocks': {"name":'Bloki Kamienne',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'machine_gears': {"name":'Mechanizm Zębaty',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'trade_crate': {"name":'Skrzynia Kupiecka',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+    'navigation_chart': {"name":'Mapa Żeglarska',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
+})
+
+# v6.00: no duplicated tools, all new activities registered in professions_v600.
+from systems.new_professions import ITEMS_NEW as _V600_ITEMS, PROFESSIONS as _V600_PROFESSIONS
+for _id, (_name, _type) in _V600_ITEMS.items():
+    ITEMS[_id] = {"name":_name,"type":_type,"price":None,"sell_silver":5,"desc":"Produkt nowej profesji (v6.00.0)."}
+# Items are not purchasable through generic shop; their single purchase is
+# recorded against character id by the profession command.

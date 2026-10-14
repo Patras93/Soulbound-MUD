@@ -80,7 +80,9 @@ def event_for(db, aid, q):
         profession = q.get('target') or q.get('required_profession')
         if profession:
             result = db.increment_profession_action_quests_v0700(
-                aid, profession, q.get('specialist_tool_type') or '', needed)
+                aid, profession, q.get('specialist_tool_type') or '', needed,
+                action_code=q.get('required_action_code'),
+                tier=int(q.get('min_action_tier') or 1))
             return result, needed, True
     if kind == 'party_contract' and target is not None:
         result = db.increment_party_contract_v11339(aid, target, needed)

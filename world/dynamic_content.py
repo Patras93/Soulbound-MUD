@@ -1,11 +1,44 @@
+from systems.items_resources import CLASS_EQUIPMENT_SETS  # required by bound historical collection builder
+from systems.dungeons_regions import ASTRAL_MAX_FLOOR  # restored source dependency
+from systems.items_resources import CORPSE_MATERIAL_TIERS  # restored source dependency
+from systems.content_registry import CRYPT_PREGENERATED_MAX_FLOOR  # restored source dependency
+from systems.equipment_crafting import CUT_GEM_IDS  # restored source dependency
+from systems.dungeons_regions import GIANT_FORTRESS_MAX_FLOOR  # restored source dependency
+from world.economy_quests import LOOT_RARITY_ORDER  # restored source dependency
+from systems.dungeons_regions import MYTHIC_MAX_FLOOR  # restored source dependency
+from systems.dungeons_regions import PROF_DUNGEON_MAX_FLOOR  # restored source dependency
+from systems.dungeons_regions import PROF_DUNGEON_PREFIXES  # restored source dependency
+from systems.equipment_crafting import RAW_GEM_IDS  # restored source dependency
+from core.progression_resources import WOOD_RESOURCE_IDS  # restored source dependency
+from core.progression_resources import HERB_RESOURCE_IDS  # restored explicit dependency v6.00
+from core.progression_resources import ORE_RESOURCE_IDS  # restored explicit dependency v6.00
+from core.progression_resources import FISH_RESOURCE_IDS  # restored explicit dependency v6.00
+from world.expansions import TREASURE_CHESTS  # restored explicit dependency v6.00
+from systems.dungeons_regions import WORLD_BOSS_UNIQUES  # restored explicit dependency v6.00
+from world.expansions import REGIONAL_SET_BONUSES  # restored explicit dependency v6.00
+from world.economy_quests import EXPLORATION_ZONE_MIN_ROOMS  # restored explicit dependency v6.00
+from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS  # restored explicit dependency v6.00
+from systems.equipment_crafting import SHOP_SELLERS  # restored explicit dependency v6.00
+from data.shops import SHOPS  # restored explicit dependency v6.00
+from core.progression_resources import mine_floor_id  # restored explicit dependency v6.00
+from systems.dungeons_regions import ASTRAL_MIN_FLOOR  # restored explicit dependency v6.00
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
+import unicodedata
+import re
 
 import world.v410_dynamic_regions as _sb410_mod_v410_dynamic_regions
 import world.v410_dynamic_instances as _sb410_mod_v410_dynamic_instances
 import world.v410_dynamic_collectors as _sb410_mod_v410_dynamic_collectors
 
 from data import catalog_mutations as _catalog_mut
-from systems.dungeons_regions import crypt_subroom_display_name
+from systems.dungeons_regions import crypt_floor_id, astral_floor_id, giant_fortress_floor_id, mythic_crypt_floor_id, mythic_astral_floor_id, profession_dungeon_room_id, crypt_subroom_display_name, crypt_floor_number, astral_floor_number, giant_fortress_floor_number, mythic_crypt_floor_number, mythic_astral_floor_number, profession_dungeon_floor
+from data.items import ITEMS
+from data.crafting_recipes import CRAFT_RECIPES
+from data.rooms import ROOMS
+from systems.content_registry import MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, CRAFT_MATERIAL_STORAGE_IDS, HELP_TOPICS, HELP_TOPIC_ALIASES
+from core.mines_threat import EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES
+from core.progression_resources import mine_floor_number
+from world.economy_quests import _configure_dynamic_corpse_material
 COLLECTION_CATEGORY_ALIASES = {
     "fish": "fish", "ryby": "fish", "ryba": "fish",
     "minerals": "minerals", "mineral": "minerals", "mineraly": "minerals", "minerały": "minerals", "rudy": "minerals",

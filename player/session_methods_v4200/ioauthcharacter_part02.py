@@ -491,16 +491,26 @@ async def do_new_account(self):
                 await self.send("Hasła się różnią.")
                 continue
             break
-        # v1.22.4: accounts do not require SMTP. The administrator can
-        # issue one-time reset codes and players can keep a backup code.
-        # Existing verified e-mails remain valid for optional recovery.
+        # v5.00.1: account recovery is code-only, never SMTP.
         try:
             self.master_account_id = self.server.db.create_account(username, password)
         except sqlite3.IntegrityError:
             await self.send("Ta nazwa konta jest już zajęta.")
             return False
         self.account_id = None
-        await self.send("Konto utworzone. E-mail nie jest wymagany. Po zalogowaniu możesz zapisać zapasowy kod przez: odzyskaj haslo kod.")
+        await self.send("Konto utworzone. Odzyskiwanie hasła działa wyłącznie kodem.")
+        # Create the first token while the freshly created account is authenticated.
+        # The cleartext never enters chat/history buffers or database logs.
+        code = self.server.db.issue_password_recovery_v1222(self.master_account_id, "backup")
+        if code is not None:
+            await self.send(
+                "TWÓJ JEDNORAZOWY KOD ODZYSKIWANIA: " + code + ". "
+                "Zapisz go prywatnie poza grą. Jest ważny przez 365 dni albo do użycia. "
+                "Nowy kod wygenerujesz później komendą konto kod.",
+                history_store=False,
+            )
+        else:
+            await self.send("Kod nie został wygenerowany. Po zalogowaniu wpisz: konto kod.")
         await self.send(
             f"Na tym koncie możesz utworzyć maksymalnie {MAX_CHARACTERS_PER_ACCOUNT} postaci."
         )

@@ -26,7 +26,10 @@ def run_audit(server):
     from systems.mastery_crafting_v2201 import TOOL_TYPES
     from systems.equipment_crafting import JEWELCRAFT_RECIPES, SHOPS
 
-    class QuestVerifier(SessionQuestCommandsMixin, SessionProfessionStorageMixin):
+    # Full runtime v6.00.1 uses SessionProfesje6Mixin for the eight new
+    # reward tool types. Validate with the actual mixin, not only legacy 14.
+    from player.session_mixins.profesje6 import SessionProfesje6Mixin
+    class QuestVerifier(SessionProfesje6Mixin, SessionQuestCommandsMixin, SessionProfessionStorageMixin):
         pass
     verifier=QuestVerifier()
     quests, rooms, npcs, mobs, items = (server.QUESTS, server.ROOMS, server.NPCS,

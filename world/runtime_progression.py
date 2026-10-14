@@ -1,3 +1,48 @@
+from config.balance import CHARACTER_MAX_LEVEL  # bound dependency
+from systems.items_resources import CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER  # bound dependency
+from systems.items_resources import CLASS_EQUIPMENT_SETS  # bound dependency
+from systems.equipment_crafting import LEGENDARY_CLASS_RELIC_BY_CLASS_TIER  # bound dependency
+from systems.equipment_crafting import LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER  # bound dependency
+from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS  # bound dependency
+from world.generation_systems import _v0130_apply_resources  # bound dependency
+from systems.equipment_crafting import class_equipment_profile  # bound dependency
+from systems.equipment_crafting import class_equipment_profile_properties  # bound dependency
+from systems.equipment_crafting import class_equipment_split_stat_budget  # bound dependency
+from systems.equipment_crafting import class_equipment_stat_budget  # bound dependency
+from world.dynamic_content import BOSS_COLLECTION_CATALOG  # restored modularization dependency
+from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS  # restored modularization dependency
+from config.balance import CLASS_MASTERY_MAX_LEVEL  # restored modularization dependency
+from core.classes_skills import CLASS_SKILLS  # restored modularization dependency
+from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL  # restored modularization dependency
+from world.dynamic_content import EQUIPMENT_COLLECTION_CATALOG  # restored modularization dependency
+from core.mines_threat import EXP_ZONE_AREA_ID  # restored modularization dependency
+from systems.items_resources import FISH_RARE_VARIANTS  # restored modularization dependency
+from systems.items_resources import FISH_STORAGE_IDS  # restored modularization dependency
+from core.bootstrap_economy_professions import GLOBAL_SKILL_BUFF_DURATION_SECONDS  # restored modularization dependency
+from systems.content_registry import HELP_TOPICS  # restored modularization dependency
+from systems.content_registry import HELP_TOPIC_ALIASES  # restored modularization dependency
+from systems.items_resources import HERB_STORAGE_IDS  # restored modularization dependency
+from systems.items_resources import ORE_STORAGE_IDS  # restored modularization dependency
+from data.shops import SHOPS  # restored modularization dependency
+from systems.equipment_crafting import SHOP_SELLERS  # restored modularization dependency
+from config.balance import V019_CLASS_KILL_BOSS  # restored modularization dependency
+from config.balance import V019_COIN_KILL_BOSS  # restored modularization dependency
+from config.balance import V019_DAMAGE_NORMAL  # restored modularization dependency
+from config.balance import V019_HP_NORMAL  # restored modularization dependency
+from core.bootstrap_economy_professions import V019_SAFE_INT  # restored modularization dependency
+from config.balance import V019_SOUL_KILL_BOSS  # restored modularization dependency
+from config.balance import V019_STAT_KILL_BOSS  # restored modularization dependency
+from world.generation_systems import V020_GAUNTLET_LOBBY  # restored modularization dependency
+from world.generation_systems import V020_MEGADUNGEONS  # restored modularization dependency
+from systems.items_resources import WOOD_STORAGE_IDS  # restored modularization dependency
+from core import balance_math  # restored modularization dependency
+from systems.items_resources import base_fish_species_id  # restored modularization dependency
+from systems.items_resources import fish_rarity_label  # restored modularization dependency
+from systems.items_resources import fish_species_rarity  # restored modularization dependency
+from storage.db_shared import normalize_lookup_text  # restored modularization dependency
+import re  # restored modularization dependency
+from world import logic_validator as world_logic_validator_v030  # restored modularization dependency
+from world import topology_generator as world_topology_generator_v0281  # restored modularization dependency
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
 import world.v420_runtime_regions as _sb420_topsrc01
 import world.v420_runtime_world_audits as _sb420_topsrc02
@@ -5,6 +50,12 @@ import world.v420_runtime_class_equipment as _sb420_topsrc03
 
 from data import catalog_mutations as _catalog_mut
 from systems.equipment_crafting import mec_hybrid_extra_stats
+from core.bootstrap_economy_professions import V0250_WORLD_SEED
+from data.items import ITEMS
+from world.dynamic_content import UNIQUE_ITEM_COLLECTION_CATALOG
+from systems.content_registry import MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS
+from data.rooms import ROOMS
+from core.progression_resources import v0190_log_curve
 V021_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0210-ascension-world-tiers-mythic"
 V021_ASCENSION_MAX_RANK = 1000
 V021_WORLD_TIER_MAX = 10

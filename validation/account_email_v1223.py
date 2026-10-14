@@ -1,66 +1,54 @@
 # -*- coding: utf-8 -*-
-"""Fast, offline, real SQLite tests of e-mail account features."""
-import hashlib
+"""Historical account e-mail gate: all former password-reset entry points fail closed."""
+import asyncio
 import sqlite3
 from storage.db_accounts import DatabaseAccountsMixin
 from storage.schema_core import create_core_schema
-from storage.db_shared import hash_password
-from network.account_email_v1223 import normalized_email_v1223
+from network.account_email_v1223 import smtp_ready_v1223, send_code_v1223
 
 
 def audit_account_email_v1223():
     checks = 0
-    def check(condition, reason):
+    def check(value, detail):
         nonlocal checks
         checks += 1
-        if not condition:
-            raise RuntimeError("ACCOUNT EMAIL v1.22.3: " + reason)
+        if not value:
+            raise AssertionError('LOGIN CODE ONLY: ' + detail)
 
     class DB(DatabaseAccountsMixin):
         pass
     db = DB()
-    db.conn = sqlite3.connect(":memory:")
+    db.conn = sqlite3.connect(':memory:')
     db.conn.row_factory = sqlite3.Row
-    db.conn.execute("PRAGMA foreign_keys=ON")
+    db.conn.execute('PRAGMA foreign_keys=ON')
     try:
         create_core_schema(db)
-        check(normalized_email_v1223(" TEST+tag@Example.org ") == "test+tag@example.org", "normalization")
-        for bad in ("", "not-address", "joe@example", "a@b..com", "a\n@example.com"):
-            check(normalized_email_v1223(bad) is None, "malformed email")
-        id1 = db.create_account_verified_email_v1223("Test1", "SecretPassword_1", "test1@example.org")
-        check(db.verified_account_email_v1223(id1) == "test1@example.org", "verified registration")
-        check(db.email_taken_v1223("TEST1@EXAMPLE.ORG"), "case-insensitive uniqueness")
-        codeinfo = db.issue_email_reset_v1223("Test1", now=1700000000)
-        check(codeinfo is not None and len(codeinfo[2]) == 16, "secure reset token")
-        check(codeinfo[2] not in str(db.conn.execute("SELECT * FROM email_password_reset_v1223").fetchone()), "code not stored as plaintext")
-        check(db.issue_email_reset_v1223("Test1", now=1700000001) is None, "5-minute send throttle")
-        for _ in range(5):
-            check(not db.reset_password_by_email_v1223("Test1", "0"*16, "NewPassword_1", now=1700000002), "wrong token blocked")
-        check(not db.reset_password_by_email_v1223("Test1", codeinfo[2], "NewPassword_1", now=1700000003), "five attempts lock token")
-        codeinfo = db.issue_email_reset_v1223("Test1", now=1700000400)
-        check(codeinfo is not None, "new token after throttle")
-        check(not db.reset_password_by_email_v1223("Test1", codeinfo[2], "NewPassword_1", now=1700001500), "expiration")
-        codeinfo = db.issue_email_reset_v1223("Test1", now=1700002000)
-        check(db.reset_password_by_email_v1223("Test1", codeinfo[2], "NewPassword_1", now=1700002001), "redemption")
-        check(not db.reset_password_by_email_v1223("Test1", codeinfo[2], "NewPassword_1", now=1700002002), "one-time")
-        row = db.master_account_by_name("Test1")
-        check(row['password_hash'] == hash_password("NewPassword_1", bytes.fromhex(row['password_salt']))[1], "password rotated")
-        id2 = db.create_account("OldAccount", "OldPassword_1")
-        check(db.verified_account_email_v1223(id2) is None, "old account unaffected")
-        db.attach_verified_email_v1223(id2, "second@example.net")
-        check(db.verified_account_email_v1223(id2) == "second@example.net", "legacy email attach")
-        duplicate_rejected = False
-        try:
-            db.attach_verified_email_v1223(id2, "test1@example.org")
-        except sqlite3.IntegrityError:
-            duplicate_rejected = True
-        check(duplicate_rejected, "duplicate accepted")
-        check(db.verified_account_email_v1223(id2) == "second@example.net", "duplicate rollback")
-        old = db.issue_email_reset_v1223("OldAccount", now=1700003000)
-        db.attach_verified_email_v1223(id2, "changed@example.net")
-        check(not db.reset_password_by_email_v1223("OldAccount", old[2], "Changed_1_Password", now=1700003001), "old mailbox token revoked")
-        check(db.verified_account_email_v1223(id2) == "changed@example.net", "new verified mailbox")
-        check(db.verified_account_email_v1223(id1) == "test1@example.org", "accounts separated")
+        aid = db.create_account('Test1', 'Initial_Password11')
+        # Simulate a historical existing verified address and already issued reset.
+        db.conn.execute("INSERT INTO account_emails_v1223(account_id,email,verified_at) VALUES(?,?,?)", (aid, 'old@example.org', 1))
+        db.conn.execute("INSERT INTO email_password_reset_v1223(account_id,token_hash,issued_at,expires_at,attempts) VALUES(?,?,?,?,0)", (aid, 'abc', 1, 9999999999))
+        db.conn.commit()
+        check(db.verified_account_email_v1223(aid) == 'old@example.org', 'original address remains in sqlite')
+        check(not smtp_ready_v1223(), 'SMTP remains disabled')
+        check(db.issue_email_reset_v1223('Test1') is None, 'no email reset tokens')
+        check(not db.reset_password_by_email_v1223('Test1', 'F'*16, 'Changed_Password12'), 'old reset code unusable')
+        for fn, args in ((db.attach_verified_email_v1223, (aid, 'new@example.net')),
+                         (db.create_account_verified_email_v1223, ('Another', 'Valid_Password12', 'new@example.net'))):
+            try:
+                fn(*args)
+            except ValueError:
+                check(True, 'old mail action blocked')
+            else:
+                check(False, 'old mail action still accepted')
+        async def no_send():
+            try:
+                await send_code_v1223('old@example.org', 'reset', 'DEADBEEF')
+            except RuntimeError:
+                return True
+            return False
+        check(asyncio.run(no_send()), 'outbound mail blocked')
+        check(db.conn.execute('SELECT count(*) FROM accounts').fetchone()[0] == 1, 'accounts unchanged')
+        check(db.verified_account_email_v1223(aid) == 'old@example.org', 'historical data unchanged')
         return checks
     finally:
         db.conn.close()

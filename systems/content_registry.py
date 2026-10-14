@@ -1,4 +1,8 @@
 from data import catalog_mutations as _catalog_mut
+from data.items import ITEMS
+from data.crafting_recipes import CRAFT_RECIPES
+from data.alchemy_recipes import ALCHEMY_RECIPES
+from systems.equipment_crafting import COOK_RECIPES, JEWELCRAFT_RECIPES, CUT_GEM_IDS
 
 def normalize_recipe_requirements_v0866():
     """v0.8.66: receptury blokuje profesja, nigdy level narzędzia."""
@@ -135,8 +139,15 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v4.21.1 - NAGRODY EXP NIEZALEZNE OD PROGOW"
+LATEST_CHANGES_TITLE = "Soulbound v6.00.1 - DROGA MISTRZA NOWYCH PROFESJI"
 LATEST_CHANGES = [
+    "v6.00.1: 960 nowych questow (8 profesji x 120 etapow) od 1 do 800, 8 osobnych NPC; konkretne czynnosci, progi i prawdziwy postep SQLite.",
+    "v6.00.0: 8 nowych profesji i 8 narzędzi, 26 czynności, 7 progów trudności, własne łańcuchy prac, zamówienia, trwałe jednorazowe zakupy, gotowanie i rzemiosło; baza v5.00.1.",
+    "v5.00.1: nowe konto otrzymuje prywatny kod odzyskania hasla; obecny gracz wpisuje konto kod i zapisuje go poza gra.",
+    "v5.00.1: menu 4 odzyskuje haslo kodem, nie poczta; wygasle, zuzyte i poprzednie kody sa blokowane.",
+    "v5.00.0: 12 indywidualnych faz Pradawnych i zmieniane ataki zywiolowe; 32 kontynuacje historii i osiem prob lochowych.",
+    "v5.00.0: 28 nowych prawdziwych skilli 14 klas; 28 nowych receptur i zlecen dostawy; piec istniejących flot z taktykami.",
+    "v5.00.0: niezalezne od progow nagrody XP, EP i Fame; SQLite bez destrukcyjnej migracji.",
     "v4.21.1: EP przyznaja stale 120-220 XP za punkt wedlug lokacji, nie od wymagan poziomu; Fame ma osobna krzywa nagrod i nie uzywa capu jako wyplaty.",
     "v4.21.1: Nie zmieniono liczby EP za pokoje, EXP z walk, questow, profesji, progow EXP 1-800, postaci ani SQLite.",
     "v4.00.4: Dwa legendarne wydarzenia nigdy nie blokuja sie przez wspolna lokacje.",

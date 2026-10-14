@@ -135,6 +135,16 @@ class SessionQuestNpcMixin:
             chain = tuple(npc.get("specialist_quests") or ())
             if not chain:
                 return
+            if npc.get('v601_profession_master'):
+                completed = 0
+                for qid in chain:
+                    row=self.server.db.quest(self.account_id,qid)
+                    if row and row['status']=='completed':
+                        completed+=1
+                await self.send(f'Droga Mistrza: ukończone {completed} z {len(chain)} etapów. '
+                                'Wpisz quest list, następnie przyjmij 1. '
+                                'Pokazuję tylko najbliższe zadanie, bez 120 powtarzanych pozycji.')
+                return
 
             tool_type = npc.get("specialist_tool_type")
             profession = profession_for_tool_type(tool_type)

@@ -302,7 +302,7 @@ async def login_flow(self):
             await self.send("1. Zaloguj się")
             await self.send("2. Utwórz nowe konto")
             await self.send("3. Wyjdź")
-            await self.send("4. Odzyskaj hasło (kod lub zweryfikowany e-mail)")
+            await self.send("4. Odzyskaj hasło (jednorazowy kod)")
             await self.send(
                 f"Jedno konto może mieć do {MAX_CHARACTERS_PER_ACCOUNT} postaci."
             )
@@ -327,15 +327,8 @@ async def login_flow(self):
 
 async def recover_password_from_login_v1222(self):
         await self.send("ODZYSKIWANIE HASŁA")
-        method = await self.ask("1. Kod zapasowy/administratora; 2. E-mail. Wybierz: ")
-        if method is None:
-            return
-        if normalize_lookup_text(method) in ("2", "email", "e mail", "mail"):
-            await self.recover_password_by_email_v1223()
-            return
-        if normalize_lookup_text(method) not in ("1", "kod", "code"):
-            await self.send("Nieznana opcja.")
-            return
+        await self.send("Użyj kodu zapisanego podczas zakładania konta albo komendy konto kod.")
+        await self.send("Kod jednorazowy administratora również działa.")
         username = await self.ask("Login konta (0 anuluje): ")
         if username is None or username.strip() == "0":
             return
@@ -367,41 +360,8 @@ async def recover_password_from_login_v1222(self):
 
 
 async def recover_password_by_email_v1223(self):
-    username = await self.ask("Login konta (0 anuluje): ")
-    if username is None or username.strip() == "0":
-        return
-    issued = None
-    if smtp_ready_v1223():
-        issued = self.server.db.issue_email_reset_v1223(username)
-        if issued is not None:
-            account_id, email, code = issued
-            try:
-                await send_code_v1223(email, "reset", code)
-            except (OSError, RuntimeError, ValueError, TimeoutError, smtplib.SMTPException):
-                self.server.db.revoke_email_reset_v1223(account_id)
-                await self.send("Wysłanie wiadomości nie powiodło się. Spróbuj później lub poproś administratora o kod.")
-                return
-    else:
-        await self.send("Odzyskiwanie przez e-mail jest niedostępne. Administrator musi skonfigurować SMTP.")
-        return
-    await self.send("Jeżeli konto ma zweryfikowany adres i nie obowiązuje limit, wysłano kod resetowania. Sprawdź pocztę.")
-    code = await self.ask("Kod z wiadomości (0 anuluje): ")
-    if code is None or code.strip() == "0":
-        return
-    password = await self.ask("Nowe hasło (10-256 znaków): ")
-    if password is None:
-        return
-    confirm = await self.ask("Powtórz nowe hasło: ")
-    if confirm is None:
-        return
-    if not 10 <= len(password) <= 256 or password != confirm:
-        await self.send("Hasła są różne lub mają nieprawidłową długość.")
-        return
-    if not self.server.db.reset_password_by_email_v1223(username, code, password):
-        await self.send("Nie udało się zmienić hasła. Kod jest błędny, wygasły lub już zużyty.")
-        return
-    await self.close_password_reset_sessions_v1223(username)
-    await self.send("Hasło zmienione. Zaloguj się ponownie. Postacie i wyposażenie zachowano.")
+    # v5.00.1: retained for ABI only, impossible to reset through mail.
+    await self.send("Odzyskanie hasła: menu 4, wyłącznie jednorazowy kod.")
 
 
 async def do_login(self):

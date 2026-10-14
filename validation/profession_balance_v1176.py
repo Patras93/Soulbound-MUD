@@ -25,8 +25,8 @@ def audit_profession_balance_v1176(*, runtime=False):
 
     all_professions = set(PROFESSION_RANK_NAMES)
     all_tools = set(TOOL_PROFESSION_MAP)
-    verify(len(all_professions) == (14 if runtime else 8), f"incorrect professions count: {len(all_professions)}")
-    verify(len(all_tools) == (14 if runtime else 8), f"incorrect tools count: {len(all_tools)}")
+    verify(len(all_professions) == (22 if runtime else 16), f"incorrect professions count: {len(all_professions)}")
+    verify(len(all_tools) == (22 if runtime else 16), f"incorrect tools count: {len(all_tools)}")
     verify(set(TOOL_PROFESSION_MAP.values()) == all_professions, "missing profession tool mapping")
     verify(len(set(TOOL_PROFESSION_MAP.values())) == len(all_professions), "multiple tools mapped to one profession")
     verify(all_tools <= set(TOOL_ACTION_BASE_SECONDS) and all_tools <= set(TOOL_ACTION_MIN_SECONDS), "timing catalogue mismatch")
@@ -70,18 +70,24 @@ def audit_profession_balance_v1176(*, runtime=False):
         PROFESSION_QUEST_IDS_BY_PROFESSION_V0700, PROFESSION_QUEST_STAGES_V0700)
     from data.quests import QUESTS
 
+    from player.session_mixins.profesje6 import ORDER_GOODS, SUPPLY_REWARD
+    from systems.new_professions import PROFESSIONS
+    new_names = set(PROFESSIONS)
+    traditional_names = all_professions - new_names
+    verify(len(new_names) == 8, "missing eight new professions")
+    verify(set(ORDER_GOODS) == new_names and set(SUPPLY_REWARD) == new_names, "new profession orders or rewards missing")
     orders = list(CRAFTING_ORDER_NPCS_V0600.values())
     verify(len(orders) == 14, "not all professions have rotating orders")
-    verify({spec['profession'] for spec in orders} == all_professions,
+    verify({spec['profession'] for spec in orders} == traditional_names,
            "missing profession rotating order")
     for spec in orders:
         verify(TOOL_PROFESSION_MAP.get(spec['tool_type']) == spec['profession'],
                f"{spec['profession']}: order tool mismatch")
         verify(spec.get('source') in ('gather', 'craft', 'cook', 'alchemy', 'jewel', 'extended', 'action'),
                f"{spec['profession']}: order source missing")
-    verify(set(PROFESSION_QUEST_IDS_BY_PROFESSION_V0700) == all_professions,
+    verify(set(PROFESSION_QUEST_IDS_BY_PROFESSION_V0700) == traditional_names,
            "missing four-stage mastery quest coverage")
-    for profession in sorted(all_professions):
+    for profession in sorted(traditional_names):
         quests = PROFESSION_QUEST_IDS_BY_PROFESSION_V0700.get(profession, ())
         verify(len(quests) == len(PROFESSION_QUEST_STAGES_V0700),
                f"{profession}: mastery quest stages missing")
@@ -119,7 +125,8 @@ def audit_profession_balance_v1176(*, runtime=False):
         def allocate_experience_bank_v2011(self, account, amount, kind, key, cap):
             return min(max(0, int(amount)), max(0, int(cap)))
 
-    class Practice(SessionProfessionStorageMixin):
+    from player.session_mixins.profesje6 import SessionProfesje6Mixin
+    class Practice(SessionProfesje6Mixin, SessionProfessionStorageMixin):
         def __init__(self, profession, tool):
             self.server = SimpleNamespace(db=MemoryDb(profession, tool))
             self.account_id = 1

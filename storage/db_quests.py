@@ -254,7 +254,7 @@ class DatabaseQuestMixin:
         return changed
 
 
-    def increment_profession_action_quests_v0700(self, account_id, profession, tool_type, amount=1):
+    def increment_profession_action_quests_v0700(self, account_id, profession, tool_type, amount=1, *, action_code=None, tier=1):
         """Count real profession actions for active v0.70.0 mastery contracts."""
         amount=max(0,int(amount or 0))
         if amount <= 0:
@@ -272,6 +272,13 @@ class DatabaseQuestMixin:
                 continue
             qtool=str(quest.get("specialist_tool_type") or "")
             if qtool and qtool != str(tool_type):
+                continue
+            # New real-action mastery paths require a particular work command,
+            # at the actual tier, not merely any action from the same job.
+            action_required = quest.get('required_action_code')
+            if action_required and str(action_required) != str(action_code or ''):
+                continue
+            if action_required and int(tier) < int(quest.get('min_action_tier') or 1):
                 continue
             needed=max(1,int(quest.get("needed",1)))
             old=max(0,int(row["progress"]))

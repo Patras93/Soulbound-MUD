@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.49.0 Session assembly from focused mixins."""
 
+from player.session_mixins.profesje6 import SessionProfesje6Mixin
 from player.session_mixins.core_progression import SessionCoreProgressionMixin
 from player.session_mixins.io_auth_character import SessionIOAuthCharacterMixin
 from player.session_mixins.equipment_stats import SessionEquipmentStatsMixin
@@ -58,6 +59,7 @@ from player.session_mixins.password_recovery_v1222 import SessionPasswordRecover
 
 
 class Session(
+    SessionProfesje6Mixin,
     SessionTitansV2100Mixin,
     SessionForgottenV1500Mixin,
     SessionSkyV1700Mixin,

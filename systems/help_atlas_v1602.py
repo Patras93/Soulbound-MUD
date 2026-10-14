@@ -12,14 +12,14 @@ from core.progression_600 import (
 from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
 
 
-def install_help_atlas_v1602(topics, aliases):
-    names = sorted(set(TOOL_PROFESSION_MAP.values()))
+def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
+    names = sorted(set((tool_profession_map if tool_profession_map is not None else TOOL_PROFESSION_MAP).values()))
     caps = {CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL, PROFESSION_MAX_LEVEL,
             SKILL_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_WEAPON_MASTERY_MAX_LEVEL, TOOL_MAX_LEVEL}
     if caps != {800}:
         raise RuntimeError('HELP v1.60.2: oczekiwano wspólnego limitu poziomów 800, odczytano '+str(caps))
-    if len(names) != 14:
-        raise RuntimeError('HELP v1.60.2: brak kompletu 14 profesji')
+    if len(names) < 14:
+        raise RuntimeError('HELP v1.60.2: brak kompletu historycznych 14 profesji')
 
     # Many old public topics claimed cap 600. Preserve genuinely historical notes,
     # but do not advertise 600 as the LIVE cap for the core progression axes.
@@ -50,15 +50,22 @@ def install_help_atlas_v1602(topics, aliases):
     topics['profesje'] = [
         f'W Soulbound jest {len(names)} profesji, każda od poziomu 1 do {PROFESSION_MAX_LEVEL}; każde narzędzie rozwija się osobno do {TOOL_MAX_LEVEL}.',
         'Od poziomu 50 rośnie wymagany EXP, ale nagrody, doświadczenie zdobyte wcześniej i poziomy postaci pozostają bez zmian.',
-        'Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo; Kowalstwo, Gotowanie, Alchemia, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie; Archeologia i Kartografia.',
-        'atlas profesje — katalog wszystkich 14; atlas profesje <nazwa> — NPC, narzędzia, zadania, receptury i komendy.',
+        'Zawody podstawowe: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Kowalstwo, Gotowanie, Alchemia, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia i Kartografia. Nowe: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.',
+        'atlas profesje — katalog profesji; atlas profesje <nazwa> — NPC, narzędzia, zadania, receptury i komendy.',
         'profesje info / narzedzia info — poziomy, XP i rangi. Zamowienia — rotujące kontrakty; zamowienie porzuc — porzucenie.',
         'Receptury i koszty: receptury <profesja>, receptury mozliwe, braki receptura <nazwa>, gdzie zdobyc <przedmiot>.',
         'Tempo czynności sprawdzaj w help tempo_profesji; premie za dobre materiały i wyjątkowe zbiory nadal działają.',
     ]
+    topics['profesje6'] = [
+        'Nowe profesje 6.00.0 — osobne narzędzia od poziomu 1 do 800.',
+        'profesje6 lista — nazwy, narzędzia i czynności; profesje6 status <nazwa> — rozwój.',
+        'profesje6 kup <nazwa> — zakup narzędzia tylko raz na postać; profesje6 czynnosci <nazwa> — możliwe prace.',
+        'profesje6 praca <nazwa> <czynność> [próg] — wykonaj pracę i zdobądź EXP.',
+        'profesje6 zamowienie <nazwa> oraz profesje6 oddaj <nazwa> — zlecenia i nagrody.',
+    ]
     topics['atlas'] = [
         'atlas / atlas odkrycia — Globalny Atlas świata: regiony, miasta, wyspy, lochy, platformy, ruiny, superbossy i sekrety.',
-        'atlas profesje — wszystkie 14 profesji. atlas profesje <nazwa> — NPC, zadania, warsztat i aktualne receptury.',
+        'atlas profesje — wszystkie profesje. atlas profesje <nazwa> — NPC, zadania, warsztat i aktualne receptury.',
         'atlas ryby, atlas rzeka, atlas jezioro, atlas morze, atlas ocean — poziomy Wędki i łowiska.',
         'atlas rudy / atlas geody — poziom Kilofa i głębokość; atlas drewno — poziom Piły; atlas zioła — poziom Sierpa.',
         'atlas <nazwa surowca> — konkretne miejsca i wymagania. Atlas odkryć pokazuje także nowe Krainy 1.50/1.60 i Labirynt Echa.',
@@ -101,13 +108,13 @@ def install_help_atlas_v1602(topics, aliases):
         'Przed wejściem na kolejne piętro użyj exits i wybierz właściwy kierunek.',
     ]
     topics['zamowienia'] = [
-        'zamowienia / zamówienia — aktywne i rotujące kontrakty wszystkich 14 profesji; nagrody zostały podniesione w v1.40.6.',
+        'zamowienia / zamówienia — aktywne i rotujące kontrakty dawnych profesji i nowe zamówienia: profesje6 zamowienie <nazwa>.; nagrody zostały podniesione w v1.40.6.',
         'zamowienie porzuc — porzuca aktywny kontrakt bez usuwania posiadanych materiałów i bez kasowania historii.',
         'Nowa oferta ma własną wypłatę i EXP; wcześniej przyjęta zachowuje nagrodę zapisaną przy przyjęciu.',
     ]
     aliases.update({
         'górnictwo':'gornictwo', 'górnik':'gornictwo', 'kopanie':'gornictwo',
-        'wędkarstwo':'wedkarstwo', 'żeglarstwo':'ocean',
+        'wędkarstwo':'wedkarstwo', 'żeglarstwo':'profesje6',
         'ziół':'zielarstwo', 'zielarstwo':'zielarstwo',
         'labirynt echa':'labirynt_echa', 'labirynt':'labirynt_echa',
         'lochy50':'labirynt_echa', 'era 60':'era60',

@@ -15,6 +15,7 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'profesje6': ('profesje6_command', (COMMAND_TEXT,), {}),
     'mistrzprof': ('master_professions_v2200', (COMMAND_TEXT,), {}),
     'tytani': ('titan_command_v2100', (COMMAND_TEXT,), {}),
     'lochy7': ('dungeon_secrets_command_v2100', (COMMAND_TEXT,), {}),

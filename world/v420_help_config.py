@@ -182,9 +182,9 @@ def configure_v0856_help_categories():
     ]
     HELP_TOPICS["nauczyciele"] = [
         "teachers / nauczyciele pokazuje nauczycieli klasowych.",
-        "Samo learn / naucz / ucz przy nauczycielu aktywnej klasy pokazuje lekcje, wymagania Biegłości, ceny i numery.",
+        "Samo learn / naucz / ucz przy nauczycielu aktywnej klasy pokazuje tylko odblokowane i jeszcze nienauczone umiejętności oraz ich ceny.",
         "learn <numer> i learn <nazwa> ucza wybranej umiejetnosci; poza sala nauczyciela nauka nie jest mozliwa.",
-        "Numery learn sa identyczne jak numery skilli w talk <nauczyciel>, takze dla jeszcze zablokowanych umiejetnosci.",
+        "Numery learn sa identyczne jak numery skilli w talk <nauczyciel> i nie zmieniaja sie po nauce. Pelny katalog: kodeksklasowy.",
         "Koszt nauki może być obniżany przez reputację Gildii klasowej.",
     ]
     HELP_TOPICS["learn"] = list(HELP_TOPICS["nauczyciele"])

@@ -1,3 +1,98 @@
+Soulbound v6.00.1 — DROGA MISTRZA OSIEM NOWYCH PROFESJI (Windows)
+
+Aktualna paczka: v6.00.1
+
+- Pełna paczka kontynuująca dokładnie v6.00.0 po Windows PREDEPLOY 60/60 PLUS PASS.
+- 960 NOWYCH zadań: po 120 dla Łowiectwa, Rolnictwa, Hodowli zwierząt,
+  Okrętownictwa, Murarstwa, Inżynierii, Kupiectwa i Żeglarstwa.
+- Każda ścieżka: 12 rozdziałów po 10 etapów, rozwój od 1 do 800,
+  logiczne zależności między zadaniami i indywidualne specjalizacje prac.
+- Zadania zaliczają tylko wskazaną rzeczywistą czynność z właściwej profesji,
+  wykonywaną odpowiednią komendą i z minimalnym wymaganym progiem materiałów.
+  Nie zalicza się czynności zakończonych błędem, użycia niewłaściwego narzędzia,
+  innej czynności lub niższego poziomu materiałów.
+- Ośmioro NOWYCH specjalistów NPC otrzymało po jednej własnej, dostępnej izbie
+  dołączonej dwukierunkową drogą do istniejącego świata. Nie powstały
+  współdzielone pomieszczenia NPC ani pułapki.
+- Przy mentorze quest list pokazuje tylko następny etap; po ukończeniu
+  przyjmij 1 uruchamia kolejny. Lista nie zalewa NVDA 120 wierszami.
+- EXP profesji, EXP nowego narzędzia, srebro i rzeczywiste materiały są
+  oddzielnymi nagrodami, nie przeliczanymi od wymagań poziomowych.
+- Postęp i ukończenie są zapisane w istniejącej tabeli quests SQLite,
+  oddzielnie dla każdej postaci i zachowane po restarcie; żadnych resetów.
+- W sumie 3861 questów (2901 dawnych + 960 nowych), 22 profesje, 22 narzędzia.
+- Wszystkie dotychczasowe mechaniki i poprawki z v5.00.1 i v6.00.0 pozostają.
+- Przed wdrożeniem nowej wersji wymagany nowy PREDEPLOY Windows 60/60 PLUS
+  na aktualnej odizolowanej kopii rzeczywistej bazy.
+
+Soulbound v6.00.0 — ERA WIELKICH PROFESJI (Windows)
+
+Aktualna paczka: v6.00.0
+
+- Kompletna baza: Soulbound v5.00.1, w tym kody odzyskiwania hasła i filtrowanie `learn`.
+- Osiem odrębnych profesji: Łowiectwo, Rolnictwo, Hodowla zwierząt,
+  Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.
+  Wszystkie osiem ma niezależny poziom 1–800 i EXP; łącznie 22 profesje.
+- Osiem nowych narzędzi z poziomami 1–800: Nóż Łowiecki, Motyka Rolnicza,
+  Przybory Hodowlane, Młot Okrętowy, Kielnia Murarska, Zestaw Inżynierski,
+  Waga Kupiecka, Sekstant Nawigacyjny.
+- Nowa komenda: `profesje6 lista`, `profesje6 status <profesja>`,
+  `profesje6 kup <profesja>`, `profesje6 czynnosci <profesja>`,
+  `profesje6 praca <profesja> <czynność> [próg]`,
+  `profesje6 zamowienie <profesja>`, `profesje6 oddaj <profesja>`;
+  `profesje6 nasiona <ilość>` pozwala kupować nasiona Rolnictwa.
+- 26 odmiennych czynności i siedem progów materiałów/trudności:
+  1, 25, 75, 150, 300, 500, 700. EXP za trudniejszą pracę i narzędzie
+  jest większy, bez obniżania historycznych nagród czy wymagań.
+- Prace etapowe zapisane trwale w SQLite: siew i zbiór, opieka i odbiór
+  produktów zwierzęcych, wyprawy żeglarskie i konwoje kupieckie.
+- Nowe produkty współdziałają z poprzednimi: rybołówstwo i przetwórstwo,
+  wydobycie, kowalstwo, drwalstwo, gotowanie. Pięć nowych receptur
+  rzemieślniczych (posiłki i kamizelki) korzysta z produktów nowego świata.
+- Zamówienia oparte na rzeczywistym oddawaniu towarów: niezależny
+  dzienny odbiór na postać i profesję, srebro, użyteczny surowiec i EXP;
+  wszystkie koszty i nagrody zapisują się w jednym atomowym ciągu SQLite.
+- Każde nowe narzędzie można kupić tylko RAZ na postać. Nawet zbycie
+  lub utrata narzędzia nie kasuje historii jego zakupu; inne postacie
+  tego samego konta mają osobny stan. Zakup trwały między restartami.
+- Zachowano 14 starszych profesji, całą historię kont i SQLite, postacie,
+  magazyn, questy, 14 klas, Multi Cap, EXP Bank, EP/Fame, trudny grind,
+  brak sztucznego obniżania obrażeń oraz pełną moc najemników.
+- Poprawiono nielogiczne zależności importowe przeniesionych modułów
+  z okresu modularizacji, nie usuwając kontroli spójności świata.
+- Przed JEDYNYM wdrożeniem trzeba przejść Windows PREDEPLOY 60/60 PLUS
+  na rzeczywistej, odizolowanej kopii SQLite graczy.
+
+Soulbound v5.00.1 — KODY ODZYSKIWANIA W GRZE + CZYTELNA LISTA LEARN
+
+Aktualna paczka: v5.00.1
+
+- Nowe konto dostaje automatycznie prywatny, jednorazowy kod odzyskiwania (128-bitowy, losowy, tylko hash w SQLite).
+- Istniejące konto: po zalogowaniu wpisz `konto kod` albo `odzyskaj kod`; ponowne generowanie unieważnia poprzedni kod.
+- Kod ma ważność 365 dni, można go wykorzystać tylko raz. Zapisz go poza grą — serwer nie pokaże go ponownie.
+- Menu logowania: wybierz 4, podaj login, kod i nowe hasło (10-256 znaków). Odzyskiwanie bez poczty.
+- Usunięto opcje e-mail z menu i komend administracyjnych; dawne punkty resetu w kodzie i SQLite są nieaktywne.
+- Historyczne zapisane adresy w bazie pozostają nietknięte; żaden nie umożliwia odzyskania hasła.
+- Administrator nadal może wydać prywatnie jednorazowy kod ważny 15 minut (`admin haslo reset <login>`).
+- Komenda `learn` przy nauczycielu pokazuje tylko skille aktualnie odblokowane biegłością i jeszcze nienauczone; pełny katalog nadal: `kodeksklasowy` lub `talk <nauczyciel>`.
+- Numeracja umiejętności nie zmienia się po nauczeniu skilla: `learn <numer>` nadal odpowiada pełnemu katalogowi. Koszt pozostaje podany przy każdym dostępnym skillu.
+- Postacie, EQ, EXP, wersja v5.00.0, SQLite, balans, EP/Fame, Multi Cap i EXP Bank bez zmian.
+- Wdrażać wyłącznie po pełnym Windows ULTIMATE 60/60 PLUS PASS, najlepiej gdy gracze nie są zalogowani.
+
+Soulbound v5.00.0 — Wojna Bogów / Wielka Fabuła 3.0 / Mistrzostwo 14 Klas 7.0
+
+JEDNO WYDANIE ZBIORCZE — budowane na bazie v4.21.1.
+- 12 istniejących Pradawnych: 12 unikalnych wzorców faz, 36 nazw faz, zmieniające się żywioły i ofensywa, czytelne ostrzeżenia. Brak limitowania obrażeń graczy.
+- Wielka Fabuła: 128 kontynuacji zadań w 32 istniejących regionach (osobne kolejności kill/collect/talk), 64 nowe pokoje. Zachowano oryginalne questy i postęp.
+- Lochy: osiem nowych pięciokomnatowych prób z elitami i bossami, bez pułapek. Istniejące portale co 10 pięter i Deep Dungeon bez zmian.
+- Ocean: 20 nowych questów na pięciu starych trasach, pięć elitarnych zagrożeń, pięć różnych rytmów groźnych ataków flot, ostrzeżenia turę wcześniej.
+- 14 klas: po dwie nowe umiejętności do nauczenia na poziomach biegłości 350 i 700 (28), przez istniejących nauczycieli i kolejkę.
+- 14 profesji: 28 dodatkowych przepisów na autentyczne przedmioty z materiałów oceanicznych i 28 zadań realnej dostawy, bez nowych narzędzi.
+- Grind: wymagania 1–800 i nagrody EP/Fame/lochów niezależne od progów pozostają z v4.21.1; test niezmienności.
+- Audyt: nowe sprawdziany rejestrów, NPC, nawigacji, bossów, skilli, receptur, XP, SQLite, testów faz, morskich ostrzeżeń.
+- Bez nadpisywania kont, postaci, osiągnięć i nagród historycznych; Multi Cap, EXP Bank, najemnicy 100% mocy i AoE zachowane.
+- Wymagany jeden końcowy Windows PREDEPLOY 60/60 PLUS przed wdrożeniem. Test lokalny nie zastępuje testu Windows.
+
 Soulbound v4.21.1 - Niezalezne nagrody EXP, bez szybkiego EXP z EP
 
 - Wymagania do awansu z v4.21.0 (1-800) pozostaja w pelni zachowane.
@@ -44,7 +139,7 @@ Soulbound v4.21.0 - WYROWNANY DŁUGOTERMINOWY ROZWOJ 1-800 (Windows)
   warstwy PROGÓW po zachowanym mnożniku v3.31.4 x10.
 - Windows 60/60 PLUS przed wdrożeniem obowiązkowy.
 
-Aktualna paczka: v4.21.1
+Aktualna paczka: v5.00.0
 
 Soulbound v4.20.0 - FINALNA MODULARYZACJA SILNIKA (Windows)
 ===============================================================================

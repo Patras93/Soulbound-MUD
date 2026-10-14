@@ -541,7 +541,7 @@ class SessionShopsTeachersMixin:
                 "Nauka jest dostepna tylko przy nauczycielu aktywnej klasy."
             )
 
-    async def teacher_lesson(self, npc):
+    async def teacher_lesson(self, npc, only_available=False):
             class_name = npc["teacher_class"]
             learned = self.server.db.learned_skill_ids(self.account_id)
 
@@ -549,7 +549,18 @@ class SessionShopsTeachersMixin:
                 f"Lekcja klasy {class_name}. {CLASS_DESCRIPTIONS.get(class_name, '')}"
             )
 
+            available_count = 0
+            mastery = self.class_mastery_level(class_name)
+            active = class_name in self.active_class_names()
             for number, skill in enumerate(CLASS_SKILLS.get(class_name, []), 1):
+                # Keep catalogue indexes stable, but hide locked/already learned
+                # entries from `learn` (the teacher's full talk remains available).
+                if only_available and (
+                    not active or skill["id"] in learned
+                    or mastery < int(skill["unlock"])
+                ):
+                    continue
+                available_count += 1
                 progress = ""
                 if class_name not in self.active_class_names():
                     status = f"wymaga aktywnej klasy {class_name} i Biegłości {skill['unlock']}"
@@ -583,6 +594,18 @@ class SessionShopsTeachersMixin:
                     f"{skill['desc']}{cost_text}"
                 )
 
+            if only_available:
+                if not available_count:
+                    await self.send(
+                        "Nie masz teraz nowych umiejętności do nauczenia u tego nauczyciela. "
+                        "Rozwijaj Biegłość klasy. Pełny katalog: kodeksklasowy."
+                    )
+                else:
+                    await self.send(
+                        f"Dostępne teraz do nauki: {available_count}. "
+                        "Numery skilli pozostają stałe także po nauczeniu umiejętności. "
+                        "Pełny katalog: kodeksklasowy."
+                    )
             if class_name in self.active_class_names():
                 role = (
                     "głównej" if class_name == self.character.class_name
@@ -593,7 +616,7 @@ class SessionShopsTeachersMixin:
                     f"Aktualna Biegłość klasy {class_name}: {self.class_mastery_level(class_name)}."
                 )
                 await self.send(
-                    "Nauka: samo learn pokazuje ponownie te lekcje; "
+                    "Nauka: samo learn pokazuje wyłącznie odblokowane i jeszcze nienauczone skille; "
                     "learn <numer>, naucz <pełna nazwa> albo "
                     "naturalnie, np. naucz leczenie, naucz tarcza, "
                     "naucz ciecie, naucz pocisk, naucz ogien. "

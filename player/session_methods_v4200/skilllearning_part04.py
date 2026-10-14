@@ -279,15 +279,14 @@ async def learn_class_skill(self, raw):
 
         class_name = teacher["teacher_class"]
         mastery = self.class_mastery_level(class_name)
-        # v3.00.4: numery learn zawsze odpowiadaja pelnej liscie
-        # nauczyciela (talk), nawet gdy czesc skilli jest zablokowana.
-        # Poprzednie odfiltrowanie zmienialo numery learn <nr>.
+        # `learn` displays only presently unlocked, unknown skills; the
+        # historical full catalogue indexes stay stable for `learn <nr>`.
         class_skills = list(CLASS_SKILLS.get(class_name, []))
         value = str(raw or "").strip()
         if not value:
-            # Samo learn dziala wylacznie w sali nauczyciela aktywnej
-            # klasy i pokazuje te same numery, ceny oraz wymagania co talk.
-            await self.teacher_lesson(teacher)
+            # Only unlocked, not-yet-learned skills appear in the concise
+            # `learn` list. `talk` still shows the complete teacher catalogue.
+            await self.teacher_lesson(teacher, only_available=True)
             return
         normalized = self.normalize_description_query(value)
         if normalized.startswith("sie ") or normalized.startswith("się "):

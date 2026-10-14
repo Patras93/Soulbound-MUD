@@ -172,7 +172,7 @@ class SessionHelpSystemMixin:
                 "kolejka usuń <nr>, kolejka wyczyść [typ], kolejka góra/dół i kolejka on/off - pełne zarządzanie rotacją; pasywki nie zajmują slotów",
                 "aoe on / aoe off - globalnie włącza lub ogranicza ofensywne efekty wielocelowe; help aoe pokazuje zasady targetowania i party",
                 "użyj umiejętność <nazwa> [cel] / use skill <name> [target] - alternatywne użycie skilla",
-                "learn / naucz / ucz - tylko przy nauczycielu aktywnej klasy: lista skilli, wymagania i ceny; learn <numer lub nazwa> uczy wybranej umiejetnosci",
+                "learn / naucz / ucz - przy nauczycielu aktywnej klasy pokazuje tylko odblokowane, jeszcze nienauczone skille i ceny; learn <numer lub nazwa> uczy; pelny katalog: kodeksklasowy",
                 "soul / dusza - szybki stan Duszy; dusza info - Soul XP, Tiery, Próby i następny cel",
                 "forma lista / forma wybierz <nazwa lub nr> / forma auto - formy Broni Duszy; relic / relikt pozostają zgodnymi aliasami",
                 "portfel / money / saldo - jedno wspólne saldo automatycznie pokazane jako mithril, złoto i srebro",

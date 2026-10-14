@@ -23,9 +23,8 @@ def normalized_email_v1223(value):
 
 
 def smtp_ready_v1223():
-    return all(os.getenv(key, "").strip() for key in (
-        "SOULBOUND_SMTP_HOST", "SOULBOUND_SMTP_USER", "SOULBOUND_SMTP_PASSWORD", "SOULBOUND_SMTP_FROM"
-    ))
+    """Mail recovery disabled irrespective of server environment variables."""
+    return False
 
 
 # Volatile rate limits: no mailbox or IP saved to the database/logs.
@@ -55,45 +54,8 @@ def allow_verification_send_v1223(address, peer=None, *, now=None):
 
 
 def _send_mail_sync_v1223(recipient, subject, body):
-    if not smtp_ready_v1223():
-        raise RuntimeError("Poczta SMTP nie jest skonfigurowana")
-    if normalized_email_v1223(recipient) is None:
-        raise ValueError("Nieprawidlowy odbiorca")
-    sender = normalized_email_v1223(os.environ["SOULBOUND_SMTP_FROM"])
-    if sender is None:
-        raise RuntimeError("Nieprawidlowy adres SOULBOUND_SMTP_FROM")
-    host = os.environ["SOULBOUND_SMTP_HOST"].strip()
-    mode = os.getenv("SOULBOUND_SMTP_MODE", "starttls").strip().lower()
-    if mode not in ("ssl", "starttls"):
-        raise RuntimeError("SMTP wymaga SSL lub STARTTLS")
-    port = int(os.getenv("SOULBOUND_SMTP_PORT") or ("465" if mode == "ssl" else "587"))
-    msg = EmailMessage()
-    msg["From"] = sender
-    msg["To"] = recipient
-    msg["Subject"] = subject
-    msg.set_content(body)
-    context = ssl.create_default_context()
-    if mode == "ssl":
-        with smtplib.SMTP_SSL(host, port, timeout=12, context=context) as connection:
-            connection.login(os.environ["SOULBOUND_SMTP_USER"], os.environ["SOULBOUND_SMTP_PASSWORD"])
-            connection.send_message(msg)
-    else:
-        with smtplib.SMTP(host, port, timeout=12) as connection:
-            connection.ehlo()
-            connection.starttls(context=context)
-            connection.ehlo()
-            connection.login(os.environ["SOULBOUND_SMTP_USER"], os.environ["SOULBOUND_SMTP_PASSWORD"])
-            connection.send_message(msg)
+    raise RuntimeError("Metoda odzyskiwania przez pocztę została wyłączona.")
 
 
 async def send_code_v1223(recipient, purpose, code):
-    if purpose == "register":
-        subject = "Soulbound - potwierdzenie adresu e-mail"
-        body = "Kod potwierdzenia nowego konta Soulbound: " + code + "\nWazny 10 minut. Jesli to nie Ty, zignoruj wiadomosc."
-    elif purpose == "attach":
-        subject = "Soulbound - potwierdzenie adresu konta"
-        body = "Kod przypisania adresu e-mail do konta Soulbound: " + code + "\nWazny 10 minut. Jesli to nie Ty, zignoruj wiadomosc."
-    else:
-        subject = "Soulbound - resetowanie hasla"
-        body = "Jednorazowy kod resetowania hasla Soulbound: " + code + "\nWazny 15 minut. W menu logowania wybierz 4, potem reset przez e-mail. Jesli to nie Ty, zignoruj wiadomosc."
-    await asyncio.to_thread(_send_mail_sync_v1223, recipient, subject, body)
+    raise RuntimeError("Metoda odzyskiwania przez pocztę została wyłączona.")

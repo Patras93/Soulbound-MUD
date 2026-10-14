@@ -3,6 +3,7 @@
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 from admin.audits import FULL_GAME_AUDIT_V03055
 from core.classes_skills import _V0922_MASTERY_LEVELS
+from core.bootstrap_economy_professions import VERSION
 from core.mines_threat import COMMAND_ALIASES
 from player.session_mixins.banking_charisma import GOLD_PER_MITHRIL, SILVER_PER_GOLD, SILVER_PER_MITHRIL
 from player.session_mixins.crafting import ALCHEMY_RECIPES, COOK_RECIPES
@@ -13,7 +14,7 @@ from player.session_mixins.professions import JEWELCRAFT_RECIPES, ROOMS, TOOL_MA
 from player.session_mixins.quest_npc import PROFESSION_RANK_NAMES
 from player.session_mixins.skill_learning import CLASSES, CLASS_SKILLS, MOB_TEMPLATES, QUESTS
 from systems.economy_audit_v03060 import ECONOMY_AUDIT_V03060
-from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
+from admin.audits import HELP_TOPICS, HELP_TOPIC_ALIASES
 from world.runtime_progression import CATALOG_VALIDATION_AUDIT
 
 
@@ -26,7 +27,8 @@ def full_systems_audit_v03062():
     # Core/world/content
     check('world_rooms', len(ROOMS)>=1000, f"rooms={len(ROOMS)}")
     bad_exits=[]
-    dyn_prefixes=("prof_","mine_floor_","crypt_floor_","astral_floor_","mythic_crypt_floor_","mythic_astral_floor_","giant_fortress_","v0130_frontier_","v018_endless_","v020_mega_","magitek_floor_","uoss_deep_dungeon_floor_")
+    dyn_prefixes=("prof_","mine_floor_","crypt_floor_","astral_floor_","mythic_crypt_floor_","mythic_astral_floor_","giant_fortress_","v0130_frontier_","v018_endless_","v020_mega_","magitek_floor_","uoss_deep_dungeon_floor_",
+                  "eth_void_floor_","eth_holy_floor_","eth_shadow_floor_","v1500_echo_")
     for rid,r in ROOMS.items():
         for d,t in (r.get('exits') or {}).items():
             if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))
@@ -86,7 +88,7 @@ def full_systems_audit_v03062():
 
     # Professions/tools
     expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie","archaeology":"Archeologia","cartography_profession":"Kartografia"}
-    check('professions_14', len(PROFESSION_RANK_NAMES)==14, len(PROFESSION_RANK_NAMES))
+    check('professions_count', len(PROFESSION_RANK_NAMES)==(22 if str(VERSION).startswith('6.') else 14), len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
     check('tool_tiers_80', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==80, len(TOOL_TIER_THRESHOLDS))
 

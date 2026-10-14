@@ -1,3 +1,5 @@
+from core.bootstrap_economy_professions import V019_SAFE_INT, PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
+from data.mobs import MOB_TEMPLATES
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
 
 import core.v410_progression_helpers as _sb410_mod_v410_progression_helpers
@@ -18,6 +20,7 @@ from core.profession_timing import (
     profession_speed_progress,
 )
 from data import catalog_mutations as _catalog_mut
+from data.items import ITEMS
 from config.balance import (
     CHARACTER_MAX_LEVEL,
     CHARACTER_XP_REQUIREMENT_MULTIPLIER,
@@ -403,6 +406,7 @@ def soul_xp_to_next(level):
     )
 
 def class_type_for_name(class_name):
+    from core.classes_skills import CLASSES
     for cname, ctype, weapon, base in CLASSES:
         if cname == class_name:
             return ctype
@@ -1240,6 +1244,7 @@ def mining_ore_weights(resource_ids, effective_level, context="mining"):
     effective_level = max(1, min(CHARACTER_MAX_LEVEL, int(effective_level)))
     result = []
     for item_id in resource_ids:
+        from core.classes_skills import ORE_ATLAS_LEVELS
         unlock = max(1, min(CHARACTER_MAX_LEVEL, int(ORE_ATLAS_LEVELS.get(item_id, 1) or 1)))
         age = max(0, effective_level - unlock)
         # Około 10-20% dla świeżego zasobu przy zwykłych progach 1-200;

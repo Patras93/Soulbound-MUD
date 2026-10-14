@@ -27,7 +27,7 @@ RECIPES = {
 }
 # The historical TOOL_PROFESSION_MAP lists eight original tools. Include the
 # six newer professions so every mastered craft grants its proper tool XP.
-TOOL_TYPES = dict(TOOLS)
+TOOL_TYPES = {profession: tool for profession, tool in TOOLS.items() if profession in SPECIALTIES}
 TOOL_TYPES.update({
     'Krawiectwo':'tailoring', 'Garbarstwo':'leatherworking',
     'Stolarstwo':'carpentry', 'Zaklinanie':'enchanting',

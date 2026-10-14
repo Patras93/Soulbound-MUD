@@ -384,6 +384,8 @@ async def realtime_combat_loop(self):
                                 if _action_template.get("elite_affix") == "ice"
                                 else _action_template
                             )
+                            _elemental_template_v1160 = effective_elemental_template(
+                                enemy_mob, _elemental_template_v1160)
                             _elemental_attack_v11339 = elemental_mob_attack_profile_v11339(
                                 _elemental_template_v1160,
                                 random.random(),

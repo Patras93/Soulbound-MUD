@@ -1667,6 +1667,10 @@ for _master_class, _master_kind, *_ in CLASSES:
 
 
 
+# v5.00.0: true learnable class skills through the existing trainers/queue.
+from core.class_mastery_v5000 import install as _install_class_mastery_v5000
+V5000_MASTER_ARTS = _install_class_mastery_v5000(CLASS_SKILLS, CLASSES)
+
 # Czytelna kolejność dla skills, nauczycieli i Kodeksu Klasowego.
 for _class_name in CLASS_SKILLS:
     CLASS_SKILLS[_class_name].sort(
