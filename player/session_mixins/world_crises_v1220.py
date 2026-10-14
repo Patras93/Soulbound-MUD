@@ -19,7 +19,7 @@ class SessionWorldCrisesV1220Mixin:
         words = raw.split(maxsplit=1)
         action = words[0].lower() if words else "lista"
         key_here = self.crisis_region_here_v1220()
-        if action in ("lista", "list", "", "pomoc", "help"):
+        if action in ("lista", "list", "", "help"):
             await self.send("WIELKIE WYDARZENIA ŚWIATA: codzienna obrona czterech krain. Solo lub drużyna, bez pułapek.")
             for key, event in CRISES.items():
                 spec = V1200_REGIONAL_INDEX.get(key)
@@ -44,10 +44,10 @@ class SessionWorldCrisesV1220Mixin:
                             direction, room = route[0]
                             await self.send(f"Pierwszy krok trasy: {self.route_direction_name(direction)} — {ROOMS[room]['name']}.")
                         return
-            await self.send("Nie znam tego wydarzenia. Wpisz wydarzenia.")
+            await self.send("Nie znam tego wydarzenia. Wpisz kryzys lista.")
             return
         if not key_here or key_here not in CRISES:
-            await self.send("Te wydarzenia odbywają się w czterech krainach Wielkiego Świata. Wpisz wydarzenia, aby poznać listę.")
+            await self.send("Te wydarzenia odbywają się w czterech krainach Wielkiego Świata. Wpisz kryzys lista, aby poznać listę.")
             return
         spec = V1200_REGIONAL_INDEX[key_here]
         title = CRISES[key_here]["name"]

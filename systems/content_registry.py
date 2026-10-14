@@ -373,8 +373,27 @@ SYSTEM_DESCRIPTIONS = {
 }
 
 
-LATEST_CHANGES_TITLE = "Soulbound v3.31.0 - DLUGOTERMINOWY ROZWOJ WSZYSTKICH POZIOMOW"
+LATEST_CHANGES_TITLE = "Soulbound v4.00.4 - NAPRAWA LEGENDARNYCH WYDARZEN"
 LATEST_CHANGES = [
+    "v4.00.4: Dwa legendarne wydarzenia nigdy nie blokuja sie przez wspolna lokacje.",
+    "v4.00.4: Pradawny Rozrost i pozostale wydarzenia gwarantuja poprawne akcje profesji.",
+    "v4.00.3: Wszystkie 14 narzedzi wymagaja wiecej XP do kolejnego poziomu: wedka x5, kilof x4, pozostale x3.",
+    "v4.00.3: EXP za czynnosci bez zmian; zachowano zdobyte poziomy, zapisany postep i stare progi 14 profesji.",
+    "v4.00.2: naprawiono izolacje katalogu klas i mistrzowskich skilli przy powtornym uruchomieniu modulu; brak duplikatow.",
+    "v4.00.2: specjalny test sprawdza dwoch powtornych wykonaniach 14 klas, 3445 skilli i poziomy 260/420/600.",
+    "v4.00.1: przeniesiono deklaracje skilli 14 klas do core/class_skill_catalog.py bez zmian w danych lub kolejnosci patchy.",
+    "v4.00.1: rozdzielono funkcje rozbudowy swiata na 4 osobne moduly; world.expansions utrzymuje dotychczasowe punkty wejscia i EXP_AREAS.",
+    "v4.00.1: bez nowych funkcji gry, narzedzi, receptur, balansu, SQLite czy zmiany wszystkich 2701 zadan; wymagania EXP nadal x10.",
+    "v4.00.0: Kroniki Korony Dusz — 32 historie starego świata, 5 nowych tras morskich, 12 superbossów, 14 ścieżek profesji i 70 prawdziwych receptur bez nowych narzędzi.",
+    "v4.00.0: Każdy nowy NPC ma własny pokój. Najemnicy stosują nowe bezkarne reakcje fazowe. Bez zmian progów EXP x10, poziomów postaci, starych questów i SQLite.",
+    "v3.31.4: WSZYSTKIE osie permanentnego rozwoju od poziomu 1 wymagaja 2x wiecej EXP niz v3.31.3, lacznie 10x wobec v3.30.0: postac, biegosc 14 klas, Dusza, Bron Duszy, skille, statystyki, 14 profesji i narzedzi oraz Wzniesienie.",
+    "v3.31.4: NIE ZMNIEJSZONO nagrod EXP, zdobytych poziomow, postepu, bonusow eventow, dropu, Multi Cap ani zapisow SQLite. Zachowano 200 questow v3.31.3, osobne NPC, naprawe eventow i bandytow.",
+    "v3.31.3: 200 nowych, godzinnych zlecen opartych na prawdziwych czynnosciach profesji: osiem etapow dla kazdej z 14 profesji (112), dodatkowe 22 etapy dla Stolarstwa, Krawiectwa, Garbarstwa i Zaklinania (88).",
+    "v3.31.3: zachowano stare questy i ich nagrody, x5 progi EXP, zdobyte poziomy, Multi Cap, SQLite i zasade jeden NPC na pokoj. Nowe zadania sa widoczne u dotychczasowych mistrzow; brak nowych blokad poziomu.",
+    "v3.31.2: aktywne wydarzenia złoż rudy, ławic, ziół i boru oraz legendarne żyły/prądy/rozkwity/rozrosty pozwalają wykonać rzeczywistą akcję profesji na oznaczonym sektorze, bez otwierania wydobycia w całym świecie.",
+    "v3.31.2: rotujące stanowisko wykopaliskowe pozwala użyć wykop i daje +25% XP Archeologii/Pędzla. Komenda wydarzenia pokazuje aktywne grupy eventów i właściwe komendy; kryzys pomoc/ratuj odblokowane.",
+    "v3.31.1: Kwatermistrz Bandytow i Bandycki Mistrz Pojedynku zaliczaja teraz zabicia do aktywnych questow bandytow u Roderika, Elii i na Tablicy Godzinnych Zlecen.",
+    "v3.31.1: nowy test 13 odmian bandytow, izolacji kont SQLite i komunikatu Postep questa w trybie combat concise (essential). Zwykli bandyci byli przypisani poprawnie, wiec brak komunikatu u nich wymaga sprawdzenia aktywnosci zadania.",
     "v3.31.0: wszystkie progresje zdobywajace EXP potrzebuja x5 wiecej EXP do kolejnego poziomu: postac, 14 klas, Dusza, skille, Bron Duszy, statystyki, 14 profesji, 14 narzedzi i Wzniesienie. Takze poziomy 1-49.",
     "v3.31.0: NIE ZMIENIONO wyplacanego EXP, EXP Bank, Multi Cap, nagrod, dropu, zdobytych poziomow, zapisanego postepu ani limitow. Zachowane historyczne krzywe i roznice trudnosci profesji. Wymagania liczone na biezaco.",
     "v3.30.0: naprawiono 56 nieoddawalnych zadan profesji w Erze Legend (v3.10 i v3.20): kazde zadanie ma prawidlowy typ narzedzia dla swojej profesji.",

@@ -1,3 +1,114 @@
+Soulbound v4.00.4 — NAPRAWA LEGENDARNYCH WYDARZEN — 2026-10-14
+Aktualna paczka: v4.00.4
+
+- NAPRAWA PREDEPLOY: test v3.31.2 mogl zakonczyc sie "legendary ancient_growth actionable" przy kolizji dwoch legendarnych wydarzen w tym samym sektorze swiata. Swiat ma losowy, utrwalony seed; blad byl zalezy od seeda i nie wychodzil przy kazdym tescie.
+- NAPRAWA RUNTIME: v0180_active_legendary_events rozdziela dwie rozne aktywne legendy na osobne pokoje tylko gdy ich dotychczasowe wspolrzedne byly identyczne. Ponowny wybor komorki jest deterministyczny dla tego samego seeda i przedzialu czasu. Bez kolizji harmonogram i polozenie wydarzen pozostaja identyczne.
+- STALY TEST REGRESJI: validation/v3312_all_world_events sprawdza rozdzielenie pokojow podczas 160 rotacji i wymusza sztuczna kolizje dwoch legend (Pradawny Rozrost + Wielki Rozkwit), weryfikujac dostepnosc obu profesji i determinizm. Test musi przejsc tak samo przy dowolnym seedzie serwera.
+- ZACHOWANO v4.00.3: wyzsze wymagania EXP dla wszystkich 14 narzedzi, wedka x5, kilof x4 (x2 wobec v4.00.2), pozostale narzedzia x3. Nagrody/EXP zdobywany nie sa obnizone.
+- ZACHOWANO v4.00.2: modularizacja i naprawa wielokrotnego ladowania umiejetnosci. Bez zmian SQLite, postaci, poziomow, EXP x10, questow, skalowania walk, bossow i profili najemnikow.
+- BEZPIECZENSTWO: kompletne archiwum, wymagany Windows PREDEPLOY 60/60 PLUS na NOWEJ paczce przed jakimkolwiek wdrozeniem. Poprzednie zaliczenia nie uprawniaja do wdrozenia v4.00.4.
+
+==============================================================================
+Soulbound v4.00.3 — DLUGSZY ROZWOJ WSZYSTKICH NARZEDZI — 2026-10-14
+Aktualna paczka: v4.00.3
+
+- SKORYGOWANO TEMPO: po zgloszeniu "wedka poziom 7, Wedkarstwo poziom 4" podwyzszono progi XP do awansu WSZYSTKICH 14 narzedzi od poziomu 1 do 799. Wedka: x5 wzgledem v4.00.2, kilof: x2 wzgledem v4.00.2 (stary mnoznik x2 -> x4), pozostale 12 narzedzi: x3 wzgledem v4.00.2.
+- BEZ NERFOW NAGROD: nie zmieniono EXP dostawanego za akcje, craft, surowce, questy, zamowienia, dropu ani szybkosci wedkowania; nie zmieniono wymagan XP profesji, postaci, statystyk, klas ani skilli. Dotychczasowe 10x EXP wszystkich osi zostaje (nowa trudnosc narzedzi jest dodatkowa).
+- POSTACIE I SQLITE: obecne poziomy narzedzi, zapisane XP, postepy profesji, plecaki, ekwipunek i zlecenia pozostaja w bazie bez modyfikacji/migracji. Zmienia sie tylko wartosc XP wymagana do NASTEPNEGO poziomu narzedzia.
+- TESTY: nowy validation/v4030_tool_xp_pacing.py sprawdza wszystkie 14 narzedzi i 799 progow kazdego, porownuje do v4.00.2, potwierdza niezmiennosc mnoznikow nagrod i EXP Wedkarstwa; aktualizowano historyczne testy przeliczania kilofa. Pelny Windows 60/60 PLUS wymagany przed wdrozeniem.
+- MODULARYZACJA: v4.00.2 zachowana razem z naprawa duplikatow skilli; v4.00.1 pozostaje wadliwa i nie nalezy jej wdrazac.
+
+==============================================================================
+Soulbound v4.00.2 — HOTFIX MODULARYZACJI KLAS — 2026-10-14
+Aktualna paczka: v4.00.2
+
+- NAPRAWA SZYBKIEGO PREDEPLOY: test Siedmiu Legend wykryl zduplikowane skille Wojownika przy powtornym wykonaniu core/classes_skills.py (3445 -> 3542). Przyczyna: wspoldzielona mutowalna struktura zaimportowana z core/class_skill_catalog.py.
+- IZOLACJA: core/classes_skills.py zawsze tworzy wlasne glebokie kopie obu katalogow CLASS_SKILLS i ENDGAME_CLASS_SKILLS przed nakladaniem historycznych modyfikacji. Dzieki temu testy wykonywane przez runpy/exec nie zmieniaja danych biezacego serwera ani kolejnego uruchomienia.
+- NOWY TEST: dwa powtorne wykonania pliku i kontrola kazdej z 14 klas, umiejetnosci v3.20.0 na progach 260/420/600, braku duplikatow i niezmiennosci kanonicznych definicji; test wymagany w szybkim i pelnym predeploy.
+- BEZ ZMIAN ROZGRYWKI: zachowano wszystkie 2701 questow, 14 profesji i narzedzi, EXP 10x, nagrody, moby, ocean, fazy bossow, najemnikow, postacie, SQLite, istniejace lokacje i funkcje. Brak GitHuba i deployu live.
+- Uwaga: v4.00.1 ma FAIL w szybkim predeploy i nie moze byc wdrozona; v4.00.2 wymaga nowego Windows 60/60 PLUS PASS.
+
+==============================================================================
+Soulbound v4.00.1 — MODULARYZACJA SILNIKA — 2026-10-14
+Aktualna paczka: v4.00.1
+
+- BEZPIECZNE WYDZIELENIE KATALOGOW: 14 klas i ich definicje 3445 skilli zachowano w core/class_skill_catalog.py. core/classes_skills.py pozostaje dotychczasowym API i zachowuje kolejnosc poprawiania oraz audytowania umiejetnosci.
+- MODULARYZACJA SWIATA: rozbudowy gorskie, fronty i ekspowiska, elitarne potwory oraz uslugi swiata wydzielono do world/expansion_mountain.py, world/expansion_frontiers.py, world/expansion_high_end.py i world/expansion_services.py.
+- ZGODNOSC: world/expansions.py zachowuje wszystkie poprzednie funkcje jako kompatybilne punkty wejscia. Wywolania zmieniajace EXP_AREAS zachowuja stan przy kolejnych fazach uruchamiania gry.
+- NIE PRZENOSZONO SILNIKA WYDAWANIA UMIEJETNOSCI: pozostawiono oryginalny player/session_mixins/combat_skills.py, poniewaz historyczne audyty kontraktow odwolują sie do niego bezposrednio. To kolejny mozliwy etap, wymagajacy osobnego przegladu bramek testow.
+- BEZ ZMIAN ROZGRYWKI: 2701 questow, 14 klas/ras/profesji/narzedzi, EXP x10, istniejące nagrody, moby, NPC, bossowie, wydarzenia, ocean, najemnicy i przywolania zachowane. Nie zmieniano formatu ani schematu SQLite; zadnego resetu postaci.
+- TESTY: nowy validation/v4010_modularization.py w szybkim i pelnym predeploy. Kontroluje przeniesienie oryginalnych deklaracji i funkcji bez modyfikacji AST, eksporty, ciaglosc EXP_AREAS, wersje, liczbe questow i balans x10. Pelna bramka 60/60 PLUS musi przejsc na Windows przed wdrozeniem.
+- BRAK GitHuba, PR, deployu live i operacji na rzeczywistej bazie graczy. Kompletny ZIP do osobnego predeployu.
+
+==============================================================================
+Soulbound v4.00.0 — IMPERIUM PRADAWNYCH LEGEND — 2026-10-14
+Aktualna paczka: v4.00.0
+
+- WIELKA FABULA CALEGO SWIATA: 32 nowe historie w dotychczasowych regionach, kazda z 4 pokojami, osobnym NPC i 5 powiazanymi zadaniami: 128 pokojow, 32 NPC i 160 questow. Bez losowych pulapek i bez blokad solowej rozgrywki.
+- OCEAN 5.0 IMPERIUM MORSKIE: 5 nowych morskich tras po 8 pokojow, z nawigatorem, elitami, wielofazowym admiralem i 7 questami na trase; 5 flot w ISTNIEJACYM systemie ocean4 atak imperium_<kod>. Dotychczasowe statki, modulowy ekwipunek i handel bez zmian.
+- SUPERBOSSOWIE 10.0: 12 nowych pradawnych przeciwnikow, kazdy z wlasna arena 4 pokojow, dwoma zywiolami, istniejacym rzeczywistym silnikiem faz walki 75/50/25%, heroldem, materialem i piecioma zadaniami. Nie zastapiono starych superbossow.
+- PROFESJE I RZEMIOSLO 7.0: 112 nowych godzinnych zadan — po osiem prawdziwych czynnosci dla kazdej z 14 profesji; 70 nowych receptur i 70 rzeczywistych produktow w systemie craft lub odpowiednich warsztatach. Wykorzystuja TYLKO istniejace typy narzedzi; zadnych nowych narzedzi, resetow ani zmniejszania EXP.
+- NAJEMNICY 6.0: automatyczna reakcja 15 specjalizacji na aktualna faze bossa i sytuacje wroga. Dopiero po przejsciu progow HP uruchamia sie dodatnia premia, bez utraty 100% obrazen wlasciciela, limitu DPS, nowej komendy czy nowego EXP dla najemnika. Istniejace przywolania i ich rozwoj zachowano bez zmian.
+- FAME: 12 nowych superbossow, ich heroldowie oraz nowe elity morskie dodane jako pelnoprawne cele dotychczasowego katalogu Fame (+1 za pierwszego pokonanego naturalnego przedstawiciela celu na region); nie zmieniono starych zasad Fame ani nagrod za questy.
+- CALKOWITY PRZYROST: 216 pokojow, 49 nowych NPC, 66 potworow (w tym 12 pradawnych superbossow i 5 morskich admiralow), 367 questow, 119 przedmiotow (materialy+produkty+przedmioty fabularne), 70 receptur oraz 5 flot. Lacznie 2701 questow w runtime, jesli liczba bazowa nadal wynosi 2334.
+- KOMPATYBILNOSC: zadnej modyfikacji istniejacych ID, istniejacej SQLite ani 10-krotnych wymagan EXP; zachowane postacie, gildie, EQ, profesje, loot, wszystkie stare zadania, obsluga 5 testowych graczy i kopie danych.
+- TESTY: v4000_imperium w szybkim i pelnym predeploy oraz wszystkie historyczne regresje. Obowiazkowy osobny test 60/60 PLUS na Windows; BRAK WDROZENIA NA ZYWY SERWER.
+- UWAGA O POKRYCIU: statyczna kontrola wszystkich nowosci i reprezentatywne testy SQLite/TCP nie zastepuja rozegrania wszystkich 2701 questow w prawdziwej rozgrywce ani testow mowy NVDA.
+
+==============================================================================
+Soulbound v3.31.5 — PREDEPLOY DLA MAKSYMALNIE 5 GRACZY — 2026-10-14
+Aktualna paczka: v3.31.5
+
+- ZGODNIE Z RZECZYWISTYM UZYCIEM: test TCP loguje maksymalnie 5 osob, laczy je w jedna druzyne, wykonuje prawdziwa rozmowe z NPC i walke, sprawdza wspolne zadania, zapis SQLite i restart. Szkielet historycznego modulu v2102_tcp_six_players.py pozostaje bez zmiany nazwy, aby nie zepsuc sciezek bramek predeploy.
+- PIATY GRACZ ZAJMUJE OSTATNIE MIEJSCE: osobne polaczenie szostego klienta jest odrzucane przez testowy limit klientow. Test nigdy nie dotyka prawdziwego serwera ani bazy kont.
+- BRAK ZBEDNEGO OBCIAZENIA: etapy 24 i 50 uruchamiaja maksymalnie 5 polaczen TCP jednoczesnie, zamiast 20 lub 30. Etap 50 sprawdza 3 krotkie fale po 5 otwarc ekranow logowania. Trzy fale to 15 polaczen lacznie, nie 15 jednoczesnych graczy.
+- DODATKOWA KONTROLA PREDEPLOY: regresja sprawdza limit 5, 60/60 etapow i EXP 10x. Nowy test 5 osobnych kont uruchamia prawdziwe metody SQLite postepu 200 zadan 14 profesji, blokuje bledne akcje i weryfikuje zapis po otwarciu kopii bazy. Nie oznacza to przejscia wszystkich 2334 questow przez TCP.
+- BRAK MODYFIKACJI LIMITU PRODUKCYJNEGO: nie zmieniono SOULBOUND_MAX_CLIENTS rzeczywistego serwera. Limit 5 dotyczy tylko izolowanych testow. Nie zmieniono balance, XP, dropow, SQLite, postaci, ani zadnych systemow gry.
+- BEZPIECZENSTWO: pelny ZIP, wynik 60/60 PLUS na Windows wymagany przed wdrozeniem; stary PASS v3.31.4 nie uprawnia do wdrozenia v3.31.5.
+
+==============================================================================
+Soulbound v3.31.4 — JESZCZE DLUGSZY ROZWOJ EXP OD POZIOMU 1 — 2026-10-13
+Aktualna paczka: v3.31.4
+
+- PROGI +100% WZGLEDEM v3.31.3: dodatkowe dwukrotne wymagania EXP do nastepnego awansu od poziomu 1 do konca kazdej osi; lacznie x10 wzgledem v3.30.0. Dotyczy poziomu postaci, 14 klas, Duszy, Broni Duszy, skilli, 6 statystyk (bez limitu), wszystkich 14 profesji, 14 narzedzi i rang Wzniesienia.
+- TYLKO WYMAGANY EXP: bez zmian EXP wyplacanego za walki/questy/rzemioslo, bez ucinania nagrod, dropu, premii eventow, czasu akcji, kosztow, progressu EXP Bank, starych zdobytych poziomow i aktualnych postepow w SQLite.
+- WYSOKIE POZIOMY: zachowano istniejace rosnace krzywe, osobne mnozniki profesji i narzedzi, dotychczasowe limity poziomow i bezpieczne maksimum liczby EXP (nie wprowadzono nowego limitu statystyk). Na bardzo wysokich wartosciach obowiazuje historyczna saturacja liczby EXP.
+- KOMPATYBILNOSC: pelna zawartosc v3.31.3 i wszystkie 2334 questy, poprawki v3.31.2 wydarzen, v3.31.1 bandytow, NPC w osobnych pokojach, autostart Windows oraz migracja SQLite bez zmian.
+- TESTY: historyczna kontrola wszystkich osi EXP i nowa regresja porownujaca kazdy poziom z poprzednia krzywa (bez mnozenia nagrod), obie w szybkim i pelnym audycie. Wymagany PREDEPLOY na Windows 60/60 PLUS przed wdrozeniem.
+
+==============================================================================
+Soulbound v3.31.3 — SCIEZKI ROZWOJU WSZYSTKICH 14 PROFESJI — 2026-10-13
+Aktualna paczka: v3.31.3
+
+- AUDYT 14 PROFESJI: wykryto cztery profesje z zaledwie 25 zadaniami i 10 odnawialnymi kazda (Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie). Archeologia i Kartografia mialy po 46; pozostale profesje 63-132. Liczono tylko questy skojarzone przez required_profession / reward_profession.
+- 200 NOWYCH GODZINNYCH QUESTOW: po 8 praktycznych etapow dla kazdej z 14 profesji od podstaw (poziomy referencyjne 1/3/6/10/15/20/30/40); dla Stolarstwa, Krawiectwa, Garbarstwa, Zaklinania po 22 kolejne etapy od 60 do 800. Kolejne etapy odblokowuja sie po zakonczeniu poprzednich, bez sztucznego wymogu levelu i bez masowego odebrania wszystkich wysokich nagrod na starcie. Kazdy etap liczy REALNE nowe akcje po przyjeciu; wyplaca EXP profesji i narzedzia oraz monety; odnawia sie po 60 minutach od ukonczenia.
+- QUESTY DLA POCZATKUJACYCH: nowe oferty u dotychczasowych NPC-mistrzow. Zachowane dotychczasowe zadanie Pierwsze kroki i komenda przyjmij <numer>. Zadania nie maja nowej blokady poziomu, zgodnie z istniejaca polityka dostepnosci questow.
+- ZADNYCH NERFOW: stare nagrody, EXP za czynnosci, x5 wymagania EXP (3.31.0), nieograniczony rozwoj, Multi Cap, SQLite i postacie bez zmian. Nie dodano nowych NPC ani pokojow; zasada jeden NPC na pokoj zachowana.
+- TESTY: nowy osobny audyt 14 profesji, kompletnego katalogu +200 questow, NPC i nagrod z rzeczywista walidacja wypłat oraz regresja progresu SQLite. Pelny predeploy 60/60 PLUS nalezy wykonac na Windows przed wdrozeniem.
+
+Soulbound v3.31.2 — NAPRAWA WYDARZEN I WYKOPALISK — 2026-10-13
+Aktualna paczka: v3.31.2
+
+- ZLOZA RUDY: "Bogata żyła" i "Przebudzenie Głębokiej Żyły" na proceduralnych rubieżach są już rzeczywistymi stanowiskami pracy Kilofem (`kop`), z bonusem wydarzenia i istniejącym urobkiem Górnictwa. Pozostałe obszary poza Kopalnią Głębinową nie stają się automatycznie kopalniami.
+- INNE WYDARZENIA PROFESJI: ławice (`low`), rozkwity ziół (`zbieraj`), rozrost boru (`tnij`) i wszystkie legendarne odpowiedniki obsługują czynności tylko podczas aktywnego wydarzenia we wskazanym sektorze. Obsługa łowisk ma właściwy habitat rzeczny/jeziorny/morski/oceaniczny, również w autołowieniu.
+- WYKOPALISKA: dodano rotujące stanowisko archeologiczne na rubieżach; komenda `wykop` z Pędzlem Archeologa działa tam normalnie. +25% XP Archeologii i Pędzla tylko podczas aktywnego wydarzenia; bez zmniejszenia zwykłych nagród. Trwałe stanowiska archeologiczne są nadal dostępne.
+- KRYZYSY: `kryzys pomoc` nie otwiera już pomocy/listy — tak jak `kryzys ratuj` wykonuje prawdziwą akcję ratowania po wcześniejszych etapach. Do listy służy `kryzys lista`.
+- WYDARZENIA: aktualna zbiorcza lista pokazuje osiem eventów proceduralnych, dwie legendarne rotacje, a także skróty do czterech krain, podziemnego najazdu, inwazji i kryzysów. Sektory, rozkłady rotacji i lokalizacje pozostały deterministyczne.
+- BEZ REBALANSU: pięciokrotne progi EXP, podstawowe wypłaty EXP, bonusy istniejących wydarzeń, wszystkie postacie, zadania, zapis SQLite, drop, gildie, Multi Cap i wcześniejsze systemy bez zmian.
+- TESTY: nowe regresje wydarzeń i profili profesji dodane do szybkiego i pełnego predeployu; nadal obowiązkowe Windows ULTIMATE 60/60 PLUS przed wdrożeniem.
+
+==============================================================================
+Soulbound v3.31.1 — BANDYCI I POSTEP QUESTOW — 2026-10-13
+Aktualna paczka: v3.31.1
+
+- NAPRAWA: Kwatermistrz Bandytow (bandit_quartermaster) i Bandycki Mistrz Pojedynku (bandit_duelist) nie mieli przypisania quest_target=bandit. Zabijanie tych dwoch minibossow nie zaliczalo zadania, wiec nie pojawial sie komunikat postepu. Dodano tylko brakujace przypisanie; inne minibossy pozostaja bez bandyckiego kredytu.
+- KOMUNIKATY NVDA: juz obecna funkcja announce_active_quest_progress wysyla po zaliczonym zabiciu Postep questa ... N z M jako combat_detail=essential, history_category=quest. Test regresyjny weryfikuje rzeczywista skladnie komunikatow i ich klasyfikacje; komunikaty sa wysylane tylko dla aktywnego i nieukonczonego celu.
+- REGRESJE: 13 rodzajow bandytow, trzy niezalezne zadania (Patrol przeciw bandytom Roderika 10, Bezpieczny szlak Elii 8, Tablica Godzinnych Zlecen 15), izolowane SQLite dla dwoch kont, odmowa punktu za gobliny i inne minibossy, licznik po kazdym zabiciu, jedno zaliczenie zamiast podwojnego oraz brak spamu po wykonaniu celu.
+- BEZ ZMIAN BALANSU: nagrody EXP, wymagania EXP x5 z v3.31.0, przedmioty, potwory, pojemnosci, drop, Multi Cap, postacie i aktualna baza SQLite sa nietkniete. Zadanie nalezy przyjac zanim zabijanie zacznie naliczac postep.
+- TESTY: test v3.31.1 jest podlaczony do szybkiego i pelnego audytu. Wymagany osobny PREDEPLOY Windows 60/60 PLUS dla nowego ZIP przed wdrozeniem.
+- POLITYKA: kompletna paczka ZIP, tylko istniejacy CHANGELOG_PL.txt, brak GitHuba i osobnych raportow TXT.
+
+==============================================================================
 Soulbound v3.31.0 — DLUGOTERMINOWY ROZWOJ WSZYSTKICH POZIOMOW — 2026-10-13
 Aktualna paczka: v3.31.0
 

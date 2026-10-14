@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v3.31.0: requirement-only +5x over the legacy 3.30 progression.
+"""v3.31.4: requirement-only 10x over the legacy 3.30 progression.
 
 Does not bootstrap or modify any database, accounts, rewards, equipment, or
 Multi Cap. Every check uses the production requirement functions.
@@ -31,7 +31,7 @@ from core.player_math import late_game_xp_requirement, SAFE_INT
 
 def run_regression() -> int:
     checks = 0
-    assert MULTIPLIER == 5
+    assert MULTIPLIER == 10
     checks += 1
 
     def prior_points(base: int, points: int) -> int:

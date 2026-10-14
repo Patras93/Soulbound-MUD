@@ -40,7 +40,7 @@ from systems.items_resources import (
     roll_mining_vein,
     roll_wood_variant,
 )
-from world.generation_systems import v0140_gather_event_bonus, v0150_environment_bonus
+from world.generation_systems import active_profession_event_for_room, v0140_gather_event_bonus, v0150_environment_bonus
 
 from events.contracts import ResourceGatheredEvent
 from core.mine_tunnels import mine_tunnel_coords, HORIZONTAL_MINE_DIRECTIONS, MINE_DIRECTION_LABELS
@@ -141,7 +141,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz łowić podczas walki.")
                 return
-            if self.character.room_id not in FISHING_ROOMS:
+            if self.character.room_id not in FISHING_ROOMS and not active_profession_event_for_room(self.character.room_id, "fishing"):
                 await self.send("Tutaj nie ma odpowiedniego łowiska.")
                 return
             if self.server.db.item_qty(self.account_id, "fishing_rod") <= 0:
@@ -383,7 +383,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz wydobywać podczas walki.")
                 return
-            if not is_mining_room(self.character.room_id):
+            if not is_mining_room(self.character.room_id) and not active_profession_event_for_room(self.character.room_id, "mining"):
                 await self.send("Tutaj nie ma odpowiedniego złoża.")
                 return
             if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
@@ -661,7 +661,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz ścinać drzew podczas walki.")
                 return
-            if self.character.room_id not in WOODCUTTING_ROOMS:
+            if self.character.room_id not in WOODCUTTING_ROOMS and not active_profession_event_for_room(self.character.room_id, "woodcutting"):
                 await self.send("Tutaj nie ma odpowiednich drzew do Drwalstwa.")
                 return
             if self.server.db.item_qty(self.account_id, "saw") <= 0:
@@ -806,7 +806,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz zbierać ziół podczas walki.")
                 return
-            if self.character.room_id not in HERBALISM_ROOMS:
+            if self.character.room_id not in HERBALISM_ROOMS and not active_profession_event_for_room(self.character.room_id, "herbalism"):
                 await self.send("Tutaj nie ma odpowiednich ziół.")
                 return
             if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:

@@ -11,8 +11,10 @@ from config.balance import (
     stat_extra_requirement_points_v1408,
     profession_xp_requirement_v1401,
     tool_xp_requirement_v1402,
+    TOOL_XP_REQUIREMENT_MULTIPLIERS,
     scale_player_requirement_v1407,
     scale_stat_requirement_v1408,
+    ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310,
 )
 from core.progression_resources import v0190_requirement
 from core.player_math import SAFE_INT
@@ -68,19 +70,19 @@ def run_pleasant_grind_v1408():
         actual_prof = profession_xp_requirement_v1401(
             v0190_requirement('profession', level), 'Górnictwo', level)
         expected_prof = (original_prof * profession_late_requirement_points_v1401(level) + 5000) // 10000
-        check(actual_prof == expected_prof * 5, f'profession {level}: legacy formula plus universal x5')
-        original_tool = v0190_requirement('tool', level) * 2
+        check(actual_prof == min(SAFE_INT, expected_prof * ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310), f'profession {level}: legacy formula plus current requirement multiplier')
+        original_tool = v0190_requirement('tool', level) * TOOL_XP_REQUIREMENT_MULTIPLIERS['mining']
         actual_tool = tool_xp_requirement_v1402(v0190_requirement('tool', level), 'mining', level)
         expected_tool = (original_tool * profession_late_requirement_points_v1401(level) + 5000) // 10000
-        check(actual_tool == expected_tool * 5, f'tool {level}: legacy formula plus universal x5')
+        check(actual_tool == min(SAFE_INT, expected_tool * ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310), f'tool {level}: legacy formula plus current requirement multiplier')
 
         baseline = 100000000
         # Test both progression scalers independently, no side-effect on XP rewards.
         check(scale_player_requirement_v1407(baseline, level) ==
-              5 * ((baseline * player_extra_requirement_points_v1407(level) + 5000) // 10000),
+              min(SAFE_INT, ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 * ((baseline * player_extra_requirement_points_v1407(level) + 5000) // 10000)),
               f'player {level}: one multiplier')
         check(scale_stat_requirement_v1408(baseline, level) ==
-              5 * ((baseline * stat_extra_requirement_points_v1408(level) + 5000) // 10000),
+              min(SAFE_INT, ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 * ((baseline * stat_extra_requirement_points_v1408(level) + 5000) // 10000)),
               f'stat {level}: one gentler multiplier')
         check(stat_extra_requirement_points_v1408(level) <= player_extra_requirement_points_v1407(level),
               f'stat {level}: not harder than player')

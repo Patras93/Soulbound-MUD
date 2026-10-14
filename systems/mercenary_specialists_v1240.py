@@ -55,8 +55,15 @@ def specialist_attack_v1240(mob, owner_id, role, attack_type, owner_level, now, 
     # Never depend solely on a monster's missing max_hp to choose a finishing move.
     exhausted = hp > 0 and hp * 100 <= maxhp * 35
     technique = finish if exhausted or boss else threat if sequence % 3 == 1 else ordinary
+    # v4.00.0: choose a positive situational response to actual boss phases,
+    # preserving 100% owner-based damage and all historic specialist bonuses.
+    from systems.companion_tactics_v4000 import tactical_response
+    tactical_factor, tactical_name = tactical_response(
+        role, boss, hp, maxhp, sequence)
+    if tactical_name and boss:
+        technique = f"{technique} — {tactical_name}"
     # Every specialist has its own unlimited growth in addition to full owner DPS.
-    factor = 1.0 + .00012 * max(0, int(owner_level) - 1)
+    factor = (1.0 + .00012 * max(0, int(owner_level) - 1)) * tactical_factor
     if boss:
         factor *= 1.08
     if exhausted and role in ('lotrzyk', 'berserker', 'lucznik', 'nekromanta'):

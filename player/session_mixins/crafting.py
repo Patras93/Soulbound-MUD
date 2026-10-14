@@ -247,6 +247,8 @@ class SessionCraftingMixin:
                     "leatherworking": ("tanning_knife", "Nóż Garbarski"),
                     "carpentry": ("carpenter_tools", "Narzędzia Ciesielskie"),
                     "enchanting": ("runic_focus", "Fokus Runiczny"),
+                    "archaeology": ("archaeology_brush", "Pędzel Archeologa"),
+                    "cartography_profession": ("surveyor_compass", "Kompas Mierniczy"),
                 }
                 tool_type = str(recipe["tool_type"])
                 item_id, name = mapping[tool_type]

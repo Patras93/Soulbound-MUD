@@ -83,11 +83,27 @@ PROFESSION_XP_REQUIREMENT_MULTIPLIERS = {
     "Archeologia": 2.0,
     "Kartografia": 2.0,
 }
-# v1.40.2: preserve historical per-tool difficulty (the pickaxe x2).
-# Every tool now gets the SAME late-game requirement curve as its profession,
-# but tool XP grants, actions, speeds and saved progression remain unchanged.
+# v4.00.3: higher required EXP for ALL 14 tools from level 1 onward.
+# Old v4.00.2: fishing x1, mining x2, all other tools x1.
+# Fishing now needs x5 (rapid 3-second gathering + a x1.5 tool XP gain),
+# mining x4 (was x2), remaining 12 tools x3 (were x1).
+# Requirements only: no changes to XP AWARDS, timings, drops, existing
+# levels, current progress, SQLite, player stats or profession thresholds.
 TOOL_XP_REQUIREMENT_MULTIPLIERS = {
-    "mining": 2.0,
+    "fishing": 5.0,
+    "mining": 4.0,
+    "woodcutting": 3.0,
+    "crafting": 3.0,
+    "cooking": 3.0,
+    "herbalism": 3.0,
+    "alchemy": 3.0,
+    "jewelcrafting": 3.0,
+    "tailoring": 3.0,
+    "leatherworking": 3.0,
+    "carpentry": 3.0,
+    "enchanting": 3.0,
+    "archaeology": 3.0,
+    "cartography_profession": 3.0,
 }
 
 # v2.32.19: profesje i narzedzia: wymagany EXP rośnie znacznie wolniej niz potencjalna szybkosc materialow, dzieki czemu wysokie levele wymagaja pracy.
@@ -174,11 +190,13 @@ def _scale_required_xp_by_points_v1408(required_xp: int, points: int) -> int:
                max(required_xp, (required_xp * points + 5000) // 10000))
 
 
-# v3.31.0: one extra requirement-only factor for EVERY permanent XP axis.
-# Character, class, Soul, all skills, Soul Weapon, six uncapped stats,
-# 14 professions, 14 tools, and Ascension. NEVER scale payouts, banked EXP,
-# Multi Cap, existing levels, or requirement cap limits.
-ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 = 5
+# v3.31.4: 2x additional required EXP from level 1 onward, relative to
+# v3.31.3, for every permanent XP axis: character, class, Soul, Soul Weapon,
+# skill, six uncapped stats, all 14 professions/tools and Ascension. The
+# historical v3.31.0 symbol remains for import/API compatibility. The total
+# multiplier relative to v3.30.0 is 10x. XP payouts, rewards, banked progress,
+# saved levels, Multi Cap, equipment and existing SAFE_INT cap are untouched.
+ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 = 10
 
 
 def scale_all_progress_requirements_v3310(required_xp: int) -> int:
@@ -221,10 +239,10 @@ def profession_xp_requirement_v1401(base: int, profession: str | None, level: in
     return scale_all_progress_requirements_v3310(prior)
 
 
-# v1.40.2: synchronize TOOLS with the smooth late-game profession
-# requirement curve introduced in v1.40.1. The formula only changes the
-# amount needed for the NEXT tool level; it never edits character records.
-# Keep exact historical rounding for levels <=49 and the pickaxe x2.
+# v4.00.3: ALL tool thresholds use the longer early and late game curves.
+# The requirement calculator keeps the historic level-by-level interpolation,
+# applies the new per-tool coefficient once, and never edits saved characters.
+# Preserve the legacy rounding and late-game progression curve.
 def tool_xp_requirement_v1402(base: int, tool_type: str | None, level: int) -> int:
     """Next-level required tool EXP, not an EXP reward calculation."""
     original = max(1, int(round(

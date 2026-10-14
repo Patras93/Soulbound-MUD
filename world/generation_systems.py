@@ -816,6 +816,12 @@ V014_EVENT_DEFS = {
         "desc": "Stare drzewa dają więcej drewna: +2 do bazowego pozyskania i +25% XP Drwalstwa/Piły.",
         "quantity_bonus": 2, "xp_mult": 1.25,
     },
+    "ancient_dig": {
+        "title": "Odkryte stanowisko wykopaliskowe",
+        "kinds": ("desert", "mountain", "ash", "frozen", "crown"),
+        "desc": "W tym sektorze odnaleziono relikty. Użyj wykop z Pędzlem Archeologa; +25% XP Archeologii i Pędzla.",
+        "xp_mult": 1.25,
+    },
     "elemental_rift": {
         "title": "Szczelina Żywiołów",
         "kinds": tuple(V013_FRONTIER_SPECS),
@@ -962,6 +968,28 @@ def v0140_event_for_room(room_id, event_type=None, now=None):
     for event in v0140_active_world_events(now):
         if event["room_id"] == room_id and (event_type is None or event["type"] == event_type):
             return event
+    return None
+
+
+def active_profession_event_for_room(room_id, tool_type, now=None):
+    """Allow gathering ONLY in the proper active event cell (including legend events).
+
+    The permanent Deep Mine and ordinary authored profession rooms remain unchanged.
+    """
+    expected = {
+        "fish_run": "fishing", "herb_bloom": "herbalism",
+        "rich_vein": "mining", "forest_growth": "woodcutting",
+        "ancient_dig": "archaeology",
+    }
+    normal = v0140_event_for_room(room_id, now=now)
+    if normal and expected.get(normal["type"]) == str(tool_type or ""):
+        return normal
+    # v0180 is resolved at runtime, after its later definitions have loaded.
+    legendary_resolver = globals().get("v0180_legendary_event_for_room")
+    if legendary_resolver:
+        legendary = legendary_resolver(room_id, now=now)
+        if legendary and legendary.get("tool") == str(tool_type or ""):
+            return legendary
     return None
 
 
@@ -1204,10 +1232,10 @@ _catalog_mut.catalog_assign({
 }, 'NPCS', NPCS, ("cartographer_lysa",))
 
 HELP_TOPICS["wydarzenia_swiata"] = [
-    "Komenda wydarzenia / events pokazuje pięć aktualnych eventów proceduralnego świata. Zestaw zmienia się co 30 minut.",
+    "Komenda wydarzenia / events pokazuje osiem wydarzen proceduralnych, dwa legendarne oraz odsyla do wydarzen krain, inwazji i kryzysow. Proceduralne zmieniaja sie co 30 minut.",
     "Eventy nie teleportują i nie atakują gracza. Podają biom oraz sektor, do którego można dojść normalnie.",
     "Polowanie na rare tworzy pasywnego wędrującego rare; walkę nadal rozpoczyna wyłącznie gracz.",
-    "Ławica, rozkwit ziół, bogata żyła i rozrost boru dają +2 do bazowego zbioru i +25 procent XP właściwej profesji/narzędzia w sektorze eventu.",
+    "Ławica (low), rozkwit (zbieraj ziola), bogata żyła (kop) i rozrost boru (tnij) dają +2 do zbioru i +25 procent XP w aktywnym sektorze. Odkryte wykopaliska: wykop (Archeologia +25 procent XP).",
 ]
 HELP_TOPICS["mini_lochy"] = [
     "Część proceduralnych sektorów ma trwałe zejście do mini-lochu generowanego na żądanie.",
@@ -2264,7 +2292,7 @@ def v0180_active_legendary_events(now=None):
     now=time.time() if now is None else float(now)
     slot=v0180_legendary_event_slot(now)
     keys=tuple(V018_LEGENDARY_EVENT_DEFS)
-    picked=[]; used=set()
+    picked=[]; used=set(); used_rooms=set()
     for n in range(2):
         etype=keys[_v0140_hash_int("v018-legend-event-type",slot,n)%len(keys)]
         # ensure distinct type when possible
@@ -2277,6 +2305,23 @@ def v0180_active_legendary_events(now=None):
         x=_v0140_hash_int("v018-legend-event-x",slot,n)%V013_FRONTIER_SIDE
         y=_v0140_hash_int("v018-legend-event-y",slot,n)%V013_FRONTIER_SIDE
         room_id=v0130_frontier_room_id(kind,x,y)
+        # Two different legendary events can select the same tile. The
+        # location-only resolver would then hide the second event (and its
+        # profession action), depending on the server's random world seed.
+        # Keep the historical placement unless there really is a collision.
+        if room_id in used_rooms:
+            size = V013_FRONTIER_SIDE * V013_FRONTIER_SIDE
+            start = _v0140_hash_int("v018-legend-event-retry-index",slot,n) % size
+            for offset in range(size):
+                cell = (start + offset) % size
+                other_x, other_y = cell % V013_FRONTIER_SIDE, cell // V013_FRONTIER_SIDE
+                other_id = v0130_frontier_room_id(kind,other_x,other_y)
+                if other_id not in used_rooms:
+                    x,y,room_id = other_x,other_y,other_id
+                    break
+            else:
+                raise RuntimeError("Brak dostepnego sektora legendarnego wydarzenia")
+        used_rooms.add(room_id)
         picked.append({
             "type":etype,"title":d["title"],"desc":d["desc"],"kind":kind,"x":x,"y":y,"room_id":room_id,
             "tool":d.get("tool"),"xp_mult":float(d.get("xp_mult",1.0)),"quantity_bonus":int(d.get("quantity_bonus",0)),

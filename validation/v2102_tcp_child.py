@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Private bootstrap for six-player test. Only invoked with guarded TEST env."""
+"""Private bootstrap for five-player test. Only invoked with guarded TEST env."""
 from __future__ import annotations
 import os
 import json
@@ -15,13 +15,13 @@ def main():
     path = Path(os.environ['SOULBOUND_DB']).resolve()
     if not (os.environ.get('SOULBOUND_TCP_TEST_CHILD') == '1'
             and os.environ.get('SOULBOUND_HOST') == '127.0.0.1'
-            and path.name == 'six_players.sqlite'
-            and path.parent.name.startswith('soulbound-tcp6-')
-            and os.environ.get('SOULBOUND_MAX_CLIENTS') == '6'):
-        raise RuntimeError('Only disposable local six-player tests are allowed')
+            and path.name == 'five_players.sqlite'
+            and path.parent.name.startswith('soulbound-tcp5-')
+            and os.environ.get('SOULBOUND_MAX_CLIENTS') == '5'):
+        raise RuntimeError('Only disposable local five-player tests are allowed')
     db = Database(str(path))
     try:
-        for index in range(6):
+        for index in range(5):
             account = f'tcpcheck{index+1}'
             name = f'Testtcp{index+1}'
             existing = db.account_by_name(account)

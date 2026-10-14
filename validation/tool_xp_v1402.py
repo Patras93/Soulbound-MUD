@@ -46,10 +46,15 @@ def run_tool_xp_regression_v1402():
 
     check(len(TOOL_TYPES_V1402) == len(set(TOOL_TYPES_V1402)) == 14,
           'exactly 14 distinct tools')
-    check(set(TOOL_XP_REQUIREMENT_MULTIPLIERS) == {'mining'},
-          'preserved historical per-tool requirement differences')
-    check(TOOL_XP_REQUIREMENT_MULTIPLIERS['mining'] == 2.0,
-          'pickaxe multiplier remains x2')
+    check(set(TOOL_XP_REQUIREMENT_MULTIPLIERS) == set(TOOL_TYPES_V1402),
+          'all fourteen tools have explicit new thresholds')
+    check(TOOL_XP_REQUIREMENT_MULTIPLIERS['mining'] == 4.0,
+          'pickaxe threshold is now x4 (previously x2)')
+    check(TOOL_XP_REQUIREMENT_MULTIPLIERS['fishing'] == 5.0,
+          'fishing rod threshold x5 (previously x1)')
+    check(all(TOOL_XP_REQUIREMENT_MULTIPLIERS[k] == 3.0 for k in TOOL_TYPES_V1402
+              if k not in ('fishing', 'mining')),
+          'remaining twelve tools x3 (previously x1)')
     check(TOOL_ACTION_MIN_SECONDS['fishing'] == 3,
           'fishing has unchanged minimum 3s')
     check(profession_action_seconds('fishing', 800) == 3,
@@ -93,12 +98,11 @@ def run_tool_xp_regression_v1402():
         check(required(800, kind) == 0, f'{kind}: maximum has no next level')
 
     for level in (1, 50, 100, 101, 150, 200, 400, 600, 799):
+        fishing = required(level, 'fishing')
         ordinary = required(level, 'crafting')
         mining = required(level, 'mining')
-        # The current base level is integer and the original 2x pickaxe
-        # multiplier must remain 2x; rounding of the late curve can differ 1.
-        check(abs(mining - ordinary * 2) <= 5,
-              f'level{level}: mining difficulty remains x2')
+        check(fishing >= ordinary, f'level{level}: rod needs more XP than normal tools')
+        check(mining >= ordinary, f'level{level}: pickaxe needs more XP than normal tools')
 
     return {'checks': checks, 'errors': errors,
             'tools': len(TOOL_TYPES_V1402)}

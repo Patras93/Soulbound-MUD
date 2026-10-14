@@ -796,9 +796,9 @@ print(f"EXP BANK v2.00.11 FULL: {_xp_bank_v2011()} checks PASS")
 from validation.v2100_titans import run_regression as _titans_v2100
 print(f"TYTANI / LOCHY v2.10.0 FULL: {_titans_v2100()} checks PASS")
 
-# The real six-player TCP stage is executed separately by TESTUJ_Soulbound.bat.
+# The real five-player TCP stage is executed separately by TESTUJ_Soulbound.bat.
 from validation.v2102_tcp_six_players import run_contract as _tcp6_guard_v2102
-print(f"TCP SIX PLAYERS v2.10.2 FULL SAFE CONFIG: {_tcp6_guard_v2102()} checks PASS; "
+print(f"TCP FIVE PLAYERS v3.31.5 FULL SAFE CONFIG: {_tcp6_guard_v2102()} checks PASS; "
       "real TCP tests run as Windows stage 3")
 
 # Repeat the controller contract during the exhaustive predeploy.
@@ -894,3 +894,42 @@ _v3300_gameplay_audit(_v3300_audit_runtime)
 # v3.31.0: full coverage of every XP level requirement, reward-only invariants.
 from validation.v3310_all_xp_requirements import run_regression as _all_xp_v3310
 print(f"ALL PROGRESSION XP v3.31.0: {_all_xp_v3310()} checks PASS")
+
+# v3.31.1: all thirteen bandit-family mobs, persistent quest credit, essential NVDA messages.
+from validation.v3311_bandit_progress import run_regression as _bandit_progress_v3311
+import server as _bandit_runtime_v3311
+print(f"BANDYCI QUEST PROGRESS v3.31.1: {_bandit_progress_v3311(_bandit_runtime_v3311)} checks PASS")
+
+# v3.31.2: event professions, archaeology and unified live event atlas.
+from validation.v3312_all_world_events import run_regression as _all_world_events_v3312
+print(f"WYDARZENIA I WYKOPALISKA v3.31.2: {_all_world_events_v3312()} checks PASS")
+
+# v3.31.3: all professions have action-backed early repeatable quests.
+from validation.v3313_profession_paths import run_regression as _profession_paths_v3313
+import server as _professions_runtime_v3313
+print(f"SCIEZKI 14 PROFESJI v3.31.3 FULL: {_profession_paths_v3313(_professions_runtime_v3313)} PASS")
+
+# v3.31.4: extra x2 progression requirements on all axes from level 1.
+from validation.v3314_required_xp import run_regression as _xp_v3314
+print(f"WYMAGANIA EXP v3.31.4: {_xp_v3314()} checks PASS")
+
+# v3.31.5: fail-closed five-player TCP and scenario coverage contract.
+from validation.v3315_predeploy_5_players import run_regression as _five_players_v3315
+print(f"PREDEPLOY 5 GRACZY v3.31.5: {_five_players_v3315()} checks PASS")
+
+# v4.00.0: full added-world playable catalogue, 14 existing professions,
+# five ocean fleets, superboss phases and intelligent companion tactics.
+from validation.v4000_imperium import run_regression as _imperium_4000
+print(f"IMPERIUM v4.00.0: {_imperium_4000()} PASS")
+
+# v4.00.0: real crafting transaction in a private 14-profession SQLite DB.
+from validation.v4000_craft_runtime import run_regression as _v4000_craft
+print(f"CRAFTING v4.00.0: {_v4000_craft()} checks PASS")
+
+# v4.00.2: historical AST contracts + repeated source evaluation isolation.
+from validation.v4010_modularization import run_regression as _modular_v4010
+print(f"MODULY SILNIKA v4.00.2: {_modular_v4010()} checks PASS")
+
+# v4.00.3: increased tool XP thresholds, never touch rewards or SQLite.
+from validation.v4030_tool_xp_pacing import run_regression as _tool_pace_v4030
+print(f"NARZEDZIA XP v4.00.3 FULL: {_tool_pace_v4030()} checks PASS")

@@ -174,7 +174,7 @@ def run_exhaustive():
     print(f"QUESTY: {base['quests']} definicji, {len(kinds)} typow, "
           f"{base['sqlite_flows']} pelnych cykli bazy")
     print(f'QUESTY SQLITE: {isolation} dodatkowych kontroli izolacji kont')
-    print(f'TCP ZAPLANOWANE: {len(READ_TCP_CASES)} bazowych komend na 6 klientach, '
+    print(f'TCP ZAPLANOWANE: {len(READ_TCP_CASES)} bazowych komend na 5 klientach, '
           f'{len(ADDITIONAL_TCP_CASES)} scenariuszy dodatkowych na pierwszym kliencie')
     print(f'RZECZYWISTE TCP: {len(READ_TCP_CASES) + len(ADDITIONAL_TCP_CASES)} wariantow komend '
           '(w tym powtorzone nazwy z innymi argumentami), testowane w ostatniej bramce.')

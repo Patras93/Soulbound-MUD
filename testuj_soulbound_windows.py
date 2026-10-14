@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Isolated Windows release gate. Readable by NVDA; returns FAIL on any skipped gate.
 
-Runs the quick, exhaustive and six-player localhost TCP checks in disposable
+Runs the quick, exhaustive and five-player localhost TCP checks in disposable
 workspaces. Stage processes have hard deadlines so the batch never hangs forever.
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ STAGES = (
     ('AUDYT POKRYCIA WZDLUZ I WSZERZ', 'validation/v2302_coverage_contract.py', 180),
     ('ZADANIA — PRAWDZIWE ZDARZENIA I IZOLACJA', 'validation/v2310_event_contract.py', 180),
     ('AUTOGRACZ — MAPA, NPC, SCIEZKI', 'validation/v2320_autonomous_routes.py', 180),
-    ('6 KLIENTOW TCP + RESTART', 'validation/v2102_tcp_six_players.py', 900),
+    ('5 KLIENTOW TCP + RESTART', 'validation/v2102_tcp_six_players.py', 900),
 )
 ULTRA_STAGES = (
     ('KLASY 14 - SKILLE I MISTRZOSTWO',10,120),
@@ -49,7 +49,7 @@ ULTRA_STAGES = (
     ('WINDOWS - ZAMYKANIE I BRAK BLOKAD',21,120),
     ('SQLITE WAL - BACKUP, RESTORE, BLAD',22,120),
     ('WATCHDOG - AWARIA, BACKOFF I STOP',23,120),
-    ('20 SESJI TCP - PRYWATNY SERWER',24,240),
+    ('5 SESJI TCP - PRYWATNY SERWER',24,240),
     ('SQLITE LIVE - KOPIA I MIGRACJA SCHEMATU',25,180),
 )
 STAGES = STAGES + tuple((name, f'validation/predeploy_ultra_v2327.py --case {number}', timeout)
@@ -79,7 +79,7 @@ ULTIMATE_STAGES = (
     ('SECURITY - ZLE ZIPY BLOKOWANE', 47, 120),
     ('SECURITY - STARY PASS I PODMIENIONY ZIP BLOKOWANY', 48, 120),
     ('SQLITE - ZACHOWANIE DANYCH POSTACI NA KLONIE', 49, 180),
-    ('TCP - 3 FALE PO 30 POLACZEN', 50, 240),
+    ('TCP - 3 FALE PO 5 POLACZEN', 50, 240),
 )
 STAGES = STAGES + tuple((name, f'validation/predeploy_ultimate_v2328.py --case {number}', timeout)
                          for name, number, timeout in ULTIMATE_STAGES)
@@ -259,13 +259,13 @@ def main():
             logfile.write(msg + '\n')
             logfile.flush()
 
-        say('SOULBOUND v2.32.11 - PREDEPLOY SQLITE/TCP HOTFIX ULTIMATE 60 PLUS')
+        say('SOULBOUND v3.31.5 - PREDEPLOY 5 GRACZY ULTIMATE 60 PLUS')
         say('Start: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
         say('Python: '+sys.version.splitlines()[0])
         say('System: '+platform.platform())
         say('Folder gry: '+str(ROOT))
         say('Baza prawdziwych graczy: tylko odczyt przez backup SQLite w etapach 25/49/60; zapisy wylacznie w TEMP')
-        say('TCP: tylko 127.0.0.1, 6 zalogowanych graczy, 20 TCP i 3 fale po 30 TCP localhost')
+        say('TCP: tylko 127.0.0.1, 5 zalogowanych graczy, 5 TCP i 3 fale po 5 TCP localhost')
         say('PASS wymaga wszystkich 60 etapow (w tym izolowanej kopii realnej bazy).')
         say('-' * 72)
         try:

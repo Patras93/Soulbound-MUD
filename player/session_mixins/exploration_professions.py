@@ -20,6 +20,7 @@ from core.progression_600 import TOOL_MAX_LEVEL, TOOL_MAX_TIER
 from core.progression_resources import v1138_resource_sale_base_coins
 from network.protocol_gameplay_utils import normalize_lookup_text
 from systems.content_registry import QUESTS
+from world.generation_systems import active_profession_event_for_room
 
 
 V1100_ARCHAEOLOGY_FINDS = (
@@ -93,6 +94,8 @@ class SessionExplorationProfessionsV1100Mixin:
         )
         if any(keyword in haystack for keyword in _ARCHAEOLOGY_KEYWORDS):
             return True
+        if active_profession_event_for_room(room_id, "archaeology"):
+            return True
         return bool(
             room.get("crypt")
             or room.get("dungeon")
@@ -161,16 +164,20 @@ class SessionExplorationProfessionsV1100Mixin:
 
         base_xp = max(30, 50 + access * 2)
         discovery_mult = 2.00 if is_new else 1.00
+        archaeology_event = active_profession_event_for_room(self.character.room_id, "archaeology")
+        event_xp_mult = 1.25 if archaeology_event else 1.0
         messages, *_ = self.grant_profession_progress(
             "Archeologia",
-            max(1, int(round(base_xp * discovery_mult))),
+            max(1, int(round(base_xp * discovery_mult * event_xp_mult))),
             "archaeology",
-            max(20, int(round((35 + access) * (1.50 if is_new else 1.00)))),
+            max(20, int(round((35 + access) * (1.50 if is_new else 1.00) * event_xp_mult))),
             content_level=_required,
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         prefix = "NOWE ZNALEZISKO" if is_new else "Znalezisko"
         await self.send(f"{prefix}: {name} x{quantity}.")
+        if archaeology_event:
+            await self.send("WYDARZENIE ARCHEOLOGICZNE: stanowisko wykopaliskowe, +25% XP Archeologii i Pędzla.")
         if is_new:
             await self.send(
                 "NOWE ODKRYCIE ARCHEOLOGICZNE: podwójny Profession XP i zwiększony Tool XP. "

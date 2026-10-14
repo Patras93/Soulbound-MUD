@@ -65,6 +65,14 @@ from systems.items_resources import (
     format_fish_weight,
 )
 class SessionGatheringMixin:
+    def active_event_fishery_v3312(self):
+            from world.generation_systems import active_profession_event_for_room
+            return bool(self.character and active_profession_event_for_room(self.character.room_id, "fishing"))
+
+    def active_profession_event_v3312(self, tool_type):
+            from world.generation_systems import active_profession_event_for_room
+            return bool(self.character and active_profession_event_for_room(self.character.room_id, tool_type))
+
     async def stop_auto_fishing(self, announce=True, immediate=True):
             self.auto_fishing = False
             task = self.auto_fishing_task
@@ -104,7 +112,7 @@ class SessionGatheringMixin:
                             "Auto-łowienie zatrzymane: nie masz Wędki."
                         )
                         break
-                    if self.character.room_id not in FISHING_ROOMS:
+                    if self.character.room_id not in FISHING_ROOMS and not self.active_event_fishery_v3312():
                         await self.send(
                             "Auto-łowienie zatrzymane: nie stoisz przy łowisku."
                         )
@@ -146,7 +154,7 @@ class SessionGatheringMixin:
                         "Do auto-łowienia potrzebujesz Wędki."
                     )
                     return
-                if self.character.room_id not in FISHING_ROOMS:
+                if self.character.room_id not in FISHING_ROOMS and not self.active_event_fishery_v3312():
                     await self.send(
                         "Auto-łowienie możesz włączyć tylko przy łowisku. "
                         "Automat nie chodzi sam."
@@ -214,7 +222,7 @@ class SessionGatheringMixin:
                             "Auto-kopanie zatrzymane: nie masz Kilofa."
                         )
                         break
-                    if not is_mining_room(self.character.room_id):
+                    if not is_mining_room(self.character.room_id) and not self.active_profession_event_v3312("mining"):
                         await self.send(
                             "Auto-kopanie zatrzymane: nie stoisz w miejscu wydobycia."
                         )
@@ -293,7 +301,7 @@ class SessionGatheringMixin:
                         "Do auto-kopania potrzebujesz Kilofa."
                     )
                     return
-                if not is_mining_room(self.character.room_id):
+                if not is_mining_room(self.character.room_id) and not self.active_profession_event_v3312("mining"):
                     await self.send(
                         "Auto-kopanie możesz włączyć tylko w miejscu wydobycia. "
                         "Automat nie chodzi sam."
@@ -316,6 +324,12 @@ class SessionGatheringMixin:
                         'Automat będzie drążyć wybrany kierunek, a po przebiciu '
                         'przejścia przesunie się do następnego chodnika. '
                         'Wpisz kop off, aby zatrzymać.'
+                    )
+                elif self.active_profession_event_v3312("mining") and not is_mining_room(self.character.room_id):
+                    await self.send(
+                        'Auto-kopanie włączone na aktywnym złożu wydarzenia. '
+                        'Pozostaje w bieżącym sektorze; po zakończeniu wydarzenia się zatrzyma. '
+                        'Wpisz kop off, aby wyłączyć.'
                     )
                 else:
                     await self.send(
@@ -370,7 +384,7 @@ class SessionGatheringMixin:
                             "Auto-Drwalstwo zatrzymane: nie masz Piły."
                         )
                         break
-                    if self.character.room_id not in WOODCUTTING_ROOMS:
+                    if self.character.room_id not in WOODCUTTING_ROOMS and not self.active_profession_event_v3312("woodcutting"):
                         await self.send(
                             "Auto-Drwalstwo zatrzymane: nie stoisz przy drzewach."
                         )
@@ -414,7 +428,7 @@ class SessionGatheringMixin:
                         "Do auto-Drwalstwa potrzebujesz Piły."
                     )
                     return
-                if self.character.room_id not in WOODCUTTING_ROOMS:
+                if self.character.room_id not in WOODCUTTING_ROOMS and not self.active_profession_event_v3312("woodcutting"):
                     await self.send(
                         "Auto-Drwalstwo możesz włączyć tylko przy drzewach. "
                         "Automat nie chodzi sam."
@@ -488,7 +502,7 @@ class SessionGatheringMixin:
                             "Auto-Zielarstwo zatrzymane: nie masz Sierpa Zielarskiego."
                         )
                         break
-                    if self.character.room_id not in HERBALISM_ROOMS:
+                    if self.character.room_id not in HERBALISM_ROOMS and not self.active_profession_event_v3312("herbalism"):
                         await self.send(
                             "Auto-Zielarstwo zatrzymane: nie stoisz w miejscu z ziołami."
                         )
@@ -536,7 +550,7 @@ class SessionGatheringMixin:
                     )
                     return
 
-                if self.character.room_id not in HERBALISM_ROOMS:
+                if self.character.room_id not in HERBALISM_ROOMS and not self.active_profession_event_v3312("herbalism"):
                     await self.send(
                         "Auto-Zielarstwo możesz włączyć tylko w miejscu z ziołami. "
                         "Automat nie chodzi sam."
@@ -998,6 +1012,8 @@ class SessionGatheringMixin:
     def fishing_water_type(self, room_id=None):
             room_id = room_id or self.character.room_id
             if room_id not in FISHING_ROOMS:
+                if self.character and room_id == self.character.room_id and self.active_event_fishery_v3312():
+                    return {"river":"Rzeka", "lake":"Jezioro", "sea":"Morze", "ocean":"Ocean"}.get(self.fishing_habitat(room_id))
                 return None
             if room_id in FISHING_WATER_TYPE_OVERRIDES:
                 return FISHING_WATER_TYPE_OVERRIDES[room_id]
@@ -1022,6 +1038,12 @@ class SessionGatheringMixin:
             if room_id in LAKE_FISHING_ROOMS: return "lake"
             if room_id in SEA_FISHING_ROOMS: return "sea"
             if room_id in OCEAN_FISHING_ROOMS: return "ocean"
+            # Temporary fish events on procedural frontiers are real fisheries.
+            from world.generation_systems import active_profession_event_for_room
+            event = active_profession_event_for_room(room_id, "fishing")
+            if event:
+                return {"river":"river", "lake":"lake", "coast":"sea",
+                        "ocean":"ocean", "void":"ocean"}.get(event["kind"], "river")
             return None
 
     def fishing_available_pool(self, tool_level, habitat=None):

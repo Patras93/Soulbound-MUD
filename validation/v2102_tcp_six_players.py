@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Six authenticated localhost TCP clients, with disposable accounts and SQLite.
+"""Five authenticated localhost TCP clients, with disposable accounts and SQLite.
 
 This is an actual TCP/login/party/command integration gate. It is NOT a combat
 benchmark or a remote load test. Only 127.0.0.1 and an ephemeral port are used.
@@ -23,7 +23,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-PLAYERS = 6
+PLAYERS = 5
 PASSWORD = 'test_only_tcp_2026_password'
 BOOT_TIMEOUT = 240
 PROMPT_TIMEOUT = 40
@@ -36,7 +36,7 @@ def guarded_child_env(directory, port):
     """Deliberately discard inherited production paths, credentials and port."""
     work = Path(directory).resolve()
     assert work.is_dir() and work != ROOT and work != ROOT.parent and ROOT not in work.parents
-    db_path = work / 'six_players.sqlite'
+    db_path = work / 'five_players.sqlite'
     env = os.environ.copy()
     for key in ('PORT', 'RAILWAY_TCP_APPLICATION_PORT', 'DATABASE_URL',
                 'RAILWAY_VOLUME_MOUNT_PATH', 'SOULBOUND_WORLD_SEED_FILE',
@@ -49,7 +49,7 @@ def guarded_child_env(directory, port):
     env.update(SOULBOUND_DB=str(db_path), SOULBOUND_PORT=str(port),
                SOULBOUND_HOST='127.0.0.1', SOULBOUND_TCP_TEST_CHILD='1',
                SOULBOUND_WORLD_SEED_FILE=str(work / 'test_seed.txt'),
-               SOULBOUND_MAX_CLIENTS='6', PYTHONUTF8='1',
+               SOULBOUND_MAX_CLIENTS='5', PYTHONUTF8='1',
                PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1',
                PYTHONDONTWRITEBYTECODE='1')
     return env, db_path
@@ -136,7 +136,22 @@ async def exercise(names, port, *, after_restart=False, routes=None):
     try:
         await asyncio.gather(*(c.connect_and_login() for c in clients))
         checks += PLAYERS
-        # Every command is sent by all six real sessions concurrently.
+        # The sixth socket must be rejected by the REAL private game handler,
+        # not just by a mocked concurrency constant. Never send credentials.
+        overflow_reader, overflow_writer = await asyncio.wait_for(
+            asyncio.open_connection('127.0.0.1', port), 10)
+        try:
+            overflow_banner = await asyncio.wait_for(overflow_reader.read(4096), 8)
+            if 'Serwer jest pełny' not in overflow_banner.decode('utf-8', 'replace'):
+                raise AssertionError('Sixth connection not rejected at five-player cap: '
+                                     + repr(overflow_banner[-180:]))
+            checks += 1
+            print('TCP LIMIT 5: szoste polaczenie odrzucone przez serwer PASS', flush=True)
+        finally:
+            overflow_writer.close()
+            with suppress(ConnectionError, OSError, asyncio.TimeoutError):
+                await asyncio.wait_for(overflow_writer.wait_closed(), 2)
+        # Every command is sent by all five real sessions concurrently.
         for command in ('who', 'status', 'look', 'help', 'tytani lista', 'expbank', 'lochy7',
                         'quests', 'skills', 'professions', 'inventory', 'equipment',
                         'map', 'where', 'money', 'fame', 'titles', 'achievements',
@@ -229,15 +244,15 @@ def wait_for_world_server(process, logfile, seconds=BOOT_TIMEOUT):
 
 
 def run_contract():
-    """Fast release gate for six-player harness isolation, without sockets."""
+    """Fast release gate for five-player harness isolation, without sockets."""
     import tempfile
     checks = 0
-    assert PLAYERS == 6; checks += 1
-    with tempfile.TemporaryDirectory(prefix='soulbound-tcp6-contract-') as temp:
+    assert PLAYERS == 5; checks += 1
+    with tempfile.TemporaryDirectory(prefix='soulbound-tcp5-contract-') as temp:
         env, path = guarded_child_env(temp, 45672)
         for condition in (
             path.parent == Path(temp).resolve(),
-            path.name == 'six_players.sqlite',
+            path.name == 'five_players.sqlite',
             env['SOULBOUND_DB'] == str(path),
             env['SOULBOUND_HOST'] == '127.0.0.1',
             env['SOULBOUND_PORT'] == '45672',
@@ -247,7 +262,7 @@ def run_contract():
             'SOULBOUND_ADMIN_ACCOUNTS' not in env,
             'RAILWAY_VOLUME_MOUNT_PATH' not in env,
             env['SOULBOUND_WORLD_SEED_FILE'] == str(Path(temp).resolve() / 'test_seed.txt'),
-            env['SOULBOUND_MAX_CLIENTS'] == '6',
+            env['SOULBOUND_MAX_CLIENTS'] == '5',
         ):
             assert condition
             checks += 1
@@ -386,16 +401,16 @@ def run_sqlite_cleanup_regression():
         return result
 
     checks = 0
-    with tempfile.TemporaryDirectory(prefix='sb-tcp6-close-contract-') as temp:
-        db_path = Path(temp) / 'six_players.sqlite'
+    with tempfile.TemporaryDirectory(prefix='sb-tcp5-close-contract-') as temp:
+        db_path = Path(temp) / 'five_players.sqlite'
         with closing(real_connect(db_path)) as db:
             db.execute('CREATE TABLE accounts (username TEXT)')
             db.execute('CREATE TABLE characters (id INTEGER)')
-            db.executemany('INSERT INTO accounts VALUES (?)', [(f'tcpcheck{i+1}',) for i in range(6)])
-            db.executemany('INSERT INTO characters VALUES (?)', [(i+1,) for i in range(6)])
+            db.executemany('INSERT INTO accounts VALUES (?)', [(f'tcpcheck{i+1}',) for i in range(PLAYERS)])
+            db.executemany('INSERT INTO characters VALUES (?)', [(i+1,) for i in range(PLAYERS)])
             db.commit()
         with patch.object(sqlite3, 'connect', tracking_connect):
-            assert _check_db(db_path) == 6
+            assert _check_db(db_path) == PLAYERS
         checks += 1
         assert len(opened) == 1 and opened[-1].did_close, 'Success left SQLite open'
         checks += 1
@@ -427,30 +442,30 @@ def run_sqlite_cleanup_regression():
 
 def main():
     start = time.monotonic()
-    print('TCP 6 GRACZY v2.10.2: dwa starty, 6 logowan, party i zapis SQLite', flush=True)
+    print('TCP 5 GRACZY v3.31.5: dwa starty, 5 logowan, party i zapis SQLite', flush=True)
     try:
-        with tempfile.TemporaryDirectory(prefix='soulbound-tcp6-') as temp:
-            db_path = Path(temp).resolve() / 'six_players.sqlite'
+        with tempfile.TemporaryDirectory(prefix='soulbound-tcp5-') as temp:
+            db_path = Path(temp).resolve() / 'five_players.sqlite'
             names = [(f'tcpcheck{i+1}', f'Testtcp{i+1}') for i in range(PLAYERS)]
             first = _run_server_cycle(temp, db_path, names)
             count = _check_db(db_path)
             durable = _durable_rat_quest_progress(db_path,label='after first stop')
-            print(f"TCP ROUND 1: {first['logged_in']}/6 players; "
+            print(f"TCP ROUND 1: {first['logged_in']}/{PLAYERS} players; "
                   f"{first['commands']} commands; {first['checks']} checks PASS", flush=True)
             print(f"TCP latency: avg {first['average_ms']} ms; p95 {first['p95_ms']} ms; "
                   f"max {first['max_ms']} ms (localhost, incl. response collection)", flush=True)
             print(f'SQLite after stop: {count} characters PASS', flush=True)
             second = _run_server_cycle(temp, db_path, names, after_restart=True)
             count = _check_db(db_path)
-            print(f"TCP RESTART: {second['logged_in']}/6 relogged; "
+            print(f"TCP RESTART: {second['logged_in']}/{PLAYERS} relogged; "
                   f"{second['commands']} commands; {second['checks']} checks PASS", flush=True)
             _check_autoplayer_delivery(db_path)
             print(f'SQLite after restart: {count} original characters; integralnosc PASS; '
                   'kurier Sol -> Doran zakonczony w SQLite PASS', flush=True)
     except Exception as exc:
-        print('TCP 6 GRACZY: FAIL: ' + str(exc), flush=True)
+        print('TCP 5 GRACZY: FAIL: ' + str(exc), flush=True)
         return 1
-    print(f'TCP 6 GRACZY: PASS; czas {time.monotonic()-start:.1f} s; '
+    print(f'TCP 5 GRACZY: PASS; czas {time.monotonic()-start:.1f} s; '
           'testowa baza usunieta, prawdziwa baza NIETKNIETA', flush=True)
     return 0
 

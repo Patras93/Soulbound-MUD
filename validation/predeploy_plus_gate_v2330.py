@@ -11,6 +11,9 @@ def main():
     schema_and_data_preserved()
     result=deep_checks()
     assert result>=5000
+    from validation.v3315_predeploy_5_players import run_regression as check_five_players
+    extra=check_five_players()
+    print(f'PREDEPLOY 5 GRACZY v3.31.5: {extra} assertions PASS', flush=True)
     print('PLUS CHECKS PASS',flush=True)
     print('ULTIMATE CASE 60/60 PLUS PASS',flush=True)
 

@@ -1129,12 +1129,35 @@ class SessionWorldEventsEndgameMixin:
             events = v0140_active_world_events(now)
             remaining = max(0, int(events[0]["expires_at"] - now)) if events else 0
             await self.send(f"WYDARZENIA ŚWIATA — następna rotacja za około {remaining} sekund.")
+            action_for = {
+                "fish_run":"low", "herb_bloom":"zbieraj", "rich_vein":"kop",
+                "forest_growth":"tnij", "ancient_dig":"wykop",
+            }
             for number, event in enumerate(events, 1):
                 zone = V013_FRONTIER_SPECS[event["kind"]]["zone"]
+                command = f" Komenda na miejscu: {action_for[event['type']]}." if event["type"] in action_for else ""
                 await self.send(
-                    f"{number}. {event['title']}. {zone}, sektor {event['x']+1}-{event['y']+1}. {event['desc']}"
+                    f"{number}. {event['title']}. {zone}, sektor {event['x']+1}-{event['y']+1}. {event['desc']}{command}"
                 )
-            await self.send("Wszystkie eventy są opcjonalne. Żaden mob nie zaczyna walki sam.")
+            await self.send("Wydarzenia sa opcjonalne; bossowie nie zaczynaja walki sami. Sektor musisz odwiedzic przed koncem rotacji.")
+            legendary = v0180_active_legendary_events(now)
+            if legendary:
+                await self.send("LEGENDARNE WYDARZENIA — rotacja co cztery godziny; szczegóły: legendarnewydarzenia.")
+                for event in legendary:
+                    zone = V013_FRONTIER_SPECS[event["kind"]]["zone"]
+                    tool_command = {"mining":"kop", "woodcutting":"tnij", "fishing":"low", "herbalism":"zbieraj"}.get(event.get("tool"), "walka")
+                    await self.send(f"{event['title']}: {zone}, sektor {event['x']+1}-{event['y']+1}; {tool_command}.")
+            from world.great_world import v1200_rotating_events
+            regional = v1200_rotating_events(now)
+            await self.send(f"KRÓLESTWA: {len(regional)} aktywne wydarzenia. Dokladne lokalizacje: krainy wydarzenia.")
+            from systems.world_events_v12812 import active_city_event_v12812
+            city_event = active_city_event_v12812(now)
+            await self.send(f"NAJAZD PODZIEMI: {city_event['name']}. Lokalizacja: {ROOMS.get(city_event['room_id'], {}).get('name', city_event['room_id'])}.")
+            from systems.era_legends_v1600 import active_invasion_v1600
+            invasion = active_invasion_v1600(now)
+            await self.send(f"INWAZJA: {invasion['title']}. Szczegóły: era60 inwazje.")
+            await self.send("KRYZYSY CZTERECH KRAIN: kryzys lista, kryzys start, kryzys status, kryzys ratuj, kryzys odbierz.")
+            await self.send("ARCHEOLOGIA: wykop w ruinach lub przy aktywnym stanowisku wykopaliskowym.")
             await self.show_dynamic_events_v029()
             await self.send("KARAWANY: Wędrujący kupcy zmieniają lokalizację co 15 minut. Oferta jest dostępna przez komendę sklep, gdy karawana stoi obok.")
             for npc_id, data in V016_TRAVELERS.items():

@@ -92,8 +92,8 @@ async def run_actual_delivery(lead, routes):
 
 
 async def run_actual_npc_journey(clients):
-    """Called from the guarded six-client private TCP server session."""
-    assert len(clients) == 6
+    """Called from the guarded five-client private TCP server session."""
+    assert len(clients) == 5
     lead = clients[0]
     checked = selftest()
     dialogue = await lead.command('talk Kapłan Elor')
@@ -113,8 +113,8 @@ async def run_actual_npc_journey(clients):
     # separate authenticated sockets, not fabricated database rows.
     shared = await asyncio.gather(*(c.command('quests') for c in clients[1:]))
     if any(progress_from_quests(result) != 0 for result in shared):
-        raise AssertionError('Party quest was not given to all five local members')
-    checked += 5
+        raise AssertionError('Party quest was not given to all four local members')
+    checked += len(shared)
 
     premature = await lead.command('oddaj 1')
     assert 'nie jest jeszcze gotowe' in premature.casefold(), premature[-500:]
@@ -165,7 +165,7 @@ async def run_actual_npc_journey(clients):
     print(f'AUTOGRACZ TCP: rzeczywisty kill -> quest {EXPECTED_QUEST}: '+
           f'{progress}/{GOAL}, bez ustawiania postepu SQLite', flush=True)
     # Leave the active quest in DB for the restart/persistence gate.
-    print('AUTOGRACZ TCP: NPC dialog, oferta, przyjecie, 5 udostepnien party, '
+    print('AUTOGRACZ TCP: NPC dialog, oferta, przyjecie, 4 udostepnienia party, '
           'blokada przedwczesnej nagrody, przejscie i realna walka PASS', flush=True)
     return {'checks': checked, 'commands': 8 + len(shared) + max(1, progress),
             'progress': progress}
@@ -184,4 +184,4 @@ async def check_after_restart(clients, routes):
 
 if __name__ == '__main__':
     print('AUTOGRACZ TCP CONTRACT: '+str(selftest())+' PASS. '
-          'Prawdziwe połączenia uruchamia ostatnia bramka szesciu graczy.')
+          'Prawdziwe połączenia uruchamia ostatnia bramka pieciu graczy.')

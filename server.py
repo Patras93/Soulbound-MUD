@@ -115,6 +115,20 @@ V3200_LEGENDS_STATS = _install_legends_v3200(
     ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
     HELP_TOPICS, HELP_TOPIC_ALIASES,
 )
+# v3.31.3: expand action-backed low-level tasks for every profession and
+# the sparse tailoring/leatherworking/carpentry/enchanting quest paths.
+# Register BEFORE single-NPC isolation; no new NPCs or locations are needed.
+from systems.profession_apprenticeship_v3313 import install as _install_professions_v3313
+V3313_PROFESSION_STATS = _install_professions_v3313(QUESTS, NPCS)
+
+# v4.00.0: five linked systems — old-world story, ocean fleets, ancient bosses,
+# 14 existing professions and real craft recipes. No new tools or SQLite reset.
+from world.imperium_v4000 import install as _install_imperium_v4000
+V4000_IMPERIUM_STATS = _install_imperium_v4000(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES, _ocean5,
+)
+
 # Exploration's lookup was built earlier by the native runtime; refresh it once
 # after the new rooms have been safely installed.
 from world.generation_systems import v0130_refresh_exploration_catalog as _v3100_ep_refresh

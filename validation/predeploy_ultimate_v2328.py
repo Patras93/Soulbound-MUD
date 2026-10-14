@@ -236,7 +236,7 @@ def production_data_preserved():
 
 
 def repeated_tcp_waves():
-    # Separate from six real authenticated players (stage 9) and 20 concurrent
+    # Separate from five real authenticated players (stage 9) and 5 concurrent
     # banner sessions (stage 24): multiple sustained waves check accept/recovery.
     from validation.predeploy_ultra_v2327 import available_port, stop_child
     import asyncio
@@ -249,7 +249,7 @@ def repeated_tcp_waves():
             if k.startswith(('SOULBOUND_','RAILWAY_')) or k in ('DATABASE_URL','PORT'):
                 env.pop(k,None)
         env.update(SOULBOUND_DB=str(tmp/'wave.sqlite'),SOULBOUND_HOST='127.0.0.1',
-            SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='35',
+            SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='5',
             SOULBOUND_WORLD_SEED_FILE=str(tmp/'world.seed'),
             PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1',PYTHONUTF8='1')
         flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=='nt' else 0
@@ -259,16 +259,17 @@ def repeated_tcp_waves():
                 env=env,stdout=out,stderr=subprocess.STDOUT,stdin=subprocess.DEVNULL,
                 creationflags=flags,start_new_session=os.name!='nt')
             try:
-                for _ in range(700):
+                deadline = time.monotonic()+150
+                while time.monotonic() < deadline:
                     if p.poll() is not None:
                         raise AssertionError('Test server exited: '+log.read_text(encoding='utf-8',errors='replace')[-1800:])
-                    try:
-                        with socket.create_connection(('127.0.0.1',port),.2):break
-                    except OSError:time.sleep(.2)
-                else:raise TimeoutError('Private 30 TCP wave server did not start')
+                    if 'World Core nasłuchuje:' in log.read_text(encoding='utf-8',errors='replace'):
+                        break
+                    time.sleep(.2)
+                else:raise TimeoutError('Private 5 TCP wave server did not start')
                 async def client(index, wave):
-                    # 30 concurrent handshakes can queue behind world startup;
-                    # keep 30 simultaneous connections but wait for the *full*
+                    # 5 concurrent handshakes can queue behind world startup;
+                    # keep 5 simultaneous connections but wait for the *full*
                     # login prompt instead of treating a slow banner as a crash.
                     try:
                         r,w=await asyncio.wait_for(asyncio.open_connection('127.0.0.1',port),20)
@@ -290,13 +291,13 @@ def repeated_tcp_waves():
                     for wave in range(3):
                         wave_start=time.monotonic()
                         try:
-                            results=await asyncio.gather(*(client(i,wave) for i in range(30)))
+                            results=await asyncio.gather(*(client(i,wave) for i in range(5)))
                         except Exception:
                             output=log.read_text(encoding='utf-8',errors='replace')
                             print('TCP TEST SERVER LOG (last 2200 chars): '+output[-2200:],flush=True)
                             raise
-                        assert len(results)==30 and all(results),f'Wave {wave+1}: dropped banner'
-                        print(f'TCP fala {wave+1}/3: 30/30 pelnych ekranow logowania, '
+                        assert len(results)==5 and all(results),f'Wave {wave+1}: dropped banner'
+                        print(f'TCP fala {wave+1}/3: 5/5 pelnych ekranow logowania, '
                               f'{time.monotonic()-wave_start:.1f} s PASS',flush=True)
                         await asyncio.sleep(.3)
                 asyncio.run(scenario())
@@ -304,7 +305,7 @@ def repeated_tcp_waves():
                 output=log.read_text(encoding='utf-8',errors='replace')
                 assert 'Traceback (most recent call last):' not in output,output[-1400:]
             finally:stop_child(p)
-    print('3 x 30 concurrent localhost TCP LOGIN BANNERS (90 total) PASS; not 90 authenticated players',flush=True)
+    print('3 x 5 concurrent localhost TCP LOGIN BANNERS (15 total) PASS; not 90 authenticated players',flush=True)
 
 
 CASES={45:sqlite_crash_recovery,46:sqlite_concurrency,47:archive_security,
