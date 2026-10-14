@@ -18,7 +18,8 @@ from types import SimpleNamespace
 # This legacy session mixin needs a late-bound native world namespace on import.
 # Compile only its unchanged, actual method ASTs for an isolated transport test.
 _source = Path(__file__).resolve().parents[1] / 'player/session_mixins/io_auth_character.py'
-_tree = ast.parse(_source.read_text(encoding='utf-8'), filename=str(_source))
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
+_tree = ast.parse(_sb420_view(_source), filename=str(_source))
 _class = next(x for x in _tree.body if isinstance(x, ast.ClassDef) and x.name == 'SessionIOAuthCharacterMixin')
 _methods = {'encode_session_text', 'combat_log_mode_cached_v1178', 'send', 'send_combat', 'set_combat_log'}
 _selected = [x for x in _class.body if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef)) and x.name in _methods]

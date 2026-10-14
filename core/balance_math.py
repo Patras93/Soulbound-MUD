@@ -68,6 +68,19 @@ AXIS_CURVES = {
     "stat": (100.0, 29.0, 1.70),
 }
 
+# v4.21.1: award-only stage curves are independent of leveling thresholds.
+# A future increase to AXIS_CURVES or to v4210_required_xp must NOT increase
+# quest, kill, skill or profession payouts. These are deliberately separate.
+AXIS_REWARD_CURVES_V4211 = {
+    "character": (140.0, 54.0, 1.82),
+    "class": (180.0, 70.0, 1.84),
+    "soul": (110.0, 48.0, 1.80),
+    "skill": (90.0, 31.0, 1.73),
+    "profession": (130.0, 43.0, 1.78),
+    "tool": (115.0, 37.0, 1.78),
+    "stat": (100.0, 29.0, 1.70),
+}
+
 RANK_HP = {"normal": 1.0, "elite": 1.55, "rare": 2.15, "mini": 4.2, "boss": 8.5, "world_boss": 14.0}
 RANK_DAMAGE = {"normal": 1.0, "elite": 1.12, "rare": 1.24, "mini": 1.42, "boss": 1.68, "world_boss": 1.95}
 RANK_REWARD = {"normal": 1.0, "elite": 1.8, "rare": 3.0, "mini": 5.0, "boss": 8.0, "world_boss": 13.0}
@@ -125,8 +138,14 @@ def uncapped_stat_xp_gain(base_amount: int, stat_level: int) -> int:
 
 
 def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
+    """Authored award by content difficulty, never by next-level EXP."""
     target = AXIS_TARGET_ACTIONS[axis]
-    value = axis_requirement(axis, level) / float(target) * max(0.05, float(intensity))
+    level = max(1, int(level))
+    if axis != "stat":
+        level = min(level, MAX_LEVEL)
+    base, growth, power = AXIS_REWARD_CURVES_V4211[axis]
+    reward_anchor = min(SAFE_INT, max(1, int(round(base + growth * (level ** power)))))
+    value = reward_anchor / float(target) * max(0.05, float(intensity))
     return min(SAFE_INT, max(1, int(round(value))))
 
 

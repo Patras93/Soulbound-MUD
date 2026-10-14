@@ -21,6 +21,7 @@ from config.balance import (
     profession_xp_requirement_v1401,
     tool_xp_requirement_v1402,
     scale_all_progress_requirements_v3310,
+    v4210_required_xp,
 )
 from core.progression_resources import (
     character_xp_to_next, class_mastery_xp_to_next, soul_xp_to_next,
@@ -55,7 +56,7 @@ def run_regression() -> int:
             before = prior_points(original, player_extra_requirement_points_v1407(level))
             expected = min(SAFE_INT, before * MULTIPLIER)
             actual = func(level)
-            assert actual == expected, (name, level, actual, expected)
+            assert actual == v4210_required_xp(expected, name, level), (name, level, actual, expected)
             assert actual >= previous, (name, level, 'threshold decreased')
             previous = actual
             checks += 2
@@ -74,7 +75,7 @@ def run_regression() -> int:
             historical = max(1, int(round(v0190_requirement('profession', level) * multiplier)))
             before = prior_points(historical, profession_late_requirement_points_v1401(level))
             actual = profession_xp_requirement_v1401(v0190_requirement('profession', level), name, level)
-            assert actual == min(SAFE_INT, before * MULTIPLIER), (name, level, actual, before)
+            assert actual == v4210_required_xp(min(SAFE_INT, before * MULTIPLIER), "profession", level), (name, level, actual, before)
             assert actual >= previous, (name, level)
             previous = actual
             checks += 2
@@ -85,7 +86,7 @@ def run_regression() -> int:
             historical = max(1, int(round(v0190_requirement('tool', level) * multiplier)))
             before = prior_points(historical, profession_late_requirement_points_v1401(level))
             actual = tool_xp_requirement_v1402(v0190_requirement('tool', level), tool, level)
-            assert actual == min(SAFE_INT, before * MULTIPLIER), (tool, level, actual, before)
+            assert actual == v4210_required_xp(min(SAFE_INT, before * MULTIPLIER), "tool", level), (tool, level, actual, before)
             assert actual >= previous, (tool, level)
             previous = actual
             checks += 2
@@ -100,7 +101,7 @@ def run_regression() -> int:
             before = prior_points(historical, stat_extra_requirement_points_v1408(level))
             from config.balance import scale_stat_requirement_v1408
             actual = scale_stat_requirement_v1408(historical, level)
-            assert actual == min(SAFE_INT, before * MULTIPLIER), (stat, level, actual)
+            assert actual == v4210_required_xp(min(SAFE_INT, before * MULTIPLIER), "stat", level), (stat, level, actual)
             assert actual > 0
             checks += 2
 

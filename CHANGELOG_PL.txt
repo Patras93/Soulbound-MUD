@@ -1,3 +1,132 @@
+Soulbound v4.21.1 - Niezalezne nagrody EXP, bez szybkiego EXP z EP
+
+- Wymagania do awansu z v4.21.0 (1-800) pozostaja w pelni zachowane.
+- Wyeliminowano sprzezenie nagrod Fame i EP z EXP wymaganym na kolejny poziom.
+- EP za lokacje bez zmian (2-12/30). EXP za jeden EP to 120-220 XP
+  na kazda os, wedlug trudnosci pomieszczenia, niezaleznie od levelu gracza.
+- Fame: odrebna, przewidywalna nagroda 2500 + 30*poziom^2 dla
+  postaci, Duszy, statystyk i klas; bez odniesien do progow EXP.
+  Fame nadal jest jednorazowe i zapisane w SQLite; recznie ustalone nagrody
+  za bossow (source_xp_exact) i oryginalne nagrody za walki pozostaja.
+- Generator EXP walk, zadan i czynnosci: oddzielna autorska krzywa
+  nagrod, zamiast korzystania z funkcji liczacej wymagany EXP.
+  Istniejace liczby nagrod z Generator Core zachowano bez zmian.
+- Wygenerowane lochy: EXP za walke opiera sie na zamrozonych, autorskich
+  nagrodach wedlug poziomu i rangi wroga, bez odczytu obecnych wymagan EXP.
+  Zachowano historyczne tempo sprzed mnoznikow wymagan v4.21.0,
+  wiec podniesienie wymagan wydluza postep, zamiast zwiekszac nagrode.
+- Zapasowy EXP Cap dla starych/testowych baz opiera sie na krzywej
+  poziomow Multi Cap, nie na wymaganym EXP. Produkcyjny Multi Cap bez zmian.
+- EXP Bank, Multi Cap, recznie ustalone nagrody bossow, drop,
+  pozostale premie, zapisane postacie i struktura SQLite pozostaja bez zmian.
+  Zmiana wyplacanych wartosci dotyczy EXP za EP/Fame oraz generowanych lochow:
+  nagrody nie nasladuja juz wzrostu wymagan EXP v4.21.0.
+- Regresja sprawdza wszystkie poziomy 1..800 i odpornosc wysokosci
+  nagrod na wymuszona zmiane progow EXP; ponadto 60/60 PLUS na Windows.
+
+Soulbound v4.21.0 - WYROWNANY DŁUGOTERMINOWY ROZWOJ 1-800 (Windows)
+
+- Zbiorcza paczka na bazie v4.20.0; zawiera całą kompleksową modularizację.
+- Podwyższono WYŁĄCZNIE wymagania EXP następnego poziomu, począwszy od 1,
+  dla postaci x6, mistrzostwa klas x6, duszy x10, skilli x50,
+  Broni Duszy x15, statystyk x13, profesji x4 i narzędzi x4
+  (względem v4.20.0; narzędzia zachowują zróżnicowanie z v4.00.3).
+- Wzniesienie: x2 wymaganego EXP; zachowano dawny zakres rang.
+- Wyrównano łączny próg XP postaci/duszy/klas/skilli/broni i statów na
+  początkowej części gry: jeden wysoki zastrzyk XP nie powinien zapewniać
+  25 poziomów wybranej osi.
+- Każda oś zachowuje osobne źródła XP: identyczny poziom nie jest wymuszany.
+- NIE zmniejszano zdobywanego EXP, nagród, Fame, EP, dropu, tempa profesji.
+- NIE cofnięto zdobytych poziomów, postępu EXP ani zapisów SQLite.
+- Zachowano bank EXP, Multi Cap, brak ograniczeń statystyk i maks. 800
+  dla pozostałych osi. Nadwyżki XP obsługiwane dotychczasowym mechanizmem.
+- Wzmocniono kontrakty testów historycznych przez weryfikację nowej
+  warstwy PROGÓW po zachowanym mnożniku v3.31.4 x10.
+- Windows 60/60 PLUS przed wdrożeniem obowiązkowy.
+
+Aktualna paczka: v4.21.1
+
+Soulbound v4.20.0 - FINALNA MODULARYZACJA SILNIKA (Windows)
+===============================================================================
+- Jedna ZBIORCZA aktualizacja techniczna na bazie v4.10.0, zawiera wszystkie
+  poprzednie poprawki od v4.00.0 do v4.10.0. Bez koniecznosci wdrazania wersji
+  posrednich.
+- Rozdzielono duze mixiny sesji gracza na tematyczne moduly metod, bez zmiany
+  MRO, nazw publicznych metod, ich globalnych zaleznosci ani samego kodu.
+- Rozdzielono metody DB oraz kolejne funkcje generatorow, pomocy, progresji
+  regionow, sieci i rozdzielania skrzyn bossa.
+- Wszystkie przeniesione metody i funkcje otrzymaly kontrole AST, ponownego
+  importu, referencji glob. i zgodnosci publicznych punktow wejscia.
+- Duzych funkcji wykonujacych pojedyncze, zlozone operacje nie dzielono na
+  slepo: zostaly przeniesione w calosci, by nie zmienic losowania, obrazen,
+  kolejnych tur i efektow. Dalsze wewnetrzne rozbijanie tych procedur to
+  zmiana semantyczna i wymaga odrebnych testow kazdego skutku, nie samego AST.
+- Brak zmian balansu, EXP 10x, wyzszych progow poziomow narzedzi, Fame, EP,
+  przywolan, umiejetnosci, komend, postaci, SQLite i postepow questow.
+- Testy wykonywac w kopii TEMP; serwer produkcyjny pozostaje aktywny.
+- Jeden koncowy Windows PREDEPLOY 60/60 PLUS przed jednym wdrozeniem, gdy
+  serwer jest pusty. Bez GitHuba i bez zmian prawdziwej bazy podczas testow.
+
+Soulbound v4.10.0 - KOMPLEKSOWA MODULARYZACJA (Windows)
+===============================================================================
+- Jedna zbiorcza aktualizacja techniczna zamiast osobnych, drobnych wdrozen.
+- Zawiera bezpieczne modulowe ekspansje swiata przygotowane w v4.00.7.
+- Rozdzielono duze funkcje w generatorach swiata, dynamicznych regionach,
+  lochach, rzemiosle, przedmiotach, klasach i Mec, pomocy i administracji.
+- Natywne funkcje o zachowanym AST i oryginalnym kodzie sa w modulach
+  tematycznych. Adapter przywraca oryginalne powiazania globalne runtime,
+  aby pozne importy nie psuly obliczen i rejestrow gry.
+- Pierwotne nazwy pozostaly w modulach fasadowych i byly sprawdzane przez
+  lokalny predeploy oraz pelny audyt. Zabezpieczenie przeciw duplikacji.
+- Nie zmieniono EXP, nagrod, statystyk, Fame, Multi Cap, questow, sklepikow,
+  skilli, lochow, najemnikow, profesji, narzedzi ani baz SQLite.
+- Przed wdrozeniem konieczny OSOBNY Windows 60/60 PLUS; uruchamiac dopiero
+  podczas uzgodnionego okna konserwacyjnego, nie w czasie gry graczy.
+
+Soulbound v4.00.7 - MODULY ROZBUDOWY SWIATA (Windows)
+Aktualna paczka: v4.20.0
+==============================================================================
+- TECHNICZNA MODULARYZACJA: trzy duze historyczne funkcje rozbudowy terenow
+  wydzielono z world/expansion_frontiers.py do trzech modulow:
+  world/expansion_frontier_north_v407.py,
+  world/expansion_frontier_fields_v407.py,
+  world/expansion_frontier_forest_v407.py.
+- Zachowano dokladny kod kazdej historycznej funkcji (ochrona AST SHA256).
+- Dotychczasowy interfejs world/expansion_frontiers.py nadal dziala;
+  synchronizuje EXP_AREAS takze przy ponownym przypisaniu listy.
+- Nie dodano nowych mechanik: EXP, Fame, questy, loot, ekwipunek,
+  balans, 14 klas, 14 profesji i SQLite pozostaja bez zmian.
+- Dodano testy v4.00.7 do szybkiego i pelnego predeployu.
+- Pelne testy Windows 60/60 PLUS obowiazkowe przed wdrozeniem.
+- Kolejne duze monolity beda dzielone osobno: generatory dynamicznego
+  swiata, klasy, lochy, crafting, administracja, sesja gracza.
+
+Soulbound v4.00.6 — MODULOWE AUDYTY HISTORYCZNE — 2026-10-14
+Aktualna paczka: v4.00.6
+
+- Drugi etap porządkowania kodu: wydzielono 14 funkcji kontrolnych
+  z admin/audits.py do admin/audit_rules_v406.py.
+- Zachowano wszystkie stare nazwy i sygnatury funkcji audytu, a także kolejność
+  wykonania w module; źródłowe dane runtime przekazywane są jawnie na wywołanie.
+- Wydzielony moduł sam nie uruchamia żadnego audytu i nie zmienia danych gry
+  podczas importu; wykonywanie historycznych testów pozostaje tam, gdzie było.
+- Dodano regresje porównujące oryginalne i wydzielone wyniki 14 audytów,
+  zależności, brak efektów ubocznych importu oraz kompozycję całego świata.
+- Brak zmian EXP, skilli, walki, nagród, questów, zapisów SQLite i narzędzi.
+- Przed wdrożeniem niezbędny nowy Windows predeploy ULTIMATE 60/60 PLUS.
+
+==============================================================================
+Soulbound v4.00.5 — MODULARYZACJA KATALOGOW POMOCY I SWIATA — 2026-10-14
+Aktualna paczka: v4.00.5
+
+- KATALOGI 7.0: systems/content_registry.py skrocono przez wyniesienie bazowych, NIEZMIENIONYCH opisow NPC, mobow, statystyk i systemow do data/world_description_catalog_v405.py. Bazowe HELP_TOPICS i HELP_TOPIC_ALIASES sa teraz w data/help_base_catalog_v405.py.
+- IZOLACJA STANU: funkcje budujace zwracaja nowe, niezalezne slowniki podczas kazdego uruchomienia. Stary punkt ladowania systems/content_registry.py zachowano, bez dodawania nowego legacy modulu do manifestu i bez ingerencji w kolejnosc warstw swiata. Pomoc dodawana przez pozniejsze moduly dziala na tych samych lokalnych obiektach co w v4.00.4.
+- OCHRONA REGRESJI: validation/v4050_catalog_modularization.py weryfikuje zawartosc, liczbe wpisow i SHA256 bazowych szesciu katalogow wobec v4.00.4, brak wspolnych zagniezdzonych list/slownikow, stabilnosc przestrzeni importow oraz rzeczywiste 14 klas i 2701 zadan. Test wykonywany osobno w szybkim predeploy i pelnym audycie.
+- BEZ ZMIAN GRY: zadne questy, klasy, narzedzia, wymagania EXP x10, wyzsze progi wędki/kilofa, nagrody, EQ, NPC, moby, Ocean, bossowie ani tryby walki nie zostaly zmienione. SQLite i wszystkie konta/postacie nietkniete. Poprawki v4.00.1-v4.00.4 zachowane.
+- NADAL NIE RUSZANO modulow walki ani duzego legacy admin/audits.py ze wzgledu na ochrone dotychczasowych kontraktow uruchomieniowych. Ta aktualizacja jest technicznym, mierzalnym etapem dalszej modularizacji.
+- WYMAGANY PREDEPLOY: Windows 60/60 PLUS na dokladnie tej paczce przed wdrozeniem. Nie przenosic PASS z v4.00.4.
+
+==============================================================================
 Soulbound v4.00.4 — NAPRAWA LEGENDARNYCH WYDARZEN — 2026-10-14
 Aktualna paczka: v4.00.4
 

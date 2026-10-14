@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """v3.00.5: isolated exercise of production auto-learning and queue code.
 
@@ -15,7 +16,7 @@ from core.classes_skills import CLASS_SKILLS
 ROOT = Path(__file__).resolve().parents[1]
 
 def source_class(path, name, context):
-    tree = ast.parse((ROOT / path).read_text(encoding='utf-8'), filename=path)
+    tree = ast.parse(_sb420_view(ROOT / path), filename=path)
     klass = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == name)
     namespace = dict(context)
     exec(compile(ast.fix_missing_locations(ast.Module(body=[klass], type_ignores=[])), path, 'exec'), namespace)

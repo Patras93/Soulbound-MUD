@@ -51,7 +51,8 @@ def validate_gold_prices_v1227():
         'player/session_mixins/atlas_codex.py': ('"Cena kupna: " + currency_price_text(price_coins)',),
     }
     for file, needles in sources.items():
-        source = (root / file).read_text(encoding='utf8')
+        from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
+        source = _sb420_view(root / file)
         for needle in needles:
             assert needle in source, (file, needle)
             checks += 1

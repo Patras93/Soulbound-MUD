@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """v1.22.5 safe SQLite regression checks, no real players or network."""
 from pathlib import Path
@@ -18,7 +19,7 @@ def city_services_fast_v1225():
         checks += 1
 
     base = Path(__file__).resolve().parent.parent
-    equipment = (base/'player/session_mixins/inventory_equipment.py').read_text('utf8')
+    equipment = _sb420_view(base/'player/session_mixins/inventory_equipment.py')
     ok('async def inspect_equipped_v1225' in equipment, 'equipment inspector')
     ok("mode.startswith('info ')" in equipment, 'eq info syntax')
     registry = (base/'player/session_mixins/command_registry.py').read_text('utf8')

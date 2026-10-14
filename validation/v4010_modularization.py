@@ -7,14 +7,14 @@ from hashlib import sha256
 
 ORIGINAL_V4000_AST = {
     "build_mountain_crafting_expansion": ("world/expansion_mountain.py", "fd369032b5fb6d29980b004ec2acde66d00a7ea1ab2531dd8fae0c467f42e661"),
-    "build_world_expansion_i": ("world/expansion_frontiers.py", "3969090cfcd8dbaf358c88877459f65945f1e1cb36639e7b46650c324c77b265"),
-    "build_world_expansion_ii": ("world/expansion_frontiers.py", "6ca419e3501bcd98f486587cda10a7d711a117bb96edf4488edab3c25bb164d6"),
+    "build_world_expansion_i": ("world/expansion_frontier_north_v407.py", "3969090cfcd8dbaf358c88877459f65945f1e1cb36639e7b46650c324c77b265"),
+    "build_world_expansion_ii": ("world/expansion_frontier_fields_v407.py", "6ca419e3501bcd98f486587cda10a7d711a117bb96edf4488edab3c25bb164d6"),
     "build_high_end_mob_pack": ("world/expansion_high_end.py", "dfef009cbddb58489120d44c929b439ee60e8a0c86645a801a00058c85cfb3f8"),
     "configure_profession_tool_sellers": ("world/expansion_services.py", "def7525efe8fbdfcd9cc374fad2650ddcacf3ae5a8deb5ebb799e2e83077bb2b"),
     "configure_v0800_help_info": ("world/expansion_services.py", "cfd823a3160aacbfdabe5c9c0683b2d6cbda9fa73a17d95e40bdc04bdc25b056"),
     "configure_v081_help_info": ("world/expansion_services.py", "2c534e56c62141cfdb00b561b7dcc5cbc3f83effb344b62e0665098d46f99b12"),
     "build_paid_training_guild_expansion": ("world/expansion_services.py", "f8fbf965a3f6120d75eda68cf7dd38e69e64e57d4bb9d55824bbd4f1bf6fed80"),
-    "build_forest_wolves_and_quest_balance": ("world/expansion_frontiers.py", "00ae64f05a48fc9186f842f923f29280e64e2ccf7f8f37b3ed901707b8fa328e"),
+    "build_forest_wolves_and_quest_balance": ("world/expansion_frontier_forest_v407.py", "00ae64f05a48fc9186f842f923f29280e64e2ccf7f8f37b3ed901707b8fa328e"),
     "CLASS_SKILLS": ("core/class_skill_catalog.py", "4de60ce5016b15e826a9d231652bf7f19a90deebb1a84825644917472e8a7f6b"),
     "ENDGAME_CLASS_SKILLS": ("core/class_skill_catalog.py", "9b9e37a2fb0482d5bba9f5caf9b7997033d5cd28d82aeb60ff547fc7e9273e24"),
 }
@@ -81,7 +81,7 @@ def run_regression():
     import server
     from core.bootstrap_economy_professions import VERSION
     from config.balance import ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310
-    assert VERSION in ('4.00.2','4.00.3','4.00.4')
+    assert VERSION in ('4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1')
     assert ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10
     assert len(server.QUESTS)==2701
     assert len([k for k in server.NPCS if k.startswith('v4000_')])==49

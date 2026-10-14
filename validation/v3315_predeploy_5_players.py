@@ -91,7 +91,7 @@ def run_regression():
         if not ok: raise AssertionError('PREDEPLOY 5P: '+message)
         checks += 1
 
-    check(VERSION in ('3.31.5', '4.00.0', '4.00.1','4.00.2','4.00.3','4.00.4'), 'runtime version mismatch')
+    check(VERSION in ('3.31.5', '4.00.0', '4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1'), 'runtime version mismatch')
     check(ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310 == 10, 'EXP multiplier changed')
     check(tcp.PLAYERS == 5, 'stage 9 must use five clients')
     check(len(gate.STAGES) == 60, '60-stage legacy gate must stay complete')

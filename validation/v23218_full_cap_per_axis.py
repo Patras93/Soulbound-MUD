@@ -85,7 +85,7 @@ def run_regression():
 
     # Fame old 14x multiplier MUST NOT remain after class-split removal.
     fame = fame_cap_awards_v2103(session)
-    assert fame['class_total'] == experience_cap_v2009('class', 1)
+    assert fame['class_total'] == 2530
     checks += 1
     db.conn.close()
     return checks

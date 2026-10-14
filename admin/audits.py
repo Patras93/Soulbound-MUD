@@ -1,4 +1,11 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
+from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
+
+import admin.v410_release_audits as _sb410_mod_v410_release_audits
+import admin.v410_equipment_audits as _sb410_mod_v410_equipment_audits
+
 from data import catalog_mutations as _catalog_mut
+from admin import audit_rules_v406 as _audit_rules_v406
 
 
 def main():
@@ -12,35 +19,7 @@ def main():
 
 # v0.30.18 — Generator Core Numeric-Only semantic guard.
 def generator_numeric_only_audit_v03018():
-    audit = CATALOG_VALIDATION_AUDIT or {}
-    errors = []
-    if not audit.get("numeric_only"):
-        errors.append("Generator Core numeric_only flag missing")
-    if not audit.get("runtime_fast_path") and not audit.get("semantic_preserved"):
-        errors.append("Generator Core changed protected authored semantics")
-    # Explicit regression guards for semantics previously overwritten by Generator Core.
-    if tuple(SOUL_MILESTONE_TIERS) != (5, 10, 15, 20):
-        errors.append(f"Soul Milestones changed: {SOUL_MILESTONE_TIERS}")
-    skill_grid = {1, *range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10)}
-    for cname, rows in CLASS_SKILLS.items():
-        if cname in ("Inżynier","Mec"):
-            if any(not 1 <= int(s.get("unlock", 0) or 0) <= CLASS_MASTERY_MAX_LEVEL for s in rows):
-                errors.append(f"skill unlock range changed: {cname}")
-            continue
-        if any(int(s.get("unlock", 0) or 0) not in skill_grid for s in rows):
-            errors.append(f"skill unlock grid changed: {cname}")
-    # Generator is forbidden to invent equipment mastery requirements.
-    missing_currency = sum(1 for item in ITEMS.values() if item.get("currency") is None)
-    return {
-        "version": "0.30.18",
-        "error_count": len(errors),
-        "errors": errors,
-        "semantic_preserved": bool(audit.get("semantic_preserved")),
-        "semantic_fingerprint": audit.get("semantic_fingerprint_after"),
-        "numeric_only": bool(audit.get("numeric_only")),
-        "authored_soul_milestones": tuple(SOUL_MILESTONE_TIERS),
-        "items_without_explicit_currency": missing_currency,
-    }
+    return _audit_rules_v406.generator_numeric_only_audit_v03018(CATALOG_VALIDATION_AUDIT=CATALOG_VALIDATION_AUDIT, SOUL_MILESTONE_TIERS=SOUL_MILESTONE_TIERS, CLASS_MASTERY_MAX_LEVEL=CLASS_MASTERY_MAX_LEVEL, CLASS_SKILLS=CLASS_SKILLS, ITEMS=ITEMS)
 
 GENERATOR_NUMERIC_ONLY_AUDIT_V03018 = generator_numeric_only_audit_v03018()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -64,41 +43,7 @@ LATEST_CHANGES = [
 # v0.30.19 - GENERATOR CORE EXPLICIT NUMERIC WRITE WHITELIST
 # ============================================================
 def generator_whitelist_audit_v03019():
-    audit = CATALOG_VALIDATION_AUDIT or {}
-    whitelist = audit.get("whitelist_audit") or {}
-    errors = []
-    if not audit.get("numeric_only"):
-        errors.append("numeric_only flag missing")
-    runtime_fast = bool(audit.get("runtime_fast_path"))
-    if not runtime_fast:
-        if not audit.get("semantic_preserved"):
-            errors.append("semantic fingerprint changed")
-        if not audit.get("whitelist_enforced"):
-            errors.append("whitelist_enforced flag missing")
-        if not audit.get("whitelist_passed"):
-            errors.extend(whitelist.get("errors") or ["numeric whitelist failed"])
-    required_tables = {
-        "ROOMS", "MOB_TEMPLATES", "ITEMS", "QUESTS", "CLASS_SKILLS",
-        "CRAFT_RECIPES", "COOK_RECIPES", "ALCHEMY_RECIPES", "JEWELCRAFT_RECIPES",
-    }
-    actual_tables = set((whitelist.get("record_whitelist") or {}).keys())
-    if not runtime_fast:
-        missing = sorted(required_tables - actual_tables)
-        if missing:
-            errors.append("whitelist missing tables: " + ", ".join(missing))
-    return {
-        "version": "0.30.19",
-        "generator_version": str(BALANCE_MATH_VERSION),
-        "whitelist_enforced": bool(audit.get("whitelist_enforced")),
-        "whitelist_passed": bool(audit.get("whitelist_passed")),
-        "semantic_preserved": bool(audit.get("semantic_preserved")),
-        "numeric_values_checked": int(whitelist.get("numeric_values_checked", 0) or 0),
-        "record_tables": tuple(sorted(actual_tables)),
-        "nested_value_tables": tuple(sorted((whitelist.get("nested_value_whitelist") or {}).keys())),
-        "top_level_domains": tuple(whitelist.get("top_level_value_whitelist") or ()),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.generator_whitelist_audit_v03019(CATALOG_VALIDATION_AUDIT=CATALOG_VALIDATION_AUDIT, BALANCE_MATH_VERSION=BALANCE_MATH_VERSION)
 
 
 GENERATOR_WHITELIST_AUDIT_V03019 = generator_whitelist_audit_v03019()
@@ -126,36 +71,7 @@ LATEST_CHANGES = [
 # v0.30.20 - EXPANDED EQ / SAFE SELL ALL / EASY JEWELRY
 # ============================================================
 def equipment_expansion_audit_v03020():
-    errors = []
-    required_slots = {"shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic"}
-    if not required_slots.issubset(CLASS_EQUIPMENT_SLOT_DEFS):
-        errors.append("missing new class EQ slots: " + ", ".join(sorted(required_slots - set(CLASS_EQUIPMENT_SLOT_DEFS))))
-    if not required_slots.issubset(EQUIPMENT_SLOT_NAMES):
-        errors.append("missing new slot display names")
-    expected_commands = {
-        "zp":"equipringauto", "zt":"equipcharmauto", "znar":"equipshoulders",
-        "zpas":"equipbelt", "zpel":"equipcloak", "zkar":"equipbracers",
-        "zbra":"equipbracelet", "zakc":"equipaccessoryauto", "zrel":"equiprelic",
-    }
-    for alias, command in expected_commands.items():
-        if COMMAND_ALIASES.get(alias) != command:
-            errors.append(f"shortcut {alias} -> {COMMAND_ALIASES.get(alias)!r}, expected {command!r}")
-    # Every class/tier should expose the complete logical equipment grid per style.
-    logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
-    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for mastery in (1, 100, 200, 400, 600):
-            ids = tiers.get(mastery, ())
-            present = {ITEMS[i].get("slot") for i in ids if i in ITEMS}
-            if not logical_slots.issubset(present):
-                errors.append(f"{class_name} mastery {mastery}: missing slots {sorted(logical_slots-present)}")
-                break
-    return {
-        "version":"0.30.20",
-        "logical_slot_count":len(logical_slots),
-        "new_slots":tuple(sorted(required_slots)),
-        "error_count":len(errors),
-        "errors":errors,
-    }
+    return _audit_rules_v406.equipment_expansion_audit_v03020(CLASS_EQUIPMENT_SLOT_DEFS=CLASS_EQUIPMENT_SLOT_DEFS, EQUIPMENT_SLOT_NAMES=EQUIPMENT_SLOT_NAMES, COMMAND_ALIASES=COMMAND_ALIASES, CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER=CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER, ITEMS=ITEMS)
 
 EQUIPMENT_EXPANSION_AUDIT_V03020 = equipment_expansion_audit_v03020()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -183,68 +99,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.30.21 - FULL HELP / EQ SHOP / UNIFIED CURRENCY ECONOMY
 # ============================================================
-def refresh_help_v03021_full():
-    """Finalna warstwa HELP. Nadpisuje historyczne teksty, które nie opisują już runtime."""
-    HELP_TOPIC_ALIASES.update({
-        "waluta":"waluta", "pieniadze":"waluta", "pieniądze":"waluta", "money":"waluta",
-        "eq sklep":"sklepy", "sklep eq":"sklepy", "sklepy eq":"sklepy",
-        "sell all":"sprzedaj_wszystko", "sprzedaj wszystko":"sprzedaj_wszystko",
-    })
-    HELP_TOPICS["waluta"] = [
-        "Cała ekonomia używa jednego wspólnego salda. Nominały służą tylko do czytelnego wyświetlania i wpisywania kwot.",
-        "100 srebra = 1 złota. 1 000 000 złota = 1 mithril. 1 mithril = 100 000 000 srebra.",
-        "Gra zawsze normalizuje kwotę do najwyższych nominałów: 100 srebra jest czytane jako 1 złota; 250 srebra jako 2 złota, 50 srebra.",
-        "Przy późnym endgame duże kwoty przechodzą automatycznie w mithril. Ta sama zasada działa przy zarabianiu, zakupie, sprzedaży, banku i innych kosztach.",
-    ]
-    HELP_TOPICS["sklepy"] = [
-        "shop / sklep / list / lista pokazuje numerowaną ofertę aktualnego sprzedawcy.",
-        "shop info <numer> / sklep info <numer> pokazuje pełny opis, statystyki, wymagania, cenę po rabacie i porównanie z założonym EQ.",
-        "kup <nazwa> albo kup <numer> kupuje przedmiot; np. kup 9 albo kup 9 3.",
-        "Klasowe sklepy EQ pokazują najlepszy Tier odblokowany przez Level postaci dla aktywnej klasy i wszystkie 13 typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze, kolczyki i relikt.",
-        "sprzedaj <nazwa> sprzedaje jedną wolną sztukę. Założone EQ i Character-Bound są chronione.",
-        "sell all / sprzedaj wszystko sprzedaje wyłącznie niezałożone EQ. Nie sprzedaje mikstur, consumables, zwykłego lootu, materiałów, narzędzi ani quest itemów.",
-        "Zasoby profesyjne sprzedaje się osobno u właściwych fachowców; hurtowo działają istniejące komendy wszystko siatka/sakwa/stos/torba.",
-        "Każda kwota sklepu jest czytana ze wspólnego salda po normalizacji mithril, złoto, srebro.",
-    ]
-    HELP_TOPICS["eq"] = [
-        "equipment / eq pokazuje założone wyposażenie oraz Broń Duszy; eq info pokazuje szczegóły, bonusy, sockety i aktywne sety.",
-        "Klasowe EQ ma 13 logicznych typów: hełm, pancerz, rękawice, nogawice, buty, talizman, pierścień, naszyjnik, naramienniki, pas, peleryna, karwasze, kolczyki i relikt.",
-        "Pierścienie i talizmany zakładają się automatycznie: załóż <nazwa>, zp <numer> albo zt <numer> używa wolnego slotu; przy dwóch zajętych zastępuje słabszy.",
-        "Ręczny wybór pozostaje: zp1/zp2 dla pierścieni oraz zt1/zt2 dla talizmanów.",
-        "Skróty: zh hełm, zz zbroja, zr rękawice, zn nogi, zb buty, zna naszyjnik, zkol kolczyki auto, zkol1/zkol2 ręcznie, znar naramienniki, zpas pas, zpel peleryna, zkar karwasze, zrel relikt.",
-        "Level postaci odblokowuje EQ na progach 1, 10, 20...400. Biegłość klasy nadal odblokowuje skille/spelle, ale nie jest bramą założenia EQ.",
-    ]
-    HELP_TOPICS["sety_klasowe"] = [
-        "Każda z 14 klas ma klasowe linie EQ obejmujące 13 typów wyposażenia.",
-        "Bonusy zestawów nadal mają progi 2/4/6/8 części. Nowe sloty zwiększają wybór i nie dodają kolejnego automatycznego progu mocy.",
-        "Sety i ich tożsamość są ręcznie projektowane; Generator Core może balansować wyłącznie liczbowe wartości istniejących bonusów.",
-    ]
-    HELP_TOPICS["skille100_200"] = [
-        "Historyczna nazwa tematu została zachowana jako alias. Obecnie Biegłość każdej klasy ma zakres 1-400.",
-        "Każda klasa ma 123 skille/spelle: dokładnie 3 na każdy próg Biegłości 1, 10, 20...400.",
-        "Sloty auto kolejki zależą od Character Level, nie od Biegłości: Level 1 ma 10 slotów, potem +1 co 10 Leveli, do 50 na Levelu 400.",
-    ]
-    # quest / questy mogą być osobnymi aliasami w zależności od historycznej warstwy.
-    quest_help = [
-        "quest / questy pokazuje aktywne zadania; quest ukończone pokazuje historię; quest list <NPC> pokazuje numerowaną ofertę NPC.",
-        "quest accept <numer> przyjmuje zadanie. Każdy quest zaczyna od 0/x i liczy wyłącznie zdarzenia wykonane po przyjęciu.",
-        "Questy nie mają globalnej blokady Character Level. Obowiązują tylko rzeczywiste wymagania konkretnego zadania, np. Soul, profesja, narzędzie, wcześniejszy quest lub fabuła.",
-        "quest info <numer> pokazuje opis, cel, postęp, wymagania i wszystkie nagrody; quest oddaj <numer> oddaje gotowe zadanie właściwemu NPC.",
-        "Nagrody pieniężne questów trafiają do jednego portfela i są zawsze czytane w znormalizowanych nominałach: mithril, potem złoto, potem srebro.",
-        "Od v0.30.21 zwykły quest daje co najmniej równowartość 1 złota oraz resztę w srebrze; mithril pojawia się dopiero w późnej progresji/endgame.",
-    ]
-    HELP_TOPICS["quest"] = list(quest_help)
-    HELP_TOPICS["questy"] = list(quest_help)
-    HELP_TOPICS["sprzedaj_wszystko"] = [
-        "sell all / sprzedaj wszystko sprzedaje tylko niezałożone EQ typu armor.",
-        "Mikstury, inne consumables, zwykły loot, materiały, narzędzia, quest itemy i założone wyposażenie nie są przez tę komendę sprzedawane.",
-    ]
-    HELP_TOPICS["generator"] = [
-        "Generator Core działa w trybie Numeric-Only z Whitelist Guard.",
-        "Może zmieniać wyłącznie dozwolone liczby balansu: HP, damage, XP, ceny, nagrody, cooldowny, koszty many oraz wartości istniejących efektów/statów.",
-        "Nie może zmieniać nazw, ID, unlocków, klas, slotów EQ, list dropów, celów questów, wymagań, składników receptur, Soul Milestones ani topologii świata.",
-        "v0.30.21 koryguje wyłącznie numeryczną ekonomię questów i narzędzi; zasady Whitelist Guard pozostają bez zmian.",
-    ]
+def refresh_help_v03021_full(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: refresh_help_v03021_full")
+refresh_help_v03021_full = _sb410_bind(_sb410_mod_v410_equipment_audits.refresh_help_v03021_full, globals())
 
 refresh_help_v03021_full()
 
@@ -309,40 +167,7 @@ def eq_shop_audit_v03021():
 EQ_SHOP_AUDIT_V03021=eq_shop_audit_v03021()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
 def currency_economy_audit_v03021():
-    errors=[]
-    formatter_tests={
-        SILVER_PER_GOLD-1:f"{SILVER_PER_GOLD-1} srebra",
-        SILVER_PER_GOLD:"1 złota",
-        2*SILVER_PER_GOLD+50:"2 złota, 50 srebra",
-        SILVER_PER_MITHRIL:"1 mithril",
-        SILVER_PER_MITHRIL+2*SILVER_PER_GOLD+45:"1 mithril, 2 złota, 45 srebra",
-    }
-    for total,expected in formatter_tests.items():
-        got=currency_reading_text(total,0,0)
-        if got!=expected: errors.append(f"format {total}: {got!r} != {expected!r}")
-    quest_values=[]
-    for qid,q in QUESTS.items():
-        value=v0190_quest_currency_reward(q)
-        quest_values.append(value)
-        if value<SILVER_PER_GOLD: errors.append(f"quest <1 gold: {qid}={value}")
-    tool_rows=[]
-    for iid,item in ITEMS.items():
-        if str(item.get("type","")).lower()=="tool" or item.get("tool_type"):
-            price=int(item.get("price",0) or 0)
-            tool_rows.append((iid,price))
-            # Basic ungated tools must stay in a compact starter band.
-            has_gate=any(int(item.get(k,0) or 0)>0 for k in ("required_tool_level","min_tool_level","min_profession_level","required_profession_level","required_mastery"))
-            if not has_gate and not (1001 <= price <= 3500):
-                errors.append(f"starter tool price {iid}={price}")
-    return {
-        "version":"0.30.21",
-        "quests":len(quest_values),
-        "quest_min":min(quest_values) if quest_values else 0,
-        "quest_max":max(quest_values) if quest_values else 0,
-        "tools":tuple(tool_rows),
-        "error_count":len(errors),
-        "errors":errors,
-    }
+    return _audit_rules_v406.currency_economy_audit_v03021(SILVER_PER_GOLD=SILVER_PER_GOLD, SILVER_PER_MITHRIL=SILVER_PER_MITHRIL, currency_reading_text=currency_reading_text, QUESTS=QUESTS, v0190_quest_currency_reward=v0190_quest_currency_reward, ITEMS=ITEMS)
 
 CURRENCY_ECONOMY_AUDIT_V03021=currency_economy_audit_v03021()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -359,135 +184,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.30.22 - FULL REGRESSION / WORLD INTEGRITY RELEASE GATE
 # ============================================================
-def full_release_integrity_audit_v03022():
-    errors=[]
-    warnings=[]
-    stats={}
-
-    # Every previously active release gate must still be clean.
-    audit_names=(
-        "CATALOG_VALIDATION_AUDIT", "GENERATOR_WHITELIST_AUDIT_V03019",
-        "WORLD_TOPOLOGY_AUDIT", "WORLD_LOGIC_AUDIT",
-        "FULL_WORLD_TOPOLOGY_AUDIT_V03013", "FULL_GAME_AUDIT_V03014",
-        "FULL_COMBAT_SCALING_AUDIT_V03015", "AGGRO_CLEANUP_AUDIT_V03015",
-        "CLASS_EQ_AUDIT_V03015", "EQUIPMENT_NAME_AUDIT_V03016",
-        "CLASS_EQ_IDENTITY_AUDIT_V03016", "PROGRESSION_COMBAT_AUDIT_V03017",
-        "GENERATOR_NUMERIC_ONLY_AUDIT_V03018", "EQUIPMENT_EXPANSION_AUDIT_V03020",
-        "FULL_HELP_AUDIT_V03021", "EQ_SHOP_AUDIT_V03021",
-        "CURRENCY_ECONOMY_AUDIT_V03021",
-    )
-    for name in audit_names:
-        audit=globals().get(name)
-        if not isinstance(audit,dict):
-            errors.append(f"missing audit {name}")
-            continue
-        if int(audit.get("error_count",0) or 0):
-            errors.append(f"{name}: {audit.get('errors',[])[:3]}")
-        if int(audit.get("warning_count",0) or 0):
-            warnings.append(f"{name}: {audit.get('warnings',[])[:3]}")
-
-    opposite={
-        "north":"south", "south":"north", "east":"west", "west":"east",
-        "northeast":"southwest", "southwest":"northeast",
-        "northwest":"southeast", "southeast":"northwest",
-        "up":"down", "down":"up",
-    }
-    static_edges=0
-    lazy_edges=[]
-    for rid,room in ROOMS.items():
-        if not str(room.get("name","")).strip(): errors.append(f"room without name: {rid}")
-        if not str(room.get("zone","")).strip(): errors.append(f"room without zone: {rid}")
-        if not str(room.get("desc","")).strip(): errors.append(f"room without desc: {rid}")
-        exits=room.get("exits",{})
-        if not isinstance(exits,dict):
-            errors.append(f"room exits not dict: {rid}")
-            continue
-        for direction,target in exits.items():
-            if direction not in opposite: errors.append(f"invalid direction: {rid}.{direction}")
-            if target==rid: errors.append(f"self exit: {rid}.{direction}")
-            if target in ROOMS:
-                static_edges += 1
-                if ROOMS[target].get("exits",{}).get(opposite.get(direction)) != rid:
-                    errors.append(f"nonreciprocal: {rid}.{direction}->{target}")
-            else:
-                lazy_edges.append((rid,direction,target))
-                kind,floor=instance_room_identity(target)
-                known=kind is not None or str(target).startswith((
-                    "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
-                    "v021_gauntlet_", "v0140_mini_", "v0140_secret_",
-                    "v018_archipelago_", "v018_ruin_",
-                    "uoss_deep_dungeon_floor_",
-                ))
-                if not known:
-                    errors.append(f"unknown lazy exit: {rid}.{direction}->{target}")
-
-    # Reachability and return-path invariants are mandatory release gates.
-    logic=WORLD_LOGIC_AUDIT
-    if int(logic.get("reachable_from_square",0)) != len(ROOMS):
-        errors.append(f"reachable {logic.get('reachable_from_square')} != rooms {len(ROOMS)}")
-    if int(logic.get("returnable_to_square",0)) != len(ROOMS):
-        errors.append(f"returnable {logic.get('returnable_to_square')} != rooms {len(ROOMS)}")
-
-    # Profession terrain references: every authored gathering location must still exist.
-    room_collections={
-        "RIVER_FISHING_ROOMS":RIVER_FISHING_ROOMS, "LAKE_FISHING_ROOMS":LAKE_FISHING_ROOMS,
-        "SEA_FISHING_ROOMS":SEA_FISHING_ROOMS, "OCEAN_FISHING_ROOMS":OCEAN_FISHING_ROOMS,
-        "FRESHWATER_FISHING_ROOMS":FRESHWATER_FISHING_ROOMS, "MARINE_FISHING_ROOMS":MARINE_FISHING_ROOMS,
-        "FISHING_ROOMS":FISHING_ROOMS, "MINING_ROOMS":MINING_ROOMS,
-        "UNIFIED_DEEP_MINE_STATIC_ROOMS":UNIFIED_DEEP_MINE_STATIC_ROOMS,
-        "AUTO_FISHING_ROUTE":AUTO_FISHING_ROUTE, "AUTO_WOODCUTTING_ROUTE":AUTO_WOODCUTTING_ROUTE,
-        "AUTO_HERBALISM_ROUTE":AUTO_HERBALISM_ROUTE, "WOODCUTTING_ROOMS":WOODCUTTING_ROOMS,
-        "MEADOW_HERBALISM_ROOMS":MEADOW_HERBALISM_ROOMS, "HERBALISM_ROOMS":HERBALISM_ROOMS,
-    }
-    for name,values in room_collections.items():
-        missing=[room for room in values if room not in ROOMS]
-        if missing: errors.append(f"{name} missing rooms: {missing[:10]}")
-
-    for tool_id,room_id in TOOL_SHOP_ROOMS.items():
-        if tool_id not in ITEMS: errors.append(f"tool shop item missing: {tool_id}")
-        if room_id not in ROOMS: errors.append(f"tool shop room missing: {tool_id}->{room_id}")
-    for room_id,item_ids in SHOPS.items():
-        if room_id not in ROOMS: errors.append(f"shop room missing: {room_id}")
-        for item_id in item_ids:
-            if item_id not in ITEMS: errors.append(f"shop item missing: {room_id}->{item_id}")
-    for room_id in PROFESSION_GUIDE_PRIMARY_ROOMS.values():
-        if room_id not in ROOMS: errors.append(f"profession guide room missing: {room_id}")
-
-    resource_collections={
-        "FISH_RESOURCE_IDS":FISH_RESOURCE_IDS, "ORE_RESOURCE_IDS":ORE_RESOURCE_IDS,
-        "WOOD_RESOURCE_IDS":WOOD_RESOURCE_IDS, "HERB_RESOURCE_IDS":HERB_RESOURCE_IDS,
-        "WORLD_FISH_IDS":WORLD_FISH_IDS, "WORLD_ORE_IDS":WORLD_ORE_IDS,
-        "WORLD_WOOD_IDS":WORLD_WOOD_IDS, "WORLD_HERB_IDS":WORLD_HERB_IDS,
-    }
-    for name,values in resource_collections.items():
-        missing=[item_id for item_id in values if item_id not in ITEMS]
-        if missing: errors.append(f"{name} missing items: {missing[:10]}")
-
-    # Static content references outside the terrain graph.
-    for room_id,template_id in MOB_SPAWNS:
-        if room_id not in ROOMS: errors.append(f"spawn room missing: {room_id}:{template_id}")
-        if template_id not in MOB_TEMPLATES: errors.append(f"spawn mob missing: {room_id}:{template_id}")
-    for npc_id,npc in NPCS.items():
-        if npc.get("room") not in ROOMS: errors.append(f"NPC room missing: {npc_id}->{npc.get('room')}")
-    for class_name,tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for mastery,item_ids in tiers.items():
-            for item_id in item_ids:
-                if item_id not in ITEMS: errors.append(f"class EQ missing: {class_name}/{mastery}/{item_id}")
-
-    stats.update({
-        "rooms":len(ROOMS), "static_directed_edges":static_edges, "lazy_runtime_exits":len(lazy_edges),
-        "zones":len({str(r.get('zone') or '') for r in ROOMS.values()}),
-        "mobs":len(MOB_TEMPLATES), "spawns":len(MOB_SPAWNS), "items":len(ITEMS),
-        "quests":len(QUESTS), "npcs":len(NPCS), "skills":sum(len(v) for v in CLASS_SKILLS.values()),
-        "help_topics":len(HELP_TOPICS), "help_aliases":len(HELP_TOPIC_ALIASES),
-        "fishing_rooms":len(FISHING_ROOMS), "mining_rooms":len(MINING_ROOMS),
-        "woodcutting_rooms":len(WOODCUTTING_ROOMS), "herbalism_rooms":len(HERBALISM_ROOMS),
-        "active_audits_checked":len(audit_names),
-    })
-    return {
-        "version":"0.30.22", "error_count":len(errors), "warning_count":len(warnings),
-        "errors":errors, "warnings":warnings, **stats,
-    }
+def full_release_integrity_audit_v03022(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: full_release_integrity_audit_v03022")
+full_release_integrity_audit_v03022 = _sb410_bind(_sb410_mod_v410_release_audits.full_release_integrity_audit_v03022, globals())
 
 FULL_RELEASE_INTEGRITY_AUDIT_V03022 = full_release_integrity_audit_v03022()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -530,81 +230,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.30.24 - HYBRID QUEST REWARD AUDIT + ECONOMY SAFETY
 # ============================================================
-def quest_reward_hybrid_audit_v03024():
-    errors = []
-    manual_ids = set(V03024_MANUAL_QUEST_REWARDS_COINS)
-    automatic_ids = set(QUESTS) - manual_ids
-
-    if V03024_MANUAL_QUEST_REWARD_MARKING.get("missing"):
-        errors.append("manual quest IDs missing: " + ", ".join(V03024_MANUAL_QUEST_REWARD_MARKING["missing"][:10]))
-
-    for quest_id, quest in QUESTS.items():
-        reward = int(quest.get("reward_silver", 0) or 0)
-        if reward < 0:
-            errors.append(f"negative quest reward: {quest_id}")
-        if int(quest.get("reward_gold", 0) or 0) != 0 or int(quest.get("reward_mithril", 0) or 0) != 0:
-            errors.append(f"quest has split wallet reward: {quest_id}")
-        if quest_id in manual_ids:
-            expected = int(V03024_MANUAL_QUEST_REWARDS_COINS[quest_id])
-            if quest.get("currency_reward_mode") != "manual":
-                errors.append(f"manual reward mode missing: {quest_id}")
-            if int(quest.get("manual_currency_reward_coins", -1)) != expected:
-                errors.append(f"manual reward marker changed: {quest_id}")
-            if reward != expected:
-                errors.append(f"manual reward overwritten: {quest_id}={reward}, expected={expected}")
-        else:
-            if quest.get("manual_currency_reward_coins") is not None:
-                errors.append(f"unexpected manual marker: {quest_id}")
-            # v1.13.21: since Generator Core v0.62.0/v1.13.15, authored
-            # quest currency wins even without a manual marker. The old 1001
-            # minimum belonged to Generator-owned fallback rewards and must not
-            # reject valid authored payouts. Global quest economy only requires
-            # the shared minimum of 1 Gold = SILVER_PER_GOLD.
-            if reward < SILVER_PER_GOLD:
-                errors.append(f"quest reward below unified economy floor: {quest_id}={reward}")
-
-    # Critical hand-authored anchors.
-    anchors = {
-        "soul_shards": 7_500,
-        "fisher_30_fish": 2_500,
-        "herbalist_30_herbs": 2_500,
-        "lumberjack_30_wood": 2_500,
-        "miner_30_ore": 2_500,
-        "mountain_troll_hunt": 15_000,
-        "troll_king_hunt": 75_000,
-        "desert_patrol": 150_000,
-    }
-    for quest_id, expected in anchors.items():
-        if int(QUESTS.get(quest_id, {}).get("reward_silver", -1)) != expected:
-            errors.append(f"anchor reward mismatch: {quest_id}")
-
-    # Presentation must be a lossless view of the one shared integer balance.
-    sample_values = (
-        0, 1, 999, 1000, 2500, 7_500, 150_000,
-        SILVER_PER_MITHRIL, SILVER_PER_MITHRIL + 2 * SILVER_PER_GOLD + 345,
-        max(int(q.get("reward_silver", 0) or 0) for q in QUESTS.values()),
-    )
-    for coins in sample_values:
-        mithril, gold, silver = currency_denominations(coins)
-        rebuilt = legacy_currency_to_coins(silver, gold, mithril)
-        if rebuilt != coins:
-            errors.append(f"currency roundtrip {coins}->{mithril}/{gold}/{silver}->{rebuilt}")
-
-    rewards = [int(q.get("reward_silver", 0) or 0) for q in QUESTS.values()]
-    return {
-        "version": "0.30.24",
-        "quests": len(QUESTS),
-        "manual_quests": len(manual_ids),
-        "automatic_quests": len(automatic_ids),
-        "min_reward": min(rewards) if rewards else 0,
-        "max_reward": max(rewards) if rewards else 0,
-        "single_balance_storage": all(
-            int(q.get("reward_gold", 0) or 0) == 0 and int(q.get("reward_mithril", 0) or 0) == 0
-            for q in QUESTS.values()
-        ),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def quest_reward_hybrid_audit_v03024(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: quest_reward_hybrid_audit_v03024")
+quest_reward_hybrid_audit_v03024 = _sb410_bind(_sb410_mod_v410_release_audits.quest_reward_hybrid_audit_v03024, globals())
 
 QUEST_REWARD_HYBRID_AUDIT_V03024 = quest_reward_hybrid_audit_v03024()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -652,73 +281,10 @@ for _quest_id, _quest in QUESTS.items():
             V03025_PROFESSION_REWARD_REPAIRS[_quest_id] = _expected_profession
 
 
-def profession_tool_xp_audit_v03025():
-    errors = []
-    recipe_tables = (
-        ("Kowalstwo", "crafting", CRAFT_RECIPES),
-        ("Alchemia", "alchemy", ALCHEMY_RECIPES),
-        ("Gotowanie", "cooking", COOK_RECIPES),
-        ("Jubilerstwo", "jewelcrafting", JEWELCRAFT_RECIPES),
-    )
-    recipe_count = 0
-    ingot_count = 0
-    for profession, tool_type, recipes in recipe_tables:
-        for recipe_id, recipe in recipes.items():
-            recipe_count += 1
-            profession_xp = int(recipe.get("profession_xp", 0) or 0)
-            tool_xp = int(recipe.get("tool_xp", 0) or 0)
-            if profession_xp <= 0:
-                errors.append(f"{profession}/{recipe_id}: brak profession_xp")
-            if tool_xp <= 0:
-                errors.append(f"{profession}/{recipe_id}: brak tool_xp")
-            output_id = str(recipe.get("output") or "")
-            if tool_type == "crafting" and (output_id.endswith("_ingot") or output_id.startswith("ingot_")):
-                ingot_count += 1
-                if profession_xp <= 0 or tool_xp <= 0:
-                    errors.append(f"przetop {recipe_id}: nie rozwija jednocześnie Kowalstwa i Młota")
-
-    profession_quest_count = 0
-    for quest_id, quest in QUESTS.items():
-        profession_xp = int(quest.get("reward_profession_xp", 0) or 0)
-        tool_xp = int(quest.get("reward_tool_xp", 0) or 0)
-        profession = quest.get("reward_profession")
-        tool_type = quest.get("reward_tool_type")
-        if not (profession_xp or tool_xp or profession or tool_type):
-            continue
-        profession_quest_count += 1
-        expected = profession_for_tool_type(tool_type)
-        if profession_xp <= 0:
-            errors.append(f"quest {quest_id}: brak reward_profession_xp")
-        if tool_xp <= 0:
-            errors.append(f"quest {quest_id}: brak reward_tool_xp")
-        if not tool_type:
-            errors.append(f"quest {quest_id}: brak reward_tool_type")
-        if not profession:
-            errors.append(f"quest {quest_id}: brak reward_profession")
-        if expected and profession and profession != expected:
-            errors.append(
-                f"quest {quest_id}: {profession} nie pasuje do narzędzia {tool_type} ({expected})"
-            )
-
-    # Główne akcje zbierackie są celowo jawne: każda wywołuje
-    # grant_profession_progress(profesja, xp, narzędzie, xp).
-    gathering_pairs = {
-        "fish": ("Wędkarstwo", "fishing"),
-        "mine": ("Górnictwo", "mining"),
-        "woodcut": ("Drwalstwo", "woodcutting"),
-        "gather_herb": ("Zielarstwo", "herbalism"),
-    }
-    return {
-        "version": "0.30.25",
-        "recipes_checked": recipe_count,
-        "ingot_recipes_checked": ingot_count,
-        "profession_quests_checked": profession_quest_count,
-        "quest_profession_repairs": len(V03025_PROFESSION_REWARD_REPAIRS),
-        "gathering_actions_checked": len(gathering_pairs),
-        "gathering_pairs": gathering_pairs,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def profession_tool_xp_audit_v03025(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: profession_tool_xp_audit_v03025")
+profession_tool_xp_audit_v03025 = _sb410_bind(_sb410_mod_v410_release_audits.profession_tool_xp_audit_v03025, globals())
 
 
 PROFESSION_TOOL_XP_AUDIT_V03025 = profession_tool_xp_audit_v03025()
@@ -884,78 +450,10 @@ HELP_TOPICS["exits"] = [
 ]
 
 
-def gameplay_flow_audit_v03026():
-    errors = []
-    if COMMAND_ALIASES.get("ex") != "exits":
-        errors.append("ex nie mapuje się na exits")
-
-    # Dostęp zasobów musi zmieniać się wyłącznie na progach Tieru.
-    for _tool_type in ("fishing", "mining", "woodcutting", "herbalism"):
-        previous_access = None
-        previous_tier = None
-        for _level in range(1, 401):
-            _tier = tool_tier(_level)
-            _access = tool_tier_access_level(_level)
-            if _access != TOOL_TIER_THRESHOLDS[_tier - 1]:
-                errors.append(f"{_tool_type}: zły access level {_level}->{_access}")
-                break
-            if previous_tier == _tier and previous_access != _access:
-                errors.append(f"{_tool_type}: pula zmienia się wewnątrz Tieru {_tier}")
-                break
-            previous_access, previous_tier = _access, _tier
-
-    recipe_count = 0
-    for _recipes in (CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES):
-        for _rid, _recipe in _recipes.items():
-            recipe_count += 1
-            _required = max(1, int(_recipe.get("min_profession_level", _recipe.get("min_tool_level", 1)) or 1))
-            _required_tier = required_tool_tier_for_level(_required)
-            if not 1 <= _required_tier <= TOOL_MAX_TIER:
-                errors.append(f"recipe {_rid}: invalid tool tier {_required_tier}")
-            if int(_recipe.get("profession_xp", 0) or 0) <= 0:
-                errors.append(f"recipe {_rid}: brak profession_xp")
-            if int(_recipe.get("tool_xp", 0) or 0) <= 0:
-                errors.append(f"recipe {_rid}: brak tool_xp")
-
-    for _rid in V03026_WOOD_RECIPES:
-        _recipe = CRAFT_RECIPES[_rid]
-        if _recipe.get("profession") != "Drwalstwo" or _recipe.get("tool_type") != "woodcutting":
-            errors.append(f"wood recipe {_rid}: zła para profesja/narzędzie")
-
-    smith_missing = [
-        _rid for _rid, _recipe in CRAFT_RECIPES.items()
-        if _rid not in V03026_WOOD_RECIPES
-        and "crafting_workshop" not in tuple(_recipe.get("stations", ()))
-    ]
-    if smith_missing:
-        errors.append(f"station crafting_workshop: brak w {smith_missing[:5]}")
-    wood_missing = [
-        _rid for _rid in V03026_WOOD_RECIPES
-        if "forester_lodge" not in tuple(CRAFT_RECIPES[_rid].get("stations", ()))
-    ]
-    if wood_missing:
-        errors.append(f"station forester_lodge: brak w {wood_missing[:5]}")
-    required_stations = (
-        (COOK_RECIPES, "blue_flame_kitchen"),
-        (ALCHEMY_RECIPES, "alchemy_lab"),
-        (JEWELCRAFT_RECIPES, "jeweler_workshop"),
-    )
-    for _recipes, _station in required_stations:
-        missing = [_rid for _rid, _recipe in _recipes.items() if _station not in tuple(_recipe.get("stations", ()))]
-        if missing:
-            errors.append(f"station {_station}: brak w {missing[:5]}")
-
-
-    return {
-        "version": "0.30.26",
-        "generator_version": str(BALANCE_MATH_VERSION),
-        "recipes_checked": recipe_count,
-        "wood_recipes_fixed": len(V03026_WOOD_RECIPES),
-        "tool_tiers": TOOL_MAX_TIER,
-        "gathering_professions": 4,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def gameplay_flow_audit_v03026(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: gameplay_flow_audit_v03026")
+gameplay_flow_audit_v03026 = _sb410_bind(_sb410_mod_v410_release_audits.gameplay_flow_audit_v03026, globals())
 
 GAMEPLAY_FLOW_AUDIT_V03026 = gameplay_flow_audit_v03026()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1032,27 +530,7 @@ HELP_TOPICS["buffy"] = [
 ]
 
 def buff_duration_audit_v03030():
-    errors = []
-    checked = 0
-    for class_name, skills in CLASS_SKILLS.items():
-        for skill in skills:
-            if str(skill.get("kind") or "").lower() != "boost":
-                continue
-            checked += 1
-            if int(skill.get("duration", 0) or 0) != GLOBAL_SKILL_BUFF_DURATION_SECONDS:
-                errors.append(
-                    f"{class_name}/{skill.get('name')}: duration={skill.get('duration')}"
-                )
-            desc = str(skill.get("desc") or "")
-            if "30 sekund" not in desc:
-                errors.append(f"{class_name}/{skill.get('name')}: opis bez 30 sekund")
-    return {
-        "version": "0.30.30",
-        "checked": checked,
-        "duration_seconds": GLOBAL_SKILL_BUFF_DURATION_SECONDS,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.buff_duration_audit_v03030(CLASS_SKILLS=CLASS_SKILLS, GLOBAL_SKILL_BUFF_DURATION_SECONDS=GLOBAL_SKILL_BUFF_DURATION_SECONDS)
 
 BUFF_DURATION_AUDIT_V03030 = buff_duration_audit_v03030()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1092,14 +570,7 @@ LATEST_CHANGES = [
 LATEST_CHANGES_TITLE = "Soulbound v0.30.31 - Party Combat Feed"
 
 def party_combat_feed_audit_v03031():
-    errors = []
-    if not hasattr(MudServer, "party_combat_broadcast"):
-        errors.append("brak MudServer.party_combat_broadcast")
-    return {
-        "version": "0.30.31",
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.party_combat_feed_audit_v03031(MudServer=MudServer)
 
 PARTY_COMBAT_FEED_AUDIT_V03031 = party_combat_feed_audit_v03031()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1129,16 +600,7 @@ LATEST_CHANGES = [
 LATEST_CHANGES_TITLE = "Soulbound v0.30.32 - Party Roles"
 
 def party_roles_audit_v03032():
-    errors = []
-    for name in ("party_combat_target", "auto_priest_party_heal"):
-        if not hasattr(MudServer, name):
-            errors.append(f"brak MudServer.{name}")
-    for name in ("auto_priest_heal_option", "perform_auto_priest_heal"):
-        if not hasattr(Session, name):
-            errors.append(f"brak Session.{name}")
-    if PARTY_AUTO_HEAL_THRESHOLD != 0.85:
-        errors.append(f"threshold={PARTY_AUTO_HEAL_THRESHOLD}")
-    return {"version": "0.30.32", "error_count": len(errors), "errors": errors}
+    return _audit_rules_v406.party_roles_audit_v03032(MudServer=MudServer, Session=Session, PARTY_AUTO_HEAL_THRESHOLD=PARTY_AUTO_HEAL_THRESHOLD)
 
 PARTY_ROLES_AUDIT_V03032 = party_roles_audit_v03032()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1146,34 +608,7 @@ PARTY_ROLES_AUDIT_V03032 = party_roles_audit_v03032()
 # v0.30.33 - UNIQUE TOOL TIER NAMES + RENEWABLE TAILOR QUEST
 # ============================================================
 def tool_tier_name_audit_v03033():
-    errors = []
-    checked = 0
-    for tool_type, names in TOOL_TIER_NAMES.items():
-        checked += len(names)
-        if len(names) != TOOL_MAX_TIER:
-            errors.append(f"{tool_type}: {len(names)} nazw, oczekiwano {TOOL_MAX_TIER}")
-        normalized = [str(name).strip().casefold() for name in names]
-        if len(set(normalized)) != len(normalized):
-            seen = set()
-            duplicates = []
-            for name in normalized:
-                if name in seen and name not in duplicates:
-                    duplicates.append(name)
-                seen.add(name)
-            errors.append(f"{tool_type}: duplikaty {duplicates[:5]}")
-    quest = QUESTS.get("city_tailor_guard_delivery", {})
-    if not quest.get("repeatable"):
-        errors.append("city_tailor_guard_delivery nie jest repeatable")
-    if int(quest.get("repeat_cooldown", 0) or 0) != int(QUEST_REPEAT_COOLDOWN_SECONDS):
-        errors.append("city_tailor_guard_delivery ma zły cooldown")
-    return {
-        "version": "0.30.33",
-        "tool_names_checked": checked,
-        "expected_tool_names": len(TOOL_TIER_NAMES) * TOOL_MAX_TIER,
-        "tailor_quest_repeatable": bool(quest.get("repeatable")),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.tool_tier_name_audit_v03033(TOOL_TIER_NAMES=TOOL_TIER_NAMES, TOOL_MAX_TIER=TOOL_MAX_TIER, QUESTS=QUESTS, QUEST_REPEAT_COOLDOWN_SECONDS=QUEST_REPEAT_COOLDOWN_SECONDS)
 
 TOOL_TIER_NAME_AUDIT_V03033 = tool_tier_name_audit_v03033()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1199,27 +634,7 @@ LATEST_CHANGES_TITLE = "Soulbound v0.30.33 - Unique Tool Tiers + Renewable Tailo
 # v0.30.34 - HALDOR STEEL PLATE CORPSE QUEST FIX
 # ============================================================
 def haldor_steel_plate_corpse_audit_v03034():
-    errors = []
-    q = QUESTS.get("haldor_steel_recycling", {})
-    if q.get("target") != "salvaged_steel_plate" or int(q.get("needed", 0) or 0) != 4:
-        errors.append("haldor_steel_recycling target/needed")
-    sources = {
-        "cemetery_steel_skeleton": 0.72,
-        "cemetery_restless_dead": 0.28,
-        "cemetery_bone_collector": 0.42,
-    }
-    for mid, expected in sources.items():
-        t = MOB_TEMPLATES.get(mid, {})
-        if "salvaged_steel_plate" in (t.get("drops") or {}):
-            errors.append(f"{mid}: plate still in direct drops")
-        actual = float((t.get("corpse_material_chances") or {}).get("salvaged_steel_plate", -1))
-        if abs(actual - expected) > 1e-9:
-            errors.append(f"{mid}: corpse chance={actual} expected={expected}")
-    if ITEMS.get("salvaged_steel_plate", {}).get("type") != "craft_material":
-        errors.append("plate is not craft_material")
-    if "salvaged_steel_plate" not in CRAFT_MATERIAL_STORAGE_IDS:
-        errors.append("plate missing from craftbox routing")
-    return {"version":"0.30.34","sources":len(sources),"error_count":len(errors),"errors":errors}
+    return _audit_rules_v406.haldor_steel_plate_corpse_audit_v03034(QUESTS=QUESTS, MOB_TEMPLATES=MOB_TEMPLATES, ITEMS=ITEMS, CRAFT_MATERIAL_STORAGE_IDS=CRAFT_MATERIAL_STORAGE_IDS)
 
 HALDOR_STEEL_PLATE_CORPSE_AUDIT_V03034 = haldor_steel_plate_corpse_audit_v03034()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1243,47 +658,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.30.35 - BROKEN BLADES QUEST + LOSSLESS DEATH
 # ============================================================
-def v03035_broken_blades_and_death_audit():
-    errors = []
-    quest = QUESTS.get("haldor_broken_blades_v0929", {})
-    if quest.get("target") != "damaged_weapon_v0929" or int(quest.get("needed", 0) or 0) != 6:
-        errors.append("broken blades target/needed")
-    if not quest.get("repeatable"):
-        errors.append("broken blades not repeatable")
-    for mob_id in V03035_BROKEN_BLADE_SOURCES:
-        template = MOB_TEMPLATES.get(mob_id)
-        if not template:
-            errors.append(f"missing source mob: {mob_id}")
-            continue
-        if v0929_kill_drop_item("haldor_broken_blades_v0929", mob_id, template) != "damaged_weapon_v0929":
-            errors.append(f"source not recognized: {mob_id}")
-    import inspect as _inspect_v03035
-    die_src = _inspect_v03035.getsource(Session.die)
-    forbidden = (
-        "self.character.silver -=",
-        "self.character.gold -=",
-        "self.character.mithril -=",
-        "remove_storage_item(",
-        "clear_skill_buffs()",
-    )
-    for token in forbidden:
-        if token in die_src:
-            errors.append(f"death still removes state: {token}")
-    # Phoenix Egg is not a death penalty: its source-authored Re-raise consumes
-    # the egg only when it prevents the normal death/respawn flow. Any other
-    # inventory removal from Session.die remains forbidden.
-    for line in die_src.splitlines():
-        if "remove_item(" not in line:
-            continue
-        if '"uoss_odin_unique_8"' in line or "'uoss_odin_unique_8'" in line:
-            continue
-        errors.append("death still removes state: remove_item(")
-    return {
-        "version": "0.30.35",
-        "broken_blade_sources": len(V03035_BROKEN_BLADE_SOURCES),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def v03035_broken_blades_and_death_audit(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: v03035_broken_blades_and_death_audit")
+v03035_broken_blades_and_death_audit = _sb410_bind(_sb410_mod_v410_equipment_audits.v03035_broken_blades_and_death_audit, globals())
 
 V03035_AUDIT = v03035_broken_blades_and_death_audit()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1331,80 +709,10 @@ for _item_id, _item in ITEMS.items():
     _item["desc"] = _desc
 
 
-def v03035_related_quest_flow_audit():
-    errors = []
-    recipe_outputs = {
-        str(recipe.get("output"))
-        for table in (CRAFT_RECIPES, COOK_RECIPES, ALCHEMY_RECIPES, JEWELCRAFT_RECIPES)
-        for recipe in table.values()
-        if recipe.get("output")
-    }
-    category_targets = {"fish", "fish_river", "fish_lake", "fish_sea", "fish_ocean", "ore", "wood", "herb"}
-    checked = 0
-    for quest_id, quest in QUESTS.items():
-        kind = quest.get("kind")
-        if kind == "collect":
-            checked += 1
-            target = quest.get("target")
-            if target not in ITEMS:
-                errors.append(f"{quest_id}: missing collect target {target}")
-            if quest.get("track_craft_progress") and target not in recipe_outputs:
-                errors.append(f"{quest_id}: craft target has no recipe {target}")
-        elif kind == "collect_category":
-            checked += 1
-            if quest.get("target") not in category_targets:
-                errors.append(f"{quest_id}: unknown category {quest.get('target')}")
-        elif kind == "collect_resource":
-            checked += 1
-            if quest.get("target") not in ITEMS:
-                errors.append(f"{quest_id}: missing resource {quest.get('target')}")
-        elif kind == "collect_resource_set":
-            checked += 1
-            requirements = dict(quest.get("resource_targets") or {})
-            if not requirements:
-                errors.append(f"{quest_id}: empty resource set")
-            if sum(max(1, int(v)) for v in requirements.values()) != int(quest.get("needed", 0) or 0):
-                errors.append(f"{quest_id}: resource-set needed mismatch")
-            for target in requirements:
-                if target not in ITEMS:
-                    errors.append(f"{quest_id}: missing set resource {target}")
-        elif kind == "craft_set":
-            checked += 1
-            for target in quest.get("targets") or ():
-                if target not in recipe_outputs:
-                    errors.append(f"{quest_id}: craft-set target has no recipe {target}")
-
-    special_sources = {
-        "haldor_broken_blades_v0929": "damaged_weapon_v0929",
-        "haldor_armor_recycling_v0929": "heavy_armor_fragment_v0929",
-        "orin_toxic_glands_v0929": "toxic_gland_v0929",
-    }
-    source_counts = {}
-    for quest_id, expected_item in special_sources.items():
-        matches = 0
-        for mob_id, template in MOB_TEMPLATES.items():
-            if v0929_kill_drop_item(quest_id, mob_id, template) == expected_item:
-                matches += 1
-        source_counts[quest_id] = matches
-        if matches <= 0:
-            errors.append(f"{quest_id}: no kill sources")
-
-    ordinary_item_sources = {
-        "soul_shards": "soul_shard",
-        "stolen_mountain_ores": "stolen_mountain_ore",
-        "hourly_shadow_fangs": "wolf_fang",
-    }
-    for quest_id, item_id in ordinary_item_sources.items():
-        if not any(item_id in (template.get("drops") or {}) for template in MOB_TEMPLATES.values()):
-            errors.append(f"{quest_id}: no mob drop source for {item_id}")
-
-    return {
-        "version": "0.30.35",
-        "quests_checked": checked,
-        "special_source_counts": source_counts,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def v03035_related_quest_flow_audit(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: v03035_related_quest_flow_audit")
+v03035_related_quest_flow_audit = _sb410_bind(_sb410_mod_v410_equipment_audits.v03035_related_quest_flow_audit, globals())
 
 V03035_RELATED_QUEST_FLOW_AUDIT = v03035_related_quest_flow_audit()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1560,113 +868,10 @@ OLD_SHARED_CLASS_SHOP_SELLERS_V03036 = (
 )
 
 
-def apply_separate_class_shops_v03036():
-    # 1. Wspólne sale przestają być sklepami.
-    for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
-        _catalog_mut.catalog_pop_path('SHOPS', SHOPS, (), room_id, None)
-        SHOP_SELLERS.pop(room_id, None)
-        room = ROOMS.get(room_id)
-        if room:
-            room["desc"] = str(room.get("desc") or "").replace(
-                " W tej sali działa także klasowy sklep z pełnym 14-elementowym wyposażeniem.",
-                " Sklepy EQ znajdują się w osobnych salach poszczególnych klas."
-            )
-    for npc_id in OLD_SHARED_CLASS_SHOP_SELLERS_V03036:
-        npc = NPCS.get(npc_id)
-        if npc:
-            npc["shopkeeper"] = False
-            npc["dialogue"] = (
-                "Każda klasa ma teraz osobny sklep EQ w swojej własnej sali. "
-                "Wpisz walk eq <klasa>, aby dojść bezpośrednio do właściwego sklepu."
-            )
-
-    # 2. Przebudowa mapowania: jeden pokój = dokładnie jedna klasa.
-    CLASS_SHOP_CLASSES_BY_ROOM.clear()
-    CLASS_SHOP_ITEMS_BY_ROOM.clear()
-
-    for class_name, room_id in CLASS_SHOP_ROOM_BY_CLASS_V03036.items():
-        if room_id not in ROOMS:
-            raise RuntimeError(f"v0.30.36: brak sali sklepu klasy {class_name}: {room_id}")
-        if class_name not in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER:
-            raise RuntimeError(f"v0.30.36: brak EQ klasy {class_name}")
-
-        CLASS_EQUIPMENT_SETS[class_name]["room"] = room_id
-        CLASS_SHOP_CLASSES_BY_ROOM[room_id] = [class_name]
-        tier_one = list(CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER[class_name].get(1, ()))
-        CLASS_SHOP_ITEMS_BY_ROOM[room_id] = tier_one
-        _catalog_mut.catalog_assign(list(tier_one), 'SHOPS', SHOPS, (room_id,))
-
-        seller_id = "class_eq_shop_" + normalize_lookup_text(class_name).replace(" ", "_")
-        seller_name = CLASS_SHOP_SELLER_NAMES_V03036[class_name]
-        _catalog_mut.catalog_assign({
-            "name": seller_name,
-            "room": room_id,
-            "dialogue": (
-                f"Prowadzę osobny sklep EQ klasy {class_name}. "
-                "Wpisz shop albo list, aby usłyszeć aktualny Tier wyposażenia "
-                "odblokowany przez Level postaci."
-            ),
-            "shopkeeper": True,
-            "class_eq_shop": class_name,
-        }, 'NPCS', NPCS, (seller_id,))
-        SHOP_SELLERS[room_id] = seller_id
-        if isinstance(globals().get("NPC_DESCRIPTIONS"), dict):
-            NPC_DESCRIPTIONS[seller_id] = (
-                f"Sprzedawca wyposażenia wyłącznie dla klasy {class_name}. "
-                "Oferta skaluje się z Levelem postaci, a zakup nadal wymaga aktywnej właściwej klasy."
-            )
-
-        room = ROOMS[room_id]
-        shop_sentence = (
-            f" Działa tu osobny sklep EQ klasy {class_name}; "
-            "wpisz shop, aby usłyszeć ofertę."
-        )
-        if shop_sentence.strip() not in str(room.get("desc") or ""):
-            room["desc"] = str(room.get("desc") or "") + shop_sentence
-
-        # 3. Prowadzenie i stare skróty zawsze trafiają do nowego, osobnego sklepu.
-        for prefix in ("eq", "sklep eq", "sklep z eq", "ekwipunek", "sklep"):
-            GUIDE_DESTINATION_ALIASES[
-                normalize_lookup_text(f"{prefix} {class_name}")
-            ] = room_id
-
-    # v1.20.2: The shared arcane *class EQ* shop was retired, but Selene is
-    # also the Zaklinanie profession specialist. Restore her independent
-    # single-tool shop after creating the separate Mag/Psionik EQ shops.
-    # Without this, the v0.30.36 cleanup silently removes the Runic Focus
-    # added by systems.professions and `list` says there is no shop.
-    enchanting_room = "guild_arcane_chamber"
-    enchanting_seller_id = "guild_quartermaster_arcane"
-    _catalog_mut.catalog_assign(["runic_focus"], 'SHOPS', SHOPS, (enchanting_room,))
-    SHOP_SELLERS[enchanting_room] = enchanting_seller_id
-    enchanting_seller = NPCS[enchanting_seller_id]
-    enchanting_seller["shopkeeper"] = True
-    enchanting_seller["dialogue"] = (
-        "Prowadzę Zaklinanie i sprzedaję Fokus Runiczny. "
-        "Wpisz list albo shop, potem kup 1 lub kup fokus runiczny. "
-        "Wyposażenie klasowe Maga i Psionika jest w osobnych salach."
-    )
-    enchanting_description = " U Selene kupisz Fokus Runiczny: list, kup 1."
-    if enchanting_description.strip() not in str(ROOMS[enchanting_room].get("desc") or ""):
-        ROOMS[enchanting_room]["desc"] = (
-            str(ROOMS[enchanting_room].get("desc") or "") + enchanting_description
-        )
-
-    HELP_TOPICS["sklepy klasowe"] = [
-        "Każda z 14 klas ma własny, osobny sklep EQ w swojej sali klasowej w Gildii Dusz.",
-        "Wojownik, Berserker, Łotrzyk, Łowca, Mnich, Strażnik, Mag, Nekromanta, Kapłan, Czarownik, Druid i Psionik nie współdzielą już punktów sprzedaży.",
-        "Najprościej użyć: walk eq <klasa>, na przykład walk eq wojownik albo walk eq kapłan.",
-        "W sklepie wpisz shop. Oferta pokazuje najlepszy Tier EQ odblokowany przez Level postaci; zakup nadal wymaga aktywnej odpowiedniej klasy.",
-    ]
-    HELP_TOPICS.setdefault("eq", []).append(
-        "v0.30.36: każda klasa ma osobny sklep EQ w swojej sali klasowej. Użyj walk eq <klasa>."
-    )
-    HELP_TOPICS.setdefault("sklepy", []).append(
-        "v0.30.36: help sklepy klasowe opisuje 14 osobnych sklepów wyposażenia klasowego."
-    )
-    HELP_TOPICS.setdefault("wersja", []).append(
-        "v0.30.36: rozdzielono klasowe sklepy EQ na 14 osobnych punktów, po jednym dla każdej klasy."
-    )
+def apply_separate_class_shops_v03036(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: apply_separate_class_shops_v03036")
+apply_separate_class_shops_v03036 = _sb410_bind(_sb410_mod_v410_equipment_audits.apply_separate_class_shops_v03036, globals())
 
 
 # v0.31.2: dwie nowe sale klas technologicznych.
@@ -1688,66 +893,10 @@ _catalog_mut.catalog_assign("guild_engineer_chamber", 'NPCS', NPCS, ("teacher_en
 apply_separate_class_shops_v03036()
 
 
-def class_shop_audit_v03036():
-    errors = []
-    checked = 0
-    if len(CLASS_SHOP_CLASSES_BY_ROOM) != 14:
-        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected=14")
-    if set(CLASS_SHOP_ROOM_BY_CLASS_V03036) != set(CLASS_EQUIPMENT_SETS):
-        missing = sorted(set(CLASS_EQUIPMENT_SETS) - set(CLASS_SHOP_ROOM_BY_CLASS_V03036))
-        extra = sorted(set(CLASS_SHOP_ROOM_BY_CLASS_V03036) - set(CLASS_EQUIPMENT_SETS))
-        errors.append(f"class mapping mismatch missing={missing} extra={extra}")
-
-    for class_name, room_id in CLASS_SHOP_ROOM_BY_CLASS_V03036.items():
-        checked += 1
-        classes = list(CLASS_SHOP_CLASSES_BY_ROOM.get(room_id, ()))
-        if classes != [class_name]:
-            errors.append(f"{class_name}: room mapping={classes}")
-        if CLASS_EQUIPMENT_SETS.get(class_name, {}).get("room") != room_id:
-            errors.append(f"{class_name}: equipment set room mismatch")
-        seller_id = SHOP_SELLERS.get(room_id)
-        seller = NPCS.get(seller_id, {}) if seller_id else {}
-        if not seller_id or seller.get("room") != room_id or not seller.get("shopkeeper"):
-            errors.append(f"{class_name}: missing active seller")
-        for level in (1, 10, 100, 200, 300, 400, 600):
-            tier = class_equipment_unlocked_tier(level)
-            offers = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(tier, ())
-            if not offers:
-                errors.append(f"{class_name}: no offers at level {level}")
-                continue
-            wrong = [iid for iid in offers if ITEMS.get(iid, {}).get("required_class") != class_name]
-            if wrong:
-                errors.append(f"{class_name}: foreign items at level {level}: {wrong[:3]}")
-        for prefix in ("eq", "sklep eq", "sklep z eq", "ekwipunek", "sklep"):
-            key = normalize_lookup_text(f"{prefix} {class_name}")
-            if GUIDE_DESTINATION_ALIASES.get(key) != room_id:
-                errors.append(f"{class_name}: guide alias {key!r} points elsewhere")
-
-    for room_id in OLD_SHARED_CLASS_SHOP_ROOMS_V03036:
-        if room_id in CLASS_SHOP_CLASSES_BY_ROOM:
-            errors.append(f"old shared room still class shop: {room_id}")
-        if room_id == "guild_arcane_chamber":
-            # Zaklinanie has a real profession-tool vendor here; it must not
-            # bring back the old mixed Mag/Psionik class EQ catalogue.
-            if SHOPS.get(room_id) != ["runic_focus"]:
-                errors.append("arcane profession shop must sell only runic_focus")
-            seller = NPCS.get("guild_quartermaster_arcane", {})
-            if (SHOP_SELLERS.get(room_id) != "guild_quartermaster_arcane"
-                    or seller.get("room") != room_id or not seller.get("shopkeeper")):
-                errors.append("arcane profession shop has no active Selene")
-            continue
-        if SHOPS.get(room_id):
-            errors.append(f"old shared room still sells items: {room_id}")
-        if SHOP_SELLERS.get(room_id):
-            errors.append(f"old shared room still has seller mapping: {room_id}")
-
-    return {
-        "version": "0.30.36",
-        "class_shops_checked": checked,
-        "shop_room_count": len(CLASS_SHOP_CLASSES_BY_ROOM),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def class_shop_audit_v03036(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: class_shop_audit_v03036")
+class_shop_audit_v03036 = _sb410_bind(_sb410_mod_v410_equipment_audits.class_shop_audit_v03036, globals())
 
 
 CLASS_SHOP_AUDIT_V03036 = class_shop_audit_v03036()
@@ -1764,203 +913,18 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.30.37 - COMPLETE EQUIPMENT SLOT / MATERIAL DROP PASS
 # ============================================================
-def refresh_material_stat_profiles_v03037():
-    """Finalna warstwa po Generator Core: 24 różne profile statów per materiał/slot.
-
-    Generator Core może numerycznie wyrównać wartości istniejących statów. Tutaj zachowujemy
-    jego całkowity budżet możliwie blisko, ale rozkładamy go na 24 różne podzbiory statów.
-    Dzięki temu żadna para wariantów tego samego materiału i slotu nie jest statystyczną kopią.
-    """
-    from itertools import combinations
-    for tier in CORPSE_MATERIAL_TIERS:
-        ids = CORPSE_MATERIAL_ITEM_IDS.get(tier["key"], ())
-        for slot in CORPSE_MATERIAL_SLOT_DEFS:
-            rows = [
-                (item_id, ITEMS[item_id]) for item_id in ids
-                if ITEMS.get(item_id, {}).get("slot") == slot
-            ]
-            rows.sort(key=lambda row: int(row[1].get("corpse_random_variant", 0) or 0))
-            order = tuple(MATERIAL_SLOT_STAT_PREFERENCES.get(slot, MATERIAL_RANDOM_STAT_POOL))
-            patterns = []
-            # 5 singletonów + 10 par + pierwsze 9 trójek = dokładnie 24 unikalne układy kluczy.
-            for size in (1, 2, 3):
-                for combo in combinations(order, size):
-                    patterns.append(combo)
-                    if len(patterns) == CORPSE_RANDOM_VARIANTS_PER_SLOT:
-                        break
-                if len(patterns) == CORPSE_RANDOM_VARIANTS_PER_SLOT:
-                    break
-            if len(patterns) != CORPSE_RANDOM_VARIANTS_PER_SLOT:
-                raise RuntimeError(f"v0.30.37: za mało wzorców statów dla {slot}")
-
-            for index, (item_id, item) in enumerate(rows):
-                combo = patterns[index]
-                old_total = sum(max(0, int(v or 0)) for v in (item.get("stats") or {}).values())
-                # Nie osłabiamy przedmiotu; bardzo niski budżet może wzrosnąć maksymalnie do 3,
-                # żeby unikalny układ statów był możliwy także na Żelazie/Stali.
-                budget = max(len(combo), old_total)
-                values = {stat: 1 for stat in combo}
-                remaining = budget - len(combo)
-                pos = index % len(combo)
-                while remaining > 0:
-                    stat = combo[pos % len(combo)]
-                    values[stat] += 1
-                    pos += 1
-                    remaining -= 1
-                item["stats"] = values
-                variant = int(item.get("corpse_random_variant", index + 1) or index + 1)
-                req = int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)
-                item["name"] = _material_variant_title(tier, slot, values, variant, req)
-                stat_text = ", ".join(
-                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}" for stat, amount in values.items()
-                )
-                prop_text = ", ".join(
-                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%"
-                    for prop, amount in (item.get("properties") or {}).items()
-                )
-                item["desc"] = (
-                    f"Materiałowe EQ z ciała przeciwnika. Wymaga Levelu postaci {req}. "
-                    f"Slot ma własny profil, a wariant nie powtarza statów innego wariantu tego samego materiału/slotu. "
-                    f"Obrona +{int(item.get('defense', 0) or 0)}. Statystyki: {stat_text}. "
-                    f"Właściwości: {prop_text or 'brak dodatkowych'} ."
-                )
+def refresh_material_stat_profiles_v03037(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: refresh_material_stat_profiles_v03037")
+refresh_material_stat_profiles_v03037 = _sb410_bind(_sb410_mod_v410_equipment_audits.refresh_material_stat_profiles_v03037, globals())
 
 refresh_material_stat_profiles_v03037()
 
 
-def equipment_completeness_audit_v03037():
-    errors = []
-    logical_slots = set(CLASS_EQUIPMENT_SLOT_DEFS)
-    expected_slots = {
-        "head", "body", "shield", "hands", "legs", "feet", "charm", "ring", "necklace",
-        "earring", "shoulders", "belt", "cloak", "bracers", "bracelet", "accessory", "relic",
-    }
-    if logical_slots != expected_slots:
-        errors.append(f"class logical slots={sorted(logical_slots)} expected={sorted(expected_slots)}")
-    if set(CORPSE_MATERIAL_SLOT_DEFS) != expected_slots:
-        errors.append("material corpse slots do not match full logical slot set")
-
-    material_names = set()
-    material_items = 0
-    duplicate_profiles = []
-    for tier in CORPSE_MATERIAL_TIERS:
-        ids = CORPSE_MATERIAL_ITEM_IDS.get(tier["key"], ())
-        expected_count = len(expected_slots) * CORPSE_RANDOM_VARIANTS_PER_SLOT
-        if len(ids) != expected_count:
-            errors.append(f"{tier['key']}: item count={len(ids)} expected={expected_count}")
-        for slot in expected_slots:
-            rows = [ITEMS[i] for i in ids if ITEMS.get(i, {}).get("slot") == slot]
-            if len(rows) != CORPSE_RANDOM_VARIANTS_PER_SLOT:
-                errors.append(f"{tier['key']} {slot}: variants={len(rows)} expected={CORPSE_RANDOM_VARIANTS_PER_SLOT}")
-                continue
-            sigs = [tuple(sorted((k, int(v)) for k, v in (row.get("stats") or {}).items())) for row in rows]
-            if len(set(sigs)) != len(sigs):
-                duplicate_profiles.append(f"{tier['key']}:{slot}")
-            for row in rows:
-                material_items += 1
-                n = normalize_lookup_text(row.get("name", ""))
-                if n in material_names:
-                    errors.append(f"duplicate material EQ name: {row.get('name')}")
-                material_names.add(n)
-    if duplicate_profiles:
-        errors.append("duplicate material stat profiles: " + ", ".join(duplicate_profiles[:20]))
-
-    # Class EQ must expose earrings on representative levels for all 14 classes.
-    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for level in (1, 100, 200, 300, 400, 600):
-            ids = tiers.get(class_equipment_unlocked_tier(level), ())
-            slots = {ITEMS[i].get("slot") for i in ids if i in ITEMS}
-            if "earring" not in slots:
-                errors.append(f"{class_name} level {level}: missing class earring")
-                break
-
-    # Jewelcrafting must offer earrings throughout its tier table.
-    jewel_earrings = [i for i, item in ITEMS.items() if item.get("slot") == "earring" and item.get("jewelcraft_level")]
-    if len(jewel_earrings) < len(JEWELCRAFTING_TIERS):
-        errors.append(f"jewelcraft earrings={len(jewel_earrings)} tiers={len(JEWELCRAFTING_TIERS)}")
-
-    for slot in ("earring", "earring1", "earring2"):
-        if slot not in EQUIPMENT_SLOT_NAMES:
-            errors.append(f"missing display slot {slot}")
-    for alias in ("zkol", "zkol1", "zkol2"):
-        if alias not in COMMAND_ALIASES:
-            errors.append(f"missing earring shortcut {alias}")
-
-    # Krypta i Wieża Astralna również muszą używać pełnych 17 slotów.
-    for tier in (1, 20, 40):
-        crypt_slots = {ITEMS.get(f"crypt_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
-        if crypt_slots != expected_slots:
-            errors.append(f"crypt tier {tier}: incomplete slots {sorted(expected_slots - crypt_slots)}")
-    for tier in (1, 6, 11):
-        astral_slots = {ITEMS.get(f"astral_t{tier}_{slot}", {}).get("slot") for slot in expected_slots}
-        if astral_slots != expected_slots:
-            errors.append(f"astral tier {tier}: incomplete slots {sorted(expected_slots - astral_slots)}")
-
-    # Żadna nazwa pancerza/EQ w całej grze nie może się powtarzać.
-    armor_names = {}
-    duplicate_armor_names = []
-    for item_id, item in ITEMS.items():
-        if item.get("type") != "armor":
-            continue
-        key = normalize_lookup_text(item.get("name", ""))
-        previous = armor_names.get(key)
-        if previous is not None:
-            duplicate_armor_names.append((previous, item_id, item.get("name", "")))
-        else:
-            armor_names[key] = item_id
-    if duplicate_armor_names:
-        errors.append("duplicate armor names: " + repr(duplicate_armor_names[:10]))
-
-    # Reprezentatywny klasowy Tier: każdy slot musi mieć odmienny pełny profil
-    # (obrona + Attack/Magic Attack + staty + właściwości), więc nowe sloty nie
-    # są mechanicznymi kopiami. Od v1.13.8 płaska moc jest częścią realnej
-    # tożsamości slotu i musi być uwzględniana przez ten audit.
-    class_profiles_checked = 0
-    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        ids = list(tiers.get(class_equipment_unlocked_tier(200), ()))
-        # Pierwsza linia stylistyczna: po jednej części z każdego slotu.
-        first_style = {}
-        for iid in ids:
-            item = ITEMS.get(iid, {})
-            if int(item.get("class_equipment_style", 1) or 1) == 1:
-                first_style.setdefault(item.get("slot"), item)
-        if set(first_style) != expected_slots:
-            errors.append(f"{class_name}: incomplete representative class profile")
-            continue
-        signatures = []
-        for slot in sorted(expected_slots):
-            item = first_style[slot]
-            signatures.append((
-                int(item.get("defense", 0) or 0),
-                int(item.get("attack", 0) or 0),
-                int(item.get("magic_attack", 0) or 0),
-                item.get("affix"), int(item.get("affix_amount", 0) or 0),
-                tuple(sorted((item.get("stats") or {}).items())),
-                tuple(sorted((item.get("properties") or {}).items())),
-            ))
-        class_profiles_checked += len(signatures)
-        if len(set(signatures)) != len(signatures):
-            slots_sorted = sorted(expected_slots)
-            grouped = {}
-            for slot, signature in zip(slots_sorted, signatures):
-                grouped.setdefault(signature, []).append(slot)
-            duplicates = [group for group in grouped.values() if len(group) > 1]
-            errors.append(
-                f"{class_name}: duplicated slot profiles at Level 200: {duplicates}"
-            )
-
-    return {
-        "version": "0.30.37",
-        "logical_slot_count": len(expected_slots),
-        "material_items_checked": material_items,
-        "material_name_count": len(material_names),
-        "global_armor_name_count": len(armor_names),
-        "class_profiles_checked": class_profiles_checked,
-        "materials": len(CORPSE_MATERIAL_TIERS),
-        "variants_per_material_slot": CORPSE_RANDOM_VARIANTS_PER_SLOT,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def equipment_completeness_audit_v03037(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: equipment_completeness_audit_v03037")
+equipment_completeness_audit_v03037 = _sb410_bind(_sb410_mod_v410_equipment_audits.equipment_completeness_audit_v03037, globals())
 
 V03037_EQUIPMENT_COMPLETENESS_AUDIT = equipment_completeness_audit_v03037()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -1997,25 +961,7 @@ LATEST_CHANGES = [
 # v0.30.38 - BROKEN BLADES SPOKEN PROGRESS HOTFIX
 # ============================================================
 def broken_blades_spoken_progress_audit_v03038():
-    errors = []
-    import inspect as _inspect_v03038
-    src = _inspect_v03038.getsource(Session.grant_hourly_quest_kill_drop_v0929)
-    required = (
-        "increment_item_collect_quest",
-        "Postęp questa:",
-        "quest_progress=False",
-    )
-    for token in required:
-        if token not in src:
-            errors.append(f"missing runtime token: {token}")
-    quest = QUESTS.get("haldor_broken_blades_v0929", {})
-    if quest.get("target") != "damaged_weapon_v0929" or int(quest.get("needed", 0) or 0) != 6:
-        errors.append("broken blades target/needed changed")
-    return {
-        "version": "0.30.38",
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.broken_blades_spoken_progress_audit_v03038(Session=Session, QUESTS=QUESTS)
 
 BROKEN_BLADES_SPOKEN_PROGRESS_AUDIT_V03038 = broken_blades_spoken_progress_audit_v03038()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2105,104 +1051,10 @@ HELP_TOPICS.setdefault("questy", []).append(
 )
 
 
-def profession_carryover_audit_v03039():
-    errors = []
-    pool_checks = 0
-    positive_weights = 0
-    thresholds = tuple(int(v) for v in TOOL_TIER_THRESHOLDS)
-
-    groups = {
-        "rzeka": tuple(RIVER_FISH_ATLAS),
-        "jezioro": tuple(LAKE_FISH_ATLAS),
-        "morze": tuple(SEA_FISH_ATLAS),
-        "ocean": tuple(OCEAN_FISH_ATLAS),
-        "rudy": tuple(ORE_RESOURCE_IDS),
-        "drewno": tuple(WOOD_RESOURCE_IDS),
-        "ziola": tuple(HERB_RESOURCE_IDS),
-        "klejnoty": tuple(
-            iid for iid, item in ITEMS.items()
-            if item.get("type") == "gem_raw" and not item.get("gem_quality")
-        ),
-    }
-    final_sizes = {}
-    for label, ids in groups.items():
-        previous = set()
-        for level in thresholds:
-            pool = tuple(balance_math.resource_pool(ids, ITEMS, level, f"audit:{label}"))
-            pool_checks += 1
-            current = set(pool)
-            if not previous.issubset(current):
-                errors.append(f"{label}: zasób zniknął przy Tierze dla levelu {level}")
-            weights = balance_math.resource_weights(pool, ITEMS, level, f"audit:{label}")
-            if len(weights) != len(pool):
-                errors.append(f"{label}: niezgodna liczba wag na levelu {level}")
-            for item_id, weight in zip(pool, weights):
-                if float(weight) <= 0:
-                    errors.append(f"{label}: zerowa waga {item_id} na levelu {level}")
-                else:
-                    positive_weights += 1
-            previous = current
-        final_sizes[label] = len(previous)
-
-    # Specjalne łowisko nie może wycinać gatunków ze zwykłej kumulacyjnej puli.
-    forest_pref = set(FISHING_ECOLOGY_PREFERRED_IDS.get("forest_stream") or ())
-    river_low = set(balance_math.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[0], "audit:forest"))
-    river_high = set(balance_math.resource_pool(tuple(RIVER_FISH_ATLAS), ITEMS, thresholds[-1], "audit:forest"))
-    if not river_low.issubset(river_high):
-        errors.append("forest_stream: wcześniejsze ryby nie są podzbiorem późniejszej puli")
-    if forest_pref and not (forest_pref & river_high):
-        errors.append("forest_stream: preferencje ekologiczne nie przecinają puli rzecznej")
-
-    recipe_count = 0
-    forbidden_max_keys = (
-        "max_profession_level", "max_tool_level", "max_level",
-        "maximum_profession_level", "maximum_tool_level",
-    )
-    for table_name, table in (
-        ("craft", CRAFT_RECIPES), ("cook", COOK_RECIPES),
-        ("alchemy", ALCHEMY_RECIPES), ("jewel", JEWELCRAFT_RECIPES),
-    ):
-        for recipe_id, recipe in table.items():
-            recipe_count += 1
-            for key in forbidden_max_keys:
-                if recipe.get(key) not in (None, 0, ""):
-                    errors.append(f"{table_name}:{recipe_id}: górny limit {key}")
-
-    # Quest Marcela: pełna baza gatunków rzecznych + ich rzadkie warianty.
-    recipe = COOK_RECIPES.get("grilled_river_fish", {})
-    pool = set(recipe.get("pooled_ingredient_pool") or ())
-    expected = {
-        item_id for item_id in FISH_STORAGE_IDS
-        if base_fish_species_id(item_id) in RIVER_FISH_ATLAS
-    }
-    missing = expected - pool
-    if missing:
-        errors.append("Pieczona ryba rzeczna: brakuje ryb: " + ", ".join(sorted(missing)[:20]))
-    if int(recipe.get("pooled_ingredient_count", 0) or 0) != 2:
-        errors.append("Pieczona ryba rzeczna: wymaganie nie wynosi 2 ryb")
-    if recipe.get("distinct_ingredient_pool"):
-        errors.append("Pieczona ryba rzeczna nadal wymaga różnych gatunków")
-
-    race_topics = 0
-    for race_name, *_rest in RACES:
-        slug = "rasa_" + normalize_lookup_text(race_name).replace(" ", "_")
-        if slug not in HELP_TOPICS:
-            errors.append(f"brak help rasy: {race_name}")
-        else:
-            race_topics += 1
-
-    return {
-        "version": "0.30.39",
-        "race_topics": race_topics,
-        "pool_checks": pool_checks,
-        "positive_weights_checked": positive_weights,
-        "recipes_checked": recipe_count,
-        "river_recipe_pool_size": len(pool),
-        "river_base_species": len(RIVER_FISH_ATLAS),
-        "final_pool_sizes": final_sizes,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def profession_carryover_audit_v03039(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: profession_carryover_audit_v03039")
+profession_carryover_audit_v03039 = _sb410_bind(_sb410_mod_v410_equipment_audits.profession_carryover_audit_v03039, globals())
 
 PROFESSION_CARRYOVER_AUDIT_V03039 = profession_carryover_audit_v03039()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2223,37 +1075,7 @@ LATEST_CHANGES = [
 # v0.30.40 - COMPLETE EQ SHORTCUTS + OPTIONAL AUTO EQUIP
 # ============================================================
 def eq_shortcuts_auto_audit_v03040():
-    errors = []
-    expected_aliases = {
-        "zhel":"equiphead", "zpan":"equipbody", "ztar":"equipshield", "zrek":"equiphands",
-        "znog":"equiplegs", "zbut":"equipfeet", "ztal":"equipcharmauto",
-        "zpier":"equipringauto", "znasz":"equipnecklace", "zkol":"equipearringauto",
-        "znar":"equipshoulders", "zpas":"equipbelt", "zpel":"equipcloak",
-        "zkar":"equipbracers", "zbra":"equipbracelet", "zakc":"equipaccessoryauto",
-        "zrel":"equiprelic",
-        "autoeq":"autoequip", "eqauto":"autoequip", "zauto":"autoequip",
-    }
-    for alias, expected in expected_aliases.items():
-        if COMMAND_ALIASES.get(alias) != expected:
-            errors.append(f"{alias}: {COMMAND_ALIASES.get(alias)!r}, expected {expected!r}")
-    import inspect as _inspect_v03040
-    src = _inspect_v03040.getsource(Session.auto_equip_best_v03040)
-    for token in (
-        "required_class", "equipment_mastery_requirement_met",
-        "ring1", "ring2", "charm1", "charm2", "earring1", "earring2",
-        "accessory1", "accessory2", "return_socketed_gems", "AUTO EQ",
-    ):
-        if token not in src:
-            errors.append(f"auto eq missing token: {token}")
-    if len(CLASS_EQUIPMENT_SLOT_DEFS) != 17:
-        errors.append(f"logical EQ slot count {len(CLASS_EQUIPMENT_SLOT_DEFS)}, expected 17")
-    return {
-        "version":"0.30.40",
-        "shortcut_count":len(expected_aliases),
-        "logical_slot_count":len(CLASS_EQUIPMENT_SLOT_DEFS),
-        "error_count":len(errors),
-        "errors":errors,
-    }
+    return _audit_rules_v406.eq_shortcuts_auto_audit_v03040(COMMAND_ALIASES=COMMAND_ALIASES, Session=Session, CLASS_EQUIPMENT_SLOT_DEFS=CLASS_EQUIPMENT_SLOT_DEFS)
 
 EQ_SHORTCUTS_AUTO_AUDIT_V03040 = eq_shortcuts_auto_audit_v03040()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2291,50 +1113,7 @@ LATEST_CHANGES = [
 # v0.30.41 - UNIVERSAL EQUIPMENT SALVAGE
 # ============================================================
 def universal_salvage_audit_v03041():
-    errors = []
-    armor_ids = [item_id for item_id, item in ITEMS.items() if item.get("type") == "armor"]
-    by_material = {key: 0 for key in V0925_SALVAGE_MATERIALS}
-    for item_id in armor_ids:
-        item = ITEMS[item_id]
-        material = v03041_salvage_material_key(item)
-        if material not in V0925_SALVAGE_MATERIALS:
-            errors.append(f"{item_id}: invalid salvage material {material!r}")
-            continue
-        by_material[material] += 1
-        level = max(1, min(400, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
-        # Bez jawnego materiału późne EQ nie może wpadać z powrotem do Żelaza.
-        explicit = str(item.get("corpse_material") or item.get("blacksmith_material") or "").strip()
-        if not explicit and level >= 360 and material != "eternium" and not any(
-            token in normalize_lookup_text(item.get("name", ""))
-            for token in ("eternium", "pustk", "astral", "smocz", "runicz", "kobalt", "adamant", "mithril", "stal", "zelaz")
-        ):
-            errors.append(f"{item_id}: level {level} maps to {material}, expected eternium")
-    import inspect as _inspect_v03041
-    # v0.35.3: the active method is the newer Salvage 3.0 wrapper, which
-    # delegates classic armor salvage to SessionForgeGuildsMixin. Audit both
-    # layers instead of forcing the old implementation to remain first in MRO.
-    base_src = _inspect_v03041.getsource(SessionForgeGuildsMixin.salvage_equipment_v0925)
-    active_src = _inspect_v03041.getsource(Session.salvage_equipment_v0925)
-    for token in (
-        "free_equipment_quantity", "v03041_salvage_material_key",
-        "equipment_runes_v0925", "clear_equipment_crafting_v0925",
-        "ROZKŁADANIE EQ", "Wybierz numer",
-    ):
-        if token not in base_src:
-            errors.append(f"salvage base implementation missing token: {token}")
-    if "is_character_bound_item" in base_src:
-        errors.append("salvage still rejects bound armor")
-    if "SessionForgeGuildsMixin.salvage_equipment_v0925" not in active_src:
-        errors.append("Salvage 3.0 wrapper no longer delegates classic armor salvage")
-    if "SALVAGE3_V03114" not in active_src:
-        errors.append("Salvage 3.0 wrapper missing extended salvage registry")
-    return {
-        "version": "0.30.41",
-        "armor_checked": len(armor_ids),
-        "material_counts": by_material,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.universal_salvage_audit_v03041(ITEMS=ITEMS, V0925_SALVAGE_MATERIALS=V0925_SALVAGE_MATERIALS, v03041_salvage_material_key=v03041_salvage_material_key, SessionForgeGuildsMixin=SessionForgeGuildsMixin, Session=Session, normalize_lookup_text=normalize_lookup_text)
 
 UNIVERSAL_SALVAGE_AUDIT_V03041 = universal_salvage_audit_v03041()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2371,51 +1150,7 @@ LATEST_CHANGES = [
 # v0.30.42 - BLACKSMITH EQUIPMENT UPGRADES +1..+10
 # ============================================================
 def equipment_upgrade_audit_v03042():
-    errors = []
-    armor_ids = [iid for iid, item in ITEMS.items() if item.get("type") == "armor"]
-    for item_id in armor_ids:
-        item = ITEMS[item_id]
-        previous_req = 0
-        previous_cost = 0
-        for target in range(1, V03042_EQ_UPGRADE_MAX + 1):
-            req = v03042_upgrade_required_smithing(item, target)
-            cost = v03042_upgrade_material_cost(item, target)
-            if not 1 <= req <= CHARACTER_MAX_LEVEL:
-                errors.append(f"{item_id}: bad smithing requirement +{target}={req}")
-                break
-            if req < previous_req:
-                errors.append(f"{item_id}: smithing requirement decreases at +{target}")
-                break
-            if cost <= 0 or cost < previous_cost:
-                errors.append(f"{item_id}: bad/nonmonotonic material cost +{target}={cost}")
-                break
-            previous_req, previous_cost = req, cost
-        material = v03041_salvage_material_key(item)
-        if material not in V0925_SALVAGE_MATERIALS:
-            errors.append(f"{item_id}: invalid upgrade material {material}")
-    expected_aliases = {
-        "ulepsz": "equpgrade", "ulepszaj": "equpgrade", "upgrade": "equpgrade",
-        "upgradeeq": "equpgrade", "ulepszeq": "equpgrade",
-    }
-    for alias, command in expected_aliases.items():
-        if COMMAND_ALIASES.get(alias) != command:
-            errors.append(f"shortcut {alias} -> {COMMAND_ALIASES.get(alias)!r}, expected {command!r}")
-    import inspect as _inspect_v03042
-    src = _inspect_v03042.getsource(Session.upgrade_equipment_v03042)
-    for token in (
-        "Kowalstwo", "crafting_hammer", "required_tool_tier_for_level",
-        "v03042_upgrade_material_cost", "set_equipment_upgrade_level_v03042",
-        "grant_profession_progress", "Nie ma ryzyka zniszczenia",
-    ):
-        if token not in src:
-            errors.append(f"upgrade implementation missing token: {token}")
-    return {
-        "version": "0.30.42",
-        "armor_checked": len(armor_ids),
-        "max_upgrade": V03042_EQ_UPGRADE_MAX,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+    return _audit_rules_v406.equipment_upgrade_audit_v03042(ITEMS=ITEMS, V03042_EQ_UPGRADE_MAX=V03042_EQ_UPGRADE_MAX, v03042_upgrade_required_smithing=v03042_upgrade_required_smithing, v03042_upgrade_material_cost=v03042_upgrade_material_cost, CHARACTER_MAX_LEVEL=CHARACTER_MAX_LEVEL, v03041_salvage_material_key=v03041_salvage_material_key, V0925_SALVAGE_MATERIALS=V0925_SALVAGE_MATERIALS, COMMAND_ALIASES=COMMAND_ALIASES, Session=Session)
 
 EQUIPMENT_UPGRADE_AUDIT_V03042 = equipment_upgrade_audit_v03042()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2590,142 +1325,10 @@ def _help_commands_v03055(self):
 Session.help_commands = _help_commands_v03055
 
 
-def full_game_audit_v03055():
-    errors = []
-    warnings = []
-
-    # 1. World graph: every explicit exit must point to a real room.
-    bad_exits = []
-    dynamic_exits = []
-    dynamic_prefixes = (
-        "prof_", "mine_floor_", "crypt_floor_", "astral_floor_",
-        "mythic_crypt_floor_", "mythic_astral_floor_", "giant_fortress_",
-        "v0130_frontier_", "v018_endless_", "v020_mega_", "magitek_floor_",
-        "uoss_deep_dungeon_floor_",
-    )
-    exit_count = 0
-    for room_id, room in ROOMS.items():
-        exits = room.get("exits", {}) or {}
-        if isinstance(exits, dict):
-            for direction, target in exits.items():
-                exit_count += 1
-                if target not in ROOMS:
-                    if str(target).startswith(dynamic_prefixes):
-                        dynamic_exits.append(f"{room_id}:{direction}->{target}")
-                    else:
-                        bad_exits.append(f"{room_id}:{direction}->{target}")
-    if bad_exits:
-        errors.append("invalid static room exits: " + ", ".join(bad_exits[:20]))
-    if dynamic_exits:
-        warnings.append(f"dynamic exit targets={len(dynamic_exits)} (validated by runtime generators)")
-
-    # 2. Core catalogs.
-    if len(CLASSES) != 14:
-        errors.append(f"classes={len(CLASSES)}, expected 14")
-    class_names = [row[0] for row in CLASSES]
-    missing_skill_classes = [name for name in class_names if not CLASS_SKILLS.get(name)]
-    if missing_skill_classes:
-        errors.append("classes without skills: " + ", ".join(missing_skill_classes))
-    if not ITEMS:
-        errors.append("ITEMS is empty")
-    if not MOB_TEMPLATES:
-        errors.append("MOB_TEMPLATES is empty")
-    if not QUESTS:
-        errors.append("QUESTS is empty")
-
-    # 3. Recipe integrity across all major recipe registries.
-    recipe_sets = {
-        "craft": CRAFT_RECIPES,
-        "cook": COOK_RECIPES,
-        "alchemy": ALCHEMY_RECIPES,
-        "jewel": JEWELCRAFT_RECIPES,
-        "extended": V03053_CRAFT_RECIPES,
-    }
-    recipe_count = 0
-    for label, table in recipe_sets.items():
-        for recipe_id, recipe in table.items():
-            recipe_count += 1
-            for item_id, qty in (recipe.get("ingredients", {}) or {}).items():
-                if item_id not in ITEMS:
-                    errors.append(f"{label}/{recipe_id}: missing ingredient {item_id}")
-                if int(qty or 0) <= 0:
-                    errors.append(f"{label}/{recipe_id}: invalid quantity {item_id}={qty}")
-            output = recipe.get("output")
-            if output and output not in ITEMS:
-                errors.append(f"{label}/{recipe_id}: missing output {output}")
-
-    # 4. Profession/tool mappings.
-    expected_professions = {
-        "fishing":"Wędkarstwo", "mining":"Górnictwo", "woodcutting":"Drwalstwo",
-        "crafting":"Kowalstwo", "cooking":"Gotowanie", "herbalism":"Zielarstwo",
-        "alchemy":"Alchemia", "jewelcrafting":"Jubilerstwo", "tailoring":"Krawiectwo",
-        "leatherworking":"Garbarstwo", "carpentry":"Stolarstwo", "enchanting":"Zaklinanie",
-    }
-    for tool_type, profession in expected_professions.items():
-        if TOOL_PROFESSION_MAP.get(tool_type) != profession:
-            errors.append(f"tool/profession map {tool_type}->{TOOL_PROFESSION_MAP.get(tool_type)!r}, expected {profession}")
-        if profession not in PROFESSION_RANK_NAMES:
-            errors.append(f"missing rank names for {profession}")
-
-    # 5. English command coverage for every newer Polish-only canonical command.
-    english_aliases = {
-        "tailoring":"krawiectwo", "sew":"szyj",
-        "leatherworking":"garbarstwo", "tan":"garbuj",
-        "carpentry":"stolarstwo", "woodcraft":"stolarka",
-        "enchanting":"zaklinanie", "enchantitem":"zaklinaj",
-        "craftingmastery":"craftmastery", "leaderboard":"leaderboards",
-        "rankings":"leaderboards", "deathsummary":"deathrecap",
-        "combatsummary":"combatrecap",
-    }
-    for alias, target in english_aliases.items():
-        if COMMAND_ALIASES.get(alias) != target:
-            errors.append(f"English command alias missing/wrong: {alias}->{COMMAND_ALIASES.get(alias)!r}, expected {target}")
-
-    # 6. HELP integrity and current-system coverage.
-    virtual_help = {"tematy", "komendy", "wszystko", "kategorie"}
-    for alias, target in HELP_TOPIC_ALIASES.items():
-        if target not in HELP_TOPICS and target not in virtual_help:
-            errors.append(f"HELP alias without target: {alias}->{target}")
-    required_help = {
-        "krawiectwo", "garbarstwo", "stolarstwo", "zaklinanie",
-        "jakosccraftu", "krytycznycraft", "craftmastery",
-        "collection2", "completion2", "leaderboards2", "mentor2",
-        "housing2", "transport2", "recaps", "loothistory2",
-        "accessibility_presets", "social2",
-    }
-    for topic in sorted(required_help):
-        rows = HELP_TOPICS.get(topic)
-        if not rows:
-            errors.append(f"missing current HELP topic: {topic}")
-
-    # 7. Important data collisions worth reviewing, but not fatal.
-    names = {}
-    for item_id, item in ITEMS.items():
-        name = normalize_lookup_text(item.get("name", ""))
-        if name:
-            names.setdefault(name, []).append(item_id)
-    duplicate_names = {name: ids for name, ids in names.items() if len(ids) > 1}
-    if duplicate_names:
-        warnings.append(f"duplicate visible item names={len(duplicate_names)} (may be intentional variants)")
-
-    return {
-        "version": "0.30.55",
-        "rooms": len(ROOMS),
-        "exits": exit_count,
-        "items": len(ITEMS),
-        "mobs": len(MOB_TEMPLATES),
-        "quests": len(QUESTS),
-        "classes": len(CLASSES),
-        "skills": sum(len(CLASS_SKILLS.get(name, ())) for name in class_names),
-        "professions": len(PROFESSION_RANK_NAMES),
-        "recipes": recipe_count,
-        "help_topics": len(HELP_TOPICS),
-        "help_aliases": len(HELP_TOPIC_ALIASES),
-        "command_aliases": len(COMMAND_ALIASES),
-        "warnings": warnings,
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def full_game_audit_v03055(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: full_game_audit_v03055")
+full_game_audit_v03055 = _sb410_bind(_sb410_mod_v410_release_audits.full_game_audit_v03055, globals())
 
 FULL_GAME_AUDIT_V03055 = full_game_audit_v03055()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -2778,823 +1381,10 @@ _install_v0310_tech_help()
 # numeric item descriptions, invalid quest/item/NPC/shop links, skill-name
 # regressions, mojibake, or missing help aliases.
 # ============================================================
-def full_game_predeploy_audit_v0336():
-    errors=[]; warnings=[]; metrics={}
-    def err(kind,*parts): errors.append((kind,*parts))
-
-    # 1) Core registries and basic identity.
-    registries={
-        'rooms':ROOMS,'items':ITEMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,
-        'npcs':NPCS,'shops':SHOPS,'classes':CLASSES,'skills':CLASS_SKILLS,
-        'help_topics':HELP_TOPICS,'help_aliases':HELP_TOPIC_ALIASES,
-        'command_aliases':COMMAND_ALIASES,
-    }
-    for name,table in registries.items():
-        metrics[name]=len(table)
-        if not table: err('empty_registry',name)
-
-    # 2) UTF-8/mojibake guard for runtime-visible text.
-    bad_text_tokens=('\ufffd','Ã','Â','â€','â€™','ï¿½')
-    def bad_text(value):
-        s=str(value or '')
-        return any(tok in s for tok in bad_text_tokens)
-    for iid,it in ITEMS.items():
-        for field in ('name','desc','rarity_name'):
-            if bad_text(it.get(field,'')): err('mojibake_item',iid,field,it.get(field))
-    for mid,mob in MOB_TEMPLATES.items():
-        for field in ('name','desc'):
-            if bad_text(mob.get(field,'')): err('mojibake_mob',mid,field,mob.get(field))
-    for qid,q in QUESTS.items():
-        for field in ('name','desc','description'):
-            if bad_text(q.get(field,'')): err('mojibake_quest',qid,field,q.get(field))
-    for rid,room in ROOMS.items():
-        for field in ('name','desc'):
-            if bad_text(room.get(field,'')): err('mojibake_room',rid,field,room.get(field))
-    for topic,lines in HELP_TOPICS.items():
-        if bad_text(topic): err('mojibake_help_topic',topic)
-        if isinstance(lines,(list,tuple)):
-            for line in lines:
-                if bad_text(line): err('mojibake_help',topic,line)
-
-    # 2b) Player-facing names that identify content must be globally unique
-    # inside their own registry. This is especially important for NVDA navigation.
-    for registry_name,table in (
-        ('items',ITEMS),('mobs',MOB_TEMPLATES),('quests',QUESTS),('npcs',NPCS),('rooms',ROOMS)
-    ):
-        names={}
-        for object_id,obj in table.items():
-            name=str(obj.get('name') or '').strip()
-            if not name:
-                continue
-            key=name.casefold()
-            names.setdefault(key,[]).append(object_id)
-        for key,object_ids in names.items():
-            if len(object_ids)>1:
-                err('duplicate_display_name',registry_name,key,tuple(object_ids))
-
-    # 3) Rooms and exits.
-    dynamic_prefixes=(
-        'prof_','mine_floor_','crypt_floor_','astral_floor_','mythic_crypt_floor_',
-        'mythic_astral_floor_','giant_fortress_','v0130_frontier_','v018_endless_',
-        'v020_mega_','magitek_floor_','uoss_deep_dungeon_floor_',
-        'eth_void_floor_','eth_holy_floor_','eth_shadow_floor_'
-    )
-    # Echo Labyrinth generates floors on demand, so static rooms legitimately
-    # point at valid future room IDs. Only accept those IDs if the runtime
-    # generator really is installed; a generic v1500_ prefix would hide bugs.
-    from systems.echo_dungeon_v1500 import echo_identity
-    from world.world_state import World
-    echo_generator_ready = bool(getattr(World.ensure_infinite_dungeon_floor,
-                                        '_v1500_echo', False))
-    for rid,room in ROOMS.items():
-        if not str(room.get('name') or '').strip(): err('room_missing_name',rid)
-        for direction,target in (room.get('exits') or {}).items():
-            if target in ROOMS or str(target).startswith(dynamic_prefixes):
-                continue
-            if echo_generator_ready and echo_identity(target) is not None:
-                continue
-            err('broken_exit',rid,direction,target)
-
-    # 4) NPCs and shops.
-    for nid,npc in NPCS.items():
-        if not str(npc.get('name') or '').strip(): err('npc_missing_name',nid)
-        room=npc.get('room')
-        if room and room not in ROOMS: err('npc_missing_room',nid,room)
-        for key in ('quest','specialist_quest'):
-            qid=npc.get(key)
-            if qid and qid not in QUESTS: err('npc_missing_quest',nid,key,qid)
-        for qid in tuple(npc.get('quest_chain') or ()) + tuple(npc.get('specialist_quests') or ()):
-            if qid not in QUESTS: err('npc_missing_quest',nid,'chain',qid)
-    for shop_id,offers in SHOPS.items():
-        for iid in offers or ():
-            if iid not in ITEMS: err('shop_missing_item',shop_id,iid)
-    for room_id,offers in CLASS_SHOP_ITEMS_BY_ROOM.items():
-        if room_id not in ROOMS: err('class_shop_missing_room',room_id)
-        for iid in offers or ():
-            if iid not in ITEMS: err('class_shop_missing_item',room_id,iid)
-
-    # 5) Item identity and player-facing names.
-    technical_name_prefixes=('craftq_','item_','eq_','loot_')
-    for iid,it in ITEMS.items():
-        name=str(it.get('name') or '').strip()
-        if not name: err('item_missing_name',iid)
-        if name==str(iid) or name.lower().startswith(technical_name_prefixes):
-            err('technical_item_name',iid,name)
-        if 'price' in it:
-            try:
-                if int(it.get('price') or 0) < 0: err('negative_price',iid,it.get('price'))
-            except Exception: err('invalid_price',iid,it.get('price'))
-
-    # 6) Numeric item descriptions must equal post-generator runtime values.
-    numeric_claims=0
-    stat_patterns={
-        'strength':r'Siła','dexterity':r'Zręczność','constitution':r'Kondycja',
-        'intelligence':r'Inteligencja','willpower':r'Siła Woli','charisma':r'Charyzma'
-    }
-    for iid,it in ITEMS.items():
-        desc=str(it.get('desc') or '')
-        m=re.search(r'(?i)Obrona\s*\+\s*(-?\d+(?:[.,]\d+)?)',desc)
-        if m:
-            numeric_claims+=1
-            stated=float(m.group(1).replace(',','.')); actual=float(it.get('defense',0) or 0)
-            if abs(stated-actual)>1e-6: err('stale_item_defense_desc',iid,stated,actual)
-        stats=dict(it.get('stats') or {}); affix=str(it.get('affix') or ''); affix_amount=it.get('affix_amount')
-        for key,label in stat_patterns.items():
-            for m in re.finditer(rf'(?i){label}\s*\+\s*(-?\d+(?:[.,]\d+)?)',desc):
-                actual=stats.get(key)
-                if actual is None and affix==key: actual=affix_amount
-                if actual is None: continue
-                numeric_claims+=1
-                stated=float(m.group(1).replace(',','.'))
-                if abs(stated-float(actual))>1e-6: err('stale_item_stat_desc',iid,key,stated,actual)
-    metrics['numeric_item_claims_checked']=numeric_claims
-
-    # 7) Mob drops.
-    for mid,mob in MOB_TEMPLATES.items():
-        if not str(mob.get('name') or '').strip(): err('mob_missing_name',mid)
-        drops=mob.get('drops') or mob.get('loot') or {}
-        if isinstance(drops,dict): iterable=drops.keys()
-        else: iterable=drops
-        for entry in iterable:
-            iid=(entry.get('item') or entry.get('id')) if isinstance(entry,dict) else entry
-            if iid and iid not in ITEMS: err('mob_missing_drop_item',mid,iid)
-
-    # 7b) v0.71.1 final Crypt Soul Shard guarantee.  This is intentionally
-    # checked after the full runtime has been assembled, because older fixes
-    # could be overwritten by later Generator Core / Crypt balance passes.
-    crypt_shard_checked = 0
-    for mid, mob in MOB_TEMPLATES.items():
-        try:
-            crypt_floor = int(mob.get('crypt_floor', 0) or 0)
-        except Exception:
-            crypt_floor = 0
-        try:
-            mythic_floor = int(mob.get('mythic_crypt_floor', 0) or 0)
-        except Exception:
-            mythic_floor = 0
-        is_crypt = bool(
-            crypt_floor > 0 or mythic_floor > 0
-            or mob.get('crypt_boss') or mob.get('mythic_crypt_boss')
-            or str(mid) in ('skeleton', 'crypt_wraith')
-        )
-        if not is_crypt:
-            continue
-        crypt_shard_checked += 1
-        drops = mob.get('drops') or {}
-        try:
-            chance = float(drops.get('soul_shard', 0) or 0)
-        except Exception:
-            chance = 0.0
-        if chance < 1.0:
-            err('crypt_soul_shard_not_guaranteed', mid, chance)
-    metrics['crypt_soul_shard_templates_checked'] = crypt_shard_checked
-
-    # 8) Recipes across every recipe registry.
-    recipe_tables={
-        'craft':CRAFT_RECIPES,'cook':COOK_RECIPES,'alchemy':ALCHEMY_RECIPES,
-        'jewelcraft':JEWELCRAFT_RECIPES,'profession':V03053_CRAFT_RECIPES,
-    }
-    if 'TECH_CRAFT_RECIPES' in globals(): recipe_tables['tech']=TECH_CRAFT_RECIPES
-    for table_name,table in recipe_tables.items():
-        for rid,recipe in table.items():
-            for iid,qty in (recipe.get('ingredients') or {}).items():
-                if iid not in ITEMS: err('recipe_missing_ingredient',table_name,rid,iid)
-                try:
-                    if int(qty)<=0: err('recipe_bad_quantity',table_name,rid,iid,qty)
-                except Exception: err('recipe_bad_quantity',table_name,rid,iid,qty)
-            output=recipe.get('output')
-            if output and output not in ITEMS: err('recipe_missing_output',table_name,rid,output)
-    metrics['recipes_total']=sum(len(x) for x in recipe_tables.values())
-
-    # 9) Quests: definitions, items, rewards and supported kinds.
-    supported_kinds={
-        'collect','collect_category','collect_distinct_category','collect_resource',
-        'collect_resource_set','kill','deliver_npc','talk_npc','talk_class_teacher','craft_set','profession_action',
-        'explore_frontier','discover_secret','mini_dungeon','world_event',
-        'legendary_rare','world_boss','party_contract'
-    }
-    quest_kinds=set()
-    for qid,q in QUESTS.items():
-        if not str(q.get('name') or '').strip(): err('quest_missing_name',qid)
-        kind=q.get('kind'); quest_kinds.add(kind)
-        if kind not in supported_kinds: err('unsupported_quest_kind',qid,kind)
-        try:
-            if int(q.get('needed',1) or 0) < 0: err('quest_bad_needed',qid,q.get('needed'))
-        except Exception: err('quest_bad_needed',qid,q.get('needed'))
-        for field in ('item','item_id','required_item'):
-            iid=q.get(field)
-            if iid and isinstance(iid,str) and iid not in ITEMS: err('quest_missing_item',qid,field,iid)
-        for field in ('accept_items','reward_items','required_items'):
-            values=q.get(field) or {}
-            if isinstance(values,dict):
-                for iid,qty in values.items():
-                    if iid not in ITEMS: err('quest_missing_item',qid,field,iid)
-                    try:
-                        if int(qty)<=0: err('quest_bad_item_qty',qid,field,iid,qty)
-                    except Exception: err('quest_bad_item_qty',qid,field,iid,qty)
-        if kind=='craft_set':
-            req=q.get('craft_requirements') or q.get('requirements') or {}
-            for iid,qty in req.items():
-                if iid not in ITEMS: err('craft_set_missing_item',qid,iid)
-                try:
-                    if int(qty)<=0: err('craft_set_bad_qty',qid,iid,qty)
-                except Exception: err('craft_set_bad_qty',qid,iid,qty)
-        if kind=='party_contract':
-            try:
-                if int(q.get('minimum_party_size',0) or 0) < 2:
-                    err('party_contract_bad_minimum_party_size',qid,q.get('minimum_party_size'))
-            except Exception:
-                err('party_contract_bad_minimum_party_size',qid,q.get('minimum_party_size'))
-            if not q.get('repeatable'):
-                err('party_contract_not_repeatable',qid)
-            if str(q.get('target') or '') not in {'elite','boss','elemental','named_rare'}:
-                err('party_contract_bad_target',qid,q.get('target'))
-    metrics['quest_kinds']=tuple(sorted(str(x) for x in quest_kinds))
-
-    # 9b) Collections, museum, sets, boss codex and achievements.
-    if 'COLLECTION_V2_SET_GROUPS' in globals():
-        for group_id,item_ids in COLLECTION_V2_SET_GROUPS.items():
-            for iid in item_ids:
-                if iid not in ITEMS: err('collection_set_missing_item',group_id,iid)
-    if 'V0260_SET_PIECE_GROUPS' in globals():
-        for group_id,slots in V0260_SET_PIECE_GROUPS.items():
-            for slot,item_ids in slots.items():
-                for iid in item_ids:
-                    if iid not in ITEMS: err('museum_set_missing_item',group_id,slot,iid)
-    if 'LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER' in globals():
-        for cname,tiers in LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.items():
-            if cname not in CLASS_SKILLS: err('legendary_set_missing_class',cname)
-            for tier,item_ids in tiers.items():
-                for iid in item_ids:
-                    if iid not in ITEMS: err('legendary_set_missing_item',cname,tier,iid)
-    for table_name in ('V017_BIOME_SET_ITEMS','V021_MYTHIC_SET_ITEMS'):
-        table=globals().get(table_name,{})
-        for group_id,item_ids in table.items():
-            for iid in item_ids:
-                if iid not in ITEMS: err('set_missing_item',table_name,group_id,iid)
-    if 'NAMED_LOOT_CATALOG' in globals():
-        for iid in NAMED_LOOT_CATALOG:
-            if iid not in ITEMS: err('named_loot_missing_item',iid)
-    if 'WORLD_BOSS_UNIQUES' in globals():
-        for iid in WORLD_BOSS_UNIQUES:
-            if iid not in ITEMS: err('world_unique_missing_item',iid)
-    if 'BOSS_COLLECTION_CATALOG' in globals():
-        for mid in BOSS_COLLECTION_CATALOG:
-            if mid not in MOB_TEMPLATES: err('boss_catalog_missing_mob',mid)
-    if 'REGION_COLLECTION_ENTRIES' in globals():
-        for region,entry in REGION_COLLECTION_ENTRIES.items():
-            for mid in entry.get('bosses',()):
-                if mid not in MOB_TEMPLATES: err('region_collection_missing_boss',region,mid)
-    if 'CLASS_EQUIPMENT_SETS' in globals():
-        for cname,spec in CLASS_EQUIPMENT_SETS.items():
-            if cname not in CLASS_SKILLS: err('class_set_unknown_class',cname)
-            room=spec.get('room')
-            if room and room not in ROOMS: err('class_set_missing_room',cname,room)
-    if 'ACHIEVEMENT_TITLE_REWARDS' in globals() and 'ACHIEVEMENT_TRACKS' in globals():
-        for (track,tier),title in ACHIEVEMENT_TITLE_REWARDS.items():
-            if track not in ACHIEVEMENT_TRACKS:
-                err('achievement_title_missing_track',track,tier,title); continue
-            valid_tiers={x[1] for x in ACHIEVEMENT_TRACKS[track].get('tiers',())}
-            if tier not in valid_tiers: err('achievement_title_missing_tier',track,tier,title)
-
-    # 9c) Professions, tools and progression tables.
-    _expected_professions_v1112 = {
-        'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',
-        'Gotowanie', 'Alchemia', 'Kowalstwo', 'Jubilerstwo',
-        'Krawiectwo', 'Garbarstwo', 'Stolarstwo', 'Zaklinanie',
-        'Archeologia', 'Kartografia',
-    }
-    if set(PROFESSION_RANK_NAMES) != _expected_professions_v1112:
-        err('profession_catalog_mismatch', tuple(sorted(PROFESSION_RANK_NAMES)), tuple(sorted(_expected_professions_v1112)))
-    if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=80: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
-
-    # 9d) Deep quest target/dependency validation for every quest.
-    valid_kill_targets=set(MOB_TEMPLATES)
-    for _mid,_mob in MOB_TEMPLATES.items():
-        for _field in ('quest_target','quest_targets'):
-            _value=_mob.get(_field)
-            if isinstance(_value,str): valid_kill_targets.add(_value)
-            elif isinstance(_value,(list,tuple,set)): valid_kill_targets.update(map(str,_value))
-    valid_collect_categories={'fish','fish_river','fish_lake','fish_sea','fish_ocean','ore','wood','herb'}
-    npc_display_names={str(_npc.get('name') or '').casefold() for _npc in NPCS.values()}
-    for qid,q in QUESTS.items():
-        kind=q.get('kind'); target=q.get('target')
-        if kind in ('collect','collect_resource') and target not in ITEMS:
-            err('quest_bad_target_item',qid,target)
-        if kind in ('collect_category','collect_distinct_category') and target not in valid_collect_categories:
-            err('quest_bad_category',qid,target)
-        if kind=='kill' and target not in valid_kill_targets:
-            # "*" is the intentional wildcard used by hourly class quests:
-            # storage.db_quests.increment_quest accepts either the killed target
-            # or "*" so these quests advance on any valid mob kill.
-            dynamic_ok = target == "*"
-            # v0.38.4: these aliases are authored for lazy-generated Infinite Magitek
-            # templates, so they may have no static template before the first floor
-            # is materialized. Their dedicated audit verifies runtime tagging.
-            if target in ('magitek_infinite', 'magitek_elite') and callable(globals().get('create_infinite_magitek_floor_definition')):
-                dynamic_ok=True
-            if isinstance(target,str) and target.startswith('crypt_boss_'):
-                try:
-                    floor=int(target.rsplit('_',1)[1])
-                    dynamic_ok=210<=floor<=SOUL_MAX_LEVEL and floor%10==0
-                except Exception:
-                    dynamic_ok=False
-            if not dynamic_ok: err('quest_bad_kill_target',qid,target)
-        if kind=='deliver_npc' and q.get('target_npc') not in NPCS:
-            err('quest_bad_target_npc',qid,q.get('target_npc'))
-        if q.get('quest_item') and q.get('quest_item') not in ITEMS:
-            err('quest_bad_quest_item',qid,q.get('quest_item'))
-        if q.get('requires_quest') and q.get('requires_quest') not in QUESTS:
-            err('quest_bad_prerequisite',qid,q.get('requires_quest'))
-        if q.get('required_profession') and q.get('required_profession') not in PROFESSION_RANK_NAMES:
-            err('quest_bad_required_profession',qid,q.get('required_profession'))
-        if q.get('reward_profession') and q.get('reward_profession') not in PROFESSION_RANK_NAMES:
-            err('quest_bad_reward_profession',qid,q.get('reward_profession'))
-        if q.get('reward_faction_v016') and q.get('reward_faction_v016') not in V016_FACTIONS:
-            err('quest_bad_faction',qid,q.get('reward_faction_v016'))
-        if q.get('repeatable') and int(q.get('repeat_cooldown',0) or 0)<=0:
-            err('quest_bad_repeat_cooldown',qid,q.get('repeat_cooldown'))
-        if kind=='collect_resource_set':
-            req=dict(q.get('resource_targets') or {})
-            if sum(int(v) for v in req.values()) != int(q.get('needed',0) or 0):
-                err('quest_resource_set_needed_mismatch',qid,q.get('needed'),req)
-            for iid,qty in req.items():
-                if iid not in ITEMS: err('quest_resource_set_missing_item',qid,iid)
-                if int(qty)<=0: err('quest_resource_set_bad_qty',qid,iid,qty)
-        if kind=='craft_set':
-            targets=tuple(q.get('targets') or ())
-            if len(targets) != int(q.get('needed',0) or 0):
-                err('quest_craft_set_needed_mismatch',qid,q.get('needed'),len(targets))
-            for iid in targets:
-                if iid not in ITEMS: err('quest_craft_set_missing_item',qid,iid)
-        giver=str(q.get('giver') or '').strip()
-        if giver and giver.casefold() not in npc_display_names and giver!='Tablica Godzinnych Zleceń':
-            err('quest_unknown_giver',qid,giver)
-
-    # Prerequisite graph must be acyclic.
-    _visited=set(); _stack=set()
-    def _visit_quest_dep_v0336(qid):
-        if qid in _stack:
-            err('quest_prerequisite_cycle',qid); return
-        if qid in _visited: return
-        _visited.add(qid); _stack.add(qid)
-        dep=QUESTS[qid].get('requires_quest')
-        if dep in QUESTS: _visit_quest_dep_v0336(dep)
-        _stack.remove(qid)
-    for _qid in QUESTS: _visit_quest_dep_v0336(_qid)
-
-    # 9e) v0.34.1 Blacksmithing NPC resale must not multiply raw ore value.
-    _smith_rows_checked=0
-    try:
-        _smith_dummy=object.__new__(Session)
-        for _tier in BLACKSMITH_TIERS:
-            _ore=ITEMS.get(str(_tier.get('ore')), {})
-            _ore_value=legacy_currency_to_coins(
-                _ore.get('sell_silver',0), _ore.get('sell_gold',0), _ore.get('sell_mithril',0)
-            )
-            if _ore_value<=0:
-                err('blacksmith_ore_without_sale_value',_tier.get('key'),_tier.get('ore')); continue
-            for _slot,_slot_row in BLACKSMITH_SLOT_DEFS.items():
-                _iid=f"smith_{_tier['key']}_{_slot}"
-                _item=ITEMS.get(_iid)
-                if not _item:
-                    err('blacksmith_missing_crafted_item',_iid); continue
-                _cost=max(1,int(_slot_row[2] or 1))
-                _material_value=_ore_value*_cost
-                _sale=Session.generic_item_sale_value(_smith_dummy,_iid,_item)
-                _sale_value=legacy_currency_to_coins(_sale.get('silver',0),_sale.get('gold',0),_sale.get('mithril',0))
-                _max_normal=int(_material_value*0.90)
-                if _sale_value>_max_normal:
-                    err('blacksmith_normal_resale_too_high',_iid,_sale_value,_max_normal,_material_value)
-                _smith_rows_checked+=1
-    except Exception as _exc:
-        err('blacksmith_economy_audit_exception',repr(_exc))
-    metrics['blacksmith_resale_rows_checked']=_smith_rows_checked
-
-    # 9f) v0.34.4 Currency economy + Mithril mining gate.
-    # One wallet uses silver as the canonical unit; gold/mithril are display denominations.
-    if int(SILVER_PER_GOLD) != 100:
-        err('currency_ratio_silver_gold',SILVER_PER_GOLD,100)
-    if int(GOLD_PER_MITHRIL) != 1000000:
-        err('currency_ratio_gold_mithril',GOLD_PER_MITHRIL,1000000)
-    if int(SILVER_PER_MITHRIL) != 100000000:
-        err('currency_ratio_silver_mithril',SILVER_PER_MITHRIL,100000000)
-
-    _mob_split=0; _quest_split=0
-    _max_mob_currency=0; _max_quest_currency=0; _repeatable_count=0; _max_repeatable=0
-    for _mid,_mob in MOB_TEMPLATES.items():
-        _silver=int(_mob.get('silver',0) or 0)
-        _max_mob_currency=max(_max_mob_currency,_silver)
-        if int(_mob.get('gold',0) or 0) or int(_mob.get('mithril',0) or 0):
-            _mob_split+=1; err('mob_split_currency_not_normalized',_mid,_mob.get('gold'),_mob.get('mithril'))
-    for _qid,_q in QUESTS.items():
-        _coins=int(_q.get('reward_silver',0) or 0)
-        _max_quest_currency=max(_max_quest_currency,_coins)
-        if bool(_q.get('repeatable')) or int(_q.get('cooldown_seconds',0) or 0)>0:
-            _repeatable_count+=1; _max_repeatable=max(_max_repeatable,_coins)
-        if int(_q.get('reward_gold',0) or 0) or int(_q.get('reward_mithril',0) or 0):
-            _quest_split+=1; err('quest_split_currency_not_normalized',_qid,_q.get('reward_gold'),_q.get('reward_mithril'))
-    metrics['currency_mob_split_count']=_mob_split
-    metrics['currency_quest_split_count']=_quest_split
-    metrics['currency_max_mob_reward']=_max_mob_currency
-    metrics['currency_max_quest_reward']=_max_quest_currency
-    metrics['currency_repeatable_quests']=_repeatable_count
-    metrics['currency_max_repeatable_quest_reward']=_max_repeatable
-
-    # Real shop offers only, with the maximum Charisma cashback applied: no buy -> sell profit loop.
-    _shop_ids=set()
-    for _offers in SHOPS.values():
-        _shop_ids.update(_offers or ())
-    for _offers in CLASS_SHOP_ITEMS_BY_ROOM.values():
-        _shop_ids.update(_offers or ())
-    _shop_arbitrage=[]
-    try:
-        _economy_dummy=object.__new__(Session)
-        _max_discount=max(0,min(100,int(CHARISMA_MAX_DISCOUNT or 0)))
-        for _iid in sorted(_shop_ids):
-            _item=ITEMS.get(_iid)
-            if not _item:
-                continue
-            _buy=int(Session.shop_item_base_value_silver(_economy_dummy,_item) or 0)
-            if _buy<=0:
-                continue
-            _effective_buy=max(0,_buy-((_buy*_max_discount)//100))
-            _sale=Session.generic_item_sale_value(_economy_dummy,_iid,_item)
-            _sell=legacy_currency_to_coins(
-                _sale.get('silver',0),_sale.get('gold',0),_sale.get('mithril',0)
-            )
-            if _sell>_effective_buy:
-                _shop_arbitrage.append((_iid,_effective_buy,_sell))
-                err('shop_buy_sell_arbitrage',_iid,_effective_buy,_sell,_max_discount)
-    except Exception as _exc:
-        err('currency_shop_audit_exception',repr(_exc))
-    metrics['currency_shop_items_checked']=len(_shop_ids)
-    metrics['currency_shop_arbitrage_count']=len(_shop_arbitrage)
-    metrics['currency_max_charisma_discount']=int(CHARISMA_MAX_DISCOUNT or 0)
-
-    _max_explicit_sell=0
-    for _iid,_item in ITEMS.items():
-        _value=legacy_currency_to_coins(
-            _item.get('sell_silver',0),_item.get('sell_gold',0),_item.get('sell_mithril',0)
-        )
-        _max_explicit_sell=max(_max_explicit_sell,int(_value or 0))
-    metrics['currency_max_explicit_item_sell']=_max_explicit_sell
-
-    # v0.34.4: Mithril is a currency bonus from mining, never an ore resource.
-    if 'mithril_ore' in ORE_RESOURCE_IDS:
-        err('mithril_ore_must_not_be_active_resource')
-    if 'mithril_ore' in ORE_ATLAS_ALL:
-        err('mithril_ore_must_not_be_in_atlas')
-    if 'mithril_ore' in ORE_ATLAS_LEVELS or 'mithril_ore' in ORE_MINE_FLOOR_MINIMUMS:
-        err('mithril_ore_must_not_have_unlock_threshold')
-    _mithril_chance_79=mining_mithril_currency_chance(79,79,79)
-    _mithril_chance_80=mining_mithril_currency_chance(80,80,80)
-    _mithril_chance_400=mining_mithril_currency_chance(400,400,400)
-    _mithril_chance_600=mining_mithril_currency_chance(600,600,600)
-    if _mithril_chance_79 != 0:
-        err('mithril_currency_unlock_too_early',_mithril_chance_79)
-    if not (0.0049 <= _mithril_chance_80 <= 0.0051):
-        err('mithril_currency_level80_chance',_mithril_chance_80)
-    _mithril_chance_800=mining_mithril_currency_chance(800,800,800)
-    if not (0.0199 <= _mithril_chance_800 <= 0.0201):
-        err('mithril_currency_level800_chance',_mithril_chance_800)
-    metrics['mithril_currency_chance_level80']=_mithril_chance_80
-    metrics['mithril_currency_chance_level400']=_mithril_chance_400
-    metrics['mithril_currency_chance_level600']=_mithril_chance_600
-
-    # Audit authored ore weighting: newly unlocked core ores must be meaningfully
-    # visible, while older ores remain possible.
-    _ore_drop_checks=(
-        (50,'gold_ore'),(100,'cobalt_ore'),(120,'runestone_ore'),
-        (140,'dragonsteel_ore'),(160,'astral_ore'),(180,'void_ore'),
-        (200,'eternium_ore'),(220,'ore_400_220'),(400,'ore_400_400'),
-    )
-    _ore_drop_metrics={}
-    for _level,_ore_id in _ore_drop_checks:
-        _pool=[]
-        for _iid in ORE_RESOURCE_IDS:
-            if _iid not in ITEMS:
-                continue
-            if int(ORE_ATLAS_LEVELS.get(_iid,1) or 1) <= _level and int(ORE_MINE_FLOOR_MINIMUMS.get(_iid,1) or 1) <= _level:
-                _pool.append(_iid)
-        _weights=mining_ore_weights(_pool,_level,f'audit:mine_floor_{_level}')
-        _total=sum(_weights) or 1.0
-        _prob=0.0
-        if _ore_id in _pool:
-            _prob=float(_weights[_pool.index(_ore_id)])/_total
-        _ore_drop_metrics[_ore_id]=round(_prob,6)
-        if _prob < 0.08:
-            err('current_tier_ore_too_rare',_level,_ore_id,_prob)
-    metrics['mining_current_ore_probabilities']=_ore_drop_metrics
-    try:
-        metrics['currency_guild_upgrade_1_400']=sum(int(v0926_guild_upgrade_cost(_lvl) or 0) for _lvl in range(1,V0926_GUILD_MAX_LEVEL))
-    except Exception as _exc:
-        warnings.append(('guild_currency_sink_metric_unavailable',repr(_exc)))
-
-    # 10) Skills/spells: no duplicate display names, no numeric disambiguators.
-    seen_skill_names={}; skill_count=0
-    for cname,rows in CLASS_SKILLS.items():
-        for skill in rows:
-            skill_count+=1
-            name=str(skill.get('name') or '').strip()
-            if not name: err('skill_missing_name',cname,skill.get('id'))
-            key=normalize_lookup_text(name)
-            seen_skill_names.setdefault(key,[]).append((cname,skill.get('id'),name))
-            if re.search(r'\d',name): err('skill_numeric_name',cname,skill.get('id'),name)
-            try:
-                unlock=int(skill.get('unlock',0) or 0)
-                if not 1<=unlock<=CLASS_MASTERY_MAX_LEVEL: err('skill_bad_unlock',cname,skill.get('id'),unlock)
-            except Exception: err('skill_bad_unlock',cname,skill.get('id'),skill.get('unlock'))
-    for key,rows in seen_skill_names.items():
-        if len(rows)>1: err('duplicate_skill_name',key,rows)
-    metrics['skills_total']=skill_count
-
-    # v0.35.3: Hunter/combat regression gate. Offensive Hunter skills must keep
-    # their authored Dexterity scaling, and Soul Weapon trait_totals must never
-    # leak into use_class_skill (traits belong only to the basic weapon attack).
-    _hunter_rows=list(CLASS_SKILLS.get('Łowca') or [])
-    _hunter_supported={'damage','drain','execute','aoe_damage','heal','group_heal','guard','evade','boost','passive'}
-    _hunter_aliases={}
-    _hunter_alias_collisions=[]
-    for _skill in _hunter_rows:
-        _sid=str(_skill.get('id') or '')
-        _kind=str(_skill.get('kind') or '')
-        if _kind not in _hunter_supported:
-            err('hunter_unsupported_kind',_sid,_kind)
-        if _kind in {'damage','drain','execute','aoe_damage'}:
-            if _skill.get('scale') != 'dexterity':
-                err('hunter_bad_scale',_sid,_skill.get('scale'))
-            for _field in ('scale','mult'):
-                if _field not in _skill:
-                    err('hunter_missing_field',_sid,_field)
-        if _kind == 'execute' and 'execute_mult' not in _skill:
-            err('hunter_missing_field',_sid,'execute_mult')
-        if _kind == 'boost' and 'boost' not in _skill:
-            err('hunter_missing_field',_sid,'boost')
-        for _form in [str(_skill.get('name') or '')] + list(_skill.get('aliases') or []):
-            _norm=normalize_lookup_text(_form)
-            if not _norm:
-                continue
-            _prev=_hunter_aliases.get(_norm)
-            if _prev and _prev != _sid:
-                _hunter_alias_collisions.append((_form,_prev,_sid))
-            else:
-                _hunter_aliases[_norm]=_sid
-    for _row in _hunter_alias_collisions:
-        err('hunter_alias_collision',*_row)
-    metrics['hunter_skills_checked']=len(_hunter_rows)
-    metrics['hunter_alias_collisions']=len(_hunter_alias_collisions)
-    try:
-        _use_body=(_ROOT/'player/session_mixins/combat_skills.py').read_text(encoding='utf-8')
-        if 'trait_totals' in _use_body:
-            err('soul_weapon_trait_leak_into_skills')
-    except Exception as _exc:
-        err('combat_skill_source_audit_failed',repr(_exc))
-
-    # 10b) v0.35.3 Soul Weapon Mastery + Main Menu Exit gate.
-    try:
-        if int(SOUL_WEAPON_MASTERY_MAX_LEVEL) != 800:
-            err('soul_weapon_mastery_bad_cap',SOUL_WEAPON_MASTERY_MAX_LEVEL)
-        _m1=soul_weapon_mastery_bonuses(1)
-        _m200=soul_weapon_mastery_bonuses(200)
-        _m400=soul_weapon_mastery_bonuses(400)
-        _m600=soul_weapon_mastery_bonuses(600)
-        _m800=soul_weapon_mastery_bonuses(800)
-        if any(float(_m1.get(k,0) or 0) != 0.0 for k in ('damage_percent','crit_chance','crit_damage_percent','boss_damage_percent','echo_chance')):
-            err('soul_weapon_mastery_level1_not_neutral',_m1)
-        if not (0.0099 <= float(_m200.get('echo_chance',0) or 0) <= 0.0101):
-            err('soul_weapon_mastery_echo_200',_m200.get('echo_chance'))
-        if abs(float(_m800.get('damage_percent',0))-8.0)>0.0001:
-            err('soul_weapon_mastery_damage_800',_m600.get('damage_percent'))
-        if abs(float(_m800.get('crit_chance',0))-0.02)>0.000001:
-            err('soul_weapon_mastery_crit_800',_m600.get('crit_chance'))
-        if abs(float(_m800.get('crit_damage_percent',0))-12.0)>0.0001:
-            err('soul_weapon_mastery_crit_damage_800',_m600.get('crit_damage_percent'))
-        if abs(float(_m800.get('boss_damage_percent',0))-5.0)>0.0001:
-            err('soul_weapon_mastery_boss_800',_m600.get('boss_damage_percent'))
-        if abs(float(_m800.get('echo_chance',0))-0.05)>0.000001:
-            err('soul_weapon_mastery_echo_800',_m600.get('echo_chance'))
-        _basic_body=(_ROOT/'player/session_mixins/combat_realtime.py').read_text(encoding='utf-8')
-        if 'grant_soul_weapon_mastery_hit_xp' not in _basic_body:
-            err('soul_weapon_mastery_missing_basic_attack_xp')
-        _use_body=(_ROOT/'player/session_mixins/combat_skills.py').read_text(encoding='utf-8')
-        if 'grant_soul_weapon_mastery_hit_xp' in _use_body or 'soul_weapon_mastery_bonuses' in _use_body:
-            err('soul_weapon_mastery_leaked_into_skills')
-        _auth_source=(_ROOT/'player/session_mixins/io_auth_character.py').read_text(encoding='utf-8')
-        if 'await self.close_from_main_menu()' not in _auth_source or 'self.writer.close()' not in _auth_source:
-            err('main_menu_exit_not_explicit_close')
-        _db_source='\n'.join(((_ROOT/'storage/db_schema.py').read_text(encoding='utf-8'), (_ROOT/'storage/schema_migrate_character.py').read_text(encoding='utf-8')))
-        for _column in ('soul_weapon_mastery_level','soul_weapon_mastery_xp'):
-            if _column not in _db_source:
-                err('soul_weapon_mastery_db_column_missing',_column)
-        metrics['soul_weapon_mastery_cap']=int(SOUL_WEAPON_MASTERY_MAX_LEVEL)
-        metrics['soul_weapon_mastery_bonus_400']=dict(_m400)
-    except Exception as _exc:
-        err('soul_weapon_mastery_audit_exception',repr(_exc))
-
-    # 10c) v0.35.3 profession automation / identifier regression gate.
-    # The v0.35.0 Polish Pass accidentally changed some Python identifiers
-    # from ``level`` to ``poziom`` while leaving references to the other name.
-    # That produced NameError inside gathering XP and silently killed auto tasks.
-    try:
-        import ast as _ast
-        _identifier_mismatches=[]
-        _functions_checked=0
-        for _path in sorted(_ROOT.rglob('*.py')):
-            # Ignore generated bytecode/cache trees if a local developer has them.
-            if '__pycache__' in _path.parts:
-                continue
-            try:
-                _tree=_ast.parse(_path.read_text(encoding='utf-8'), filename=str(_path))
-            except Exception as _exc:
-                err('python_source_parse_failed',str(_path.relative_to(_ROOT)),repr(_exc))
-                continue
-            for _node in _ast.walk(_tree):
-                if not isinstance(_node,(_ast.FunctionDef,_ast.AsyncFunctionDef)):
-                    continue
-                _functions_checked += 1
-                _params={_a.arg for _a in list(_node.args.args)+list(_node.args.kwonlyargs)}
-                _stores=set(_params)
-                _loads=set()
-                for _child in _ast.walk(_node):
-                    if isinstance(_child,_ast.Name):
-                        if isinstance(_child.ctx,(_ast.Store,_ast.Param)):
-                            _stores.add(_child.id)
-                        elif isinstance(_child.ctx,_ast.Load):
-                            _loads.add(_child.id)
-                if 'level' in _stores and 'poziom' in _loads and 'poziom' not in _stores:
-                    _identifier_mismatches.append((str(_path.relative_to(_ROOT)),_node.name,'local_level_load_poziom'))
-                if 'poziom' in _stores and 'level' in _loads and 'level' not in _stores:
-                    _identifier_mismatches.append((str(_path.relative_to(_ROOT)),_node.name,'local_poziom_load_level'))
-        for _row in _identifier_mismatches:
-            err('level_poziom_identifier_mismatch',*_row)
-        metrics['python_functions_identifier_checked']=_functions_checked
-        metrics['level_poziom_identifier_mismatches']=len(_identifier_mismatches)
-
-        _prof_source=(_ROOT/'player/session_mixins/gathering.py').read_text(encoding='utf-8')
-        _auto_specs=(
-            ('auto_fishing_loop','set_auto_fishing','AUTO_FISHING_ERROR'),
-            ('auto_mining_loop','set_auto_mining','AUTO_MINING_ERROR'),
-            ('auto_woodcutting_loop','set_auto_woodcutting','AUTO_WOODCUTTING_ERROR'),
-            ('auto_herbalism_loop','set_auto_herbalism','AUTO_HERBALISM_ERROR'),
-        )
-        for _fn,_next_fn,_tag in _auto_specs:
-            _start=_prof_source.find(f'    async def {_fn}(')
-            _end=_prof_source.find(f'    async def {_next_fn}(',_start+1)
-            if _start < 0 or _end < 0:
-                err('auto_profession_loop_missing',_fn)
-                continue
-            _body=_prof_source[_start:_end]
-            if 'except Exception as exc:' not in _body or _tag not in _body:
-                err('auto_profession_loop_silent_failure_guard_missing',_fn)
-        metrics['auto_profession_loops_guarded']=len(_auto_specs)
-    except Exception as _exc:
-        err('profession_automation_regression_audit_exception',repr(_exc))
-
-    # 11) HELP aliases and nonempty topics.
-    virtual={'tematy','komendy','wszystko','kategorie'}
-    for alias,target in HELP_TOPIC_ALIASES.items():
-        if target not in HELP_TOPICS and target not in virtual: err('help_alias_missing_target',alias,target)
-    for topic,lines in HELP_TOPICS.items():
-        if not lines: err('empty_help_topic',topic)
-
-    # 11b) v0.35.3 polish regression gate: keep internal release labels and
-    # stale caps out of normal player-facing runtime text.
-    try:
-        _polish_files=(
-            'player/session_mixins/quest_progress.py',
-            'player/session_mixins/quest_offers.py',
-            'player/session_mixins/quest_turnin.py',
-            'player/session_mixins/quest_npc.py',
-            'player/session_mixins/quest_commands.py',
-            'player/session_mixins/progression_accessibility.py',
-            'player/session_mixins/milestone.py',
-            'player/session_mixins/crafting.py',
-            'player/session_mixins/inventory_equipment.py',
-            'player/session_mixins/shops_teachers.py',
-            'player/session_mixins/crafting_expansion.py',
-            'player/session_mixins/tech_crafting.py',
-            'player/session_mixins/museum_bounty.py',
-            'player/session_mixins/world_events_endgame.py',
-            'player/session_mixins/exploration_progress.py',
-            'player/session_mixins/collection_loot_records.py',
-            'player/session_mixins/social_expansion.py',
-            'player/session_mixins/courier_delivery.py',
-            'player/session_mixins/admin_tools.py',
-            'player/session_mixins/gathering_actions.py',
-            'player/session_mixins/sales.py',
-            'player/session_mixins/forge_guilds.py',
-            'systems/content_registry.py',
-        )
-        _polish_source='\n'.join((_ROOT/_rel).read_text(encoding='utf-8') for _rel in _polish_files)
-        _forbidden_ui=(
-            'QUEST LIST:', 'QUEST INFO:', 'AKTYWNE QUESTY:', 'UKOŃCZONE QUESTY:',
-            'COLLECTION CODEX 2.0', 'LOOT HISTORY 2.0', 'DEATH RECAP:',
-            'COMBAT RECAP:', 'PARTY QUEST PROGRESS 2.0', 'SALVAGE 3.0:',
-            'REFINING 2.0', 'MACHINE SALVAGE 2.0', 'FISHING RECORDS 2.0',
-            'DYNAMICZNE EVENTY v0.29', 'MITYCZNA PROGRESJA v0.21',
-            'COLLECTION CODEX — ŚWIAT v0.15',
-            'poziomy Gildii 1-100', 'maksymalnie +11% do Biegłości',
-        )
-        for _token in _forbidden_ui:
-            if _token in _polish_source:
-                err('stale_player_ui_token',_token)
-        metrics['polish_ui_tokens_checked']=len(_forbidden_ui)
-    except Exception as _exc:
-        err('polish_source_audit_failed',repr(_exc))
-
-    # 12) Static code-integrity gate for assembled runtime.
-    # Check method references across every Session mixin, plus the main runtime
-    # collaborators used through self.server/db/world/character. This catches
-    # rare-path typos that normal startup cannot execute (e.g. a single Mec proc
-    # or an admin-only command).
-    try:
-        import ast as _ast_code
-        _session_called=set()
-        _db_called=set()
-        _world_called=set()
-        _server_called=set()
-        _character_called=set()
-        _session_files=list((_ROOT/'player/session_mixins').glob('*.py'))+[(_ROOT/'player/session.py')]
-        for _path in _session_files:
-            _tree=_ast_code.parse(_path.read_text(encoding='utf-8'), filename=str(_path))
-            for _node in _ast_code.walk(_tree):
-                if not isinstance(_node,_ast_code.Call) or not isinstance(_node.func,_ast_code.Attribute):
-                    continue
-                _attr=_node.func.attr
-                _value=_node.func.value
-                if isinstance(_value,_ast_code.Name) and _value.id=='self':
-                    _session_called.add(_attr)
-                    continue
-                # self.character.foo(...)
-                if (isinstance(_value,_ast_code.Attribute) and _value.attr=='character'
-                        and isinstance(_value.value,_ast_code.Name) and _value.value.id=='self'):
-                    _character_called.add(_attr); continue
-                # self.server.foo(...)
-                if (isinstance(_value,_ast_code.Attribute) and _value.attr=='server'
-                        and isinstance(_value.value,_ast_code.Name) and _value.value.id=='self'):
-                    _server_called.add(_attr); continue
-                # self.server.db.foo(...) / self.server.world.foo(...)
-                if isinstance(_value,_ast_code.Attribute) and _value.attr in ('db','world'):
-                    _base=_value.value
-                    if (isinstance(_base,_ast_code.Attribute) and _base.attr=='server'
-                            and isinstance(_base.value,_ast_code.Name) and _base.value.id=='self'):
-                        (_db_called if _value.attr=='db' else _world_called).add(_attr)
-        for _name in sorted(_session_called):
-            if not hasattr(Session,_name): err('missing_session_method_reference',_name)
-        for _name in sorted(_db_called):
-            if not hasattr(Database,_name): err('missing_database_method_reference',_name)
-        for _name in sorted(_world_called):
-            if not hasattr(World,_name): err('missing_world_method_reference',_name)
-        for _name in sorted(_server_called):
-            if not hasattr(MudServer,_name): err('missing_server_method_reference',_name)
-        for _name in sorted(_character_called):
-            if not hasattr(Character,_name): err('missing_character_method_reference',_name)
-        metrics['session_methods_called_checked']=len(_session_called)
-        metrics['database_methods_called_checked']=len(_db_called)
-        metrics['world_methods_called_checked']=len(_world_called)
-        metrics['server_methods_called_checked']=len(_server_called)
-        metrics['character_methods_called_checked']=len(_character_called)
-
-        # MRO regression gate: newer extensions must remain the active methods,
-        # while they can explicitly delegate to their older compatibility layer.
-        _expected_owners={
-            'salvage_equipment_v0925':SessionCraftingExpansionV03114Mixin,
-            'tell':SessionSocialExpansionMixin,
-            'who':SessionSocialExpansionMixin,
-            'channel_broadcast_v03050':SessionSocialExpansionMixin,
-            'show_channels_v03050':SessionSocialExpansionMixin,
-        }
-        for _name,_owner in _expected_owners.items():
-            _resolved=getattr(Session,_name,None)
-            _expected=getattr(_owner,_name,None)
-            if _resolved is not _expected:
-                err('session_mro_shadowing_regression',_name,getattr(_resolved,'__qualname__',None),getattr(_expected,'__qualname__',None))
-        metrics['mro_resolution_checks']=len(_expected_owners)
-
-        # Long-lived background loops must survive an unexpected iteration error.
-        _server_source=(_ROOT/'server/mud_server.py').read_text(encoding='utf-8')
-        for _fn,_tag in (('double_xp_event_loop','DOUBLE XP LOOP ERROR'),('mob_wander_loop','MOB WANDER LOOP ERROR')):
-            _start=_server_source.find(f'    async def {_fn}(')
-            _next=_server_source.find('    async def ',_start+1)
-            _body=_server_source[_start:(_next if _next>_start else len(_server_source))]
-            if 'except Exception as exc:' not in _body or _tag not in _body:
-                err('background_loop_guard_missing',_fn)
-        _core_source=(_ROOT/'player/session_mixins/rest_mana.py').read_text(encoding='utf-8')
-        _start=_core_source.find('    async def rest_loop(')
-        _next=_core_source.find('    async def ',_start+1)
-        _body=_core_source[_start:(_next if _next>_start else len(_core_source))]
-        if 'except Exception as exc:' not in _body or 'REST_LOOP_ERROR' not in _body:
-            err('background_loop_guard_missing','rest_loop')
-        metrics['background_loop_guards_checked']=3
-    except Exception as _exc:
-        err('code_integrity_gate_exception',repr(_exc))
-
-    return {
-        'version':'0.35.6','error_count':len(errors),'warning_count':len(warnings),
-        'errors':errors,'warnings':warnings,'metrics':metrics,
-        'description_sync':dict(ITEM_DESCRIPTION_SYNC_V0336),
-    }
+def full_game_predeploy_audit_v0336(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: full_game_predeploy_audit_v0336")
+full_game_predeploy_audit_v0336 = _sb410_bind(_sb410_mod_v410_release_audits.full_game_predeploy_audit_v0336, globals())
 
 # v0.34.4: the exhaustive audit must run only after *all* runtime modules are
 # loaded. server.py executes it after the module loop when SOULBOUND_FULL_AUDIT=1.
@@ -3705,63 +1495,10 @@ LATEST_CHANGES = [
 
 
 # v0.35.7 - BULK SMELTING + INGOT-BASED SMITHING
-def bulk_smelting_ingot_smithing_audit_v0357():
-    errors=[]
-    metrics={}
-    try:
-        import inspect
-        source=inspect.getsource(SessionCraftingExpansionV03114Mixin.smelt_item_v03114)
-        executor=inspect.getsource(SessionCraftingExpansionV03114Mixin._smelt_execute_v1124)
-        combined=source + "\n" + executor
-        # v1.12.4: public handler manages status/stop and delegates the actual
-        # bulk contract to a task executor. Keep the historical v0.35.7 guarantees,
-        # but accept the interruptible wait that replaces a raw asyncio.sleep.
-        metrics["bulk_single_action"] = (
-            "przetopów w jednej akcji" in combined
-            and (
-                "await asyncio.sleep(action_seconds)" in combined
-                or "await self.smelt_wait_v1124(action_seconds)" in combined
-            )
-        )
-        metrics["pooled_xp"] = "pooled_profession_xp" in combined and "pooled_tool_xp" in combined
-        metrics["includes_direct_ore"] = 'recipe_ids = [tier["ingot"] for tier in BLACKSMITH_TIERS]' in combined
-        metrics["includes_steel_plates"] = 'recipe_ids.append("recycled_steel_ingot")' in combined
-        metrics["includes_salvage"] = "SALVAGE_SMELT_FALLBACK_V03113.values()" in combined
-        for key,value in metrics.items():
-            if not value:
-                errors.append(f"bulk smelting audit failed: {key}")
-
-        ingot_ids={str(tier.get("ingot")) for tier in BLACKSMITH_TIERS}
-        ingot_ids.add("steel_ingot")
-        checked=0
-        for recipe_id,recipe in CRAFT_RECIPES.items():
-            output=ITEMS.get(recipe.get("output"),{})
-            if output.get("type") != "armor":
-                continue
-            category=str(recipe.get("category") or "")
-            # Tech equipment has its own component/alloy economy. This gate covers
-            # the normal blacksmith equipment line and the historical forge charms.
-            if category in ("technology","tech_set","salvage_forging"):
-                continue
-            if "forge" not in tuple(recipe.get("stations") or ()):
-                continue
-            profession=str(recipe.get("profession") or "Kowalstwo")
-            tool_type=str(recipe.get("tool_type") or "crafting")
-            if profession != "Kowalstwo" or tool_type != "crafting":
-                continue
-            checked+=1
-            ingredients=set((recipe.get("ingredients") or {}).keys())
-            raw_ores=[iid for iid in ingredients if str(iid).endswith("_ore") or str(iid).startswith("ore_")]
-            if raw_ores:
-                errors.append(f"kowalskie EQ używa surowej rudy {recipe_id}: {raw_ores}")
-            if not (ingredients & ingot_ids):
-                errors.append(f"kowalskie EQ bez sztabki {recipe_id}: {sorted(ingredients)}")
-        metrics["smith_equipment_recipes_checked"] = checked
-        if checked < 10:
-            errors.append(f"za mało receptur kowalskiego EQ w audicie: {checked}")
-    except Exception as exc:
-        errors.append(f"bulk smelting/ingot smithing audit exception: {type(exc).__name__}: {exc}")
-    return {"version":"0.35.7","error_count":len(errors),"errors":errors,"metrics":metrics}
+def bulk_smelting_ingot_smithing_audit_v0357(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: bulk_smelting_ingot_smithing_audit_v0357")
+bulk_smelting_ingot_smithing_audit_v0357 = _sb410_bind(_sb410_mod_v410_equipment_audits.bulk_smelting_ingot_smithing_audit_v0357, globals())
 
 BULK_SMELTING_INGOT_SMITHING_AUDIT_V0357 = bulk_smelting_ingot_smithing_audit_v0357()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -4009,110 +1746,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.36.0 - GLOBAL PROGRESSION 600 + LEADER DISBAND
 # ============================================================
-def progression_600_and_leader_disband_audit_v0360():
-    errors=[]
-    metrics={}
-    def check(name, condition, detail=None):
-        metrics[name]=bool(condition)
-        if not condition:
-            errors.append(f"{name}: {detail or 'FAIL'}")
-
-    caps={
-        "generator": int(getattr(balance_math,"MAX_LEVEL",0) or 0),
-        "character": int(CHARACTER_MAX_LEVEL),
-        "class_mastery": int(CLASS_MASTERY_MAX_LEVEL),
-        "skill": int(SKILL_MAX_LEVEL),
-        "soul": int(SOUL_MAX_LEVEL),
-        "soul_weapon_mastery": int(SOUL_WEAPON_MASTERY_MAX_LEVEL),
-        "profession": int(PROFESSION_MAX_LEVEL),
-        "tool": int(TOOL_MAX_LEVEL),
-        "guild": int(V0926_GUILD_MAX_LEVEL),
-    }
-    metrics["caps"]=caps
-    check("all_main_caps_800", all(v==800 for v in caps.values()), caps)
-    check("soul_tiers_80", int(SOUL_MAX_TIER)==80 and len(SOUL_TIER_THRESHOLDS)==80 and int(SOUL_TIER_THRESHOLDS[-1])==800)
-    check("tool_tiers_80", int(TOOL_MAX_TIER)==80 and len(TOOL_TIER_THRESHOLDS)==80 and int(TOOL_TIER_THRESHOLDS[-1])==800)
-    check("profession_rank_cap_800", int(PROFESSION_RANK_THRESHOLDS[-1])==800)
-    check("profession_count_14", len(PROFESSION_RANK_NAMES)>=14, len(PROFESSION_RANK_NAMES))
-    check("all_tool_name_tables_80", all(len(tuple(v))>=80 for v in TOOL_TIER_NAMES.values()), {k:len(tuple(v)) for k,v in TOOL_TIER_NAMES.items()})
-
-    grid=(1,*range(10,801,10))
-    skill_errors=[]
-    for class_name,rows in CLASS_SKILLS.items():
-        unlocks=[int(row.get("unlock",0) or 0) for row in rows]
-        counts={level:unlocks.count(level) for level in grid}
-        # Generator Core guarantees the 183-skill base grid through 600.
-        # Source-authored abilities may legally extend that catalogue, so the
-        # release contract is a minimum rather than an exact total.
-        if len(rows)<243 or min(unlocks or [0])!=1 or max(unlocks or [0])!=800:
-            skill_errors.append(f"{class_name}:{len(rows)}:{min(unlocks or [0])}-{max(unlocks or [0])}")
-        if class_name not in ("Mec","Inżynier") and any(counts[level]<3 for level in grid):
-            skill_errors.append(f"{class_name}:grid")
-    check("skill_grid_243_per_class", not skill_errors, skill_errors[:10])
-    metrics["classes"]=len(CLASS_SKILLS)
-    metrics["skills_total"]=sum(len(v) for v in CLASS_SKILLS.values())
-
-    check("class_equipment_to_800", int(CLASS_EQUIPMENT_MASTERY_LEVELS[-1])==800)
-
-    # v0.36.0: każdy kolejny Tier klasowego EQ ma realnie inny, rosnący
-    # budżet podstawowych statów. Chroni szczególnie niskie progi
-    # 1/10/20/30, które wcześniej mogły powtarzać te same wartości.
-    eq_stat_progression_errors=[]
-    for class_name, per_tier in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        previous={}
-        for required_level in CLASS_EQUIPMENT_MASTERY_LEVELS:
-            for item_id in per_tier.get(required_level, ()):
-                item=ITEMS.get(item_id,{})
-                key=(int(item.get("class_equipment_style",1) or 1), str(item.get("slot") or ""))
-                budget=int(item.get("affix_amount",0) or 0) + sum(
-                    int(v or 0) for v in (item.get("stats") or {}).values()
-                )
-                if key in previous and budget <= previous[key][1]:
-                    eq_stat_progression_errors.append(
-                        f"{class_name}:{key[0]}:{key[1]}:{previous[key][0]}={previous[key][1]} -> {required_level}={budget}"
-                    )
-                previous[key]=(int(required_level),budget)
-    check("class_equipment_stats_rise_every_tier", not eq_stat_progression_errors, eq_stat_progression_errors[:20])
-
-    low_tier_budgets={}
-    for class_name, per_tier in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        row=[]
-        for required_level in (1,10,20,30):
-            ids=tuple(per_tier.get(required_level,()))
-            if not ids:
-                row.append(None); continue
-            item=ITEMS[ids[0]]
-            row.append(int(item.get("affix_amount",0) or 0) + sum(int(v or 0) for v in (item.get("stats") or {}).values()))
-        low_tier_budgets[class_name]=row
-    check("class_equipment_low_tiers_1_10_20_30_distinct",
-          all(None not in row and row==sorted(set(row)) and len(row)==4 for row in low_tier_budgets.values()),
-          low_tier_budgets)
-
-    check("endgame_resources_to_800",
-          any(int(level)==800 for level,_ in ENDGAME_ORE_UNLOCKS)
-          and any(int(level)==800 for level,_ in ENDGAME_WOOD_UNLOCKS)
-          and any(int(level)==800 for level,_ in ENDGAME_HERB_UNLOCKS))
-    check("soul_trials_41_80", all(tier in SOUL_TRIAL_QUEST_IDS for tier in range(41,81)))
-    check("guild_bonus_legacy_preserved",
-          v0926_guild_bonus_percent(100)==11 and v0926_guild_bonus_percent(200)==15
-          and v0926_guild_bonus_percent(300)==19 and v0926_guild_bonus_percent(400)==23
-          and v0926_guild_bonus_percent(600)==29 and v0926_guild_bonus_percent(800)==35,
-          [v0926_guild_bonus_percent(x) for x in (100,200,300,400,600,800)])
-    check("guild_cost_monotonic_extension",
-          v0926_guild_upgrade_cost(399)>0 and v0926_guild_upgrade_cost(400)>=v0926_guild_upgrade_cost(399)
-          and v0926_guild_upgrade_cost(500)>=v0926_guild_upgrade_cost(400)
-          and v0926_guild_upgrade_cost(799)>=v0926_guild_upgrade_cost(600)
-          and v0926_guild_upgrade_cost(800)==0)
-
-    try:
-        import inspect
-        src=inspect.getsource(SessionMovementPartySocialMixin.leave_party)
-        check("leader_leave_disbands", "self.server.parties.pop(key, None)" in src and "Drużyna została rozwiązana" in src)
-        check("leader_leave_no_transfer", "new_leader" not in src and "min(members)" not in src and "next(iter(members" not in src)
-    except Exception as exc:
-        errors.append(f"leader source audit: {type(exc).__name__}: {exc}")
-
-    return {"version":"0.36.0","error_count":len(errors),"errors":errors,"metrics":metrics}
+def progression_600_and_leader_disband_audit_v0360(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: progression_600_and_leader_disband_audit_v0360")
+progression_600_and_leader_disband_audit_v0360 = _sb410_bind(_sb410_mod_v410_equipment_audits.progression_600_and_leader_disband_audit_v0360, globals())
 
 PROGRESSION_600_AND_LEADER_DISBAND_AUDIT_V0360=progression_600_and_leader_disband_audit_v0360()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -4239,63 +1876,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.36.2 - OPEN-WORLD TERRAIN THREAT REBALANCE
 # ============================================================
-def terrain_threat_rebalance_audit_v0362():
-    errors=[]
-    metrics={}
-    def check(name, condition, detail=None):
-        metrics[name]=bool(condition)
-        if not condition:
-            errors.append(f"{name}: {detail or 'FAIL'}")
-    try:
-        import inspect
-        # Every currently materialized authored recommendation must be honored
-        # by the numeric room stage used by combat generation.
-        bad=[]
-        checked=0
-        for rid, room in ROOMS.items():
-            try:
-                rec=int(room.get("recommended_mastery",0) or 0)
-                stage=int(room.get("generator_level",0) or 0)
-            except Exception:
-                continue
-            if rec>0:
-                checked+=1
-                if stage < rec:
-                    bad.append((rid,rec,stage))
-        metrics["recommended_rooms_checked"]=checked
-        check("recommended_mastery_is_balance_floor", not bad, str(bad[:10]))
-
-        # v1.13.22: validate behavior, not the historical wrapper/function name.
-        # The recommended mastery floor is now native to Generator Core's
-        # runtime_room_level(), so old _v0362 marker/name checks are obsolete.
-        _probe_room={"recommended_mastery":137}
-        _probe_stage=balance_math.runtime_room_level(
-            "__audit_v0362_recommended_floor__", _probe_room, {}
-        )
-        check(
-            "runtime_room_recommended_floor",
-            int(_probe_stage) >= 137 and int(_probe_room.get("generator_level",0) or 0) >= 137,
-            f"stage={_probe_stage}, stored={_probe_room.get('generator_level')}",
-        )
-
-        wsrc=inspect.getsource(World._terrain_scaled_template_v0362)
-        check("room_stage_runtime_clone", "stage > base_stage" in wsrc and "runtime_mob_balance" in wsrc)
-        check("terrain_hp_growth", "1.0 + runtime_stage / 100.0" in wsrc and "min(4.0" in wsrc)
-        check("terrain_damage_growth", "runtime_stage / 1000.0" in wsrc and "min(0.50" in wsrc)
-        check("bosses_not_extra_terrain_scaled", 'rank in ("normal", "elite", "rare")' in wsrc)
-
-        csrc=inspect.getsource(v0190_apply_combat_template)
-        check("terrain_multiplier_survives_runtime_refresh", "terrain_runtime_clone_v0362" in csrc and "terrain_hp_multiplier_v0362" in csrc)
-
-        # Concrete curve anchors used by the terrain layer.
-        def hp_mult(stage): return min(4.0, 1.0 + stage / 100.0)
-        def dmg_mult(stage): return 1.0 + min(0.50, stage / 1000.0)
-        check("terrain_100_hp_x2", abs(hp_mult(100)-2.0)<1e-9)
-        check("terrain_100_damage_x1_10", abs(dmg_mult(100)-1.10)<1e-9)
-        check("terrain_300_hp_cap_x4", abs(hp_mult(300)-4.0)<1e-9)
-    except Exception as exc:
-        errors.append(f"terrain threat source audit: {type(exc).__name__}: {exc}")
-    return {"version":"0.36.2","error_count":len(errors),"errors":errors,"metrics":metrics}
+def terrain_threat_rebalance_audit_v0362(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: terrain_threat_rebalance_audit_v0362")
+terrain_threat_rebalance_audit_v0362 = _sb410_bind(_sb410_mod_v410_equipment_audits.terrain_threat_rebalance_audit_v0362, globals())
 
 TERRAIN_THREAT_REBALANCE_AUDIT_V0362=terrain_threat_rebalance_audit_v0362()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -4384,70 +1968,10 @@ LATEST_CHANGES = [
 # ============================================================
 # v0.36.4 - INDEPENDENT SKILL / SPELL COOLDOWNS
 # ============================================================
-def independent_skill_cooldowns_audit_v0364():
-    errors=[]
-    metrics={}
-    def check(name, condition, detail=None):
-        metrics[name]=bool(condition)
-        if not condition:
-            errors.append(f"{name}: {detail or 'FAIL'}")
-    try:
-        import inspect
-        all_rows=[]
-        seen={}
-        duplicates=[]
-        for class_name, rows in (CLASS_SKILLS or {}).items():
-            for skill in rows:
-                sid=str(skill.get("id") or "")
-                all_rows.append((class_name, sid, skill.get("name")))
-                if not sid:
-                    errors.append(f"skill without id: {class_name}/{skill.get('name')}")
-                    continue
-                if sid in seen:
-                    duplicates.append((sid, seen[sid], (class_name, skill.get("name"))))
-                else:
-                    seen[sid]=(class_name, skill.get("name"))
-        check("all_skill_ids_unique", not duplicates, duplicates[:5])
-        metrics["skill_count"] = len(all_rows)
-        metrics["unique_skill_ids"] = len(seen)
-
-        csrc=inspect.getsource(SessionCoreProgressionMixin.start_skill_cooldown_v0364)
-        check("single_id_write", 'self.skill_cooldowns[skill_id] = ready_at' in csrc)
-        check("no_category_cooldown_keys", all(
-            token not in csrc for token in ('physical_cooldown','magic_cooldown','class_cooldown','global_cooldown')
-        ))
-
-        usrc=inspect.getsource(SessionSkillsCombatMixin.use_class_skill)
-        check("manual_skill_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in usrc)
-        check("manual_skill_starts_own_cd", 'start_skill_cooldown_v0364(skill, effective_cooldown, now)' in usrc)
-        qsrc=inspect.getsource(SessionSkillsCombatMixin.auto_queue_skill_usable)
-        check("queue_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in qsrc)
-        hsrc=inspect.getsource(SessionMovementPartySocialMixin.auto_priest_heal_option)
-        check("auto_heal_reads_own_cd", 'skill_cooldown_ready_at_v0364(skill)' in hsrc)
-        h2src=inspect.getsource(SessionMovementPartySocialMixin.perform_auto_priest_heal)
-        check("auto_heal_starts_own_cd", 'start_skill_cooldown_v0364(skill, effective_cooldown, now)' in h2src)
-
-        # Behavior test: starting B must not alter A, and restarting A must not alter B.
-        class Dummy:
-            skill_cooldowns={}
-            skill_cooldown_ready_at_v0364=SessionCoreProgressionMixin.skill_cooldown_ready_at_v0364
-            skill_cooldown_remaining_v0364=SessionCoreProgressionMixin.skill_cooldown_remaining_v0364
-            skill_cooldown_active_v0364=SessionCoreProgressionMixin.skill_cooldown_active_v0364
-            start_skill_cooldown_v0364=SessionCoreProgressionMixin.start_skill_cooldown_v0364
-        d=Dummy(); d.skill_cooldowns={}
-        d.start_skill_cooldown_v0364('audit_skill_a', 10, 100.0)
-        a1=d.skill_cooldown_ready_at_v0364('audit_skill_a')
-        d.start_skill_cooldown_v0364('audit_skill_b', 20, 100.0)
-        a2=d.skill_cooldown_ready_at_v0364('audit_skill_a')
-        b1=d.skill_cooldown_ready_at_v0364('audit_skill_b')
-        d.start_skill_cooldown_v0364('audit_skill_a', 5, 101.0)
-        b2=d.skill_cooldown_ready_at_v0364('audit_skill_b')
-        check("behavior_independent_a_after_b", a1 == a2 == 110.0)
-        check("behavior_independent_b_after_a", b1 == b2 == 120.0)
-        check("behavior_only_two_keys", set(d.skill_cooldowns)=={'audit_skill_a','audit_skill_b'})
-    except Exception as exc:
-        errors.append(f"independent cooldown audit: {type(exc).__name__}: {exc}")
-    return {"version":"0.36.4","error_count":len(errors),"errors":errors,"metrics":metrics}
+def independent_skill_cooldowns_audit_v0364(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: independent_skill_cooldowns_audit_v0364")
+independent_skill_cooldowns_audit_v0364 = _sb410_bind(_sb410_mod_v410_equipment_audits.independent_skill_cooldowns_audit_v0364, globals())
 
 INDEPENDENT_SKILL_COOLDOWNS_AUDIT_V0364=independent_skill_cooldowns_audit_v0364()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.
@@ -4473,35 +1997,7 @@ LATEST_CHANGES = [
 # v0.36.5 - SOUL TIER 7 CEMETERY TARGET DENSITY
 # ============================================================
 def soul_tier7_cemetery_spawn_audit_v0365():
-    errors=[]
-    quest_id = SOUL_TRIAL_QUEST_IDS.get(7)
-    quest = QUESTS.get(quest_id, {}) if quest_id else {}
-    target = str(quest.get("target") or "")
-    needed = int(quest.get("needed", 0) or 0)
-    if target != "cemetery_restless_dead":
-        errors.append(f"Tier 7 target={target!r}, expected cemetery_restless_dead")
-    if needed != 4:
-        errors.append(f"Tier 7 needed={needed}, expected 4")
-    target_rooms = [
-        room_id for room_id, mob_id in MOB_SPAWNS
-        if mob_id == "cemetery_restless_dead"
-        and ROOMS.get(room_id, {}).get("zone") == "Stary Cmentarz"
-    ]
-    distinct_rooms = sorted(set(target_rooms))
-    expected_rooms = {
-        "graveyard", "cemetery_ossuary_path", "cemetery_moon_garden",
-        "cemetery_fallen_chapel", "cemetery_bone_field", "cemetery_bell_tower",
-    }
-    missing = sorted(expected_rooms - set(distinct_rooms))
-    if missing:
-        errors.append("missing Tier 7 cemetery spawn rooms: " + ", ".join(missing))
-    if len(distinct_rooms) < 6:
-        errors.append(f"Tier 7 has only {len(distinct_rooms)} distinct cemetery target rooms, expected >=6")
-    return {
-        "version":"0.36.5", "quest_id":quest_id, "target":target, "needed":needed,
-        "distinct_spawn_rooms":len(distinct_rooms), "spawn_rooms":distinct_rooms,
-        "error_count":len(errors), "errors":errors,
-    }
+    return _audit_rules_v406.soul_tier7_cemetery_spawn_audit_v0365(SOUL_TRIAL_QUEST_IDS=SOUL_TRIAL_QUEST_IDS, QUESTS=QUESTS, MOB_SPAWNS=MOB_SPAWNS, ROOMS=ROOMS)
 
 SOUL_TIER7_CEMETERY_SPAWN_AUDIT_V0365 = soul_tier7_cemetery_spawn_audit_v0365()
 # v1.13.30: audit report is enforced by predeploy_full.py; runtime stays diagnostic.

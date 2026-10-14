@@ -8,6 +8,7 @@ from config.balance import (
     TOOL_XP_REQUIREMENT_MULTIPLIERS,
     PROFESSION_XP_REQUIREMENT_MULTIPLIERS,
     ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310,
+    v4210_required_xp,
     profession_late_requirement_points_v1401,
     profession_xp_requirement_v1401,
     tool_xp_requirement_v1402,
@@ -49,7 +50,7 @@ def run_regression():
             current_points = base * new_mult if points == 10000 else (base * new_mult * points + 5000) // 10000
             expected_requirement = min(9_000_000_000_000_000_000, current_points * 10)
             actual = tool_xp_requirement_v1402(base, tool, level)
-            assert actual == expected_requirement, (tool, level, actual, expected_requirement)
+            assert actual == v4210_required_xp(expected_requirement, "tool", level), (tool, level, actual, expected_requirement)
             assert actual >= previous_release_requirement, (tool, level, actual, previous_release_requirement)
             assert actual >= previous, (tool, level, actual, previous)
             if level <= 49:
@@ -61,8 +62,8 @@ def run_regression():
         v0190_requirement('profession', 4), 'Wędkarstwo', 4)
     old_rod_requirement = v0190_requirement('tool', 7) * 10
     new_rod_requirement = tool_xp_requirement_v1402(v0190_requirement('tool', 7), 'fishing', 7)
-    assert new_rod_requirement == old_rod_requirement * 5
-    assert fish_prof_requirement == 25480  # unchanged from v4.00.2
+    assert new_rod_requirement == v4210_required_xp(old_rod_requirement * 5, "tool", 7)
+    assert fish_prof_requirement == v4210_required_xp(25480, "profession", 4)
     checks += 2
     return checks
 

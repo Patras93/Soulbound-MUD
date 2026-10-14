@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """v3.00.4: static fast guard. Runtime behavior tested in full audit."""
 import ast
@@ -22,7 +23,7 @@ def run_regression_fast():
         'look': 'player/session_mixins/perception_maps.py',
         'help': 'world/equipment_help.py',
     }
-    content = {key: (ROOT / value).read_text(encoding='utf-8') for key, value in files.items()}
+    content = {key: _sb420_view(ROOT / value) for key, value in files.items()}
     for key, source in content.items():
         ast.parse(source)
         check(bool(source), key + ' exists')

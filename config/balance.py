@@ -160,6 +160,36 @@ STAT_EXTRA_REQUIREMENT_POINTS_V1408 = (
 )
 
 
+# v4.21.0 — długofalowa, jednorazowa korekta WYMAGANEGO EXP 1–800.
+# Wspólna referencja: identyczna wielka nagroda nie powinna wbijać 25
+# poziomów w jednych osiach, gdy inne ledwo awansują. Pozostają różne
+# metody zdobywania XP, dlatego tempo nie jest matematycznie identyczne.
+# Ta korekta NIE dotyka wypłat EXP, banku, Multi Cap ani SQLite.
+V4210_REQUIREMENT_FACTORS = {
+    "character": 6,
+    "class": 6,
+    "soul": 10,
+    "skill": 50,
+    "weapon": 15,
+    "stat": 13,
+    "profession": 4,
+    "tool": 4,
+    "ascension": 2,
+}
+
+
+def v4210_required_xp(base_required: int, axis: str, level: int) -> int:
+    """Requirement-only integer scaling. Runs once AFTER historical formula.
+
+    A deterministic monotone multiplier for levels 1..799 (and uncapped stats)
+    avoids accumulated rounding error and never changes the level itself.
+    """
+    _ = max(1, int(level))
+    required = max(1, int(base_required))
+    factor = V4210_REQUIREMENT_FACTORS[str(axis)]
+    return min(9_000_000_000_000_000_000, required * factor)
+
+
 def _interpolated_requirement_points_v1407(level: int, checkpoints) -> int:
     level = max(1, int(level))
     previous_level, previous_points = checkpoints[0]
@@ -217,8 +247,9 @@ def stat_extra_requirement_points_v1408(value: int) -> int:
 
 
 def scale_stat_requirement_v1408(required_xp: int, value: int) -> int:
-    return scale_all_progress_requirements_v3310(_scale_required_xp_by_points_v1408(
+    historical = scale_all_progress_requirements_v3310(_scale_required_xp_by_points_v1408(
         required_xp, stat_extra_requirement_points_v1408(value)))
+    return v4210_required_xp(historical, "stat", value)
 
 
 def profession_late_requirement_points_v1401(level: int) -> int:
@@ -236,7 +267,7 @@ def profession_xp_requirement_v1401(base: int, profession: str | None, level: in
     points = profession_late_requirement_points_v1401(level)
     # Exact historical value at <=49; round half-up for later progression.
     prior = old_requirement if points == 10000 else max(1, (old_requirement * points + 5000) // 10000)
-    return scale_all_progress_requirements_v3310(prior)
+    return v4210_required_xp(scale_all_progress_requirements_v3310(prior), "profession", level)
 
 
 # v4.00.3: ALL tool thresholds use the longer early and late game curves.
@@ -250,7 +281,7 @@ def tool_xp_requirement_v1402(base: int, tool_type: str | None, level: int) -> i
     )))
     points = profession_late_requirement_points_v1401(level)
     prior = original if points == 10000 else max(1, (original * points + 5000) // 10000)
-    return scale_all_progress_requirements_v3310(prior)
+    return v4210_required_xp(scale_all_progress_requirements_v3310(prior), "tool", level)
 
 
 # v0.50.3: final combat pressure applied after all historical world/dungeon

@@ -10,6 +10,7 @@ from config.balance import (
     profession_xp_requirement_v1401,
     tool_xp_requirement_v1402,
     PROFESSION_XP_REQUIREMENT_MULTIPLIERS,
+    v4210_required_xp,
 )
 from core.progression_resources import (
     character_xp_to_next, class_mastery_xp_to_next, soul_xp_to_next,
@@ -63,11 +64,14 @@ def run_regression() -> int:
             from config.balance import player_extra_requirement_points_v1407, stat_extra_requirement_points_v1408
             # Compute previous v3.31.3 output via the actual pre-scaling helper.
             from config.balance import _scale_required_xp_by_points_v1408
-            for scaler, pts in ((scale_player_requirement_v1407, player_extra_requirement_points_v1407(level)),
-                                (scale_stat_requirement_v1408, stat_extra_requirement_points_v1408(level))):
+            for scaler, pts, axis in ((scale_player_requirement_v1407, player_extra_requirement_points_v1407(level), "player"),
+                                      (scale_stat_requirement_v1408, stat_extra_requirement_points_v1408(level), "stat")):
                 prior = min(SAFE_INT, 5 * _scale_required_xp_by_points_v1408(threshold,pts))
                 current = scaler(threshold,level)
-                assert current == min(SAFE_INT, prior * 2), (level, threshold, pts, prior, current)
+                expected = min(SAFE_INT, prior * 2)
+                if axis == "stat":
+                    expected = v4210_required_xp(expected, "stat", level)
+                assert current == expected, (level, threshold, pts, prior, current)
                 checks += 1
     # Real v3.31.3 scaler was x5; now x10, but only up to SAFE_INT.
     for xp in (1,100,100000,1000000000,SAFE_INT):

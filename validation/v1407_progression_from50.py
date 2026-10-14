@@ -36,6 +36,7 @@ def run_progression_from50_regression_v1407():
         tool_xp_requirement_v1402,
         scale_player_requirement_v1407,
         scale_stat_requirement_v1408,
+        v4210_required_xp,
     )
     from core import balance_math
     from core.player_math import late_game_xp_requirement, SAFE_INT
@@ -74,7 +75,7 @@ def run_progression_from50_regression_v1407():
                 historical = late_game_xp_requirement(
                     i, historical, int(round(old(axis, 599) * multiple))
                 )
-            check(required == scale_player_requirement_v1407(historical, i),
+            check(required == v4210_required_xp(scale_player_requirement_v1407(historical, i), name, i),
                   f'{name} level{i}: authoritative formula')
             check(required > historical,
                   f'{name} level{i}: v3.31.0 harder on every level')
@@ -144,7 +145,7 @@ def run_progression_from50_regression_v1407():
     ascension = namespace['v0210_ascension_xp_to_next']
     for rank in (0, 10, 48, 49, 50, 99, 150, 799, 999):
         historical = 1000000 + (rank + 1) * 1000
-        check(ascension(rank) == scale_player_requirement_v1407(historical, rank + 1),
+        check(ascension(rank) == v4210_required_xp(scale_player_requirement_v1407(historical, rank + 1), "ascension", rank + 1),
               f'ascension rank{rank}: changed only XP requirement')
     check(ascension(1000) == 0, 'ascension retains rank 1000 cap')
 

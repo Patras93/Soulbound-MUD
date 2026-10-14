@@ -64,7 +64,8 @@ async def run_async():
     assert druid._v1711_heal_companion(candidate[0],candidate[1],4000)==0 and hp(c,14,'wojownik')[0]==0;n+=1
     # If source is not marked combat-aware or cheat-support integration is missing, catch it.
     from pathlib import Path
-    combat=(Path(__file__).resolve().parents[1]/'player/session_mixins/combat_skills.py').read_text(encoding='utf-8')
+    from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
+    combat=_sb420_view(Path(__file__).resolve().parents[1]/'player/session_mixins/combat_skills.py')
     assert "_v1711_find_companion(target_text,include_party=True)" in combat;n+=1
     assert "_v1711_companions_for_healing(include_party=True)" in combat;n+=1
     c.close();return n

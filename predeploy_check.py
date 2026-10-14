@@ -21,6 +21,8 @@ except Exception as exc:
     traceback.print_exc()
     raise SystemExit(1)
 
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _v410_virtual_read
+
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
 
 # v1.14.4: the source catalog may list adds without ever selecting an ability.
@@ -404,12 +406,8 @@ except Exception as _exc:
 _dungeon_names_source_v11336 = (
     _root / "systems/dungeon_names.py"
 ).read_text(encoding="utf-8")
-_dungeon_regions_source_v11336 = (
-    _root / "systems/dungeons_regions.py"
-).read_text(encoding="utf-8")
-_infinite_dungeon_names_source_v11336 = (
-    _root / "world/economy_quests.py"
-).read_text(encoding="utf-8")
+_dungeon_regions_source_v11336 = _v410_virtual_read(_root / "systems/dungeons_regions.py")
+_infinite_dungeon_names_source_v11336 = _v410_virtual_read(_root / "world/economy_quests.py")
 _magitek_names_source_v11336 = (
     _root / "world/magitek_infinite.py"
 ).read_text(encoding="utf-8")
@@ -504,9 +502,7 @@ for _forbidden in (
             "numeric dungeon mob display name regression: " + _forbidden
         )
 
-_boss_chest_protocol_source_v11332 = (
-    _root / "network/protocol_gameplay_utils.py"
-).read_text(encoding="utf-8")
+_boss_chest_protocol_source_v11332 = _v410_virtual_read(_root / "network/protocol_gameplay_utils.py")
 _boss_chest_session_source_v11332 = (
     _root / "player/session_mixins/admin_tools.py"
 ).read_text(encoding="utf-8")
@@ -555,9 +551,7 @@ for _needle in (
 _consider_source_v11331 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
-_checkpoint_portal_source_v11331 = (
-    _root / "player/session_mixins/dungeon_progression.py"
-).read_text(encoding="utf-8")
+_checkpoint_portal_source_v11331 = _v410_virtual_read(_root / "player/session_mixins/dungeon_progression.py")
 for _needle in (
     "def checkpoint_portal_floors_v11331",
     '"mythic_crypt"',
@@ -580,9 +574,7 @@ _deep_dungeon_world_source_v11331 = (
 _deep_dungeon_state_source_v11331 = (
     _root / "world/world_state.py"
 ).read_text(encoding="utf-8")
-_deep_dungeon_session_source_v11331 = (
-    _root / "player/session_mixins/dungeon_progression.py"
-).read_text(encoding="utf-8")
+_deep_dungeon_session_source_v11331 = _v410_virtual_read(_root / "player/session_mixins/dungeon_progression.py")
 _deep_dungeon_movement_source_v11331 = (
     _root / "player/session_mixins/movement.py"
 ).read_text(encoding="utf-8")
@@ -812,12 +804,8 @@ for _needle in (
             "superboss helper phrase regression: missing " + _needle
         )
 
-_jammer_runtime_source_v11331 = (
-    _root / "player/session_mixins/combat_skills.py"
-).read_text(encoding="utf-8")
-_jammer_skill_source_v11331 = (
-    _root / "core/classes_skills.py"
-).read_text(encoding="utf-8")
+_jammer_runtime_source_v11331 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
+_jammer_skill_source_v11331 = _v410_virtual_read(_root / "core/classes_skills.py")
 for _needle in (
     "boss_jammer_immune_v1281(_jam_template)",
     "jest odporny na Stop",
@@ -878,12 +866,8 @@ for _needle in (
 _adaptive_damage_source_v11330 = (
     _root / "player/session_mixins/combat_damage.py"
 ).read_text(encoding="utf-8")
-_adaptive_realtime_source_v11330 = (
-    _root / "player/session_mixins/combat_realtime.py"
-).read_text(encoding="utf-8")
-_adaptive_skills_source_v11330 = (
-    _root / "player/session_mixins/combat_skills.py"
-).read_text(encoding="utf-8")
+_adaptive_realtime_source_v11330 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
+_adaptive_skills_source_v11330 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
 _adaptive_rewards_source_v11330 = (
     _root / "player/session_mixins/combat_rewards.py"
 ).read_text(encoding="utf-8")
@@ -942,12 +926,8 @@ for _label, _source, _needles in (
             )
 
 # v1.13.30: Astral towers have no artificial Level/Soul Level entry gate.
-_tower_regions_source_v11330 = (
-    _root / "systems/dungeons_regions.py"
-).read_text(encoding="utf-8")
-_tower_progress_source_v11330 = (
-    _root / "player/session_mixins/dungeon_progression.py"
-).read_text(encoding="utf-8")
+_tower_regions_source_v11330 = _v410_virtual_read(_root / "systems/dungeons_regions.py")
+_tower_progress_source_v11330 = _v410_virtual_read(_root / "player/session_mixins/dungeon_progression.py")
 _tower_movement_source_v11330 = (
     _root / "player/session_mixins/movement.py"
 ).read_text(encoding="utf-8")
@@ -980,9 +960,9 @@ for _stale in (
 # one-time starter profession tools must carry the same canonical authored
 # price instead of relying on a later generator rewrite.
 _data_items_source = (_root / "data/items.py").read_text(encoding="utf-8")
-_equipment_crafting_source_v11310 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_equipment_crafting_source_v11310 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
 _professions_source_v11310 = (_root / "systems/professions.py").read_text(encoding="utf-8")
-_equipment_help_source_v11310 = (_root / "world/equipment_help.py").read_text(encoding="utf-8")
+_equipment_help_source_v11310 = _v410_virtual_read(_root / "world/equipment_help.py")
 for _tool_id in (
     "fishing_rod", "pickaxe", "saw", "crafting_hammer", "chef_knife",
     "herbalist_sickle", "alchemy_mortar",
@@ -1071,7 +1051,7 @@ for _rel, _needles in _forbidden_ap_runtime.items():
 # v1.13.1 regression guard: Heal Beam target preparation checks support_effect
 # before the authored-Mec execution block. The variable must therefore be
 # resolved earlier in use_class_skill, otherwise combat crashes at runtime.
-_combat_skills_source = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+_combat_skills_source = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
 _support_init_pos = _combat_skills_source.find(
     "support_effect = bool(\n                    skill.get(\"mec_authored\")"
 )
@@ -1088,7 +1068,7 @@ if (
 # v1.13.1 regression guard: authored troll quest stat rewards must bypass
 # Generator Core's generated reward_stat_progress so the explicit balance
 # values remain exact and visible to players.
-_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_progression_source = _v410_virtual_read(_root / "core/progression_resources.py")
 _troll_rewards_source = (_root / "world/troll_shaman_density.py").read_text(encoding="utf-8")
 if 'manual_reward = quest.get("manual_stat_progress")' not in _progression_source:
     _semantic_errors.append(
@@ -1110,20 +1090,20 @@ for _needle in _troll_reward_needles:
 
 # v1.13.10: Generator Core is a fallback, not an unconditional overwrite layer.
 
-_equipment_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
-_items_resource_source = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
-_dungeon_source = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_equipment_source = _v410_virtual_read(_root / "systems/equipment_crafting.py")
+_items_resource_source = _v410_virtual_read(_root / "systems/items_resources.py")
+_dungeon_source = _v410_virtual_read(_root / "systems/dungeons_regions.py")
 _economy_source = (_root / "systems/economy_income_balance.py").read_text(encoding="utf-8")
-_runtime_progression_source = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_runtime_progression_source = _v410_virtual_read(_root / "core/progression_resources.py")
 _sales_source = (_root / "player/session_mixins/sales.py").read_text(encoding="utf-8")
 _gathering_source = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
-_protocol_utils_source = (_root / "network/protocol_gameplay_utils.py").read_text(encoding="utf-8")
+_protocol_utils_source = _v410_virtual_read(_root / "network/protocol_gameplay_utils.py")
 _exploration_prof_source = (_root / "player/session_mixins/exploration_professions.py").read_text(encoding="utf-8")
-_inventory_equipment_source = (_root / "player/session_mixins/inventory_equipment.py").read_text(encoding="utf-8")
+_inventory_equipment_source = _v410_virtual_read(_root / "player/session_mixins/inventory_equipment.py")
 _courier_source = (_root / "player/session_mixins/courier_delivery.py").read_text(encoding="utf-8")
 _exploration_progress_source = (_root / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
 _ocean_session_source = (_root / "player/session_mixins/ocean.py").read_text(encoding="utf-8")
-_generation_systems_source = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
+_generation_systems_source = _v410_virtual_read(_root / "world/generation_systems.py")
 
 
 for _needle in (
@@ -1157,7 +1137,7 @@ for _needle in (
 
 # v1.13.12: Equipment Completeness must compare the complete mechanical class-EQ
 # profile introduced in v1.13.8, including flat Attack/Magic Attack channels.
-_audits_source_v11312 = (_root / "admin/audits.py").read_text(encoding="utf-8")
+_audits_source_v11312 = _v410_virtual_read(_root / "admin/audits.py")
 
 # v1.13.21: Hybrid Quest Reward Audit must follow authored-wins. The legacy
 # Generator fallback floor of 1001 silver cannot reject authored quest payouts.
@@ -1182,7 +1162,7 @@ if '"_v0362_recommended_room_floor" in gsrc' in _audits_source_v11312:
 # v1.13.29 hotfix: the historical party-drop audit must validate the
 # single shared roll contract after authored_drop_chance_v11329 transforms
 # the configured chance. Do not regress to matching the pre-v1.13.29 source.
-_party_drop_audit_source_v11329 = (_root / "admin/audits.py").read_text(encoding="utf-8")
+_party_drop_audit_source_v11329 = _v410_virtual_read(_root / "admin/audits.py")
 for _needle in (
     "_effective_roll = \"if random.random() <= _effective_drop_chance_v11329:\"",
     "_recipient_expand = \"drop_recipients = party_drop_recipients_v0359(item_id, recipients)\"",
@@ -1199,9 +1179,9 @@ if '"if random.random() <= chance" in combat_source' in _party_drop_audit_source
 
 # v1.13.29: drop chance / reward excitement contracts.
 _drop_excitement_source_v11329 = (_root / "systems/drop_excitement.py").read_text(encoding="utf-8")
-_equipment_help_source_v11329 = (_root / "world/equipment_help.py").read_text(encoding="utf-8")
+_equipment_help_source_v11329 = _v410_virtual_read(_root / "world/equipment_help.py")
 _combat_rewards_source_v11329 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
-_dungeons_source_v11329 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_dungeons_source_v11329 = _v410_virtual_read(_root / "systems/dungeons_regions.py")
 _uoss_runtime_source_v11329 = (_root / "world/uoss_superboss_runtime.py").read_text(encoding="utf-8")
 _help_truth_source_v11329 = (_root / "admin/help_truth_current.py").read_text(encoding="utf-8")
 
@@ -1332,9 +1312,9 @@ else:
             )
 
 # v1.13.27: loot source progression must remain monotonic and source-aware.
-_equipment_source_progression_v11327 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
-_items_source_progression_v11327 = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
-_dungeons_source_progression_v11327 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_equipment_source_progression_v11327 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
+_items_source_progression_v11327 = _v410_virtual_read(_root / "systems/items_resources.py")
+_dungeons_source_progression_v11327 = _v410_virtual_read(_root / "systems/dungeons_regions.py")
 _shop_source_progression_ui_v11327 = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
 _compare_source_progression_ui_v11327 = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
 
@@ -1372,9 +1352,9 @@ for _source, _label in (
         _semantic_errors.append(f"loot source progression UI regression: {_label}")
 
 # v1.13.26: Equipment Identity 2.0 keeps acquisition sources materially distinct.
-_equipment_identity_source_v11326 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
-_items_resources_identity_source_v11326 = (_root / "systems/items_resources.py").read_text(encoding="utf-8")
-_dungeons_identity_source_v11326 = (_root / "systems/dungeons_regions.py").read_text(encoding="utf-8")
+_equipment_identity_source_v11326 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
+_items_resources_identity_source_v11326 = _v410_virtual_read(_root / "systems/items_resources.py")
+_dungeons_identity_source_v11326 = _v410_virtual_read(_root / "systems/dungeons_regions.py")
 _uoss_identity_source_v11326 = (_root / "world/uoss_superboss_world.py").read_text(encoding="utf-8")
 _shop_identity_ui_source_v11326 = (_root / "player/session_mixins/shops_teachers.py").read_text(encoding="utf-8")
 _compare_identity_ui_source_v11326 = (_root / "player/session_mixins/equipment_compare.py").read_text(encoding="utf-8")
@@ -1497,7 +1477,7 @@ for _forbidden in (
 # v1.13.24: Global "O Kurde" Game Feel must remain activity-specific and
 # preserve exact authored/manual rewards.
 _game_feel_source_v11324 = (_root / "systems/game_feel_rewards.py").read_text(encoding="utf-8")
-_combat_realtime_source_v11324 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_combat_realtime_source_v11324 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
 _gathering_source_v11324 = (_root / "player/session_mixins/gathering_actions.py").read_text(encoding="utf-8")
 _crafting_source_v11324 = (_root / "player/session_mixins/crafting.py").read_text(encoding="utf-8")
 _quest_commands_source_v11324 = (_root / "player/session_mixins/quest_commands.py").read_text(encoding="utf-8")
@@ -1645,7 +1625,7 @@ for _needle in (
 # fallbacks only.
 _character_resources_source_v11315 = (_root / "core/character_resources.py").read_text(encoding="utf-8")
 _character_source_v11315 = (_root / "player/character.py").read_text(encoding="utf-8")
-_classes_source_v11315 = (_root / "core/classes_skills.py").read_text(encoding="utf-8")
+_classes_source_v11315 = _v410_virtual_read(_root / "core/classes_skills.py")
 _progression600_source_v11315 = (_root / "core/progression_600.py").read_text(encoding="utf-8")
 
 
@@ -1751,7 +1731,7 @@ for _needle in (
 
 # v1.14.8: ceny czterech magazynów i ich podgląd muszą używać
 # jednego, niepodwójnie liczonego cennika.
-_storage_pricing_source = (_root / "player/session_mixins/profession_storage.py").read_text(encoding="utf-8")
+_storage_pricing_source = _v410_virtual_read(_root / "player/session_mixins/profession_storage.py")
 for _name, _source, _needle in (
     ("sale", _sales_source, "return profession_resource_market_value_v1148("),
     ("sale", _sales_source, "if item_id in profession_storage_ids:"),
@@ -1856,14 +1836,14 @@ for _needle in (
         )
 
 _equipment_stats_source = (_root / "player/session_mixins/equipment_stats.py").read_text(encoding="utf-8")
-_combat_feedback_source = (_root / "player/session_mixins/skill_learning.py").read_text(encoding="utf-8")
+_combat_feedback_source = _v410_virtual_read(_root / "player/session_mixins/skill_learning.py")
 _player_math_source_v11316 = (_root / "core/player_math.py").read_text(encoding="utf-8")
 _profession_timing_source_v11316 = (_root / "core/profession_timing.py").read_text(encoding="utf-8")
 _combat_damage_source_v11316 = (_root / "player/session_mixins/combat_damage.py").read_text(encoding="utf-8")
-_combat_realtime_source_v11316 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
-_combat_skills_source_v11316 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
-_gathering_source_v11316 = (_root / "player/session_mixins/gathering.py").read_text(encoding="utf-8")
-_progression_resources_source_v11316 = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_combat_realtime_source_v11316 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
+_combat_skills_source_v11316 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
+_gathering_source_v11316 = _v410_virtual_read(_root / "player/session_mixins/gathering.py")
+_progression_resources_source_v11316 = _v410_virtual_read(_root / "core/progression_resources.py")
 
 for _needle in (
     "def character_attribute_power(",
@@ -1953,9 +1933,9 @@ for _needle in (
 
 # v1.13.17: Generator cleanup — one economy, true fill-missing-only and
 # no progression_600 monkey patches.
-_combat_realtime_source_v11317 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
-_admin_audits_source_v11317 = (_root / "admin/audits.py").read_text(encoding="utf-8")
-_help_refresh_source_v11318 = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
+_combat_realtime_source_v11317 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
+_admin_audits_source_v11317 = _v410_virtual_read(_root / "admin/audits.py")
+_help_refresh_source_v11318 = _v410_virtual_read(_root / "admin/help_refresh.py")
 
 
 
@@ -2115,7 +2095,7 @@ if "racial_amount - accelerated_amount" not in _character_source:
 # v1.13.3: help_refresh has multiple historical refresh layers. The final
 # v1.11.97 truth layer must carry the live stat-XP wording because it overwrites
 # the earlier Generator Core help before HELP_SURFACE_AUDIT_V11197 runs.
-_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
+_help_source = _v410_virtual_read(_root / "admin/help_refresh.py")
 _final_help_start = _help_source.find("def refresh_help_truth_v11197():")
 _final_help_end = _help_source.find("\n\nrefresh_help_truth_v11197()", _final_help_start)
 if _final_help_start < 0 or _final_help_end < 0:
@@ -2136,7 +2116,7 @@ else:
                 "final stat HELP regression: missing " + _needle
             )
 
-_runtime_progression_source = (_root / "world/runtime_progression.py").read_text(encoding="utf-8")
+_runtime_progression_source = _v410_virtual_read(_root / "world/runtime_progression.py")
 _runtime_triplet_needles = (
     "tertiary_stat, tertiary_amount",
     "tertiary_stat: tertiary_amount",
@@ -2156,7 +2136,7 @@ if 'item["stats"] = {secondary_stat: secondary_amount}' in _runtime_progression_
         "runtime class EQ triplet regression: tertiary stat would be discarded"
     )
 
-_class_eq_source = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_class_eq_source = _v410_virtual_read(_root / "systems/equipment_crafting.py")
 _class_eq_three_stat_needles = (
     "def class_equipment_base_stat_triplet(class_name):",
     'return "intelligence", "willpower", "constitution"',
@@ -2268,7 +2248,7 @@ for _needle in (
         )
 
 
-_final_help_source = (_root / "admin/help_refresh.py").read_text(encoding="utf-8")
+_final_help_source = _v410_virtual_read(_root / "admin/help_refresh.py")
 for _needle in (
     "Siłę + Zręczność + Kondycję",
     "Inteligencję + Siłę Woli + Kondycję",
@@ -2497,9 +2477,7 @@ _courier_source_v11330 = (_root / "player/session_mixins/courier_delivery.py").r
 _ocean_source_v11330 = (_root / "player/session_mixins/ocean.py").read_text(
     encoding="utf-8"
 )
-_generation_source_v11330 = (_root / "world/generation_systems.py").read_text(
-    encoding="utf-8"
-)
+_generation_source_v11330 = _v410_virtual_read(_root / "world/generation_systems.py")
 _world_state_source_rewards_v11330 = (_root / "world/world_state.py").read_text(
     encoding="utf-8"
 )
@@ -2528,9 +2506,7 @@ if 'v1138_activity_income(stage, "dynamic_world"' not in _generation_source_v113
 if "economy_stage_anchor_v11314(stage)" not in _world_state_source_rewards_v11330:
     _semantic_errors.append("reward consistency regression: treasure chest lost stage economy floor")
 
-_protocol_source_rewards_v11330 = (_root / "network/protocol_gameplay_utils.py").read_text(
-    encoding="utf-8"
-)
+_protocol_source_rewards_v11330 = _v410_virtual_read(_root / "network/protocol_gameplay_utils.py")
 for _needle in (
     "def v1138_boss_chest_gold_anchor(",
     "(600, 700_000)",
@@ -2573,9 +2549,7 @@ for _needle in (
 _uoss_runtime_source_v11330 = (_root / "world/uoss_superboss_runtime.py").read_text(
     encoding="utf-8"
 )
-_combat_realtime_source_v11330 = (_root / "player/session_mixins/combat_realtime.py").read_text(
-    encoding="utf-8"
-)
+_combat_realtime_source_v11330 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
 for _needle in (
     "SUPERBOSS_HELPER_ROLES_V11330 = {",
     '"Popoi": {',
@@ -2618,9 +2592,7 @@ _cleanup_source_v11337 = (
 _manifest_source_v11337 = (
     _root / "core/runtime_manifest.py"
 ).read_text(encoding="utf-8")
-_admin_audits_source_v11337 = (
-    _root / "admin/audits.py"
-).read_text(encoding="utf-8")
+_admin_audits_source_v11337 = _v410_virtual_read(_root / "admin/audits.py")
 _adaptive_source_v11337 = (
     _root / "systems/adaptive_combat.py"
 ).read_text(encoding="utf-8")
@@ -2699,9 +2671,7 @@ for _item_id in (
 
 # v1.13.38 — class equipment flat Attack/Magic Attack must remain present on
 # shop gear and the stronger legendary boss-set/relic progression.
-_equipment_crafting_source_v11338 = (
-    _root / "systems/equipment_crafting.py"
-).read_text(encoding="utf-8")
+_equipment_crafting_source_v11338 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
 for _needle in (
     "def class_equipment_flat_power_channels(",
     "power = max(1, int(round(budget * 0.45 * slot_scale * style_mult)))",
@@ -2722,8 +2692,8 @@ for _needle in (
 # paths that Adaptive Combat previews, and must stay visible in party status.
 _party_synergy_source_v11338 = (_root / "systems/party_synergies.py").read_text(encoding="utf-8")
 _party_damage_source_v11338 = (_root / "player/session_mixins/combat_damage.py").read_text(encoding="utf-8")
-_party_skills_source_v11338 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
-_party_ui_source_v11338 = (_root / "player/session_mixins/party.py").read_text(encoding="utf-8")
+_party_skills_source_v11338 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
+_party_ui_source_v11338 = _v410_virtual_read(_root / "player/session_mixins/party.py")
 for _needle in (
     '"holy_circuit"', '"runic_bastion"', '"blood_front"', '"shadow_hunt"',
     '"mind_body"', '"life_death_cycle"', '"aether_overclock"',
@@ -2755,14 +2725,14 @@ for _needle in (
 # named rares and chase loot are one reviewed production package.
 _elemental_source_v11339 = (_root / "systems/elemental_combat.py").read_text(encoding="utf-8")
 _synergy2_source_v11339 = (_root / "systems/party_synergies.py").read_text(encoding="utf-8")
-_realtime_source_v11339 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
-_skills_source_v11339 = (_root / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
-_party_source_v11339 = (_root / "player/session_mixins/party.py").read_text(encoding="utf-8")
+_realtime_source_v11339 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
+_skills_source_v11339 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
+_party_source_v11339 = _v410_virtual_read(_root / "player/session_mixins/party.py")
 _quest_data_source_v11339 = (_root / "data/quests.py").read_text(encoding="utf-8")
 _npc_data_source_v11339 = (_root / "data/npcs.py").read_text(encoding="utf-8")
 _quest_db_source_v11339 = (_root / "storage/db_quests.py").read_text(encoding="utf-8")
 _rewards_source_v11339 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
-_world_generation_source_v11339 = (_root / "world/generation_systems.py").read_text(encoding="utf-8")
+_world_generation_source_v11339 = _v410_virtual_read(_root / "world/generation_systems.py")
 _world_state_source_v11339 = (_root / "world/world_state.py").read_text(encoding="utf-8")
 
 for _needle in (
@@ -2838,12 +2808,8 @@ _combat_profile_source_v11341 = (
 _death_source_v11341 = (
     _root / "player/session_mixins/combat_survival.py"
 ).read_text(encoding="utf-8")
-_counter_source_v11341 = (
-    _root / "player/session_mixins/skill_learning.py"
-).read_text(encoding="utf-8")
-_realtime_source_v11341 = (
-    _root / "player/session_mixins/combat_realtime.py"
-).read_text(encoding="utf-8")
+_counter_source_v11341 = _v410_virtual_read(_root / "player/session_mixins/skill_learning.py")
+_realtime_source_v11341 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
 _rewards_source_v11341 = (
     _root / "player/session_mixins/combat_rewards.py"
 ).read_text(encoding="utf-8")
@@ -2856,9 +2822,7 @@ _smelting_source_v11341 = (
 _public_records_source_v11341 = (
     _root / "systems/public_records.py"
 ).read_text(encoding="utf-8")
-_combat_skills_source_v11341 = (
-    _root / "player/session_mixins/combat_skills.py"
-).read_text(encoding="utf-8")
+_combat_skills_source_v11341 = _v410_virtual_read(_root / "player/session_mixins/combat_skills.py")
 _uoss_runtime_source_v11341 = (
     _root / "world/uoss_superboss_runtime.py"
 ).read_text(encoding="utf-8")
@@ -2961,9 +2925,7 @@ for _needle in (
 # v1.13.40 — infinite-dungeon edge shortcuts must cover regular/Mythic
 # Crypt, regular/Mythic Astral Tower, Giant Fortress and UOSS Deep Dungeon.
 # Routing stays inside the current floor and never performs the final up/down.
-_guide_navigation_source_v11340 = (
-    _root / "player/session_mixins/guide_navigation.py"
-).read_text(encoding="utf-8")
+_guide_navigation_source_v11340 = _v410_virtual_read(_root / "player/session_mixins/guide_navigation.py")
 for _needle in (
     "def shortest_path_within_floor_v11340(",
     "mythic_crypt_floor_id,",
@@ -3007,7 +2969,7 @@ if "await self.move(\"up\")" in _guide_navigation_source_v11340:
 # rewards and the canonical Adaptive Combat layer.
 _elite_system_source_v11338 = (_root / "systems/elite_variants.py").read_text(encoding="utf-8")
 _elite_world_source_v11338 = (_root / "world/world_state.py").read_text(encoding="utf-8")
-_elite_realtime_source_v11338 = (_root / "player/session_mixins/combat_realtime.py").read_text(encoding="utf-8")
+_elite_realtime_source_v11338 = _v410_virtual_read(_root / "player/session_mixins/combat_realtime.py")
 _elite_rewards_source_v11338 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
 for _needle in (
     "V11338_ELITE_SPAWN_CHANCE = 0.08",
@@ -3042,16 +3004,12 @@ for _needle in (
 # v1.13.42 — long-term progression must stay slow and a single mob kill
 # may finish at most one permanent level on each combat progression axis.
 _balance_source_v11342 = (_root / "config/balance.py").read_text(encoding="utf-8")
-_progression_source_v11342 = (
-    _root / "core/progression_resources.py"
-).read_text(encoding="utf-8")
+_progression_source_v11342 = _v410_virtual_read(_root / "core/progression_resources.py")
 _character_source_v11342 = (_root / "player/character.py").read_text(encoding="utf-8")
 _class_progression_source_v11342 = (
     _root / "player/session_mixins/class_progression.py"
 ).read_text(encoding="utf-8")
-_dungeon_progression_source_v11342 = (
-    _root / "player/session_mixins/dungeon_progression.py"
-).read_text(encoding="utf-8")
+_dungeon_progression_source_v11342 = _v410_virtual_read(_root / "player/session_mixins/dungeon_progression.py")
 _session_runtime_source_v11342 = (
     _root / "player/session_mixins/session_runtime_state.py"
 ).read_text(encoding="utf-8")
@@ -3145,9 +3103,7 @@ for _source, _label, _needles in (
 _profession_bootstrap_source_v11342 = (
     _root / "core/bootstrap_economy_professions.py"
 ).read_text(encoding="utf-8")
-_profession_storage_source_v11342 = (
-    _root / "player/session_mixins/profession_storage.py"
-).read_text(encoding="utf-8")
+_profession_storage_source_v11342 = _v410_virtual_read(_root / "player/session_mixins/profession_storage.py")
 if "PROFESSION_XP_GAIN_MULTIPLIER = 4" not in _profession_bootstrap_source_v11342:
     _semantic_errors.append(
         "v1.13.42 profession XP regression: global gain multiplier is not x4"
@@ -3165,9 +3121,7 @@ for _needle in (
 _class_guild_source_v11342 = (
     _root / "player/session_mixins/class_guild_progress.py"
 ).read_text(encoding="utf-8")
-_equipment_crafting_source_v11342 = (
-    _root / "systems/equipment_crafting.py"
-).read_text(encoding="utf-8")
+_equipment_crafting_source_v11342 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
 _db_crafting_source_v11342 = (
     _root / "storage/db_crafting_extensions.py"
 ).read_text(encoding="utf-8")
@@ -3360,6 +3314,19 @@ _direct_xp_gateway_allow_v11342 = {
         "player/session_mixins/class_progression.py",
     },
 }
+# v4.20.0: XP gateway source locations include hash-verified method bodies
+# relocated without edits.  The semantic allowlist is unchanged by origin:
+# these derived paths remain allowed ONLY while the original method AST hash
+# matches the audited ledger and the exact historical owner source is allowed.
+from validation.v4200_modularization import LEDGER as _sb420_ledger_allow
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_validate_moved
+for _sb420_method, (_sb420_old, _sb420_new, _, _) in _sb420_ledger_allow.items():
+    if any(_sb420_old in _oldset for _oldset in _direct_xp_gateway_allow_v11342.values()):
+        _sb420_validate_moved(_root / _sb420_old)
+        for _oldset in _direct_xp_gateway_allow_v11342.values():
+            if _sb420_old in _oldset:
+                _oldset.add(_sb420_new)
+
 _direct_xp_bypasses_v11342 = []
 for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
@@ -3449,9 +3416,7 @@ if _unclassified_xp_mutators_v11342:
 _death_survival_source_v11343 = (
     _root / "player/session_mixins/combat_survival.py"
 ).read_text(encoding="utf-8")
-_party_source_v11343 = (
-    _root / "player/session_mixins/party.py"
-).read_text(encoding="utf-8")
+_party_source_v11343 = _v410_virtual_read(_root / "player/session_mixins/party.py")
 _command_source_v11343 = (
     _root / "player/session_mixins/command_registry.py"
 ).read_text(encoding="utf-8")
@@ -3497,14 +3462,14 @@ if "COMBAT_XP_ZERO_AUDIT_V11346" not in _server_source_v11346:
     _semantic_errors.append("v1.13.46 combat XP repair is not wired into server runtime")
 
 # v1.13.46: Selene must keep the Zaklinanie tool after class-shop rebuild.
-_equipment_source_v11346 = (_root / "systems/equipment_crafting.py").read_text(encoding="utf-8")
+_equipment_source_v11346 = _v410_virtual_read(_root / "systems/equipment_crafting.py")
 for _needle_v11346_selene in ("guild_arcane_chamber", "runic_focus"):
     if _needle_v11346_selene not in _equipment_source_v11346:
         _semantic_errors.append("v1.13.46 Selene shop regression: missing " + _needle_v11346_selene)
 
 # v1.13.46: quest reward audit guards.
 _quest_commands_source_v11346 = (_root / "player/session_mixins/quest_commands.py").read_text(encoding="utf-8")
-_progression_source_v11346 = (_root / "core/progression_resources.py").read_text(encoding="utf-8")
+_progression_source_v11346 = _v410_virtual_read(_root / "core/progression_resources.py")
 for _needle_v11346_quest in (
     "reward_prof_xp <= 0",
     "reward_tool_xp > 0",
@@ -3528,7 +3493,7 @@ if _gather_actions_source_v11348.count("await asyncio.sleep(max(0.05, float(rema
 
 # v1.13.50: combat Soul XP must use the canonical progression gateway without direct Character XP mutation.
 _combat_rewards_source_v11350 = (_root / "player/session_mixins/combat_rewards.py").read_text(encoding="utf-8")
-_dungeon_progression_source_v11350 = (_root / "player/session_mixins/dungeon_progression.py").read_text(encoding="utf-8")
+_dungeon_progression_source_v11350 = _v410_virtual_read(_root / "player/session_mixins/dungeon_progression.py")
 if "grant_combat_soul_xp_v11350" not in _combat_rewards_source_v11350:
     _semantic_errors.append("v1.13.50 combat Soul XP gateway regression: combat call missing")
 if "grant_combat_soul_xp_v11350" not in _dungeon_progression_source_v11350:
@@ -3619,9 +3584,13 @@ try:
     )
     # v1.40.7 also increases the amount required beyond 50; preserve the
     # original ~10T anchor * new deterministic level-specific multiplier.
-    from config.balance import scale_player_requirement_v1407
+    from config.balance import scale_player_requirement_v1407, v4210_required_xp
     _target_599_v1407 = scale_player_requirement_v1407(10_000_000_000_000, 599)
-    if any(abs(_v - _target_599_v1407) > 150_000_000 for _v in _reqs_599_v11357):
+    _targets_599_v4210 = tuple(
+        v4210_required_xp(_target_599_v1407, axis, 599)
+        for axis in ("character", "class", "soul")
+    )
+    if any(abs(_v - _expected) > 150_000_000 for _v, _expected in zip(_reqs_599_v11357, _targets_599_v4210)):
         _semantic_errors.append(
             f"v1.13.60 late-game XP target regression: {_reqs_599_v11357}"
         )
@@ -4403,3 +4372,29 @@ print(f"MODULY SILNIKA v4.00.2: {_modular_v4010()} checks PASS")
 # v4.00.3: increased tool XP thresholds, never touch rewards or SQLite.
 from validation.v4030_tool_xp_pacing import run_regression as _tool_pace_v4030
 print(f"NARZEDZIA XP v4.00.3 FAST: {_tool_pace_v4030()} checks PASS")
+
+# v4.00.5: split base content definitions while preserving original runtime semantics.
+from validation.v4050_catalog_modularization import run_regression as _catalogs_4050
+print(f"KATALOGI MODULOWE v4.00.5 FAST: {_catalogs_4050()} checks PASS")
+
+# v4.00.6: externalized original audit functions, no gameplay changes.
+from validation.v4060_audit_rules import run_regression as _audit_rules_4060
+print(f"MODULOWE AUDYTY v4.00.6 FAST: {_audit_rules_4060()} checks PASS")
+
+# v4.00.7: preserve the authored northern frontier, field quests and forest logic.
+from validation.v4070_frontier_modularization import run_regression as _frontier_v407
+print(f"MODULY ROZBUDOWY SWIATA v4.00.7 FAST: {_frontier_v407()} checks PASS")
+
+# v4.10.0: large-scale audited modularization.
+from validation.v4100_large_modularization import run_regression as _v4100_modular_regression
+print(f"KOMPLEKSOWA MODULARYZACJA v4.10.0 FAST: {_v4100_modular_regression()} checks PASS")
+
+# v4.20.0: final modularization safety and API/MRO guards.
+from validation.v4200_modularization import run_regression as _sb420_regression
+print(f"FINALNA MODULARYZACJA v4.20.0 FAST: {_sb420_regression()} checks PASS")
+
+# v4.21.0: balance every XP requirement axis 1-800 without touching XP rewards.
+from validation.v4210_balanced_requirements import run_regression as _xp_v4210
+print(f"ROWNE EXP v4.21.0 FAST: {_xp_v4210()} checks PASS")
+from validation.v4211_independent_xp_rewards import run_regression as _v4211_independent_rewards
+print(f"NIEZALEZNE NAGRODY EXP v4.21.1: {_v4211_independent_rewards()} checks PASS")

@@ -477,9 +477,8 @@ async def pay_due_fame(session):
         count=0
         for region,bid,name,raw_amount in rows:
             if getattr(session,'closed',False) or not session.character:break
-            # v2.10.3: queued Fame is one permanent award per boss, but each
-            # progression axis receives its own CURRENT full award cap. Old
-            # pending Fame rows receive the same updated payout on delivery.
+            # v4.21.1: Fame is a permanent one-time milestone with its own
+            # XP reward independent of next-level thresholds or cap size.
             from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
             caps = fame_cap_awards_v2103(session)
             fame_content_level=max(1,int(session.character.character_level))
@@ -494,10 +493,10 @@ async def pay_due_fame(session):
                          'WHERE account_id=? AND region=? AND boss_id=? AND delivered=0',
                          (session.account_id,region,bid))
             conn.commit()
-            await session.send(f'FAME — {region}: {name}, ZALICZONE. Pełny cap EXP: '
+            await session.send(f'FAME — {region}: {name}, ZALICZONE. Nagroda EXP: '
                                f'postać +{caps["character"]}, Dusza +{caps["soul"]}, '
                                f'każda statystyka +{caps["stat"]}; '
-                               'każda aktywna klasa otrzymuje swój cap Biegłości. '
+                               'każda aktywna klasa otrzymuje własną nagrodę Biegłości. '
                                'Wypłaty po bonusach podlegają EXP Bankowi. '
                                'Bez EXP profesji i narzędzi.')
             count+=1

@@ -132,12 +132,13 @@ def audit_qol_v1180():
     root = Path(__file__).resolve().parents[1]
     assembled = (root / "player/session.py").read_text(encoding="utf-8")
     check("SessionQualityOfLifeV1180Mixin," in assembled, "session composition")
+    from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
     modules = (("player/session_mixins/help_system.py", "gdzie cele"),
                ("player/session_mixins/io_auth_character.py", "combat ostatnie"),
                ("player/session_mixins/crafting_expansion.py", "smelt_wait_until_v1180"),
                ("world/equipment_help.py", 'HELP_TOPICS["zdobycze"]'))
     for filename, snippet in modules:
-        text = (root / filename).read_text(encoding="utf-8")
+        text = _sb420_view(root / filename) if filename in ("player/session_mixins/io_auth_character.py", "world/equipment_help.py") else (root / filename).read_text(encoding="utf-8")
         check(snippet in text, f"implementation {filename}")
         ast.parse(text, filename=filename)
     # Execute the actual command implementations, not just their help strings.
@@ -172,7 +173,8 @@ def audit_qol_v1180():
         check(any("trasa" in line for line in probe.messages), "where help")
     asyncio.run(_where_checks())
 
-    combat_source = ast.parse((root / "player/session_mixins/io_auth_character.py").read_text(encoding="utf-8"))
+    from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
+    combat_source = ast.parse(_sb420_view(root / "player/session_mixins/io_auth_character.py"))
     combat_class = next(n for n in combat_source.body if isinstance(n, ast.ClassDef) and n.name == "SessionIOAuthCharacterMixin")
     combat_method = next(n for n in combat_class.body if isinstance(n, ast.AsyncFunctionDef) and n.name == "set_combat_log")
     combat_probe = ast.ClassDef(name="CombatUnderTest", bases=[], keywords=[], body=[combat_method], decorator_list=[])

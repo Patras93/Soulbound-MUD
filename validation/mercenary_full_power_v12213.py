@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """v1.22.13: full equipped owner power and mercenary lethal hits with kill credit."""
 import ast
@@ -123,7 +124,7 @@ def validate_mercenary_full_power_v12213():
                 check(any('0 HP przeciwnika' in s for s in hero.messages),
                       role+' readable kill message')
     asyncio.run(run())
-    src=(root/'player/session_mixins/combat_realtime.py').read_text('utf8')
+    src=_sb420_view(root/'player/session_mixins/combat_realtime.py')
     check('if not mob.alive or mob.hp <= 0:' in src and
           'await self.mercenary_combat_turn_v1170(mob)' in src,
           'player turn stops after mercenary kill')

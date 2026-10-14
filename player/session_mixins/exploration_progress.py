@@ -653,20 +653,20 @@ class SessionExplorationProgressMixin:
                     ),
                 ),
             )
-            # v3.00.4: each first-time Explorer Point awards the SAME four
-            # independent progression paths as Fame: character, soul, every
-            # active class and each of the six stats. No profession/tool XP.
-            # No split between axes; existing Multi Cap/EXP Bank gateways apply.
-            from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
+            # v4.21.1: EP grants four independent, modest, authored-source
+            # XP paths. None uses the EXP required for the next level.
+            # Multi Cap and EXP Bank still govern each payout as before.
+            from systems.milestone_cap_rewards_v2103 import explorer_award_per_point_v4211
+            ep_awards = explorer_award_per_point_v4211(room_stage)
             ep_xp_total = ep_soul_total = ep_class_total = ep_stat_total = 0
             for _ in range(ep_points):
-                caps = fame_cap_awards_v2103(self)
+                caps = ep_awards
                 ep_xp_total += caps["character"]
                 ep_soul_total += caps["soul"]
                 ep_class_total += caps["class_total"]
                 ep_stat_total += caps["stat"]
-                # Match Fame's award flags and order; character level is the
-                # Fame content reference, while the room determines how many EP.
+                # Preserve four existing grant gateways, with stage-based
+                # per-point amounts independent of the character requirements.
                 ep_content_level = max(1, int(self.character.character_level))
                 await self.grant_combat_soul_xp_v11350(
                     caps["soul"], content_level=ep_content_level, content_scaled=True
@@ -700,7 +700,7 @@ class SessionExplorationProgressMixin:
                 )
                 await self.send(
                     f"Odkrycie lokacji: +{ep_points} EP. "
-                    f"EXP jak Fame (osobno): postać +{ep_xp_total}, "
+                    f"EXP za EP (niezależny od progów poziomów): postać +{ep_xp_total}, "
                     f"Dusza +{ep_soul_total}, każda aktywna klasa +{ep_class_total}, "
                     f"każda statystyka +{ep_stat_total}. "
                     f"Wypłaty podlegają Multi Cap i EXP Bankowi; "

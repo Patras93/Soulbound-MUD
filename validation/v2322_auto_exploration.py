@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Regression: automatic EP on room arrival, not on manually requested exploration."""
 from __future__ import annotations
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 import ast
 import asyncio
 from contextlib import closing
@@ -37,7 +38,7 @@ def run_regression():
 
     # Compile the exact production methods in a small isolated namespace;
     # the historical mixin cannot be imported until the complete world has booted.
-    from systems.milestone_cap_rewards_v2103 import exploration_point_xp_v2103, fame_cap_awards_v2103
+    from systems.milestone_cap_rewards_v2103 import explorer_award_per_point_v4211
     from systems.exploration_point_values_v2322 import room_explorer_points_v2322, zone_explorer_points_v2322
     progress_src = (ROOT / "player/session_mixins/exploration_progress.py").read_text(encoding="utf-8")
     progress_tree = ast.parse(progress_src)
@@ -150,10 +151,11 @@ def run_regression():
     checks += 1
     assert len(a.awards) == expected_ep and len(b.awards) == expected_ep
     checks += 1
-    cap = exploration_point_xp_v2103(a.character)
+    ep_awards = explorer_award_per_point_v4211(184)
+    cap = ep_awards['character']
     assert a.awards == [cap] * expected_ep and b.awards == [cap] * expected_ep
     checks += 1
-    fame_caps = fame_cap_awards_v2103(a)
+    fame_caps = ep_awards
     for session in (a, b):
         assert session.soul_awards == [fame_caps['soul']] * expected_ep
         assert session.class_awards == [fame_caps['class_total']] * expected_ep
@@ -185,7 +187,7 @@ def run_regression():
     checks += 1
     # Test the production atomic SQLite methods directly, without importing
     # the full runtime or touching a production database.
-    storage_tree = ast.parse((ROOT / 'storage/db_world.py').read_text('utf8'))
+    storage_tree = ast.parse(_sb420_view(ROOT / 'storage/db_world.py'))
     storage_class = next(n for n in storage_tree.body if isinstance(n, ast.ClassDef)
                          and n.name == 'DatabaseWorldMixin')
     method_names = {'mark_room_discovered_with_points_v2322',

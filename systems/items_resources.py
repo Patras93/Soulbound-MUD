@@ -1,3 +1,8 @@
+from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
+
+import systems.v410_resource_registration as _sb410_mod_v410_resource_registration
+import systems.v410_material_profiles as _sb410_mod_v410_material_profiles
+
 from data import catalog_mutations as _catalog_mut
 import math
 from core.profession_drop_rates_v1149 import resource_variant_chances_v1149, mining_vein_chances_v1149
@@ -366,121 +371,16 @@ BLACKSMITH_MASTERWORK_PROPERTY = {
 }
 
 
-def _blacksmith_masterwork_profile_v1138(level, slot):
-    level = max(1, min(800, int(level or 1)))
-    base_budget = equipment_progression_budget_v1138(level)
-    stat_budget = max(2, int(round(base_budget * 0.65)))
-    first, second = BLACKSMITH_MASTERWORK_STAT_PROFILE[slot]
-    first_amount = max(1, int(round(stat_budget * 0.55)))
-    second_amount = max(1, stat_budget - first_amount)
-    stats = {first: first_amount, second: second_amount}
-
-    prop = BLACKSMITH_MASTERWORK_PROPERTY[slot]
-    prop_value = round(
-        0.50 + 2.50 * ((level - 1) / 599.0) ** 0.80,
-        2,
-    )
-    properties = {prop: prop_value}
-
-    attack = 0
-    magic_attack = 0
-    if slot == "hands":
-        attack = max(1, int(round(base_budget * 0.10)))
-    elif slot == "feet":
-        attack = max(0, int(round(base_budget * 0.04)))
-    elif slot == "charm":
-        magic_attack = max(1, int(round(base_budget * 0.10)))
-    elif slot == "head":
-        magic_attack = max(0, int(round(base_budget * 0.04)))
-
-    if level >= 500:
-        sockets = 5
-    elif level >= 360:
-        sockets = 4
-    elif level >= 200:
-        sockets = 3
-    elif level >= 100:
-        sockets = 2
-    else:
-        sockets = 1
-
-    return {
-        "stats": stats,
-        "properties": properties,
-        "attack": attack,
-        "magic_attack": magic_attack,
-        "sockets": sockets,
-    }
+def _blacksmith_masterwork_profile_v1138(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _blacksmith_masterwork_profile_v1138")
+_blacksmith_masterwork_profile_v1138 = _sb410_bind(_sb410_mod_v410_resource_registration._blacksmith_masterwork_profile_v1138, globals())
 
 
-def _register_blacksmith_items():
-    extra_ingots = (
-        ("cobalt_ingot", "Kobaltowa sztabka"),
-        ("runestone_ingot", "Runiczna sztabka"),
-        ("dragonsteel_ingot", "Sztabka Smoczej Stali"),
-        ("astral_ingot", "Astralna sztabka"),
-        ("void_ingot", "Sztabka Pustki"),
-        ("eternium_ingot", "Sztabka Eternium"),
-    )
-    for item_id, name in extra_ingots:
-        _catalog_mut.catalog_assign({
-            "name": name,
-            "type": "craft_material",
-            "price": None,
-            "desc": (
-                "Przetopiony metal używany w zaawansowanym "
-                "Kowalstwie."
-            ),
-        }, 'ITEMS', ITEMS, (item_id,))
-
-    for tier_number, tier in enumerate(BLACKSMITH_TIERS, 1):
-        for slot, (
-            slot_name, defense_delta, _ingot_cost
-        ) in BLACKSMITH_SLOT_DEFS.items():
-            item_id = (
-                f"smith_{tier['key']}_{slot}"
-            )
-            level = int(tier["profession_level"])
-            defense = max(
-                1,
-                int(tier["base_defense"])
-                + int(defense_delta)
-                + int(round(equipment_defense_step_v1138(level) * 1.10)),
-            )
-            masterwork = _blacksmith_masterwork_profile_v1138(level, slot)
-            _catalog_mut.catalog_assign({
-                "name": (
-                    f"{slot_name} {tier['name']} "
-                    f"[Kowalstwo Tier {tier_number}]"
-                ),
-                "type": "armor",
-                "slot": slot,
-                "defense": defense,
-                "attack": int(masterwork["attack"]),
-                "magic_attack": int(masterwork["magic_attack"]),
-                "stats": dict(masterwork["stats"]),
-                "properties": dict(masterwork["properties"]),
-                "sockets": int(masterwork["sockets"]),
-                "crafted_masterwork": True,
-                "equipment_identity_source": "blacksmith",
-                "source_progression_stage": level,
-                "equipment_identity_role": "masterwork_customization",
-                "equipment_identity_label": (
-                    "Kowalstwo — masterwork, właściwość materiałowa i sockety"
-                ),
-                "price": None,
-                "desc": (
-                    f"Wyposażenie wykute przez Kowala. "
-                    f"Kowalstwo level {tier['profession_level']}+. "
-                    "Młot Rzemieślniczy wpływa na dostęp do lepszych materiałów "
-                    "i bonus produktu. Tier Młota musi spełniać próg receptury; "
-                    "pojedynczy level Młota wewnątrz Tieru nie skraca czasu. "
-                    f"Obrona +{defense}. Masterwork: statystyki, właściwość materiałowa "
-                    f"i {int(masterwork['sockets'])} gniazd(a) do dalszego dopracowania."
-                ),
-                "blacksmith_tier": tier_number,
-                "blacksmith_material": tier["key"],
-            }, 'ITEMS', ITEMS, (item_id,))
+def _register_blacksmith_items(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_blacksmith_items")
+_register_blacksmith_items = _sb410_bind(_sb410_mod_v410_resource_registration._register_blacksmith_items, globals())
 
 _register_blacksmith_items()
 for _level in PROGRESSION_400_LEVELS:
@@ -788,135 +688,10 @@ def _material_budget_split(rng, budget, count):
     return values
 
 
-def _material_random_profile(tier, slot, variant_index, salt=0):
-    """Deterministyczny profil materiałowego EQ.
-
-    v0.30.37: każdy slot ma własne preferencje statów/właściwości, a rejestracja
-    odrzuca powtórzone profile statów w obrębie tego samego materiału i slotu.
-    `salt` służy wyłącznie do deterministycznego znalezienia innego profilu.
-    """
-    tier_index = 1 + next(
-        i for i, row in enumerate(CORPSE_MATERIAL_TIERS)
-        if row["key"] == tier["key"]
-    )
-    rng = random.Random(
-        f"soulbound-v0.30.37:{tier['key']}:{slot}:{int(variant_index)}:{int(salt)}"
-    )
-
-    property_budgets = (1, 1, 2, 3, 4, 5, 7, 8, 10, 12)
-    required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
-    band_levels = CORPSE_MATERIAL_MASTERY_BANDS[tier["key"]]
-    substep = band_levels.index(required_mastery)
-
-    # Drop nie jest już ubogim kuzynem sklepu. Ten sam etap korzysta z tej samej
-    # ogólnej skali mocy, ale roll ma 80-110% budżetu i losowy rozkład statów.
-    # Dzięki temu dobry egzemplarz może być lepszy dla konkretnego buildu,
-    # podczas gdy sklep pozostaje pewnym, klasowo dopasowanym wyborem.
-    quality = 0.80 + rng.random() * 0.30
-    progression_budget = equipment_progression_budget_v1138(required_mastery)
-    stat_budget = max(2, int(round(progression_budget * quality)))
-    property_budget = (
-        property_budgets[tier_index - 1]
-        + max(0, int(round((quality - 0.80) * 8.0)))
-    )
-
-    if tier_index <= 4:
-        stat_count = 2
-    elif tier_index <= 6:
-        stat_count = rng.choice((2, 3))
-    elif tier_index <= 8:
-        stat_count = 3
-    elif tier_index == 9:
-        stat_count = rng.choice((3, 4))
-    else:
-        stat_count = 4
-    stat_count = min(stat_count, len(MATERIAL_RANDOM_STAT_POOL), stat_budget)
-
-    # Preferencje slotu są rotowane przez seed, więc slot ma własny charakter,
-    # ale 24 warianty nadal nie są kopiami tego samego rozkładu.
-    stat_pref = list(MATERIAL_SLOT_STAT_PREFERENCES.get(slot, MATERIAL_RANDOM_STAT_POOL))
-    tier_pref = [tier.get("primary"), tier.get("secondary")]
-    weighted_stats = []
-    for stat in tier_pref + stat_pref + list(MATERIAL_RANDOM_STAT_POOL):
-        if stat in MATERIAL_RANDOM_STAT_POOL and stat not in weighted_stats:
-            weighted_stats.append(stat)
-    # Losuj z preferowanej listy przez permutację, nie przez identyczną stałą parę.
-    rotated = weighted_stats[rng.randrange(len(weighted_stats)):] + weighted_stats[:rng.randrange(len(weighted_stats))]
-    # Drugi shuffle daje warianty przy zachowaniu slot-specific seed.
-    rng.shuffle(rotated)
-    chosen_stats = rotated[:stat_count]
-    stat_values = _material_budget_split(rng, stat_budget, stat_count)
-    stats = dict(zip(chosen_stats, stat_values))
-
-    if tier_index <= 2:
-        property_count = 1
-    elif tier_index <= 5:
-        property_count = 2
-    elif tier_index <= 8:
-        property_count = 3
-    else:
-        property_count = 4
-    property_count = min(property_count, len(MATERIAL_RANDOM_PROPERTY_POOL), property_budget)
-    prop_pref = list(MATERIAL_SLOT_PROPERTY_PREFERENCES.get(slot, MATERIAL_RANDOM_PROPERTY_POOL))
-    rng.shuffle(prop_pref)
-    chosen_properties = prop_pref[:property_count]
-    property_values = _material_budget_split(rng, property_budget, property_count)
-    properties = dict(zip(chosen_properties, property_values))
-
-    _slot_label, defense_delta = CORPSE_MATERIAL_SLOT_DEFS[slot]
-    defense = max(
-        1,
-        int(tier["base_defense"])
-        + int(defense_delta)
-        + int(round(
-            equipment_defense_step_v1138(required_mastery)
-            * (0.88 + (quality - 0.80) * 0.55)
-        )),
-    )
-
-    # Losowy profil ofensywny może mieć Attack, Magic Attack albo oba.
-    slot_scale = float(MATERIAL_SLOT_POWER_SCALE.get(slot, 0.50))
-    flat_pool = max(
-        0,
-        int(round(progression_budget * 0.11 * slot_scale * quality)),
-    )
-    physical_score = (
-        int(stats.get("strength", 0))
-        + int(stats.get("dexterity", 0))
-        + int(round(float(properties.get("physical_damage_pct", 0)) * 2.0))
-    )
-    magic_score = (
-        int(stats.get("intelligence", 0))
-        + int(stats.get("willpower", 0))
-        + int(round(float(properties.get("magic_damage_pct", 0)) * 2.0))
-    )
-    score_total = physical_score + magic_score
-    attack = 0
-    magic_attack = 0
-    if flat_pool > 0 and score_total > 0:
-        attack = int(round(flat_pool * physical_score / float(score_total)))
-        magic_attack = max(0, flat_pool - attack)
-        if physical_score > 0 and attack <= 0:
-            attack = 1
-        if magic_score > 0 and magic_attack <= 0:
-            magic_attack = 1
-
-    if required_mastery >= 500:
-        sockets = 4
-    elif required_mastery >= 360:
-        sockets = 3
-    elif required_mastery >= 240:
-        sockets = 2
-    elif required_mastery >= 120:
-        sockets = 1
-    else:
-        sockets = 0
-    if quality >= 1.04:
-        sockets = min(5, sockets + 1)
-
-    return (
-        defense, stats, properties, attack, magic_attack, sockets, quality
-    )
+def _material_random_profile(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _material_random_profile")
+_material_random_profile = _sb410_bind(_sb410_mod_v410_material_profiles._material_random_profile, globals())
 
 
 MATERIAL_TITLE_PHRASE = {
@@ -939,131 +714,19 @@ def _material_variant_title(tier, slot, stats, variant_index, required_mastery):
     )
 
 
-def _register_corpse_material_items():
-    global CORPSE_MATERIAL_ITEM_IDS
-    CORPSE_MATERIAL_ITEM_IDS = {}
-    all_names = set()
-    for tier_index, tier in enumerate(CORPSE_MATERIAL_TIERS, 1):
-        ids = []
-        for slot in CORPSE_MATERIAL_SLOT_DEFS:
-            seen_stats = set()
-            for variant_index in range(1, CORPSE_RANDOM_VARIANTS_PER_SLOT + 1):
-                item_id = f"corpse_{tier['key']}_{slot}_v{variant_index:02d}"
-                profile = None
-                for salt in range(512):
-                    (
-                        defense, stats, properties,
-                        attack, magic_attack, sockets, quality,
-                    ) = _material_random_profile(
-                        tier, slot, variant_index, salt=salt
-                    )
-                    stat_sig = tuple(sorted((str(k), int(v)) for k, v in stats.items()))
-                    if stat_sig not in seen_stats:
-                        profile = (
-                            defense, stats, properties, attack,
-                            magic_attack, sockets, quality, stat_sig,
-                        )
-                        break
-                if profile is None:
-                    raise RuntimeError(
-                        f"v0.30.37: nie udało się utworzyć unikalnych statów {tier['key']} {slot} wariant {variant_index}"
-                    )
-                (
-                    defense, stats, properties, attack,
-                    magic_attack, sockets, quality, stat_sig,
-                ) = profile
-                seen_stats.add(stat_sig)
-                required_mastery = corpse_material_variant_mastery(tier["key"], variant_index)
-                name = _material_variant_title(tier, slot, stats, variant_index, required_mastery)
-                if str(name).casefold() in all_names:
-                    raise RuntimeError(f"v0.30.37: powtórzona nazwa materiałowego EQ: {name}")
-                all_names.add(str(name).casefold())
-                stat_text = ", ".join(
-                    f"{MATERIAL_STAT_NAMES.get(stat, stat)} +{amount}" for stat, amount in stats.items()
-                )
-                prop_text = ", ".join(
-                    f"{MATERIAL_PROPERTY_NAMES.get(prop, prop)} +{amount}%" for prop, amount in properties.items()
-                )
-                crit_note = (
-                    " Zręczność z tej części zwiększa także szansę na trafienie krytyczne."
-                    if stats.get("dexterity", 0) > 0 else ""
-                )
-                _catalog_mut.catalog_assign({
-                    "name": name,
-                    "type": "armor",
-                    "slot": slot,
-                    "defense": defense,
-                    "attack": int(attack),
-                    "magic_attack": int(magic_attack),
-                    "sockets": int(sockets),
-                    "drop_quality": round(float(quality), 3),
-                    "price": None,
-                    "rarity": tier["rarity"],
-                    "rarity_name": tier["rarity_name"],
-                    "stats": stats,
-                    "properties": properties,
-                    "corpse_material": tier["key"],
-                    "corpse_material_tier": tier_index,
-                    "corpse_random_variant": variant_index,
-                    "required_mastery": required_mastery,
-                    "source_progression_stage": required_mastery,
-                    "equipment_identity_source": "corpse_drop",
-                    "equipment_identity_role": "random_material_variant",
-                    "equipment_identity_label": (
-                        "Drop z moba — losowy materiał, wariant i profil "
-                        + str(tier["identity"])
-                    ),
-                    "mastery_requirement_scope": "active_class",
-                    # v0.61.2: opis materiałowego EQ jest składany na żądanie.
-                }, 'ITEMS', ITEMS, (item_id,))
-                ids.append(item_id)
-        CORPSE_MATERIAL_ITEM_IDS[tier["key"]] = tuple(ids)
+def _register_corpse_material_items(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_corpse_material_items")
+_register_corpse_material_items = _sb410_bind(_sb410_mod_v410_resource_registration._register_corpse_material_items, globals())
 
 
 _register_corpse_material_items()
 
 
-def loot_source_equipment_audit_v11327():
-    errors = []
-
-    crafted = [
-        item for item in ITEMS.values() if item.get("crafted_masterwork")
-    ]
-    if not crafted:
-        errors.append("missing blacksmith masterwork items")
-    else:
-        for item in crafted[:200]:
-            if int(item.get("source_progression_stage", 0) or 0) <= 0:
-                errors.append("blacksmith item missing source progression stage")
-                break
-            if int(item.get("sockets", 0) or 0) < 1:
-                errors.append("blacksmith item lost socket identity")
-                break
-
-    corpse = [
-        item for item in ITEMS.values()
-        if item.get("corpse_material") and not item.get("infinite_depth_variant")
-    ]
-    if not corpse:
-        errors.append("missing corpse material equipment")
-    else:
-        for item in corpse[:500]:
-            mastery = int(item.get("required_mastery", 0) or 0)
-            stage = int(item.get("source_progression_stage", 0) or 0)
-            if stage != mastery or stage <= 0:
-                errors.append("corpse drop source stage mismatch")
-                break
-            if item.get("equipment_identity_source") != "corpse_drop":
-                errors.append("corpse drop identity source missing")
-                break
-
-    return {
-        "version": "1.13.27",
-        "blacksmith_count": len(crafted),
-        "corpse_drop_count": len(corpse),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def loot_source_equipment_audit_v11327(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: loot_source_equipment_audit_v11327")
+loot_source_equipment_audit_v11327 = _sb410_bind(_sb410_mod_v410_material_profiles.loot_source_equipment_audit_v11327, globals())
 
 
 LOOT_SOURCE_EQUIPMENT_AUDIT_V11327 = loot_source_equipment_audit_v11327()
@@ -1193,60 +856,10 @@ def _scaled_resource_sale_fields(base_item, multiplier):
             result[key] = max(1, value * int(multiplier))
     return result
 
-def _register_rare_resource_variants():
-    groups = (
-        (
-            "fish",
-            tuple(FISH_RESOURCE_IDS),
-            FISH_RARE_VARIANTS,
-        ),
-        (
-            "wood",
-            tuple(WOOD_RESOURCE_IDS),
-            WOOD_RARE_VARIANTS,
-        ),
-        (
-            "herb",
-            tuple(HERB_RESOURCE_IDS),
-            HERB_RARE_VARIANTS,
-        ),
-    )
-
-    for category, base_ids, variants in groups:
-        for base_item_id in base_ids:
-            base_item = ITEMS.get(base_item_id)
-            if not base_item:
-                continue
-
-            for key, definition in variants.items():
-                variant_id = rare_resource_variant_id(
-                    category, key, base_item_id
-                )
-                value_mult = int(definition["value_mult"])
-                item = {
-                    "name": (
-                        definition["name_prefix"]
-                        + base_item["name"]
-                    ),
-                    "type": "resource",
-                    "price": None,
-                    "desc": (
-                        f"{definition['desc']} "
-                        f"Bazowy zasób: {base_item['name']}. "
-                        f"Wartość sprzedaży x{value_mult}."
-                    ),
-                    "resource_category": category,
-                    "base_resource_id": base_item_id,
-                    "rare_resource_variant": key,
-                    "rare_resource_label": definition["label"],
-                    "rare_value_multiplier": value_mult,
-                }
-                item.update(
-                    _scaled_resource_sale_fields(
-                        base_item, value_mult
-                    )
-                )
-                _catalog_mut.catalog_assign(item, 'ITEMS', ITEMS, (variant_id,))
+def _register_rare_resource_variants(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_rare_resource_variants")
+_register_rare_resource_variants = _sb410_bind(_sb410_mod_v410_resource_registration._register_rare_resource_variants, globals())
 
 _register_rare_resource_variants()
 
@@ -1375,51 +988,10 @@ def fish_species_habitats(item_id):
         labels.append("kanał")
     return tuple(dict.fromkeys(labels))
 
-def roll_fish_measurement(item_id):
-    """Losowy rozmiar okazu do rekordów v0.9.5; bez wpływu na balans."""
-    item = ITEMS.get(item_id, {})
-    base_id = base_fish_species_id(item_id)
-    name = normalize_lookup_text(ITEMS.get(base_id, item).get("name", base_id))
-    rarity = fish_species_rarity(base_id)
-    tiny_words = ("szprot", "sardyn", "sardine", "anchovy", "sardela", "stynk", "uklej", "gudgeon", "kiełb", "kielb")
-    eel_words = ("węgorz", "wegorz", "eel")
-    shark_words = ("rekin", "shark")
-    monster_words = ("lewiatan", "leviathan", "serpent", "smok", "drake")
-    large_words = ("tuńczyk", "tunczyk", "tuna", "marlin", "miecznik", "swordfish", "samogłów", "samoglow", "sunfish", "jesiotr", "sturgeon", "catfish", "halibut")
-    if any(word in name for word in monster_words):
-        length_mm = random.randint(1800, 8000)
-        weight_g = random.randint(80000, 1500000)
-    elif any(word in name for word in shark_words):
-        length_mm = random.randint(700, 5200)
-        weight_g = random.randint(8000, 750000)
-    elif any(word in name for word in eel_words):
-        length_mm = random.randint(250, 2200)
-        weight_g = random.randint(150, 30000)
-    elif any(word in name for word in tiny_words):
-        length_mm = random.randint(60, 360)
-        weight_g = random.randint(20, 1200)
-    elif any(word in name for word in large_words):
-        length_mm = random.randint(350, 2600)
-        weight_g = random.randint(1500, 220000)
-    else:
-        ranges = {
-            "common": ((90, 650), (60, 7000)),
-            "uncommon": ((120, 900), (100, 14000)),
-            "rare": ((160, 1300), (200, 30000)),
-            "epic": ((220, 1900), (500, 70000)),
-            "legendary": ((400, 3200), (1500, 220000)),
-        }
-        (lmin, lmax), (wmin, wmax) = ranges[rarity]
-        length_mm = random.randint(lmin, lmax)
-        weight_g = random.randint(wmin, wmax)
-    variant = str(item.get("rare_resource_variant") or "")
-    if variant == "giant":
-        length_mm = int(round(length_mm * 1.30))
-        weight_g = int(round(weight_g * 1.80))
-    elif variant == "ancient":
-        length_mm = int(round(length_mm * 1.10))
-        weight_g = int(round(weight_g * 1.20))
-    return max(1, length_mm), max(1, weight_g)
+def roll_fish_measurement(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: roll_fish_measurement")
+roll_fish_measurement = _sb410_bind(_sb410_mod_v410_material_profiles.roll_fish_measurement, globals())
 
 def format_fish_length(length_mm):
     return f"{int(length_mm) / 10.0:.1f} cm"

@@ -14,6 +14,7 @@ from core.progression_resources import v0190_quest_currency_reward
 from systems.experience_cap_v2009 import experience_cap_v2009
 from systems.milestone_cap_rewards_v2103 import (
     exploration_point_xp_v2103, fame_cap_awards_v2103,
+    explorer_award_per_point_v4211, _fame_award_for_level_v4211,
 )
 from systems.fame_v1702 import ensure_schema, pay_due_fame
 
@@ -57,14 +58,14 @@ def run_regression():
     checks = 0
     for lv in (1, 10, 55, 100, 300, 799, 800):
         c = SimpleNamespace(character_level=lv)
-        assert exploration_point_xp_v2103(c) == experience_cap_v2009('character', lv)
+        assert exploration_point_xp_v2103(c) == explorer_award_per_point_v4211(1)['character']
         checks += 1
     s = _MockSession()
     caps = fame_cap_awards_v2103(s)
-    assert caps['character'] == experience_cap_v2009('character', 55)
-    assert caps['soul'] == experience_cap_v2009('soul', 31)
-    assert caps['stat'] == experience_cap_v2009('stat', 55)
-    assert caps['class_total'] == max(experience_cap_v2009('class', 70), experience_cap_v2009('class', 24))
+    assert caps['character'] == _fame_award_for_level_v4211(55)
+    assert caps['soul'] == _fame_award_for_level_v4211(31)
+    assert caps['stat'] == _fame_award_for_level_v4211(55)
+    assert caps['class_total'] == max(_fame_award_for_level_v4211(70), _fame_award_for_level_v4211(24))
     checks += 4
     ensure_schema(s.server.db.conn)
     s.server.db.conn.execute('''INSERT INTO fame_pending_v1703

@@ -933,3 +933,29 @@ print(f"MODULY SILNIKA v4.00.2: {_modular_v4010()} checks PASS")
 # v4.00.3: increased tool XP thresholds, never touch rewards or SQLite.
 from validation.v4030_tool_xp_pacing import run_regression as _tool_pace_v4030
 print(f"NARZEDZIA XP v4.00.3 FULL: {_tool_pace_v4030()} checks PASS")
+
+# v4.00.5: split base content definitions while preserving original runtime semantics.
+from validation.v4050_catalog_modularization import run_regression as _catalogs_4050
+print(f"KATALOGI MODULOWE v4.00.5 FULL: {_catalogs_4050()} checks PASS")
+
+# v4.00.6: externalized original audit functions, no gameplay changes.
+from validation.v4060_audit_rules import run_regression as _audit_rules_4060
+print(f"MODULOWE AUDYTY v4.00.6 FULL: {_audit_rules_4060()} checks PASS")
+
+# v4.00.7: preserve the authored northern frontier, field quests and forest logic.
+from validation.v4070_frontier_modularization import run_regression as _frontier_v407
+print(f"MODULY ROZBUDOWY SWIATA v4.00.7 FULL: {_frontier_v407()} checks PASS")
+
+# v4.10.0: large-scale audited modularization.
+from validation.v4100_large_modularization import run_regression as _v4100_modular_regression
+print(f"KOMPLEKSOWA MODULARYZACJA v4.10.0 FULL: {_v4100_modular_regression()} checks PASS")
+
+# v4.20.0: final modularization safety and API/MRO guards.
+from validation.v4200_modularization import run_regression as _sb420_regression
+print(f"FINALNA MODULARYZACJA v4.20.0 FULL: {_sb420_regression()} checks PASS")
+
+# v4.21.0: balance every XP requirement axis 1-800 without touching XP rewards.
+from validation.v4210_balanced_requirements import run_regression as _xp_v4210
+print(f"ROWNE EXP v4.21.0 FULL: {_xp_v4210()} checks PASS")
+from validation.v4211_independent_xp_rewards import run_regression as _v4211_independent_rewards
+print(f"NIEZALEZNE NAGRODY EXP v4.21.1: {_v4211_independent_rewards()} checks PASS")

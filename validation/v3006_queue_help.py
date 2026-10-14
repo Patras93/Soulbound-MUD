@@ -8,11 +8,12 @@ inspect the final assembled runtime namespace in the full gate.
 import ast
 from pathlib import Path
 
+from validation.v4100_virtual_source import read_factored_legacy_source_v410 as _v410_virtual_read
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _queue_topic_in_function(path, function_name):
-    tree = ast.parse((ROOT / path).read_text(encoding="utf-8-sig"))
+    tree = ast.parse(_v410_virtual_read(ROOT / path))
     fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
               and node.name == function_name)
     for node in ast.walk(fn):
@@ -54,7 +55,7 @@ def run_regression(runtime=None):
 
     # Ensure the legacy audit no longer demands obsolete 600 in queue help,
     # while it still explicitly blocks an absent unlimited-queue description.
-    source = (ROOT / "admin/help_refresh.py").read_text(encoding="utf-8")
+    source = _v410_virtual_read(ROOT / "admin/help_refresh.py")
     tree = ast.parse(source)
     fn = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
               and node.name == "help_truth_audit_v11197")

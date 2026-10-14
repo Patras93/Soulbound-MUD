@@ -1,3 +1,8 @@
+from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
+import world.v420_runtime_regions as _sb420_topsrc01
+import world.v420_runtime_world_audits as _sb420_topsrc02
+import world.v420_runtime_class_equipment as _sb420_topsrc03
+
 from data import catalog_mutations as _catalog_mut
 from systems.equipment_crafting import mec_hybrid_extra_stats
 V021_WORLD_SEED = f"{V0250_WORLD_SEED}:soulbound-v0210-ascension-world-tiers-mythic"
@@ -11,11 +16,11 @@ V021_ASCENSION_REQ = (
 V021_WORLD_TIER_ASCENSION_REQUIREMENT={1:0,2:0,3:5,4:10,5:20,6:35,7:55,8:80,9:120,10:180}
 
 def v0210_ascension_xp_to_next(rank):
-    from config.balance import scale_player_requirement_v1407
+    from config.balance import scale_player_requirement_v1407, v4210_required_xp
     rank=max(0,int(rank or 0))
     if rank>=V021_ASCENSION_MAX_RANK: return 0
     level=rank+1
-    return scale_player_requirement_v1407(v0190_log_curve(level,V021_ASCENSION_REQ),level)
+    return v4210_required_xp(scale_player_requirement_v1407(v0190_log_curve(level,V021_ASCENSION_REQ),level), "ascension", level)
 
 def v0210_world_tier_multipliers(tier):
     tier=max(1,min(V021_WORLD_TIER_MAX,int(tier or 1))); step=tier-1
@@ -343,144 +348,10 @@ def _v028_region_room_id(index, x, y):
     return f"v028_region_{int(index):02d}_{int(x):02d}_{int(y):02d}"
 
 
-def _v028_build_regions():
-    if "cartographer_house" not in ROOMS:
-        return
-    # Deterministic biome permutation; no region carries a hand-authored level.
-    biome_order = sorted(V028_BIOMES, key=lambda key: balance_math.stable_unit(f"{V028_WORLD_SEED}:biome:{key}"))
-    gate_ids=[]
-    for index in range(1, V028_REGION_COUNT + 1):
-        stage = balance_math.stage_from_index(index, V028_REGION_COUNT)
-        biome_key = biome_order[(index - 1) % len(biome_order)]
-        theme = V028_BIOMES[biome_key]
-        gate_id=f"v028_region_gate_{index:02d}"; gate_ids.append(gate_id)
-        width=4 + int(balance_math.stable_unit(f"{V028_WORLD_SEED}:{index}:w") > .52)
-        height=4 + int(balance_math.stable_unit(f"{V028_WORLD_SEED}:{index}:h") > .52)
-        max_distance=max(1,(width-1)+(height-1))
-        zone=f"Proceduralny Region: {theme['label']}"
-        _catalog_mut.catalog_assign({
-            "zone":"Pracownia Kartografa", "name":f"Brama Ekspedycji {index}: {theme['label']}",
-            "desc":f"Stabilna brama do wygenerowanego regionu {theme['label']}. Docelowy etap Generator Core: {stage}.",
-            "exits":{}, "safe_hub":True, "procedural_region_stage":stage, "v028_region_gate":index,
-        }, 'ROOMS', ROOMS, (gate_id,))
-        # Create grid rooms first.
-        room_ids=[]
-        for y in range(height):
-            for x in range(width):
-                rid=_v028_region_room_id(index,x,y); room_ids.append(rid)
-                dist=x+y
-                span=max(6,min(28,400-stage))
-                room_stage=min(CHARACTER_MAX_LEVEL,stage+int(round((dist/max_distance)*span)))
-                title=_v028_pick(theme["titles"],f"r{index}:{x}:{y}:title")
-                feature=_v028_pick(theme["features"],f"r{index}:{x}:{y}:feature")
-                _catalog_mut.catalog_assign({
-                    "zone":zone,"name":f"{title} — sektor {x+1}-{y+1}",
-                    "desc":f"Wygenerowany sektor biomu {theme['label']}. Wyróżnia się tu {feature}. Układ, przeciwnicy i zasoby wynikają z trwałego seedu świata.",
-                    "exits":{},"procedural_region_v028":index,"procedural_biome_v028":biome_key,
-                    "procedural_region_stage":room_stage,"procedural_x":x,"procedural_y":y,
-                }, 'ROOMS', ROOMS, (rid,))
-        # Spanning comb guarantees connectivity; seeded extra edges create loops.
-        for y in range(height):
-            for x in range(width):
-                rid=_v028_region_room_id(index,x,y)
-                if x>0:
-                    left=_v028_region_room_id(index,x-1,y)
-                    _v028_connect(left,"east",rid,"west")
-                if y>0:
-                    below=_v028_region_room_id(index,x,y-1)
-                    must_connect=(x==0)
-                    extra=balance_math.stable_unit(f"{V028_WORLD_SEED}:edge:{index}:{x}:{y}")>.47
-                    if must_connect or extra:
-                        _v028_connect(below,"north",rid,"south")
-        entry=_v028_region_room_id(index,0,0)
-        boss_room=_v028_region_room_id(index,width-1,height-1)
-        _catalog_mut.catalog_assign(entry, 'ROOMS', ROOMS, (gate_id, "exits", "down")); _catalog_mut.catalog_assign(gate_id, 'ROOMS', ROOMS, (entry, "exits", "up"))
-
-        # Secrets are side rooms chosen by seed, never the entry or boss room.
-        secret_candidates=[rid for rid in room_ids if rid not in (entry,boss_room)]
-        secret_candidates.sort(key=lambda rid: balance_math.stable_unit(f"{V028_WORLD_SEED}:secret:{rid}"), reverse=True)
-        secret_ids=[]
-        for sn,base in enumerate(secret_candidates[:2],1):
-            sid=f"v028_region_{index:02d}_secret_{sn:02d}"; secret_ids.append(sid)
-            sstage=ROOMS[base]["procedural_region_stage"]
-            _catalog_mut.catalog_assign({"zone":zone,"name":f"Sekret {theme['label']} {sn}",
-                "desc":f"Ukryta odnoga regionu {theme['label']}. Generator oznaczył to miejsce jako sekret ekspedycji.",
-                "exits":{"up":base},"procedural_region_v028":index,"procedural_secret":True,
-                "procedural_region_stage":sstage}, 'ROOMS', ROOMS, (sid,))
-            _catalog_mut.catalog_assign(sid, 'ROOMS', ROOMS, (base, "exits", "down"))
-
-        # Real gathering locations are generated from biome semantics.
-        resource_rooms=[]
-        for rid in room_ids:
-            if balance_math.stable_unit(f"{V028_WORLD_SEED}:resource:{rid}")>.66:
-                _v0130_apply_resources(rid,{"resources":theme["resources"]}); resource_rooms.append(rid)
-        if not resource_rooms:
-            _v0130_apply_resources(entry,{"resources":theme["resources"]}); resource_rooms=[entry]
-
-        # Region-specific relic; Generator Core owns its value/price/drop rate.
-        relic_id=f"v028_region_{index:02d}_relic"
-        _catalog_mut.catalog_assign({"name":f"Relikt: {theme['label']}","type":"material","price":1,"currency":"silver",
-            "desc":f"Relikt znaleziony w proceduralnym regionie {theme['label']}.","procedural_region_stage":stage,
-            "resource_category":"procedural_relic"}, 'ITEMS', ITEMS, (relic_id,))
-
-        normal_ids=[]
-        for mi in range(4):
-            mid=f"v028_region_{index:02d}_mob_{mi+1}"
-            word=theme["mob_words"][mi % len(theme["mob_words"])]
-            _catalog_mut.catalog_assign({"name":f"{word} {theme['label']}","damage_type":theme["damage_type"],
-                "drops":{relic_id:.05},"procedural_region_stage":stage,"quest_targets":(f"v028_region_{index:02d}_threat",),
-                "elite_eligible":True,"rare_eligible":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (mid,))
-            normal_ids.append(mid)
-        elite_id=f"v028_region_{index:02d}_elite"
-        _catalog_mut.catalog_assign({"name":"Elitarny Strażnik","damage_type":theme["damage_type"],
-            "drops":{relic_id:.18},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+6),"elite_affix":"procedural",
-            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_elite_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
-        rare_id=f"v028_region_{index:02d}_rare"
-        _catalog_mut.catalog_assign({"name":"Rzadki Wędrowiec","damage_type":theme["damage_type"],
-            "drops":{relic_id:.30},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+10),"rare_mob":True,
-            "quest_targets":(f"v028_region_{index:02d}_threat",f"v028_region_{index:02d}_rare_target")}, 'MOB_TEMPLATES', MOB_TEMPLATES, (rare_id,))
-        boss_id=f"v028_region_{index:02d}_boss"
-        _catalog_mut.catalog_assign({"name":"Władca Regionu","damage_type":theme["damage_type"],
-            "drops":{relic_id:1.0},"procedural_region_stage":min(CHARACTER_MAX_LEVEL,stage+18),"boss_mechanic":"procedural_region",
-            "boss_mechanic_text":"Generator regionu wybiera fazę presji na podstawie etapu i biomu.",
-            "quest_targets":(f"v028_region_{index:02d}_boss_target",),"leave_corpse":True}, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
-
-        # Seeded spawn layout: normal population everywhere, one Elite, one Rare and final boss.
-        non_boss=[rid for rid in room_ids if rid!=boss_room]
-        for rid in non_boss:
-            pick=int(balance_math.stable_unit(f"{V028_WORLD_SEED}:spawn:{rid}")*len(normal_ids))%len(normal_ids)
-            MOB_SPAWNS.append((rid,normal_ids[pick]))
-            if balance_math.stable_unit(f"{V028_WORLD_SEED}:spawn2:{rid}")>.74:
-                MOB_SPAWNS.append((rid,normal_ids[(pick+1)%len(normal_ids)]))
-        elite_room=sorted(non_boss,key=lambda rid:balance_math.stable_unit(f"{V028_WORLD_SEED}:elite:{rid}"),reverse=True)[0]
-        rare_room=sorted([rid for rid in non_boss if rid!=elite_room],key=lambda rid:balance_math.stable_unit(f"{V028_WORLD_SEED}:rare:{rid}"),reverse=True)[0]
-        MOB_SPAWNS.extend(((elite_room,elite_id),(rare_room,rare_id),(boss_room,boss_id)))
-
-        # Three generated quests per region. Their levels/rewards are recalculated by the final Core pass.
-        guide_id=f"v028_region_{index:02d}_guide"; guide_name=f"Przewodnik {theme['label']}"
-        q1=f"v028_region_{index:02d}_hunt"; q2=f"v028_region_{index:02d}_elite_quest"; q3=f"v028_region_{index:02d}_boss_quest"
-        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Czystka","giver":guide_name,"kind":"kill",
-            "target":f"v028_region_{index:02d}_threat","needed":balance_math.generated_count(stage,f"v028:{index}:hunt",8,18),
-            "description":f"Pokonaj zagrożenia wygenerowanego regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q1,))
-        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Elita","giver":guide_name,"kind":"kill",
-            "target":f"v028_region_{index:02d}_elite_target","needed":1,"requires_quest":q1,
-            "description":f"Pokonaj elitarnego strażnika regionu {theme['label']}.","reward_items":{},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q2,))
-        _catalog_mut.catalog_assign({"name":f"Ekspedycja {theme['label']}: Władca","giver":guide_name,"kind":"kill",
-            "target":boss_id,"needed":1,"requires_quest":q2,
-            "description":f"Pokonaj bossa proceduralnego regionu {theme['label']}.","reward_items":{relic_id:1},"repeatable":True,"repeat_cooldown":QUEST_REPEAT_COOLDOWN_SECONDS}, 'QUESTS', QUESTS, (q3,))
-        _catalog_mut.catalog_assign({"name":guide_name,"room":gate_id,
-            "dialogue":f"Prowadzę wyprawy do regionu {theme['label']}. Generator Core dobiera trudność do etapu tej ekspedycji.",
-            "quest":q1,"quest_chain":(q1,q2,q3)}, 'NPCS', NPCS, (guide_id,))
-        V028_PROCEDURAL_REGIONS[index]={"index":index,"stage":stage,"biome":biome_key,"name":theme["label"],"gate":gate_id,
-            "entry":entry,"boss_room":boss_room,"boss":boss_id,"elite":elite_id,"rare":rare_id,"rooms":tuple(room_ids),
-            "secrets":tuple(secret_ids),"resource_rooms":tuple(resource_rooms),"quests":(q1,q2,q3),"relic":relic_id}
-
-    # Safe corridor of expedition gates, attached to the Cartographer workshop.
-    for i,gate in enumerate(gate_ids):
-        if i>0: _v028_connect(gate_ids[i-1],"east",gate,"west")
-    if "east" not in _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, ("cartographer_house",), "exits",{}):
-        _catalog_mut.catalog_assign(gate_ids[0], 'ROOMS', ROOMS, ("cartographer_house", "exits", "east"))
-        _catalog_mut.catalog_assign("cartographer_house", 'ROOMS', ROOMS, (gate_ids[0], "exits", "west"))
+def _v028_build_regions(*args, **kwargs):
+    """Native compatibility entrypoint; rebound to unmodified function."""
+    raise RuntimeError("unbound _v028_build_regions")
+_v028_build_regions = _sb420_topbind(_sb420_topsrc01._v028_build_regions, globals())
 
 
 _v028_build_regions()
@@ -688,132 +559,10 @@ if isinstance(globals().get("EXP_ZONE_AREA_ID"), dict):
 SEMANTIC_BACKBONE_V03013 = _snapshot_semantic_backbone_v03013(ROOMS)
 SEMANTIC_BACKBONE_PAIR_COUNT_V03013 = sum(len(v) for v in SEMANTIC_BACKBONE_V03013.values())
 
-def _generate_zone_semantic_v03013(rooms, zone, ids):
-    """Generator strefy zachowujący ręcznie zaprojektowany semantic backbone."""
-    mod = world_topology_generator_v0281
-    ids = list(ids)
-    if len(ids) <= 1:
-        for rid in ids:
-            rooms[rid]["topology_generated_v0281"] = True
-            rooms[rid]["topology_generated_v030"] = True
-            rooms[rid]["topology_semantic_backbone_v03013"] = True
-            rooms[rid]["world_role"] = mod._room_role(rid, rooms[rid])
-        return {"rooms":len(ids), "links":0, "loops":0, "semantic_backbone_links":0, "root":ids[0] if ids else None}
-
-    seed = f"{mod.WORLD_TOPOLOGY_SEED}:{zone}"
-    # Zachowujemy tylko pion, lazy/runtime i granice stref. Poziome krawędzie
-    # wewnętrzne odbudujemy: najpierw semantic backbone, potem filler.
-    for rid in ids:
-        old = dict(rooms[rid].get("exits", {})); new = {}
-        for d, target in old.items():
-            if d in ("up", "down"):
-                new[d] = target
-            elif target not in rooms:
-                new[d] = target
-            elif str(rooms[target].get("zone") or "Bez strefy") != zone:
-                new[d] = target
-        rooms[rid]["exits"] = new
-
-    # Normalize vertical semantic links exactly as the v0.30 generator does.
-    for rid in sorted(ids):
-        for d, target in list(rooms[rid].get("exits", {}).items()):
-            if d not in ("up", "down") or target not in rooms:
-                continue
-            if str(rooms[target].get("zone") or "Bez strefy") != zone:
-                continue
-            rev = mod.OPPOSITE[d]
-            rooms[target].setdefault("exits", {})
-            back = rooms[target]["exits"].get(rev)
-            if back == rid:
-                continue
-            if back is None:
-                rooms[target]["exits"][rev] = rid
-            else:
-                del rooms[rid]["exits"][d]
-
-    # Rebuild every authored semantic adjacency before procedural filler links.
-    backbone_links = 0
-    zone_ids = set(ids)
-    for a, b, preferred in SEMANTIC_BACKBONE_V03013.get(zone, ()): 
-        if a not in zone_ids or b not in zone_ids:
-            continue
-        if b in rooms[a].get("exits", {}).values() or a in rooms[b].get("exits", {}).values():
-            backbone_links += 1
-            continue
-        choices = [preferred] + [d for d in mod.GENERATED_DIRS if d != preferred]
-        # Stable ordering after the authored direction keeps the result deterministic.
-        tail = choices[1:]
-        tail.sort(key=lambda d: mod._unit(f"{seed}:backbone:{a}:{b}:{d}"), reverse=True)
-        choices = choices[:1] + tail
-        connected = False
-        for da in choices:
-            db = mod.OPPOSITE[da]
-            if mod._free(rooms[a], da) and mod._free(rooms[b], db):
-                if mod._connect(rooms, a, da, b, db):
-                    connected = True
-                    backbone_links += 1
-                    break
-        if not connected:
-            raise RuntimeError(f"semantic backbone has no free direction in zone {zone!r}: {a}<->{b}")
-
-    root = mod._choose_root(zone, ids, rooms)
-    comps = mod._components(rooms, ids, zone)
-    comps.sort(key=lambda c: (0 if root in c else 1, mod._unit(f"{seed}:component:{'|'.join(c)}")))
-    connected = list(comps[0])
-    links = 0
-    for comp in comps[1:]:
-        cand = mod._candidate_links(rooms, connected, comp, seed)
-        if not cand:
-            raise RuntimeError(f"Topology generator has no free slots in zone {zone!r} for component {comp[:3]}")
-        _, a, da, b, db = cand[0]
-        if not mod._connect(rooms, a, da, b, db):
-            raise RuntimeError(f"Topology generator failed to connect {a} and {b}")
-        links += 1
-        connected.extend(comp)
-
-    # Ordered five-round trials must stay a chain. A generated loop can let the
-    # player skip rounds, so those zones deliberately get no procedural shortcut.
-    loop_target = 0 if zone in _V03013_ORDERED_TRIAL_ZONES else (max(1, len(ids)//6) if len(ids) >= 5 else 0)
-    loops = 0
-    pair_candidates = []
-    ordered = sorted(ids)
-    for i, a in enumerate(ordered):
-        for b in ordered[i+1:]:
-            if b in rooms[a].get("exits", {}).values():
-                continue
-            for da in mod.GENERATED_DIRS:
-                db = mod.OPPOSITE[da]
-                if mod._free(rooms[a], da) and mod._free(rooms[b], db):
-                    compat = mod._role_compat(mod._room_role(a, rooms[a]), mod._room_role(b, rooms[b]))
-                    pair_candidates.append((compat*10.0 + mod._unit(f"{seed}:loop:{a}:{da}:{b}"), a, da, b, db))
-    pair_candidates.sort(reverse=True)
-    for _, a, da, b, db in pair_candidates:
-        if loops >= loop_target:
-            break
-        if mod._connect(rooms, a, da, b, db):
-            loops += 1
-
-    depth = {root:0}; q = __import__('collections').deque([root])
-    while q:
-        cur = q.popleft()
-        for nxt in mod._internal_neighbors(rooms, cur, zone):
-            if nxt not in depth:
-                depth[nxt] = depth[cur] + 1; q.append(nxt)
-    if len(depth) != len(ids):
-        missing = sorted(set(ids)-set(depth))[:10]
-        raise RuntimeError(f"Generated zone {zone!r} disconnected: {missing}")
-    for rid in ids:
-        rooms[rid]["topology_generated_v0281"] = True
-        rooms[rid]["topology_generated_v030"] = True
-        rooms[rid]["topology_semantic_backbone_v03013"] = True
-        rooms[rid]["world_role"] = mod._room_role(rid, rooms[rid])
-        rooms[rid]["topology_zone_depth"] = depth[rid]
-        rooms[rid]["topology_seed"] = seed
-    return {
-        "rooms":len(ids), "links":links, "loops":loops,
-        "semantic_backbone_links":backbone_links,
-        "root":root, "max_depth":max(depth.values(), default=0),
-    }
+def _generate_zone_semantic_v03013(*args, **kwargs):
+    """Native compatibility entrypoint; rebound to unmodified function."""
+    raise RuntimeError("unbound _generate_zone_semantic_v03013")
+_generate_zone_semantic_v03013 = _sb420_topbind(_sb420_topsrc01._generate_zone_semantic_v03013, globals())
 
 world_topology_generator_v0281._generate_zone = _generate_zone_semantic_v03013
 
@@ -997,204 +746,17 @@ V03015_SKILL_SCALES_NORMALIZED = _apply_v03015_offensive_stat_scaling()
 # single-stat budget across the three required class-EQ stats and refresh
 # descriptions so displayed values equal runtime values.
 # ============================================================
-def finalize_class_equipment_v03015():
-    errors = []
-    touched = 0
-
-    expected_mastery = {}
-    expected_class = {}
-    for class_name, tiers in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():
-        for mastery, item_ids in tiers.items():
-            for item_id in item_ids:
-                expected_mastery[item_id] = int(mastery)
-                expected_class[item_id] = class_name
-    for class_name, tiers in LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.items():
-        for mastery, item_ids in tiers.items():
-            for item_id in item_ids:
-                expected_mastery[item_id] = int(mastery)
-                expected_class[item_id] = class_name
-    for class_name, tiers in LEGENDARY_CLASS_RELIC_BY_CLASS_TIER.items():
-        for mastery, item_id in tiers.items():
-            expected_mastery[item_id] = int(mastery)
-            expected_class[item_id] = class_name
-
-    labels = {
-        "strength": "Siła", "dexterity": "Zręczność", "constitution": "Kondycja",
-        "intelligence": "Inteligencja", "willpower": "Siła Woli",
-    }
-    for item_id, mastery in expected_mastery.items():
-        item = ITEMS.get(item_id)
-        if not item:
-            errors.append(f"brak class EQ {item_id}")
-            continue
-        class_name = expected_class[item_id]
-        # Dla zwykłego klasowego EQ finalna warstwa wymusza progresję statów
-        # na KAŻDYM progu 1/10/20/.../600. Generator Core może wcześniej
-        # przeliczyć affix_amount, ale nie może spłaszczyć dwóch sąsiednich
-        # Tierów do identycznego budżetu. Legendarne sety/relicty zachowują
-        # swój osobny wygenerowany budżet.
-        if item.get("class_shop_item") and not item.get("legendary_set_loot") and not item.get("legendary_class_relic"):
-            generated_budget = class_equipment_stat_budget(mastery, item.get("slot"))
-        else:
-            generated_budget = max(3, int(item.get("affix_amount", 1) or 1))
-        (
-            primary_stat, primary_amount,
-            secondary_stat, secondary_amount,
-            tertiary_stat, tertiary_amount,
-        ) = class_equipment_split_stat_budget(
-            class_name,
-            generated_budget,
-            item.get("slot"),
-            int(item.get("class_equipment_style", 1) or 1),
-        )
-        item["affix"] = primary_stat
-        item["affix_amount"] = primary_amount
-        item["stats"] = {
-            secondary_stat: secondary_amount,
-            tertiary_stat: tertiary_amount,
-            # v1.17.2: the earlier Mec generator deliberately adds INT/WILL
-            # to its physical STR/DEX/CON baseline.  The final post-Generator
-            # pass must not erase those hybrid channels when rebuilding stats.
-            **(mec_hybrid_extra_stats(generated_budget) if class_name == "Mec" else {}),
-        }
-        # v0.61.2: pola pochodne, których gameplay nie odczytuje, nie są materializowane
-        # dla dziesiątek tysięcy zwykłych części klasowego EQ.
-        if not item.get("class_shop_item"):
-            item["class_base_stat_pair"] = (primary_stat, secondary_stat)
-            item["class_base_stat_triplet"] = (
-                primary_stat, secondary_stat, tertiary_stat,
-            )
-            item["class_equipment_profile"] = class_equipment_profile(class_name).get("identity")
-        item["required_class"] = class_name
-        item["required_mastery"] = mastery
-        item["properties"] = class_equipment_profile_properties(
-            class_name, mastery, item.get("slot")
-        )
-
-        stat_text = (
-            f"{labels[primary_stat]} +{primary_amount}, "
-            f"{labels[secondary_stat]} +{secondary_amount}, "
-            f"{labels[tertiary_stat]} +{tertiary_amount}"
-        )
-        if class_name == "Mec":
-            stat_text += (
-                f", Inteligencja +{item['stats']['intelligence']}"
-                f", Siła Woli +{item['stats']['willpower']}"
-            )
-        profile_text = str(item.get("class_equipment_profile") or class_equipment_profile(class_name).get("identity") or "")
-        defense = int(item.get("defense", 0) or 0)
-        set_name = item.get("class_set_name") or "Klasowy"
-        if item.get("legendary_class_relic"):
-            item["desc"] = (
-                f"Legendarny relikt klasy {class_name} z bossa kamienia milowego. "
-                f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
-                f"Obrona +{defense}. Podstawowe statystyki EQ: {stat_text}. Profil klasy: {profile_text}. "
-                f"Właściwości: {item.get('properties', {})}."
-            )
-        elif item.get("legendary_set_loot"):
-            item["desc"] = (
-                f"Legendarna część zestawu {set_name} dla klasy {class_name}. "
-                f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
-                f"Obrona +{defense}. Podstawowe statystyki EQ: {stat_text}. Profil klasy: {profile_text}. "
-                f"Właściwości: {item.get('properties', {})}."
-            )
-        else:
-            # v0.61.2: zwykłe klasowe EQ dostaje identyczny opis dopiero przy wyświetleniu.
-            item.pop("desc", None)
-        touched += 1
-
-    # Remove stale seller entries left after moving profession NPCs to private rooms.
-    stale_sellers = []
-    for room_id in list(SHOP_SELLERS):
-        if room_id not in SHOPS:
-            stale_sellers.append(room_id)
-            SHOP_SELLERS.pop(room_id, None)
-
-    return {
-        "version": "0.30.16",
-        "touched": touched,
-        "stale_shop_sellers_removed": tuple(sorted(stale_sellers)),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def finalize_class_equipment_v03015(*args, **kwargs):
+    """Native compatibility entrypoint; rebound to unmodified function."""
+    raise RuntimeError("unbound finalize_class_equipment_v03015")
+finalize_class_equipment_v03015 = _sb420_topbind(_sb420_topsrc03.finalize_class_equipment_v03015, globals())
 
 CLASS_EQ_AUDIT_V03015 = finalize_class_equipment_v03015()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
-def class_equipment_identity_audit_v03016():
-    errors = []
-    signatures = {}
-    # Biegłość 600 daje wystarczający budżet liczb, by sprawdzić realny rozkład.
-    for class_name in CLASS_EQUIPMENT_SETS:
-        ids = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(400, ())
-        sample = None
-        for item_id in ids:
-            item = ITEMS.get(item_id, {})
-            if item.get("slot") == "body":
-                sample = item
-                break
-        if not sample and ids:
-            sample = ITEMS.get(ids[0], {})
-        if not sample:
-            errors.append(f"brak próbki EQ 400 dla {class_name}")
-            continue
-        signature = (
-            sample.get("affix"), int(sample.get("affix_amount", 0) or 0),
-            tuple(sorted((stat, int(value or 0)) for stat, value in (sample.get("stats") or {}).items())),
-            tuple(sorted((prop, round(float(value or 0), 2)) for prop, value in (sample.get("properties") or {}).items())),
-        )
-        if signature in signatures:
-            errors.append(f"identyczny profil EQ: {class_name} == {signatures[signature]}")
-        signatures[signature] = class_name
-
-    # Sloty jednej klasy również nie powinny wszystkie mieć identycznego rozkładu.
-    for class_name in CLASS_EQUIPMENT_SETS:
-        ids = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(400, ())
-        split_signatures = set()
-        for item_id in ids:
-            item = ITEMS.get(item_id, {})
-            split_signatures.add((
-                int(item.get("affix_amount", 0) or 0),
-                tuple(sorted(int(v or 0) for v in (item.get("stats") or {}).values())),
-            ))
-        if len(split_signatures) < 2:
-            errors.append(f"brak różnic slotów EQ dla {class_name}")
-
-    # v1.13.8: trzy linie sklepu tego samego Tieru muszą być realnie różne.
-    # Sprawdzamy ten sam slot (hands), aby nazwa/styl nie mogły maskować kopii.
-    for class_name in CLASS_EQUIPMENT_SETS:
-        ids = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.get(class_name, {}).get(100, ())
-        style_signatures = {}
-        for item_id in ids:
-            item = ITEMS.get(item_id, {})
-            if item.get("slot") != "hands":
-                continue
-            style = int(item.get("class_equipment_style", 1) or 1)
-            style_signatures[style] = (
-                int(item.get("defense", 0) or 0),
-                int(item.get("attack", 0) or 0),
-                int(item.get("magic_attack", 0) or 0),
-                int(item.get("affix_amount", 0) or 0),
-                tuple(sorted(
-                    (stat, int(value or 0))
-                    for stat, value in (item.get("stats") or {}).items()
-                )),
-            )
-        if len(style_signatures) != 3 or len(set(style_signatures.values())) != 3:
-            errors.append(f"linie stylu nadal identyczne dla {class_name}")
-        if class_name == "Mec":
-            for style, signature in style_signatures.items():
-                if signature[1] <= 0 or signature[2] <= 0:
-                    errors.append(
-                        f"Mec styl {style} nie ma obu kanałów Attack/Magic Attack"
-                    )
-
-    return {
-        "version": "0.30.16",
-        "class_count": len(signatures),
-        "unique_profile_signatures": len(signatures),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def class_equipment_identity_audit_v03016(*args, **kwargs):
+    """Native compatibility entrypoint; rebound to unmodified function."""
+    raise RuntimeError("unbound class_equipment_identity_audit_v03016")
+class_equipment_identity_audit_v03016 = _sb420_topbind(_sb420_topsrc02.class_equipment_identity_audit_v03016, globals())
 
 CLASS_EQ_IDENTITY_AUDIT_V03016 = class_equipment_identity_audit_v03016()
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
@@ -1206,137 +768,10 @@ CLASS_EQ_IDENTITY_AUDIT_V03016 = class_equipment_identity_audit_v03016()
 # ============================================================
 WORLD_LOGIC_AUDIT = world_logic_validator_v030.validate_world_logic(ROOMS)
 # v1.13.30: audit failure is enforced by predeploy_full.py, not production startup.
-def audit_entire_world_topology_v03013(rooms):
-    """Deep static topology audit including authored semantics, not just reachability."""
-    from collections import defaultdict, deque
-    errors = []
-    warnings = []
-    opposite = dict(_V03013_OPPOSITE, up="down", down="up")
-
-    # 1. Static edges must be reciprocal. Lazy/runtime exits are counted separately.
-    lazy = []
-    static_edges = 0
-    for rid, room in rooms.items():
-        for direction, target in (room.get("exits", {}) or {}).items():
-            if target not in rooms:
-                lazy.append((rid, direction, target))
-                continue
-            static_edges += 1
-            if direction in opposite:
-                rev = opposite[direction]
-                if rooms[target].get("exits", {}).get(rev) != rid:
-                    errors.append(f"one-way static edge: {rid}.{direction}->{target}")
-
-    # 2. Every static room reachable from square and able to return to square.
-    def reachable(start, reverse=False):
-        if start not in rooms:
-            return set()
-        graph = defaultdict(list)
-        if reverse:
-            for a, room in rooms.items():
-                for b in (room.get("exits", {}) or {}).values():
-                    if b in rooms:
-                        graph[b].append(a)
-        seen = {start}; q = deque([start])
-        while q:
-            cur = q.popleft()
-            nxts = graph.get(cur, ()) if reverse else [x for x in rooms[cur].get("exits", {}).values() if x in rooms]
-            for nxt in nxts:
-                if nxt not in seen:
-                    seen.add(nxt); q.append(nxt)
-        return seen
-    fwd = reachable("square")
-    back = reachable("square", reverse=True)
-    if len(fwd) != len(rooms):
-        errors.append(f"unreachable from square: {len(rooms)-len(fwd)}")
-    if len(back) != len(rooms):
-        errors.append(f"cannot return to square: {len(rooms)-len(back)}")
-
-    # 3. Every generated static zone must itself be connected internally.
-    zones = defaultdict(list)
-    for rid, room in rooms.items():
-        if room.get("procedural_dynamic"):
-            continue
-        zones[str(room.get("zone") or "Bez strefy")].append(rid)
-    disconnected_zones = []
-    for zone, ids in zones.items():
-        if len(ids) <= 1:
-            continue
-        allowed = set(ids); start = ids[0]; seen = {start}; q = deque([start])
-        while q:
-            cur = q.popleft()
-            for target in rooms[cur].get("exits", {}).values():
-                if target in allowed and target not in seen:
-                    seen.add(target); q.append(target)
-        if seen != allowed:
-            disconnected_zones.append((zone, len(allowed-seen)))
-    if disconnected_zones:
-        errors.append("internally disconnected zones: " + repr(disconnected_zones[:10]))
-
-    # 4. Every authored semantic adjacency captured before generation must survive.
-    actual_pairs = set()
-    for rid, room in rooms.items():
-        for target in (room.get("exits", {}) or {}).values():
-            if target in rooms and rooms[target].get("zone") == room.get("zone"):
-                actual_pairs.add(tuple(sorted((rid, target))))
-    missing_backbone = []
-    for zone, pairs in SEMANTIC_BACKBONE_V03013.items():
-        for a, b, _ in pairs:
-            if tuple(sorted((a, b))) not in actual_pairs:
-                missing_backbone.append((zone, a, b))
-    if missing_backbone:
-        errors.append(f"missing semantic backbone links: {len(missing_backbone)} sample={missing_backbone[:10]}")
-
-    # 5. Ordered five-round trials must be exact chains without shortcuts.
-    trial_errors = []
-    trial_prefix = {
-        "Stalowa Próba":"v020_gauntlet_stalowa_",
-        "Mityczna Próba":"v020_gauntlet_mityczna_",
-        "Astralna Próba":"v020_gauntlet_astralna_",
-        "Wieczna Próba":"v020_gauntlet_wieczna_",
-    }
-    for zone, prefix in trial_prefix.items():
-        ids = [f"{prefix}{i}" for i in range(1, 6)]
-        expected = {tuple(sorted((ids[i], ids[i+1]))) for i in range(4)}
-        got = set()
-        for a in ids:
-            if a not in rooms:
-                trial_errors.append(f"{zone}: missing {a}"); continue
-            for b in rooms[a].get("exits", {}).values():
-                if b in ids:
-                    got.add(tuple(sorted((a, b))))
-        if got != expected:
-            trial_errors.append(f"{zone}: expected chain {sorted(expected)}, got {sorted(got)}")
-    if trial_errors:
-        errors.extend(trial_errors)
-
-    # 6. Explicit regression for the broken Stary Cmentarz story chain.
-    cemetery_pairs = {
-        tuple(sorted(("cemetery_ossuary_path", "cemetery_fallen_chapel"))),
-        tuple(sorted(("cemetery_fallen_chapel", "cemetery_bell_tower"))),
-        tuple(sorted(("cemetery_bone_field", "cemetery_bell_tower"))),
-        tuple(sorted(("cemetery_bell_tower", "cemetery_keeper_tomb"))),
-    }
-    missing_cemetery = sorted(cemetery_pairs - actual_pairs)
-    if missing_cemetery:
-        errors.append(f"Stary Cmentarz semantic chain broken: {missing_cemetery}")
-
-    return {
-        "version":"0.30.13",
-        "room_count":len(rooms),
-        "static_directed_edges":static_edges,
-        "lazy_runtime_exits":len(lazy),
-        "zone_count":len(zones),
-        "semantic_backbone_pairs":SEMANTIC_BACKBONE_PAIR_COUNT_V03013,
-        "missing_semantic_backbone_pairs":len(missing_backbone),
-        "disconnected_zones":len(disconnected_zones),
-        "reachable_from_square":len(fwd),
-        "returnable_to_square":len(back),
-        "error_count":len(errors),
-        "warning_count":len(warnings),
-        "errors":errors,
-        "warnings":warnings,
-    }
+def audit_entire_world_topology_v03013(*args, **kwargs):
+    """Native compatibility entrypoint; rebound to unmodified function."""
+    raise RuntimeError("unbound audit_entire_world_topology_v03013")
+audit_entire_world_topology_v03013 = _sb420_topbind(_sb420_topsrc02.audit_entire_world_topology_v03013, globals())
 
 def audit_underground_route_isolation_v03813():
     errors = []

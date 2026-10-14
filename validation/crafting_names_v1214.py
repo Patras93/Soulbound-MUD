@@ -10,6 +10,7 @@ import re
 import unicodedata
 from pathlib import Path
 
+from validation.v4100_virtual_source import read_factored_legacy_source_v410 as _virtual_source
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -34,8 +35,8 @@ def _normalize(value):
 def audit_crafting_names_v1214():
     errors = []
     checks = 0
-    source = (ROOT / "systems" / "items_resources.py").read_text(encoding="utf-8")
-    recipes_source = (ROOT / "systems" / "equipment_crafting.py").read_text(encoding="utf-8")
+    source = _virtual_source(ROOT / "systems/items_resources.py")
+    recipes_source = _virtual_source(ROOT / "systems/equipment_crafting.py")
     tree = ast.parse(source)
     tiers = ast.literal_eval(_assignment(tree, "BLACKSMITH_TIERS"))
     suffixes = ast.literal_eval(_assignment(tree, "_BLACKSMITH_400_LABELS"))
@@ -75,7 +76,7 @@ def audit_crafting_names_v1214():
             if "-" in spec["name_prefix"]:
                 errors.append(f"Rzadki surowiec nadal zawiera minus: {spec['name_prefix']!r}")
     # Global mining source names belong to the ITEMS catalog as well.
-    ore_source = (ROOT / "core" / "progression_resources.py").read_text(encoding="utf-8")
+    ore_source = _virtual_source(ROOT / "core/progression_resources.py")
     ore_tree = ast.parse(ore_source)
     ore_rows = ast.literal_eval(_assignment(ore_tree, "WORLD_ORE_UNLOCKS"))
     for _required, _level, _id, title in ore_rows:

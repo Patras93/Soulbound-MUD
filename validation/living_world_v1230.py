@@ -34,7 +34,8 @@ def audit_living_world_v1230():
     check('anchor * (stage / V1124_ECONOMY_MAX_STAGE) ** 0.85' in income_text and 'return economy_stage_anchor_v11314(stage)' in income_text, 'post-600 activity-only tail')
     check('stage = max(1, int(stage or 1))' in income_text, 'activities not clamped at stage 600')
     check(len(CHASE_RELICS) >= 6, 'new rare gear')
-    world_text = (Path(__file__).resolve().parents[1] / 'world/generation_systems.py').read_text(encoding='utf-8')
+    from validation.v4100_virtual_source import read_factored_legacy_source_v410
+    world_text = read_factored_legacy_source_v410(Path(__file__).resolve().parents[1] / 'world/generation_systems.py')
     check('v1230_caravan_aurora' in world_text and 'v1230_caravan_smith' in world_text, 'real rotating caravans')
     return passed
 

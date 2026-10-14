@@ -1,3 +1,9 @@
+from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
+
+import systems.v410_equipment_shops as _sb410_mod_v410_equipment_shops
+import systems.v410_craft_recipes as _sb410_mod_v410_craft_recipes
+import systems.v410_gem_registration as _sb410_mod_v410_gem_registration
+
 from data import catalog_mutations as _catalog_mut
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
@@ -209,80 +215,10 @@ def legendary_class_set_properties_v11326(class_name, mastery, slot=None):
     )
 
 
-def class_equipment_split_stat_budget(class_name, legacy_amount, slot=None, style_index=1):
-    # v1.13.6: każdy klasowy element ma trzy realne statystyki bazowe.
-    # Łączny budżet pozostaje kontrolowany; minimalnie 3, aby żadna oś nie
-    # mogła spaść do zera nawet na Tierze 1.
-    budget = max(3, int(legacy_amount or 0))
-    profile = class_equipment_profile(class_name)
-    ratio = float(profile.get("primary_ratio", 0.50))
-    ratio += float(CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS.get(str(slot or ""), 0.0))
-    ratio = max(0.20, min(0.80, ratio))
-
-    primary_stat, secondary_stat, tertiary_stat = class_equipment_base_stat_triplet(class_name)
-
-    # Najpierw gwarantujemy po 1 dla wszystkich trzech osi. Pozostały budżet
-    # wzmacnia profil klasy: primary_ratio rozdziela dodatkowe punkty między
-    # dwie główne osie, a Kondycja zawsze pozostaje pełnoprawną trzecią osią.
-    remaining = budget - 3
-    constitution_extra = int(round(remaining * 0.25))
-    main_pool = remaining - constitution_extra
-    primary_extra = int(round(main_pool * ratio))
-    primary_extra = max(0, min(main_pool, primary_extra))
-    secondary_extra = main_pool - primary_extra
-
-    primary_amount = 1 + primary_extra
-    secondary_amount = 1 + secondary_extra
-    tertiary_amount = 1 + constitution_extra
-
-    # Style 2 przenosi część CON w ofensywne osie; style 3 robi odwrotnie.
-    # Łączny budżet pozostaje identyczny, więc wybór jest buildem, nie prostym
-    # "numer 3 ma więcej wszystkiego".
-    style = class_equipment_style_profile(class_name, style_index)
-    shift_ratio = float(style.get("stat_shift", 0.0) or 0.0)
-    shift_points = max(0, int(round(budget * abs(shift_ratio))))
-    if shift_ratio > 0.0 and shift_points > 0:
-        moved = min(max(0, tertiary_amount - 1), shift_points)
-        primary_gain = int(round(moved * 0.70))
-        secondary_gain = moved - primary_gain
-        tertiary_amount -= moved
-        primary_amount += primary_gain
-        secondary_amount += secondary_gain
-    elif shift_ratio < 0.0 and shift_points > 0:
-        movable_primary = max(0, primary_amount - 1)
-        movable_secondary = max(0, secondary_amount - 1)
-        wanted_primary = int(round(shift_points * 0.60))
-        moved_primary = min(movable_primary, wanted_primary)
-        moved_secondary = min(
-            movable_secondary,
-            max(0, shift_points - moved_primary),
-        )
-        # Jeżeli jedna oś nie miała wystarczającej liczby punktów, dobierz resztę
-        # z drugiej, nadal nigdy nie schodząc poniżej 1.
-        remaining_shift = shift_points - moved_primary - moved_secondary
-        if remaining_shift > 0:
-            extra_primary = min(
-                max(0, movable_primary - moved_primary),
-                remaining_shift,
-            )
-            moved_primary += extra_primary
-            remaining_shift -= extra_primary
-        if remaining_shift > 0:
-            extra_secondary = min(
-                max(0, movable_secondary - moved_secondary),
-                remaining_shift,
-            )
-            moved_secondary += extra_secondary
-        moved = moved_primary + moved_secondary
-        primary_amount -= moved_primary
-        secondary_amount -= moved_secondary
-        tertiary_amount += moved
-
-    return (
-        primary_stat, primary_amount,
-        secondary_stat, secondary_amount,
-        tertiary_stat, tertiary_amount,
-    )
+def class_equipment_split_stat_budget(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: class_equipment_split_stat_budget")
+class_equipment_split_stat_budget = _sb410_bind(_sb410_mod_v410_equipment_shops.class_equipment_split_stat_budget, globals())
 
 
 def class_equipment_flat_power_channels(class_name, mastery, slot=None, style_index=1):
@@ -463,159 +399,10 @@ def class_equipment_unlocked_tier(mastery_level):
     return unlocked
 
 
-def _register_class_equipment_shops():
-    for class_name, definition in CLASS_EQUIPMENT_SETS.items():
-        CLASS_SHOP_CLASSES_BY_ROOM.setdefault(definition["room"], []).append(class_name)
-        per_tier = CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.setdefault(class_name, {})
-        styles = CLASS_EQUIPMENT_STYLES.get(class_name, (definition["set_name"],))
-
-        for tier_index, required_mastery in enumerate(CLASS_EQUIPMENT_MASTERY_LEVELS):
-            tier_items = []
-            # v1.13.8: każdy nowy set ma być odczuwalny także defensywnie.
-            # Early game rośnie spokojnie, od 50+ kolejne progi dają już
-            # wyraźniejszą ochronę. Dzięki capowi redukcji zwykłe moby nie
-            # stają się całkowicie bezbronne, a bossowie pozostają groźni.
-            defense_step = equipment_defense_step_v1138(required_mastery)
-            # v0.36.0: każdy próg 1/10/20/30/.../600 ma inny realny
-            # budżet podstawowych statów. Wcześniej affix rósł co drugi próg,
-            # więc np. część niskiego EQ 1/10/20 mogła mieć identyczne
-            # Siła/Kondycja albo Inteligencja/Siła Woli. Teraz łączny budżet
-            # rośnie dokładnie o 1 na każdym kolejnym Tierze, zachowując
-            # klasowy ratio i bias konkretnego slotu.
-            # Ceny rosną wyraźnie wraz z Biegłością, ale pozostają w istniejącej ekonomii srebra.
-            price_multiplier = 1 + tier_index + (tier_index * tier_index) // 4
-
-            for style_index, style_name in enumerate(styles, 1):
-                for slot, (slot_name, defense_delta, base_price) in CLASS_EQUIPMENT_SLOT_DEFS.items():
-                    # Pierwsza linia zachowuje stare ID 1:1.
-                    style_suffix = "" if style_index == 1 else f"_s{style_index}"
-                    if required_mastery == 1:
-                        item_id = f"class_{definition['prefix']}{style_suffix}_{slot}"
-                    else:
-                        item_id = f"class_{definition['prefix']}{style_suffix}_m{required_mastery}_{slot}"
-
-                    if slot in ("necklace", "relic"):
-                        base_affix = 3
-                    elif slot in (
-                        "ring", "charm", "earring", "shoulders", "belt", "cloak",
-                        "bracers", "bracelet", "accessory",
-                    ):
-                        base_affix = 2
-                    else:
-                        base_affix = 1
-
-                    # Minimalny Tier zawsze ma trzy statystyki (budżet >= 3),
-                    # a każdy następny próg dodaje kolejny pełny punkt budżetu.
-                    legacy_affix_amount = class_equipment_stat_budget(required_mastery, slot)
-                    (
-                        primary_stat, primary_amount,
-                        secondary_stat, secondary_amount,
-                        tertiary_stat, tertiary_amount,
-                    ) = class_equipment_split_stat_budget(
-                        class_name, legacy_affix_amount, slot, style_index
-                    )
-                    expected_stats = (
-                        {"intelligence", "willpower", "constitution"}
-                        if class_type_for_name(class_name) == "magic"
-                        else {"strength", "dexterity", "constitution"}
-                    )
-                    actual_stats = {primary_stat, secondary_stat, tertiary_stat}
-                    if actual_stats != expected_stats:
-                        raise RuntimeError(
-                            f"Class EQ stat triplet mismatch: {class_name} {slot}: "
-                            f"{sorted(actual_stats)} != {sorted(expected_stats)}"
-                        )
-                    style_profile = class_equipment_style_profile(class_name, style_index)
-                    raw_defense = (
-                        int(definition["base_defense"])
-                        + int(defense_delta)
-                        + defense_step
-                    )
-                    defense = max(
-                        1,
-                        int(round(
-                            raw_defense
-                            * float(style_profile["defense_multiplier"])
-                        )),
-                    )
-                    flat_power = class_equipment_flat_power_channels(
-                        class_name, required_mastery, slot, style_index
-                    )
-                    item_properties = _merge_equipment_properties_v11326(
-                        class_equipment_profile_properties(
-                            class_name, required_mastery, slot
-                        ),
-                        class_equipment_style_properties_v11326(
-                            class_name, required_mastery, slot, style_index
-                        ),
-                    )
-                    # v1.13.14: historyczna cena jest minimum, ale realny
-                    # koszt śledzi wspólną krzywą zarobków 1-600.
-                    legacy_price = max(
-                        1, int(base_price) * int(price_multiplier)
-                    )
-                    price = max(
-                        legacy_price,
-                        class_equipment_shop_price_v11314(
-                            required_mastery, base_price
-                        ),
-                    )
-                    tier_label = _class_equipment_tier_label(required_mastery)
-
-                    _catalog_mut.catalog_assign({
-                        "name": (
-                            f"{slot_name} {style_name}"
-                            if required_mastery == 1
-                            else f"{slot_name} {style_name} {_class_equipment_tier_label(required_mastery)}"
-                        ),
-                        "type": "armor",
-                        "slot": slot,
-                        "defense": defense,
-                        "attack": int(flat_power["attack"]),
-                        "magic_attack": int(flat_power["magic_attack"]),
-                        "properties": dict(item_properties),
-                        "equipment_identity_source": "class_shop",
-                        "source_progression_stage": required_mastery,
-                        "equipment_identity_role": class_equipment_style_role(
-                            class_name, style_index
-                        ),
-                        "equipment_identity_label": (
-                            "Sklep klasowy — przewidywalny set i profil "
-                            + class_equipment_style_role(class_name, style_index)
-                        ),
-                        "price": price,
-                        "currency": "silver",
-                        "rarity": "crafted",
-                        "rarity_name": _class_equipment_rarity_name(required_mastery),
-                        "affix": primary_stat,
-                        "affix_amount": primary_amount,
-                        "stats": {
-                            secondary_stat: secondary_amount,
-                            tertiary_stat: tertiary_amount,
-                            **(mec_hybrid_extra_stats(legacy_affix_amount) if class_name == "Mec" else {}),
-                        },
-                        "class_base_stat_pair": (primary_stat, secondary_stat),
-                        "class_base_stat_triplet": (
-                            primary_stat, secondary_stat, tertiary_stat,
-                        ),
-                        "required_class": class_name,
-                        "required_mastery": required_mastery,
-                        "class_shop_item": True,
-                        "class_set_name": style_name,
-                        "class_set_piece": slot,
-                        "class_equipment_tier": tier_index + 1,
-                        "class_equipment_style": style_index,
-                        # v0.61.2: opis zwykłego klasowego EQ jest składany na żądanie
-                        # z istniejących pól. Nie przechowujemy 38k długich kopii tekstu w RAM.
-                    }, 'ITEMS', ITEMS, (item_id,))
-                    CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
-                    tier_items.append(item_id)
-
-            per_tier[required_mastery] = tuple(tier_items)
-
-        # Statyczna lista zachowuje pełną ofertę Tier 1 dla zgodności starych miejsc kodu.
-        # Interfejs sklepu dynamicznie pokazuje najlepszy odblokowany Tier.
-        CLASS_SHOP_ITEMS_BY_ROOM[definition["room"]].extend(per_tier[1])
+def _register_class_equipment_shops(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_class_equipment_shops")
+_register_class_equipment_shops = _sb410_bind(_sb410_mod_v410_equipment_shops._register_class_equipment_shops, globals())
 
 
 _register_class_equipment_shops()
@@ -987,356 +774,19 @@ def _legendary_class_loot_stat_profile(class_name):
     return class_equipment_base_stat_triplet(class_name)[0], int(definition["base_defense"])
 
 
-def _register_legendary_class_loot():
-    for class_name, definition in CLASS_EQUIPMENT_SETS.items():
-        affix, base_defense = _legendary_class_loot_stat_profile(class_name)
-        set_name = f"Legendy {definition['set_name']}"
-        class_slug = definition["prefix"]
-        class_sets = LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER.setdefault(class_name, {})
-        relics = LEGENDARY_CLASS_RELIC_BY_CLASS_TIER.setdefault(class_name, {})
-
-        for mastery in LEGENDARY_CLASS_LOOT_TIERS:
-            tier_index = max(1, mastery // 10)
-            defense_step = (tier_index + 1) // 2
-            affix_step = tier_index // 2
-            tier_items = []
-            for slot, (slot_name, defense_delta, _base_price) in CLASS_EQUIPMENT_SLOT_DEFS.items():
-                item_id = f"legendset_{class_slug}_m{mastery}_{slot}"
-                defense = max(1, base_defense + int(defense_delta) + defense_step + 1)
-                base_affix = 3 if slot in ("necklace", "relic") else 2 if slot in ("ring", "charm", "earring", "shoulders", "belt", "cloak", "bracers") else 1
-                legacy_affix_amount = base_affix + affix_step + 1
-                (
-                    primary_stat, primary_amount,
-                    secondary_stat, secondary_amount,
-                    tertiary_stat, tertiary_amount,
-                ) = class_equipment_split_stat_budget(
-                    class_name, legacy_affix_amount, slot
-                )
-                expected_stats = (
-                    {"intelligence", "willpower", "constitution"}
-                    if class_type_for_name(class_name) == "magic"
-                    else {"strength", "dexterity", "constitution"}
-                )
-                if {primary_stat, secondary_stat, tertiary_stat} != expected_stats:
-                    raise RuntimeError(
-                        f"Legendary class EQ stat triplet mismatch: {class_name} {slot}"
-                    )
-                legendary_properties_v11326 = (
-                    legendary_class_set_properties_v11326(
-                        class_name, mastery, slot
-                    )
-                )
-                legendary_flat_power_v11338 = (
-                    legendary_class_equipment_flat_power_channels_v11338(
-                        class_name, mastery, slot
-                    )
-                )
-                _catalog_mut.catalog_assign({
-                    "name": f"{slot_name} {set_name} +{mastery}",
-                    "type": "armor",
-                    "slot": slot,
-                    "defense": defense,
-                    "attack": int(legendary_flat_power_v11338["attack"]),
-                    "magic_attack": int(legendary_flat_power_v11338["magic_attack"]),
-                    "price": None,
-                    "rarity": "legendary",
-                    "rarity_name": "Legendarny Setowy",
-                    "affix": primary_stat,
-                    "affix_amount": primary_amount,
-                    "stats": {
-                        secondary_stat: secondary_amount,
-                        tertiary_stat: tertiary_amount,
-                        **(mec_hybrid_extra_stats(legacy_affix_amount) if class_name == "Mec" else {}),
-                    },
-                    "properties": dict(legendary_properties_v11326),
-                    "equipment_identity_source": "boss_set",
-                    "source_progression_stage": mastery,
-                    "equipment_identity_role": "boss_upgrade",
-                    "equipment_identity_label": (
-                        "Bossowy set klasowy — mocniejsze właściwości "
-                        "niż sklepowy odpowiednik"
-                    ),
-                    "class_base_stat_pair": (primary_stat, secondary_stat),
-                    "class_base_stat_triplet": (
-                        primary_stat, secondary_stat, tertiary_stat,
-                    ),
-                    "required_class": class_name,
-                    "required_mastery": mastery,
-                    # Celowo korzysta z istniejących progów 2/4/6/8 klasy.
-                    "class_shop_item": True,
-                    "class_set_name": set_name,
-                    "class_set_piece": slot,
-                    "legendary_set_loot": True,
-                    "legendary_loot_tier": mastery,
-                    "desc": (
-                        f"Legendarna część zestawu dla klasy {class_name}. "
-                        f"Wymaga aktywnej klasy {class_name} i Biegłości {mastery}. "
-                        f"Zdobywana z bossów kamieni milowych co 50 pięter. Obrona +{defense}. "
-                        f"Podstawowe statystyki EQ: "
-                        f"{class_equipment_base_stats_text(class_name, legacy_affix_amount, slot)}."
-                    ),
-                }, 'ITEMS', ITEMS, (item_id,))
-                CLASS_EQUIPMENT_ITEM_IDS.add(item_id)
-                tier_items.append(item_id)
-            class_sets[mastery] = tuple(tier_items)
-
-            relic_id = f"legendrelic_{class_slug}_m{mastery}"
-            relic_defense = max(1, base_defense + 4 + defense_step + 2)
-            legacy_relic_affix = 4 + affix_step + 2
-            (
-                relic_primary_stat, relic_primary_amount,
-                relic_secondary_stat, relic_secondary_amount,
-                relic_tertiary_stat, relic_tertiary_amount,
-            ) = class_equipment_split_stat_budget(
-                class_name, legacy_relic_affix, "necklace"
-            )
-            expected_stats = (
-                {"intelligence", "willpower", "constitution"}
-                if class_type_for_name(class_name) == "magic"
-                else {"strength", "dexterity", "constitution"}
-            )
-            if {
-                relic_primary_stat, relic_secondary_stat, relic_tertiary_stat
-            } != expected_stats:
-                raise RuntimeError(
-                    f"Legendary class relic stat triplet mismatch: {class_name}"
-                )
-            relic_flat_power_v11338 = (
-                legendary_class_equipment_flat_power_channels_v11338(
-                    class_name, mastery, "relic", relic=True
-                )
-            )
-            prop_value = max(1, min(5, mastery // 100 + 1))
-            properties = {
-                "all_damage_pct": prop_value,
-                "physical_defense_pct": prop_value,
-                "magic_defense_pct": prop_value,
-            }
-            if class_type_for_name(class_name) == "magic":
-                properties["max_mana_pct"] = prop_value
-            else:
-                properties["max_hp_pct"] = prop_value
-            _catalog_mut.catalog_assign({
-                "name": f"Relikwiarz Legendy {definition['set_name']} +{mastery}",
-                "type": "armor",
-                "slot": "necklace",
-                "defense": relic_defense,
-                "attack": int(relic_flat_power_v11338["attack"]),
-                "magic_attack": int(relic_flat_power_v11338["magic_attack"]),
-                "price": None,
-                "rarity": "legendary",
-                "rarity_name": "Legendarny Klasowy",
-                "affix": relic_primary_stat,
-                "affix_amount": relic_primary_amount,
-                "stats": {
-                    relic_secondary_stat: relic_secondary_amount,
-                    relic_tertiary_stat: relic_tertiary_amount,
-                    **(mec_hybrid_extra_stats(legacy_relic_affix) if class_name == "Mec" else {}),
-                },
-                "class_base_stat_pair": (relic_primary_stat, relic_secondary_stat),
-                "class_base_stat_triplet": (
-                    relic_primary_stat, relic_secondary_stat, relic_tertiary_stat,
-                ),
-                "required_class": class_name,
-                "required_mastery": mastery,
-                "properties": properties,
-                "equipment_identity_source": "boss_relic",
-                "source_progression_stage": mastery,
-                "equipment_identity_role": "unique_power",
-                "equipment_identity_label": (
-                    "Relikt bossa — unikalna alternatywa dla części setowej"
-                ),
-                "legendary_class_relic": True,
-                "legendary_loot_tier": mastery,
-                "desc": (
-                    f"Legendarny relikt klasy {class_name} z bossa kamienia milowego co 100 pięter. "
-                    f"Wymaga Biegłości {mastery}. Nie należy do zestawu, więc jest świadomą alternatywą "
-                    "dla naszyjnika setowego. "
-                    f"Podstawowe statystyki EQ: "
-                    f"{class_equipment_base_stats_text(class_name, legacy_relic_affix)}."
-                ),
-            }, 'ITEMS', ITEMS, (relic_id,))
-            relics[mastery] = relic_id
+def _register_legendary_class_loot(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_legendary_class_loot")
+_register_legendary_class_loot = _sb410_bind(_sb410_mod_v410_equipment_shops._register_legendary_class_loot, globals())
 
 
 _register_legendary_class_loot()
 
 
-def equipment_identity_audit_v11326():
-    errors = []
-
-    def _flat_power_channel_ok_v11338(item):
-        class_name = str(item.get("required_class") or "")
-        attack = int(item.get("attack", 0) or 0)
-        magic_attack = int(item.get("magic_attack", 0) or 0)
-        if class_name == "Mec":
-            return attack > 0 and magic_attack > 0
-        if class_type_for_name(class_name) == "magic":
-            return magic_attack > 0 and attack == 0
-        return attack > 0 and magic_attack == 0
-
-    class_shop_items = [
-        item
-        for item in ITEMS.values()
-        if item.get("class_shop_item") and not item.get("legendary_set_loot")
-    ]
-    if not class_shop_items:
-        errors.append("missing class shop items")
-    else:
-        for item in class_shop_items[:200]:
-            if item.get("equipment_identity_source") != "class_shop":
-                errors.append("class shop identity source missing")
-                break
-            if not item.get("properties"):
-                errors.append("class shop item has no identity properties")
-                break
-            if not _flat_power_channel_ok_v11338(item):
-                errors.append(
-                    "v1.13.38 class shop Attack/Magic Attack channel missing: "
-                    + str(item.get("name") or "?")
-                )
-                break
-
-    # v1.13.38 UOSS benchmark: Quartz Charm (lvl 110) daje +60 Attack i
-    # +60 Magic Attack. Ofensywny klasowy accessory na tym samym progu nie może
-    # przegrywać w właściwym kanale, również dla hybrydowego Meca.
-    for _class_name in CLASS_EQUIPMENT_SETS:
-        _bench = class_equipment_flat_power_channels(
-            _class_name, 110, "accessory", 3
-            if class_equipment_style_role(_class_name, 3) == "ofensywny"
-            else 2
-            if class_equipment_style_role(_class_name, 2) == "ofensywny"
-            else 1,
-        )
-        if _class_name == "Mec":
-            if int(_bench.get("attack", 0) or 0) < 60 or int(
-                _bench.get("magic_attack", 0) or 0
-            ) < 60:
-                errors.append("v1.13.38 Mec accessory loses to Quartz Charm flat power")
-                break
-        elif class_type_for_name(_class_name) == "magic":
-            if int(_bench.get("magic_attack", 0) or 0) < 60:
-                errors.append(
-                    "v1.13.38 magic class accessory loses to Quartz Charm Magic Attack"
-                )
-                break
-        elif int(_bench.get("attack", 0) or 0) < 60:
-            errors.append(
-                "v1.13.38 physical class accessory loses to Quartz Charm Attack"
-            )
-            break
-
-    roles = {}
-    for item in class_shop_items:
-        key = (
-            item.get("required_class"),
-            item.get("required_mastery"),
-            item.get("slot"),
-        )
-        role = item.get("equipment_identity_role")
-        if role:
-            roles.setdefault(key, {})[role] = dict(item.get("properties") or {})
-    if not any(
-        len(group) >= 3 and len({tuple(sorted(v.items())) for v in group.values()}) >= 3
-        for group in roles.values()
-    ):
-        errors.append("shop styles are not materially distinct")
-
-    # v1.13.27: a boss-set source must not lose to the strongest shop
-    # style at the same class/mastery/slot on total percentage properties.
-    _shop_prop_by_key = {}
-    _shop_flat_power_by_key_v11338 = {}
-    for item in class_shop_items:
-        key = (
-            item.get("required_class"),
-            int(item.get("required_mastery", 1) or 1),
-            item.get("slot"),
-        )
-        prop_sum = sum(float(v or 0.0) for v in (item.get("properties") or {}).values())
-        _shop_prop_by_key[key] = max(_shop_prop_by_key.get(key, 0.0), prop_sum)
-        flat_sum_v11338 = int(item.get("attack", 0) or 0) + int(
-            item.get("magic_attack", 0) or 0
-        )
-        _shop_flat_power_by_key_v11338[key] = max(
-            _shop_flat_power_by_key_v11338.get(key, 0), flat_sum_v11338
-        )
-
-    legendary_sets = [
-        item for item in ITEMS.values() if item.get("legendary_set_loot")
-    ]
-    if not legendary_sets:
-        errors.append("missing legendary boss sets")
-    else:
-        if not all(item.get("equipment_identity_source") == "boss_set" for item in legendary_sets[:100]):
-            errors.append("boss set identity source missing")
-        if not all(item.get("properties") for item in legendary_sets[:100]):
-            errors.append("boss set identity properties missing")
-        if not all(_flat_power_channel_ok_v11338(item) for item in legendary_sets):
-            errors.append("v1.13.38 boss set Attack/Magic Attack channel missing")
-        for item in legendary_sets:
-            key = (
-                item.get("required_class"),
-                int(item.get("required_mastery", 1) or 1),
-                item.get("slot"),
-            )
-            shop_sum = float(_shop_prop_by_key.get(key, 0.0))
-            boss_sum = sum(
-                float(v or 0.0)
-                for v in (item.get("properties") or {}).values()
-            )
-            if shop_sum > 0.0 and boss_sum <= shop_sum:
-                errors.append(
-                    f"boss set source regression: {item.get('name')} "
-                    f"properties {boss_sum:.2f} <= shop {shop_sum:.2f}"
-                )
-                break
-            shop_flat_v11338 = int(
-                _shop_flat_power_by_key_v11338.get(key, 0) or 0
-            )
-            boss_flat_v11338 = int(item.get("attack", 0) or 0) + int(
-                item.get("magic_attack", 0) or 0
-            )
-            if shop_flat_v11338 > 0 and boss_flat_v11338 <= shop_flat_v11338:
-                errors.append(
-                    f"v1.13.38 boss set flat power regression: {item.get('name')} "
-                    f"{boss_flat_v11338} <= shop {shop_flat_v11338}"
-                )
-                break
-            if int(item.get("source_progression_stage", 0) or 0) != int(
-                item.get("required_mastery", 1) or 1
-            ):
-                errors.append("boss set source stage mismatch")
-                break
-
-    legendary_relics_v11338 = [
-        item for item in ITEMS.values() if item.get("legendary_class_relic")
-    ]
-    if not legendary_relics_v11338:
-        errors.append("v1.13.38 missing legendary class relics")
-    elif not all(
-        _flat_power_channel_ok_v11338(item) for item in legendary_relics_v11338
-    ):
-        errors.append("v1.13.38 legendary relic Attack/Magic Attack channel missing")
-
-    blacksmith = [
-        item for item in ITEMS.values() if item.get("crafted_masterwork")
-    ]
-    if blacksmith and not all(
-        item.get("equipment_identity_source") == "blacksmith"
-        and int(item.get("sockets", 0) or 0) >= 1
-        and bool(item.get("properties"))
-        for item in blacksmith[:100]
-    ):
-        errors.append("blacksmith masterwork identity incomplete")
-
-    return {
-        "version": "1.13.38",
-        "class_shop_count": len(class_shop_items),
-        "legendary_set_count": len(legendary_sets),
-        "blacksmith_count": len(blacksmith),
-        "error_count": len(errors),
-        "errors": errors,
-    }
+def equipment_identity_audit_v11326(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: equipment_identity_audit_v11326")
+equipment_identity_audit_v11326 = _sb410_bind(_sb410_mod_v410_equipment_shops.equipment_identity_audit_v11326, globals())
 
 
 EQUIPMENT_IDENTITY_AUDIT_V11326 = equipment_identity_audit_v11326()
@@ -1393,93 +843,10 @@ for _room_id in CLASS_SHOP_ITEMS_BY_ROOM:
 
 from data.crafting_recipes import CRAFT_RECIPES
 
-def _register_blacksmith_recipes():
-    # Existing first three ingot recipes become proper
-    # Kowalstwo recipes without changing their output IDs.
-    basic_requirements = {
-        "iron_ingot": (1, 1, 10),
-        "silver_ingot": (20, 20, 14),
-        "gold_ingot": (40, 40, 18),
-    }
-    for recipe_id, (
-        tool_level, profession_level, profession_xp
-    ) in basic_requirements.items():
-        recipe = CRAFT_RECIPES[recipe_id]
-        recipe["category"] = "smithing"
-        recipe["min_tool_level"] = tool_level
-        recipe["min_profession_level"] = profession_level
-        recipe["profession_xp"] = profession_xp
-        recipe["tool_xp"] = max(
-            8, int(profession_xp * 0.8)
-        )
-
-    for tier_number, tier in enumerate(BLACKSMITH_TIERS, 1):
-        ingot_id = tier["ingot"]
-
-        if ingot_id not in {
-            "iron_ingot", "silver_ingot", "gold_ingot"
-        }:
-            _catalog_mut.catalog_assign({
-                "name": ITEMS[ingot_id]["name"],
-                "stations": ("forge",),
-                "ingredients": {
-                    tier["ore"]: 1,
-                },
-                "output": ingot_id,
-                "quantity": 1,
-                "min_tool_level": tier["tool_level"],
-                "min_profession_level": tier[
-                    "profession_level"
-                ],
-                "profession_xp": (
-                    16 + tier_number * 4
-                ),
-                "tool_xp": (
-                    12 + tier_number * 4
-                ),
-                "category": "smithing",
-                "desc": (
-                    f"Przetop 1 sztukę surowca "
-                    f"{ITEMS[tier['ore']]['name']} "
-                    f"w 1 sztabkę."
-                ),
-            }, 'CRAFT_RECIPES', CRAFT_RECIPES, (ingot_id,))
-
-        for slot, (
-            slot_name, _def_delta, ingot_cost
-        ) in BLACKSMITH_SLOT_DEFS.items():
-            output_id = (
-                f"smith_{tier['key']}_{slot}"
-            )
-            recipe_id = (
-                f"forge_{tier['key']}_{slot}"
-            )
-            _catalog_mut.catalog_assign({
-                "name": ITEMS[output_id]["name"],
-                "stations": ("forge",),
-                "ingredients": {
-                    ingot_id: ingot_cost,
-                },
-                "output": output_id,
-                "quantity": 1,
-                "min_tool_level": tier["tool_level"],
-                "min_profession_level": tier[
-                    "profession_level"
-                ],
-                "profession_xp": (
-                    20 + tier_number * 6
-                ),
-                "tool_xp": (
-                    15 + tier_number * 5
-                ),
-                "category": "smithing",
-                "desc": (
-                    f"Wykuj {slot_name.lower()} z materiału "
-                    f"{tier['name']}. "
-                    f"Wymaga Kowalstwa level "
-                    f"{tier['profession_level']}."
-                ),
-            }, 'CRAFT_RECIPES', CRAFT_RECIPES, (recipe_id,))
+def _register_blacksmith_recipes(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_blacksmith_recipes")
+_register_blacksmith_recipes = _sb410_bind(_sb410_mod_v410_craft_recipes._register_blacksmith_recipes, globals())
 
 _register_blacksmith_recipes()
 
@@ -1556,65 +923,10 @@ JEWELCRAFTING_TIERS += tuple(
 
 JEWELCRAFT_RECIPES = {}
 
-def _register_jewelcrafting_recipes():
-    for tier in JEWELCRAFTING_TIERS:
-        ring_id = f"jewel_{tier['key']}_ring"
-        necklace_id = f"jewel_{tier['key']}_necklace"
-        earring_id = f"jewel_{tier['key']}_earring"
-        socket_count = 3 if tier["level"] >= 180 else 2 if tier["level"] >= 100 else 1
-        earring_sockets = 2 if tier["level"] >= 180 else 1
-
-        _catalog_mut.catalog_assign({
-            "name": f"{tier['label']} Pierścień Jubilerski", "type": "armor", "slot": "ring",
-            "defense": tier["defense"], "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
-            "equipment_identity_source": "jewelcraft",
-            "equipment_identity_role": "sockets_and_affix",
-            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
-            "affix": tier["affix"], "affix_amount": tier["affix_amount"], "jewelcraft_level": tier["level"],
-            "sockets": socket_count,
-            "desc": f"Pierścień wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense']}.",
-        }, 'ITEMS', ITEMS, (ring_id,))
-        _catalog_mut.catalog_assign({
-            "name": f"{tier['label']} Naszyjnik Jubilerski", "type": "armor", "slot": "necklace",
-            "defense": tier["defense"] + 1, "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
-            "equipment_identity_source": "jewelcraft",
-            "equipment_identity_role": "sockets_and_affix",
-            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
-            "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
-            "sockets": socket_count,
-            "desc": f"Naszyjnik wykonany przez Jubilerstwo. Wymaga Jubilerstwa level {tier['level']}. Obrona +{tier['defense'] + 1}.",
-        }, 'ITEMS', ITEMS, (necklace_id,))
-        # Kolczyk ma inny profil: mniej obrony, więcej ofensywnego affixu. Dwie sztuki można nosić naraz.
-        _catalog_mut.catalog_assign({
-            "name": f"{tier['label']} Kolczyk Jubilerski", "type": "armor", "slot": "earring",
-            "defense": max(0, tier["defense"] - 1), "price": None, "rarity": "crafted", "rarity_name": "Jubilerski",
-            "equipment_identity_source": "jewelcraft",
-            "equipment_identity_role": "sockets_and_affix",
-            "equipment_identity_label": "Jubilerstwo — gniazda i precyzyjny affix",
-            "affix": tier["affix"], "affix_amount": tier["affix_amount"] + 1, "jewelcraft_level": tier["level"],
-            "sockets": earring_sockets,
-            "desc": f"Kolczyk wykonany przez Jubilerstwo. Można nosić dwie sztuki. Wymaga Jubilerstwa level {tier['level']}.",
-        }, 'ITEMS', ITEMS, (earring_id,))
-
-        base_xp = 12 + tier["level"] // 8
-        JEWELCRAFT_RECIPES[ring_id] = {
-            "name": ITEMS[ring_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 2},
-            "output": ring_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
-            "profession_xp": base_xp, "tool_xp": max(8, base_xp - 2),
-            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje pierścień z 2 sztuk materiału.",
-        }
-        JEWELCRAFT_RECIPES[necklace_id] = {
-            "name": ITEMS[necklace_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 3},
-            "output": necklace_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
-            "profession_xp": base_xp + 3, "tool_xp": max(9, base_xp),
-            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje naszyjnik z 3 sztuk materiału.",
-        }
-        JEWELCRAFT_RECIPES[earring_id] = {
-            "name": ITEMS[earring_id]["name"], "stations": ("jeweler_workshop",), "ingredients": {tier["material"]: 2},
-            "output": earring_id, "quantity": 1, "min_tool_level": tier["level"], "min_profession_level": tier["level"],
-            "profession_xp": base_xp + 1, "tool_xp": max(8, base_xp - 1),
-            "desc": f"Jubilerstwo level {tier['level']}. Wykonuje jeden kolczyk z 2 sztuk materiału; do obu uszu potrzebujesz dwóch sztuk.",
-        }
+def _register_jewelcrafting_recipes(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_jewelcrafting_recipes")
+_register_jewelcrafting_recipes = _sb410_bind(_sb410_mod_v410_craft_recipes._register_jewelcrafting_recipes, globals())
 
 
 _register_jewelcrafting_recipes()
@@ -1746,79 +1058,10 @@ GEM_DEFINITIONS = (
 RAW_GEM_IDS = set()
 CUT_GEM_IDS = set()
 
-def _register_gem_system():
-    for definition in GEM_DEFINITIONS:
-        raw_id = f"raw_gem_{definition['key']}"
-        cut_id = f"cut_gem_{definition['key']}"
-        RAW_GEM_IDS.add(raw_id)
-        CUT_GEM_IDS.add(cut_id)
-
-        # v0.8.67: surowe klejnoty są częścią urobku Górnictwa.
-        # Trafiają do Sakwy Górnika i mogą zostać sprzedane wyłącznie Dagnie.
-        raw_gem_sell_gold = {
-            "ruby": 1,
-            "sapphire": 3,
-            "emerald": 6,
-            "amethyst": 12,
-            "diamond": 25,
-            "soul_topaz": 45,
-            "mana_opal": 75,
-            "dragon_garnet": 120,
-            "astral_crystal": 180,
-            "void_onyx": 280,
-            "eternium_prism": 450,
-        }
-        _catalog_mut.catalog_assign({
-            "name": definition["raw_name"],
-            "type": "gem_raw",
-            "price": None,
-            "sell_gold": raw_gem_sell_gold[definition["key"]],
-            "gem_key": definition["key"],
-            "gem_level": definition["level"],
-            "mining_bag_resource": True,
-            "desc": (
-                f"Surowy kamień szlachetny z Górnictwa. "
-                f"Trafia do Sakwy Górnika. Dagna skupuje go na Górskim Targu Minerałów. "
-                f"Szlifowanie wymaga Jubilerstwa i Szczypiec "
-                f"Jubilerskich level {definition['level']}."
-            ),
-        }, 'ITEMS', ITEMS, (raw_id,))
-        _catalog_mut.catalog_assign({
-            "name": definition["cut_name"],
-            "type": "gem",
-            "price": None,
-            "gem_key": definition["key"],
-            "gem_level": definition["level"],
-            "affix": definition["affix"],
-            "affix_amount": definition["amount"],
-            "desc": (
-                f"Osadzany klejnot jubilerski. "
-                f"Bonus po osadzeniu: "
-                f"{GEM_AFFIX_NAMES.get(definition['affix'], definition['affix'])} "
-                f"+{definition['amount']}."
-            ),
-        }, 'ITEMS', ITEMS, (cut_id,))
-
-        JEWELCRAFT_RECIPES[f"cut_{definition['key']}"] = {
-            "name": definition["cut_name"],
-            "aliases": (
-                definition["raw_name"],
-                definition["key"],
-            ),
-            "stations": ("jeweler_workshop",),
-            "ingredients": {raw_id: 1},
-            "output": cut_id,
-            "quantity": 1,
-            "min_tool_level": definition["level"],
-            "min_profession_level": definition["level"],
-            "profession_xp": 10 + definition["level"] // 5,
-            "tool_xp": 8 + definition["level"] // 6,
-            "gem_cut_recipe": True,
-            "desc": (
-                f"Szlifowanie kamienia. Jubilerstwo level "
-                f"{definition['level']}."
-            ),
-        }
+def _register_gem_system(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_gem_system")
+_register_gem_system = _sb410_bind(_sb410_mod_v410_gem_registration._register_gem_system, globals())
 
 _register_gem_system()
 
@@ -1853,56 +1096,10 @@ def roll_mined_gem_quality(tool_level, profession_level):
         roll -= chances[key]
     return "raw"
 
-def _register_gem_quality_variants():
-    for definition in GEM_DEFINITIONS:
-        key = definition["key"]
-        base_raw_id = f"raw_gem_{key}"
-        base_sell = int(ITEMS[base_raw_id].get("sell_gold", 0) or 0)
-        base_name = definition["raw_name"].replace("Surowy ", "", 1)
-        cut_base_name = definition["cut_name"].replace("Szlifowany ", "", 1)
-        for quality in GEM_QUALITY_ORDER[1:]:
-            info = GEM_QUALITY_INFO[quality]
-            raw_id = gem_quality_item_id("raw", key, quality)
-            cut_id = gem_quality_item_id("cut", key, quality)
-            raw_name = f"{info['label']} {base_name}"
-            cut_name = f"{info['cut_label']} {cut_base_name}"
-            RAW_GEM_IDS.add(raw_id)
-            CUT_GEM_IDS.add(cut_id)
-            _catalog_mut.catalog_assign({
-                "name": raw_name, "type": "gem_raw", "price": None,
-                "sell_gold": max(1, int(round(base_sell * info["sell_mult"]))),
-                "gem_key": key, "gem_level": definition["level"],
-                "gem_quality": quality, "mining_bag_resource": True,
-                "desc": (
-                    f"{info['label']} wariant kamienia z Górnictwa. Trafia do Sakwy Górnika. "
-                    f"Szlifowanie wymaga Jubilerstwa level {definition['level']}."
-                ),
-            }, 'ITEMS', ITEMS, (raw_id,))
-            amount = gem_quality_amount(definition["amount"], quality)
-            _catalog_mut.catalog_assign({
-                "name": cut_name, "type": "gem", "price": None,
-                "gem_key": key, "gem_level": definition["level"],
-                "gem_quality": quality, "affix": definition["affix"],
-                "affix_amount": amount,
-                "desc": (
-                    f"Klejnot jakości {info['label'].lower()}. Bonus po osadzeniu: "
-                    f"{GEM_AFFIX_NAMES.get(definition['affix'], definition['affix'])} +{amount}."
-                ),
-            }, 'ITEMS', ITEMS, (cut_id,))
-            recipe_id = f"cut_{key}_{quality}"
-            JEWELCRAFT_RECIPES[recipe_id] = {
-                "name": cut_name,
-                "aliases": (raw_name, cut_name, f"{quality} {key}"),
-                "stations": ("jeweler_workshop",),
-                "ingredients": {raw_id: 1},
-                "output": cut_id, "quantity": 1,
-                "min_tool_level": definition["level"],
-                "min_profession_level": definition["level"],
-                "profession_xp": 12 + definition["level"] // 5 + GEM_QUALITY_ORDER.index(quality) * 3,
-                "tool_xp": 10 + definition["level"] // 6 + GEM_QUALITY_ORDER.index(quality) * 2,
-                "gem_cut_recipe": True,
-                "desc": f"Szlifowanie jakości {info['label'].lower()}. Jubilerstwo level {definition['level']}.",
-            }
+def _register_gem_quality_variants(*args, **kwargs):
+    """Compatibility entrypoint; rebound to the unchanged native implementation."""
+    raise RuntimeError("Unbound native function: _register_gem_quality_variants")
+_register_gem_quality_variants = _sb410_bind(_sb410_mod_v410_gem_registration._register_gem_quality_variants, globals())
 
 _register_gem_quality_variants()
 

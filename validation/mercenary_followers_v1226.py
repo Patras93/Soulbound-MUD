@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """Regression: permanent mercenaries follow the owner and speak to the owner in combat."""
 import asyncio
@@ -163,7 +164,7 @@ def validate_mercenary_followers_v1226():
     assert len(db.mercenary_contracts(1)) == 2
     checks += 1
     # Ensure the look command actually uses the tested virtual follower list.
-    source = (_base / "player/session_mixins/perception_maps.py").read_text(encoding="utf-8")
+    source = _sb420_view(_base / "player/session_mixins/perception_maps.py")
     tree = ast.parse(source)
     look_cls = next(node for node in tree.body if isinstance(node, ast.ClassDef)
                     and node.name == "SessionPerceptionMapsMixin")

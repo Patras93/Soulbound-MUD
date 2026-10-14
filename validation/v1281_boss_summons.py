@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Regression tests for v1.28.1 summons, real XP and cleanup."""
 from __future__ import annotations
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 import asyncio
 from types import SimpleNamespace
 
@@ -30,7 +31,7 @@ def test_v1281():
     for kind in ("normal", "elite", "rare", "legendary"):
         check(not boss_jammer_immune_v1281({"rank":kind, "name":"Wilk"}),f"regular {kind} stunnable")
     check(not boss_jammer_immune_v1281({"uoss_superboss_add":True,"name":"Greater Demon"}),"helper can be stopped")
-    runtime_source = (__import__('pathlib').Path(__file__).parents[1] / "player/session_mixins/combat_skills.py").read_text(encoding="utf-8")
+    runtime_source = _sb420_view(__import__('pathlib').Path(__file__).parents[1] / "player/session_mixins/combat_skills.py")
     check("if boss_jammer_immune_v1281(_jam_template):" in runtime_source, "single and AoE Jammer guarded")
     world=World()
     for boss_key, turns, expected in (

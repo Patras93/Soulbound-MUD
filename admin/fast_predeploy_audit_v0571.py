@@ -19,6 +19,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_read
+
 REQUIRED_RUNTIME_PACKAGES = (
     "core", "systems", "world", "network", "storage", "player", "server", "admin",
     "config", "data", "events", "validation",
@@ -335,7 +337,7 @@ def fast_predeploy_audit_v0571():
         if 'q["reward_items"]' in quest_commands_source:
             errors.append("unsafe direct q[reward_items] access remains in quest completion")
 
-        gathering_source = (ROOT / "player" / "session_mixins" / "gathering.py").read_text(encoding="utf-8")
+        gathering_source = _sb420_read(ROOT / "player/session_mixins/gathering.py")
         for token in (
             '"tailoring": ("tailor_kit", "Zestaw Krawiecki")',
             '"leatherworking": ("tanning_knife", "Nóż Garbarski")',

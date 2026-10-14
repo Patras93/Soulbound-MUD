@@ -1,3 +1,28 @@
+# v4.20.0: bound, AST-identical method implementations (MRO unchanged)
+from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
+import player.session_methods_v4200.dungeonprogression_part01 as _sb420_src_01
+# SessionDungeonProgressionMixin.portal_requires_local_leader_v12811 -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.register_uoss_deep_dungeon_visit_v11331 -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.show_uoss_deep_dungeon_status_v11331 -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.use_uoss_deep_dungeon_elevator_v11331 -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.auto_mine_descend_if_unlocked -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.auto_walk_to_target -> player/session_methods_v4200/dungeonprogression_part01.py
+# SessionDungeonProgressionMixin.command_mineinfo_v1260 -> player/session_methods_v4200/dungeonprogression_part01.py
+import player.session_methods_v4200.dungeonprogression_part02 as _sb420_src_02
+# SessionDungeonProgressionMixin.show_mine_info -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.profession_dungeon_access_error -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.grant_stat_xp_v11342 -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.grant_combat_quest_stat_xp -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.grant_soul_xp -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.use_catacomb_portal_v2010 -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.show_checkpoint_portal_status_v11331 -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.party_checkpoint_portal_exit_v11331 -> player/session_methods_v4200/dungeonprogression_part02.py
+# SessionDungeonProgressionMixin.show_astral_portal_status -> player/session_methods_v4200/dungeonprogression_part02.py
+import player.session_methods_v4200.dungeonprogression_part03 as _sb420_src_03
+# SessionDungeonProgressionMixin.use_astral_portal -> player/session_methods_v4200/dungeonprogression_part03.py
+# SessionDungeonProgressionMixin.show_portal_status -> player/session_methods_v4200/dungeonprogression_part03.py
+# SessionDungeonProgressionMixin.use_crypt_portal -> player/session_methods_v4200/dungeonprogression_part03.py
+
 # -*- coding: utf-8 -*-
 """Mine, dungeon access, portals and Soul/combat quest progression."""
 from data import catalog_mutations as _catalog_mut
@@ -63,53 +88,13 @@ class SessionDungeonProgressionMixin:
                 self.account_id, UOSS_DEEP_DUNGEON_APANDA_CLEARS_V11331
             )
 
-    def portal_requires_local_leader_v12811(self):
-            """Allow solo travel even when an old party has an offline leader.
+    def portal_requires_local_leader_v12811(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method portal_requires_local_leader_v12811")
 
-            The party leader is mandatory only for a multi-player portal action
-            with another real connected party member standing in this room.
-            """
-            key = self.party_key()
-            if key is None or key == self.account_id:
-                return False
-            here = self.character.room_id
-            return any(
-                member and member is not self and not getattr(member, "closed", False)
-                and getattr(member, "character", None)
-                and member.character.room_id == here
-                for member in self.server.party_sessions(self.account_id, same_room=here)
-            )
-
-    async def register_uoss_deep_dungeon_visit_v11331(self, room_id=None):
-            floor = uoss_deep_dungeon_floor_number_v11331(
-                room_id if room_id is not None else self.character.room_id
-            )
-            if floor is None:
-                return False
-
-            was_new = self.server.db.add_collection_entry(
-                self.account_id,
-                UOSS_DEEP_DUNGEON_VISITS_V11331,
-                str(floor),
-            )
-            if was_new:
-                await self.send(
-                    f"Deep Dungeon: odkrywasz piętro {floor}. "
-                    f"Najgłębszy zapisany poziom: {self.uoss_deep_dungeon_max_floor_v11331()}."
-                )
-
-            if floor >= UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331:
-                unlocked = self.server.db.add_collection_entry(
-                    self.account_id,
-                    "deep_dungeon_discovery",
-                    "floor_100",
-                )
-                if unlocked:
-                    await self.send(
-                        "Deep Dungeon: dotarcie do piętra 100 odblokowuje Floor 0 "
-                        "i Super Bossa Serpentarius. Winda: deepelevator 0."
-                    )
-            return True
+    async def register_uoss_deep_dungeon_visit_v11331(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method register_uoss_deep_dungeon_visit_v11331")
 
     def uoss_deep_dungeon_descent_blocked_v11331(
             self, room_id, direction="down"
@@ -126,162 +111,13 @@ class SessionDungeonProgressionMixin:
                 return ""
             return superboss_member_entry_error_v11331(self, "serpentarius")
 
-    async def show_uoss_deep_dungeon_status_v11331(self, args=""):
-            highest = self.uoss_deep_dungeon_max_floor_v11331()
-            unlock_floor = UOSS_DEEP_DUNGEON_SERPENTARIUS_UNLOCK_FLOOR_V11331
-            unlocks = self.server.db.collection_entry_ids(
-                self.account_id, "deep_dungeon_discovery"
-            )
-            serpentarius_unlocked = "floor_100" in unlocks
+    async def show_uoss_deep_dungeon_status_v11331(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method show_uoss_deep_dungeon_status_v11331")
 
-            await self.send("UOSS DEEP DUNGEON — BEZ LIMITU")
-            await self.send(
-                f"Najgłębsze odwiedzone piętro: {highest if highest else 'brak'}."
-            )
-            if highest:
-                next_apanda = ((highest // 25) + 1) * 25
-                await self.send(
-                    f"Apanda występuje co 25 pięter. Następny próg: {next_apanda}."
-                )
-            else:
-                await self.send("Apanda występuje co 25 pięter: 25, 50, 75, 100 i dalej.")
-
-            if serpentarius_unlocked:
-                error = superboss_member_entry_error_v11331(
-                    self, "serpentarius"
-                )
-                if error:
-                    await self.send(
-                        "Serpentarius: odblokowany przez piętro 100, "
-                        f"ale wejście jest teraz niedostępne. {error}"
-                    )
-                else:
-                    await self.send(
-                        "Serpentarius: odblokowany. Użyj deepelevator 0 "
-                        "albo superboss serpentarius."
-                    )
-            else:
-                await self.send(
-                    f"Serpentarius: zablokowany. Musisz osobiście dotrzeć "
-                    f"co najmniej do piętra {unlock_floor}."
-                )
-            await self.send(
-                "Wejście: Sala Super Bossów, kierunek down. "
-                "Winda: deepelevator <odwiedzone piętro>; Floor 0: deepelevator 0."
-            )
-
-    async def use_uoss_deep_dungeon_elevator_v11331(self, raw=""):
-            if self.combat_mob_key:
-                await self.send("Nie możesz użyć windy Deep Dungeon podczas walki.")
-                return
-
-            current = str(self.character.room_id)
-            current_floor = uoss_deep_dungeon_floor_number_v11331(current)
-            if (
-                current != UOSS_DEEP_DUNGEON_ENTRY_V11331
-                and current != UOSS_DEEP_DUNGEON_FLOOR0_V11331
-                and current_floor is None
-            ):
-                await self.send(
-                    "Winda Deep Dungeon działa tylko wewnątrz Deep Dungeon."
-                )
-                return
-
-            value = self.normalize_room_query(raw)
-            if not value or value in ("status", "lista", "list"):
-                await self.show_uoss_deep_dungeon_status_v11331()
-                return
-
-            match = re.search(r"(\d+)", value)
-            if not match:
-                await self.send(
-                    "Użycie: deepelevator <odwiedzone piętro> albo deepelevator 0."
-                )
-                return
-            floor = int(match.group(1))
-
-            party_key = self.party_key()
-            if self.portal_requires_local_leader_v12811():
-                leader = self.server.session_by_account(party_key)
-                leader_name = (
-                    leader.character.name
-                    if leader and getattr(leader, "character", None)
-                    else "lider drużyny"
-                )
-                await self.send(
-                    f"Tylko lider uruchamia windę dla drużyny. Lider: {leader_name}."
-                )
-                return
-
-            candidates = (
-                list(
-                    self.server.party_sessions(
-                        self.account_id,
-                        same_room=self.character.room_id,
-                    )
-                )
-                if party_key == self.account_id
-                else [self]
-            )
-            if self not in candidates:
-                candidates.append(self)
-
-            target = (
-                UOSS_DEEP_DUNGEON_FLOOR0_V11331
-                if floor == 0
-                else uoss_deep_dungeon_floor_id_v11331(floor)
-            )
-            if floor > 0:
-                self.server.world.ensure_runtime_room(target)
-
-            moved = []
-            skipped = []
-            for member in candidates:
-                if not member or not getattr(member, "character", None):
-                    continue
-                if member.combat_mob_key:
-                    skipped.append(f"{member.character.name}: trwa walka")
-                    continue
-
-                member_highest = member.uoss_deep_dungeon_max_floor_v11331()
-                if floor == 0:
-                    error = superboss_member_entry_error_v11331(
-                        member, "serpentarius"
-                    )
-                    if error:
-                        skipped.append(
-                            f"{member.character.name}: {error}"
-                        )
-                        continue
-                elif floor < 1 or floor > member_highest:
-                    skipped.append(
-                        f"{member.character.name}: najwyższe odwiedzone piętro "
-                        f"{member_highest if member_highest else 'brak'}"
-                    )
-                    continue
-
-                member.previous_room_id = member.character.room_id
-                member.previous_room_id = member.character.room_id
-                member.character.room_id = target
-                member.server.db.save_character(member.character)
-                moved.append(member)
-
-            if moved:
-                destination = "Floor 0" if floor == 0 else f"piętro {floor}"
-                for member in moved:
-                    await member.send(
-                        f"Lider {self.character.name} uruchamia windę Deep Dungeon. "
-                        f"Cel: {destination}."
-                    )
-                    await member.look()
-                if len(moved) > 1:
-                    await self.send(
-                        f"Winda przenosi razem {len(moved)} graczy."
-                    )
-            if skipped:
-                await self.send(
-                    "Nie przeniesiono: " + "; ".join(skipped) + "."
-                )
+    async def use_uoss_deep_dungeon_elevator_v11331(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method use_uoss_deep_dungeon_elevator_v11331")
 
     def mine_progress(self):
             return self.server.db.mine_progress(self.account_id)
@@ -297,85 +133,9 @@ class SessionDungeonProgressionMixin:
                 > self.mine_progress()["max_floor_unlocked"]
             )
 
-    async def auto_mine_descend_if_unlocked(self):
-            if not self.auto_mining or self.closed:
-                return False
-            if self.combat_mob_key:
-                return False
-
-            current_room = self.character.room_id
-
-            # v0.24.4: auto-kopanie potrafi wejść do Kopalni Głębinowej z całej
-            # ręcznej części jaskini zamiast bez końca kopać przy wejściu.
-            approach_steps = {
-                "cave_entrance": ("down", "cave_tunnel"),
-                "cave_tunnel": ("east", "crystal_chamber"),
-                "crystal_chamber": ("down", mine_floor_id(MINE_MIN_FLOOR)),
-            }
-            if current_room in approach_steps:
-                direction, target = approach_steps[current_room]
-                if target.startswith("mine_floor_"):
-                    self.server.world.ensure_infinite_dungeon_floor(target)
-                if ROOMS.get(current_room, {}).get("exits", {}).get(direction) != target:
-                    _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (current_room,), "exits", {})[direction] = target
-                old = current_room
-                self.previous_room_id = old
-                await self.server.broadcast_room(old, f"{self.character.name} odchodzi.", exclude=self)
-                self.character.room_id = target
-                self.server.db.save_character(self.character)
-                await self.discover_room(target, announce=False)
-                await self.server.broadcast_room(target, f"{self.character.name} przychodzi.", exclude=self)
-                await self.send(f"Auto-kopanie schodzi głębiej: {ROOMS[target]['name']}.")
-                return True
-
-            floor = mine_floor_number(current_room)
-            if floor is None:
-                return False
-
-            expected_target = mine_floor_id(floor + 1)
-            self.server.world.ensure_infinite_dungeon_floor(expected_target)
-            # Napraw stare runtime-roomy/zapisy, którym brakowało wyjścia down.
-            _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (current_room,), "exits", {})["down"] = expected_target
-            target = ROOMS[current_room]["exits"].get("down")
-
-            if target != expected_target:
-                return False
-
-            progress = self.mine_progress()
-            if progress["max_floor_unlocked"] < floor + 1:
-                return False
-
-            if self.mine_descent_blocked_for_player(
-                current_room,
-                "down",
-            ):
-                return False
-
-            old = current_room
-            self.previous_room_id = old
-            await self.server.broadcast_room(
-                old,
-                f"{self.character.name} odchodzi.",
-                exclude=self,
-            )
-
-            self.character.room_id = target
-            self.server.db.save_character(
-                self.character
-            )
-            await self.discover_room(target, announce=False)
-
-            await self.server.broadcast_room(
-                target,
-                f"{self.character.name} przychodzi.",
-                exclude=self,
-            )
-
-            await self.send(
-                f"Ściana w dół jest przebita. "
-                f"Auto-kopanie schodzi na poziom {floor + 1}."
-            )
-            return True
+    async def auto_mine_descend_if_unlocked(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method auto_mine_descend_if_unlocked")
 
     def nearest_auto_target(self, route):
             best = None
@@ -403,301 +163,26 @@ class SessionDungeonProgressionMixin:
             index = route.index(current)
             return route[(index + 1) % len(route)]
 
-    async def auto_walk_to_target(self, target, label, flag_attr):
-            path = self.shortest_path(
-                self.character.room_id, target
-            )
-            if path is None:
-                await self.send(
-                    f"{label}: nie udało się znaleźć drogi."
-                )
-                return False
+    async def auto_walk_to_target(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method auto_walk_to_target")
 
-            for direction, next_room in path:
-                if self.closed or not getattr(self, flag_attr, False):
-                    return False
-                if self.combat_mob_key:
-                    await self.send(
-                        f"{label} zatrzymane: rozpoczęła się walka."
-                    )
-                    return False
-                if self.mythic_entry_error(next_room):
-                    return False
-                if self.profession_dungeon_access_error(next_room):
-                    return False
-                if self.astral_entry_blocked(next_room):
-                    return False
-                if self.mythic_crypt_descent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    return False
-                if self.mythic_astral_ascent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    return False
-                if self.giant_fortress_ascent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    return False
-                if self.crypt_descent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    return False
-                if self.astral_ascent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    return False
-                if self.mine_descent_blocked_for_player(
-                    self.character.room_id, direction
-                ):
-                    await self.send(
-                        f"{label}: ściana kopalni blokuje zejście."
-                    )
-                    return False
+    async def command_mineinfo_v1260(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method command_mineinfo_v1260")
 
-                old = self.character.room_id
-                await self.server.broadcast_room(
-                    old,
-                    f"{self.character.name} odchodzi.",
-                    exclude=self,
-                )
-                self.character.room_id = next_room
-                self.server.db.save_character(self.character)
-                await self.discover_room(next_room, announce=False)
-                await self.server.broadcast_room(
-                    next_room,
-                    f"{self.character.name} przychodzi.",
-                    exclude=self,
-                )
-                await self.send(
-                    f"{label}: {direction} -> "
-                    f"{ROOMS[next_room]['name']}."
-                )
-                await asyncio.sleep(0.12)
-
-            return self.character.room_id == target
-
-    async def command_mineinfo_v1260(self, args):
-        from core.mine_world_v1260 import geology_v1260, mine_map_lines_v1260, mine_route_v1260
-        from core.mine_tunnels import mine_tunnel_coords, MINE_DIRECTION_LABELS
-        mode = str(args or '').strip().casefold()
-        if mode not in ('mapa','map','gdzie','where','droga','route','skarb','skarbiec','vault','wyprawa'):
-            if not mode:
-                await self.show_mine_info()
-            else:
-                await self.send('Komendy: kopalnia, kopalnia mapa, kopalnia gdzie, kopalnia droga, kopalnia skarb.')
-            return
-        pos = mine_tunnel_coords(self.character.room_id, self.account_id)
-        if pos is None:
-            await self.send('Te komendy działają wewnątrz Kopalni Głębinowej. Dojście: prowadz kopalnia.')
-            return
-        floor,x,y=pos
-        cells=self.server.db.mine_tunnel_cells_v1260(self.account_id,floor)
-        geo=geology_v1260(floor,x,y)
-        if mode in ('gdzie','where'):
-            await self.send(f'KOPALNIA: piętro {floor}, X={x}, Y={y}. Odkrycie: {geo["name"]}. '
-                            f'Około {max(abs(x),abs(y))} kroków od centralnego szybu w linii prostej.')
-        elif mode in ('mapa','map'):
-            for line in mine_map_lines_v1260(cells,floor,(x,y)):
-                await self.send(line)
-        elif mode in ('droga','route'):
-            route=mine_route_v1260(cells,(x,y))
-            if route is None:
-                await self.send('Brak odkrytego połączenia z centralnym szybem na tym piętrze.')
-            elif not route:
-                await self.send('Jesteś przy centralnym szybie. W górę: up; w dół: down.')
-            else:
-                await self.send(f'DROGA DO SZYBU: {len(route)} kroków. ' +
-                                ', '.join(MINE_DIRECTION_LABELS[d] for d in route) + '. ' +
-                                'Możesz przejść je kolejno komendą walk lub kierunkami.')
-        elif mode in ('skarb','skarbiec','vault'):
-            if geo['kind'] not in ('vault','chamber','ruins','rare_ore','lost_city','ancient_kingdom','giant_cavern'):
-                await self.send('Tutaj nie ma skarbca ani reliktów do odebrania.')
-                return
-            if self.server.db.mine_claimed_v1260(self.account_id,floor,x,y):
-                await self.send('To odkrycie zostało już przez ciebie odebrane.')
-                return
-            if geo['has_guardian'] and any(m.alive for m in self.server.world.room_mobs(self.character.room_id)
-                   if __import__('systems.content_registry',fromlist=['MOB_TEMPLATES']).MOB_TEMPLATES.get(m.template_id,{}).get('mine_guard_v1260')):
-                await self.send('Skarbca pilnuje Strażnik Głębin. Pokonaj go, zanim odbierzesz łupy.')
-                return
-            # All loot is stored using the native profession casket and wallet.
-            # The durable claim prevents duplication after deployment/relogin.
-            if not self.server.db.mine_claim_v1260(self.account_id,floor,x,y):
-                await self.send('Skarb został już odebrany.')
-                return
-            from core.mine_world_v1260 import discovery_mineral_reward_v1260
-            from core.mines_threat import ITEMS
-            mineral=discovery_mineral_reward_v1260(geo)
-            material_text=''
-            if mineral:
-                item_id, amount=mineral
-                if item_id in ITEMS:
-                    self.server.db.add_item(self.account_id,item_id,amount)
-                    material_text=f' Rzadki zasób: {amount} x {ITEMS[item_id]["name"]}.'
-            self.character.gold += geo['reward_gold']
-            self.server.db.save_character(self.character)
-            await self.send(f'ODKRYCIE O KURDE: {geo["name"]}! Zdobywasz {geo["reward_gold"]} złota.'
-                            + material_text + ' Skarb jest jednorazowy i zapisany na stałe.')
-        else:
-            await self.send('Wielkie wyprawy: zobacz wyprawy oraz legendarne wyprawy; '
-                            'twoje postępy kopalniane są zapisane na stałe.')
-
-    async def show_mine_info(self):
-            """Czytelny status Kopalni Głębinowej dla NVDA."""
-            progress = self.mine_progress()
-            room_id = self.character.room_id
-            floor = mine_floor_number(room_id)
-            approach_names = {
-                "cave_entrance": "Wejście do Kopalni Głębinowej — przed poziomem 1",
-                "cave_tunnel": "Tunel Kryształowej Jaskini — droga do poziomu 1",
-                "crystal_chamber": "Komnata Kryształowa — bezpośrednio przed poziomem 1",
-            }
-
-            await self.send("KOPALNIA GŁĘBINOWA")
-            if floor is not None:
-                pos = mine_tunnel_coords(room_id, self.account_id)
-                if pos:
-                    await self.send(f'Położenie: poziom {floor}, chodnik X={pos[1]}, Y={pos[2]}.')
-                    available = self.server.db.mine_tunnel_directions_v1251(self.account_id, *pos)
-                    await self.send('Własne odkryte przejścia: ' + (
-                        ', '.join(MINE_DIRECTION_LABELS[d] for d in available) if available else 'brak') + '.')
-                else:
-                    await self.send(f"Położenie: poziom {floor}.")
-                await self.send('Kopanie kierunkowe: kop north/south/east/west, '
-                                'kop northeast/northwest/southeast/southwest, kop up/down. '
-                                'Po polsku: kop północ, kop południe, kop prawo, kop lewo, kop góra, kop dół. '
-                                'Automat: kop on north (lub wybrany kierunek), zatrzymanie: kop off. '
-                                'Mapa: kopalnia mapa; pozycja: kopalnia gdzie; powrót: kopalnia droga; skarby: kopalnia skarb.')
-            elif room_id in approach_names:
-                await self.send(f"Położenie: {approach_names[room_id]}.")
-            else:
-                room_name = ROOMS.get(room_id, {}).get("name", "nieznana lokacja")
-                await self.send(
-                    f"Położenie: {room_name}. Nie jesteś teraz w Kopalni Głębinowej. "
-                    "Użyj: prowadz kopalnia."
-                )
-
-            max_floor = int(progress["max_floor_unlocked"])
-            await self.send(
-                f"Najgłębiej odblokowany poziom: {max_floor}. "
-                "Kopalnia nie ma górnego limitu pięter; moc zasobów skaluje się do progresji 600."
-            )
-
-            if floor is not None:
-                if floor == max_floor:
-                    hits = int(progress["wall_hits"])
-                    required = int(progress["wall_required_hits"])
-                    missing = max(0, required - hits)
-                    await self.send(
-                        f"Ściana do poziomu {floor + 1}: {hits}/{required} uderzeń. "
-                        f"Brakuje {missing}."
-                    )
-                elif floor < max_floor:
-                    await self.send(
-                        f"Zejście do poziomu {floor + 1} jest już odblokowane."
-                    )
-                else:
-                    await self.send(
-                        "Uwaga: jesteś głębiej niż zapisany postęp odblokowania; "
-                        "użyj ruchu w górę albo zaloguj się ponownie, jeśli to stary zapis."
-                    )
-
-            auto_text = "włączone" if self.auto_mining else "wyłączone"
-            await self.send(f"Auto-kopanie: {auto_text}.")
-
-            try:
-                profession_level = int(self.profession_level_for_tool("mining"))
-            except Exception:
-                profession_level = 1
-            try:
-                tool_level = int(self.server.db.tool(self.account_id, "mining")["level"])
-            except Exception:
-                tool_level = 1
-            await self.send(
-                f"Górnictwo: {profession_level}/{PROFESSION_MAX_LEVEL}. Kilof: {tool_level}/{TOOL_MAX_LEVEL}."
-            )
-
-            # W Kopalni Głębinowej ruda wymaga jednocześnie odpowiedniego Kilofa
-            # i głębokości. Pokazujemy kilka najwyższych spełnionych progów zamiast
-            # zalewać czytnik ekranu całą tabelą atlasu.
-            if floor is not None:
-                eligible = []
-                for item_id in ORE_ATLAS_ALL:
-                    if item_id not in ITEMS:
-                        continue
-                    need_tool = int(ORE_ATLAS_LEVELS.get(item_id, 1))
-                    need_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(item_id, 1))
-                    if tool_level >= need_tool and floor >= need_floor:
-                        eligible.append((max(need_tool, need_floor), need_tool, need_floor, item_id))
-                eligible.sort(key=lambda row: (row[0], row[1], row[2], ITEMS[row[3]].get("name", row[3])))
-                best = eligible[-5:]
-                if best:
-                    await self.send(
-                        "Najwyższe dostępne rudy przy tym Kilofie i piętrze: "
-                        + ", ".join(player_item_display_name_v0335(item_id) for *_rest, item_id in best)
-                        + "."
-                    )
-
-                future = []
-                for item_id in ORE_ATLAS_ALL:
-                    if item_id not in ITEMS:
-                        continue
-                    need_tool = int(ORE_ATLAS_LEVELS.get(item_id, 1))
-                    need_floor = int(ORE_MINE_FLOOR_MINIMUMS.get(item_id, 1))
-                    if need_tool > tool_level or need_floor > floor:
-                        distance = max(0, need_tool - tool_level) + max(0, need_floor - floor)
-                        future.append((distance, max(need_tool, need_floor), item_id, need_tool, need_floor))
-                if future:
-                    future.sort(key=lambda row: (row[0], row[1], ITEMS[row[2]].get("name", row[2])))
-                    _distance, _rank, item_id, need_tool, need_floor = future[0]
-                    await self.send(
-                        f"Najbliższy kolejny próg rudy: {player_item_display_name_v0335(item_id)} — "
-                        f"Kilof {need_tool}, poziom kopalni {need_floor}."
-                    )
-
-            if self.auto_mining:
-                if floor is None and room_id in approach_names:
-                    await self.send(
-                        "Auto-kopanie samo przejdzie do poziomu 1 i będzie schodzić po przebiciu kolejnych ścian."
-                    )
-                elif floor is not None:
-                    await self.send(
-                        "Auto-kopanie po przebiciu ściany automatycznie schodzi na następny odblokowany poziom."
-                    )
-            else:
-                await self.send("Włącz auto-kopanie komendą: kop on.")
+    async def show_mine_info(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method show_mine_info")
 
     def mythic_entry_error(self, target_room):
             # v1.13.30: Mityczna Krypta i Mityczna Wieża nie mają level-gate.
             # Realna trudność, bossy pięter i checkpointy pozostają barierą.
             return None
 
-    def profession_dungeon_access_error(self, target_room):
-            dungeon, floor = profession_dungeon_floor(target_room)
-            if not dungeon:
-                return None
-            if dungeon == "crystal_mine":
-                # v0.25.1: to już zwykłe Kryształowe Groty, nie loch Górnictwa.
-                return None
-
-            tool_type, item_id, tool_name = PROF_DUNGEON_TOOL[dungeon]
-            if self.server.db.item_qty(self.account_id, item_id) <= 0:
-                return (
-                    f"Ten loch profesyjny wymaga narzędzia: {tool_name}."
-                )
-
-            profession = profession_for_tool_type(tool_type)
-            prow = self.server.db.profession(self.account_id, profession)
-            profession_level = int(prow["level"])
-            required = profession_dungeon_required_tool_level(floor)
-            if profession_level < required:
-                return (
-                    f"Ten poziom lochu profesyjnego wymaga "
-                    f"{profession} poziom {required}. Masz poziom {profession_level}. "
-                    f"Poziom {tool_name} nie blokuje piętra; odblokowuje lepsze surowce."
-                )
-            return None
+    def profession_dungeon_access_error(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method profession_dungeon_access_error")
 
     def giant_fortress_ascent_blocked_for_player(
             self, room_id, direction="up"
@@ -755,104 +240,17 @@ class SessionDungeonProgressionMixin:
             # v1.13.30: brak minimalnego Soul Level dla Wieży Astralnej.
             return False
 
-    async def grant_stat_xp_v11342(
-        self, amount, targets=None, *, content_level,
-        content_scaled=False
-    ):
-            amount=max(0,int(amount or 0))
-            if amount<=0:
-                return 0
-            amount=self.scale_progression_xp_v11342(
-                amount,
-                content_level,
-                content_scaled=content_scaled,
-            )
-            amount=self.apply_double_xp(amount)
-            from systems.experience_bank_v2011 import banked_experience_v2011
-            # Per-stat bank: no shared pool that could duplicate XP for six stats.
-            target_names = list(targets) if targets is not None else list(self.character.STAT_PROGRESS_FIELDS)
-            awarded = []
-            for stat_name in target_names:
-                paid = banked_experience_v2011(
-                    self.server.db, self.account_id, amount, 'stat',
-                    self.character.character_level, source_key=stat_name)
-                awarded.append(paid)
-                for message in self.character.add_stat_progress(paid, targets=(stat_name,)):
-                    await self.send(message)
-            return min(awarded) if awarded else 0
+    async def grant_stat_xp_v11342(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method grant_stat_xp_v11342")
 
-    async def grant_combat_quest_stat_xp(
-        self, raw_reward, repeatable=False, source_label="Quest walki", *,
-        content_level=None, content_scaled=False
-    ):
-            """Przyznaje EXP do każdej z sześciu statystyk z systemu questowego."""
-            raw_reward = max(0, int(raw_reward or 0))
-            if raw_reward <= 0:
-                return []
-            raw_reward=self.scale_progression_xp_v11342(
-                raw_reward,
-                content_level,
-                content_scaled=content_scaled,
-            )
-            applied = []
-            for stat_name in self.character.STAT_PROGRESS_FIELDS:
-                granted = v0874_quest_stat_progress_base_grant(
-                    self.character, stat_name, raw_reward, repeatable
-                )
-                granted = self.apply_double_xp(granted)
-                from systems.experience_bank_v2011 import banked_experience_v2011
-                granted=banked_experience_v2011(
-                    self.server.db, self.account_id, granted, 'stat',
-                    self.character.character_level, source_key=stat_name)
-                applied.append(granted)
-                for msg in self.character.add_stat_progress(granted, targets=(stat_name,)):
-                    await self.send(msg)
-            lo = min(applied) if applied else 0
-            hi = max(applied) if applied else 0
-            amount_text = str(lo) if lo == hi else f"{lo}-{hi}"
-            await self.send(
-                f"{source_label}: {amount_text} EXP osobno do Siły, Zręczności, "
-                "Kondycji, Inteligencji, Siły Woli i Charyzmy."
-            )
-            return applied
+    async def grant_combat_quest_stat_xp(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method grant_combat_quest_stat_xp")
 
-    async def grant_soul_xp(
-        self, amount, single_level_cap=False, *,
-        content_level=None, content_scaled=False, overcap=False
-    ):
-            old_level = self.character.soul_level
-            amount=self.scale_progression_xp_v11342(
-                amount,
-                content_level,
-                content_scaled=content_scaled,
-            )
-            amount = self.apply_double_xp(amount)
-            _mentor_pct = self.mentor_bonus_percent_v03050()
-            if _mentor_pct:
-                amount = max(0, int(round(amount * (1.0 + _mentor_pct / 100.0))))
-                self.mentor_record_activity_v03051()
-
-            from systems.experience_bank_v2011 import banked_experience_v2011
-            amount = banked_experience_v2011(
-                self.server.db, self.account_id, amount, 'soul',
-                self.character.soul_level, overcap=overcap)
-            self.session_summary_add("soul_xp", amount)
-            messages = self.character.add_soul_xp(
-                amount, single_level_cap=single_level_cap
-            )
-            for message in messages:
-                await self.send(message)
-
-            await self.set_achievement_progress("soul_level", self.character.soul_level)
-
-            if self.character.soul_level > old_level:
-                self.current_hp = self.max_hp()
-                await self.send(
-                    f"Awans Soul Level odnawia całe HP. "
-                    f"HP: {self.current_hp} z {self.max_hp()}."
-                )
-
-            return self.character.soul_level > old_level
+    async def grant_soul_xp(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method grant_soul_xp")
 
     async def grant_combat_soul_xp_v11350(
         self, amount, *, content_level=None, content_scaled=True, overcap=False
@@ -903,58 +301,9 @@ class SessionDungeonProgressionMixin:
                         self.account_id, 'catacomb_portal_floors_v2010', str(visited)
                     )
 
-    async def use_catacomb_portal_v2010(self, raw):
-            from world.world_expansion_v import CATACOMB_LEVELS_V0900
-            if self.combat_mob_key:
-                await self.send('Nie można używać portalu Katakumb podczas walki.')
-                return
-            party_key = self.party_key()
-            if self.portal_requires_local_leader_v12811():
-                await self.send('W drużynie portal uruchamia lider stojący w tej samej sali.')
-                return
-            here = str(self.character.room_id)
-            current_floor = self.catacomb_floor_v2010(here)
-            if current_floor is not None:
-                self.remember_catacomb_floor_v2010(here)
-            known = self.catacomb_unlocked_floors_v2010()
-            value = self.normalize_room_query(raw)
-            if not value or value in ('lista','list','status'):
-                await self.send('Portal Katakumb: odblokowane piętra: '
-                    + (', '.join(map(str,known)) if known else 'brak')
-                    + '. Użyj portal 1, portal 2 albo portal 3.')
-                return
-            if value in ('wyjdz','wyjdź','wyjscie','wyjście','exit','out'):
-                target = 'temple_basement_deep_nest'
-                floor = None
-            elif value in ('1','2','3'):
-                floor = int(value)
-                target = CATACOMB_LEVELS_V0900[floor][0]
-                if floor not in known:
-                    await self.send(f'Piętro {floor} Katakumb nie jest jeszcze odblokowane.')
-                    return
-            else:
-                await self.send('Użycie: portal 1, portal 2, portal 3 lub portal wyjdz.')
-                return
-            old = here
-            candidates = (list(self.server.party_sessions(self.account_id,same_room=old))
-                          if party_key == self.account_id else [self])
-            if self not in candidates: candidates.append(self)
-            moved=[]; skipped=[]
-            for member in candidates:
-                if not member or not getattr(member,'character',None): continue
-                if member.combat_mob_key:
-                    skipped.append(f'{member.character.name}: trwa walka'); continue
-                if floor is not None and floor not in member.catacomb_unlocked_floors_v2010():
-                    skipped.append(f'{member.character.name}: piętro {floor} nieodblokowane'); continue
-                member.previous_room_id = member.character.room_id
-                member.previous_room_id = member.character.room_id
-                member.character.room_id = target
-                member.server.db.save_character(member.character)
-                moved.append(member)
-            for member in moved:
-                await member.send(f'Portal Katakumb: {"wyjście" if floor is None else f"piętro {floor}"}.')
-                await member.look()
-            if skipped: await self.send('Nie przeniesiono: ' + '; '.join(skipped) + '.')
+    async def use_catacomb_portal_v2010(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method use_catacomb_portal_v2010")
 
     def checkpoint_portal_floors_v11331(self, kind):
             floors = self.server.db.instance_checkpoint_floors(
@@ -974,481 +323,49 @@ class SessionDungeonProgressionMixin:
                 self.checkpoint_portal_floors_v11331(kind)
             )
 
-    async def show_checkpoint_portal_status_v11331(
-            self, *, kind, label, start_floor
-    ):
-            floors = self.checkpoint_portal_floors_v11331(kind)
-            if not floors:
-                await self.send(
-                    f"{label}: brak odblokowanych checkpointów. "
-                    f"Pierwszy portal jest na piętrze/poziomie {start_floor}."
-                )
-                return
-            await self.send(
-                f"{label}: najwyższy checkpoint {max(floors)}."
-            )
-            await self.send(
-                "Odblokowane checkpointy: "
-                + ", ".join(str(floor) for floor in floors)
-                + "."
-            )
-            await self.send(
-                "Checkpointy są co 10 pięter. Z dowolnego odblokowanego checkpointu możesz przejść portalem do innego odblokowanego checkpointu."
-            )
+    async def show_checkpoint_portal_status_v11331(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method show_checkpoint_portal_status_v11331")
 
-    async def party_checkpoint_portal_exit_v11331(
-            self, *, kind, floor, target_room, label
-    ):
-            """Exit a cleared 10-floor checkpoint with eligible local party."""
-            party_key = self.party_key()
-            if self.portal_requires_local_leader_v12811():
-                leader = self.server.session_by_account(party_key)
-                leader_name = (
-                    leader.character.name
-                    if leader and getattr(leader, "character", None)
-                    else "lider drużyny"
-                )
-                await self.send(
-                    f"W drużynie portal checkpointu uruchamia lider: {leader_name}."
-                )
-                return True
+    async def party_checkpoint_portal_exit_v11331(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method party_checkpoint_portal_exit_v11331")
 
-            old = self.character.room_id
-            candidates = (
-                list(
-                    self.server.party_sessions(
-                        self.account_id, same_room=old
-                    )
-                )
-                if party_key == self.account_id
-                else [self]
-            )
-            if self not in candidates:
-                candidates.append(self)
+    async def show_astral_portal_status(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method show_astral_portal_status")
 
-            moved = []
-            skipped = []
-            for member in candidates:
-                if not member or not getattr(member, "character", None):
-                    continue
-                if member.combat_mob_key:
-                    skipped.append(f"{member.character.name}: trwa walka")
-                    continue
+    async def use_astral_portal(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method use_astral_portal")
 
-                if not member.checkpoint_portal_unlocked_v11331(
-                    kind, floor
-                ):
-                    skipped.append(
-                        f"{member.character.name}: checkpoint {floor} "
-                        "nie jest odblokowany"
-                    )
-                    continue
+    async def show_portal_status(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method show_portal_status")
 
-                member.previous_room_id = member.character.room_id
-                member.character.room_id = target_room
-                member.server.db.save_character(member.character)
-                moved.append(member)
+    async def use_crypt_portal(self, *args, **kwargs):
+        """Compatibility method; rebound to the original implementation."""
+        raise RuntimeError("Unbound Soulbound method use_crypt_portal")
 
-            if moved:
-                for member in moved:
-                    await member.send(
-                        f"{label} checkpointu {floor} przenosi cię do wyjścia lochu."
-                    )
-                    await member.look()
-                if len(moved) > 1:
-                    await self.send(
-                        f"Portal checkpointu przenosi razem {len(moved)} graczy."
-                    )
-            if skipped:
-                await self.send(
-                    "Nie przeniesiono: " + "; ".join(skipped) + "."
-                )
-            return True
+# v4.20.0: exact historical implementations rebound onto original class.
+SessionDungeonProgressionMixin.portal_requires_local_leader_v12811 = _sb420_bind(_sb420_src_01.portal_requires_local_leader_v12811, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.register_uoss_deep_dungeon_visit_v11331 = _sb420_bind(_sb420_src_01.register_uoss_deep_dungeon_visit_v11331, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.show_uoss_deep_dungeon_status_v11331 = _sb420_bind(_sb420_src_01.show_uoss_deep_dungeon_status_v11331, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.use_uoss_deep_dungeon_elevator_v11331 = _sb420_bind(_sb420_src_01.use_uoss_deep_dungeon_elevator_v11331, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.auto_mine_descend_if_unlocked = _sb420_bind(_sb420_src_01.auto_mine_descend_if_unlocked, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.auto_walk_to_target = _sb420_bind(_sb420_src_01.auto_walk_to_target, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.command_mineinfo_v1260 = _sb420_bind(_sb420_src_01.command_mineinfo_v1260, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.show_mine_info = _sb420_bind(_sb420_src_02.show_mine_info, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.profession_dungeon_access_error = _sb420_bind(_sb420_src_02.profession_dungeon_access_error, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.grant_stat_xp_v11342 = _sb420_bind(_sb420_src_02.grant_stat_xp_v11342, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.grant_combat_quest_stat_xp = _sb420_bind(_sb420_src_02.grant_combat_quest_stat_xp, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.grant_soul_xp = _sb420_bind(_sb420_src_02.grant_soul_xp, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.use_catacomb_portal_v2010 = _sb420_bind(_sb420_src_02.use_catacomb_portal_v2010, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.show_checkpoint_portal_status_v11331 = _sb420_bind(_sb420_src_02.show_checkpoint_portal_status_v11331, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.party_checkpoint_portal_exit_v11331 = _sb420_bind(_sb420_src_02.party_checkpoint_portal_exit_v11331, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.show_astral_portal_status = _sb420_bind(_sb420_src_02.show_astral_portal_status, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.use_astral_portal = _sb420_bind(_sb420_src_03.use_astral_portal, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.show_portal_status = _sb420_bind(_sb420_src_03.show_portal_status, globals(), "SessionDungeonProgressionMixin")
+SessionDungeonProgressionMixin.use_crypt_portal = _sb420_bind(_sb420_src_03.use_crypt_portal, globals(), "SessionDungeonProgressionMixin")
 
-    async def show_astral_portal_status(self, kind="astral"):
-            if kind == "mythic_astral":
-                await self.show_checkpoint_portal_status_v11331(
-                    kind="mythic_astral",
-                    label="Mityczny Astralny Portal",
-                    start_floor=10,
-                )
-                await self.send(
-                    "Przy Mitycznej Astralnej Bramie: astralportal <10/20/30/...>. "
-                    "Na checkpointcie: astralportal <odblokowane pietro> albo astralportal wyjdz."
-                )
-                return
-
-            await self.show_checkpoint_portal_status_v11331(
-                kind="astral",
-                label="Astralny Portal",
-                start_floor=ASTRAL_MIN_FLOOR,
-            )
-            await self.send(
-                f"Przy Astralnej Bramie: astralportal "
-                f"<{ASTRAL_MIN_FLOOR}/{ASTRAL_MIN_FLOOR + 10}/...>. "
-                "Na checkpointcie: astralportal <odblokowane pietro> albo astralportal wyjdz."
-            )
-
-    async def use_astral_portal(self, raw):
-            party_key = self.party_key()
-            if self.portal_requires_local_leader_v12811():
-                leader = self.server.session_by_account(party_key)
-                leader_name = (
-                    leader.character.name
-                    if leader and getattr(leader, "character", None)
-                    else "lider drużyny"
-                )
-                await self.send(
-                    f"W drużynie Astralny Portal uruchamia lider: {leader_name}."
-                )
-                return
-            if self.combat_mob_key:
-                await self.send(
-                    "Nie możesz użyć Astralnego Portalu podczas walki."
-                )
-                return
-
-            room_id = str(self.character.room_id)
-            normal_floor = astral_floor_number(room_id)
-            mythic_floor = mythic_astral_floor_number(room_id)
-            mythic_context = (
-                room_id == "mythic_astral_gate"
-                or mythic_floor is not None
-            )
-            kind = "mythic_astral" if mythic_context else "astral"
-            current_floor = mythic_floor if mythic_context else normal_floor
-            gate = "mythic_astral_gate" if mythic_context else "astral_gate"
-            floor_id = (
-                mythic_astral_floor_id
-                if mythic_context else astral_floor_id
-            )
-            is_checkpoint = (
-                is_mythic_astral_boss_floor
-                if mythic_context else is_astral_boss_floor
-            )
-            label = (
-                "Mityczny Astralny Portal"
-                if mythic_context else "Astralny Portal"
-            )
-            start_floor = 10 if mythic_context else ASTRAL_MIN_FLOOR
-
-            value = self.normalize_room_query(raw)
-            if (
-                current_floor is not None
-                and is_checkpoint(current_floor)
-                and self.checkpoint_portal_unlocked_v11331(
-                    kind, current_floor
-                )
-                and (
-                    not value
-                    or value in (
-                        "wyjdz", "wyjdź", "exit", "out",
-                        "wyjscie", "wyjście",
-                    )
-                )
-            ):
-                await self.party_checkpoint_portal_exit_v11331(
-                    kind=kind,
-                    floor=current_floor,
-                    target_room=gate,
-                    label=label,
-                )
-                return
-
-            if not value or value in ("status", "lista", "list"):
-                await self.show_astral_portal_status(kind=kind)
-                return
-
-            match = re.search(r"(\d+)", value)
-            if not match:
-                await self.send(
-                    f"Użycie: astralportal {start_floor}, "
-                    f"astralportal {start_floor + 10}, ... bez górnego limitu."
-                )
-                return
-
-            floor = int(match.group(1))
-            if not is_checkpoint(floor):
-                await self.send(
-                    f"Checkpointy tej Wieży są co 10 poziomów od "
-                    f"{start_floor} bez górnego limitu."
-                )
-                return
-            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
-                floors = self.checkpoint_portal_floors_v11331(kind)
-                await self.send(
-                    f"Checkpoint poziomu {floor} jest zablokowany. "
-                    f"Najwyższy odblokowany: "
-                    f"{max(floors) if floors else 'brak'}."
-                )
-                return
-            if not self.checkpoint_portal_origin_v2010(
-                room_id=room_id, gate_rooms=(gate,), kind=kind,
-                current_floor=current_floor, is_checkpoint=is_checkpoint,
-            ):
-                await self.send(
-                    f"{label}: przejście na odblokowane piętro działa przy Bramie "
-                    "lub na odblokowanym checkpointcie co 10 pięter."
-                )
-                return
-
-            target = floor_id(floor)
-            self.server.world.ensure_infinite_dungeon_floor(target)
-            old = room_id
-            candidates = (
-                list(
-                    self.server.party_sessions(
-                        self.account_id, same_room=old
-                    )
-                )
-                if party_key == self.account_id
-                else [self]
-            )
-            if self not in candidates:
-                candidates.append(self)
-
-            moved = []
-            skipped = []
-            for member in candidates:
-                if not member or not getattr(member, "character", None):
-                    continue
-                if member.combat_mob_key:
-                    skipped.append(f"{member.character.name}: trwa walka")
-                    continue
-                if not member.checkpoint_portal_unlocked_v11331(
-                    kind, floor
-                ):
-                    skipped.append(
-                        f"{member.character.name}: checkpoint {floor} "
-                        "nie jest odblokowany"
-                    )
-                    continue
-                member.previous_room_id = member.character.room_id
-                member.character.room_id = target
-                member.server.db.save_character(member.character)
-                moved.append(member)
-
-            if moved:
-                for member in moved:
-                    await member.send(
-                        f"Lider {self.character.name} uruchamia {label}. "
-                        f"Cel: checkpoint {floor}."
-                    )
-                    await member.look()
-                if len(moved) > 1:
-                    await self.send(
-                        f"{label} przenosi razem {len(moved)} graczy."
-                    )
-            if skipped:
-                await self.send(
-                    "Nie przeniesiono: " + "; ".join(skipped) + "."
-                )
-
-    async def show_portal_status(self, kind="crypt"):
-            if kind == "mythic_crypt":
-                await self.show_checkpoint_portal_status_v11331(
-                    kind="mythic_crypt",
-                    label="Mityczny Portal Krypty",
-                    start_floor=10,
-                )
-                await self.send(
-                    "Przy Bramie Mitycznej Krypty: portal <10/20/30/...>. "
-                    "Na checkpointcie: portal <odblokowane pietro> albo portal wyjdz."
-                )
-                return
-
-            await self.show_checkpoint_portal_status_v11331(
-                kind="crypt",
-                label="Portal Krypty",
-                start_floor=10,
-            )
-            await self.send(
-                "Przy wejściu Krypty: portal <10/20/30/...>. "
-                "Na checkpointcie: portal <odblokowane pietro> albo portal wyjdz."
-            )
-
-    async def use_crypt_portal(self, raw):
-            party_key = self.party_key()
-            if self.portal_requires_local_leader_v12811():
-                leader = self.server.session_by_account(party_key)
-                leader_name = (
-                    leader.character.name
-                    if leader and getattr(leader, "character", None)
-                    else "lider drużyny"
-                )
-                await self.send(
-                    f"W drużynie Portal Krypty uruchamia lider: {leader_name}."
-                )
-                return
-            if self.combat_mob_key:
-                await self.send(
-                    "Nie możesz użyć Portalu Krypty podczas walki."
-                )
-                return
-
-            room_id = str(self.character.room_id)
-            if (self.catacomb_floor_v2010(room_id) is not None
-                    or room_id == 'temple_basement_deep_nest'):
-                await self.use_catacomb_portal_v2010(raw)
-                return
-            normal_floor = crypt_floor_number(room_id)
-            mythic_floor = mythic_crypt_floor_number(room_id)
-            mythic_context = (
-                room_id == "mythic_crypt_gate"
-                or mythic_floor is not None
-            )
-            kind = "mythic_crypt" if mythic_context else "crypt"
-            current_floor = mythic_floor if mythic_context else normal_floor
-            gate = "mythic_crypt_gate" if mythic_context else "crypt_hall"
-            floor_id = (
-                mythic_crypt_floor_id
-                if mythic_context else crypt_floor_id
-            )
-            is_checkpoint = (
-                is_mythic_crypt_boss_floor
-                if mythic_context else is_crypt_boss_floor
-            )
-            label = (
-                "Mityczny Portal Krypty"
-                if mythic_context else "Portal Krypty"
-            )
-
-            value = self.normalize_room_query(raw)
-            if (
-                current_floor is not None
-                and is_checkpoint(current_floor)
-                and self.checkpoint_portal_unlocked_v11331(
-                    kind, current_floor
-                )
-                and (
-                    not value
-                    or value in (
-                        "wyjdz", "wyjdź", "exit", "out",
-                        "wyjscie", "wyjście",
-                    )
-                )
-            ):
-                await self.party_checkpoint_portal_exit_v11331(
-                    kind=kind,
-                    floor=current_floor,
-                    target_room=gate,
-                    label=label,
-                )
-                return
-
-            if not value or value in ("status", "lista", "list"):
-                await self.show_portal_status(kind=kind)
-                return
-
-            match = re.search(r"(\d+)", value)
-            if not match:
-                await self.send(
-                    "Użycie: portal 10, portal 20, portal 30, ... "
-                    "bez górnego limitu."
-                )
-                return
-            floor = int(match.group(1))
-            if not is_checkpoint(floor):
-                await self.send(
-                    "Portale są co 10 pięter: 10, 20, 30, ... "
-                    "bez górnego limitu."
-                )
-                return
-            if not self.checkpoint_portal_unlocked_v11331(kind, floor):
-                floors = self.checkpoint_portal_floors_v11331(kind)
-                await self.send(
-                    f"Portal piętra {floor} jest zablokowany. "
-                    f"Najwyższy odblokowany: "
-                    f"{max(floors) if floors else 'brak'}."
-                )
-                return
-
-            allowed_gates = (
-                ("mythic_crypt_gate",)
-                if mythic_context
-                else ("crypt_hall", "crypt_entrance")
-            )
-            if not self.checkpoint_portal_origin_v2010(
-                room_id=room_id, gate_rooms=allowed_gates, kind=kind,
-                current_floor=current_floor, is_checkpoint=is_checkpoint,
-            ):
-                await self.send(
-                    f"{label}: przejście na odblokowane piętro działa przy wejściu "
-                    "lub na odblokowanym checkpointcie co 10 pięter."
-                )
-                return
-
-            if self.resting or self.rest_task:
-                await self.stop_rest(announce=False)
-            if self.auto_fishing or self.auto_fishing_task:
-                await self.stop_auto_fishing(announce=False)
-            if self.auto_mining or self.auto_mining_task:
-                await self.stop_auto_mining(announce=False)
-            if self.auto_woodcutting or self.auto_woodcutting_task:
-                await self.stop_auto_woodcutting(announce=False)
-            if self.auto_herbalism or self.auto_herbalism_task:
-                await self.stop_auto_herbalism(announce=False)
-
-            target = floor_id(floor)
-            self.server.world.ensure_infinite_dungeon_floor(target)
-            old = room_id
-            candidates = (
-                list(
-                    self.server.party_sessions(
-                        self.account_id, same_room=old
-                    )
-                )
-                if party_key == self.account_id
-                else [self]
-            )
-            if self not in candidates:
-                candidates.append(self)
-
-            moved = []
-            skipped = []
-            for member in candidates:
-                if not member or not getattr(member, "character", None):
-                    continue
-                if member.combat_mob_key:
-                    skipped.append(f"{member.character.name}: trwa walka")
-                    continue
-                if not member.checkpoint_portal_unlocked_v11331(
-                    kind, floor
-                ):
-                    skipped.append(
-                        f"{member.character.name}: checkpoint {floor} "
-                        "nie jest odblokowany"
-                    )
-                    continue
-                if member.resting or member.rest_task:
-                    await member.stop_rest(announce=False)
-                if member.auto_fishing or member.auto_fishing_task:
-                    await member.stop_auto_fishing(announce=False)
-                if member.auto_mining or member.auto_mining_task:
-                    await member.stop_auto_mining(announce=False)
-                if member.auto_woodcutting or member.auto_woodcutting_task:
-                    await member.stop_auto_woodcutting(announce=False)
-                if member.auto_herbalism or member.auto_herbalism_task:
-                    await member.stop_auto_herbalism(announce=False)
-
-                member.previous_room_id = member.character.room_id
-                member.character.room_id = target
-                member.server.db.save_character(member.character)
-                moved.append(member)
-
-            if moved:
-                for member in moved:
-                    await member.send(
-                        f"Lider {self.character.name} uruchamia {label}. "
-                        f"Cel: checkpoint {floor}."
-                    )
-                    await member.look()
-                if len(moved) > 1:
-                    await self.send(
-                        f"{label} przenosi razem {len(moved)} graczy."
-                    )
-            if skipped:
-                await self.send(
-                    "Nie przeniesiono: " + "; ".join(skipped) + "."
-                )
 

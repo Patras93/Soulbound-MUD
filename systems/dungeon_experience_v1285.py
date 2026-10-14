@@ -11,11 +11,7 @@ from __future__ import annotations
 
 import math
 
-from core.progression_resources import (
-    character_xp_to_next,
-    class_mastery_xp_to_next,
-    soul_xp_to_next,
-)
+from systems.dungeon_xp_reference_v4211 import authored_base_dungeon_xp_v4211
 
 SAFE_XP = 9_000_000_000_000_000_000
 _DUNGEON_FLOOR_KEYS = (
@@ -27,11 +23,7 @@ _BOSS_KEYS = (
     "magitek_boss", "giant_fortress_boss", "profession_dungeon_boss",
     "boss", "world_boss", "boss_mechanic", "mini_boss",
 )
-_REQUIREMENTS = {
-    "character": character_xp_to_next,
-    "class": class_mastery_xp_to_next,
-    "soul": soul_xp_to_next,
-}
+_REWARD_AXES = ("character", "class", "soul")
 _RANK_BONUS = {"normal": 1.0, "elite": 1.7, "rare": 2.6,
                "mini": 4.5, "boss": 8.5, "world_boss": 12.0}
 
@@ -100,24 +92,26 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
     a bounded bonus), but never get to scale against the mob's XP requirement.
     Only dungeon combat kill payouts are affected: not quests, professions,
     open-world kills, uncapped stats or explicit source_xp_exact UOSS rewards.
+    Rewards depend on authored combat difficulty, NEVER on level-up thresholds.
     The downstream guard reserves enough headroom for x2 EXP / class guild /
     mentor bonuses without allowing a multi-level kill.
     """
     prior_xp = max(0, min(SAFE_XP, int(prior_xp or 0)))
-    if (axis not in _REQUIREMENTS or not authored_dungeon_floor_v1285(template)
+    if (axis not in _REWARD_AXES or not authored_dungeon_floor_v1285(template)
             or template.get("training_dummy") or template.get("source_xp_exact")):
         return prior_xp
     level = max(1, min(800, int(player_level or 1)))
-    required = int(_REQUIREMENTS[axis](level))
-    if required <= 0:  # Progression cap reached.
-        return prior_xp
+    # A fixed authored payout schedule, unaffected by future changes to the
+    # XP needed for any level. Preserve the early stage and 800 fallback.
+    reward_anchor = authored_base_dungeon_xp_v4211(axis, level)
     try:
         downstream = max(1.0, min(16.0, float(downstream_multiplier)))
     except (ValueError, TypeError, OverflowError):
         downstream = 1.0
-    # 42% of one requirement at most AFTER all multiplicative downstream XP
-    # bonuses. Even with a player at 99.9% progress, only one level can pass.
-    hard_cap = max(1, int(required * 0.42 / downstream))
+    # Cap is based on this encounter's authored reward budget, not on
+    # next-level XP; higher requirements will therefore slow the grind.
+    budget = reward_anchor * _target_kills_for_level_v1285(level)
+    hard_cap = max(1, int(budget * 0.42 / downstream))
     rank = _encounter_rank_v1286(template)
     if level <= 100:
         # Preserve the original early-game reward (including its +30%), but
@@ -126,7 +120,7 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
             "normal": .06, "elite": .10, "rare": .14,
             "mini": .18, "boss": .25, "world_boss": .30,
         }[rank]
-        return min(prior_xp, hard_cap, max(1, int(required * early_limit / downstream)))
+        return min(prior_xp, hard_cap, max(1, int(budget * early_limit / downstream)))
 
     try:
         stage = int(template.get("generator_level", template.get("v019_stage", 0)) or 0)
@@ -145,8 +139,7 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
     except (ValueError, TypeError, OverflowError):
         mult = 1.0
     expected = max(1, math.ceil(
-        required / _target_kills_for_level_v1285(level)
-        * _RANK_BONUS[rank] * challenge * mult
+        reward_anchor * _RANK_BONUS[rank] * challenge * mult
     ))
     # Preserve up to 20% of additional authored/rare reward variance, but
     # never grant the old floor-800 exponential reward to a level-150 player.
@@ -165,13 +158,13 @@ def dungeon_kill_xp_audit_v1285():
             failures.append(f"{axis}: open world modified")
         if dungeon_kill_xp_v1285({**normal, "source_xp_exact": True}, axis, 100) != 100:
             failures.append(f"{axis}: exact reward modified")
-    for axis, requirement in _REQUIREMENTS.items():
+    for axis in _REWARD_AXES:
         for lvl in (1, 50, 100, 101, 150, 200, 400, 600, 799):
             value = dungeon_recipient_xp_v1286(normal, axis, SAFE_XP, lvl,
                                                combat_multiplier=50,
                                                downstream_multiplier=4)
-            needed = requirement(lvl)
-            if not 0 < value * 4 <= math.ceil(needed * .42) + 4:
+            budget = authored_base_dungeon_xp_v4211(axis, lvl) * _target_kills_for_level_v1285(lvl)
+            if not 0 < value * 4 <= math.ceil(budget * .42) + 4:
                 failures.append(f"{axis}: explosion at level {lvl}: {value}")
         for lvl in (150, 200, 400, 600, 799):
             a = dungeon_recipient_xp_v1286(normal, axis, 1, lvl)

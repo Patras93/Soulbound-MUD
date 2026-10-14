@@ -1,3 +1,4 @@
+from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _sb420_view
 # -*- coding: utf-8 -*-
 """Small real-code regression test for readable follower notifications."""
 import ast
@@ -20,7 +21,7 @@ def validate_mercenary_follow_notice_v12210():
     check(mercenary_follow_notice_v12210(["Seren", "Vael"]) == "Najemnicy podążają za tobą: Seren i Vael.")
     check(mercenary_follow_notice_v12210(["Seren", "Vael", "Gareth"]) == "Najemnicy podążają za tobą: Seren, Vael i Gareth.")
     root = Path(__file__).resolve().parents[1]
-    perception = (root / "player/session_mixins/perception_maps.py").read_text(encoding="utf-8")
+    perception = _sb420_view(root / "player/session_mixins/perception_maps.py")
     check("mine = [spec[\"name\"] for owner, _role, spec in followers if owner is self]" in perception)
     check('if others:' in perception and 'Najemnicy innych graczy:' in perception)
 
@@ -28,7 +29,7 @@ def validate_mercenary_follow_notice_v12210():
     tree = ast.parse(movement)
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "SessionMovementMixin")
     move = next(node for node in cls.body if isinstance(node, ast.AsyncFunctionDef) and node.name == "walk_room_transition")
-    guide = (root / "player/session_mixins/guide_navigation.py").read_text(encoding="utf-8")
+    guide = _sb420_view(root / "player/session_mixins/guide_navigation.py")
     check("self._mercenary_guide_announced_v12210 = False" in guide)
     # Test the actual movement method against a tiny fake room, session and DB.
     class MiniAsyncio:
