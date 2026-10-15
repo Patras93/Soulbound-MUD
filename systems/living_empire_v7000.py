@@ -172,7 +172,7 @@ def install(rooms, npcs, quests, items, help_topics):
     if len(STORY_IDS)!=64:
         raise RuntimeError('Incomplete v7 story')
     help_topics['imperium7']=[
-        'Era Żyjącego Imperium: imperium7 pomoc lub imperium7 status.',
+        'Era Żyjącego Imperium: imperium7 pomoc, status, koszt <projekt> — sprawdź wymagania przed budową.',
         'imperium7 ulepsz pole/stado/magazyn/warsztat/stocznia/mury/latarnia/twierdza — trwałe projekty.',
         'imperium7 praca rolnictwo/hodowla/inżynieria; imperium7 lowy lista/start/odbierz — realne zabicia elit i bossów.',
         'imperium7 wyprawa lista/start <rafa|stolica|burze|row>/odbierz — realne zapasy i rejs.',

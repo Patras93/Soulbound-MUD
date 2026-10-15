@@ -43,8 +43,7 @@ class SessionSkillQueueBuffsMixin:
             self._auto_queue_known_v3005 = (self.account_id, learned)
             entries = [
                 (self.skill_queue_type(skill), str(skill["id"]))
-                for class_skills in CLASS_SKILLS.values()
-                for skill in class_skills
+                for skill in CLASS_SKILLS.get(self.character.class_name, [])
                 if str(skill["id"]) in learned and self.auto_queue_eligible_v3005(skill)
             ]
             added = self.server.db.auto_enroll_learned_skills_v3005(self.account_id, entries)

@@ -32,7 +32,7 @@ def run_regression():
     import server
     from core.bootstrap_economy_professions import VERSION
     import world.expansion_frontiers as facade_module
-    assert VERSION in ('4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0')
+    assert VERSION in ('4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0')
     for name in ORIGINAL:
         assert callable(getattr(facade_module, name)), name
         checks += 1
@@ -61,7 +61,7 @@ def run_regression():
             setattr(module, name, original_callable)
             module.EXP_AREAS = original_impl_areas
             facade_module.EXP_AREAS = original_facade_areas
-    assert len(server.QUESTS) == (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701)
+    assert len(server.QUESTS) == (5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 2701)
     assert len(server.CLASS_SKILLS) == 14
     checks += 3
     return checks

@@ -58,7 +58,7 @@ def run_regression():
                     'soul_tier=11, soul_weapon_mastery_level=101, strength=21 WHERE account_id=1')
     for idx in range(14):
         db.conn.execute('INSERT INTO class_progress VALUES (?, ?, ?, ?, ?)',
-                        (1, 'class'+str(idx), 20+idx, 0, idx))
+                        (1, 'class'+str(idx), 20+idx, 0, 1 if idx == 0 else None))
     db.conn.execute('INSERT INTO professions VALUES(1, ?, ?)', ('gornictwo', 41))
     db.conn.execute('INSERT INTO tools VALUES(1, ?, ?)', ('kilof', 51))
     db.conn.execute('INSERT INTO learned_skills VALUES(1, ?)', ('fireball',))
@@ -71,7 +71,7 @@ def run_regression():
     expected_lvls = {
         'postać': [400], 'dusza': [31], 'soul tier': [11],
         'broń duszy': [101], 'statystyki': [21,1,1,1,1,1],
-        'klasy': list(range(20,34)), 'profesje': [41],
+        'klasy': [20], 'profesje': [41],
         'narzędzia': [51], 'skille': [201], 'wzniesienia': [31]
     }
     expected_cap = sum(multi_cap_level_value_v23217(v)

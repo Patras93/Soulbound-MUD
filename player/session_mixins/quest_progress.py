@@ -283,6 +283,17 @@ class SessionQuestProgressMixin:
                     )
                 return
 
+            if q.get('v800_class_saga'):
+                # At most five concise updates per step, with an immediate
+                # ready-to-turn-in message. Never hide important completion.
+                interval=max(1,(needed+4)//5)
+                if progress<needed and progress % interval:
+                    return
+                ready_text=' GOTOWE DO ODDANIA.' if progress>=needed else ''
+                await _send_progress(f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
+                                     f'{progress}/{needed}.{ready_text}')
+                return
+
             if q.get("kind") == "kill":
                 label = str(event_label or q.get("progress_label") or "").strip()
                 credited = f"Zaliczono: {label}. " if label else "Zabicie zaliczone. "
@@ -641,13 +652,24 @@ class SessionQuestProgressMixin:
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
             # NVDA: a new mentor offers only the current unfinished stage, not
             # 120 long lines. "przyjmij 1" always selects this stage.
-            if npc.get('v601_profession_master') or npc.get('v700_story_npc'):
+            if npc.get('v601_profession_master') or npc.get('v700_story_npc') or npc.get('v800_class_mentor'):
+                if npc.get('v800_class_mentor') and npc.get('v800_required_class') not in self.active_class_names():
+                    return []
                 chain=tuple(npc.get('specialist_quests') or ())
                 for qid in chain:
                     row=self.server.db.quest(self.account_id,qid)
                     if row and row['status']=='active':
                         return [qid]
                     if not row or row['status']!='completed':
+                        # v7.10: the next chronicle mentor must not display a
+                        # locked chapter before the previous chapter is done.
+                        # Old 120-stage profession mentors are left untouched.
+                        if npc.get('v700_story_npc'):
+                            requires=QUESTS[qid].get('requires_quest')
+                            if requires:
+                                previous=self.server.db.quest(self.account_id,requires)
+                                if not previous or previous['status']!='completed':
+                                    return []
                         return [qid]
                 return []
             result = []

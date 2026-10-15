@@ -14,7 +14,7 @@ def run_regression():
     checks = 0
     db = TestDB()
     db.conn.execute('''INSERT INTO class_progress(account_id,class_name,level,active_slot)
-                       VALUES(1,'Wojownik',4,0)''')
+                       VALUES(1,'Wojownik',4,1)''')
     db.conn.execute('''INSERT INTO class_progress(account_id,class_name,level,active_slot)
                        VALUES(1,'Mag',6,NULL)''')
     db.conn.execute('INSERT INTO professions VALUES(1, ?, ?)', ('gornictwo', 7))
@@ -34,7 +34,7 @@ def run_regression():
     checks += 1
     full = '\n'.join(lines)
     for item in ('Dusza: poziom 1', 'Soul Tier: poziom 1', 'Broń Duszy — biegłość: poziom 1',
-                 'Wojownik: poziom 4 (aktywna)', 'Mag: poziom 6 (zachowana)',
+                 'Wojownik: poziom 4 (główna)', 'Mag: poziom 6 (archiwalna, bez bonusów)',
                  'Siła: poziom 1', 'Charyzma: poziom 1', 'fireball: poziom 9',
                  'gornictwo: poziom 7', 'kilof: poziom 8', 'soul: poziom 3'):
         assert item in full, item

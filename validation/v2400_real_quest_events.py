@@ -46,6 +46,25 @@ def event_for(db, aid, q):
     kind = str(q.get('kind', ''))
     needed = max(1, int(q.get('needed', 1) or 1))
     target = q.get('target')
+    if kind == 'kill' and q.get('v800_class_saga'):
+        # v8 uses a dedicated real DB handler so aliased mob names cannot
+        # double-credit the wildcard and only sufficiently strong foes count.
+        rank=q.get('v800_enemy_rank','any')
+        result=db.increment_class_legend_kill_v800(
+            aid,q['required_class'],q['v800_min_enemy_level'],
+            elite=rank in ('elite','boss'),boss=rank=='boss')
+        return result, 1, needed==1
+    if kind == 'explore_frontier' and q.get('v800_class_saga'):
+        # Native procedural-exploration event, not set_quest_progress.
+        from player.session_mixins.museum_bounty import SessionMuseumBountyMixin
+        class _RealExplorer(SessionMuseumBountyMixin):
+            def __init__(self):
+                self.server=SimpleNamespace(db=db)
+                self.account_id=aid
+            async def send(self,message):pass
+        changed=asyncio.run(_RealExplorer().advance_v0140_quest_progress(
+            'explore_frontier','forest',1))
+        return changed,1,needed==1
     if kind == 'kill' and target is not None:
         # A real monster death event adds ONE kill, never more.
         result = db.increment_quest(aid, target)
@@ -109,7 +128,9 @@ def wrong_event_for(db, aid, q):
     """Ensure an unrelated event cannot complete somebody else's objective."""
     kind = str(q.get('kind', ''))
     invalid = '__soulbound_test_wrong_target__'
-    if kind == 'kill' and q.get('target') != '*':
+    if kind == 'kill' and q.get('v800_class_saga'):
+        db.increment_class_legend_kill_v800(aid,'__wrong_class__',0,elite=True,boss=True)
+    elif kind == 'kill' and q.get('target') != '*':
         db.increment_quest(aid, invalid)
     elif kind == 'collect':
         if q.get('track_craft_progress'):
@@ -231,7 +252,9 @@ def run_event_coverage(quests=None):
             # Another identical batch must be capped at the actual quest goal.
             event_for(db, a, quest)
             repeated = db.quest(a, qid)
-            repeated_expected = min(int(quest.get('needed', 1) or 1), 2) if kind == 'kill' else expected
+            repeated_expected = (min(int(quest.get('needed', 1) or 1), 2)
+                                 if kind == 'kill' or (kind=='explore_frontier' and quest.get('v800_class_saga'))
+                                 else expected)
             if int(repeated['progress']) != repeated_expected:
                 errors.append(f'{qid}: ponowne zdarzenie przekroczylo limit lub skasowalo postep')
             checks += 1

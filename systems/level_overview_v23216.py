@@ -62,10 +62,10 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
              active_slot, class_name COLLATE NOCASE
     ''', (aid,)).fetchall()
     if classes:
-        active_count = sum(r['active_slot'] is not None for r in classes)
+        active_count = sum(r['active_slot'] == 1 for r in classes)
         class_entries = [
             '{}: poziom {}{}'.format(str(r['class_name']), _level(r['level']),
-                ' (aktywna)' if r['active_slot'] is not None else ' (zachowana)')
+                ' (główna)' if r['active_slot'] == 1 else ' (archiwalna, bez bonusów)')
             for r in classes
         ]
         _section(lines, f'KLASY — odblokowanych {len(classes)}, aktywnych {active_count}:', class_entries)

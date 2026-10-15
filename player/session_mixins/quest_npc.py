@@ -135,6 +135,15 @@ class SessionQuestNpcMixin:
             chain = tuple(npc.get("specialist_quests") or ())
             if not chain:
                 return
+            if npc.get('v800_class_mentor'):
+                if npc.get('v800_required_class') not in self.active_class_names():
+                    await self.send('Ta Droga Legendy należy do innej klasy.')
+                    return
+                completed=sum(1 for qid in chain if (row:=self.server.db.quest(self.account_id,qid))
+                              and row['status']=='completed')
+                await self.send(f'Droga Legendy {npc["v800_required_class"]}: {completed}/120. '
+                                'quest list — jeden etap; przyjmij 1; oddaj quest.')
+                return
             if npc.get('v601_profession_master'):
                 completed = 0
                 for qid in chain:

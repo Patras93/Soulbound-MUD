@@ -48,6 +48,22 @@ def _levels(serialized):
     return [max(1, int(value)) for value in str(serialized).split(',')]
 
 
+_SKILL_OWNERS_CACHE = (0, {})
+
+
+def _class_skill_owners_v71101():
+    """Cached index; rebuild only if the authored class catalog grows."""
+    global _SKILL_OWNERS_CACHE
+    from core.classes_skills import CLASS_SKILLS
+    count = sum(len(skills) for skills in CLASS_SKILLS.values())
+    if count != _SKILL_OWNERS_CACHE[0]:
+        _SKILL_OWNERS_CACHE = (count, {
+            str(skill["id"]): class_name for class_name, skills in CLASS_SKILLS.items()
+            for skill in skills
+        })
+    return _SKILL_OWNERS_CACHE[1]
+
+
 def multi_cap_calculation_v23217(conn, account_id):
     """Return (cap, sum_levels, level_parts, cap_parts), or None.
 
@@ -63,19 +79,24 @@ def multi_cap_calculation_v23217(conn, account_id):
                    c.strength, c.dexterity, c.constitution,
                    c.intelligence, c.willpower, c.charisma,
                    (SELECT GROUP_CONCAT(MAX(COALESCE(level,1),1))
-                      FROM class_progress WHERE account_id=c.account_id),
+                      FROM class_progress WHERE account_id=c.account_id AND active_slot=1),
                    (SELECT GROUP_CONCAT(MAX(COALESCE(level,1),1))
                       FROM professions WHERE account_id=c.account_id),
                    (SELECT GROUP_CONCAT(MAX(COALESCE(level,1),1))
                       FROM tools WHERE account_id=c.account_id),
-                   (SELECT GROUP_CONCAT(MAX(COALESCE(sp.level,1),1))
+                   (SELECT GROUP_CONCAT(ls.skill_id || CHAR(29) || MAX(COALESCE(sp.level,1),1), CHAR(30))
                       FROM learned_skills ls
                       LEFT JOIN skill_progress sp ON sp.account_id=ls.account_id
                                                  AND sp.skill_id=ls.skill_id
                      WHERE ls.account_id=c.account_id),
                    (SELECT GROUP_CONCAT(rank)
                       FROM ascension_progress_v021
-                     WHERE account_id=c.account_id AND rank > 0)
+                     WHERE account_id=c.account_id AND rank > 0
+                       AND (track NOT LIKE 'class:%' OR track = 'class:' ||
+                         (SELECT cp.class_name FROM class_progress cp
+                          WHERE cp.account_id=c.account_id AND cp.active_slot=1 LIMIT 1))),
+                   (SELECT cp.class_name FROM class_progress cp
+                    WHERE cp.account_id=c.account_id AND cp.active_slot=1 LIMIT 1)
               FROM characters c WHERE c.account_id=?
         """, (account_id,)).fetchone()
     except Exception as exc:
@@ -87,17 +108,28 @@ def multi_cap_calculation_v23217(conn, account_id):
     if row is None:
         return None
     core = [max(1, int(value or 1)) for value in row[:10]]
+    # Archived skills are never deleted; only skills belonging to the actual
+    # primary class can contribute to cap. Generic/non-class skills remain.
+    owners = _class_skill_owners_v71101()
+    primary = str(row[15] or '')
+    owned_skills = []
+    for pair in str(row[13] or '').split(chr(30)):
+        if chr(29) not in pair:
+            continue
+        sid, level = pair.rsplit(chr(29), 1)
+        if owners.get(sid, primary) == primary:
+            owned_skills.append(max(1, int(level)))
     chunks = {
         'postać': core[:1],
         'dusza': core[1:2],
         'soul tier': core[2:3],
         'broń duszy': core[3:4],
         'statystyki': core[4:10],
-        # Primary-class fallback only when no class row is present.
+        # Only the primary class counts; secondary mastery is historical archive.
         'klasy': _levels(row[10]) or [1],
         'profesje': _levels(row[11]),
         'narzędzia': _levels(row[12]),
-        'skille': _levels(row[13]),
+        'skille': owned_skills,
         # Ascension rank 0 is not earned; ignore it.
         'wzniesienia': _levels(row[14]),
     }

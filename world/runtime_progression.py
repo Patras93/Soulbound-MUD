@@ -297,8 +297,8 @@ HELP_TOPIC_ALIASES.update({"projekty swiata":"worldprojects_v022","world project
 # v0.23: finalny audit HELP — naprawa aktywnych aliasów wskazujących na brakujące tematy.
 HELP_TOPICS["klasy"] = [
     "Soulbound ma 14 klas. Level postaci i każda klasa rozwijają się niezależnie; Biegłość każdej klasy ma zakres 1-600.",
-    "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
-    "multiclass pokazuje aktywne klasy i komendy dodawania/usuwania klas zgodnie z aktualnymi wymaganiami.",
+    "Klasa jest wybierana przy tworzeniu postaci. Multiklasy są wyłączone: jedna klasa na postać.",
+    "multiclass pokazuje jedyną klasę główną. Dodawanie i usuwanie klas jest wyłączone.",
     "kodeksklasowy info pokazuje wszystkie klasy; kodeksklasowy <klasa> czyta nauczyciela, skille, wymagania Biegłości, koszt i status nauki.",
     "skills pokazuje skille aktywnych klas, a help <nazwa skilla> daje szczegóły konkretnej umiejętności.",
 ]
@@ -886,7 +886,7 @@ HELP_TOPICS["level"] = [
 ]
 HELP_TOPICS["klasy"] = [
     "Soulbound ma 14 klas. Level postaci, Biegłość klasy i Skill Level mają zakres 1-600 i są liczone przez Generator Core.",
-    "Klasa główna jest wybierana przy tworzeniu postaci. Dodatkowe aktywne klasy obsługuje multiclass / multiklasa.",
+    "Klasa jest wybierana przy tworzeniu postaci. Multiklasy są wyłączone: jedna klasa na postać.",
     "skills pokazuje skille aktywnych klas, a help <nazwa skilla> podaje aktualne wygenerowane wymagania i parametry.",
 ]
 HELP_TOPIC_ALIASES.update({"level postaci":"level","poziom postaci":"level","generator core":"generator"})

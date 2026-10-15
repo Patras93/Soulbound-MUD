@@ -18,7 +18,7 @@ def run_regression():
     count = 0
     assert len(NAMES) == 14
     count += 1
-    assert len(server.CLASS_SKILLS) == 14 and len(server.QUESTS) == (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701)
+    assert len(server.CLASS_SKILLS) == 14 and len(server.QUESTS) == (5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 2701)
     count += 2
     wrappers = ast.parse((ROOT / 'admin/audits.py').read_text(encoding='utf-8'))
     pure_source = ast.parse((ROOT / 'admin/audit_rules_v406.py').read_text(encoding='utf-8'))

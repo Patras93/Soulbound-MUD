@@ -987,3 +987,13 @@ print(f"DROGA MISTRZA 8x120 v6.00.1: {_v601_paths()} checks PASS")
 # v7.00.0: native story, all profession mastery, project/material and SQLite regression.
 from validation.v700_living_empire import run_regression as _v700_regression
 print(f"ZYWIĄCE IMPERIUM v7.00.0: {_v700_regression()} checks PASS")
+# v7.10.0: verify all 64 mentor prerequisites and fail-closed atomic transactions.
+from validation.v710_quality_polish import run_regression as _v710_regression
+print(f"WIELKI SZLIF IMPERIUM v7.10.0: {_v710_regression()} checks PASS")
+# v7.10.1: isolated SQLite class migration, single-class XP and class equipment.
+from validation.v71101_single_class import run_regression as _v71101_single_class
+print(f'JEDNA KLASA v7.10.1: {_v71101_single_class()} checks PASS')
+
+# v8.00.0: 14x120 native class sagas, NPC/quest/SQLite/reward checks.
+from validation.v800_class_sagas import run_regression as _v800_paths
+print(f"DROGA LEGENDY 14x120 v8.00.0 FULL: {_v800_paths()} checks PASS")

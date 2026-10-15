@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-EXPECTED = {'HELP_TOPICS': '15b7fb43dc3804f560b14ac497ac8f56b30cf64ed3a53c2efd7331fab124183f',
+EXPECTED = {'HELP_TOPICS': 'f3a849fa4acd34c131f9ef5fe7e7c5c229accbcd3b94c8b9f2f6050f471b3b70',
  'HELP_TOPIC_ALIASES': '9d8bba640c600b740f7d72ae3633752b2068b2c454e724012446adfd0a50e066',
  'MOB_DESCRIPTIONS': '5350de94ecfdee76cf92107c45929caa7299c3a789e1584cd009c061b45c4483',
  'NPC_DESCRIPTIONS': '0dc7c760a65d4987396e7fc677bd3e93cd8c987da5be7b1d12621f6364a9c24d',
@@ -46,7 +46,7 @@ def run_regression():
         counts+=7
     assert len(server.CLASS_SKILLS)==14
     counts+=1
-    assert len(server.QUESTS)== (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701)
+    assert len(server.QUESTS)== (5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 2701)
     counts+=1
     assert all(name in server.__dict__ for name in ('HELP_TOPICS','HELP_TOPIC_ALIASES','NPC_DESCRIPTIONS'))
     counts+=1

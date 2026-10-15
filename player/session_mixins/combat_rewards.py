@@ -892,6 +892,22 @@ class SessionCombatRewardsMixin:
                                 template.get("name", mob.template_id),
                             )
 
+                    # v8.00.0: only this real rewarded victory advances the
+                    # class's saga; no alias double-count, no foreign-class XP.
+                    _v800_main_class = str(getattr(session.character, 'class_name', '') or
+                                           getattr(session.character, 'class_type', '') or '')
+                    _v800_rank_boss = bool(v0866_is_boss_template(template))
+                    _v800_rank_elite = bool(template.get('elite_affix') or
+                                             str(template.get('rank') or '') == 'elite')
+                    _v800_mob_level = int(getattr(mob,'level',0) or template.get('level',1) or 1)
+                    for _v800_quest_id, _v800_progress in self.server.db.increment_class_legend_kill_v800(
+                        session.account_id, _v800_main_class, _v800_mob_level,
+                        elite=_v800_rank_elite,boss=_v800_rank_boss
+                    ):
+                        await session.announce_active_quest_progress(
+                            _v800_quest_id, template.get('name',mob.template_id)
+                        )
+
                     if count >= 2:
                         _party_contract_categories_v11339 = []
                         if template.get("elite_affix") or str(template.get("rank") or "") == "elite":

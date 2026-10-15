@@ -1008,6 +1008,12 @@ class SessionMuseumBountyMixin:
                 self.server.db.set_quest_progress(self.account_id, row["quest_id"], new)
                 changed.append((row["quest_id"], new, needed))
             for quest_id, progress, needed in changed:
+                if QUESTS[quest_id].get('v800_class_saga'):
+                    q=QUESTS[quest_id]
+                    await self.send(f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
+                                    f'{progress}/{needed}.'+
+                                    (' GOTOWE DO ODDANIA.' if progress>=needed else ''))
+                    continue
                 await self.send(f"Postęp questa: {QUESTS[quest_id]['name']}. {progress} z {needed}.")
                 if progress >= needed:
                     await self.send("Cel wykonany. Wróć do właściwego NPC.")

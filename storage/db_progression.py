@@ -19,9 +19,11 @@ class DatabaseProgressionMixin:
 
     def ensure_primary_class(self, account_id, class_name):
         self.ensure_class_progress(account_id, class_name)
+        # v7.10.1: legacy secondary slots are archived, never deleted.
+        # No other class can remain active after login or lazy DB reads.
         self.conn.execute(
             "UPDATE class_progress SET active_slot=NULL "
-            "WHERE account_id=? AND active_slot=1 AND class_name<>?",
+            "WHERE account_id=? AND class_name<>? AND active_slot IS NOT NULL",
             (account_id, class_name),
         )
         self.conn.execute(
@@ -56,32 +58,7 @@ class DatabaseProgressionMixin:
 
     def activate_secondary_class(self, account_id, primary_class, class_name):
         self.ensure_primary_class(account_id, primary_class)
-        rows = self.active_class_rows(account_id, primary_class)
-        active_names = [row["class_name"] for row in rows]
-
-        if class_name in active_names:
-            return False, "Ta klasa jest już aktywna."
-        if len(active_names) >= MULTICLASS_MAX_ACTIVE:
-            return False, f"Masz już maksymalnie {MULTICLASS_MAX_ACTIVE} aktywnych klas."
-
-        used_slots = {
-            int(row["active_slot"])
-            for row in rows
-            if row["active_slot"] is not None
-        }
-        slot = next(
-            number for number in range(2, MULTICLASS_MAX_ACTIVE + 1)
-            if number not in used_slots
-        )
-
-        self.ensure_class_progress(account_id, class_name)
-        self.conn.execute(
-            "UPDATE class_progress SET active_slot=? "
-            "WHERE account_id=? AND class_name=?",
-            (slot, account_id, class_name),
-        )
-        self.conn.commit()
-        return True, slot
+        return False, "Multiklasy wyłączone: jedna postać może mieć tylko swoją klasę główną."
 
     def deactivate_secondary_class(self, account_id, primary_class, class_name):
         self.ensure_primary_class(account_id, primary_class)

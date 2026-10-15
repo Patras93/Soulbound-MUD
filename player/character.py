@@ -239,14 +239,9 @@ class Character:
         )
 
     def active_class_names(self):
-        names = list(getattr(self, "_active_classes", []) or [])
-        if self.class_name not in names:
-            names.insert(0, self.class_name)
-        result = []
-        for name in names:
-            if name not in result:
-                result.append(name)
-        return result[:MULTICLASS_MAX_ACTIVE]
+        # v7.10.1: primary character class is the ONLY playable class.
+        # Legacy unlocked classes remain saved as archival progress in SQLite.
+        return [self.class_name]
 
     def has_active_class(self, class_name):
         return class_name in self.active_class_names()

@@ -170,11 +170,17 @@ class SessionLivingEmpireV7000Mixin:
         return (messages,xp,t_xp),None
 
     async def _v7_emit(self,title,detail,rewards):
+        """Compact NVDA announces the *actual authored XP grant*, not only a
+        vague success line. Full mode retains the canonical progress messages.
+        """
+        grant_messages, profession_xp, tool_xp = rewards
+        if self._v7_compact():
+            await self.send(f'{title} EXP profesji +{profession_xp}; EXP narzędzia +{tool_xp}.')
+            return
         await self.send(title)
-        if not self._v7_compact():
-            await self.send(detail)
-            for msg in rewards or ():
-                await self.send(str(msg))
+        await self.send(detail)
+        for msg in grant_messages:
+            await self.send(str(msg))
 
     async def imperium7_command(self,args):
         if self.account_id is None or self.character is None:
@@ -186,16 +192,40 @@ class SessionLivingEmpireV7000Mixin:
         mode=norm(parts[0]) if parts else 'pomoc'
         rest=parts[1:]
         if mode in ('pomoc','help','lista'):
-            await self.send('IMPERIUM 7: status, ulepsz <pole|stado|warsztat|magazyn|stocznia|mury|latarnia|twierdza>, praca <rolnictwo|hodowla|inżynieria|polowanie>.')
+            await self.send('IMPERIUM 7: status, koszt <projekt>, ulepsz <pole|stado|warsztat|magazyn|stocznia|mury|latarnia|twierdza>, praca <rolnictwo|hodowla|inżynieria>.')
             await self.send('lowy lista/start/odbierz — prawdziwe zabicia elit i bossów; wyprawa lista/start <rafa|stolica|burze|row>/odbierz; karawana lista/start <rynek|port|kuźnia|targ>/odbierz.')
             await self.send('mistrzostwo lista/<profesja>; fabula; nvda zwięźle/pełne. Wymagane realne wyroby z profesje6 i starych profesji.')
             return
         if mode=='status':
-            await self.send('ERA ŻYJĄCEGO IMPERIUM — poziomy własnych ulepszeń:')
-            for key in UPGRADES:
-                await self.send(f'{key}: {self._v7_upgrade(key)};')
-            for job in db.conn.execute('SELECT kind,destination,ready_at FROM v700_jobs WHERE account_id=? ORDER BY kind',(self.account_id,)).fetchall():
-                await self.send(f'Zlecenie {job["kind"]} do {job["destination"]}: {max(0,int(job["ready_at"])-int(time.time()))} s.')
+            projects=', '.join(f'{key} {self._v7_upgrade(key)}/8' for key in UPGRADES)
+            if self._v7_compact():
+                await self.send('Imperium — ulepszenia: '+projects+'.')
+            else:
+                await self.send('ERA ŻYJĄCEGO IMPERIUM — trwałe ulepszenia:')
+                for key in UPGRADES:
+                    await self.send(f'{key}: {self._v7_upgrade(key)}/8.')
+            jobs=db.conn.execute('SELECT kind,destination,ready_at FROM v700_jobs WHERE account_id=? ORDER BY kind',(self.account_id,)).fetchall()
+            if not jobs:
+                await self.send('Wyprawy i prace w toku: brak.')
+            else:
+                now=int(time.time())
+                for job in jobs:
+                    remaining=max(0,int(job['ready_at'])-now)
+                    await self.send(f'{job["kind"]}: {job["destination"]}; '+('gotowe do odbioru.' if remaining==0 else f'pozostało {remaining} sekund.'))
+            return
+        if mode in ('koszt','projekt'):
+            key=norm(' '.join(rest))
+            if key not in UPGRADES:
+                await self.send('Projekty: '+', '.join(UPGRADES)+'. Użyj imperium7 koszt <projekt>.');return
+            prof,area,inputs,_=UPGRADES[key]
+            level=self._v7_upgrade(key)
+            if level>=8:
+                await self.send(f'{key}: ukończono 8/8.');return
+            tier=TIERS[min(level,6)]
+            actual=tuple((item,qty*(level+1)) for item,qty in inputs)
+            missing=tuple((i,n-_sum(db,self.account_id,i)) for i,n in actual if _sum(db,self.account_id,i)<n)
+            await self.send(f'{key}: etap {level+1}/8; profesja {prof}, poziom profesji i narzędzia {tier}; teren {area}. Potrzeba: {inputs_text(actual)}.')
+            await self.send('Brakuje: '+(inputs_text(missing) if missing else 'nic; można wykonać ulepszenie.') )
             return
         if mode=='nvda':
             value=norm(' '.join(rest))
@@ -243,14 +273,13 @@ class SessionLivingEmpireV7000Mixin:
         if error:
             await self.send(error);return
         await self._v7_emit(f'Ulepszono {key}: {level+1}/8. Otrzymano pieczęć i EXP.',
-                            'Zużyto '+inputs_text(real_inputs)+'.',result[0])
+                            'Zużyto '+inputs_text(real_inputs)+'.',result)
 
     async def _v7_work(self,kind):
-        lookup={'inzynieria':'inżynieria','lowy':'polowanie','polowanie':'polowanie',
-                'rolnictwo':'rolnictwo','hodowla':'hodowla'}
+        lookup={'inzynieria':'inżynieria','rolnictwo':'rolnictwo','hodowla':'hodowla'}
         kind=lookup.get(kind,kind)
         if kind not in MISSION_TYPES:
-            await self.send('Prace: rolnictwo, hodowla, inżynieria, polowanie.');return
+            await self.send('Prace: rolnictwo, hodowla, inżynieria. Polowania: imperium7 lowy start.');return
         prof,area,inputs,reward,cooldown=MISSION_TYPES[kind]
         if str(self.character.room_id) not in AREAS[area]:
             await self.send('Praca wymaga terenu '+area+'.');return
@@ -271,7 +300,7 @@ class SessionLivingEmpireV7000Mixin:
         result,error=self._v7_exec(actual,((reward,mult),),prof,tier,update=update)
         if error: await self.send(error);return
         await self._v7_emit(f'Wykonano {kind} (próg {tier}). Otrzymano {mult} pieczęci i EXP; następna praca za {cooldown}s.',
-                            'Zużyto '+inputs_text(actual)+'.',result[0])
+                            'Zużyto '+inputs_text(actual)+'.',result)
 
     async def _v7_route(self,kind,parts):
         routes=VOYAGES if kind=='ocean' else CARAVANS
@@ -309,7 +338,7 @@ class SessionLivingEmpireV7000Mixin:
             result,error=self._v7_exec(inputs,(),prof,need,update=update)
             if error:await self.send(error);return
             await self._v7_emit(f'Rozpoczęto {stem}: {place}. Potrwa {duration} sekund.',
-                                'Zużyto '+inputs_text(inputs)+'.',result[0])
+                                'Zużyto '+inputs_text(inputs)+'.',result)
             return
         if option in ('odbierz','zakoncz','zakończ','powrot','powrót'):
             ongoing=db.conn.execute('SELECT destination,ready_at,tier FROM v700_jobs WHERE account_id=? AND kind=?',(aid,kind)).fetchone()
@@ -339,7 +368,7 @@ class SessionLivingEmpireV7000Mixin:
                                        coin_reward=price,update=update)
             if error:await self.send(error);return
             await self._v7_emit(f'Zakończono {stem} {place}. +{price} srebra, {quantity} pieczęci, produkt i EXP.',
-                                'Dostawa i nagrody zapisane trwale.',result[0])
+                                'Dostawa i nagrody zapisane trwale.',result)
             return
         await self.send(f'{stem}: lista, start <cel>, odbierz.')
 
@@ -378,7 +407,7 @@ class SessionLivingEmpireV7000Mixin:
                                        'Łowiectwo',tier,coin_reward=needed*(1500+90*tier),update=update)
             if error:await self.send(error);return
             await self._v7_emit(f'Legendarne łowy zakończone. Trofeum i EXP przyznane.',
-                                'Wynik prawdziwych walk: '+str(needed)+'.',result[0])
+                                'Wynik prawdziwych walk: '+str(needed)+'.',result)
             return
         await self.send('imperium7 lowy lista / start / odbierz.')
 
@@ -412,7 +441,7 @@ class SessionLivingEmpireV7000Mixin:
         if error:
             await self.send(f'Kontrakt {prof}: potrzebne {amount} × {item}. '+error);return
         await self._v7_emit(f'Kontrakt {prof} zakończony: +{coin} srebra i EXP.',
-                            'Oddano '+inputs_text(((item,amount),))+'.',result[0])
+                            'Oddano '+inputs_text(((item,amount),))+'.',result)
 
     async def _v7_story(self):
         from systems.living_empire_v7000 import STORY

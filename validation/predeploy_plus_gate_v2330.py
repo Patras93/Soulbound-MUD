@@ -26,6 +26,26 @@ def main():
     from validation.v700_living_empire import run_regression as _v700_checks
     assert _v700_checks() >= 500
     print('ERA ZYJACEGO IMPERIUM v7.00.0: SQLite, fabula, transakcje, hunty PASS', flush=True)
+    from validation.v710_quality_polish import run_regression as _v710_checks
+    upgraded=_v710_checks()
+    assert upgraded >= 290
+    print(f'WIELKI SZLIF IMPERIUM v7.10.0: {upgraded} kontroli SQLite, fabuly i NVDA PASS', flush=True)
+
+    # v7.10.1: final Windows 60/60 PLUS also checks the one-class migration
+    # and restored physical/magic/Mec equipment split on isolated fixtures.
+    from validation.v71101_single_class import run_regression as _one_class_v71101
+    class_checks=_one_class_v71101()
+    assert class_checks >= 41
+    print(f'JEDNA KLASA v7.10.1: {class_checks} assertions PASS', flush=True)
+    from validation.v3001_hybrid_equipment import run_regression as _eq_v71101
+    eq_checks=_eq_v71101()
+    assert eq_checks >= 43
+    print(f'EQ FIZYCZNE / MAGICZNE / MEC v7.10.1: {eq_checks} assertions PASS', flush=True)
+    # v8.00.0: repeated at the final PLUS gate with the production DB isolated.
+    from validation.v800_class_sagas import run_regression as _v800_path_tests
+    saga_checks=_v800_path_tests()
+    assert saga_checks >= 18000
+    print(f'DROGA LEGENDY v8.00.0: {saga_checks} assertions PASS',flush=True)
     from validation.v3315_predeploy_5_players import run_regression as check_five_players
     extra=check_five_players()
     print(f'PREDEPLOY 5 GRACZY v3.31.5: {extra} assertions PASS', flush=True)

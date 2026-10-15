@@ -1,3 +1,83 @@
+Soulbound v8.00.0 — ERA BOHATERÓW I LEGEND: DROGA LEGENDY / NVDA 5.0 (Windows)
+Aktualna paczka: v8.00.0
+
+- Jedna ZBIORCZA aktualizacja na bazie v7.10.1 (jedna klasa na postać,
+  wyłącznie Mec hybrydowy, osobne EQ fizyczne i magiczne).
+- DOKŁADNIE 1680 nowych zadań: 14 istniejących klas x 120 etapów, podział
+  na 12 rozdziałów i skalę fabularną 1–800. Razem 5605 zadań z poprzednimi
+  3925, bez podmiany żadnego starego identyfikatora.
+- 14 odrębnych mistrzów w 14 osobnych, dwukierunkowo połączonych izbach.
+  Każde zadanie ma właściwą klasę, wymaga ukończenia poprzedniego i zapisuje
+  się w istniejącej tabeli quests SQLite, osobno na postać.
+- Zadania mają RÓŻNE realne cele: walka z mobami, wyzwania elit i bossów
+  (kontrola rangi i poziomu pokonanego przeciwnika), eksploracja proceduralnych
+  obszarów i zdobywanie przedmiotów po przyjęciu questa. Zaliczenie walk
+  dzieje się wyłącznie po rzeczywistym zwycięstwie, raz na zabicie i osobno
+  dla uprawnionych uczestników; nie da się nabić kilku punktów jednym mobem
+  przez aliasy ani zwykłym szczurem zaliczyć wielkiej próby.
+- Nagrody: srebro, EXP przez dotychczasowy niezależny system questów i
+  surowce na kulminację rozdziału. Nie zmieniono progów EXP ani innych nagród.
+- NVDA 5.0: u mistrza „quest list” pokazuje wyłącznie aktualną próbę,
+  „przyjmij 1” pozwala ją rozpocząć bez wpisywania długich nazw, a raporty
+  bojowe Drogi Legendy są skrócone i wyświetlane co około 20% postępu
+  oraz zawsze przy ukończeniu. „help droga legendy” opisuje nawigację.
+- Stabilność 5.0: nowe regresje dla 1680 definicji, 14 różnych klas i NPC,
+  realnych aktualizacji SQLite, progów elity/bossa i niezależności postaci,
+  trwałości bazy po ponownym otwarciu i poprawności nagród.
+- Ochrona: wszystkie konta, postacie, klasyczne skille, 22 profesje i narzędzia,
+  ekwipunek, gracze, zadania, najemnicy 100%, EXP Bank, grind 1–800, stan
+  SQLite, gildie i istniejące lokacje pozostają. Bez GitHuba.
+- Brak osobnych raportów TXT — jedynie istniejący CHANGELOG_PL.txt.
+- NOWA paczka wymaga własnego końcowego PREDEPLOY Windows 60/60 PLUS na
+  izolowanej kopii produkcyjnej SQLite. Lokalny PASS nie jest wynikiem Windows.
+
+Soulbound v7.10.1 — JEDNA KLASA, PODZIAŁ EQ (Windows)
+Aktualna paczka: v7.10.1
+
+- WYŁĄCZONO MULTIKLASOWOŚĆ: jedna, stała klasa na postać, spośród 14 klas do wyboru przy tworzeniu.
+- PRZYWRÓCONO PODZIAŁ EQ: fizyczne klasy korzystają z fizycznych statystyk i Attack, magiczne z INT/WILL i Magic Attack. Tylko Mec ma pięć bazowych statystyk i oba kanały obrażeń.
+- Usunięto automatyczny bonus MultiClass EQ, który dopisywał przeciwne statystyki i moc do klasowych przedmiotów. Żaden przedmiot ani jego ulepszenia nie są kasowane.
+- Sprzęt klasowy z dawnej nieaktywnej klasy jest bezpiecznie zdejmowany przy logowaniu (pozostaje w ekwipunku), zgodnie z dotychczasową kontrolą wymagań.
+- `multiclass` / `klasy` pokazuje klasę główną; `multiclass add/remove` nie zmienia już postaci.
+- Wcześniejsze dodatkowe klasy są odłączane od aktywnych slotów na pierwszym odczycie/po logowaniu; ich poziomy, EXP, poznane skille i postępy nie są usuwane z SQLite.
+- Tylko klasa główna zdobywa EXP, daje pasywy, dostęp do nauczycieli i użycie skilli oraz udział w Multi Cap EXP.
+- Dla Multi Cap odfiltrowano też archiwalne skille klasowe i wzniesienia obcych klas; pozostałe osie EXP nie są zmieniane.
+- Zachowane cała gra v7.10.0, postacie, profesje 1–800, najemnicy 100%, pełne nagrody i dotychczasowy SQLite.
+- Dodano test regresji v7.10.1 do szybkiego i pełnego audytu; wymagana pełna bramka PREDEPLOY Windows 60/60 PLUS przed wdrożeniem.
+
+Soulbound v7.10.0 — poprawka zgodności testów PREDEPLOY 60/60 PLUS
+15.10.2026: Poprawiono zamknięte listy dopuszczalnych wersji w testach v3315_predeploy_5_players.py i v4000_imperium.py. Poprzednia paczka v7.10.0 błędnie kończyła testy na „runtime version mismatch”, mimo poprawnej wersji silnika. Nie zmieniono mechanik gry, progów EXP, obrażeń, bazy SQLite ani postępów postaci.
+Wymagany nowy pełny PREDEPLOY Windows 60/60 PLUS dokładnie tego ZIP.
+
+Soulbound v7.10.0 — WIELKI SZLIF IMPERIUM (Windows)
+
+WYDANIE ZBIORCZE DO JEDNEGO PREDEPLOY WINDOWS 60/60 PLUS.
+Baza: wdrożona v7.00.0 (3861 starszych questów + 64 rozdziały Kroniki).
+
+WPROWADZONE ZMIANY I REGRESJE
+- QUESTY: usunięto fałszywą ofertę zablokowanego rozdziału u kronikarza.
+  Następny NPC pokazuje quest dopiero po ukończeniu poprzedniego, bez
+  zmian w starych 3861 zadaniach, 960 Drogach Mistrza i regułach nagród.
+- PROFESJE / ZAMÓWIENIA: pełna ponowna regresja ośmiu profesji, 22
+  kontraktów mistrzowskich i narzędzi; nie zmieniono nagród ani cen.
+- ROLNICTWO, HODOWLA, BUDOWLE, OCEAN, ŁOWIECTWO I HANDEL:
+  testowanie trwających prac, materiałów, należności, izolacji postaci,
+  poprawnego wycofania transakcji i stanu po ponownym otwarciu SQLite.
+- NVDA: `imperium7 status` daje w trybie zwięzłym jeden wiersz z ośmioma
+  poziomami budowli, informuje gdy nie ma aktywnego zlecenia i kiedy
+  odbiór jest gotowy. Nowa komenda `imperium7 koszt <projekt>` pokazuje
+  następny etap ulepszenia i konkretne brakujące materiały z ekwipunku
+  oraz Szkatułki. Po sukcesie przyznany EXP profesji i narzędzia jest
+  czytelny już w trybie zwięzłym, bez dodatkowego spamu.
+- WALKA: dotychczasowe obrażenia, bossowie, przywołania i najemnicy bez
+  zmian. Legendarne łowy wciąż wymagają rzeczywistych zwycięstw.
+- SQLITE: addytywność bez resetowania postaci lub danych; wyłącznie
+  naprawy logiki i rozbudowane testy regresji. Brak nowych tabel v7.10.
+- Jeden zbiorczy ZIP, wyłącznie CHANGELOG_PL.txt, bez GitHuba.
+
+OSTATECZNE WDROŻENIE: wyłącznie po pozytywnym PREDEPLOY 60/60 PLUS
+na Windows i wykonaniu kopii produkcyjnej bazy SQLite przed instalacją.
+
 Soulbound v7.00.0 — ERA ŻYJĄCEGO IMPERIUM (Windows)
 
 Aktualna paczka: v7.00.0

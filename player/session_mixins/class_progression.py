@@ -74,8 +74,11 @@ class SessionClassProgressionMixin:
                 return True
             required_class_mastery = int(item.get("required_class_mastery", 0) or 0)
             required_class = item.get("required_class")
+            if required_class and required_class not in self.active_class_names():
+                return False
             if required_class_mastery > 0 and required_class:
-                return self.class_mastery_level(required_class) >= required_class_mastery
+                return (required_class in self.active_class_names() and
+                        self.class_mastery_level(required_class) >= required_class_mastery)
             return int(self.character.character_level) >= self.equipment_character_level_requirement(item)
 
     def equipment_mastery_requirement_text(self, item):
@@ -97,7 +100,10 @@ class SessionClassProgressionMixin:
             )
 
     def enforce_equipment_character_level(self):
-            """Unequip legacy gear that is above the current Character Level."""
+            """Unequip inaccessible gear: foreign class or unmet level/mastery.
+
+            Inventory, upgrades, runes and socket data are NOT deleted.
+            """
             removed = []
             for row in list(self.server.db.equipment(self.account_id)):
                 item = ITEMS.get(row["item_id"])
@@ -113,7 +119,9 @@ class SessionClassProgressionMixin:
 
     def skill_mastery_unlocked(self, skill):
             class_name = self.skill_class_name(skill)
-            return self.class_mastery_level(class_name) >= self.skill_required_mastery(skill)
+            # v7.10.1: historical mastery does not unlock foreign-class skills.
+            return (class_name in self.active_class_names()
+                    and self.class_mastery_level(class_name) >= self.skill_required_mastery(skill))
 
     def skill_training_cost_silver(self, skill):
             """v0.19: koszt nauki korzysta z globalnej krzywej ekonomii."""
@@ -150,137 +158,22 @@ class SessionClassProgressionMixin:
             return None, None
 
     async def show_multiclass(self):
-            active = self.active_class_names()
-            await self.send(
-                f"MULTICLASS: {len(active)} z {MULTICLASS_MAX_ACTIVE} aktywnych klas."
-            )
-            await self.send(
-                f"Klasa główna: {self.character.class_name}. "
-                f"Broń Duszy pozostaje: {self.character.soul_weapon}."
-            )
-            rows = self.server.db.active_class_rows(
-                self.account_id, self.character.class_name
-            )
-            for row in rows:
-                level = int(row["level"])
-                xp = int(row["xp"])
-                slot = int(row["active_slot"])
-                role = "główna" if slot == 1 else f"dodatkowa, slot {slot}"
-                if level >= CLASS_MASTERY_MAX_LEVEL:
-                    _arow=self.server.db.ascension_row_v021(self.account_id,f"class:{row['class_name']}")
-                    _rank=int(_arow["rank"] or 0); _axp=int(_arow["xp"] or 0); _need=v0210_ascension_xp_to_next(_rank)
-                    progress = f"Biegłość {CLASS_MASTERY_MAX_LEVEL}, maksimum; Wzniesienie {_rank}" + (f", XP {_axp} z {_need}." if _need else ", maksimum Wzniesienia.")
-                else:
-                    needed = class_mastery_xp_to_next(level)
-                    progress = (
-                        f"Biegłość {level}, XP {xp} z {needed}, "
-                        f"brakuje {max(0, needed - xp)} XP."
-                    )
-                await self.send(
-                    f"{row['class_name']}: {role}. {progress} "
-                    f"Pasyw: {self.character.class_passive_text_for(row['class_name'])}."
-                )
-
-            await self.send(
-                "Dodanie klas jest opcjonalne. Użyj: multiclass add <klasa>. "
-                "Usunięcie: multiclass remove <klasa>."
-            )
-            await self.send(
-                f"Maksymalnie {MULTICLASS_MAX_ACTIVE} klas łącznie. Class XP z każdego zabitego moba "
-                "jest przyznawany osobno w pełnej wartości każdej aktywnej klasie. "
-                "Każda klasa ma własną Biegłość, Multi Cap i EXP Bank."
-            )
-            await self.send(
-                "Klasa główna i jej Broń Duszy nie zmieniają się. "
-                "Dodatkowe klasy dają swoje pasywy i dostęp do skilli ich nauczycieli."
-            )
+        name = self.character.class_name
+        row = self.server.db.class_progress_row(self.account_id, name)
+        level = int(row["level"]) if row else 1
+        await self.send(
+            f"JEDNA KLASA NA POSTAĆ: {name}. Biegłość {level}/{CLASS_MASTERY_MAX_LEVEL}. "
+            "Multiklasowość jest wyłączona."
+        )
+        await self.send(
+            "Wcześniej zdobyte poziomy innych klas są zachowane w SQLite jako archiwum. "
+            "Nie dają pasywów, umiejętności, EXP ani dodatkowego Multi Cap. "
+            "Nie można dodawać, zmieniać ani usuwać klasy głównej."
+        )
 
     async def handle_multiclass(self, raw):
-            if self.combat_mob_key:
-                await self.send("Nie możesz zmieniać multiclass podczas walki.")
-                return
-
-            parts = raw.strip().split(maxsplit=1)
-            if not parts:
-                await self.show_multiclass()
-                return
-
-            action = self.normalize_description_query(parts[0])
-            query = parts[1] if len(parts) > 1 else ""
-
-            if action in ("status", "show", "lista", "list"):
-                await self.show_multiclass()
-                return
-
-            if action in ("add", "dodaj", "wlacz", "włącz"):
-                class_name = self.find_class_name(query)
-                if not class_name:
-                    await self.send(
-                        "Nie rozpoznaję klasy. Dostępne: "
-                        + ", ".join(cls[0] for cls in CLASSES) + "."
-                    )
-                    return
-                if class_name == self.character.class_name:
-                    await self.send("To już jest twoja klasa główna.")
-                    return
-
-                old_max_mana = self.max_mana()
-                ok, result = self.server.db.activate_secondary_class(
-                    self.account_id, self.character.class_name, class_name
-                )
-                if not ok:
-                    await self.send(str(result))
-                    return
-
-                self.refresh_active_classes()
-                new_max_mana = self.max_mana()
-                if new_max_mana > old_max_mana:
-                    self.current_mana = new_max_mana
-                else:
-                    self.current_mana = min(self.current_mana, new_max_mana)
-
-                await self.send(
-                    f"Aktywowano dodatkową klasę: {class_name}. "
-                    f"Masz teraz {len(self.active_class_names())} aktywne klasy."
-                )
-                await self.send(
-                    "Jej pasyw działa od razu. Skilli nauczysz się u nauczyciela "
-                    f"klasy {class_name}."
-                )
-                await self.set_achievement_progress(
-                    "multiclass_classes", len(self.active_class_names())
-                )
-                return
-
-            if action in ("remove", "usun", "usuń", "wylacz", "wyłącz"):
-                class_name = self.find_class_name(query)
-                if not class_name:
-                    await self.send("Nie rozpoznaję klasy do wyłączenia.")
-                    return
-
-                old_max_mana = self.max_mana()
-                ok, result = self.server.db.deactivate_secondary_class(
-                    self.account_id, self.character.class_name, class_name
-                )
-                if not ok:
-                    await self.send(str(result))
-                    return
-
-                self.refresh_active_classes()
-                new_max_mana = self.max_mana()
-                self.current_mana = min(self.current_mana, new_max_mana)
-
-                await self.send(
-                    f"Wyłączono dodatkową klasę: {class_name}. "
-                    "Jej Biegłość i nauczenie skille pozostają zapisane, "
-                    "ale nie można ich używać, dopóki klasa znów nie będzie aktywna."
-                )
-                return
-
-            await self.send(
-                "Użycie: multiclass, multiclass add <klasa>, "
-                "multiclass remove <klasa>."
-            )
+        # Fail closed even if an old client sends add/remove aliases.
+        await self.show_multiclass()
 
     async def grant_class_xp(
         self, total_xp, single_level_cap=False, *,
@@ -305,8 +198,7 @@ class SessionClassProgressionMixin:
                 total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
                 self.mentor_record_activity_v03051()
 
-            # v2.32.18: pełna nagroda za źródło trafia oddzielnie do KAŻDEJ klasy.
-            # Nie istnieje jedna pula XP do podziału pomiędzy klasy.
+            # v7.10.1: class XP is granted only to the character's primary class.
             from systems.experience_bank_v2011 import banked_experience_v2011
             allocated = [banked_experience_v2011(
                 self.server.db, self.account_id,
@@ -319,8 +211,8 @@ class SessionClassProgressionMixin:
             _guild_note=f" Bonus Gildii +{_guild_pct}%." if _guild_pct else ""
             _event_note=" Event x2 EXP." if base_total_xp>original_total_xp else ""
             await self.send(
-                f"EXP klas: {overall_awarded} łącznie. Aktywne klasy: {len(active)}. "
-                "Każda klasa otrzymuje własną pełną nagrodę (do Multi Cap), bez podziału."
+                f"EXP klasy {self.character.class_name}: {overall_awarded}. "
+                "Nagroda trafia tylko do klasy głównej (do Multi Cap)."
                 + _event_note + _guild_note
             )
 

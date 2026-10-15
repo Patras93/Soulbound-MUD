@@ -17,10 +17,10 @@ def run_regression():
     classes = ['K'+str(i) for i in range(14)]
     db.ensure_primary_class(1, classes[0])
     for name in classes[1:]:
-        assert db.activate_secondary_class(1, classes[0], name)[0]
+        assert not db.activate_secondary_class(1, classes[0], name)[0]
         checks += 1
     multi_cap = multi_cap_experience_v23215(db.conn, 1)
-    assert multi_cap == 12000  # four core + six stats + fourteen classes on level 1
+    assert multi_cap == 5500  # four core + six stats + ONE primary class
     checks += 1
 
     issued = []
@@ -47,8 +47,8 @@ def run_regression():
             self.server = SimpleNamespace(db=db)
             self.messages = []
             self.events = []
-            self.character = SimpleNamespace(character_level=1, soul_level=1)
-        def active_class_names(self): return list(classes)
+            self.character = SimpleNamespace(character_level=1, soul_level=1, class_name=classes[0])
+        def active_class_names(self): return list(classes[:1])
         def class_mastery_level(self, name): return 1
         def scale_progression_xp_v11342(self, amount, level, **kwargs): return amount
         def apply_double_xp(self, amount): return amount
@@ -58,23 +58,21 @@ def run_regression():
         async def send(self, msg): self.messages.append(msg)
 
     session = Fake()
-    # Source awards 75 XP: every class receives 75, NOT 75/14.
+    # A kill gives full XP only to the primary class.
     asyncio.run(session.grant_class_xp(75, content_level=1, content_scaled=True))
-    assert issued == [(name,75) for name in classes], issued
-    assert session.events[-1] == ('class_xp',75*14)
-    assert 'bez podziału' in session.messages[0]
-    checks += 3 + len(classes)
+    assert issued == [(classes[0],75)], issued
+    assert session.events[-1] == ('class_xp',75)
+    assert 'tylko do klasy głównej' in session.messages[0]
+    checks += 4
 
-    # Strong source: each class gets the entire Multi Cap, with independent bank.
+    # Huge XP source is capped once for the only class and banked normally.
     issued.clear()
     asyncio.run(session.grant_class_xp(1_000_000, content_level=1, content_scaled=True))
-    assert issued == [(name,multi_cap) for name in classes], issued
+    assert issued == [(classes[0],multi_cap)], issued
     banks = {(kind,key):bal for kind,key,bal in db.experience_bank_rows_v2011(1)}
-    assert len(banks) == len(classes)
-    for name in classes:
-        assert banks[('class',name)] == 1_000_000-multi_cap
-        checks += 1
-    checks += 2
+    assert len(banks) == 1
+    assert banks[('class',classes[0])] == 1_000_000-multi_cap
+    checks += 3
 
     # Different stats/professions are NOT charged against class awards.
     assert banked_experience_v2011(db, 1, 26_000, 'stat', 1, source_key='strength') == multi_cap

@@ -32,7 +32,7 @@ def run_regression(server=None):
     stats=server.V4000_IMPERIUM_STATS
     ck(stats=={'rooms':216,'npcs':49,'mobs':66,'spawns':103,'quests':367,'items':119,
                'common_recipes':55,'profession_recipes':15},f'content totals: {stats}')
-    ck(VERSION in ('4.00.0','4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0'),'incorrect active version')
+    ck(VERSION in ('4.00.0','4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0'),'incorrect active version')
     ck(ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10,'lost XP10 multiplier')
     ck(len(SEA_ROUTES)==5 and len(PRADAWNI)==12,'missing systems')
     ck(len(PROF_STAGES)==8 and len(CRAFT_STAGES)==5,'missing stages')

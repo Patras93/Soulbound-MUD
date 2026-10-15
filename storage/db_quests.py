@@ -90,6 +90,7 @@ class DatabaseQuestMixin:
             if (
                 not q
                 or q["kind"] != "kill"
+                or q.get("v800_class_saga")  # v8 has one credit per kill, with rank checks
                 or q.get("target") not in (target, "*")
             ):
                 continue
@@ -104,6 +105,28 @@ class DatabaseQuestMixin:
             )
             changed.append((row["quest_id"], new_progress))
         self.conn.commit()
+        return changed
+
+    def increment_class_legend_kill_v800(self, account_id, active_class, mob_level, elite=False, boss=False):
+        """Once per actual awarded kill. Never count template aliases twice."""
+        changed=[]
+        for row in self.conn.execute(
+            "SELECT * FROM quests WHERE account_id=? AND status='active'",(account_id,)
+        ).fetchall():
+            q=QUESTS.get(row['quest_id'])
+            if not q or not q.get('v800_class_saga') or q.get('kind')!='kill':continue
+            if q.get('required_class')!=active_class:continue
+            if int(mob_level or 0)<int(q.get('v800_min_enemy_level',1)):continue
+            rank=q.get('v800_enemy_rank','any')
+            if rank=='elite' and not (elite or boss):continue
+            if rank=='boss' and not boss:continue
+            old=int(row['progress'])
+            new=min(int(q['needed']),old+1)
+            if new==old:continue
+            self.conn.execute('UPDATE quests SET progress=? WHERE account_id=? AND quest_id=?',
+                              (new,account_id,row['quest_id']))
+            changed.append((row['quest_id'],new))
+        if changed:self.conn.commit()
         return changed
 
     def increment_party_contract_v11339(self, account_id, category, amount=1):

@@ -35,7 +35,7 @@ def run_regression(runtime=None):
         assert condition, 'v6.00.1: '+str(label)
         checks+=1
 
-    ok(len(quests)==(3925 if getattr(runtime,'VERSION','')=='7.00.0' else 3861), f'expected 3861 quests, got {len(quests)}')
+    ok(len(quests)==(5605 if getattr(runtime,'VERSION','') == '8.00.0' else 3925 if getattr(runtime,'VERSION','') in ('7.00.0','7.10.0','7.10.1','8.00.0') else 3861), f'expected release quest total, got {len(quests)}')
     ok(len(ALL_QUEST_IDS)==960 and len(set(ALL_QUEST_IDS))==960,'960 unique IDs')
     ok(len(QUEST_IDS_BY_PROFESSION)==8 and len(CHAPTERS)==12, '8x12 chapters')
     reachable=_reachable(rooms)

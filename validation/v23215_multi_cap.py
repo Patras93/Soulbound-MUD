@@ -46,32 +46,36 @@ class TestDB(DatabaseProgressionMixin, DatabaseExperienceBankV2011Mixin):
 def run_regression():
     checks = 0
     db = TestDB()
-    assert MULTICLASS_MAX_ACTIVE == 14
+    assert MULTICLASS_MAX_ACTIVE == 1
     checks += 1
-    # 4 core tracks + 6 stats + 1 main class fallback = 11.
+    # 4 core tracks + 6 stats + 1 primary-class fallback = 11.
     assert multi_cap_experience_v23215(db.conn, 1) == 5500
     assert multi_cap_experience_v23215(db.conn, 2) is None
     checks += 2
     classes = ['Test'+str(n) for n in range(14)]
     db.ensure_primary_class(1, classes[0])
-    for name in classes[1:]:
-        ok, _ = db.activate_secondary_class(1, classes[0], name)
-        assert ok, name
+    base = multi_cap_experience_v23215(db.conn, 1)
+    assert base == 5500
+    checks += 1
+    # Old unlocked secondary classes and previously active slots are archived.
+    for i, name in enumerate(classes[1:], start=2):
+        db.ensure_class_progress(1, name)
+        db.conn.execute('UPDATE class_progress SET active_slot=?,level=75 '
+                        'WHERE account_id=1 AND class_name=?', (i,name))
         checks += 1
-    assert len(db.active_class_rows(1, classes[0])) == 14
-    assert db.active_class_names(1, classes[0]) == classes
+    assert len(db.active_class_rows(1, classes[0])) == 1
+    assert db.active_class_names(1, classes[0]) == classes[:1]
     assert not db.activate_secondary_class(1, classes[0], 'TestExtra')[0]
     checks += 3
-    base = multi_cap_experience_v23215(db.conn, 1)
-    assert base == (4 + 6 + 14) * 500
+    assert multi_cap_experience_v23215(db.conn, 1) == base
     checks += 1
-    # Every separate class level increments Multi Cap by exactly 500.
-    db.conn.execute('UPDATE class_progress SET level=2 WHERE account_id=1 AND class_name=?', (classes[10],))
-    assert multi_cap_experience_v23215(db.conn, 1) == base + 500
+    # Archived class levels have NO impact on the new cap.
+    db.conn.execute('UPDATE class_progress SET level=200 WHERE account_id=1 AND class_name=?', (classes[10],))
+    assert multi_cap_experience_v23215(db.conn, 1) == base
     checks += 1
-    # Classes removed from active slots retain their earned permanent mastery.
-    assert db.deactivate_secondary_class(1, classes[0], classes[10])[0]
+    db.conn.execute('UPDATE class_progress SET level=2 WHERE account_id=1 AND class_name=?', (classes[0],))
     assert multi_cap_experience_v23215(db.conn, 1) == base + 500
+    assert not db.deactivate_secondary_class(1, classes[0], classes[0])[0]
     checks += 2
     db.conn.executescript('''
         INSERT INTO professions VALUES(1,'mining',3);
@@ -111,7 +115,7 @@ def run_regression():
         active_class_names=lambda: db.active_class_names(1, classes[0]),
         class_mastery_level=lambda name: int(db.class_progress_row(1, name)["level"]))
     fame = fame_cap_awards_v2103(ses)
-    assert fame == {'character': 2530, 'soul': 2530, 'stat': 2530, 'class_total': 2530}
+    assert fame == {'character': 2530, 'soul': 2530, 'stat': 2530, 'class_total': 2620}
     assert exploration_point_xp_v2103(ses.character) == 120
     checks += 2
     assert db.active_class_names(1, classes[0])[0] == classes[0]

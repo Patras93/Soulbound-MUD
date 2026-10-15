@@ -139,8 +139,14 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v7.00.0 - ERA ZYJACEGO IMPERIUM"
+LATEST_CHANGES_TITLE = "Soulbound v8.00.0 - DROGA LEGENDY 14 KLAS + NVDA"
 LATEST_CHANGES = [
+    'v8.00.0: 1680 nowych zadań Drogi Legendy (14 klas × 120 etapów); 14 oddzielnych mentorów.',
+    'v8.00.0: wymagające realne walki, elity, bossowie, eksploracja i zdobywanie surowców.',
+    'v8.00.0: NVDA — tylko aktualny etap u mentora, krótkie komunikaty postępu; trwały SQLite bez resetów.', 
+    "v7.10.1: oddzielne EQ fizyczne i magiczne; tylko Mec pozostaje hybrydą z pięcioma statystykami i Attack/Magic Attack. MultiClass EQ nie dopisuje już obcych statystyk. Zachowano przedmioty i ulepszenia.",
+    "v7.10.1: jedna klasa główna na postać, pozostałe Biegłości i skille zachowane w SQLite jako archiwum; tylko główna klasa daje pasywy, skille i cap. MultiClass add/remove wyłączone.",
+    "v7.10.0: chronologia questów Kroniki, pełny podgląd kosztów, zwięzłe dokładne nagrody EXP i mocniejsze testy transakcji SQLite i NVDA; brak nerfów i zmian istniejących questów.",
     "v7.00.0: osiem powiązanych systemów gospodarczych, 64 nowe questy Kroniki, 3925 zadań łącznie; zachowano wszystkie profesje i zapisy.",
     "v7.00.0: 22 kontrakty mistrzowskie, 8 rozbudów, cztery wyprawy morskie, cztery karawany, prawdziwe legendarne łowy i NVDA zwięźle/pełne.",
     "v6.00.1: 960 nowych questow (8 profesji x 120 etapow) od 1 do 800, 8 osobnych NPC; konkretne czynnosci, progi i prawdziwy postep SQLite.",
