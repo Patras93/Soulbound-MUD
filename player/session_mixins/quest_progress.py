@@ -641,7 +641,7 @@ class SessionQuestProgressMixin:
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
             # NVDA: a new mentor offers only the current unfinished stage, not
             # 120 long lines. "przyjmij 1" always selects this stage.
-            if npc.get('v601_profession_master'):
+            if npc.get('v601_profession_master') or npc.get('v700_story_npc'):
                 chain=tuple(npc.get('specialist_quests') or ())
                 for qid in chain:
                     row=self.server.db.quest(self.account_id,qid)

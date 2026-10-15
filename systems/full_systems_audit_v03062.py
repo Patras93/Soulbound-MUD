@@ -88,7 +88,7 @@ def full_systems_audit_v03062():
 
     # Professions/tools
     expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie","archaeology":"Archeologia","cartography_profession":"Kartografia"}
-    check('professions_count', len(PROFESSION_RANK_NAMES)==(22 if str(VERSION).startswith('6.') else 14), len(PROFESSION_RANK_NAMES))
+    check('professions_count', len(PROFESSION_RANK_NAMES)==(22 if str(VERSION).startswith(('6.','7.')) else 14), len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
     check('tool_tiers_80', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==80, len(TOOL_TIER_THRESHOLDS))
 

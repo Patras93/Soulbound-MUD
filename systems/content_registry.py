@@ -139,8 +139,10 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v6.00.1 - DROGA MISTRZA NOWYCH PROFESJI"
+LATEST_CHANGES_TITLE = "Soulbound v7.00.0 - ERA ZYJACEGO IMPERIUM"
 LATEST_CHANGES = [
+    "v7.00.0: osiem powiązanych systemów gospodarczych, 64 nowe questy Kroniki, 3925 zadań łącznie; zachowano wszystkie profesje i zapisy.",
+    "v7.00.0: 22 kontrakty mistrzowskie, 8 rozbudów, cztery wyprawy morskie, cztery karawany, prawdziwe legendarne łowy i NVDA zwięźle/pełne.",
     "v6.00.1: 960 nowych questow (8 profesji x 120 etapow) od 1 do 800, 8 osobnych NPC; konkretne czynnosci, progi i prawdziwy postep SQLite.",
     "v6.00.0: 8 nowych profesji i 8 narzędzi, 26 czynności, 7 progów trudności, własne łańcuchy prac, zamówienia, trwałe jednorazowe zakupy, gotowanie i rzemiosło; baza v5.00.1.",
     "v5.00.1: nowe konto otrzymuje prywatny kod odzyskania hasla; obecny gracz wpisuje konto kod i zapisuje go poza gra.",

@@ -29,8 +29,8 @@ def run_regression():
     checks+=3
     import server
     from core.bootstrap_economy_professions import VERSION
-    assert VERSION in ('4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1')
-    assert len(server.QUESTS)== (3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701) and len(server.CLASS_SKILLS)==14
+    assert VERSION in ('4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0')
+    assert len(server.QUESTS)== (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701) and len(server.CLASS_SKILLS)==14
     from config.balance import ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310
     assert ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10
     checks+=4

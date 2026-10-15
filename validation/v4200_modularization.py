@@ -35,8 +35,8 @@ def run_regression():
     checks+=3
     import server
     from core.bootstrap_economy_professions import VERSION
-    assert VERSION in ('4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1')
-    assert len(server.CLASS_SKILLS)==14 and len(server.QUESTS)== (3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701)
+    assert VERSION in ('4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0')
+    assert len(server.CLASS_SKILLS)==14 and len(server.QUESTS)== (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701)
     checks+=3
     from player.session import Session
     from player.session_mixins.combat_skills import SessionCombatSkillsMixin

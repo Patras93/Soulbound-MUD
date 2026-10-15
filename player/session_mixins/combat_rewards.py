@@ -442,6 +442,12 @@ class SessionCombatRewardsMixin:
                     for session in recipients:
                         await session.record_world_crisis_kill_v1220(mob, template)
 
+                # v7.00.0: only ACTUAL credited defeats may advance legendary
+                # hunts. Call once for each present eligible party participant.
+                for session in recipients:
+                    if hasattr(session, 'record_empire_hunt_kill_v7000'):
+                        await session.record_empire_hunt_kill_v7000(template)
+
                 if template.get("v020_megadungeon_boss"):
                     _mk=str(template.get("v020_mega_key")); _mi=int(template.get("v020_mega_index",0) or 0)
                     for session in recipients:

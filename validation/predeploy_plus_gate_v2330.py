@@ -23,6 +23,9 @@ def main():
     quest_checks = _v601_paths()
     assert quest_checks >= 16000
     print(f"DROGA MISTRZA 8x120 v6.00.1: {quest_checks} assertions PASS", flush=True)
+    from validation.v700_living_empire import run_regression as _v700_checks
+    assert _v700_checks() >= 500
+    print('ERA ZYJACEGO IMPERIUM v7.00.0: SQLite, fabula, transakcje, hunty PASS', flush=True)
     from validation.v3315_predeploy_5_players import run_regression as check_five_players
     extra=check_five_players()
     print(f'PREDEPLOY 5 GRACZY v3.31.5: {extra} assertions PASS', flush=True)

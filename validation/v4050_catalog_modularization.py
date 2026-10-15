@@ -46,7 +46,7 @@ def run_regression():
         counts+=7
     assert len(server.CLASS_SKILLS)==14
     counts+=1
-    assert len(server.QUESTS)== (3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701)
+    assert len(server.QUESTS)== (3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701)
     counts+=1
     assert all(name in server.__dict__ for name in ('HELP_TOPICS','HELP_TOPIC_ALIASES','NPC_DESCRIPTIONS'))
     counts+=1

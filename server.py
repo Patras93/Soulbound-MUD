@@ -141,6 +141,10 @@ V5000_WAR_OF_GODS = _install_war_of_gods_v5000(
 from systems.profession_paths_v601 import install as _install_profession_paths_v601
 V601_PROFESSION_PATHS = _install_profession_paths_v601(ROOMS, NPCS, QUESTS, ITEMS)
 
+# v7.00.0: real world-connected story, industry and commerce, no old IDs reused.
+from systems.living_empire_v7000 import install as _install_living_empire_v7000
+V700_LIVING_EMPIRE = _install_living_empire_v7000(ROOMS, NPCS, QUESTS, ITEMS, HELP_TOPICS)
+
 # Exploration's lookup was built earlier by the native runtime; refresh it once
 # after the new rooms have been safely installed.
 from world.generation_systems import v0130_refresh_exploration_catalog as _v3100_ep_refresh
@@ -311,7 +315,7 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     # In v6, validate the full 22-job extension explicitly instead of
     # weakening/rewriting its hash-locked legacy function. All other
     # original failures still remain release-blocking.
-    if str(VERSION).startswith('6.'):
+    if str(VERSION).startswith(('6.', '7.')):
         from systems.new_professions import PROFESSIONS as _v600_professions
         _v600_legacy_names = {
             'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',

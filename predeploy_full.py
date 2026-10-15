@@ -983,3 +983,7 @@ print(f"LEARN DOSTEPNE v5.00.1 FULL: {_learn_available_v5001()} checks PASS")
 # v6.00.1: all eight full 120-stage journeys; real action/tier, SQLite, NPC tests.
 from validation.v601_profession_paths import run_regression as _v601_paths
 print(f"DROGA MISTRZA 8x120 v6.00.1: {_v601_paths()} checks PASS")
+
+# v7.00.0: native story, all profession mastery, project/material and SQLite regression.
+from validation.v700_living_empire import run_regression as _v700_regression
+print(f"ZYWIĄCE IMPERIUM v7.00.0: {_v700_regression()} checks PASS")

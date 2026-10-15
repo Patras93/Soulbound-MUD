@@ -1,3 +1,61 @@
+Soulbound v7.00.0 — ERA ŻYJĄCEGO IMPERIUM (Windows)
+
+Aktualna paczka: v7.00.0
+
+WYDANIE ZBIORCZE DO PREDEPLOY WINDOWS 60/60 PLUS; NIE WDRAŻAĆ BEZ PASS
+Baza: wdrożona v6.00.1 (960 questów nowych profesji, poprawki v5.00.1).
+
+PLAN I ZREALIZOWANE ZMIANY
+
+1. PROFESJE 8.0 — mistrzowskie kontrakty wszystkich 22 profesji. Każdy wymaga
+   prawdziwych wyrobów z poprzednich systemów, zapewnia zróżnicowane nagrody
+   EXP i srebro, rozliczany raz dziennie osobno na każdą postać i profesję.
+   Żadnego nowego narzędzia; nie zmieniono progów EXP 1–800 ani starych nagród.
+2. ROLNICTWO I HODOWLA 2.0 — osobiste trwałe ulepszenia pola i stada do poziomu
+   8, wymagają zboża, wełny i kamienia. Premie zbiorów oraz produktów stada
+   działają bezpośrednio w dawnych, rzeczywistych czynnościach profesje6
+   zbierz/odbierz. Nie zastąpiono systemu zasiewów i pielęgnacji.
+3. BUDOWNICTWO I INŻYNIERIA 2.0 — osiem trwałych projektów: pole, stado,
+   warsztat, magazyn, stocznia, mury, latarnia, twierdza. Każde ulepszenie
+   pochłania realne wyroby starego Kowalstwa, Górnictwa, Drwalstwa i nowych
+   profesji; premie warsztatu i stoczni łączą się z v6.00.1.
+   Nie modyfikowano bazy gildii ani cudzych miast, by chronić ich stan.
+4. OCEANY 6.0 — cztery poziomowane wyprawy (Rafa, Stolica, Burze, Rów),
+   zużywające mapy, naprawy kadłuba i wyposażenie. Powrót ma realny czas,
+   fizyczną lokację i trwały stan SQLite, a rozbudowa latarni skraca czas.
+   Stare bitwy oceanu4/oceanu5 pozostają jedynym silnikiem walk morskich.
+5. ŁOWIECTWO 2.0 — łowy legendarne zaliczają TYLKO prawdziwe zabicia
+   rzadkich, elitarnych, minibossów i bossów na właściwym poziomie. Credit
+   przyznawany w dotychczasowym callbacku zwycięstwa także każdemu aktywnemu
+   uczestnikowi drużyny, bez sztucznego zaliczania z samego przedmiotu.
+6. KUPIECTWO 2.0 — cztery trasy handlowe, prawdziwe towary, osobiste konwoje,
+   regionalny popyt zmieniany codziennie deterministycznie. Magazyn zwiększa
+   nagrody dostawy; zawsze rozliczany fizyczny ładunek i przybycie.
+7. WIELKA FABUŁA 2.0 — 64 nowe, powiązane w jedną kronikę questy u ośmiu
+   odrębnych NPC w osobnych, dostępnych komnatach. Każdy etap wymaga
+   wskazanej czynności i progu profesji w istniejącym świecie. Razem
+   3925 questów (3861 poprzednich + 64 nowe), bez zmiany starych ID.
+8. GRYWALNOŚĆ I NVDA 2.0 — zwięzłe statusy, przewodnik fabuły, numerowane
+   rozdziały, prosty zestaw komend. Osobiste ustawienie 'imperium7 nvda
+   zwięźle/pełne' jest trwałe w SQLite. Nie zmieniono całego UI gry.
+
+Komendy: imperium7 pomoc; imperium7 status; imperium7 ulepsz <projekt>;
+imperium7 praca <rolnictwo|hodowla|inżynieria>; imperium7 lowy lista/start/odbierz;
+imperium7 wyprawa lista/start <cel>/odbierz; imperium7 karawana lista/start <cel>/odbierz;
+imperium7 mistrzostwo lista/<profesja>; imperium7 fabula; imperium7 nvda zwięźle/pełne.
+
+Zapisy nowych systemów są addytywne (CREATE TABLE IF NOT EXISTS),
+transakcje materiałów, XP i waluty są atomowe i nie usuwają żadnych starych
+rekordów. Każda postać ma własne ulepszenia i postępy, natomiast portfel
+zachowuje dotychczasowe reguły konta. Zachowano pełną moc najemników,
+EXP Bank, Multi Cap, poziomy 1–800, wymagający grind i niezależne nagrody.
+Nie korzystano z GitHuba. Raporty testów nie są pakowane do ZIP.
+
+OSTATECZNA BRAMKA WDROŻENIA: wykonaj na własnym Windows jeden pełny
+PREDEPLOY 60/60 PLUS na izolowanej kopii rzeczywistej bazy i zachowaj
+nową paczkę niezmienioną do jednorazowego wdrożenia. Wyniku Windows
+nie da się potwierdzić samym lokalnym audytem Pythona.
+
 Soulbound v6.00.1 — DROGA MISTRZA OSIEM NOWYCH PROFESJI (Windows)
 
 Aktualna paczka: v6.00.1

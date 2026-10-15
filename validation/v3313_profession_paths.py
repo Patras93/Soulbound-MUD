@@ -27,7 +27,7 @@ def run_regression(runtime):
         checks += 1
 
     from core.bootstrap_economy_professions import VERSION
-    expected_total = 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1') else 2701 if VERSION in ('4.00.0','4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1') else 2334
+    expected_total = 3925 if VERSION == '7.00.0' else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2701 if VERSION in ('4.00.0','4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0') else 2334
     check(len(quests)==expected_total, f'expected {expected_total} quests, got {len(quests)}')
     check(len(ADDED_IDS)==200 and len(set(ADDED_IDS))==200,'200 distinct new IDs')
     check(len(QUEST_IDS_BY_PROFESSION)==14,'all 14 professions')
