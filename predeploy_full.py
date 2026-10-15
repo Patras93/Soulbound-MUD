@@ -133,14 +133,14 @@ def main():
         from systems.legendary_achievements_v1370 import CATALOG_V1370
         from validation.legendary_achievements_v1370_test import run_legendary_achievement_regression_v1370
         _legendary_v1370 = run_legendary_achievement_regression_v1370()
-        assert _legendary_v1370['catalog'] == 492
+        assert _legendary_v1370['catalog'] == 588
         assert resolve_session_command('medale') == 'medale'
         assert resolve_session_command('kronikapostaci') == 'kronikapostaci'
         assert resolve_session_command('legendy') == 'legendaryrares'
         assert resolve_session_command('legendarneosiagniecia') == 'medale'
         assert callable(getattr(Session, 'legendary_achievements_v1370', None))
         assert callable(getattr(Session, 'show_server_chronicle_v03811', None))
-        print('LEGENDARNE OSIAGNIECIA v1.37.0 RUNTIME: 492 definitions, 102 titles, '
+        print('LEGENDARNE OSIAGNIECIA v1.37.0 RUNTIME: 588 definitions, 126 titles, '
               '12 SQLite tests, session and command integration PASS')
         try:
             from validation.era_awakening_v1300 import audit_awakening_v1300
@@ -997,3 +997,7 @@ print(f'JEDNA KLASA v7.10.1: {_v71101_single_class()} checks PASS')
 # v8.00.0: 14x120 native class sagas, NPC/quest/SQLite/reward checks.
 from validation.v800_class_sagas import run_regression as _v800_paths
 print(f"DROGA LEGENDY 14x120 v8.00.0 FULL: {_v800_paths()} checks PASS")
+
+# v9.00.0: eight new classes/races and Soul Weapons, 960 quests, SQLite.
+from validation.v900_heroes import run_regression as _v900_heroes
+print(f"NOWI BOHATEROWIE v9.00.0: {_v900_heroes()} checks PASS")

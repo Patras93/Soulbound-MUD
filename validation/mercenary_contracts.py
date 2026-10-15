@@ -32,14 +32,14 @@ def mercenary_contract_audit_v1170():
         checks+=1
     check(mercenary_role('Elira')=='kaplan', 'hiring by name')
     check(mercenary_role('Kapłanka')=='kaplan', 'hiring by class')
-    check(len(CLASSES)==14, 'canonical class count')
-    check(len(MERCENARIES)==len(CLASSES)+1, 'one mercenary for every class plus Paladin')
-    check({s['class'] for s in MERCENARIES.values() if s['class']}=={c[0] for c in CLASSES}, 'exact class coverage')
+    check(len(CLASSES)==22, 'canonical class count')
+    check(len(MERCENARIES)==15, '14 legacy hireables plus Paladin unchanged')
+    check({s['class'] for s in MERCENARIES.values() if s['class']}=={c[0] for c in CLASSES[:14]}, 'legacy class coverage preserved')
     check(sum(s['class'] is None for s in MERCENARIES.values())==1 and MERCENARIES['paladyn']['role']=='Paladyn', 'extra Paladin preserved')
     check(len({s['name'].casefold() for s in MERCENARIES.values()})==len(MERCENARIES), 'unique hire names')
     check(mercenary_role('Łowca')=='lucznik' and mercenary_role('Łucznik')=='lucznik' and mercenary_role('Riven')=='lucznik', 'old archer contracts remain valid')
     check(mercenary_role('Cyborg') is None and mercenary_role('Mec')=='mec', 'Mec class not Cyborg race')
-    for klass in CLASSES:
+    for klass in CLASSES[:14]:
         role = mercenary_role(klass[0])
         check(role is not None and MERCENARIES[role]['class']==klass[0], f'can hire {klass[0]}')
     for role, spec in MERCENARIES.items():

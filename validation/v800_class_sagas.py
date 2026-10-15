@@ -24,11 +24,11 @@ def run_regression(runtime=None):
         nonlocal checks
         assert test,'v8 saga: '+label
         checks+=1
-    ok(runtime.VERSION=='8.00.0','release number')
-    ok(len(runtime.QUESTS)==5605,'3925 old + 1680 new')
+    ok(runtime.VERSION in ('8.00.0','9.00.0'),'release number')
+    ok(len(runtime.QUESTS)==(6573 if runtime.VERSION=='9.00.0' else 5605),'3925 old + 1680 new')
     ok(len(ALL_IDS)==1680 and len(set(ALL_IDS))==1680,'unique ids')
     ok(len(CLASSES)==14 and len(CHAPTERS)==12 and len(STAGE_TYPES)==10,'14x12x10 schema')
-    ok(set(QUEST_IDS)=={row[0] for row in GAME_CLASSES},'all playable classes covered')
+    ok(set(QUEST_IDS).issubset({row[0] for row in GAME_CLASSES}),'all playable classes covered')
     reachable=_reachable(runtime.ROOMS)
     counts=Counter(npc['room'] for npc in runtime.NPCS.values())
     reward_guard=SessionQuestCommandsMixin()

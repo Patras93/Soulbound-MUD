@@ -1,3 +1,22 @@
+Soulbound v9.00.0 — NARODZINY NOWYCH BOHATERÓW (Windows)
+Aktualna paczka: v9.00.0 Wymagany oddzielny Windows PREDEPLOY 60/60 PLUS.
+
+- 8 nowych klas: Paladyn, Samuraj, Korsarz, Gladiator, Chronomanta, Iluzjonista, Bard, Szaman. Razem 22 klasy.
+- 8 nowych ras: Wampir, Wilkołak, Minotaur, Tryton, Feniksjanin, Dżin, Kitsune, Kryształowiec. Razem 22 rasy.
+- Każda nowa klasa ma TRWALE PRZYPISANĄ własną Broń Duszy, autoatak i odrębny, 80-Tierowy profil cech Broni Duszy. Soul XP i biegłość używają historycznych tabel SQLite.
+- Każda nowa klasa ma po 243 rzeczywiste umiejętności (3 na każdy z 81 progów Biegłości 1–800); zachowano 11 głównych technik i dodano pełen wybór alternatywnych zdolności oraz osobnego nauczyciela; bez zwykłych cooldownów, zgodnie z zasadami gry.
+- Powstało 960 nowych questów (8 klas × 120 etapów) i 8 osobnych mentorów, z istniejącym trwałym SQLite i rozliczaniem prawdziwych zdarzeń.
+- Izby nowych mentorów są dołączone do wolnych bocznych dróg; dotychczasowe pokoje mentorów, miast i NPC nie tracą żadnych przejść.
+- Łącznie 6573 questy: 5605 wcześniejszych + 960 klasowych + 8 dodatkowych zadań dla nowych sprzedawców EQ, generowanych przez zachowany system Żyjących NPC. Dawne identyfikatory i historia postaci pozostają zachowane.
+- Klasy fizyczne: Paladyn, Samuraj, Korsarz, Gladiator; klasy magiczne: Chronomanta, Iluzjonista, Bard, Szaman. Mec nadal jedyną hybrydą.
+- Każda z ośmiu nowych klas ma osobny sklep EQ w osobnej sali Gildii Dusz, własnego kwatermistrza i kierunek `walk eq <klasa>`. Stare 14 sklepów i NPC pozostają.
+- EQ nowych klas w istniejącym systemie: trzy linie klasowe, kolejne poziomy biegłości i legendarne zestawy. Nazwy wszystkich linii, w tym legendarnych łupów, są odrębne i czytelne dla NVDA.
+- Każda rasa zachowuje budżet 50 punktów, ma odrębny pasyw i pełną zgodność wyboru z dowolną klasą.
+- Nie usunięto ani nie zmieniono danych Broni Duszy starych 14 klas, postaci, waluty, profesji ani zapisów SQLite.
+- Brak multiklasy. EXP Bank, poziomy 1–800, nagrody, 100% mocy najemników zachowane.
+- Nie dodawano nowych mechanik automatycznego odrodzenia Feniksjanina ani wysysania HP przez Wampira: ich opisane pasywy korzystają z już wspieranego systemu. Pozostałe pasywy podane w opisie rasy.
+- Testy dotyczą katalogów, SQLite i regresji. Pełny Windows PREDEPLOY 60/60 PLUS uruchomić przed wdrożeniem na izolowanej kopii bazy.
+
 Soulbound v8.00.0 — ERA BOHATERÓW I LEGEND: DROGA LEGENDY / NVDA 5.0 (Windows)
 Aktualna paczka: v8.00.0
 

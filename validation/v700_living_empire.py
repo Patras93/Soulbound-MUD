@@ -27,8 +27,8 @@ def run_regression(runtime=None):
         nonlocal checks
         assert test,'v7.00.0 regression: '+label
         checks+=1
-    ok(runtime.VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0'),'canonical version compatible')
-    ok(len(runtime.QUESTS)==(5605 if runtime.VERSION=='8.00.0' else 3925),'all old+new quests')
+    ok(runtime.VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0'),'canonical version compatible')
+    ok(len(runtime.QUESTS)==(6573 if runtime.VERSION=='9.00.0' else 5605 if runtime.VERSION=='8.00.0' else 3925),'all old+new quests')
     ok(len(STORY_IDS)==64 and len(set(STORY_IDS))==64,'64 unique authored story quests')
     ok(len(ALL_TOOLS)==22 and len(MASTER_INPUT)==22,'22 professions/tools')
     ok(len(NEW_GOODS)==8 and len(UPGRADES)==8,'8 goods and 8 permanent upgrades')

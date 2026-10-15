@@ -850,6 +850,13 @@ CLASS_SHOP_SELLER_NAMES_V03036 = {
     "Inżynier": "Kwatermistrz Inżyniera",
 }
 
+# v9: keep old shop room identifiers intact, add eight NEW separate shops.
+from systems.new_heroes_v900 import EQUIPMENT as _V900_SHOP_DEFS, NEW_CLASSES as _V900_SHOP_CLASSES
+for _name, *_entry in _V900_SHOP_CLASSES:
+    _room = 'guild_v900_shop_'+_V900_SHOP_DEFS[_name]['prefix'].removeprefix('v900_')
+    CLASS_SHOP_ROOM_BY_CLASS_V03036[_name] = _room
+    CLASS_SHOP_SELLER_NAMES_V03036[_name] = 'Kwatermistrz '+_name
+
 OLD_SHARED_CLASS_SHOP_ROOMS_V03036 = (
     "guild_martial_hall",
     "guild_shadow_gallery",
@@ -889,6 +896,29 @@ _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_martial_hall", {
 _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "guild_shadow_gallery", {}).setdefault("exits", {})["west"] = "guild_engineer_chamber"
 _catalog_mut.catalog_assign("guild_mec_chamber", 'NPCS', NPCS, ("teacher_mec", "room"))
 _catalog_mut.catalog_assign("guild_engineer_chamber", 'NPCS', NPCS, ("teacher_engineer", "room"))
+
+# v9: eight dedicated class EQ shops attached to existing connected guild rooms.
+# The historical 14 shop rooms are unchanged, and no two NPCs share a room.
+from systems.new_heroes_v900 import EQUIPMENT as _V900_ROOM_DEFS, NEW_CLASSES as _V900_ROOM_CLASSES
+_V900_SHOP_ANCHOR = 'guild_mec_chamber'
+_V900_SHOP_DIRECTIONS = (('north','south'),('south','north'),('east','west'),
+                         ('west','east'),('northeast','southwest'),('northwest','southeast'),
+                         ('southeast','northwest'),('southwest','northeast'),('up','down'),('down','up'))
+for _v900_name, *_v900_entry in _V900_ROOM_CLASSES:
+    _new_shop_room = 'guild_v900_shop_'+_V900_ROOM_DEFS[_v900_name]['prefix'].removeprefix('v900_')
+    if _new_shop_room in ROOMS:
+        raise RuntimeError('v9 duplicate class shop '+_new_shop_room)
+    _catalog_mut.catalog_assign({'name':'Sklep EQ '+_v900_name,
+         'zone':'Gildia Dusz','desc':'Osobny sklep ekwipunku klasy '+_v900_name+'.',
+         'exits':{}}, 'ROOMS', ROOMS, (_new_shop_room,))
+    for _forward,_reverse in _V900_SHOP_DIRECTIONS:
+        if _forward not in ROOMS[_V900_SHOP_ANCHOR].setdefault('exits',{}) and _reverse not in ROOMS[_new_shop_room]['exits']:
+            _catalog_mut.catalog_assign(_new_shop_room,'ROOMS',ROOMS,(_V900_SHOP_ANCHOR,'exits',_forward))
+            _catalog_mut.catalog_assign(_V900_SHOP_ANCHOR,'ROOMS',ROOMS,(_new_shop_room,'exits',_reverse))
+            break
+    else:
+        raise RuntimeError('v9 no exit for class shop '+_new_shop_room)
+    _V900_SHOP_ANCHOR = _new_shop_room
 
 apply_separate_class_shops_v03036()
 

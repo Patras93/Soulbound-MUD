@@ -299,8 +299,8 @@ def apply_separate_class_shops_v03036():
 def class_shop_audit_v03036():
     errors = []
     checked = 0
-    if len(CLASS_SHOP_CLASSES_BY_ROOM) != 14:
-        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected=14")
+    if len(CLASS_SHOP_CLASSES_BY_ROOM) != len(CLASS_EQUIPMENT_SETS):
+        errors.append(f"shop room count={len(CLASS_SHOP_CLASSES_BY_ROOM)} expected={len(CLASS_EQUIPMENT_SETS)}")
     if set(CLASS_SHOP_ROOM_BY_CLASS_V03036) != set(CLASS_EQUIPMENT_SETS):
         missing = sorted(set(CLASS_EQUIPMENT_SETS) - set(CLASS_SHOP_ROOM_BY_CLASS_V03036))
         extra = sorted(set(CLASS_SHOP_ROOM_BY_CLASS_V03036) - set(CLASS_EQUIPMENT_SETS))

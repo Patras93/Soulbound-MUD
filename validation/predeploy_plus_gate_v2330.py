@@ -46,6 +46,8 @@ def main():
     saga_checks=_v800_path_tests()
     assert saga_checks >= 18000
     print(f'DROGA LEGENDY v8.00.0: {saga_checks} assertions PASS',flush=True)
+    from validation.v900_heroes import run_regression as _v900_heroes_plus
+    print(f"NOWI BOHATEROWIE v9.00.0: {_v900_heroes_plus()} assertions PASS", flush=True)
     from validation.v3315_predeploy_5_players import run_regression as check_five_players
     extra=check_five_players()
     print(f'PREDEPLOY 5 GRACZY v3.31.5: {extra} assertions PASS', flush=True)

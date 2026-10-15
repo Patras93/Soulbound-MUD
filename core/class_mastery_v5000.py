@@ -20,7 +20,7 @@ ARTS = {
 
 def install(catalogue, classes):
     types = {name: kind for name, kind, *_ in classes}
-    if set(catalogue) != set(ARTS):
+    if not set(ARTS).issubset(set(catalogue)):
         raise AssertionError('v5 mastery must cover exactly 14 existing classes')
     total = 0
     for name,(focused,ultimate,first_kind,second_kind) in ARTS.items():

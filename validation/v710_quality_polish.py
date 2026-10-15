@@ -29,8 +29,8 @@ def run_regression(runtime=None):
         nonlocal checks
         assert condition, 'v7.10.0: '+context
         checks+=1
-    ok(runtime.VERSION in ('7.10.0','7.10.1','8.00.0'),'release identity')
-    ok(len(runtime.QUESTS)==(5605 if runtime.VERSION=='8.00.0' else 3925),'all old quests remain')
+    ok(runtime.VERSION in ('7.10.0','7.10.1','8.00.0','9.00.0'),'release identity')
+    ok(len(runtime.QUESTS)==(6573 if runtime.VERSION=='9.00.0' else 5605 if runtime.VERSION=='8.00.0' else 3925),'all old quests remain')
     ok(len(STORY_IDS)==64,'no duplicate or lost chronicle quest')
     ok(len(MASTER_INPUT)==22,'all professions preserved')
     class Practice(SessionLivingEmpireV7000Mixin,_Practice):

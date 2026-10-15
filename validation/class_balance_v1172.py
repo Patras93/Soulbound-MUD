@@ -17,7 +17,7 @@ STAGES = (1, 100, 200, 400, 600)
 def audit_class_skill_balance_v1172():
     errors, report, checks = [], {}, 0
     roster = {row[0] for row in CLASSES}
-    if len(roster) != 14 or set(CLASS_SKILLS) != roster:
+    if len(roster) != 22 or set(CLASS_SKILLS) != roster:
         errors.append('class roster mismatch')
     for class_name in sorted(roster):
         rows = CLASS_SKILLS.get(class_name, ())

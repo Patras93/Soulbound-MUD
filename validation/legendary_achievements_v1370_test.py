@@ -20,9 +20,9 @@ def run_legendary_achievement_regression_v1370():
     def check(condition, message):
         if not condition:
             raise AssertionError(message)
-    check(len(CATALOG_V1370) == 492, 'catalog must have 492 real challenges')
-    check(len({a.identifier for a in CATALOG_V1370}) == 492, 'IDs must be stable and unique')
-    check(sum(bool(a.reward_title) for a in CATALOG_V1370) == 102, 'title tiers')
+    check(len(CATALOG_V1370) == 588, 'catalog must have 492 real challenges')
+    check(len({a.identifier for a in CATALOG_V1370}) == 588, 'IDs must be stable and unique')
+    check(sum(bool(a.reward_title) for a in CATALOG_V1370) == 126, 'title tiers')
     check(sync_v1370(db, 404) == 0, 'missing player must not get rewards')
     con.execute('INSERT INTO characters VALUES(1,300,200,150)')
     con.execute('INSERT INTO professions VALUES(1,?,?)', ('Wędkarstwo',500))
@@ -47,7 +47,7 @@ def run_legendary_achievement_regression_v1370():
     check(con.execute('SELECT COUNT(*) FROM achievements WHERE account_id=1').fetchone()[0] > con.execute('SELECT COUNT(*) FROM achievements WHERE account_id=2').fetchone()[0], 'character progress isolation')
     check(con.execute('SELECT COUNT(*) FROM achievements WHERE account_id=1 AND achievement_id LIKE ?', ('legend:v1370:%',)).fetchone()[0] > 0, 'stable namespace')
     con.close()
-    return {'passed': 12, 'catalog':len(CATALOG_V1370),'titles':102}
+    return {'passed': 12, 'catalog':len(CATALOG_V1370),'titles':126}
 
 
 if __name__ == '__main__':

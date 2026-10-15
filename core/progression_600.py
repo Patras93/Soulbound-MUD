@@ -88,6 +88,8 @@ _SOUL_TRAIT_BASE_NAMES = tuple(_SOUL_TRAIT_BASE_NAMES[:40]) + _SOUL_TRAIT_BASE_N
     "Przebudzenie Świata", "Brama Wiecznego Świtu", "Kres Ciemności",
     "Serce Nieba", "Tron Nieskończonej Duszy",
 )
+from systems.new_heroes_v900 import SOUL_TRAITS as _V900_SOUL_TRAITS
+_SOUL_TRAIT_CLASS_PROFILES.update(_V900_SOUL_TRAITS)
 SOUL_TIER_TRAITS_BY_CLASS = {}
 for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
     _rows = {}

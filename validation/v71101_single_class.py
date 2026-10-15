@@ -22,7 +22,7 @@ def run_regression():
         checks += 1
 
     check(MULTICLASS_MAX_ACTIVE == 1, 'global limit one')
-    check(len(CLASSES) == 14, 'fourteen classes available at creation')
+    check(len(CLASSES) == 22, 'twenty-two classes available at creation')
     db = TestDB()
     own = 'Wojownik'
     other = 'Mag'

@@ -25,6 +25,8 @@ EXPECTED = {
     "Diablę": ("soul_xp", .10), "Aasimar": ("magic_defense", .12),
     "Driada": ("healing", .15), "Cyborg": ("damage_reduction", .10),
 }
+from systems.new_heroes_v900 import NEW_RACES
+EXPECTED.update({name:(kind,value) for name,desc,s,d,c,i,w,kind,value in NEW_RACES})
 PASSIVE_METHODS = {
     "stat_xp": ("racial_stat_progress_multiplier", 1),
     "physical_damage": ("racial_physical_damage_multiplier", 1),
@@ -52,8 +54,8 @@ def audit_race_balance_v1177(*, runtime=False):
 
     race_names = [r[0] for r in RACES]
     class_names = [c[0] for c in CLASSES]
-    check(len(RACES) == 14 and len(set(race_names)) == 14, 'race catalogue must contain 14 unique races')
-    check(len(CLASSES) == 14 and len(set(class_names)) == 14, 'class catalogue must contain 14 unique classes')
+    check(len(RACES) == 22 and len(set(race_names)) == 22, 'race catalogue must contain 14 unique races')
+    check(len(CLASSES) == 22 and len(set(class_names)) == 22, 'class catalogue must contain 14 unique classes')
     check(set(race_names) == set(EXPECTED), 'race names differ from anchored 14-race list')
     check(set(AUTHORED_RACE_PASSIVE_PROFILES) == set(EXPECTED) | {'Smoczy'}, 'race passive profile roster drift')
     check(race_passive_profile('Smoczy') == race_passive_profile('Smok'), 'legacy Smoczy no longer matches Smok')
@@ -75,9 +77,9 @@ def audit_race_balance_v1177(*, runtime=False):
             hp, mana = starting_hp_mana_for(race, clazz)
             base_hp = character_hp_base(1, stats['constitution'])
             base_mana = character_mana_base(1, stats['intelligence'], stats['willpower'])
-            check(hp == round(base_hp * (1.10 if name == 'Ork' else 1.0)),
+            check(hp == round(base_hp * (1.0 + (value if kind == 'max_hp' else 0))),
                   f'{name}/{clazz[0]}: initial HP passive incorrect')
-            check(mana == round(base_mana * (1.15 if name == 'Gnom' else 1.0)),
+            check(mana == round(base_mana * (1.0 + (value if kind == 'max_mana' else 0))),
                   f'{name}/{clazz[0]}: initial Mana passive incorrect')
 
     if runtime:

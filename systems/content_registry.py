@@ -139,7 +139,7 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v8.00.0 - DROGA LEGENDY 14 KLAS + NVDA"
+LATEST_CHANGES_TITLE = "Soulbound v9.00.0 - NARODZINY NOWYCH BOHATEROW"
 LATEST_CHANGES = [
     'v8.00.0: 1680 nowych zadań Drogi Legendy (14 klas × 120 etapów); 14 oddzielnych mentorów.',
     'v8.00.0: wymagające realne walki, elity, bossowie, eksploracja i zdobywanie surowców.',

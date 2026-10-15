@@ -38,7 +38,7 @@ def audit_enchanting_vendor_v1202():
     check(int(tool.get('price') or 0) > 0, 'Runic Focus has invalid price')
     check(TOOL_SHOP_ROOMS.get(item_id) == room_id, 'tool navigation points to wrong room')
     check(room_id not in CLASS_SHOP_CLASSES_BY_ROOM, 'class shop accidentally restored in shared chamber')
-    check(len(CLASS_SHOP_CLASSES_BY_ROOM) == 14, 'separate class shops missing')
+    check(len(CLASS_SHOP_CLASSES_BY_ROOM) == 22, 'separate class shops missing')
     check(resolve_session_command('list') == 'shop', 'list command no longer opens shop')
     check(resolve_session_command('kup') == 'buy', 'kup command no longer opens buy')
     sample = SimpleNamespace(character=SimpleNamespace(room_id=room_id))

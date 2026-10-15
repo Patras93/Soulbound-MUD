@@ -1157,6 +1157,11 @@ CLASS_EQUIPMENT_STYLES = {
     "Inżynier": ("Konstruktora", "Mistrza Narzędzi", "Mechanicznego Geniuszu"),
 }
 
+from systems.new_heroes_v900 import EQUIPMENT as _V900_EQUIPMENT
+for _v900_class, _v900_eq in _V900_EQUIPMENT.items():
+    CLASS_EQUIPMENT_SETS[_v900_class] = {key:_v900_eq[key] for key in ("prefix","set_name","affix","base_defense","room")}
+    CLASS_EQUIPMENT_STYLES[_v900_class] = _v900_eq["styles"]
+
 CLASS_EQUIPMENT_SLOT_DEFS = {
     "head": ("Hełm", 1, 90),
     "body": ("Pancerz", 3, 160),
@@ -1279,6 +1284,10 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
 
 # Sloty też zmieniają charakter rozkładu: ręce/biżuteria bardziej ofensywne,
 # pancerz i nogi bardziej w drugą (przeżywalnościową) statystykę archetypu.
+for _v900_class, _v900_eq in _V900_EQUIPMENT.items():
+    CLASS_EQUIPMENT_CLASS_PROFILES[_v900_class] = {key:_v900_eq[key] for key in ("primary_ratio","properties")}
+    CLASS_EQUIPMENT_CLASS_PROFILES[_v900_class]["identity"] = _v900_eq["set_name"]
+
 CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "head": -0.01,
     "body": -0.09,

@@ -12,7 +12,7 @@ from player.session_mixins.chaos_v1800 import SessionChaosV1800Mixin, ensure_com
 
 def check_content(rooms,mobs,quests,items):
     checks=0
-    assert len(CLASS_MASTERY)==len(CLASSES)==14;checks+=1
+    assert len(CLASS_MASTERY)==14 and set(CLASS_MASTERY).issubset({c[0] for c in CLASSES});checks+=1
     assert rooms['v1700_city_market']['exits']['west']=='v1800_portal';checks+=1
     assert rooms['v1800_portal']['exits']['east']=='v1700_city_market';checks+=1
     for slug,_,_,_,bosses in CHAOS_REALMS:

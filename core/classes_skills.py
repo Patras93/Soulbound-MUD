@@ -1956,3 +1956,7 @@ NATURAL_SKILL_INTENTS = {
 
 # 28 trwałych lokacji. Opisy są krótkie i przyjazne czytnikom ekranu.
 from data.rooms import ROOMS
+
+# v9.00.0: additive classes/races only after legacy class-skill migrations.
+from systems.new_heroes_v900 import register_classes as _register_new_heroes_v900
+_register_new_heroes_v900(globals())

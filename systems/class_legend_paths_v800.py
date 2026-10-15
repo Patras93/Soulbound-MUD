@@ -89,7 +89,7 @@ def install(rooms,npcs,quests,items,help_topics):
     if ALL_IDS:raise RuntimeError('v8: double install')
     from core.classes_skills import CLASSES as EXISTING_CLASSES
     existing={row[0] for row in EXISTING_CLASSES}
-    if existing != {c[0] for c in CLASSES}:raise RuntimeError('v8: 14 playable classes mismatch')
+    if not {c[0] for c in CLASSES}.issubset(existing):raise RuntimeError('v8: 14 playable classes mismatch')
     for _name,_key,_title,_topic,material in CLASSES:
         if material not in items: raise RuntimeError('v8: missing accessible supply '+material)
     anchors=_anchors(rooms,len(CLASSES))

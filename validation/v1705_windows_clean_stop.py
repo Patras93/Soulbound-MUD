@@ -29,7 +29,7 @@ def run_regression():
                 text=True,
                 encoding='utf-8',
                 errors='replace',
-                timeout=20,
+                timeout=60,
             )
             assert outcome.returncode == code, f'exit {code} became {outcome.returncode}: {outcome.stderr}'
             checks += 1

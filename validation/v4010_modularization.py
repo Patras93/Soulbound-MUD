@@ -56,7 +56,7 @@ def run_regression():
     import copy
     assert CLASS_SKILLS is not authored_skills
     assert ENDGAME_CLASS_SKILLS is not authored_endgame
-    assert len(CLASS_SKILLS)==14
+    assert len(CLASS_SKILLS)==(22 if VERSION == '9.00.0' else 14)
     checks+=3
     original_runtime = copy.deepcopy(CLASS_SKILLS)
     original_authored = copy.deepcopy(authored_skills)
@@ -71,10 +71,13 @@ def run_regression():
             first_replay = copy.deepcopy(isolated)
         else:
             assert isolated == first_replay, ('fresh facade not deterministic', iteration)
-        assert sum(len(rows) for rows in isolated.values()) == (3473 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 3445), iteration
+        assert sum(len(rows) for rows in isolated.values()) == (5417 if VERSION == '9.00.0' else 3473 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 3445), iteration
         assert CLASS_SKILLS == original_runtime, ('replay corrupted live catalog', iteration)
         assert authored_skills == original_authored, ('replay polluted authored data', iteration)
-        for class_name, skills in isolated.items():
+        from world.legends_v3100 import CLASS_NAMES as _legacy_classes_v3100
+        assert len(_legacy_classes_v3100)==14
+        for class_name in _legacy_classes_v3100:
+            skills=isolated[class_name]
             v3200 = [skill for skill in skills if str(skill['id']).startswith('v3200_')]
             assert len(v3200)==3 and {skill['unlock'] for skill in v3200}=={260,420,600}, (iteration,class_name)
         checks+=6+14
@@ -82,9 +85,9 @@ def run_regression():
     import server
     from core.bootstrap_economy_professions import VERSION
     from config.balance import ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310
-    assert VERSION in ('4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0')
+    assert VERSION in ('4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0')
     assert ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10
-    assert len(server.QUESTS)== (5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0') else 2701)
+    assert len(server.QUESTS)== (6573 if VERSION == '9.00.0' else 5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0') else 2701)
     assert len([k for k in server.NPCS if k.startswith('v4000_')])==49
     checks+=4
     return checks

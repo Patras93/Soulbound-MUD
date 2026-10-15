@@ -47,7 +47,9 @@ def check_all():
         if kind == 'kill': assert quest['target'] in mobs, qid
         if kind == 'collect': assert quest['target'] in ITEMS, qid
         assert quest['needed'] > 0, qid
-    for cls, *_ in CLASSES:
+    from world.legends_v3100 import CLASS_NAMES as LEGACY_CLASS_NAMES
+    assert len(LEGACY_CLASS_NAMES) == 14
+    for cls in LEGACY_CLASS_NAMES:
         mastery = [s for s in CLASS_SKILLS[cls] if s['id'].startswith('v3200_')]
         assert len(mastery) == 3 and {s['unlock'] for s in mastery} == {260,420,600}, cls
     assert len(OLD_ARCS) == 32 and len(REALMS) == 8

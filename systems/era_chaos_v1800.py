@@ -125,4 +125,4 @@ def compute_reaction(previous, current, damage):
     name,mult=REACTIONS.get(frozenset((previous,current)),('',0))
     return name,max(0,int(max(0,int(damage))*mult)) if previous!=current else 0
 
-assert len(CLASS_MASTERY)==len(CLASSES)==14
+assert len(CLASS_MASTERY)==14 and set(CLASS_MASTERY).issubset({c[0] for c in CLASSES})

@@ -141,12 +141,12 @@ def full_game_audit_v03014():
 
     # Klasy i rasy.
     class_types = {row[0]: row[1] for row in CLASSES}
-    require(len(class_types) == 14, f"classes={len(class_types)}")
+    require(len(class_types) == 22, f"classes={len(class_types)}")
     require(all(kind in ("physical", "magic") for kind in class_types.values()),
             "invalid class archetype")
     race_names = [row[0] for row in RACES]
-    require(len(race_names) == 14 and len(set(race_names)) == 14,
-            "races are not 14 unique entries")
+    require(len(race_names) == 22 and len(set(race_names)) == 22,
+            "races are not 22 unique entries")
     for row in RACES:
         require(sum(int(v) for v in row[2:7]) == 50,
                 f"race base stat budget {row[0]}")
@@ -357,7 +357,7 @@ def full_combat_scaling_audit_v03015():
     magical_classes = {name for name, kind, *_ in CLASSES if kind == "magic"}
     offensive = {"damage", "aoe_damage", "execute", "drain"}
     checked = 0
-    dexterity_classes = {"Łotrzyk", "Łowca"}
+    dexterity_classes = {"Łotrzyk", "Łowca", "Samuraj", "Korsarz"}
     flexible_classes = {"Mnich", "Mec", "Inżynier"}
     for class_name, skills in CLASS_SKILLS.items():
         if class_name in dexterity_classes:

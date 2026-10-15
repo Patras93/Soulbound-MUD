@@ -386,8 +386,8 @@ def full_game_audit_v03055():
         warnings.append(f"dynamic exit targets={len(dynamic_exits)} (validated by runtime generators)")
 
     # 2. Core catalogs.
-    if len(CLASSES) != 14:
-        errors.append(f"classes={len(CLASSES)}, expected 14")
+    if len(CLASSES) != 22:
+        errors.append(f"classes={len(CLASSES)}, expected 22")
     class_names = [row[0] for row in CLASSES]
     missing_skill_classes = [name for name in class_names if not CLASS_SKILLS.get(name)]
     if missing_skill_classes:

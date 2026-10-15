@@ -272,7 +272,7 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "physical_damage": multiplier *= 1.0 + p["value"]
-        if self.class_name in ("Wojownik", "Berserker", "Łowca"):
+        if self.class_name in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
         elif self.class_name == "Łotrzyk":
             multiplier *= 1.0 + self.soul_weapon_rogue_damage_bonus_percent() / 100.0
@@ -283,7 +283,7 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "magic_damage": multiplier *= 1.0 + p["value"]
-        if self.class_name in ("Mag", "Czarownik"):
+        if self.class_name in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
         return multiplier
 
@@ -480,7 +480,7 @@ class Character:
 
     def soul_weapon_class_bonus_text(self):
         percent = self.soul_weapon_bonus_percent()
-        if self.class_name in ("Wojownik", "Berserker", "Łowca"):
+        if self.class_name in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
             return (
                 f"+{percent} procent obrażeń fizycznych z Broni Duszy "
                 f"klasy {self.class_name}"
@@ -492,7 +492,7 @@ class Character:
                 f"+{dmg} procent obrażeń fizycznych i +{pp} punktów "
                 "procentowych uniku z Broni Duszy Łotrzyka"
             )
-        if self.class_name in ("Mag", "Czarownik"):
+        if self.class_name in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
             return (
                 f"+{percent} procent obrażeń magicznych z Broni Duszy "
                 f"klasy {self.class_name}"
