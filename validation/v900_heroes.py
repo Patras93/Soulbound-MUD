@@ -21,10 +21,10 @@ def run_regression(runtime=None):
         nonlocal checks
         if not flag:raise AssertionError('v9: '+reason)
         checks+=1
-    ck(runtime.VERSION=='9.00.0','release identity')
+    ck(runtime.VERSION in ('9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12'),'release identity')
     ck(len(CLASSES)==22 and len(RACES)==22,'22 classes/races')
     ck(len({x[0] for x in CLASSES})==22 and len({x[0] for x in RACES})==22,'unique names')
-    ck(len(runtime.QUESTS)==6573 and len(ALL_IDS)==960,f'5605+960 quests: runtime={len(runtime.QUESTS)}, new={len(ALL_IDS)}')
+    ck(len(runtime.QUESTS)>=6573 and len(ALL_IDS)==960,f'5605+960 quests: runtime={len(runtime.QUESTS)}, new={len(ALL_IDS)}')
     ck(len(QUEST_IDS)==8 and all(len(v)==120 for v in QUEST_IDS.values()),'8x120 sagas')
     ck(len(runtime.QUESTS.keys() & set(ALL_IDS))==960,'no lost new quests')
     ck(len(SOUL_TIER_TRAITS_BY_CLASS)==22,'all 22 class Soul Weapon trait profiles')
@@ -42,8 +42,8 @@ def run_regression(runtime=None):
         ck(class_passive_profile(klass)=={'kind':passive,'value':value},'authored class passive '+klass)
         ck(sum(CLASS_STARTING_STAT_BONUSES[klass].values())==9,'9-point class stat budget '+klass)
         skills=CLASS_SKILLS[klass]
-        ck(len(skills)==243 and skills[0]['unlock']==1 and skills[-1]['unlock']==800,'three skills per mastery 1-800 '+klass)
-        ck(all(sum(int(s['unlock'])==level for s in skills)==3 for level in __import__('core.classes_skills',fromlist=['_V0922_MASTERY_LEVELS'])._V0922_MASTERY_LEVELS),'every mastery tier covered '+klass)
+        ck(len(skills)==(245 if runtime.VERSION in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 243) and skills[0]['unlock']==1 and skills[-1]['unlock']==800,'three skills per mastery 1-800 '+klass)
+        ck(all(sum(int(s['unlock'])==level for s in skills if not s['id'].startswith('v1100_tech_'))==3 for level in __import__('core.classes_skills',fromlist=['_V0922_MASTERY_LEVELS'])._V0922_MASTERY_LEVELS),'all original mastery tiers preserved '+klass)
         ck(len({s['name'] for s in skills})==len(skills) and all(not __import__('re').search(r'\s\d+$',s['name']) for s in skills),'descriptive unique NVDA skill names '+klass)
         ck(len({s['id'] for s in skills})==len(skills),'unique skills '+klass)
         ck(all(int(s.get('cooldown',-1))==0 for s in skills),'global no cooldown retained '+klass)

@@ -21,6 +21,8 @@ def audit_final_stability_v1203():
     from player.session_mixins.command_registry import resolve_session_command
     from storage.database import Database
     from systems.equipment_crafting import SHOPS, SHOP_SELLERS
+    from systems.new_professions import PROFESSIONS
+    _V600_NEW_TOOL_IDS = {row[1] for row in PROFESSIONS.values()}
 
     errors = []
     checks = 0
@@ -33,7 +35,7 @@ def audit_final_stability_v1203():
 
     check(resolve_session_command('list') == 'shop', 'list command routing')
     check(resolve_session_command('kup') == 'buy', 'kup command routing')
-    check(len(TOOL_SHOP_ROOMS) == 14, 'expected 14 profession tools')
+    check(len(TOOL_SHOP_ROOMS) == 22, 'expected 22 profession tools')
 
     for room_id, offers in SHOPS.items():
         check(room_id in ROOMS, f'shop room is missing: {room_id}')
@@ -115,6 +117,12 @@ def audit_final_stability_v1203():
                 check(not any('Kupujesz:' in m for m in messages),
                       f'false purchase success without money: {tool_id}')
                 session.character.gold = 10_000_000
+                # v6 profession shops spend the shared SQLite wallet, not a
+                # transient in-memory gold field; fund BOTH before purchase.
+                if tool_id in _V600_NEW_TOOL_IDS:
+                    db.set_shared_wallet_for_master(
+                        db.master_account_for_character(account_id),
+                        session.character_wallet_silver_value(),0,0)
                 before = session.character_wallet_silver_value()
                 await session.buy(str(idx))
                 after = session.character_wallet_silver_value()

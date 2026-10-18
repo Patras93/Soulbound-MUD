@@ -131,6 +131,10 @@ class SessionCharacterProfileMixin:
     async def show_character_xp(self):
             """Stan EXP postaci z dokładną liczbą brakującą do następnego Levelu."""
             c = self.character
+            from systems.multi_cap_v23215 import multi_cap_calculation_v23217
+            multi = multi_cap_calculation_v23217(self.server.db.conn, self.account_id)
+            if multi:
+                cap = int(multi[0]); await self.send(f"Cel EXP: {cap // 2}. Multi Cap EXP: {cap}.")
             if c.character_level >= CHARACTER_MAX_LEVEL:
                 await self.send(f"EXP postaci: maksimum. Poziom {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}.")
                 return
@@ -149,7 +153,7 @@ class SessionCharacterProfileMixin:
                 await self.send("Nie można odczytać Multi Cap z bazy postaci.")
                 return
             cap, levels, parts, cap_parts = result
-            await self.send(f"MULTI CAP EXP: {cap} EXP za pojedynczą nagrodę.")
+            await self.send(f"Cel EXP: {int(cap) // 2}. Multi Cap EXP: {cap} za pojedynczą nagrodę.")
             await self.send(f"Suma faktycznie rozwiniętych poziomów: {levels}.")
             await self.send("Składniki: " + "; ".join(
                 f"{name}: {amount} poziomów, +{cap_parts[name]} EXP"

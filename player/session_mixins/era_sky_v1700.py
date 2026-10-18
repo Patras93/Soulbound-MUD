@@ -951,6 +951,9 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 guard_base=(.025,.05,.085)[elemental['rank']] if elemental['element']=='lod' else (.02,.035,.06)[elemental['rank']]
                 barrier=max(1,int(owner_max_hp * min(.12,guard_base+min(.015,mastery*.0004))))
                 self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),barrier)
+            from systems.eternal_glory_companions_v1100 import companion_coordination_v1100
+            amount = max(amount, int(amount * companion_coordination_v1100(
+                MOB_TEMPLATES.get(mob.template_id, {}), is_summon=True)))
             amount=await self.apply_boss_defense(mob,amount)
             amount=self.v0210_adjust_player_damage(amount)
             from world.machine_expansion import v0314_adjust_damage_vs_template

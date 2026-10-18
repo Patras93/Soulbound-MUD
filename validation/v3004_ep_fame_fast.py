@@ -12,20 +12,20 @@ def run_regression_fast():
     klass = next(n for n in tree.body if isinstance(n, ast.ClassDef) and
                  n.name == 'SessionExplorationProgressMixin')
     discovery = next(n for n in klass.body if isinstance(n, ast.AsyncFunctionDef) and
-                     n.name == 'discover_room')
+                     n.name == 'claim_landmark_ep_v1002')
     calls = [n.func.attr for n in ast.walk(discovery)
              if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)]
-    expected = ('mark_room_discovered_with_points_v2322',
+    expected = ('claim_landmark_ep_v1002',
                 'grant_combat_soul_xp_v11350', 'grant_class_xp',
                 'grant_stat_xp_v11342', 'add_character_xp_with_event',
                 'save_character')
     for method in expected:
         assert method in calls, ('EP Fame source contract', method)
-    assert source.index('if not is_new:') < source.index('caps = ep_awards'), 'repeat EP guard'
-    assert source.count('caps = ep_awards') == 1
+    assert source.index('not self.server.db.claim_landmark_ep_v1002') < source.index('caps = explorer_award_per_point_v1001'), 'repeat EP guard'
+    assert source.count('caps = explorer_award_per_point_v1001') == 1
     assert 'for _ in range(ep_points):' in source, 'one award per EP'
-    assert 'if caps["class_total"]:' in source, 'class guard'
-    assert 'bez EXP profesji i narzędzi' in source, 'NVDA summary'
+    assert "if caps['class_total']:" in source, 'class guard'
+    assert 'EXP Bank' in source, 'NVDA summary'
     return len(expected) + 5
 
 

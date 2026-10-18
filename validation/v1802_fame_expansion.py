@@ -16,27 +16,28 @@ def run_regression():
     from data.rooms import ROOMS
     from data.mobs import MOB_TEMPLATES
 
+    # V11: ordinary mobs must not become Fame objectives. Historical SQLite
+    # credits are preserved independently of the current available catalog.
     catalog = fame_catalog()
-    old_bosses, old_natural = defaultdict(set), defaultdict(set)
-    for room, key in MOB_SPAWNS:
+    significant, ordinary = defaultdict(set), defaultdict(set)
+    for room,key in MOB_SPAWNS:
         mob = MOB_TEMPLATES.get(key)
         if room not in ROOMS or not mob or not _eligible_natural_fame_enemy(mob):
             continue
         zone = fame_region(room)
-        (old_bosses if _is_fame_target(mob) else old_natural)[zone].add(str(key))
-    legacy = {zone: (old_bosses.get(zone) or old_natural.get(zone)) for zone in
-              set(old_bosses) | set(old_natural)}
-    assert catalog.keys() == legacy.keys()
-    assert all(ids <= set(catalog[zone]) for zone, ids in legacy.items())
-    assert len(catalog) >= 152 and sum(map(len, catalog.values())) >= 589
-    assert len(catalog['Jaskinie Goblinów']) >= 6
-    assert len(catalog['Nekropolia']) >= 6
-
+        (significant if _is_fame_target(mob) else ordinary)[zone].add(str(key))
+    assert len(catalog)>=150 and sum(map(len,catalog.values()))>=500
+    assert all(ids <= set(catalog.get(zone,())) for zone,ids in significant.items())
+    assert all(not (set(catalog.get(zone,())) & ids) for zone,ids in ordinary.items())
+    assert len(catalog['Jaskinie Goblinów'])>=2
+    assert 'goblin' not in catalog['Jaskinie Goblinów']
+    assert 'necro_dead_king' in catalog['Nekropolia']
+    legacy=significant
     db = sqlite3.connect(':memory:')
     ensure_schema(db)
     zone = 'Jaskinie Goblinów'
     older = sorted(legacy[zone])[0]
-    fresh = sorted(set(catalog[zone]) - set(legacy[zone]))[0]
+    fresh = next(mid for mid in sorted(catalog[zone]) if mid != older)
     db.execute('INSERT INTO fame_bosses_v1702(account_id,region,boss_id) VALUES(?,?,?)',
                (100, zone, older))
     db.commit()
@@ -46,7 +47,9 @@ def run_regression():
         def __init__(self, aid):
             self.account_id = aid
             self.character = SimpleNamespace(character_level=90)
-            self.server = SimpleNamespace(db=SimpleNamespace(conn=db, save_character=lambda _:None))
+            self.server = SimpleNamespace(db=SimpleNamespace(
+                conn=db,save_character=lambda _:None,
+                multi_cap_v23215=lambda account_id:80000))
             self.closed = False
             self.granted = 0
             self.messages = []
@@ -72,7 +75,7 @@ def run_regression():
         assert await pay_due_fame(p1) == 0
         assert await pay_due_fame(p2) == 1
     asyncio.run(pay())
-    assert p1.granted > 0 and p2.granted == p1.granted
+    assert p1.granted == 4*80000 and p2.granted == p1.granted
     assert db.execute('SELECT count(*) FROM fame_pending_v1703 WHERE delivered=0').fetchone()[0] == 0
     assert db.execute('SELECT count(*) FROM fame_bosses_v1702').fetchone()[0] == 3
     assert any('ZALICZONE' in txt for txt in p1.messages)

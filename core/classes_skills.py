@@ -1960,3 +1960,13 @@ from data.rooms import ROOMS
 # v9.00.0: additive classes/races only after legacy class-skill migrations.
 from systems.new_heroes_v900 import register_classes as _register_new_heroes_v900
 _register_new_heroes_v900(globals())
+
+# v11.00.0: native techniques learned through existing trainers, without resets.
+from core.class_mastery_v1100 import install as _install_class_mastery_v1100
+V1100_CLASS_TECHNIQUES = _install_class_mastery_v1100(CLASS_SKILLS, CLASSES)
+
+
+# v11.00.10 — all 22 classes: replace repeated generic mastery titles with
+# authored, class/skill-kind appropriate names. IDs, aliases and stats stable.
+from core.unique_skill_names_v1110 import install as _install_unique_skill_names_v1110
+V1110_UNIQUE_SKILL_NAMES = _install_unique_skill_names_v1110(CLASS_SKILLS)

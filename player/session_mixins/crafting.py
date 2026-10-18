@@ -121,6 +121,7 @@ class SessionCraftingMixin:
             if not _raw_mode:
                 await self.send("RECEPTURY — WYBIERZ PROFESJĘ")
                 await self.send("receptury kowalstwo")
+                await self.send("receptury drwalstwo")
                 await self.send("receptury gotowanie")
                 await self.send("receptury alchemia")
                 await self.send("receptury jubilerstwo")
@@ -153,6 +154,18 @@ class SessionCraftingMixin:
                 "bizuteria", "biżuteria", "jub",
             }
 
+            if mode in ("drwalstwo", "drwalnictwo", "drwal", "woodcutting", "deski", "tarcica"):
+                await self.send("RECEPTURY DRWALNICTWA — obrabiaj <deska>; obrabiaj max <deska>.")
+                from systems.professions import V03053_CRAFT_RECIPES
+                for recipe in list(CRAFT_RECIPES.values()) + list(V03053_CRAFT_RECIPES.values()):
+                    if recipe.get("profession") != "Drwalstwo" or recipe.get("tool_type") != "woodcutting":
+                        continue
+                    await self.send(
+                        f"{recipe['name']}. Składniki: {self.recipe_ingredients_text(recipe)}. "
+                        f"Miejsce: {self.recipe_station_text(recipe['stations'])}. "
+                        f"{self.recipe_level_requirement_text(CRAFT_RECIPES, recipe)}"
+                    )
+                return
             if mode in craft_modes:
                 show_craft = True
                 show_cook = False
@@ -174,12 +187,14 @@ class SessionCraftingMixin:
                 show_alchemy = False
                 show_jewel = True
             else:
-                await self.send("Nie rozpoznaję grupy receptur. Dostępne: kowalstwo, gotowanie, alchemia, jubilerstwo, krawiectwo, garbarstwo, stolarstwo, zaklinanie.")
+                await self.send("Nie rozpoznaję grupy receptur. Dostępne: drwalstwo, kowalstwo, gotowanie, alchemia, jubilerstwo, krawiectwo, garbarstwo, stolarstwo, zaklinanie.")
                 return
 
             if show_craft:
                 await self.send("RECEPTURY RZEMIOSŁA I KOWALSTWA")
                 for recipe in CRAFT_RECIPES.values():
+                    if recipe.get("profession") == "Drwalstwo":
+                        continue
                     await self.send(
                         f"{recipe['name']}. Składniki: "
                         f"{self.recipe_ingredients_text(recipe)}. "
@@ -220,6 +235,53 @@ class SessionCraftingMixin:
                         f"{self.recipe_level_requirement_text(JEWELCRAFT_RECIPES, recipe)} "
                         f"{recipe['desc']}"
                     )
+
+    async def process_wood_v1108(self, query=""):
+            """Obróbka wszystkich desek: Drwalstwo + Piła, bez Kowalstwa."""
+            from systems.professions import V03053_CRAFT_RECIPES
+            raw = str(query or "").strip()
+            plank_recipes = {
+                k: v for k, v in CRAFT_RECIPES.items()
+                if v.get("profession") == "Drwalstwo" and v.get("tool_type") == "woodcutting"
+            }
+            extra = {
+                k: v for k, v in V03053_CRAFT_RECIPES.items()
+                if v.get("profession") == "Drwalstwo" and v.get("tool_type") == "woodcutting"
+            }
+            if not raw or normalize_lookup_text(raw) in ("lista", "list", "info", "receptury"):
+                await self.send("OBRÓBKA DREWNA — Drwalstwo i Piła, Obóz Drwala.")
+                await self.send("Wykonaj: obrabiaj <nazwa deski>. Hurtowo: obrabiaj max <nazwa deski>.")
+                for recipe in (*plank_recipes.values(), *extra.values()):
+                    await self.send(f"{recipe['name']}: {self.recipe_ingredients_text(recipe)}.")
+                return False
+            many = False
+            words = raw.split(maxsplit=1)
+            if len(words) == 2 and normalize_lookup_text(words[0]) in ("max", "wszystko", "all"):
+                many = True
+                raw = words[1]
+            matched = find_by_name(plank_recipes, raw)
+            recipes = plank_recipes
+            if not matched:
+                matched = find_by_name(extra, raw)
+                recipes = extra
+            if not matched:
+                await self.send("Nie znam takiej deski. Wpisz obrabiaj lista lub receptury drwalstwo.")
+                return False
+            rid, rec = matched
+            if not many:
+                return await self.perform_recipe(rid, recipes, "obróbka drewna")
+            maximum = self.max_recipe_crafts_v03114(rec)
+            if maximum < 1:
+                await self.send("Nie masz materiałów na obróbkę ani jednej deski.")
+                return False
+            await self.send(f"OBRÓBKA MAX: {rec['name']}, do {maximum} wykonań.")
+            done = 0
+            while done < maximum:
+                if not await self.perform_recipe(rid, recipes, "obróbka drewna"):
+                    break
+                done += 1
+            await self.send(f"OBRÓBKA MAX: {done}/{maximum} wykonano.")
+            return done > 0
 
     def recipe_profession_name(self, recipes, recipe=None):
             if recipe and recipe.get("profession"):

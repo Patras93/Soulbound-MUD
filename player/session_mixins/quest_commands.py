@@ -335,7 +335,7 @@ class SessionQuestCommandsMixin:
             raw = str(args or "").strip()
             norm = self.normalize_description_query(raw)
 
-            if not norm or norm in ("aktywne", "active", "aktywny", "current"):
+            if not norm or norm in ("aktywne", "active", "aktywny", "current", "postep", "postęp", "progress", "status"):
                 await self.show_active_quests()
                 return
 
@@ -394,7 +394,7 @@ class SessionQuestCommandsMixin:
                     return
 
             await self.send(
-                "Questy: quest/questy — aktywne; quest godzinne — wszystkie odnawialne zlecenia godzinne; quest ukończone/questy ukończone — historia; "
+                "Questy: quest/questy/questy postęp — aktywne z licznikami; quest godzinne — wszystkie odnawialne zlecenia godzinne; quest ukończone/questy ukończone — historia; "
                 "quest list <NPC> — numerowana oferta; quest accept <numer> lub accept quest <numer> — przyjmij; "
                 "quest info <numer> — szczegóły; quest oddaj <numer> lub oddaj quest <numer> — oddaj aktywny quest; "
                 "quest porzuć <numer> — porzuć aktywne zadanie."

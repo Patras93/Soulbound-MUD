@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """v8.00.0: 14*120 authored class quests and real one-kill SQLite validation."""
 from __future__ import annotations
+from validation.v1100_release_counts import expected_quest_total_v1100
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -24,8 +25,8 @@ def run_regression(runtime=None):
         nonlocal checks
         assert test,'v8 saga: '+label
         checks+=1
-    ok(runtime.VERSION in ('8.00.0','9.00.0'),'release number')
-    ok(len(runtime.QUESTS)==(6573 if runtime.VERSION=='9.00.0' else 5605),'3925 old + 1680 new')
+    ok(runtime.VERSION in ('8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12'),'release number')
+    ok(len(runtime.QUESTS)==(expected_quest_total_v1100() if runtime.VERSION in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6585 if runtime.VERSION in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6573 if runtime.VERSION == '9.00.0' else 5605),'3925 old + 1680 new')
     ok(len(ALL_IDS)==1680 and len(set(ALL_IDS))==1680,'unique ids')
     ok(len(CLASSES)==14 and len(CHAPTERS)==12 and len(STAGE_TYPES)==10,'14x12x10 schema')
     ok(set(QUEST_IDS).issubset({row[0] for row in GAME_CLASSES}),'all playable classes covered')
@@ -40,7 +41,11 @@ def run_regression(runtime=None):
         ok(len(ids)==120 and len(set(ids))==120,name+' 120 distinct quests')
         ok(npc['room']==rid and npc['v800_required_class']==name,name+' NPC belongs to class')
         ok(counts[rid]==1 and rid in reachable,name+' lone and reachable mentor')
-        ok(npc['specialist_quests']==tuple(ids),name+' full ordered chain')
+        ok((tuple(npc['specialist_quests'][:len(ids)])==tuple(ids) and
+            (len(npc['specialist_quests'])==len(ids) if runtime.VERSION not in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else
+             tuple(npc['specialist_quests'][len(ids):])==tuple(
+                 f'v1100_class_{[c[0] for c in GAME_CLASSES].index(name):02d}_{step}' for step in (1,2,3)))),
+           name+' full old chain and v11 continuation')
         ok(len(runtime.ROOMS[rid]['exits'])==1,name+' only return road')
         back=next(iter(runtime.ROOMS[rid]['exits'].values()))
         ok(any(nxt==rid for nxt in runtime.ROOMS[back]['exits'].values()),name+' bidirectional road')

@@ -140,6 +140,10 @@ V5000_WAR_OF_GODS = _install_war_of_gods_v5000(
 # Register before NPC isolation and before final exploration map refresh.
 from systems.profession_paths_v601 import install as _install_profession_paths_v601
 V601_PROFESSION_PATHS = _install_profession_paths_v601(ROOMS, NPCS, QUESTS, ITEMS)
+# v11.00.4: Kupczyni Selma sells Waga Kupiecka; bounty board lives in the Guild Hall.
+from systems.merchant_guild_board_v1104 import install as _install_merchant_board_v1104
+V1104_MERCHANT_BOARD = _install_merchant_board_v1104(
+    ROOMS, NPCS, SHOPS, SHOP_SELLERS, ITEMS, HELP_TOPICS, HELP_TOPIC_ALIASES)
 
 # v7.00.0: real world-connected story, industry and commerce, no old IDs reused.
 from systems.living_empire_v7000 import install as _install_living_empire_v7000
@@ -152,6 +156,58 @@ V800_CLASS_LEGEND_PATHS = _install_class_legend_paths_v800(ROOMS, NPCS, QUESTS, 
 # v9.00.0: 8 new class legends and eight private class teachers.
 from systems.class_legend_paths_v900 import install as _install_class_legend_paths_v900
 V900_CLASS_LEGENDS = _install_class_legend_paths_v900(ROOMS, NPCS, QUESTS, ITEMS, HELP_TOPICS)
+
+# v10.00.0: additional authored territories, per-room EP pools and real mapping.
+from systems.forgotten_horizons_v1000 import install as _install_horizons_v1000
+V1000_FORGOTTEN_HORIZONS = _install_horizons_v1000(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+# v11.00.0: new nonurban territories; catalog-only install, no resets.
+from systems.eternal_glory_world_v1100 import install as _install_eternal_glory_v1100
+V1100_ETERNAL_GLORY = _install_eternal_glory_v1100(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+# v11 dungeon chapters and extra boss Fame objectives, no legacy floor changes.
+from systems.eternal_glory_depths_v1100 import install as _install_glory_depths_v1100
+V1100_GLORY_DEPTHS = _install_glory_depths_v1100(
+    ROOMS, NPCS, MOB_TEMPLATES, MOB_SPAWNS, QUESTS, ITEMS,
+    HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+from systems.eternal_glory_crafting_v1100 import install as _install_glory_crafts_v1100
+V1100_GLORY_CRAFTS = _install_glory_crafts_v1100(
+    ITEMS, QUESTS, NPCS, CRAFT_RECIPES, HELP_TOPICS)
+
+from systems.eternal_glory_class_guild_v1100 import install as _install_class_guild_v1100
+V1100_CLASS_GUILD = _install_class_guild_v1100(NPCS, QUESTS, HELP_TOPICS)
+
+from systems.eternal_glory_story_v1100 import install as _install_glory_story_v1100
+V1100_STORY = _install_glory_story_v1100(NPCS, QUESTS, ITEMS, HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+# v11 truly endless floors and durable personal party checkpoint portals.
+from systems.eternal_glory_infinite_v1100 import install as _install_infinite_v1100
+from player.session import Session as _SessionV1100
+V1100_INFINITE = _install_infinite_v1100(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES,
+    _WorldV1500, _SessionV1100)
+
+# v11 Ocean: four actual new PvE targets in the established fleet battle engine.
+for _key,_enemy_name,_health,_damage,_reward,_kind,_threat,_relic in (
+    ('v1100_navy_reef','Flota Żelaznej Rafy',7100000,130000,1700000,'siege',800000,'v1100_eg_szept_relic'),
+    ('v1100_navy_maelstrom','Lewiatan Wielkiego Wiru',9200000,165000,2300000,'monster',1150000,'v1100_eg_otchlan_relic'),
+    ('v1100_navy_storm','Armada Wiecznego Gromu',11800000,210000,2950000,'siege',1450000,'v1100_eg_burza_relic'),
+    ('v1100_navy_abyss','Król Bezgłośnej Otchłani',17000000,280000,4200000,'monster',1900000,'v1100_eg_mrok_relic'),
+):
+    if _key in _ocean5.ENEMIES or _relic not in ITEMS:
+        raise RuntimeError('v11 Ocean: invalid fleet encounter or missing reward')
+    _ocean5.ENEMIES[_key]=(_enemy_name,_health,_damage,_reward,_kind,_threat)
+    _ocean5.MATERIALS[_key]=_relic
+HELP_TOPICS['ocean11'] = [
+    'Ocean 7.0: cztery dodatkowe starcia floty w istniejącym systemie Ocean4.',
+    'ocean4 atak v1100_navy_reef / v1100_navy_maelstrom / v1100_navy_storm / v1100_navy_abyss.',
+    'Wymagane prawdziwe statki, dostępne manewry i dotychczasowy zapis walk w SQLite.',
+]
 
 # Exploration's lookup was built earlier by the native runtime; refresh it once
 # after the new rooms have been safely installed.
@@ -167,6 +223,55 @@ for _code,_name,_hp,_damage,_reward,_kind,_threat in (
     if _code in _ocean5.ENEMIES:raise RuntimeError('Ocean 5.0 collision: '+_code)
     _ocean5.ENEMIES[_code]=(_name,_hp,_damage,_reward,_kind,_threat)
     _ocean5.MATERIALS[_code]='soul_shard'
+
+# Keep the public class topic consistent with the actual 22 playable classes.
+HELP_TOPICS['klasy'] = [
+    'Soulbound ma 22 grywalne klasy. Każda ma osobną Biegłość 1–800, umiejętności i zadania gildyjne.',
+    'Nowe klasy: Paladyn, Samuraj, Korsarz, Gladiator, Chronomanta, Iluzjonista, Bard i Szaman.',
+    'classguild / guildquest — zadania gildyjne; Droga Legendy u Mistrza Drogi Legendy obejmuje 120 etapów dla każdej klasy.',
+    'multiclass — odblokowane i aktywne klasy; help multiclass — zasady wielu klas.',
+]
+
+# v11.00.3: every playable profession and caravan needs a direct HELP
+# entry. Names and actions come from the actual runtime mechanics.
+from systems.new_professions import PROFESSIONS as _HELP_V1103_PROFESSIONS, BASE_ACTIONS as _HELP_V1103_ACTIONS
+from storage.db_shared import normalize_lookup_text as _v1103_help_normalize
+for _help_profession, (_help_tool_type, _help_tool_id, _help_tool_name) in _HELP_V1103_PROFESSIONS.items():
+    _help_key = _v1103_help_normalize(_help_profession).replace(" ", "_")
+    _help_rows = [
+        f"{_help_profession} — profesja i {_help_tool_name}, poziomy 1–800.",
+        f"Krótko: profesja status {_help_profession}; profesja kup {_help_profession}; pracuj {_help_profession} <czynność>.",
+        f"profesje6 kup {_help_profession} — narzędzie za 1200 srebra, tylko raz na postać. Kupno u mistrza profesji, na targu, w porcie lub kuźni.",
+        f"profesje6 status {_help_profession}; profesje6 czynnosci {_help_profession} — poziom i lista rzeczywistych czynności.",
+    ]
+    for _help_action in _HELP_V1103_ACTIONS:
+        if _help_action.prof == _help_profession:
+            _help_rows.append(
+                f"profesje6 praca {_help_profession} {_help_action.code} [próg] — {_help_action.title}. "
+                f"Teren: {_help_action.region}; poziom od {_help_action.min_level}."
+            )
+    _help_rows.append(f"profesje6 zamowienie {_help_profession}; profesje6 oddaj {_help_profession} — zamówienia.")
+    _help_rows.append("Progi rozwoju: 1, 25, 75, 150, 300, 500, 700. Zadania: Droga Mistrza u odpowiedniego mistrza profesji.")
+    HELP_TOPICS[_help_key] = _help_rows
+    HELP_TOPIC_ALIASES[_help_key.replace("_", "")] = _help_key
+    HELP_TOPIC_ALIASES[_help_tool_type] = _help_key
+HELP_TOPIC_ALIASES.update({
+    "hodowla": "hodowla_zwierzat", "zwierzeta": "hodowla_zwierzat",
+    "handel": "kupiectwo", "kupiec": "kupiectwo", "kupcy": "kupiectwo",
+    "lowiectwo": "lowiectwo", "lowy": "lowiectwo",
+    "okrety": "okretownictwo", "inzynier": "inzynieria",
+    "karawany": "karawana", "karavan": "karawana",
+})
+HELP_TOPICS['karawana'] = [
+    'Kupiectwo i karawany Imperium 7.0: rozpoczęcie na rynku, dostawa i odbiór nagród.',
+    'Krótko: karawana lista; karawana start rynek; karawana odbierz.',
+    'imperium7 karawana lista — dostępne trasy, wymagania Kupiectwa i rzeczywiste zapasy.',
+    'imperium7 karawana start <rynek|port|kuźnia|targ> — wyrusz karawaną z rynku.',
+    'imperium7 karawana odbierz — odbierz ukończony transport; wcześniej nie rozpoczniesz następnego.',
+    'Wymagane posiadana Waga Kupiecka, poziom Kupiectwa i materiały na wybraną trasę.',
+    'To inny mechanizm niż profesje6 praca Kupiectwo wyslij/dostarcz.',
+]
+HELP_TOPIC_ALIASES['handlowanie'] = 'kupiectwo'
 
 # v1.60.2: final public documentation after both content expansions and old HELP layers.
 from systems.help_atlas_v1602 import install_help_atlas_v1602
@@ -304,9 +409,65 @@ if MOB_NAME_AUDIT_V1142["error_count"]:
 from systems.new_professions import install_legacy_profession_recipes as _v600_install_recipes
 from systems.equipment_crafting import COOK_RECIPES as _v600_cook_recipes
 V600_OLD_PROFESSION_INTEGRATION = _v600_install_recipes(ITEMS, _v600_cook_recipes, CRAFT_RECIPES)
-HELP_TOPICS["profesje6"] = ["Nowe profesje: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Wpisz profesje6 lista; profesje6 kup <profesja>; profesje6 czynnosci <profesja>; profesje6 praca <profesja> <czynność> [próg]; profesje6 zamowienie <profesja>; profesje6 oddaj <profesja>.", "Siedem progów: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie można kupić tylko raz na postać; poziomy 1–800."]
+# v11.00.6: short, natural commands shown first; older aliases still work.
+# v11.00.7: global, human-readable help for legacy numbered command handlers.
+_VERSIONLESS_HELP_V1107 = {
+    'sekretylochu': ('lochy7', 'Sekretne odnogi i nagrody co 25 pięter. Wpisz sekretylochu lub sekretylochu sekret w sekretnej komnacie.'),
+    'zapomnianelochy': ('lochy50', 'Zapomniane lochy kontynentu. Wpisz zapomnianelochy, aby zobaczyć dostępne opcje.'),
+    'era': ('era60', 'Wielka Saga i wydarzenia Ery Legend. Wpisz era, aby sprawdzić opcje.'),
+    'morza': ('ocean5', 'Nowe oceany i wyprawy. Wpisz morza, aby sprawdzić rejsy i regiony.'),
+    'flota': ('ocean4', 'Floty i bitwy na morzu. Wpisz flota, aby sprawdzić dostępne polecenia.'),
+    'handelimperium': ('handel4', 'Handel i gospodarka. Wpisz handelimperium, aby sprawdzić zlecenia i transakcje.'),
+    'kodekskolekcji': ('collection2', 'Kodeks kolekcji i nagród. Wpisz kodekskolekcji, aby zobaczyć postęp.'),
+    'nawigacja': ('navigation2', 'Nawigacja głosowa i wskazówki drogi. Wpisz nawigacja status, nawigacja cel <nazwa>.'),
+    'kariera': ('career2', 'Kariera bohatera: kariera status, kariera walka, kariera profesje.'),
+    'cenyrynkowe': ('marketquotes1260', 'Notowania rynkowe: cenyrynkowe — aktualne zestawienie.'),
+    'wielkawyprawa': ('grandex1260', 'Wielka ekspedycja: wielkawyprawa — dostępne cele i nagrody.'),
+    'legendarnewyprawy': ('legendaryexpeditions1210', 'Legendarne ekspedycje: legendarnewyprawy — lista i postęp.'),
+    'mistrzowieprofesji': ('mistrzprof', 'Mistrzowie profesji: mistrzowieprofesji — wskazówki rozwoju i zadania.'),
+    'łowcy': ('hunters1225', 'Tablica łowców: łowcy — oferty i status.'),
+    'zawody': ('profesje6', 'Profesje: zawody lista; zawody kup Kupiectwo; pracuj Kupiectwo pakuj.'),
+    'żyweimperium': ('imperium7', 'Żywe Imperium: karawana lista, łowy lista, wyprawa lista, rozbudowa status.'),
+    'mistrzostworzemiosla': ('craftmastery', 'Mistrzostwo rzemiosła: mistrzostworzemiosla — poziomy i bonusy.'),
+    'zadaniaklasowe': ('guildquest', 'Zadania klasowe: zadaniaklasowe — cele i postęp danej klasy.'),
+    'egzaminklasowy': ('guildexam', 'Egzaminy klasowe: egzaminklasowy — wymagania i status.'),
+    'zleceniagildii': ('guildbounty', 'Gildyjne zlecenia: zleceniagildii — lista, postęp i nagrody.'),
+    'gildiaklasowa': ('classguild', 'Gildia klasowa: gildiaklasowa — postęp, próby i oferty.'),
+}
+for _shortcut_v1107, (_old_v1107, _description_v1107) in _VERSIONLESS_HELP_V1107.items():
+    HELP_TOPICS[_shortcut_v1107] = [_description_v1107, 'Stara komenda ' + _old_v1107 + ' nadal działa.']
+    HELP_TOPIC_ALIASES[_old_v1107] = _shortcut_v1107
+    HELP_TOPIC_ALIASES[_shortcut_v1107.replace('ł','l').replace('ż','z')] = _shortcut_v1107
+HELP_TOPICS['globalne komendy'] = [
+    'Lochy: sekretylochu, zapomnianelochy; oceany: morza, flota; przygody: era, wielkawyprawa, legendarnewyprawy.',
+    'Rzemiosło: profesja, pracuj <profesja> <czynność>, kupiectwo; handel: handelimperium, cenyrynkowe, karawana.',
+    'Postać: kariera, nawigacja, kodekskolekcji, gildiaklasowa, zadaniaklasowe, egzaminklasowy, zleceniagildii.',
+    'Mistrzowie: mistrzowieprofesji; łowcy: lowcy. Wszystkie starsze polecenia z numerami pozostają zgodne.',
+    'help / pomoc: lista tematów. help <temat>: opis. help skill <nazwa>: opis umiejętności, bez jej wykonania.'
+]
+HELP_TOPIC_ALIASES['komendykrotkie'] = 'globalne komendy'
+
+# v11.00.8: sawmill recipes belong to forestry, not forging.
+HELP_TOPICS['obrabiaj'] = [
+    'Deski obrabiasz w Obozie Drwala, korzystając z Piły. Praca rozwija Drwalstwo oraz Piłę, NIE Kowalstwo.',
+    'Komendy: obrabiaj lista; obrabiaj deska dębowa; obrabiaj max deska dębowa; receptury drwalstwo.',
+    'Gotowe deski trafiają do Szkatułki Rzemieślniczej i nadal służą do budowy oraz Stolarstwa.',
+]
+HELP_TOPIC_ALIASES['deski'] = 'obrabiaj'
+HELP_TOPIC_ALIASES['drwalnictwo'] = 'drwalstwo'
+HELP_TOPICS['drwalstwo'] = list(HELP_TOPICS.get('drwalstwo', [])) + HELP_TOPICS['obrabiaj']
+
+HELP_TOPICS["proste komendy"] = [
+    "Nowe profesje: profesje lista; profesja kup Kupiectwo; profesja czynnosci Kupiectwo; pracuj Kupiectwo pakuj.",
+    "Wszystkie systemy: help globalne komendy; główna pomoc: help; opis skilla: help skill <nazwa>.",
+    "Jeszcze krócej: kupiectwo kup, kupiectwo czynnosci, kupiectwo pakuj, kupiectwo zamowienie, kupiectwo oddaj.",
+    "Karawany: karawana lista, karawana start rynek, karawana odbierz. Imperium: rozbudowa status, rozbudowa koszt pole.",
+    "Łowy: lowy lista/start/odbierz. Wyprawy: wyprawa lista/start/odbierz. Stare komendy z cyframi nadal działają.",
+]
+HELP_TOPIC_ALIASES["komendyprofesji"] = "proste komendy"
+HELP_TOPICS["profesje6"] = ["Nowe profesje: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Wpisz zawody lista; profesja kup <nazwa>; profesja czynnosci <nazwa>; pracuj <nazwa> <czynność> [próg]; profesja zamowienie <nazwa>; profesja oddaj <nazwa>.", "Siedem progów: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie można kupić tylko raz na postać; poziomy 1–800."]
 HELP_TOPICS["profesje6"].append("Droga Mistrza 6.00.1: 120 questów na każdą z ośmiu nowych profesji, po kolei od 1 do 800; u nowych mistrzów wpisz quest list, przyjmij 1, oddaj quest 1. Liczą się tylko wskazane czynności i progi pracy.")
-HELP_TOPICS["profesje"] = ["Soulbound ma 22 profesje i 22 narzędzia, wszystkie z poziomami 1–800.", "Osiem nowych profesji: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Komendy nowych: profesje6 lista, profesje6 czynnosci <profesja>, profesje6 praca <profesja> <czynność> [próg].", "Stare 14 profesji, ich materiały, zadania i narzędzia działają nadal."] + [line for line in HELP_TOPICS.get("profesje",[]) if "1-600" not in line and "8 profesji" not in line]
+HELP_TOPICS["profesje"] = ["Soulbound ma 22 profesje i 22 narzędzia, wszystkie z poziomami 1–800.", "Osiem nowych profesji: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.", "Komendy nowych: profesje lista, profesja czynnosci <nazwa>, pracuj <nazwa> <czynność> [próg].", "Stare 14 profesji, ich materiały, zadania i narzędzia działają nadal."] + [line for line in HELP_TOPICS.get("profesje",[]) if "1-600" not in line and "8 profesji" not in line]
 
 from systems.combat_xp_repair_v11346 import COMBAT_XP_ZERO_AUDIT_V11346
 if COMBAT_XP_ZERO_AUDIT_V11346["error_count"]:
@@ -323,7 +484,7 @@ if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "
     # In v6, validate the full 22-job extension explicitly instead of
     # weakening/rewriting its hash-locked legacy function. All other
     # original failures still remain release-blocking.
-    if str(VERSION).startswith(('6.', '7.', '8.', '9.')):
+    if str(VERSION).startswith(('6.', '7.', '8.', '9.', '10.', '11.')):
         from systems.new_professions import PROFESSIONS as _v600_professions
         _v600_legacy_names = {
             'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',

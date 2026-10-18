@@ -15,7 +15,7 @@ from core.classes_skills import CLASSES, RACES
 from core.command_catalog import COMMAND_CATALOG
 from core.profession_timing import TOOL_ACTION_BASE_SECONDS, TOOL_ACTION_MIN_SECONDS
 from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
-from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
+from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES
 
 HELP_TRUTH_CURRENT_VERSION_V11328 = str(VERSION)
 
@@ -229,6 +229,7 @@ def refresh_help_truth_current_v11328():
         "Zbieractwo: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo. Rzemiosła: Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie. Eksploracja: Archeologia i Kartografia.",
         "zamowienia / zamówienia obsługuje wszystkie profesje; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
         "Czasy aktywności są authored, a nie losowane przez Generator. help tempo_profesji pokazuje bieżące czasy bazowe i minimalne.",
+        "Nowe profesje: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo i Żeglarstwo. Komendy: profesje6 lista; help <nazwa profesji>.",
         "Cztery podstawowe zbieractwa mają rzadki wyjątkowo obfity zbiór: 4-8% zależnie od progresji, dodatkowy pełny urobek i x1.75 XP profesji/narzędzia.",
         "Rzadkie ryby, żyły, geody, drewno i zioła zachowują własne jackpoty; pierwsze odkrycia Archeologii/Kartografii mają własne premie.",
     ]

@@ -108,14 +108,14 @@ def run_regression():
     assert new_cap == cap + 500
     assert banked_experience_v2011(db, 1, 1, 'class', 2, source_key=classes[0]) == 2
     checks += 2
-    # A larger cap must NOT turn Fame/EP into enormous automatic rewards.
+    # v11: each new Fame is exactly the live Multi Cap; existing EP helper is historical.
     ses = SimpleNamespace(account_id=1,
         character=SimpleNamespace(character_level=1, soul_level=1),
         server=SimpleNamespace(db=db),
         active_class_names=lambda: db.active_class_names(1, classes[0]),
         class_mastery_level=lambda name: int(db.class_progress_row(1, name)["level"]))
     fame = fame_cap_awards_v2103(ses)
-    assert fame == {'character': 2530, 'soul': 2530, 'stat': 2530, 'class_total': 2620}
+    assert fame == dict.fromkeys(('character','soul','stat','class_total'), new_cap)
     assert exploration_point_xp_v2103(ses.character) == 120
     checks += 2
     assert db.active_class_names(1, classes[0])[0] == classes[0]

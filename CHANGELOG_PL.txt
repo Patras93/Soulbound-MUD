@@ -1,3 +1,236 @@
+Soulbound v11.00.12 — IMIENNI NAUCZYCIELE, WŁASNE QUESTY, SKRZYNIE, HELP KLAS
+Aktualna paczka: v11.00.12
+
+- Ośmiu nauczycieli nowych klas ma unikatowe imiona w normalnym NPC i w `help <klasa>`: Paladyn — Mistrzyni Serafina, Samuraj — Mistrz Hiroto, Korsarz — Kapitan Roksana, Gladiator — Mistrz Aureliusz, Chronomanta — Mistrzyni Eona, Iluzjonista — Mistrzyni Miraluna, Bard — Mistrz Arion, Szaman — Mistrzyni Nalara.
+- Każdy nauczyciel daje trzy klasowe zadania szkoleniowe: walka, zbieranie surowca i finałowa walka. 24 zadania mają rzeczywisty postęp SQLite, wymagają danej klasy, mają osobne nagrody i zachowują jednego NPC w pokoju. U nauczyciela działa `quest list` i krótkie `przyjmij 1`; nauka skilli `learn` pozostaje bez zmian.
+- Pomoc `help mag`, `help paladyn` i pozostałe klasy korzysta z dotychczasowych opisów klasy i pokazuje imiennego nauczyciela. `help <nazwa skilla>` nadal wyświetla opis skilla bez jego używania.
+- Zwiększono szansę zdobycia Skradzionych Skrzyń Rudy z trolli górskich (zwykłe 30% -> 55%, rzadkie 35% -> 70%). Król Trolli zachowuje gwarantowany drop; zadanie Magazyniera nadal wymaga 10 sztuk, bez zmiany nagrody.
+- 120-etapowa Droga Legendy i 22 klasy, parametry wszystkich 5461 skilli, postacie, SQLite, EXP Bank i wcześniejsze systemy bez resetu.
+- Pełna paczka ZIP dla Windows; przed wdrożeniem wykonać PREDEPLOY 60/60 PLUS i backup SQLite.
+
+Soulbound v11.00.11 — NAPRAWA HELP PO NAZWIE SKILLA
+Aktualna paczka: v11.00.11
+
+- Naprawiono bezpośrednie `help <nazwa skilla>` i `pomoc <nazwa skilla>`: pokazują pełny opis tak jak `help skill <nazwa>`, nie próbują uruchamiać umiejętności.
+- Obsługa nowych nazw 22 klas, starszych aliasów z v11.00.10, identyfikatorów ID, polskich liter i wyszukiwania fragmentów; niejednoznaczne frazy zwracają listę dopasowań.
+- Zwykłe tematy pomocy i nazwy komend zachowują pierwszeństwo, `help` bez argumentu nadal pokazuje kategorie, a nieznane hasła nadal dają wskazówki.
+- Zachowano wszystkie 5461 ID skilli, ich parametry, mechanikę, zapis SQLite, EXP Bank, nagrody, postacie i komplet wcześniejszych aktualizacji.
+- Rozbudowano regresje o bezpośrednie `help` dla 22 klas, dawnych aliasów i pomoc dostępną dla postaci bez nauczonego skilla.
+- Przed wdrożeniem wykonać Windows PREDEPLOY 60/60 PLUS i backup produkcyjnej bazy SQLite.
+
+Soulbound v11.00.10 — 22 KLASY: UNIKALNE NAZWY UMIEJĘTNOŚCI
+
+- Przebudowano 4651 generowanych skilli i osiem źle nazwanych skilli sygnaturowych we wszystkich 22 klasach. Usunięto powtarzane między klasami dopiski „Żelazny Próg”, „Stalowy Szlak” i inne wspólne etykiety generatora.
+- Nazwy dobierane są do tożsamości klasy i rzeczywistego typu efektu: cios, atak obszarowy, leczenie, osłona, unik, wysysanie, egzekucja lub wzmocnienie. Zachowano ręcznie nazwane, charakterystyczne umiejętności i kanoniczny zestaw Meca.
+- Zachowano oryginalne stabilne ID, Biegłość, poziomy nauki, koszty, moc, umiejętności nauczone przez graczy i całą bazę SQLite. Poprzednie nazwy pozostają aliasami komend dla makr oraz istniejących graczy; opisy nowszych skilli odpowiadają nowym nazwom.
+- Dodano automatyczny audyt: 22 klasy, 5461 skilli, brak zduplikowanych nazw, poprawne kategorie i stare aliasy, zgodność efektów z wersją poprzednią.
+- Pełna paczka Windows; wymagany oddzielny PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Aktualna paczka: v11.00.10
+
+Soulbound v11.00.9 — POSTĘP ZADAŃ I QUESTÓW (GLOBALNIE)
+
+- Naprawiono pomijanie aktualizacji Drogi Legendy: po KAŻDYM zaliczonym zabójstwie wyświetla się faktyczne 1 z 3, 2 z 3, 3 z 3 itd. dla wszystkich 22 klas. Bez zmiany liczników, trudności i nagród.
+- Questy eksploracji, sekretów, świata i wydarzeń oraz zbierania przedmiotów z walki, zasobów i wytwarzania korzystają z jednolitego powiadomienia o realnym postępie oznaczonego jako niezbędne; tryb zwięzłej walki nie ukrywa komunikatu. Nagrody i warunki zaliczania bez zmian.
+- Czynności nowych ośmiu profesji wyświetlają prawdziwą nazwę zadania zamiast technicznego identyfikatora; liczniki pochodzą z istniejącej bazy SQLite.
+- Przy mistrzu Drogi Mistrza i Drogi Legendy widać bieżący postęp aktywnego etapu, a nie tylko liczbę ukończonych etapów.
+- Dodano `questy postep` / `questy postęp` (bez ogonków lub z) do odczytu aktualnych liczników aktywnych questów. `quest info <numer>` działa bez zmian.
+- NIE dodano automatycznych fikcyjnych zaliczeń; nie ruszano profesji, EXP Duszy, Fame, EP, SQLite, 22 klas/najemników ani banku EXP. Zmiany dotyczą widoczności licznika.
+- Pełna paczka do Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Aktualna paczka: v11.00.9
+
+Soulbound v11.00.8 — DESKI W DRWALNICTWIE
+
+- Deski dębowe, jesionowe, cisowe, żelaznego drzewa i drzewa duchów należą do Drwalnictwa, nie Kowalstwa.
+- Obrobiona Deska z brzozy również rozwija Drwalstwo i Piłę; Stolarstwo nadal tworzy gotowe wyroby.
+- Nowe komendy: obrabiaj lista, obrabiaj <nazwa>, obrabiaj max <nazwa>, receptury drwalstwo, help obrabiaj.
+- Obróbka wymaga Piły i Obozu Drwala; zyskuje EXP Drwalstwa i Piły, bez EXP Kowalstwa i Duszy.
+- Przepisy i wyroby Stolarstwa, kowalskie metale, istniejące zasoby oraz przedmioty w SQLite są zachowane.
+- Zawiera wcześniejszą globalną naprawę helpów i krótkie polecenia v11.00.7.
+
+Soulbound v11.00.7 — GLOBALNE KRÓTKIE KOMENDY I NAPRAWIONY HELP
+
+- Globalne skróty starych komend z numerami wersji: sekretylochu, zapomnianelochy, era, morza, flota, handelimperium, kodekskolekcji, cenyrynkowe, wielkawyprawa, legendarnewyprawy, mistrzowieprofesji, zawody, zadaniaklasowe, egzaminklasowy, zleceniagildii, gildiaklasowa i inne. Kolizje z istniejącymi komendami są blokowane.
+- `help` i `pomoc` otwierają spis kategorii. `help <temat>` otwiera temat z opisem; nie próbuje używać umiejętności ani zgadywać skilla z przypadkowego słowa. `help skill <nazwa>` wyświetla TYLKO opis umiejętności, nie wykonuje jej.
+- `help globalne komendy` podaje naturalne krótkie odpowiedniki. `help <komenda>` potrafi wyświetlić podstawową informację nawet dla komend bez osobnego artykułu.
+- Stare komendy nie zostały usunięte. To te same handlery gry, bez zmian SQLite, EXP, EXP Bank, Fame, EP, profesji, narzędzi, skilli lub najemników.
+- Poprawiono nieaktualne fragmenty pomocy o 14 klasach / poziomach 1–600.
+- Pakiet zawiera wszystkie wcześniejsze poprawki v11.00.6 i wymaga osobnego testu PREDEPLOY 60/60 PLUS na Windows przed wdrożeniem.
+
+Soulbound v11.00.6 — PROSTE KOMENDY BEZ NUMERÓW WERSJI
+
+- Nowe skróty profesji: `profesja lista/status/kup/czynnosci/praca/zamowienie/oddaj` oraz `profesje kup/praca/...` i `pracuj Kupiectwo pakuj` bez utraty dotychczasowego `profesje`.
+- Bezpośrednie komendy dla wszystkich ośmiu nowych profesji: np. `kupiectwo pakuj`, `kupiectwo praca pakuj`, `kupiectwo kup`, `kupiectwo zamowienie`, `kupiectwo oddaj`.
+- Krótkie polecenia Imperium: `karawana lista/start/odbierz`, `lowy lista/start/odbierz`, `wyprawa lista/start/odbierz`, `rozbudowa status/koszt/ulepsz`.
+- Stare komendy `profesje6` i `imperium7` działają nadal; te same procedury, koszty, nagrody i zapis SQLite. Nie zmieniono XP, Fame, EXP Bank ani obrażeń najemników.
+- `help proste komendy` — krótki przewodnik dla NVDA. Jednorazowy zakup narzędzia na postać nadal egzekwowany w tym samym module.
+- Pełna paczka jest kandydatem do Windows PREDEPLOY 60/60 PLUS. Nie wdrażać przed uzyskaniem PASS.
+
+Soulbound v11.00.5 — PROFESJE BEZ EXP DUSZY
+
+- Profesjonalne czynności i zamówienia nie przyznają Soul XP; pozostałe źródła Soul XP (walka, eksploracja, Fame, EP i nieprofesyjne questy) pozostają bez zmian.
+- Quest typu profession_action lub craft_set nie przyznaje Soul XP także wtedy, gdy nie ma pola reward_profession_xp i płaci tylko srebrem.
+- Spójna identyfikacja zadań profesyjnych: wymagania profesji, narzędzia i zadania craft rozpoznawane przez system wypłat.
+- Lista nagród u NPC nie obiecuje już Soul XP w questach profesyjnych, których oddanie i tak nie wypłacało. EXP profesji i narzędzi, EXP postaci i statów bez zmian.
+- Osobny test regresyjny przechodzi przez wszystkie questy profesyjne i potwierdza brak Soul XP w ofercie oraz przy oddaniu.
+- Brak migracji destrukcyjnej SQLite; zachowane wszystkie postacie, postęp, nagrody i EXP Bank.
+- Wdrożenie wyłącznie po pełnym Windows PREDEPLOY 60/60 PLUS.
+
+Soulbound v11.00.4 — WSZYSTKIE 22 NARZĘDZIA I TABLICA ZLECEŃ W GILDII
+
+- Wszystkich 8 nowych mistrzów profesji sprzedaje właściwe narzędzia we własnej pracowni. Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.
+- Kupczyni Selma (Izba Mistrzyni Handlu) sprzedaje Wagę Kupiecką: shop, kup <numer>, kup waga kupiecka.
+- Każdy z 8 zakupów przez shop przechodzi przez dokładnie tę samą kontrolę prof6_tools_owned co profesje6 kup <profesja>. Starsze 14 narzędzi dostaje ochronę historii zakupów również w zwykłych sklepach. Jedna sztuka na postać przez całe życie konta, bez możliwości powtórnego zakupu po restarcie lub utracie przedmiotu. Bez modyfikacji kont i starego SQLite.
+- Tablica Zleceń (bounty, zlecenia) znajduje się teraz w Sali Głównej Gildii Dusz. Przyjmowanie, odbiór i odświeżanie wymagają wejścia do sali. Bieżący postęp i porzucenie są dostępne zdalnie.
+- Opis gildii, dialog Selmy, nazwy helpów i komunikaty dostępne pod NVDA zostały uzupełnione. Bez dodatkowych NPC w pokoju.
+- Zlecenia bojowe guildbounty i zamówienia profesji6 pozostają odrębnymi mechanikami; nie usuwano ich nagród ani postępu.
+- v11.00.3 oraz wcześniejsze poprawki Przysięgi Świtu, Drogi Legendy, 22 klas/najemników, Fame i EP pozostają w grze.
+- Wymagany indywidualny PREDEPLOY 60/60 PLUS przed wdrożeniem produkcyjnym.
+
+Soulbound v11.00.3 — GLOBALNA NAPRAWA KOMENDY HELP I POMOCY PROFESJI
+
+- Naprawiono help <temat> na poziomie całej komendy: dokładna nazwa istniejącego tematu ma pierwszeństwo przed starym aliasem (np. help klasy nie może podmieniać tematu na multiclass).
+- Przy wyszukiwaniu działa polska pisownia bez ogonków, łączniki, podkreślenia, wielowyrazowe nazwy i poprawne aliasy; niejednoznaczne tematy nie wybierają losowego wpisu.
+- Dodano pełne, czytelne wpisy HELP dla wszystkich ośmiu profesji 6.0 (w tym Kupiectwa) wyliczane z rzeczywistych definicji pracy i narzędzi, oraz help karawana.
+- Wprowadzono help szukaj <fraza>, help tematy [strona], help tematy wszystkie. Długie indeksy domyślnie są stronicowane pod NVDA.
+- Nieistniejące hasła podpowiadają do trzech rzeczywistych, podobnych tematów. Stare tematy, pełny help skill i komendy pozostają obsługiwane.
+- Numer wydania 11.00.3 jest nowszy od kandydatów 11.00.2; zachowano wszystkie poprawki Paladyna 2/120, najemników 22 klas, wszystkie postacie, SQLite i bank EXP.
+- Wszystkie dotychczasowe wymagania PREDEPLOY oraz walidacji historycznych pozostają aktywne. Pełny Windows PREDEPLOY 60/60 PLUS nadal obowiązkowy przed wdrożeniem.
+
+Soulbound v11.00.2 — POPRAWKA PREDEPLOY TCP (KAPLAN ELOR)
+
+- Naprawiono test 5 graczy TCP, ktory przy powolnych odpowiedziach MUD mylil komunikaty poprzednich komend z odpowiedzia na rozmowe u Kaplana Elora i zglaszal falszywy brak zadania.
+- Autogracz sprawdza teraz faktyczna obecnosc Kaplana Elora poleceniem look, nastepnie rozpoznaje prawdziwa odpowiedz rozmowy i liste zadania „Szczury pod swiatynia”. Przy opoznionej odpowiedzi ponawia tylko odczytowe czynnosci, a przy rzeczywistym braku NPC/zadania nadal zwraca FAIL.
+- Test kontrolny odtwarza opozniony komunikat TCP i rzeczywisty brak NPC. Przetestowano 5 zalogowanych graczy, zaliczenie zabicia, trwalosc SQLite po restarcie oraz zadanie kuriera Sol -> Doran.
+- Poprawka NIE zmienia rozmow ani questow w grze, zapisu SQLite, poziomow przeciwnikow, nagrod, 22 klas i 22 najemnikow. Zachowano naprawe etap 2/120 Przysiegi Switu.
+- Wydanie pozostaje v11.00.2, gdyz produkcyjna v11.00.1 nie zostala nadpisana przez kandydat v11.00.2 z FAIL. Nowa paczka ma inny SHA256 i wymaga NOWEGO Windows PREDEPLOY 60/60 PLUS przed wdrozeniem.
+
+Soulbound v11.00.2 — HOTFIX WDROZENIA I PRZYSIEGI SWITU
+
+- Numer wydania ustawiony na 11.00.2 w pliku gry, ekranie changes oraz nazwie ZIP. Pakiet jest nowszy niz wdrozona v11.00.1 i nie wymaga wylaczania blokady starszych i rownych wersji.
+- Zachowano hotfix Paladyna „Pierwsza Przysiega — Proba 2/120, Przysiegi Switu”: prawidlowy poziom rzeczywistego przeciwnika, wymagane 3 zabojstwa od poziomu 3, trwaly postep 0/3 do 3/3 w SQLite. Poprawka obejmuje wszystkie 22 klasy.
+- Zachowano 22 role najemnikow, 22 taktyki, 5 ofert gildyjnych dla kazdej klasy, wszystkie stare kontrakty i pelne obrazenia.
+- Zaktualizowano historyczne testy zgodnosci wersji, pozostawiajac ich wymagania dotyczace liczby klas, umiejetnosci i questow bez zmian.
+- Brak nowych migracji destrukcyjnych SQLite, resetow postaci, zmian nagrod i nerfow EXP. Archiwum nie zawiera bazy graczy.
+- Kazdy nowy ZIP wymaga osobnego Windows PREDEPLOY 60/60 PLUS: PASS dla v11.00.1 nie uprawnia do wdrozenia v11.00.2.
+
+Soulbound v11.00.1 — HOTFIX: PALADYN / DROGA LEGENDY / PRÓBA 2
+
+- Naprawiono rzeczywistą przyczynę braku postępu w zadaniu „Paladyn — Pierwsza Przysięga, Próba 2”, czyli „Przysięgi Świtu”: postać zabijała wrogów o wymaganym poziomie, lecz kod odczytywał nieistniejące pole `MobState.level` i zaliczał każdemu wrogowi poziom 1.
+- Od tej wersji postęp wszystkich 22 klas korzysta z tego samego poziomu przeciwnika co mechanizm walki/EXP (`v0190_mob_stage`). Prawdziwy wróg od poziomu 3 daje 1/3, 2/3, 3/3 po trzech zabójstwach. Słabsi przeciwnicy nie spełniają wymagań. Sprawdzanie elit/bossów na późniejszych etapach pozostaje bez zmian.
+- Test obejmuje rzeczywisty obiekt MobState bez pola level, potwierdzenie haka bojowego w AST, poziomy 2/3/9 oraz trwały postęp 0/3 -> 3/3 na SQLite dla wszystkich 22 klas, w tym Paladyna.
+- Zachowano wszystkie 22 typy najemników, 22 klasy, istniejące kontrakty, wymagania EXP, EXP Bank, lokalizacje, nagrody i wszystkie istniejące konta w SQLite. Zmiana nie dopisuje fikcyjnych zaliczeń historycznych zabójstw.
+- Pełny ZIP do PREDEPLOY. Nie wdrażać przed pełnym PASS 60/60 PLUS na Windows.
+
+Soulbound v11.00.1 — POPRAWKA PREDEPLOY — 22 TAKTYKI I ZGODNOŚĆ UMIEJĘTNOŚCI
+
+- Naprawiono błędy wskazane przez pełny log PREDEPLOY 2026-10-17: szybki i pełny audyt v4.00.0 oraz końcowy PLUS v9.00.0.
+- 22 typy najemników podzielone poprawnie między trzy rodziny taktyk: finisher / breaker / guardian. Zachowano wszystkie 15 starszych ról, pierwotne kontrakty i brak sufitu obrażeń.
+- Historyczny audyt Imperium nadal wymaga pełnej równości zbioru 22 najemników i zbioru taktyk, a dodatkowo odrzuca role bez taktyki lub przypisane do kilku kategorii.
+- Audyt Bohaterów uwzględnia 245 rzeczywistych umiejętności nowych klas w v11.00.1; nie zmieniono ich ani wymagań testu.
+- Wzmocniono test v11.00.1 o walidację taktyki każdego z 22 najemników.
+- Pełny ZIP, zachowanie baz i postaci. Konieczne ponowne PREDEPLOY 60/60 PLUS na dokładnie tym ZIP przed wdrożeniem.
+
+Soulbound v11.00.1 — ZADANIA 22 KLAS I 22 NAJEMNIKÓW — KANDYDAT PREDEPLOY
+
+- Uzupełniono pięć zadań gildyjnych dla każdej z 8 klas dodanych w v9: Paladyn, Samuraj, Korsarz, Gladiator, Chronomanta, Iluzjonista, Bard, Szaman. Razem 22 klasy x 5 ofert, bez utraty postępu zapisanych starszych klas.
+- Tawerna: 22 najemników odpowiadających 22 klasom; zachowano Seren (Paladyn) oraz wszystkie 14 wcześniejszych kontraktów, ceny i stare klucze SQLite. Dodano 7 nowych nazw, własne profile taktyczne i techniki. Najemnicy automatycznie walczą z pełną siłą właściciela, bez limitu obrażeń, osobnego levelowania i kar fizyczny/magiczny.
+- Droga Legendy: postęp realnych zabójstw zalicza się dla właściwych AKTYWNYCH klas; nie ogranicza się do głównej klasy postaci. Jedno zabójstwo nie nalicza dwukrotnie jednego zadania. Nie zmieniono wymagań ani nagród 120-etapowych łańcuchów.
+- Testy regresji: wszystkie klasy, zadania gildyjne, dostępność, oddzielne zapisy SQLite, etap 2 Drogi Legendy, Próba Broni Duszy Tier 2, kompletna oferta najemników i ich taktyki.
+- Brak zmian w prawdziwej bazie danych; pełny ZIP do PREDEPLOY 60/60 PLUS. NIE WDRAŻAĆ przed pełnym PASS.
+
+Soulbound v11.00.0 — ERA WIECZNEJ CHWAŁY — PEŁNY KANDYDAT DO TESTÓW, NIE WDRAŻAĆ BEZ 60/60 PLUS NA WINDOWS
+
+Aktualna paczka: v11.00.9
+
+ZAKRES NOWEGO WYDANIA (BAZA: zatwierdzona v10.00.2):
+- Fame 6.0: 1 Fame = 100% bieżącego Multi Cap EXP dla postaci, Duszy, aktywnej klasy i statystyk. Nowe Fame wyłącznie za znaczące elity, minibossów i bossów; zwykłe potwory nie dają Fame. Już zdobyte historyczne Fame pozostają zapisane w SQLite. Powtarzanie tego samego celu nigdy nie przynosi kolejnego Fame. Bez EXP profesji za walkę, bez nerfu zwykłego EXP, EXP Bank pozostaje aktywny.
+- Poziomy 1-800: rzeczywiste progi i symulacja awansów na całym zakresie; zachowano wymagania i nagrody do czasu potwierdzenia tempa gry na klonie produkcyjnego SQLite.
+- Eksploracja 11.0: 12 pozamiejskich krain, 144 lokacje, 36 automatycznych punktów odkryć oraz 12 dodatkowych punktów w podziemiach. Zwykły pokój i miasta: 0 EP, odkrycie unikatowe i trwałe; każde EP daje 100% Multi Cap.
+- Krainy Zapomnianych Bogów: osobni przewodnicy, punkty zagrożenia, elity, superbossowie, relikty, 24 nowe zadania ekspedycyjne. Bez usuwania i nadpisywania starego świata.
+- Superbossowie: 12 władców regionów oraz 12 unikatowych strażników pieczęci, fazowe starcia i gwarantowane fabularne relikty.
+- Lochy 7.0: 12 nowych połączonych podziemi po 10 autorskich komnat, bossowie na końcu i EP za finał. Trzy dodatkowe prawdziwie nieskończone lochy (Krypta Przysiąg, Wieża Gwiazd, Chaos) z generowanymi piętrami, bossem co 10 pięter i indywidualnym trwałym checkpointem. Nie dodano pułapek, nie zmieniono historycznych nieskończonych lochów ani ich checkpointów/portali.
+  Kontrola integracji: rozpoznawanie generowanych przejść w audycie, unikatowy spawn mobów na piętrze i 152 testy rzeczywistego World()
+- Wielka Fabuła 2.0: Wojna Pradawnych, 12 rozdziałów i kolejna ścieżka fabularna przez wszystkie nowe regiony; prawdziwe cele kill/collect, niezależna historia każdego gracza w istniejącym SQLite. Korona Wiecznej Chwały za finał.
+- 22 Klasy 7.0: 44 nowe, natywnie uczone techniki (po dwie na klasę, Biegłość 640 i 780), zgodne z istniejącym systemem walki i reakcjami żywiołów. Dodatkowo po trzy próby klasowe u dotychczasowego nauczyciela, czyli 66 zadań. Zachowano wszystkie stare techniki i bronie duszy.
+- Najemnicy i Przywołania 8.0: nieujemna synergia dla 24 nowych bossów; brak zmniejszania istniejących 100% mocy i dopasowania do ekwipunku właściciela.
+- Profesje 8.0: 22 nowe zadania czynnościowe dla wszystkich 22 profesji, 12 talizmanów z dwóch zdobytych w walce reliktów oraz Odłamków Duszy; zależny od materiału i progu EXP narzędzi/profesji. Bez nowych narzędzi.
+- Gildie i Twierdze 7.0: 12 dodatkowych zleceń PvE u Koordynatorki Lyry oraz cztery nowe rozwijane budynki produkcyjne w istniejącym skarbcu gildii. Bez zmian starszych budynków i zapisu SQLite.
+- Ocean 7.0: nowe wybrzeża trzech krain oraz cztery starcia floty w istniejącym Ocean4; statki, nagrody i rejsy pozostają w dotychczasowym systemie.
+- Kartografia 8.0: 48 nowych obiektów do osobnego zmapowania, niezależnie od automatycznego EP; istniejące materiały, atlasy i EXP profesji bez strat.
+- NVDA 7.0: komendy ep/ep region/ep all i krótkie opisy nowych obszarów, zdolności, łupów, list pomocy oraz zadań; nie potrzeba mapuj, aby otrzymać ważne EP.
+
+UWAGA: Dwanaście autorskich podziemi ma po 10 komnat, lecz są odrębne od trzech nowych lochów z nieograniczoną liczbą pięter. Stare nieskończone lochy zachowane.
+KONTROLA: testy Linux są pomocnicze. Warunkiem wdrożenia pozostaje pełne PREDEPLOY 60/60 PLUS wykonane na Windows z kopią rzeczywistej bazy. W przypadku FAIL NIE WDRAŻAĆ.
+Tylko ten CHANGELOG_PL.txt, bez GitHuba, bez dodatkowych raportów TXT.
+
+POPRAWKA PREDEPLOY v10.00.2 (2026-10-16, kolejna kontrola):
+- Zaktualizowano kontrolę AST modularizacji dla celowo zmienionej funkcji zapisu zerowych EP; zachowano weryfikację fingerprintów.
+- Test TCP potwierdza przyjęcie zadania w stanie aktywnych questów, zamiast polegać na kolejności asynchronicznych wypowiedzi NPC.
+- Pozostałe zasady EP i dane postaci bez zmian.
+
+POPRAWKA PREDEPLOY v10.00.2 (2026-10-16):
+- Naprawiono awarie logowania sqlite3.IntegrityError: ep_points >= 1. Nowe zwykle pokoje zapisuje sie w osobnej tabeli zero EP, bez naruszania historycznych punktow.
+- Wprowadzono trwałe rozróżnienie zerowych EP od historycznych 1 EP.
+- Naprawiono kontrakt testu EP v3.00.4 sprawdzajacy brak podwojnej nagrody.
+- Bez resetu postaci, EXP i istniejących EP; schema SQLite rozwijana przez CREATE TABLE IF NOT EXISTS.
+- Przed wdrozeniem wymagany pelny PREDEPLOY 60/60 PLUS na Windows.
+
+Soulbound v10.00.2 — HOTFIX: MIASTA BEZ EP
+- Strefy miejskie nie przyznają nowych punktów eksploracji, nawet jeśli przez pomyłkę oznaczono je jako punkt EP.
+- Zwykłe przechodzenie pomieszczeń nadal nie daje EP. W autorskich punktach Horyzontów EP wpada automatycznie.
+- Odwiedzone pokoje i wcześniej uzyskane EP, EXP i poziomy nie są usuwane.
+- Kartografia mapuj działa niezależnie od nagrody EP.
+- Dodano testy blokady miejskich EP. Wymagany pełny PREDEPLOY 60/60 PLUS na Windows przed wdrożeniem.
+
+Soulbound v10.00.2 — PRAWDZIWA EKSPLORACJA EP (Windows)
+Aktualna paczka: v10.00.2
+- Zwykłe chodzenie i walk odkrywa mapę, lecz zwykły pokój daje 0 EP.
+- EP wpada AUTOMATYCZNIE podczas wejścia do oznaczonej ważnej lokacji Horyzontów; bez mapuj.
+- Każdy punkt daje 100% aktualnego Multi Cap dla dotychczasowych bramek EXP.
+- Zapis EP jednorazowy w istniejącej SQLite; bez resetowania postaci i historycznych EP.
+- Skorygowano historyczne testy EP i weryfikację 0 EP w nowo odkrytych pokojach.
+- Nie zmieniono wymagań EXP; nie dodano nowych pułapek ani raportów TXT.
+- Pełny PREDEPLOY 60/60 PLUS na Windows wymagany przed wdrożeniem.
+
+Soulbound v10.00.1 — EP = 100% MULTI CAP (Windows)
+Aktualna paczka: v10.00.1
+
+- Każdy trwale zdobyty EP przyznaje 100% bieżącego, pełnego Multi Cap EXP
+  dla postaci, Duszy, aktywnej klasy oraz każdej rozwijanej statystyki,
+  przez dotychczasowe bramki EXP i EXP Bank; nie mnoży tej wartości przez
+  liczbę wkładów z Multi Cap. Przy wielu EP Multi Cap jest odczytywany
+  ponownie przed kolejnym punktem.
+- Profesje i narzędzia nie otrzymują EXP z eksploracji.
+- Cel EXP nadal wynosi 50% Multi Cap i pozostaje wskaźnikiem informacyjnym.
+- Obecne wymagania EXP do poziomów pozostawiono bez zmian do czasu
+  pomiarów tempa awansu na prawdziwej bazie w odizolowanym PREDEPLOY.
+- Zachowano dotychczasowy zapis SQLite i jednorazowe odkrycia EP.
+- UWAGA: część historycznych testów v4.21.1/v10.00.0 zakłada niskie
+  nagrody 120-220 EXP i wymaga modernizacji w pełnym PREDEPLOY.
+- NIE WDRAŻAĆ bez pełnego Windows PREDEPLOY 60/60 PLUS na kopii SQLite.
+
+Soulbound v10.00.0 — TAJEMNICE NIESKOŃCZONEGO ŚWIATA (Windows)
+Aktualna paczka: v10.00.0
+
+- Eksploracja 5.0: zachowane historyczne punkty EP i istniejące pule regionów.
+  Nowe regiony mają trwałe, jednorazowe EP za rzeczywiście nowy pokój;
+  nagrody EXP za EP i Fame oraz EXP Bank i Multi Cap bez zmian.
+- Kartografia 3.0: 18 punktów dokumentacyjnych w sześciu krainach. Samo
+  wejście do lokacji NIE zalicza pomiaru. Potrzebna akcja mapuj i Kompas.
+  Zapisy korzystają z istniejącego cartography_v1100 w SQLite per postać.
+- Zapomniane Horyzonty: sześć połączonych regionów, 72 pokoje,
+  18 wyróżniających się miejsc, 6 przewodników, 12 nowych questów,
+  nowi przeciwnicy, sześć regionalnych surowców z prawdziwych dropów i finałowy boss każdej krainy. Brak pułapek.
+- EXP Goal: wyłącznie informacyjnie 50% aktualnego Multi Cap w komendach EXP.
+- Fame: zdobyte, liczba dostępnych celów i liczba pozostałych, bez wydawania.
+- NVDA 6.0: czytelne ep, ep region, ep all, kartografia region i gdzie ep.
+- Zachowano wszystkie 22 klasy, 22 rasy, 22 profesje, przypisane Bronie
+  Duszy, EQ, 6573 istniejące questy, konta, EXP, poziomy i prawdziwą SQLite.
+- Wdrażać wyłącznie po osobnym Windows PREDEPLOY 60/60 PLUS z izolowaną
+  kopią rzeczywistej bazy graczy. Bez GitHuba i dodatkowych TXT.
+
 Soulbound v9.00.0 — NARODZINY NOWYCH BOHATERÓW (Windows)
 Aktualna paczka: v9.00.0 Wymagany oddzielny Windows PREDEPLOY 60/60 PLUS.
 

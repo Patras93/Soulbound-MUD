@@ -251,7 +251,7 @@ def mark_room_discovered_with_points_v2322(self, account_id, room_id, ep_points)
     Previously discovered rooms are intentionally unchanged (no duplicate
     EP or re-award on login). Existing SQLite saves need no reset.
     """
-    points = max(1, min(30, int(ep_points)))
+    points = max(0, min(30, int(ep_points)))
     with self.conn:
         cursor = self.conn.execute(
             "INSERT OR IGNORE INTO exploration_rooms(account_id,room_id) VALUES(?,?)",
@@ -259,10 +259,18 @@ def mark_room_discovered_with_points_v2322(self, account_id, room_id, ep_points)
         )
         if cursor.rowcount <= 0:
             return False
-        self.conn.execute(
-            "INSERT INTO exploration_room_points_v2322(account_id,room_id,ep_points) "
-            "VALUES(?,?,?)", (account_id, str(room_id), points),
-        )
+        if points > 0:
+            self.conn.execute(
+                "INSERT INTO exploration_room_points_v2322(account_id,room_id,ep_points) "
+                "VALUES(?,?,?)", (account_id, str(room_id), points),
+            )
+        else:
+            # New visits have no EP. Record zero explicitly to distinguish
+            # them from historical visits that earned the legacy 1 EP.
+            self.conn.execute(
+                "INSERT OR IGNORE INTO exploration_zero_ep_v1002(account_id,room_id) VALUES(?,?)",
+                (account_id, str(room_id)),
+            )
         for metric, value in (("rooms_discovered", 1), ("explorer_points", points)):
             self.conn.execute(
                 "INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) "
@@ -270,6 +278,34 @@ def mark_room_discovered_with_points_v2322(self, account_id, room_id, ep_points)
                 "value=lifetime_statistics.value+excluded.value,updated_at=CURRENT_TIMESTAMP",
                 (account_id, metric, value),
             )
+    return True
+
+
+def claim_landmark_ep_v1002(self, account_id, room_id, points):
+    """Claim an authored surveyed landmark exactly once, atomic and persistent."""
+    points = max(1, min(30, int(points)))
+    with self.conn:
+        row = self.conn.execute(
+            'SELECT ep_points FROM exploration_room_points_v2322 WHERE account_id=? AND room_id=?',
+            (account_id, str(room_id))).fetchone()
+        # Existing rewarded room never receives an additional EP grant.
+        if row is not None and int(row[0]) > 0:
+            return False
+        self.conn.execute(
+            'INSERT OR IGNORE INTO exploration_rooms(account_id,room_id) VALUES(?,?)',
+            (account_id, str(room_id)))
+        self.conn.execute(
+            'INSERT INTO exploration_room_points_v2322(account_id,room_id,ep_points) VALUES(?,?,?) '
+            'ON CONFLICT(account_id,room_id) DO UPDATE SET ep_points=excluded.ep_points',
+            (account_id, str(room_id), points))
+        self.conn.execute(
+            'DELETE FROM exploration_zero_ep_v1002 WHERE account_id=? AND room_id=?',
+            (account_id, str(room_id)))
+        self.conn.execute(
+            'INSERT INTO lifetime_statistics(account_id,stat_key,value) VALUES(?,?,?) '
+            'ON CONFLICT(account_id,stat_key) DO UPDATE SET '
+            'value=lifetime_statistics.value+excluded.value,updated_at=CURRENT_TIMESTAMP',
+            (account_id, 'explorer_points', points))
     return True
 
 

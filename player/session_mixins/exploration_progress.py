@@ -628,86 +628,19 @@ class SessionExplorationProgressMixin:
                             "Użyj sekret / secret, aby go zbadać."
                         )
 
-            from systems.exploration_point_values_v2322 import room_explorer_points_v2322
+            # Every visit records the map. Only an authored significant location may award EP.
             room_meta = ROOMS[room_id]
-            ep_points = room_explorer_points_v2322(room_meta)
-            # Room history + EP and lifetime totals are saved atomically.
             is_new = self.server.db.mark_room_discovered_with_points_v2322(
-                self.account_id, room_id, ep_points
+                self.account_id, room_id, 0
             )
+            # The EP claim is separate from visit history, so already-visited locations
+            # can still be claimed once after upgrading from older Soulbound versions.
+            from systems.exploration_point_values_v2322 import is_city_ep_excluded_v1002
+            if room_meta.get('v1000_landmark') and not is_city_ep_excluded_v1002(room_meta):
+                await self.claim_landmark_ep_v1002(room_id)
             if not is_new:
                 return False
-
-            # Different rooms grant different EP, not a flat +1 per room.
-            zone_for_ep = str(room_meta.get("zone") or "Nieznany teren")
-            room_stage=max(
-                1,
-                min(
-                    600,
-                    int(
-                        room_meta.get("recommended_mastery")
-                        or room_meta.get("recommended_level")
-                        or room_meta.get("generator_level")
-                        or room_meta.get("level")
-                        or 1
-                    ),
-                ),
-            )
-            # v4.21.1: EP grants four independent, modest, authored-source
-            # XP paths. None uses the EXP required for the next level.
-            # Multi Cap and EXP Bank still govern each payout as before.
-            from systems.milestone_cap_rewards_v2103 import explorer_award_per_point_v4211
-            ep_awards = explorer_award_per_point_v4211(room_stage)
-            ep_xp_total = ep_soul_total = ep_class_total = ep_stat_total = 0
-            for _ in range(ep_points):
-                caps = ep_awards
-                ep_xp_total += caps["character"]
-                ep_soul_total += caps["soul"]
-                ep_class_total += caps["class_total"]
-                ep_stat_total += caps["stat"]
-                # Preserve four existing grant gateways, with stage-based
-                # per-point amounts independent of the character requirements.
-                ep_content_level = max(1, int(self.character.character_level))
-                await self.grant_combat_soul_xp_v11350(
-                    caps["soul"], content_level=ep_content_level, content_scaled=True
-                )
-                if caps["class_total"]:
-                    await self.grant_class_xp(
-                        caps["class_total"], single_level_cap=False,
-                        content_level=ep_content_level, content_scaled=True
-                    )
-                await self.grant_stat_xp_v11342(
-                    caps["stat"], targets=None,
-                    content_level=ep_content_level, content_scaled=True
-                )
-                for message in self.add_character_xp_with_event(
-                    caps["character"], single_level_cap=False,
-                    content_level=ep_content_level, content_scaled=True,
-                ):
-                    if announce:
-                        await self.send(message)
-            # Fame also persists the character after all four grant gateways;
-            # saved room discovery remains one-time and account-isolated.
-            self.server.db.save_character(self.character)
-            await self.advance_class_guild_quest_v11132("explore", 1)
-            if announce:
-                from systems.exploration_point_values_v2322 import zone_explorer_points_v2322
-                zone_ep_now, zone_ep_total = zone_explorer_points_v2322(
-                    EXPLORATION_ZONE_ROOMS.get(zone_for_ep, ()),
-                    self.server.db.discovered_room_ids(self.account_id),
-                    self.server.db.exploration_room_point_awards_v2322(self.account_id),
-                    ROOMS,
-                )
-                await self.send(
-                    f"Odkrycie lokacji: +{ep_points} EP. "
-                    f"EXP za EP (niezależny od progów poziomów): postać +{ep_xp_total}, "
-                    f"Dusza +{ep_soul_total}, każda aktywna klasa +{ep_class_total}, "
-                    f"każda statystyka +{ep_stat_total}. "
-                    f"Wypłaty podlegają Multi Cap i EXP Bankowi; "
-                    f"bez EXP profesji i narzędzi. "
-                    f"{zone_for_ep}: {zone_ep_now} z {zone_ep_total} EP."
-                )
-
+            # Exploration quest, atlas and achievements still progress normally.
             _o_kurde_find_v11324 = exploration_find_v11324(
                 room_meta,
                 int(getattr(self.character, "character_level", 1) or 1),
@@ -785,6 +718,44 @@ class SessionExplorationProgressMixin:
                 and self.server.db.claim_exploration_reward(self.account_id, zone)
             ):
                 await self.complete_zone_exploration(zone, total)
+            return True
+
+    async def claim_landmark_ep_v1002(self, room_id):
+            """Automatic one-time reward when entering a significant authored landmark."""
+            from systems.exploration_point_values_v2322 import room_explorer_points_v2322, is_city_ep_excluded_v1002
+            from systems.milestone_cap_rewards_v2103 import explorer_award_per_point_v1001
+            room_meta = ROOMS.get(str(room_id), {})
+            if not room_meta.get('v1000_landmark') or is_city_ep_excluded_v1002(room_meta):
+                return False
+            ep_points = room_explorer_points_v2322(room_meta)
+            if ep_points <= 0 or not self.server.db.claim_landmark_ep_v1002(self.account_id, room_id, ep_points):
+                return False
+            total_character = 0
+            for _ in range(ep_points):
+                multi_cap = self.server.db.multi_cap_v23215(self.account_id)
+                if multi_cap is None:
+                    raise RuntimeError('EP: brak Multi Cap postaci')
+                caps = explorer_award_per_point_v1001(multi_cap)
+                content_level = max(1, int(self.character.character_level))
+                await self.grant_combat_soul_xp_v11350(
+                    caps['soul'], content_level=content_level, content_scaled=True)
+                if caps['class_total']:
+                    await self.grant_class_xp(
+                        caps['class_total'], single_level_cap=False,
+                        content_level=content_level, content_scaled=True)
+                await self.grant_stat_xp_v11342(
+                    caps['stat'], targets=None, content_level=content_level,
+                    content_scaled=True)
+                for message in self.add_character_xp_with_event(
+                    caps['character'], single_level_cap=False,
+                    content_level=content_level, content_scaled=True):
+                    await self.send(message)
+                total_character += caps['character']
+            self.server.db.save_character(self.character)
+            await self.send(
+                f'Wazne odkrycie: +{ep_points} EP. '
+                f'EXP postaci +{total_character}; każdy punkt daje 100% bieżącego Multi Cap. '
+                'EXP pozostałych dziedzin naliczany osobno; działa EXP Bank.')
             return True
 
     async def discover_current_room(self, announce=True):
@@ -876,7 +847,7 @@ class SessionExplorationProgressMixin:
             target = normalize_lookup_text(args or "")
             if target in ("", "total", "suma", "punkty", "points", "status"):
                 total = int(self.server.db.lifetime_stat(self.account_id, "explorer_points") or 0)
-                await self.send(f"Exploration Points (EP): {total}. Wpisz ep region lub ep all po szczegóły.")
+                await self.send(f"Zdobyte EP: {total}. Region: ep region. Świat: ep all.")
             elif target in ("region", "strefa", "tutaj"):
                 await self.show_exploration("")
             elif target in ("all", "wszystko", "lista", "swiat", "świat"):
@@ -927,6 +898,16 @@ class SessionExplorationProgressMixin:
                 f"Punkty eksploracji: {ep_earned} z {ep_possible} EP, "
                 f"pozostało {max(0, ep_possible-ep_earned)}."
             )
+            from systems.forgotten_horizons_v1000 import NEW_ROOM_IDS, LANDMARK_IDS
+            from systems.eternal_glory_world_v1100 import ROOM_IDS as NEW_V11_IDS, LANDMARK_IDS as V11_LANDMARK_IDS
+            from systems.eternal_glory_depths_v1100 import DUNGEON_ROOM_IDS as NEW_V11_DUNGEONS, DUNGEON_EP_IDS
+            NEW_ROOM_IDS = NEW_ROOM_IDS | NEW_V11_IDS | NEW_V11_DUNGEONS
+            LANDMARK_IDS = LANDMARK_IDS | V11_LANDMARK_IDS | DUNGEON_EP_IDS
+            if zone in {ROOMS[rid]['zone'] for rid in NEW_ROOM_IDS if rid in ROOMS}:
+                mapped = self.server.db.collection_entry_ids(self.account_id, 'cartography_v1100')
+                local = {rid for rid in LANDMARK_IDS if rid in ROOMS and ROOMS[rid]['zone'] == zone}
+                mapped_local = len(local.intersection(mapped))
+                await self.send(f"Kartografia regionu: {mapped_local} z {len(local)} punktów udokumentowanych komendą mapuj; pozostało {len(local)-mapped_local}.")
             await self.send(
                 f"Cały świat: {world_pct}% odkryty. {world_count} z {len(ALL_EXPLORATION_ROOMS)} lokacji. "
                 f"Łącznie zdobyte EP: {earned_world_ep}."

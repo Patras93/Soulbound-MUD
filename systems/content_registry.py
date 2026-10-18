@@ -139,8 +139,31 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v9.00.0 - NARODZINY NOWYCH BOHATEROW"
+LATEST_CHANGES_TITLE = "Soulbound v11.00.12 - IMIENNI NAUCZYCIELE I ICH QUESTY"
 LATEST_CHANGES = [
+    "v11.00.12: osiem imiennych nauczycieli klas v9 oferuje po trzy własne questy klasowe; rozmowa pokazuje zadanie i nadal umożliwia learn. Help mag i pozostale klasy wyświetlają opis bez proszenia o wpisanie nazwy skilla. Skradzione Skrzynie Rudy częściej wypadają z trolli, wymagane 10 sztuk i nagrody bez zmian.",
+    "v11.00.11: help <nazwa skilla> otwiera pełny opis, tak samo jak help skill <nazwa>; działają nowe nazwy 22 klas, stare aliasy, ID i polskie znaki. Bez wykonywania skilla ani zmiany balansu.",
+    "v11.00.10: 4659 nazw skilli odróżnia klasy i mechanikę. Zachowano 5461 ID, wszystkie parametry, wyuczone skille i stare aliasy dla makr.",
+    "v11.00.9: 18 typów questów pokazuje rzeczywiste liczniki; Droga Legendy raportuje każde zaliczenie; przedmioty i zbiórki nie giną w trybie zwięzłej walki; questy postęp.",
+    "v11.00.8: wszystkie deski obrabia Piła w Obozie Drwala; XP Drwalstwa i Piły, nie Kowalstwa; obrabiaj i receptury drwalstwo; wyroby Stolarstwa zachowane.",
+    "v11.00.7: HELP otwiera wyłącznie pomoc, bez komunikatu o użyciu skilla; krótkie nazwy wszystkich dawnych komend z cyframi; stare aliasy zachowane.",
+    "v11.00.6: Krótkie komendy profesja, kupiectwo, karawana, lowy, wyprawa, rozbudowa; stare komendy zgodne.",
+    "v11.00.5: Questy i zlecenia profesji nie wyplacaja Soul XP; oferta NPC wyswietla faktyczne nagrody.",
+    "v11.00.4: Osiem nowych narzędzi w sklepach mistrzów; trwały zakup raz na postać także dla starszych narzędzi.",
+    "v11.00.4: Tablica Zleceń w Sali Głównej Gildii Dusz; zdalny odczyt postępu bez zmian w SQLite.",
+    "v11.00.3: HELP <temat> poprawiony globalnie. Nowe profesje i karawany, inteligentne wyszukiwanie, lista stronicowana pod NVDA.",
+    "v11.00.2: Hotfix Przysiegi Switu, prawidlowy poziom rzeczywistego moba dla Drogi Legendy (22 klasy). Nowy numer wydania umozliwia legalne wdrozenie po v11.00.1.",
+    "v11.00.1: 22 najemników odpowiadających 22 klasom, zachowano stare kontrakty i pełną moc obrażeń; osiem nowych klas ma zadania gildyjne. Droga Legendy zalicza walki każdej aktywnej klasy, bez zmian EXP i SQLite.",
+    'v11.00.0: Era Wiecznej Chwały — dwanaście nowych krain, dwanaście podziemi fabularnych i trzy dodatkowe nieskończone lochy.',
+    'v11.00.0: EP automatycznie za ważne odkrycia poza miastami; 1 EP i 1 unikatowe Fame nagradzają 100% aktualnego Multi Cap EXP.',
+    'v11.00.0: Nowi superbossowie, dwanaście rozdziałów Wojny Pradawnych, mistrzowskie techniki 22 klas, próby i łupy.',
+    'v11.00.0: Rozbudowa najemników, przywołań, 22 profesji, gildii, oceanu i Kartografii; zachowano dawny świat, EXP Bank oraz zapisy SQLite.',
+    'v11.00.0: Przed wdrożeniem wymaga Windows PREDEPLOY 60/60 PLUS na kopii rzeczywistej bazy.',
+    'v10.00.0: Zapomniane Horyzonty: sześć powiązanych regionów, 72 pokoje, 18 punktów mapowania, 6 przewodników, 12 ręcznie opisanych questów.',
+    'v10.00.0: EXP Goal = 50 procent aktualnego Multi Cap; bez zmian nagród i progów. Fame i EP mają zwięzły status pod NVDA.',
+    'v10.00.0: Kartografia regionu pokazuje charakterystyczne miejsca zmapowane komendą mapuj; samo speedwalk nie zalicza dokumentacji.',
+    'v10.00.0: Wszystkie 22 klasy/rasy, 22 profesje, Bronie Duszy, SQLite, EXP Bank, EP/Fame i długoterminowy grind zachowane.',
+
     'v8.00.0: 1680 nowych zadań Drogi Legendy (14 klas × 120 etapów); 14 oddzielnych mentorów.',
     'v8.00.0: wymagające realne walki, elity, bossowie, eksploracja i zdobywanie surowców.',
     'v8.00.0: NVDA — tylko aktualny etap u mentora, krótkie komunikaty postępu; trwały SQLite bez resetów.', 

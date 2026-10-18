@@ -239,6 +239,10 @@ def skill_element_v11339(class_name, skill_name="", explicit_element=""):
         return explicit
     cls = str(class_name or "").strip()
     name = str(skill_name or "").casefold()
+    from core.class_mastery_v1100 import SKILL_ELEMENTS
+    elemental_v11 = SKILL_ELEMENTS.get(name)
+    if elemental_v11:
+        return elemental_v11
 
     if cls == "Czarownik":
         return "fire" if any(x in name for x in ("ogień", "ogien", "inferno", "piekiel")) else "dark"

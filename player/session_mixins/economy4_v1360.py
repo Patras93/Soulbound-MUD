@@ -94,7 +94,7 @@ class SessionEconomy4V1360Mixin:
                 level,last=owned.get(key,(0,now));needed=base*(level+1)**2
                 ready=min(4,max(0,(now-last)//trade.SIX_HOURS))
                 await self.send(f'{key}: {name}, poziom {level}/10, gotowe cykle {ready}. Produkcja {ITEMS[item]["name"]} x{n*level} na cykl. Utrzymanie {currency_price_text(maint*level)} za cykl. Rozbudowa {currency_price_text(needed)}.')
-            await self.send('Komendy: gospodarka rozbuduj kopalnia/tartak/farma/warsztat potwierdz; gospodarka zbierz. Produkcja trafia do banku gildii.')
+            await self.send('Rozbudowa: gospodarka rozbuduj <nazwa budynku> potwierdz. Nazwy są na liście wyżej. Produkcja: gospodarka zbierz. Zasoby trafiają do banku gildii.')
             return
         if cmd in ('rozbuduj','zbierz'):
             leader=self._leader_v1320()
@@ -103,7 +103,7 @@ class SessionEconomy4V1360Mixin:
             clan=int(leader['clan_id'])
             if cmd=='rozbuduj':
                 if len(parts)<3 or parts[2]!='potwierdz':
-                    await self.send('Potwierdź: gospodarka rozbuduj <kopalnia/tartak/farma/warsztat> potwierdz.');return
+                    await self.send('Potwierdź: gospodarka rozbuduj <nazwa budynku> potwierdz. Wpisz gospodarka produkcja, aby poznać nazwy.');return
                 try:level,cost=trade.upgrade_building(conn,clan,parts[1],now=now)
                 except ValueError as e:await self.send(str(e));return
                 await self.send(f'Rozbudowa zakończona. Poziom {level}. Koszt {currency_price_text(cost)} ze skarbca gildii.');return

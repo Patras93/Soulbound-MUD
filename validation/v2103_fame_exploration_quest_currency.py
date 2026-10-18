@@ -23,6 +23,9 @@ class _MockDB:
     def __init__(self):
         self.conn = sqlite3.connect(':memory:')
         self.saved = 0
+    def multi_cap_v23215(self, account_id):
+        assert account_id == 32
+        return 248500
     def save_character(self, char):
         self.saved += 1
 
@@ -62,10 +65,7 @@ def run_regression():
         checks += 1
     s = _MockSession()
     caps = fame_cap_awards_v2103(s)
-    assert caps['character'] == _fame_award_for_level_v4211(55)
-    assert caps['soul'] == _fame_award_for_level_v4211(31)
-    assert caps['stat'] == _fame_award_for_level_v4211(55)
-    assert caps['class_total'] == max(_fame_award_for_level_v4211(70), _fame_award_for_level_v4211(24))
+    assert all(caps[k] == 248500 for k in ('character','soul','stat','class_total'))
     checks += 4
     ensure_schema(s.server.db.conn)
     s.server.db.conn.execute('''INSERT INTO fame_pending_v1703

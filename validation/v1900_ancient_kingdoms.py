@@ -6,7 +6,7 @@ import sqlite3
 from types import SimpleNamespace
 from systems.underground_kingdoms_v1900 import KINGDOMS, DIMENSIONS
 from systems.era_chaos_v1800 import compute_reaction
-from systems.fame_v1702 import fame_catalog, fame_report
+from systems.fame_v1702 import fame_catalog, fame_report, _is_fame_target
 from player.session_mixins.chaos_v1800 import SessionChaosV1800Mixin
 
 
@@ -71,7 +71,12 @@ def run_regression(server=None):
         check(all(0<=float(ward)<=1 for ward in item['element_wards'].values()),
               f'{key} elemental wards within 0-100%')
     catalogue=fame_catalog()
-    check(sum(len(v) for v in catalogue.values())>=800,'800 or more world Fame targets')
+    # Fame 6.0 deliberately removes the old regular-mob padding; all current
+    # objectives must be authored elite, miniboss or boss encounters.
+    fame_total=sum(len(v) for v in catalogue.values())
+    check(fame_total>=700,'700 or more meaningful world Fame targets')
+    check(all(_is_fame_target(mobs[tid]) for members in catalogue.values() for tid in members),
+          'no ordinary monsters in Fame catalog')
     for slug,zone,_,_,_,_,_ in KINGDOMS:
         check(len(catalogue[zone])==15,f'{zone} natural Fame targets')
     for _,zone,_,_ in DIMENSIONS:

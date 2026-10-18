@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Mercenaries 4.0: native class identities, situational moves and party combos.
 
-All fifteen profiles are inherent, not purchased skills or a second XP track.
+All 22 profiles are inherent, not purchased skills or a second XP track.
 They inherit actual owner damage; this module only ADDS situational effects.
 No database writes, background work, damage ceiling, or manual skill commands.
 """
@@ -22,6 +22,13 @@ SPECIALISTS = {
     'mec': ('Adaptacyjny Arsenał', 'dobiera moduły do zagrożenia', 'Strzał Rdzenia', 'Salwa Modułów', 'Przeciążenie Rdzenia'),
     'inzynier': ('Mechanik Polowy', 'wzmacnia osłony i odsłania słabe punkty', 'Impuls Omni-Narzędzia', 'Ostrzał Konstruktu', 'Przeciążenie Osłon'),
     'paladyn': ('Przysięga Opiekuna', 'łączy wiarę, ochronę i ofensywę', 'Święty Cios', 'Sąd Przysięgi', 'Ostrze Odkupienia'),
+    'samuraj': ('Droga Ostrza', 'tępi słabe punkty wroga', 'Cięcie Honoru', 'Kontra Stali', 'Tysiąc Ostrzy'),
+    'korsarz': ('Kapitan Sztormu', 'przełamuje szeregi przeciwników', 'Salwa Sztormu', 'Abordaż Żywiołów', 'Gniew Fali'),
+    'gladiator': ('Mistrz Areny', 'nabiera siły w starciach z bossami', 'Cios Areny', 'Przełamanie Areny', 'Werdykt Czempiona'),
+    'chronomanta': ('Władca Czasu', 'wykorzystuje rytm starcia', 'Impuls Czasu', 'Spowolnienie Przeciwnika', 'Pętla Eonów'),
+    'iluzjonista': ('Tkacz Luster', 'zmienia układ starcia', 'Lustrzany Rozbłysk', 'Zasłona Mirażu', 'Burza Zwierciadeł'),
+    'bard': ('Pieśniarz Chwały', 'prowadzi drużynę dźwiękiem', 'Akord Burzy', 'Pieśń Natarcia', 'Symfonia Gwiazd'),
+    'szaman': ('Głos Przodków', 'łączy żywioły z duchami', 'Gniew Przodków', 'Totem Burzy', 'Zew Duchów'),
 }
 
 
@@ -119,7 +126,11 @@ _MERC_VOICES_V1270 = {
  'nekromanta':'Cienie słuchają.', 'kaplan':'Światło nas ochroni.',
  'czarownik':'Klątwa nabiera mocy.', 'druid':'Natura jest z nami.',
  'psionik':'Wyczuwam twój zamiar.', 'mec':'Protokół bojowy gotowy.',
- 'inzynier':'Kalibruję osłony.', 'paladyn':'Przysięga trwa.'}
+ 'inzynier':'Kalibruję osłony.', 'paladyn':'Przysięga trwa.',
+ 'samuraj':'Honor prowadzi ostrze.', 'korsarz':'Sztorm nam sprzyja.',
+ 'gladiator':'Arena czeka na zwycięzcę.', 'chronomanta':'Czas jest po naszej stronie.',
+ 'iluzjonista':'Spójrz za zasłonę.', 'bard':'Niech zabrzmi pieśń!',
+ 'szaman':'Duchy są z nami.'}
 
 def mercenary_voice_v1270(role, sequence, combo='', boss=False):
     """Deterministic, low-noise flavor every 6th strike (boss: every 4th)."""
@@ -140,6 +151,10 @@ PREFERRED_COMBOS_V1270 = {
     frozenset(('lotrzyk','lucznik')): ('Zasadzka Cieni', 1.10),
     frozenset(('psionik','mnich')): ('Rezonans umysłu i dłoni', 1.08),
     frozenset(('straznik','berserker')): ('Bastion Furii', 1.10),
+    frozenset(('samuraj','gladiator')): ('Honor Areny', 1.10),
+    frozenset(('korsarz','bard')): ('Pieśń Sztormu', 1.10),
+    frozenset(('chronomanta','iluzjonista')): ('Zakrzywienie Zwierciadeł', 1.11),
+    frozenset(('szaman','druid')): ('Szept Pradawnego Lasu', 1.10),
 }
 
 def mercenary_preferred_combo_v1270(role, others):

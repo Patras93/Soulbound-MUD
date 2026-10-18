@@ -23,6 +23,18 @@ def explorer_award_per_point_v4211(room_stage=1):
     return {'character': base, 'soul': base, 'class_total': base, 'stat': base}
 
 
+
+def explorer_award_per_point_v1001(multi_cap):
+    """One earned EP rewards 100% of the *current* full Multi Cap per existing EXP axis.
+
+    Separate character, Soul, class and stat gateways preserve the previous
+    reward destinations. Professions/tools are never rewarded by exploration.
+    EXP Bank remains responsible for per-axis overflow. No EXP is multiplied
+    by the number of level-bearing domains contributing to Multi Cap.
+    """
+    reward = max(1, int(multi_cap))
+    return {'character': reward, 'soul': reward, 'class_total': reward, 'stat': reward}
+
 def _fame_award_for_level_v4211(level):
     """Fixed achievement-reward curve, not a percentage of next-level XP."""
     level = min(800, max(1, int(level or 1)))
@@ -30,17 +42,18 @@ def _fame_award_for_level_v4211(level):
 
 
 def fame_cap_awards_v2103(session):
-    """Fame rewards for each axis; historical name kept for compatibility.
+    """v11 candidate: each UNIQUE Fame is 100% of the current Multi Cap.
 
-    Fame credits remain one-time per significant enemy in SQLite. The boss's
-    ordinary combat XP is separate, unaffected and can be enormous.
+    Fame is durable per canonical target and region. Professions/tools do
+    not receive battle milestone XP. All awards use existing EXP Bank gates.
     """
-    char = session.character
-    active = tuple(session.active_class_names())
-    class_rewards = tuple(_fame_award_for_level_v4211(session.class_mastery_level(name)) for name in active)
-    return {
-        'character': _fame_award_for_level_v4211(char.character_level),
-        'soul': _fame_award_for_level_v4211(char.soul_level),
-        'stat': _fame_award_for_level_v4211(char.character_level),
-        'class_total': max(class_rewards) if class_rewards else 0,
-    }
+    multi_cap = session.server.db.multi_cap_v23215(session.account_id)
+    if multi_cap is None:
+        raise RuntimeError('FAME: brak Multi Cap postaci')
+    reward = max(1, int(multi_cap))
+    # Explicitly classless historical/test sessions have no class mastery
+    # axis to credit; real characters retain their full class allocation.
+    classes = getattr(session, 'active_class_names', None)
+    has_class = bool(classes()) if callable(classes) else True
+    return {'character': reward, 'soul': reward,
+            'stat': reward, 'class_total': reward if has_class else 0}

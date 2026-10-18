@@ -33,8 +33,15 @@ def ensure_schema(conn):
 
 
 def _is_fame_target(template):
-    """Authored Fame enemies; fallback targets are chosen only in empty regions."""
-    return bool(any(template.get(key) for key in (
+    """Only authored elite/miniboss/boss enemies qualify for new Fame.
+
+    Keep older explicitly flagged Fame targets, but never infer a new target
+    from an ordinary creature's strength, random variant or room visitation.
+    """
+    template=template or {}
+    rank=str(template.get('rank') or '').lower()
+    return bool(rank in ('elite','miniboss','boss','world_boss','superboss','champion')
+                or any(template.get(key) for key in (
                 'boss', 'world_boss', 'fame_mob', 'fame_target',
                 'crypt_boss', 'astral_boss', 'mythic_crypt_boss',
                 'mythic_astral_boss', 'giant_fortress_boss', 'magitek_boss',
@@ -84,83 +91,56 @@ def _fame_threat_rank(template_id):
             str(template_id))
 
 
-@lru_cache(maxsize=1)
 def fame_catalog():
-    """Deterministic Fame objectives from naturally placed enemies.
+    """Refresh Fame targets when a lazy dungeon or world content is installed.
 
-    * Keep EVERY old authored objective and EVERY v1.80.1 fallback objective.
-    * Where an existing Fame zone has fewer than the target objective count, include
-      powerful non-boss natural enemies until there are six (if available).
-    * Zones with no prior authored Fame keep all their fallback targets.
-    * Never use random instances, temporary summons or spawn repetition as new
-      objectives. Names remain distinct to avoid indistinguishable Fame hunts.
+    Full startup can expand MOB_SPAWNS, ROOMS and MOB_TEMPLATES after another
+    module first requests Fame. A permanently cached catalog would silently
+    omit newly available elites or bosses until a process restart.
     """
     from systems.content_registry import MOB_SPAWNS
-    authored = {}
-    candidates = {}
-    for rid, mid in MOB_SPAWNS:
+    return _fame_catalog_for_sizes(len(MOB_SPAWNS), len(ROOMS), len(MOB_TEMPLATES))
+
+
+@lru_cache(maxsize=6)
+def _fame_catalog_for_sizes(_spawn_count, _room_count, _mob_count):
+    """Available one-time Fame goals: significant authored opponents only.
+
+    Unlike the pre-v11 generic-mob fallback, regular goblins, rats and common
+    creatures no longer earn *new* Fame. Existing historical SQLite Fame
+    entries survive unchanged and still count towards lifetime earned Fame.
+    Bosses on lazily instantiated endless floors are handled by the existing
+    canonical first-defeat guard when they materialize.
+    """
+    from systems.content_registry import MOB_SPAWNS
+    targets={}
+    for rid,mid in MOB_SPAWNS:
         if rid not in ROOMS:
             continue
-        template = MOB_TEMPLATES.get(mid)
-        if not template or not _eligible_natural_fame_enemy(template):
-            continue
-        zone = fame_region(rid)
-        candidates.setdefault(zone, set()).add(str(mid))
-        if _is_fame_target(template):
-            authored.setdefault(zone, set()).add(str(mid))
-    # v2.00.9: dungeon bosses on generated floors must count as separate
-    # objectives, not a single generic species. The floor is part of the
-    # template id, and the region still groups the entire dungeon.
-    # No repeat farming: persistent SQLite keys are unchanged.
-    dungeon_fields = (
-        ('crypt_floor', 'crypt_floor_'),
-        ('astral_floor', 'astral_floor_'),
-        ('mythic_crypt_floor', 'mythic_crypt_floor_'),
-        ('mythic_astral_floor', 'mythic_astral_floor_'),
-        ('giant_fortress_floor', 'giant_fortress_floor_'),
-        ('magitek_floor', 'magitek_floor_'),
+        meta=MOB_TEMPLATES.get(mid)
+        if meta and _eligible_natural_fame_enemy(meta) and _is_fame_target(meta):
+            targets.setdefault(fame_region(rid),set()).add(str(mid))
+    # Keep boss objectives of materialized / authored dungeon floors stable.
+    dungeon_fields=(
+        ('crypt_floor','crypt_floor_'),
+        ('astral_floor','astral_floor_'),
+        ('mythic_crypt_floor','mythic_crypt_floor_'),
+        ('mythic_astral_floor','mythic_astral_floor_'),
+        ('giant_fortress_floor','giant_fortress_floor_'),
+        ('magitek_floor','magitek_floor_'),
     )
-    for mid, template in MOB_TEMPLATES.items():
-        if not _is_fame_target(template) or not _eligible_natural_fame_enemy(template):
+    for mid,meta in MOB_TEMPLATES.items():
+        if not _is_fame_target(meta) or not _eligible_natural_fame_enemy(meta):
             continue
-        for field, prefix in dungeon_fields:
-            try:
-                floor = int(template.get(field, 0) or 0)
-            except (TypeError, ValueError):
-                floor = 0
-            if floor <= 0:
-                continue
-            room_id = prefix + str(floor)
-            zone = fame_region(room_id)
-            if zone == 'Nieznana kraina':
-                continue
-            candidates.setdefault(zone, set()).add(str(mid))
-            authored.setdefault(zone, set()).add(str(mid))
+        for field,prefix in dungeon_fields:
+            try: n=int(meta.get(field,0) or 0)
+            except (TypeError,ValueError): n=0
+            if n<=0:continue
+            zone=fame_region(prefix+str(n))
+            if zone!='Nieznana kraina':
+                targets.setdefault(zone,set()).add(str(mid))
             break
-    results = {}
-    for zone in sorted(candidates, key=str.casefold):
-        placed = candidates[zone]
-        old_authored = authored.get(zone, set())
-        # v1.80.1: no Fame zone -> all natural types give one Fame each.
-        if not old_authored:
-            results[zone] = tuple(sorted(placed))
-            continue
-        chosen = set(old_authored)
-        # Previously authored objectives keep their IDs and historical SQLite
-        # credit intact. Older areas gain additional, attainable targets.
-        seen_names = {str(MOB_TEMPLATES[t].get('name') or t).casefold()
-                      for t in chosen}
-        if len(chosen) < FAME_TARGET_GOAL_PER_REGION_V1802:
-            for tid in sorted(placed - chosen, key=_fame_threat_rank, reverse=True):
-                if len(chosen) >= FAME_TARGET_GOAL_PER_REGION_V1802:
-                    break
-                name = str(MOB_TEMPLATES[tid].get('name') or tid).casefold()
-                if name in seen_names:
-                    continue
-                seen_names.add(name)
-                chosen.add(tid)
-        results[zone] = tuple(sorted(chosen))
-    return results
+    return {zone:tuple(sorted(ids)) for zone,ids in sorted(targets.items())}
 
 
 def _eligible_natural_fame_enemy(template):
@@ -235,6 +215,10 @@ def _fame_target_identity(mob, catalog, template=None):
 
 
 def record_fame_kill(conn, recipients, mob, template):
+    # Enforce v11 eligibility at the actual award entrypoint as well as the
+    # catalog. Previously a plain mob could be promoted by fallback logic.
+    if not _is_fame_target(template):
+        return []
     if not _eligible_natural_fame_enemy(template) or _is_runtime_summoned_mob(mob):
         return []
     identity = _fame_target_identity(mob, fame_catalog(), template)
@@ -300,7 +284,8 @@ def fame_report(conn, account_id, raw='', room_id=None):
         current = sum((region, bid) in defeated for region, bosses in cat.items()
                       for bid in bosses)
         return [f'Fame: {len(defeated)} punktów. Cele aktualnego świata: '
-                f'{current}/{available}. Teren: where fame lub gdzie fame.']
+                f'{current}/{available}; pozostało {max(0, available-current)}. '
+                f'Teren: where fame lub gdzie fame.']
     if args and args[0] in ('cele', 'targets', 'braki'):
         if room_id is None:
             return ['FAME CELE: podgląd jest dostępny z bieżącej lokacji w świecie.']
@@ -477,8 +462,8 @@ async def pay_due_fame(session):
         count=0
         for region,bid,name,raw_amount in rows:
             if getattr(session,'closed',False) or not session.character:break
-            # v4.21.1: Fame is a permanent one-time milestone with its own
-            # XP reward independent of next-level thresholds or cap size.
+            # v11 Fame: first defeat only, full Multi Cap sampled at payout.
+            # The permanent SQLite ledger and offline payout queue remain unchanged.
             from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
             caps = fame_cap_awards_v2103(session)
             fame_content_level=max(1,int(session.character.character_level))
@@ -498,6 +483,7 @@ async def pay_due_fame(session):
                                f'każda statystyka +{caps["stat"]}; '
                                'każda aktywna klasa otrzymuje własną nagrodę Biegłości. '
                                'Wypłaty po bonusach podlegają EXP Bankowi. '
+                               '1 Fame = 100% bieżącego Multi Cap. '
                                'Bez EXP profesji i narzędzi.')
             count+=1
         return count

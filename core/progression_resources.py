@@ -252,7 +252,12 @@ def v0522_is_profession_quest(quest):
     """
     quest = quest or {}
     return bool(
-        int(quest.get("reward_profession_xp", 0) or 0) > 0
+        # Some v11 profession contracts award only silver.  Their objective,
+        # not the presence of a profession-XP field, determines Soul XP.
+        str(quest.get("kind") or "") in {"profession_action", "craft_set"}
+        or quest.get("required_profession")
+        or quest.get("track_craft_progress")
+        or int(quest.get("reward_profession_xp", 0) or 0) > 0
         or int(quest.get("reward_tool_xp", 0) or 0) > 0
         or quest.get("reward_profession")
         or quest.get("reward_tool_type")

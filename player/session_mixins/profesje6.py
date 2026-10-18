@@ -146,6 +146,29 @@ class SessionProfesje6Mixin:
         if isinstance(result, tuple) and result and isinstance(result[0], list):
             return (self._prof6_relabel_xp(tool_type, result[0]),) + result[1:]
         return result
+    async def profession_work_shortcut_v1106(self, args):
+        await self.profesje6_command('praca ' + str(args or ''))
+
+    async def profession_named_shortcut_v1106(self, args, profession):
+        """`kupiectwo pakuj` == `profesje6 praca Kupiectwo pakuj`.
+
+        Also accepts `kupiectwo praca pakuj 25`, `kupiectwo kup`,
+        `kupiectwo zamowienie`, `kupiectwo oddaj` and `kupiectwo status`.
+        No new payouts, timers, ownership or persistence mechanisms.
+        """
+        raw = str(args or '').strip()
+        parts = raw.split(maxsplit=1)
+        verb = parts[0].casefold() if parts else 'status'
+        rest = parts[1] if len(parts) > 1 else ''
+        if verb in {'help', 'pomoc', 'lista'}:
+            verb = 'czynnosci'
+        elif verb not in {'kup', 'status', 'czynnosci', 'czynności',
+                          'zamowienie', 'zamówienie', 'oddaj', 'dostarcz',
+                          'praca'}:
+            rest = raw
+            verb = 'praca'
+        await self.profesje6_command(f'{verb} {profession} {rest}'.strip())
+
     async def profesje6_command(self,args):
         db=self.server.db
         aid=self.account_id
@@ -157,7 +180,7 @@ class SessionProfesje6Mixin:
         ensure_schema(db)
         parts=str(args or '').strip().split()
         if not parts or parts[0].casefold() in {'lista','pomoc','help'}:
-            await self.send('PROFESJE 6.00: profesje6 lista; profesje6 status <profesja>; profesje6 kup <profesja>; profesje6 nasiona <ilość>; profesje6 czynnosci <profesja>; profesje6 praca <profesja> <czynność> [próg]; profesje6 zamowienie <profesja>; profesje6 oddaj <profesja>.')
+            await self.send('Profesje: profesje lista; profesja status <nazwa>; profesja kup <nazwa>; profesja czynnosci <nazwa>; profesja praca <nazwa> <czynność> [próg]; profesja zamowienie <nazwa>; profesja oddaj <nazwa>. Możesz też wpisać kupiectwo pakuj albo kupiectwo praca pakuj.')
             await self.send('Poziomy profesji i narzędzi 1–800, trudność pracy: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie kupujesz tylko raz na postać.')
             for prof,(tt,i,name) in PROFESSIONS.items():
                 await self.send(f'{prof}: {name}; {", ".join(a.code for a in BASE_ACTIONS if a.prof==prof)}.')
@@ -168,13 +191,13 @@ class SessionProfesje6Mixin:
             return
         prof,act,tier = self._prof6_parse(verb,parts[1:])
         if not prof:
-            await self.send('Nieznana profesja lub czynność. Wpisz profesje6 lista.')
+            await self.send('Nieznana profesja lub czynność. Wpisz profesje lista albo help profesje.')
             return
         tool_type,item_id,tool_name=PROFESSIONS[prof]
         row=db.conn.execute('SELECT 1 FROM prof6_tools_owned WHERE account_id=? AND item_id=?',(aid,item_id)).fetchone()
         if verb == 'kup':
-            if str(self.character.room_id) not in AREAS['market'] | AREAS['harbor'] | {'forge'}:
-                await self.send('Narzędzia profesji kupisz na targu, w porcie lub kuźni.')
+            if str(self.character.room_id) not in (AREAS['market'] | AREAS['harbor'] | {'forge', 'v601_mentor_' + tool_type}):
+                await self.send('Narzędzie kupisz na targu, w porcie, kuźni albo u mistrza swojej profesji.')
                 return
             # Verify database history and existing item before charging: no second
             # purchase even if item is in an alternative storage system.
@@ -190,6 +213,10 @@ class SessionProfesje6Mixin:
                     return
                 db.conn.execute('INSERT INTO prof6_tools_owned VALUES(?,?)',(aid,item_id))
                 db.add_item(aid,item_id,1,commit=False)
+                # Keep canonical character row in sync with shared-wallet coins,
+                # in the SAME transaction as the tool purchase and its ledger.
+                db.conn.execute('UPDATE characters SET silver=?,gold=?,mithril=? WHERE account_id=?',
+                                (*balance,aid))
                 db.conn.commit()
                 self._prof6_apply_wallet(balance)
             except Exception:
@@ -220,7 +247,7 @@ class SessionProfesje6Mixin:
             return
         work=work_for(prof,act,tier)
         if not work:
-            await self.send('Nieznana praca albo próg; dostępne 1,25,75,150,300,500,700. Wpisz profesje6 czynnosci <profesja>.')
+            await self.send('Nieznana praca albo próg; dostępne 1,25,75,150,300,500,700. Wpisz profesja czynnosci <nazwa>.')
             return
         if not row or db.item_qty(aid,item_id)<=0:
             await self.send(f'Wymagany zakupiony i posiadany {tool_name}.')
@@ -282,8 +309,17 @@ class SessionProfesje6Mixin:
             await self.send(f'Zadanie rozpoczęte. Zakończenie za {READY_SECONDS[work.pending]} sekund.')
         for m in messages:
             await self.send(str(m))
-        for quest_id, progress, needed in changed_quests:
-            await self.send(f'Postęp zadania: {quest_id} — {progress} z {needed}.')
+        for quest_id, _progress, _needed in changed_quests:
+            # v11.00.9: show the real quest name and an essential, current
+            # progress counter instead of an internal SQLite quest ID.
+            if hasattr(self, 'announce_active_quest_progress'):
+                await self.announce_active_quest_progress(quest_id)
+            else:
+                # Standalone profession practice harnesses do not carry the
+                # full SessionQuestsMixin, but still receive readable output.
+                from systems.content_registry import QUESTS
+                name = QUESTS.get(quest_id, {}).get('name', quest_id)
+                await self.send(f'Postęp zadania: {name} — {_progress} z {_needed}.')
 
     def _prof6_do_work(self,db,aid,work,prof,tool_type,tier,now):
         for i,q in work.ingredients:

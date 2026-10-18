@@ -2,7 +2,7 @@
 """Quest availability, NPC offers, accepting and abandoning."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import re
-from core.progression_resources import v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
+from core.progression_resources import v0522_is_profession_quest, v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
 from player.session_mixins.character_profile import soul_trial_difficulty_band
 from player.session_mixins.exp_terrain import QUESTS
 from player.session_mixins.gathering import profession_for_tool_type
@@ -807,7 +807,10 @@ class SessionQuestOffersMixin:
             generated_stat=v0190_quest_stat_reward(quest)
             if generated_stat:
                 reward_parts.append(f"EXP każdej statystyki {generated_stat}")
-            generated_soul=v0190_quest_soul_reward(quest)
+            # Present the same Soul XP rule used by the actual quest turn-in.
+            # Profession contracts (also silver-only profession_action quests)
+            # never award Soul XP.
+            generated_soul = 0 if v0522_is_profession_quest(quest) else v0190_quest_soul_reward(quest)
             if generated_soul:
                 reward_parts.append(f"Soul XP {generated_soul}")
             if quest.get("unlocks_soul_tier"):

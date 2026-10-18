@@ -48,9 +48,29 @@ def main():
     print(f'DROGA LEGENDY v8.00.0: {saga_checks} assertions PASS',flush=True)
     from validation.v900_heroes import run_regression as _v900_heroes_plus
     print(f"NOWI BOHATEROWIE v9.00.0: {_v900_heroes_plus()} assertions PASS", flush=True)
+    from validation.v1000_horizons import run_regression as _v1000_horizons_plus
+    print(f"HORYZONTY v10.00.0: {_v1000_horizons_plus()} assertions PASS", flush=True)
+    from validation.v1802_fame_expansion import run_regression as _v1100_fame_scope_plus
+    fame_scope = _v1100_fame_scope_plus()
+    assert fame_scope['targets']>=500 and fame_scope['pending_payout_once']
+    print(f"V11 FAME 6.0: {fame_scope['targets']} important targets; no ordinary mobs; 100% CAP PASS",flush=True)
+    from validation.v1100_eternal_glory import run_regression as _v1100_world_plus
+    print(f"ERA WIECZNEJ CHWALY: {_v1100_world_plus()} assertions PASS", flush=True)
+    from systems.eternal_glory_companions_v1100 import run_regression as _v1100_allies_plus
+    print(f'V11 TACTICS: {_v1100_allies_plus()} assertions PASS', flush=True)
+    from validation.v1100_worldcraft_depths import run_regression as _v1100_content_plus
+    print(f"V11 PODZIEMIA I RZEMIOSLO: {_v1100_content_plus()} assertions PASS", flush=True)
+    from core.class_mastery_v1100 import run_regression as _v1100_mastery_plus
+    print(f'V11 KLASY 22: {_v1100_mastery_plus()} assertions PASS', flush=True)
+    from validation.v1100_guild_tactics import run_regression as _v1100_guild_plus
+    print(f'V11 GILDIE: {_v1100_guild_plus()} SQLite assertions PASS', flush=True)
     from validation.v3315_predeploy_5_players import run_regression as check_five_players
     extra=check_five_players()
     print(f'PREDEPLOY 5 GRACZY v3.31.5: {extra} assertions PASS', flush=True)
+    # Run after every other audit because generated rooms are deliberately
+    # inserted only when touched. This checks the real engine and unique spawns.
+    from validation.v1100_infinite_runtime import run_regression as _infinite_v1100
+    print(f'V11 NIESKONCZONE LOCHY: {_infinite_v1100()} real runtime assertions PASS', flush=True)
     print('PLUS CHECKS PASS',flush=True)
     print('ULTIMATE CASE 60/60 PLUS PASS',flush=True)
 

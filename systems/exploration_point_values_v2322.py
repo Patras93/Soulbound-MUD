@@ -7,12 +7,23 @@ should be more rewarding even if a high-level party leads a lower-level one.
 """
 
 
+def is_city_ep_excluded_v1002(room):
+    """City interiors, services and town zones never award new explorer points."""
+    room = room or {}
+    if room.get('is_city') or room.get('city') or room.get('urban') or room.get('is_town'):
+        return True
+    zone = str(room.get('zone') or '').casefold()
+    return any(token in zone for token in ('miasto', 'miasta', 'city', 'town', 'miasteczko'))
+
+
 def room_explorer_points_v2322(room):
     room = room or {}
+    if is_city_ep_excluded_v1002(room):
+        return 0
     explicit = room.get("exploration_ep")
     if explicit is not None:
         try:
-            return max(1, min(30, int(explicit)))
+            return max(0, min(30, int(explicit)))
         except (TypeError, ValueError):
             explicit = None  # Malformed authored override: use level-based points.
 
@@ -46,9 +57,10 @@ def zone_explorer_points_v2322(room_ids, visited, awarded, rooms):
     earned = possible = 0
     for room_id in room_ids:
         if room_id in visited:
-            value = max(1, int(awarded.get(room_id, 1)))
+            value = max(0, int(awarded.get(room_id, 1)))
             earned += value
         else:
-            value = room_explorer_points_v2322(rooms.get(room_id, {}))
+            value = (room_explorer_points_v2322(rooms.get(room_id, {}))
+                     if rooms.get(room_id, {}).get("v1000_landmark") else 0)
         possible += value
     return earned, possible

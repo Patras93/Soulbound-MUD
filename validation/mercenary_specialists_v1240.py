@@ -17,7 +17,7 @@ def validate_mercenary_specialists_v1240():
         assert condition, 'Najemnicy 4.0: ' + reason
         checks += 1
 
-    ok(set(MERCENARIES) == set(SPECIALISTS) and len(SPECIALISTS) == 15, 'all 15 native roles')
+    ok(set(MERCENARIES) == set(SPECIALISTS) and len(SPECIALISTS) == 22, 'all 22 native roles')
     for role, profile in SPECIALISTS.items():
         ok(len(profile) == 5 and len(set(profile[2:])) == 3, f'3 distinct techniques: {role}')
         ok(MERCENARIES[role]['ability'] == profile[2], f'keeps class default skill: {role}')
@@ -118,10 +118,10 @@ def validate_mercenary_specialists_v1240():
     async def browse():
         user = Browser()
         await user.handle_mercenaries_v1170('specjalizacje')
-        ok(len(user.lines) == 16, '15 specialization records + auto-control note')
+        ok(len(user.lines) == 23, '22 specialization records + auto-control note')
         for spec in MERCENARIES.values():
             ok(any(spec['name'] in line for line in user.lines),
-               'all 15 specialists listed to screen reader')
+               'all 22 specialists listed to screen reader')
         user.lines.clear()
         await user.handle_mercenaries_v1170('specjalizacje Vael')
         ok(len(user.lines) == 2 and 'Tkacz Żywiołów' in user.lines[0],

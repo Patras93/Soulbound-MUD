@@ -25,7 +25,7 @@ def audit_class_quest_cadence_v1289():
         if key.startswith('hourly_class_'):
             check(int(quest.get('repeat_cooldown', 0)) == 7200,
                   f'{key} legacy instructor quest cooldown must be 7200')
-    check(len(GUILD_CLASS_QUEST_POOLS) == 14, '14 class guild quest pools')
+    check(len(GUILD_CLASS_QUEST_POOLS) == 22, '22 class guild quest pools')
 
     class FakeCharacter:
         def __init__(self, raw):

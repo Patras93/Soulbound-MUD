@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """v4.00.5 static and runtime regression: no aliasing and no content loss."""
 from __future__ import annotations
+from validation.v1100_release_counts import expected_quest_total_v1100
 import ast
 import hashlib
 import json
@@ -44,9 +45,9 @@ def run_regression():
         assert name in server.__dict__ and isinstance(server.__dict__[name],dict),name
         assert set(a).issubset(server.__dict__[name]) or name in ('HELP_TOPICS','HELP_TOPIC_ALIASES'),name
         counts+=7
-    assert len(server.CLASS_SKILLS)==(22 if VERSION == '9.00.0' else 14)
+    assert len(server.CLASS_SKILLS)==(22 if VERSION in ('9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 14)
     counts+=1
-    assert len(server.QUESTS)== (6573 if VERSION == '9.00.0' else 5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0') else 2701)
+    assert len(server.QUESTS)== (expected_quest_total_v1100() if VERSION in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6585 if VERSION in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6573 if VERSION == '9.00.0' else 5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 2701)
     counts+=1
     assert all(name in server.__dict__ for name in ('HELP_TOPICS','HELP_TOPIC_ALIASES','NPC_DESCRIPTIONS'))
     counts+=1

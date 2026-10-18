@@ -72,34 +72,16 @@ class SessionQuestProgressMixin:
                 item_id,
                 amount,
             )
-            for quest_id, progress, needed in changed:
-                quest = QUESTS[quest_id]
-                target_id = canonical_profession_resource_id(quest["target"])
-                target_name = ITEMS.get(target_id, ITEMS[item_id])["name"]
-                if progress >= needed:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"Postęp {progress} z {needed}: {target_name}. "
-                        "Cel wykonany."
-                    )
-                else:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"Postęp {progress} z {needed}: {target_name}."
-                    )
+            # v11.00.9: use the same essential announcements for resources,
+            # including multi-resource quest sets and physical stock checks.
+            for quest_id, _progress, _needed in changed:
+                await self.announce_active_quest_progress(quest_id)
 
             multi_changed = self.server.db.increment_resource_set_quest_v0929(
                 self.account_id, item_id, amount
             )
-            for quest_id, total, needed, target_id, target_progress, target_needed in multi_changed:
-                quest = QUESTS[quest_id]
-                target_name = ITEMS.get(target_id, {"name": target_id})["name"]
-                await self.send(
-                    f"Postęp questa: {quest['name']}. {target_name}: "
-                    f"{target_progress} z {target_needed}. Łącznie {total} z {needed}."
-                )
-                if total >= needed:
-                    await self.send("Wszystkie próbki zostały zebrane. Wróć do NPC.")
+            for quest_id in dict.fromkeys(change[0] for change in multi_changed):
+                await self.announce_active_quest_progress(quest_id)
 
     def craft_set_progress(self, row, quest):
             targets = tuple(quest.get("targets") or ())
@@ -284,14 +266,14 @@ class SessionQuestProgressMixin:
                 return
 
             if q.get('v800_class_saga'):
-                # At most five concise updates per step, with an immediate
-                # ready-to-turn-in message. Never hide important completion.
-                interval=max(1,(needed+4)//5)
-                if progress<needed and progress % interval:
-                    return
-                ready_text=' GOTOWE DO ODDANIA.' if progress>=needed else ''
-                await _send_progress(f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
-                                     f'{progress}/{needed}.{ready_text}')
+                # v11.00.9: report EVERY credited victory. Previously stages
+                # requiring several kills silently suppressed up to 80% of
+                # progress updates, appearing broken under NVDA.
+                ready_text = ' GOTOWE DO ODDANIA.' if progress >= needed else ''
+                await _send_progress(
+                    f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
+                    f'Postęp {progress} z {needed}.{ready_text}'
+                )
                 return
 
             if q.get("kind") == "kill":
@@ -378,41 +360,10 @@ class SessionQuestProgressMixin:
                 amount,
             )
 
-            for quest_id, progress, needed in changed:
-                quest = QUESTS[quest_id]
-                item_name = ITEMS[item_id]["name"]
-
-                if quest.get("kind") == "craft_set":
-                    if progress >= needed:
-                        await self.send(
-                            f"Postęp questa: {quest['name']}. "
-                            f"Wykonałeś element: {item_name}. "
-                            f"Elementy zestawu {progress} z {needed}. "
-                            "Pełny zestaw wykonany 1 z 1."
-                        )
-                    else:
-                        await self.send(
-                            f"Postęp questa: {quest['name']}. "
-                            f"Wykonałeś element: {item_name}. "
-                            f"Elementy zestawu {progress} z {needed}."
-                        )
-                    continue
-
-                if progress >= needed:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"Wykonałeś: {item_name}. "
-                        f"Postęp {progress} z {needed}. "
-                        "Wymagana liczba została wykonana. "
-                        f"Zachowaj {needed} sztuk do oddania "
-                        f"{quest['giver']}."
-                    )
-                else:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"Wykonałeś: {item_name}. "
-                        f"Postęp {progress} z {needed}."
-                    )
+            # Canonical quest progress is always essential to NVDA; do not
+            # send ordinary lines that disappear during automatic combat.
+            for quest_id, _progress, _needed in changed:
+                await self.announce_active_quest_progress(quest_id)
 
             # v0.60.0: rotujące zamówienia NPC liczą te same realne craft events.
             await self.announce_crafting_order_progress_v0600(item_id, amount)
@@ -652,10 +603,12 @@ class SessionQuestProgressMixin:
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
             # NVDA: a new mentor offers only the current unfinished stage, not
             # 120 long lines. "przyjmij 1" always selects this stage.
-            if npc.get('v601_profession_master') or npc.get('v700_story_npc') or npc.get('v800_class_mentor'):
+            if npc.get('v601_profession_master') or npc.get('v700_story_npc') or npc.get('v800_class_mentor') or npc.get('v1112_teacher_quests'):
                 if npc.get('v800_class_mentor') and npc.get('v800_required_class') not in self.active_class_names():
                     return []
-                chain=tuple(npc.get('specialist_quests') or ())
+                if npc.get('v1112_teacher_quests') and npc.get('teacher_class') not in self.active_class_names():
+                    return []
+                chain=tuple(npc.get('quest_chain') or ()) if npc.get('v1112_teacher_quests') else tuple(npc.get('specialist_quests') or ())
                 for qid in chain:
                     row=self.server.db.quest(self.account_id,qid)
                     if row and row['status']=='active':

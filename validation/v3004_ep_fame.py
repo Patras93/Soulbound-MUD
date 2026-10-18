@@ -12,6 +12,8 @@ def run_regression():
 
     class Classless:
         character = SimpleNamespace(character_level=19, soul_level=17)
+        account_id = 1
+        server = SimpleNamespace(db=SimpleNamespace(multi_cap_v23215=lambda account: 248500))
         def active_class_names(self):
             return ()
         def class_mastery_level(self, name):

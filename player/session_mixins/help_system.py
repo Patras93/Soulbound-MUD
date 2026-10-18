@@ -2,6 +2,7 @@
 """HELP, changelog and skill help."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import os
+from difflib import get_close_matches
 from core.classes_skills import effective_skill_mana_cost
 from core.progression_600 import SKILL_MAX_LEVEL
 from core.progression_resources import skill_xp_to_next
@@ -10,7 +11,7 @@ from player.session_mixins.io_auth_character import CLASS_SKILLS
 from player.session_mixins.museum_bounty import BESTIARY_CATALOG
 from storage.db_schema import FISH_RESOURCE_IDS
 from systems.content_registry import LATEST_CHANGES, LATEST_CHANGES_TITLE
-from world.equipment_help import HELP_TOPICS, HELP_TOPIC_ALIASES
+from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES
 from world.world_state import _FINAL_SKILL_HELP_EXACT_INDEX, _FINAL_SKILL_HELP_SEARCH_ROWS
 
 
@@ -68,6 +69,9 @@ class SessionHelpSystemMixin:
 
     async def show_where(self, args=""):
             action = normalize_lookup_text(args or "")
+            if action in ("ep", "punkty", "eksploracja"):
+                await self.show_exploration("")
+                return
             if action in ("fame", "fama"):
                 # Region-based Fame also supports lazily generated dungeon floors.
                 await self.fame_v1702("tutaj")
@@ -88,6 +92,7 @@ class SessionHelpSystemMixin:
 
     def help_commands(self):
             lines = [
+                "KRÓTKIE KOMENDY: help proste komendy — wszystkie nowe i stare aliasy; help <temat> otwiera opis, nie używa umiejętności.",
                 "help / pomoc - kategorie pomocy; help [temat] / pomoc [temat] - wybrany temat; help tematy / topics - pełna lista",
                 "changes / zmiany / changelog - ostatnie zmiany (do 20 linii); zmiany 50 / 100; zmiany wszystkie - pełna historia",
                 "progress / postep - pełne podsumowanie: Level, Biegłość, Soul, profesje, reputacje, osiągnięcia, tytuły i eksploracja; progress region - bieżący region",
@@ -111,7 +116,7 @@ class SessionHelpSystemMixin:
                 "zdobycze [legendarne|epickie|rzadkie|wszystkie] [1-30] / zdobycze szukaj <nazwa> — czytelna lista zapisanych dropów",
                 "loot rare+ / epic+ / legendary / all / off - filtr komunikatów lootu pod NVDA",
                 "opis [nazwa] / describe [name] - szczegółowy opis elementu świata",
-                "najemnicy (w tawernie) - 15 postaci do wyboru: 14 klas + Paladyn; najemnik skille [imię] - podgląd zdolności; najemnik specjalizacje [imię] - automatyczne specjalizacje 4.0; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy> - do 3 NPC na stałe, niezależnie od pomocników UOSS",
+                "najemnicy (w tawernie) - 22 postacie do wyboru: po jednym najemniku dla każdej z 22 klas; najemnik skille [imię] - podgląd zdolności; najemnik specjalizacje [imię] - automatyczne specjalizacje 4.0; najemnik wynajmij <imię>; najemnik status; najemnik odeslij <imię|wszyscy> - do 3 NPC na stałe, niezależnie od pomocników UOSS",
                 "look lub l - opis aktualnej lokacji",
                 "exits / ex - kierunki i nazwy lokacji, do których prowadzą; exits info dodaje strefę i poziom zagrożenia",
                 "map / mapa - w świecie mapa regionu, w instancji mapa sektora 100 pięter z procentem, sekretami i checkpointami; mapa instancje - podsumowanie",
@@ -162,12 +167,12 @@ class SessionHelpSystemMixin:
                 "hp / zdrowie - szybkie bieżące i maksymalne HP oraz Mana",
                 "score / wynik - podsumowanie postaci, klas, Biegłości, Duszy (Soul XP: obecny / wymagany / brakujący), statystyk, portfela i terenu",
                 "odmiana / przypadki - pokaż 7 form imienia postaci",
-                "skills / umiejetnosci - szczegółowa lista umiejętności aktywnych klas; skills all - nazwy skilli/spelli wszystkich 14 klas",
+                "skills / umiejetnosci - lista umiejętności aktywnych klas; skills all - nazwy skilli/spelli wszystkich 22 klas",
                 "spells / spels / czary - czary aktywnych klas magicznych; spells all / spels all - czary wszystkich klas magicznych",
                 "kodeksklasowy <klasa> / classcodex <class> - wszystkie skille, wymagana Biegłość, nauczyciel, koszt i status odblokowania",
                 "skillnames / nazwyskilli - wszystkie nazwy skilli wszystkich klas",
                 "skill / umiejetnosc / cast <nazwa lub numer> [cel] - użyj umiejętności",
-                "help skill <nazwa> / help <nazwa skilla> / skill info <nazwa> - pełny help każdej umiejętności/spella w grze",
+                "help skill <nazwa> / skill info <nazwa> - pomoc konkretnej umiejętności; help <temat> zawsze wyświetla temat pomocy",
                 "kolejka / kolejka lista - pokaż zapisane skille i czary; każda kolejka ma 40 aktywnych slotów na Levelu 1 i +1 slot co 10 Leveli, do 120 na Levelu 800; kolejka dodaj automatycznie włącza rotację",
                 "kolejka usuń <nr>, kolejka wyczyść [typ], kolejka góra/dół i kolejka on/off - pełne zarządzanie rotacją; pasywki nie zajmują slotów",
                 "aoe on / aoe off - globalnie włącza lub ogranicza ofensywne efekty wielocelowe; help aoe pokazuje zasady targetowania i party",
@@ -181,7 +186,7 @@ class SessionHelpSystemMixin:
                 "portfel - pokazuje wspólną walutę wszystkich postaci na koncie oraz kurs nominałów",
                 "professions / profesje - szybki stan profesji; profesje info - XP, rangi i zasady",
                 "narzedzia / tools - szybki stan narzędzi; narzedzia info - XP, Tiery, bonusy i sprzedawcy",
-                "professions / profesje - 14 profesji 1-600: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia, Kartografia",
+                "profesje - 22 profesje do poziomu 800; starsze 14: Wędkarstwo, Górnictwo, Drwalstwo, Zielarstwo, Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo, Zaklinanie, Archeologia, Kartografia. Do tego 8 nowych. Komendy: profesja kup <nazwa>; pracuj Kupiectwo pakuj",
                 "archeologia / wykop - profesja eksploracyjna 1-600; kartografia / mapuj - profesja eksploracyjna 1-600",
                 "statek / zegluj / skarby / handel morski - Ocean 2.0; help ocean pokazuje pełną składnię",
                 "handel morski wez <nr> / oddaj / porzuc - kontrakt morski; objazd lub zmiana wód nie zeruje aktywnego kontraktu",
@@ -581,11 +586,37 @@ class SessionHelpSystemMixin:
             return True
 
     async def show_help(self, topic=""):
-            raw = topic.strip().lower()
+            # v11.00.3: canonical topic takes priority over historical aliases.
+            # Historically an alias "klasy" -> "multiclass" hid the real help
+            # for "klasy", and topics like "Kupiectwo" were absent altogether.
+            raw = str(topic or "").strip().lower()
             folded = normalize_lookup_text(raw)
-            key = HELP_TOPIC_ALIASES.get(raw, HELP_TOPIC_ALIASES.get(folded, raw))
-            if key not in HELP_TOPICS and folded in HELP_TOPICS:
+            if not raw:
+                key = ""
+            elif raw in HELP_TOPICS:
+                key = raw
+            elif folded in HELP_TOPICS:
                 key = folded
+            else:
+                searchable = {}
+                # One canonical normalization handles Polish accents, spaces,
+                # underscores and hyphens without losing original topic names.
+                for name in HELP_TOPICS:
+                    searchable.setdefault(normalize_lookup_text(name), name)
+                for alias, destination in HELP_TOPIC_ALIASES.items():
+                    if destination in HELP_TOPICS:
+                        searchable.setdefault(normalize_lookup_text(alias), destination)
+                key = searchable.get(folded)
+                if key is None:
+                    key = searchable.get(folded.replace(" ", ""), raw)
+                if key not in HELP_TOPICS and folded.replace(" ", ""):
+                    # Only a unique compact spelling may auto-resolve. For
+                    # ambiguous input provide suggestions, not the wrong help.
+                    compact = folded.replace(" ", "")
+                    compact_hits = {dest for alias, dest in searchable.items()
+                                    if alias.replace(" ", "") == compact}
+                    if len(compact_hits) == 1:
+                        key = next(iter(compact_hits))
 
             # v0.8.72: temat administratora jest całkowicie ukryty przed zwykłymi kontami.
             if key == "admin_owner" and not self.is_admin():
@@ -605,35 +636,80 @@ class SessionHelpSystemMixin:
             if explicit_skill_help:
                 if await self.show_skill_help(raw):
                     return
-            elif key not in HELP_TOPICS and key not in ("tematy", "komendy", "wszystko"):
-                if await self.show_skill_help(raw):
-                    return
+                await self.send('Nie ma takiej umiejętności. Wpisz help umiejetnosci albo help tematy.')
+                return
+            if folded in ('skill', 'spell', 'czar', 'umiejetnosc', 'zdolnosc'):
+                await self.send('POMOC: UMIEJĘTNOŚCI')
+                await self.send('Spis: umiejetnosci lub nazwyskilli. Opis konkretnej umiejętności: help skill <nazwa>.')
+                return
 
             if not key or key == "kategorie":
                 await self.send("POMOC — KATEGORIE")
-                await self.send("START: help podstawy, help progresja800, help multiclass, help wzniesienie, help worldtier, help informacje, help komendy, help nawigacja.")
+                await self.send("START: help podstawy, help proste komendy, help progresja800, help informacje, help komendy, help nawigacja.")
                 await self.send("POSTAĆ: help statystyki, help hp, help score, help level, help dusza, help ekwipunek, help klasy, help rasy, help multiclass, help wzniesienie, help worldtier, help moogle board.")
                 await self.send("WALKA: help walka, help statusy, help wimpy, help bossowie, help superbossy, help krytyki, help umiejetnosci, help druzyny, help skrzynie_bossow.")
                 await self.send("ŚWIAT: help questy, help nawigacja, help ocean, help era60, help kontynent, help labirynt echa, help podziemia, help eksploracja, help bestiariusz, help atlas, help krypta, help portale, help sklepy.")
+                await self.send("NOWE PROFESJE: help lowiectwo, help rolnictwo, help hodowla, help okretownictwo, help murarstwo, help inzynieria, help kupiectwo, help zeglarstwo, help karawana.")
                 await self.send("PROFESJE: help profesje, help wedkarstwo, help gornictwo, help geody, help drwalstwo, help zielarstwo, help alchemia, help rzemioslo, help gotowanie, help jubilerstwo2, help krawiectwo/tailoring, help garbarstwo/leatherworking, help stolarstwo/carpentry, help zaklinanie/enchanting, help archeologia, help kartografia, help craftmastery.")
                 await self.send("SPOŁECZNE: help gracze, help druzyny, help najemnicy, help przekazywanie, help reputacja, help social2, help mentor2, help housing2, help leaderboards2, help bufory, help pieniadze, help charyzma.")
                 await self.send("SYSTEM: help logowanie, help smierc, help recaps, help loothistory2, help accessibility_presets, help audyt_v03055, help opisy, help zmiany.")
                 if self.is_admin():
                     await self.send("ADMINISTRATOR: help admin.")
-                await self.send("help tematy / help topics — pełna lista tematów.")
+                await self.send("help tematy — lista tematów stronami; help tematy 2 — następna strona; help tematy wszystkie — komplet.")
+                await self.send("help szukaj <fraza> — wyszukanie tematu i informacji.")
                 await self.send("help wszystko / help all — pełny przewodnik.")
-                await self.send("help <temat> albo pomoc <temat> — otwiera wybraną pomoc.")
-                await self.send("help skill <nazwa> — pełna pomoc konkretnego skilla lub spella.")
+                await self.send("help <temat> albo pomoc <temat> — zawsze otwiera pomoc, nigdy nie wykonuje komendy ani skilla.")
+                await self.send("help skill <nazwa> — opis konkretnego skilla lub spella (nie wykonuje go).")
                 await self.send("Samo help albo pomoc zawsze wraca do tego indeksu kategorii.")
                 return
 
-            if key == "tematy":
-                await self.send("TEMATY POMOCY")
-                for name in HELP_TOPICS:
+            if folded.startswith(("szukaj ", "search ")):
+                phrase = folded.split(" ", 1)[1].strip()
+                if not phrase:
+                    await self.send("Użycie: help szukaj <fraza>.")
+                    return
+                found = []
+                for name, content in HELP_TOPICS.items():
                     if name == "admin_owner" and not self.is_admin():
                         continue
+                    lines = content if isinstance(content, (list, tuple)) else [content]
+                    if phrase in normalize_lookup_text(name) or any(
+                        phrase in normalize_lookup_text(row) for row in lines
+                    ):
+                        found.append(name)
+                await self.send(f"HELP SZUKAJ: {phrase}. Wyniki {len(found)}.")
+                if found:
+                    await self.send("Tematy: " + ", ".join(found[:15]) + ".")
+                    if len(found) > 15:
+                        await self.send("Więcej wyników: doprecyzuj szukaną frazę.")
+                else:
+                    await self.send("Brak wyników. Wpisz help tematy.")
+                return
+
+            if key == "tematy" or folded.startswith("tematy "):
+                tail = folded[6:].strip() if folded.startswith("tematy ") else ""
+                names = sorted(name for name in HELP_TOPICS
+                               if name != "admin_owner" or self.is_admin())
+                if tail in ("wszystkie", "all"):
+                    await self.send(f"TEMATY POMOCY: {len(names)} wszystkich tematów.")
+                    for name in names:
+                        await self.send(name)
+                    return
+                if tail and not tail.isdecimal():
+                    await self.send("Użycie: help tematy [numer strony], albo help tematy wszystkie.")
+                    return
+                page = max(1, int(tail or "1"))
+                per_page = 25
+                total_pages = max(1, (len(names) + per_page - 1) // per_page)
+                if page > total_pages:
+                    await self.send(f"Nie ma strony {page}. Dostępne strony 1-{total_pages}.")
+                    return
+                await self.send(f"TEMATY POMOCY: strona {page}/{total_pages}, łącznie {len(names)} tematów.")
+                for name in names[(page-1)*per_page:page*per_page]:
                     await self.send(name)
-                await self.send("Dodatkowo: komendy, wszystko.")
+                await self.send(f"help tematy {page+1} — następna strona." if page < total_pages
+                                else "Koniec listy. help tematy wszystkie — całość.")
+                await self.send("help szukaj <fraza> — szukanie we wszystkich tematach.")
                 return
 
             if key == "komendy":
@@ -657,7 +733,48 @@ class SessionHelpSystemMixin:
 
             lines = HELP_TOPICS.get(key)
             if not lines:
-                await self.send("Nie znam takiego tematu pomocy. Wpisz help tematy albo help komendy.")
+                # `help <komenda>` should show actual help, not ask the player
+                # to activate a skill. Covers all remaining registered commands
+                # and aliases without touching gameplay or swallowing typos.
+                from core.command_catalog import COMMAND_CATALOG
+                from player.session_mixins.command_registry import COMMAND_REGISTRY
+                resolved = COMMAND_CATALOG.resolve(raw)
+                if resolved in COMMAND_REGISTRY and resolved not in ('admin', 'wipe'):
+                    definition = COMMAND_CATALOG.definition(resolved)
+                    aliases = sorted(a for a in (definition.aliases if definition else ())
+                                     if not any(ch.isdigit() for ch in a))
+                    await self.send('POMOC: ' + resolved.upper())
+                    await self.send('Komenda: ' + (aliases[0] if aliases else resolved) +
+                                    ' [argumenty].')
+                    if aliases:
+                        await self.send('Inne nazwy: ' + ', '.join(aliases[:8]) + '.')
+                    await self.send('Opis i składnia: help komendy; help szukaj ' + resolved + '.')
+                    return
+                # v11.00.11: "help <pełna nazwa skilla>" musi rzeczywiście
+                # korzystać z tego samego indeksu co "help skill <nazwa>".
+                # Tematy i zarejestrowane komendy mają pierwszeństwo;
+                # rozpoznana umiejętność otwiera wyłącznie opis (bez wykonania).
+                # Indeks obsługuje polskie znaki, dawne aliasy i niezmienne ID.
+                if self.find_global_skill_help_matches(raw):
+                    await self.show_skill_help(raw)
+                    return
+                available = {}
+                for name in HELP_TOPICS:
+                    if name != "admin_owner" or self.is_admin():
+                        available[normalize_lookup_text(name)] = name
+                for alias, destination in HELP_TOPIC_ALIASES.items():
+                    if destination in HELP_TOPICS and destination != "admin_owner":
+                        available.setdefault(normalize_lookup_text(alias), destination)
+                suggestions = []
+                for match in get_close_matches(folded, available, n=8, cutoff=0.52):
+                    value = available[match]
+                    if value not in suggestions:
+                        suggestions.append(value)
+                    if len(suggestions) == 3:
+                        break
+                await self.send(f"Nie ma tematu pomocy: {raw}." +
+                    (" Podobne: " + ", ".join("help " + x for x in suggestions) + "." if suggestions else ""))
+                await self.send("help szukaj <fraza> — szukaj tematu; help tematy — lista stronami.")
                 return
 
             await self.send("POMOC: " + key.upper())

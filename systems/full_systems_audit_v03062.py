@@ -29,9 +29,18 @@ def full_systems_audit_v03062():
     bad_exits=[]
     dyn_prefixes=("prof_","mine_floor_","crypt_floor_","astral_floor_","mythic_crypt_floor_","mythic_astral_floor_","giant_fortress_","v0130_frontier_","v018_endless_","v020_mega_","magitek_floor_","uoss_deep_dungeon_floor_",
                   "eth_void_floor_","eth_holy_floor_","eth_shadow_floor_","v1500_echo_")
+    # Validate the new lazy dungeon *only* when its floor resolver is present.
+    from systems.eternal_glory_infinite_v1100 import identity as v1100_infinite_identity
+    from world.world_state import World
+    infinite_ready = bool(getattr(World.ensure_infinite_dungeon_floor,
+                                  '_v1100_infinite', False))
     for rid,r in ROOMS.items():
         for d,t in (r.get('exits') or {}).items():
-            if t not in ROOMS and not str(t).startswith(dyn_prefixes): bad_exits.append((rid,d,t))
+            if t in ROOMS or str(t).startswith(dyn_prefixes):
+                continue
+            if infinite_ready and v1100_infinite_identity(t) is not None:
+                continue
+            bad_exits.append((rid,d,t))
     check('world_exits', not bad_exits, str(bad_exits[:10]))
     check('classes_14', len(CLASSES)==22, len(CLASSES))
     base_skills_per_class=len(_V0922_MASTERY_LEVELS)*3
@@ -88,7 +97,7 @@ def full_systems_audit_v03062():
 
     # Professions/tools
     expected={"fishing":"Wędkarstwo","mining":"Górnictwo","woodcutting":"Drwalstwo","crafting":"Kowalstwo","cooking":"Gotowanie","herbalism":"Zielarstwo","alchemy":"Alchemia","jewelcrafting":"Jubilerstwo","tailoring":"Krawiectwo","leatherworking":"Garbarstwo","carpentry":"Stolarstwo","enchanting":"Zaklinanie","archaeology":"Archeologia","cartography_profession":"Kartografia"}
-    check('professions_count', len(PROFESSION_RANK_NAMES)==(22 if str(VERSION).startswith(('6.','7.','8.','9.')) else 14), len(PROFESSION_RANK_NAMES))
+    check('professions_count', len(PROFESSION_RANK_NAMES)==(22 if str(VERSION).startswith(('6.','7.','8.','9.','10.','11.')) else 14), len(PROFESSION_RANK_NAMES))
     check('tool_profession_map', all(TOOL_PROFESSION_MAP.get(k)==v for k,v in expected.items()), TOOL_PROFESSION_MAP)
     check('tool_tiers_80', len(TOOL_TIER_THRESHOLDS)==TOOL_MAX_TIER==80, len(TOOL_TIER_THRESHOLDS))
 

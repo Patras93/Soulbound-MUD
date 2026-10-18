@@ -9,6 +9,9 @@ from core.bootstrap_economy_professions import currency_reading_text
 from core.classes_skills import CLASS_DESCRIPTIONS, CLASS_SKILLS, ROOMS
 from core.mines_threat import EQUIPMENT_SLOT_NAMES, ITEMS, TOOL_BUY_ALIASES, TOOL_SHOP_ROOMS, is_character_bound_item
 from core.progression_600 import CHARACTER_MAX_LEVEL, SKILL_MAX_LEVEL
+from systems.new_professions import PROFESSIONS as _PROF6_PROFESSIONS
+_PROF6_TOOL_PROF_BY_ITEM = {item_id:prof for prof, (_, item_id, _) in _PROF6_PROFESSIONS.items()}
+_PROF6_TOOL_TYPES = {row[0] for row in _PROF6_PROFESSIONS.values()}
 from core.progression_resources import skill_xp_to_next
 from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS
@@ -129,6 +132,10 @@ class SessionShopsTeachersMixin:
             return results
 
     def shop_offer_unit_cashback_silver(self, item):
+            # The eight v6 tool orders are priced at a fixed 1200 silver in
+            # profesje6's transactional ledger. Show that same price in shop.
+            if item.get('type')=='tool' and item.get('tool_type') in _PROF6_TOOL_TYPES:
+                return 0
             base = self.shop_item_base_value_silver(item)
             if base <= 0:
                 return 0
@@ -398,8 +405,32 @@ class SessionShopsTeachersMixin:
                 return
 
             item_id, item = found
+            # v11.00.4: the shop and profesje6 share ONE immutable purchase ledger.
+            # Generic buy must not bypass the profession's once-per-character rule.
+            if item_id in _PROF6_TOOL_PROF_BY_ITEM:
+                if quantity != 1:
+                    await self.send('Narzędzie profesji można kupić tylko raz na postać, jedną sztukę.')
+                    return
+                await self.profesje6_command('kup ' + _PROF6_TOOL_PROF_BY_ITEM[item_id])
+                return
 
-            if item.get("type") == "tool" and is_character_bound_item(item_id):
+            _legacy_bound_tool = item.get("type") == "tool" and is_character_bound_item(item_id)
+            if _legacy_bound_tool:
+                # Canonical persistent purchase history for ALL 22 tools.
+                # Existing owned inventory is imported on-demand so the
+                # update cannot bill an existing player for a second copy.
+                from player.session_mixins.profesje6 import ensure_schema as _ensure_tool_history
+                _ensure_tool_history(self.server.db)
+                if self.server.db.item_qty(self.account_id,item_id) > 0 or self.server.db.storage_qty(self.account_id,'craftbox',item_id)>0:
+                    self.server.db.conn.execute(
+                        'INSERT OR IGNORE INTO prof6_tools_owned(account_id,item_id) VALUES (?,?)',
+                        (self.account_id,item_id))
+                    self.server.db.conn.commit()
+                if self.server.db.conn.execute(
+                    'SELECT 1 FROM prof6_tools_owned WHERE account_id=? AND item_id=?',
+                    (self.account_id,item_id)).fetchone():
+                    await self.send(f"Narzędzie {item['name']} zostało już kupione dla tej postaci. Nie możesz kupić go ponownie.")
+                    return
                 if quantity != 1:
                     await self.send(
                         f"{item['name']} jest przypisany do postaci i można kupić tylko jedną sztukę."
@@ -491,6 +522,10 @@ class SessionShopsTeachersMixin:
                 )
             if item.get("type") == "tool":
                 self.server.db.ensure_tool(self.account_id, item["tool_type"])
+                if _legacy_bound_tool:
+                    self.server.db.conn.execute(
+                        'INSERT INTO prof6_tools_owned(account_id,item_id) VALUES (?,?)',
+                        (self.account_id,item_id))
             self.server.db.save_character(self.character)
             if quantity == 1:
                 await self.send(

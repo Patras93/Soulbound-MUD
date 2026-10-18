@@ -17,6 +17,21 @@ COMMAND_NAME = object()
 COMMAND_REGISTRY = {
     'imperium7': ('imperium7_command', (COMMAND_TEXT,), {}),
     'profesje6': ('profesje6_command', (COMMAND_TEXT,), {}),
+    # v11.00.6: readable player commands; numeric historical names remain valid.
+    'profesja': ('profesje6_command', (COMMAND_TEXT,), {}),
+    'pracuj': ('profession_work_shortcut_v1106', (COMMAND_TEXT,), {}),
+    'karawana': ('imperium_caravan_shortcut_v1106', (COMMAND_TEXT,), {}),
+    'lowy': ('imperium_hunts_shortcut_v1106', (COMMAND_TEXT,), {}),
+    'wyprawa': ('imperium_voyage_shortcut_v1106', (COMMAND_TEXT,), {}),
+    'rozbudowa': ('imperium7_command', (COMMAND_TEXT,), {}),
+    'lowiectwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Łowiectwo'), {}),
+    'rolnictwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Rolnictwo'), {}),
+    'hodowla': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Hodowla zwierząt'), {}),
+    'okretnictwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Okrętownictwo'), {}),
+    'murarstwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Murarstwo'), {}),
+    'inzynieria': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Inżynieria'), {}),
+    'kupiectwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Kupiectwo'), {}),
+    'zeglarstwo': ('profession_named_shortcut_v1106', (COMMAND_TEXT, 'Żeglarstwo'), {}),
     'mistrzprof': ('master_professions_v2200', (COMMAND_TEXT,), {}),
     'tytani': ('titan_command_v2100', (COMMAND_TEXT,), {}),
     'lochy7': ('dungeon_secrets_command_v2100', (COMMAND_TEXT,), {}),
@@ -374,6 +389,7 @@ COMMAND_REGISTRY.update({
     'woodcut': ('command_woodcut_v0490', (COMMAND_TEXT,), {}),
     'herb': ('command_herb_v0490', (COMMAND_TEXT,), {}),
     'craft': ('command_craft_v0490', (COMMAND_TEXT,), {}),
+    'obrabiaj': ('process_wood_v1108', (COMMAND_TEXT,), {}),
     'jewelcraft': ('command_jewelcraft_v0490', (COMMAND_TEXT,), {}),
     'cook': ('command_cook_v0490', (COMMAND_TEXT,), {}),
     'alchemy': ('command_alchemy_v0490', (COMMAND_TEXT,), {}),
@@ -453,6 +469,8 @@ DOWNED_SAFE_COMMANDS.add('ery')
 REST_SAFE_COMMANDS.add('ery')
 GUIDE_SAFE_COMMANDS.add('ery')
 
+COMMAND_CATALOG.add_alias('deski', 'obrabiaj', source='player/session_mixins/command_registry.py')
+
 for _alias,_target in (('forgotten','kontynent'),('continent','kontynent'),('saga50','kontynent'),('echodungeon','lochy50')):
     COMMAND_CATALOG.add_alias(_alias,_target,source='player/session_mixins/command_registry.py')
 
@@ -467,6 +485,48 @@ for _alias in ("lowcy", "łowcy", "tablicalowcow", "hunterboard"):
 
 for _alias in ("mercenary", "mercenaries", "tawerna"):
     COMMAND_CATALOG.add_alias(_alias, "najemnik" if _alias == "mercenary" else "najemnicy", source="player/session_mixins/command_registry.py")
+
+# Unicode profession names and natural-language aliases.
+for _alias, _target in (
+    ('łowiectwo','lowiectwo'), ('żeglarstwo','zeglarstwo'),
+    ('inżynieria','inzynieria'), ('okrętownictwo','okretnictwo'),
+    ('łowy','lowy'), ('karawany','karawana'),
+    ('profesje nowe','profesja'), ('zawod','profesja'), ('zawód','profesja'),
+):
+    COMMAND_CATALOG.add_alias(_alias, _target, source='player/session_mixins/command_registry.py')
+
+# v11.00.7 — same handlers, readable names across all era-numbered systems.
+# A name which already has a different meaning is NEVER overwritten.
+VERSIONLESS_COMMAND_ALIASES_V1107 = (
+    ('lochy7', ('sekretylochu', 'tajemnicelochu')),
+    ('lochy50', ('zapomnianelochy', 'legendarnepodziemia')),
+    ('era60', ('era', 'sagalegend')),
+    ('ocean5', ('morza', 'oceany')),
+    ('ocean4', ('flota', 'bitwamorska')),
+    ('handel4', ('handelimperium', 'handelkrolestw')),
+    ('collection2', ('kodekskolekcji', 'kolekcjekodeks')),
+    ('navigation2', ('nawigacja',)),
+    ('career2', ('kariera',)),
+    ('marketquotes1260', ('cenyrynkowe', 'notowaniarynkowe')),
+    ('grandex1260', ('wielkawyprawa',)),
+    ('legendaryexpeditions1210', ('legendarnewyprawy', 'wyprawylegend')),
+    ('mistrzprof', ('mistrzowieprofesji', 'mistrzowiepracy')),
+    ('hunters1225', ('lowcy', 'łowcy')),
+    ('profesje6', ('zawody',)),
+    ('imperium7', ('zyweimperium',)),
+    ('craftmastery', ('mistrzostworzemiosla',)),
+    ('guildquest', ('zadaniaklasowe',)),
+    ('guildexam', ('egzaminklasowy',)),
+    ('guildbounty', ('zleceniagildii',)),
+    ('classguild', ('gildiaklasowa',)),
+)
+for _canonical_v1107, _aliases_v1107 in VERSIONLESS_COMMAND_ALIASES_V1107:
+    for _alias_v1107 in _aliases_v1107:
+        _existing_v1107 = COMMAND_CATALOG.resolve(_alias_v1107)
+        if _existing_v1107 not in (_alias_v1107, _canonical_v1107):
+            raise RuntimeError(f'Niebezpieczny alias {_alias_v1107}: {_existing_v1107} != {_canonical_v1107}')
+        COMMAND_CATALOG.add_alias(_alias_v1107, _canonical_v1107,
+                                  source='player/session_mixins/command_registry.py')
 
 for _alias, _target in (("piętro", "pietro"), ("floor", "pietro"),
                         ("expcap", "experience"), ("experiencecap", "experience"),
@@ -524,6 +584,14 @@ def resolve_session_command(token, args=""):
         return "availablerecipes"
     if raw in ("receptura", "recipe", "przepis") and first_arg in ("droga", "route", "path", "sciezka"):
         return "reciperoute"
+    # Preserve legacy `profesje` overview while routing actionable new-profession
+    # subcommands through the existing v6 engine (one immutable SQLite ledger).
+    if raw in ('profesje', 'professions') and first_arg in {
+        'lista','kup','status','czynnosci','praca','zamowienie','oddaj','dostarcz','nasiona'
+    }:
+        # `profesje lista` used to display status too; it now gives complete
+        # info and all new professions, without changing bare `profesje`.
+        return 'profesje6'
     if raw == "loot" and str(args or "").strip().lower() in LOOT_FILTER_INPUTS:
         return "lootfilter"
     return COMMAND_CATALOG.resolve(raw)

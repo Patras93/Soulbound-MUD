@@ -548,6 +548,15 @@ class SessionMuseumBountyMixin:
     async def handle_bounty(self, args=""):
             raw = str(args or "").strip()
             norm = normalize_lookup_text(raw)
+            # The physical contract board is in Gildia Dusz, not a portable UI.
+            # A player's active contract remains readable (and abandonable)
+            # everywhere so previously accepted quests never become trapped.
+            remote = {"aktywne", "aktywny", "active", "progress", "postep", "porzuc", "abandon", "cancel"}
+            if str(self.character.room_id) != 'guild_hall' and norm not in remote:
+                await self.send('Tablica Zleceń stoi w Sali Głównej Gildii Dusz. '
+                                'Udaj się tam, aby przyjąć, odebrać lub odświeżyć kontrakt. '
+                                'Zdalnie: bounty aktywne lub bounty porzuc.')
+                return
             if not norm or norm in ("lista", "list", "status", "info"):
                 await self.show_bounty_board()
                 return
@@ -755,23 +764,10 @@ class SessionMuseumBountyMixin:
             changed = self.server.db.increment_item_collect_quest(
                 self.account_id, item_id, amount
             )
-            for quest_id, progress, needed in changed:
-                quest = QUESTS[quest_id]
-                label = str(
-                    quest.get("progress_label")
-                    or ITEMS.get(item_id, {}).get("name", "przedmiotów")
-                )
-                if progress >= needed:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"{progress} z {needed} {label}. "
-                        f"Cel wykonany. Wróć do NPC: {quest.get('giver', 'NPC')}."
-                    )
-                else:
-                    await self.send(
-                        f"Postęp questa: {quest['name']}. "
-                        f"{progress} z {needed} {label}."
-                    )
+            # v11.00.9: item quest progress must survive concise combat log.
+            # Use the canonical stock-aware quest reporter after SQLite update.
+            for quest_id, _progress, _needed in changed:
+                await self.announce_active_quest_progress(quest_id)
 
     async def grant_hourly_quest_kill_drop_v0929(self, mob_template_id, template):
             # v0.30.38: specjalne questy kill->item zwiększają licznik bezpośrednio
@@ -799,24 +795,9 @@ class SessionMuseumBountyMixin:
                 await self.send(
                     f"Przedmiot questowy: {ITEMS[item_id]['name']} x1 z {template.get('name', mob_template_id)}."
                 )
-                for changed_quest_id, progress, needed in changed:
-                    if changed_quest_id != quest_id:
-                        continue
-                    label = str(
-                        quest.get("progress_label")
-                        or ITEMS.get(item_id, {}).get("name", "przedmiotów")
-                    )
-                    if progress >= needed:
-                        await self.send(
-                            f"Postęp questa: {quest['name']}. "
-                            f"{progress} z {needed} {label}. "
-                            f"Cel wykonany. Wróć do NPC: {quest.get('giver', 'NPC')}."
-                        )
-                    else:
-                        await self.send(
-                            f"Postęp questa: {quest['name']}. "
-                            f"{progress} z {needed} {label}."
-                        )
+                for changed_quest_id, _progress, _needed in changed:
+                    if changed_quest_id == quest_id:
+                        await self.announce_active_quest_progress(changed_quest_id)
 
                 # Kolekcja/Museum nadal dostaje przedmiot, ale nie może drugi raz
                 # podbić tego samego questa.
@@ -1007,14 +988,22 @@ class SessionMuseumBountyMixin:
                     continue
                 self.server.db.set_quest_progress(self.account_id, row["quest_id"], new)
                 changed.append((row["quest_id"], new, needed))
+            # v11.00.9: all event-driven quests use the same accessible
+            # progress announcer. Never hide exploration/secret/world-event
+            # milestones in concise combat-log mode.
             for quest_id, progress, needed in changed:
-                if QUESTS[quest_id].get('v800_class_saga'):
-                    q=QUESTS[quest_id]
-                    await self.send(f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
-                                    f'{progress}/{needed}.'+
-                                    (' GOTOWE DO ODDANIA.' if progress>=needed else ''))
-                    continue
-                await self.send(f"Postęp questa: {QUESTS[quest_id]['name']}. {progress} z {needed}.")
-                if progress >= needed:
-                    await self.send("Cel wykonany. Wróć do właściwego NPC.")
+                if hasattr(self, 'announce_active_quest_progress'):
+                    await self.announce_active_quest_progress(quest_id)
+                else:
+                    # Standalone historical exploration regression harnesses
+                    # don't compose the entire SessionQuestsMixin. Preserve
+                    # the same named stage label, not a technical quest ID.
+                    q = QUESTS[quest_id]
+                    if q.get('v800_class_saga'):
+                        await self.send(
+                            f'Droga Legendy {q["required_class"]}, etap {q["v800_stage"]}/120: '
+                            f'Postęp {progress} z {needed}.'
+                        )
+                    else:
+                        await self.send(f"Postęp questa: {q['name']}. {progress} z {needed}.")
             return changed

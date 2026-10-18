@@ -17,7 +17,7 @@ def validate_mercenary_skills_v12211():
         assert value, message
         checks += 1
 
-    check(len(MERCENARIES) == 15)
+    check(len(MERCENARIES) == 22)
     for role, spec in MERCENARIES.items():
         lines = mercenary_skill_lines_v12211(role)
         check(lines[0].startswith(spec['name']))
@@ -58,7 +58,7 @@ def validate_mercenary_skills_v12211():
     async def run_tests():
         user = Session()
         await user.handle_mercenaries_v1170('skille')
-        check(len(user.lines) == 17, f'Expected title + 15 roles + footer, got {len(user.lines)}')
+        check(len(user.lines) == 24, f'Expected title + 22 roles + footer, got {len(user.lines)}')
         check(all(spec['name'] in ' '.join(user.lines) for spec in MERCENARIES.values()))
         for name in ('Seren', 'Vael', 'Gareth'):
             user.lines.clear()

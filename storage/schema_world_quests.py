@@ -35,6 +35,12 @@ def create_world_quests_schema(self):
 
         -- Stores variable EP only for discoveries made after v2.32.2.
         -- An older visited room with no row retains its historical 1 EP.
+        CREATE TABLE IF NOT EXISTS exploration_zero_ep_v1002 (
+            account_id INTEGER NOT NULL,
+            room_id TEXT NOT NULL,
+            PRIMARY KEY(account_id, room_id),
+            FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+        );
         CREATE TABLE IF NOT EXISTS exploration_room_points_v2322 (
                         account_id INTEGER NOT NULL,
                         room_id TEXT NOT NULL,

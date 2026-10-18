@@ -562,12 +562,17 @@ def full_game_predeploy_audit_v0336():
     from world.world_state import World
     echo_generator_ready = bool(getattr(World.ensure_infinite_dungeon_floor,
                                         '_v1500_echo', False))
+    from systems.eternal_glory_infinite_v1100 import identity as v1100_infinite_identity
+    v1100_generator_ready = bool(getattr(World.ensure_infinite_dungeon_floor,
+                                          '_v1100_infinite', False))
     for rid,room in ROOMS.items():
         if not str(room.get('name') or '').strip(): err('room_missing_name',rid)
         for direction,target in (room.get('exits') or {}).items():
             if target in ROOMS or str(target).startswith(dynamic_prefixes):
                 continue
             if echo_generator_ready and echo_identity(target) is not None:
+                continue
+            if v1100_generator_ready and v1100_infinite_identity(target) is not None:
                 continue
             err('broken_exit',rid,direction,target)
 
@@ -780,8 +785,14 @@ def full_game_predeploy_audit_v0336():
         'Krawiectwo', 'Garbarstwo', 'Stolarstwo', 'Zaklinanie',
         'Archeologia', 'Kartografia',
     }
-    if set(PROFESSION_RANK_NAMES) != _expected_professions_v1112:
-        err('profession_catalog_mismatch', tuple(sorted(PROFESSION_RANK_NAMES)), tuple(sorted(_expected_professions_v1112)))
+    # v6.00.0 introduced eight real professions; the historical 14-only
+    # audit would falsely reject all complete modern saves and migrations.
+    # Verify the full independent source registry, rather than accepting an
+    # arbitrary list merely because the runtime happens to contain it.
+    from systems.new_professions import PROFESSIONS as _new_professions_v600
+    _expected_professions_v1112.update(_new_professions_v600)
+    if len(_expected_professions_v1112)!=22 or set(PROFESSION_RANK_NAMES)!=_expected_professions_v1112:
+        err('profession_catalog_mismatch',tuple(sorted(PROFESSION_RANK_NAMES)),tuple(sorted(_expected_professions_v1112)))
     if len(TOOL_TIER_THRESHOLDS)!=TOOL_MAX_TIER or TOOL_MAX_TIER!=80: err('tool_tier_count',len(TOOL_TIER_THRESHOLDS))
 
     # 9d) Deep quest target/dependency validation for every quest.

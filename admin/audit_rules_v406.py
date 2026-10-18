@@ -253,14 +253,21 @@ def broken_blades_spoken_progress_audit_v03038(*, Session, QUESTS):
     errors = []
     import inspect as _inspect_v03038
     src = _inspect_v03038.getsource(Session.grant_hourly_quest_kill_drop_v0929)
-    required = (
-        "increment_item_collect_quest",
-        "Postęp questa:",
-        "quest_progress=False",
-    )
+    # v11.00.9: spoken progress is now emitted via the stronger central
+    # reporter so it cannot disappear in concise combat log mode. Keep the
+    # original direct-message rule for historical versions, and require the
+    # canonical reporter to actually provide a visible essential message.
+    required = ("increment_item_collect_quest", "quest_progress=False")
     for token in required:
         if token not in src:
             errors.append(f"missing runtime token: {token}")
+    if "await self.announce_active_quest_progress(" in src:
+        reporter = _inspect_v03038.getsource(Session.announce_active_quest_progress)
+        for token in ('combat_detail="essential"', 'history_category="quest"', 'Postęp'):
+            if token not in reporter:
+                errors.append(f"canonical quest reporter missing essential token: {token}")
+    elif "Postęp questa:" not in src:
+        errors.append("no spoken progress in hourly quest drop")
     quest = QUESTS.get("haldor_broken_blades_v0929", {})
     if quest.get("target") != "damaged_weapon_v0929" or int(quest.get("needed", 0) or 0) != 6:
         errors.append("broken blades target/needed changed")

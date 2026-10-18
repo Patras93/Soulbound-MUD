@@ -217,7 +217,7 @@ for lvl,slot,name,affix in _leather:
     if lvl>=420: mat[f'ore_400_{lvl}']=1
     elif lvl>=100: mat['runestone_ore']=1
     _recipe(f'leather_{lvl}',name,'Garbarstwo','leatherworking','tanning_knife','leatherworker_workshop',lvl,mat,f'v03053_leather_{lvl}')
-_recipe('plank','Obrobiona Deska','Stolarstwo','carpentry','carpenter_tools','carpenter_workshop',1,{'birch_log':2},'treated_plank')
+_recipe('plank','Obrobiona Deska','Drwalstwo','woodcutting','saw','lumberjack_camp',1,{'birch_log':2},'treated_plank')
 _carp_mats={1:'treated_plank',30:'oak_log',60:'ash_log',100:'runewood_log',160:'astralwood_log',220:'wood_400_220',300:'wood_400_300',400:'wood_400_400', **{lvl:f'wood_400_{lvl}' for lvl in V0360_EXTENDED_PROFESSION_LEVELS}}
 for lvl,slot,name,affix in _carp:
     _recipe(f'carp_{lvl}',name,'Stolarstwo','carpentry','carpenter_tools','carpenter_workshop',lvl,{_carp_mats[lvl]:2},f'v03053_carp_{lvl}')

@@ -182,6 +182,15 @@ class SessionLivingEmpireV7000Mixin:
         for msg in grant_messages:
             await self.send(str(msg))
 
+    async def imperium_caravan_shortcut_v1106(self, args):
+        await self.imperium7_command('karawana ' + str(args or ''))
+
+    async def imperium_hunts_shortcut_v1106(self, args):
+        await self.imperium7_command('lowy ' + str(args or ''))
+
+    async def imperium_voyage_shortcut_v1106(self, args):
+        await self.imperium7_command('wyprawa ' + str(args or ''))
+
     async def imperium7_command(self,args):
         if self.account_id is None or self.character is None:
             await self.send('Najpierw zaloguj się postacią.');return

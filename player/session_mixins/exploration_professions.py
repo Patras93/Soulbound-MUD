@@ -109,10 +109,12 @@ class SessionExplorationProfessionsV1100Mixin:
             self.account_id, profession, tool_type, 1
         )
         for quest_id, progress, needed in changed:
-            quest = QUESTS.get(quest_id, {})
-            await self.send(
-                f"Postęp zadania: {quest.get('name', quest_id)} — {progress} z {needed}."
-            )
+            if hasattr(self, 'announce_active_quest_progress'):
+                await self.announce_active_quest_progress(quest_id)
+            else:
+                # Isolated regression helpers need not implement quest mixins.
+                quest = QUESTS.get(quest_id, {})
+                await self.send(f"Postęp zadania: {quest.get('name',quest_id)} — {progress} z {needed}.")
         if hasattr(self, "announce_profession_action_order_progress_v0713"):
             await self.announce_profession_action_order_progress_v0713(tool_type, 1)
 
@@ -252,6 +254,8 @@ class SessionExplorationProfessionsV1100Mixin:
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         name = room.get("name", room_id)
+        if is_new and room.get('v1000_landmark'):
+            await self.send('HORYZONTY — unikalny punkt kartograficzny udokumentowany. Postęp: kartografia region.')
         if is_new:
             await self.send(
                 f"NOWY POMIAR: {name}. Lokacja została wpisana do Atlasu Kartografa. "
@@ -294,6 +298,26 @@ class SessionExplorationProfessionsV1100Mixin:
         profession = self.server.db.profession(self.account_id, "Kartografia")
         tool = self.server.db.tool(self.account_id, "cartography_profession")
         surveyed = self.server.db.collection_entry_ids(self.account_id, "cartography_v1100")
+        from systems.forgotten_horizons_v1000 import LANDMARK_IDS
+        from systems.eternal_glory_world_v1100 import LANDMARK_IDS as V11_LANDMARK_IDS
+        from systems.eternal_glory_depths_v1100 import DUNGEON_EP_IDS
+        LANDMARK_IDS = LANDMARK_IDS | V11_LANDMARK_IDS | DUNGEON_EP_IDS
+        zone = ROOMS.get(str(self.character.room_id),{}).get('zone')
+        local_landmarks = {rid for rid in LANDMARK_IDS if rid in ROOMS and ROOMS[rid].get('zone')==zone}
+        if mode in ('region', 'strefa', 'horyzonty', 'landmark'):
+            if not local_landmarks:
+                await self.send('Kartografia regionu: brak specjalnych punktów Horyzontów. Wpisz ep region.')
+                return
+            completed = local_landmarks.intersection(surveyed)
+            await self.send(f'Kartografia regionu {zone}: udokumentowano {len(completed)} z {len(local_landmarks)} miejsc. Pozostało {len(local_landmarks)-len(completed)}.')
+            for rid in sorted(local_landmarks):
+                if rid in completed:
+                    await self.send(f'{ROOMS[rid]["name"]}: zmapowano.')
+                elif rid in self.server.db.discovered_room_ids(self.account_id):
+                    await self.send(f'{ROOMS[rid]["name"]}: odkryto, wpisz mapuj w tym miejscu.')
+                else:
+                    await self.send('Nieodkryty punkt kartograficzny.')
+            return
         total = max(1, len(ROOMS))
         current = str(self.character.room_id)
         status = "zmapowana" if current in surveyed else "niezmapowana"

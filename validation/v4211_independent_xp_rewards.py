@@ -14,7 +14,9 @@ from core import balance_math
 
 
 def _session(level):
-    return SimpleNamespace(character=SimpleNamespace(character_level=level, soul_level=level),
+    return SimpleNamespace(account_id=11,
+      server=SimpleNamespace(db=SimpleNamespace(multi_cap_v23215=lambda account: 248500 + 500*level)),
+      character=SimpleNamespace(character_level=level, soul_level=level),
       active_class_names=lambda: ('Wojownik', 'Mag'),
       class_mastery_level=lambda name: level)
 
@@ -26,7 +28,7 @@ def run_regression():
         fame = fame_cap_awards_v2103(session)
         ep = explorer_award_per_point_v4211(level)
         cap = experience_cap_v2009('character', level)
-        assert fame['character'] == 2500 + 30*level*level
+        assert fame['character'] == 248500 + 500*level
         assert fame == dict.fromkeys(('character','soul','stat','class_total'), fame['character'])
         assert 120 <= ep['character'] <= 220
         assert len(set(ep.values())) == 1

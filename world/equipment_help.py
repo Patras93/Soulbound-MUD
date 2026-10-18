@@ -323,6 +323,10 @@ for _prof_dungeon in ("sunken_grotto", "ancient_forest", "alchemy_garden"):
         MOB_SPAWNS.extend(profession_dungeon_combat_pack(_prof_dungeon, _prof_floor))
 build_mountain_region_and_herb_meadows()
 build_mountain_crafting_expansion()
+# v11.00.12: modern drop balance AFTER unchanged historical v4 authored mountain builder.
+from systems.stolen_mountain_chests_v1112 import enhance_stolen_mountain_chests_v1112
+if not enhance_stolen_mountain_chests_v1112(MOB_TEMPLATES):
+    raise RuntimeError('v11.00.12 mountain crate templates not installed')
 
 # v0.9.13: dawne ostatnie piętra prowadzą dalej do części proceduralnej.
 _catalog_mut.catalog_assign(astral_floor_id(ASTRAL_MAX_FLOOR + 1), 'ROOMS', ROOMS, (astral_floor_id(ASTRAL_MAX_FLOOR), "exits", "up"))
@@ -916,7 +920,7 @@ HELP_TOPICS["najemnicy"] = [
     " Płacisz raz przy zatrudnieniu, opłata nie jest zwracana po odesłaniu.",
     "Poziom każdego najemnika jest zawsze równy bieżącemu poziomowi właściciela, bez osobnego zdobywania EXP. Moc nadal skaluje się z silniejszym atakiem właściciela oraz jego EQ. Najemnicy NIE zwiększają HP ani obrażeń potworów — moby skalują się tylko do prawdziwych graczy.",
     "najemnik rozwoj [imię] — poziom właściciela i aktualna taktyka; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie> — zmiana bez kosztu w dowolnym momencie.",
-    "najemnik skille — lista rzeczywistych umiejętności wszystkich 15 najemników; najemnik skille Seren — szczegółowy opis ataku, leczenia i osłony. Działa również przed wynajęciem.",
+    "najemnik skille — lista rzeczywistych umiejętności wszystkich 22 najemników; najemnik skille Seren — szczegółowy opis ataku, leczenia i osłony. Działa również przed wynajęciem.",
     "Umiejętności najemnicy wybierają automatycznie w walce. Gracz może podejrzeć skille, ale nie wskazuje im, którego skilla mają użyć.",
     "Najemnicy 4.0: każdy ma własną automatyczną specjalizację klasową, trzy techniki ofensywne i współpracuje z innymi najemnikami. Wszystkie techniki rosną z siłą właściciela bez osobnego EXP i bez limitu mocy.",
     "najemnik specjalizacje [imię] — lista i opis automatycznych specjalizacji. Są niezależne od ustawianych taktyk.",

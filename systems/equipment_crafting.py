@@ -422,7 +422,7 @@ GUILD_REPUTATION_RANKS = (
 GUILD_EXAM_THRESHOLDS = (50, 100, 150, 200)
 GUILD_EXAM_REPUTATION = {50: 100, 100: 250, 150: 450, 200: 700}
 
-# v1.12.0: każda z 14 klas ma pięć różnych zadań godzinnych.
+# v1.12.0: każda z 22 klas ma pięć różnych zadań godzinnych.
 # Format pojedynczego zadania pozostaje zgodny ze starszym runtime:
 # nazwa, opis, reputacja, srebro, wymagany postęp, rodzaj aktywności.
 #
@@ -445,6 +445,21 @@ _GUILD_CLASS_QUEST_LEGACY_V11132 = {
     "Inżynier": ("Próba Konstruktora", "Zbierz 15 zasobów potrzebnych do dalszych konstrukcji.", 30, 700, 15, "gather"),
 }
 
+
+# v11.00.1: 8 nowych klas z v9 miało Drogi Legendy, ale nie miało
+# pięciu cyklicznych ofert gildyjnych. Zachowujemy wszystkie 14 starych
+# wpisów bez zmian (klucze postępu w SQLite pozostają identyczne).
+_GUILD_CLASS_QUEST_LEGACY_V11132.update({
+    "Paladyn": ("Przysięga Strażnika", "Pokonaj 3 przywódców zagrożeń świata.", 35, 800, 3, "boss"),
+    "Samuraj": ("Próba Honoru", "Pokonaj 12 przeciwników w rzeczywistych walkach.", 30, 750, 12, "kill"),
+    "Korsarz": ("Szlak Korsarza", "Odkryj 14 nowych lokacji podczas wypraw.", 30, 750, 14, "explore"),
+    "Gladiator": ("Arena Wytrwałości", "Pokonaj 3 bossów lub przywódców.", 35, 800, 3, "boss"),
+    "Chronomanta": ("Ślady Czasu", "Odkryj 14 nowych lokacji świata.", 30, 750, 14, "explore"),
+    "Iluzjonista": ("Tajemnice Luster", "Odkryj 15 nowych lokacji poza utartymi trasami.", 30, 750, 15, "explore"),
+    "Bard": ("Pieśń Wyprawy", "Zbierz 12 zasobów podczas profesyjnych wypraw.", 30, 750, 12, "gather"),
+    "Szaman": ("Zew Przodków", "Pokonaj 10 przeciwników w rzeczywistej walce.", 30, 750, 10, "kill"),
+})
+
 _GUILD_CLASS_QUEST_IDENTITIES_V1120 = {
     "Wojownik": "Kodeks Ostrza",
     "Berserker": "Szlak Furii",
@@ -461,6 +476,13 @@ _GUILD_CLASS_QUEST_IDENTITIES_V1120 = {
     "Mec": "Protokół Rdzenia",
     "Inżynier": "Projekt Konstruktora",
 }
+
+_GUILD_CLASS_QUEST_IDENTITIES_V1120.update({
+    "Paladyn": "Kodeks Przysięgi", "Samuraj": "Kodeks Honoru",
+    "Korsarz": "Szlak Sztormu", "Gladiator": "Kodeks Areny",
+    "Chronomanta": "Kronika Czasu", "Iluzjonista": "Kronika Luster",
+    "Bard": "Pieśń Chwały", "Szaman": "Szlak Duchów",
+})
 
 _GUILD_CLASS_ACTIVITY_V1120 = {
     "kill": ("Próba Starcia", "Pokonaj {needed} przeciwników podczas zwykłej walki."),
@@ -537,9 +559,9 @@ for _class_name, _quests in GUILD_CLASS_QUEST_POOLS.items():
         _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
             f"{_class_name}: duplicate quest names"
         )
-if len(GUILD_CLASS_QUEST_POOLS) != 14:
+if len(GUILD_CLASS_QUEST_POOLS) != 22:
     _GUILD_CLASS_QUEST_AUDIT_ERRORS_V1120.append(
-        f"class count: expected 14, got {len(GUILD_CLASS_QUEST_POOLS)}"
+        f"class count: expected 22, got {len(GUILD_CLASS_QUEST_POOLS)}"
     )
 GUILD_CLASS_QUEST_AUDIT_V1120 = {
     "version": "1.12.0",
@@ -581,6 +603,13 @@ GUILD_CLASS_QUEST_FOCUS_V11342 = {
     "Inżynier": {"craft", "gather"},
 }
 
+GUILD_CLASS_QUEST_FOCUS_V11342.update({
+    "Paladyn": {"boss", "gather"}, "Samuraj": {"kill", "boss"},
+    "Korsarz": {"explore", "gather"}, "Gladiator": {"boss", "kill"},
+    "Chronomanta": {"explore", "craft"}, "Iluzjonista": {"explore", "kill"},
+    "Bard": {"gather", "craft"}, "Szaman": {"kill", "explore"},
+})
+
 GUILD_CLASS_QUEST_FLAVOUR_V11342 = {
     "Wojownik": "walcz jak czempion pierwszej linii",
     "Berserker": "podtrzymuj napór i kontrolowaną furię",
@@ -597,6 +626,23 @@ GUILD_CLASS_QUEST_FLAVOUR_V11342 = {
     "Mec": "testuj systemy na bossach i w warsztacie",
     "Inżynier": "buduj, zbieraj i rozwijaj zaplecze konstrukcyjne",
 }
+
+GUILD_CLASS_QUEST_FLAVOUR_V11342.update({
+    "Paladyn": "chroń sojuszników i dotrzymuj przysięgi",
+    "Samuraj": "doskonal honor i precyzję ostrza",
+    "Korsarz": "odkrywaj morza i zdobywaj zapasy wypraw",
+    "Gladiator": "pokonuj najsilniejszych rywali areny",
+    "Chronomanta": "badaj ślady czasu i starożytne mechanizmy",
+    "Iluzjonista": "odkrywaj tajemnice ukryte przed spojrzeniem",
+    "Bard": "wspieraj wyprawy pieśnią i rzemiosłem",
+    "Szaman": "łącz walkę z wyprawami śladami duchów",
+})
+
+# Nie zostawiaj klasy bez kontraktów po dodaniu nowego bohatera.
+from core.classes_skills import CLASSES as _GUILD_PLAYABLE_CLASSES_V1101
+assert set(GUILD_CLASS_QUEST_POOLS) == {row[0] for row in _GUILD_PLAYABLE_CLASSES_V1101}, (
+    "Nie wszystkie grywalne klasy mają zadania gildyjne"
+)
 
 
 def guild_class_quest_stage_v11342(mastery):

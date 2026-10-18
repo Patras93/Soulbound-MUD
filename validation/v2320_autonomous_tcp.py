@@ -96,16 +96,30 @@ async def run_actual_npc_journey(clients):
     assert len(clients) == 5
     lead = clients[0]
     checked = selftest()
-    dialogue = await lead.command('talk Kapłan Elor')
-    assert 'Kapłan Elor:' in dialogue and QUEST_NAME in dialogue, 'NPC did not present quest'
+    # A busy MUD connection can deliver broadcasts from earlier commands just
+    # before the requested NPC reply.  Never treat the *first TCP packet* as
+    # proof that the NPC is missing: first verify the actual room, then repeat
+    # only read-only dialogue/list commands until their own reply arrives.
+    # These assertions still fail on a missing NPC or missing quest offer.
+    await _observe(lead, 'look',
+                   lambda t: 'NPC: Kapłan Elor' in t,
+                   attempts=10)
     checked += 1
-    listing = await lead.command('quest list Kapłan Elor')
-    assert f'1. {QUEST_NAME}' in listing, 'NPC offer changed or absent'
+    dialogue = await _observe(lead, 'talk Kapłan Elor',
+                              lambda t: 'Kapłan Elor:' in t and QUEST_NAME in t,
+                              attempts=10)
     checked += 1
-    accepted = await lead.command('przyjmij 1')
-    assert f'Quest przyjęty: {QUEST_NAME}' in accepted, accepted[-500:]
+    listing = await _observe(lead, 'quest list Kapłan Elor',
+                             lambda t: f'1. {QUEST_NAME}' in t,
+                             attempts=10)
     checked += 1
-    qlines = await lead.command('quests')
+    # TCP can deliver a previous NPC dialogue while the accept command runs.
+    # Verify acceptance through durable quest state, not one recv() chunk.
+    await lead.command('przyjmij 1')
+    qlines = await _observe(lead, 'quests',
+                            lambda t: progress_from_quests(t) == 0,
+                            attempts=10)
+    checked += 1
     assert progress_from_quests(qlines) == 0, qlines[-500:]
     checked += 1
 
@@ -182,6 +196,40 @@ async def check_after_restart(clients, routes):
     return 1 + completed
 
 
+async def _contract_async_reply_order():
+    # Reproduce the exact failure seen in Windows PREDEPLOY v11.00.2:
+    # the first TCP result may be an older room event, not the NPC response.
+    class SimulatedPlayer:
+        def __init__(self, replies):
+            self.replies = iter(replies)
+            self.sent = []
+
+        async def command(self, command, quiet=0.35):
+            self.sent.append(command)
+            return next(self.replies)
+
+    delayed = SimulatedPlayer([
+        'Wiadomość z poprzedniego pokoju.',
+        'Kapłan Elor: Dostępne zadanie Szczury pod świątynią.',
+    ])
+    dialogue = await _observe(delayed, 'talk Kapłan Elor',
+                              lambda t: 'Kapłan Elor:' in t and QUEST_NAME in t,
+                              attempts=3)
+    assert QUEST_NAME in dialogue and len(delayed.sent) == 2
+
+    genuinely_missing = SimulatedPlayer(['Nie rozpoznaję tego NPC.'] * 2)
+    try:
+        await _observe(genuinely_missing, 'talk Kapłan Elor',
+                       lambda t: 'Kapłan Elor:' in t and QUEST_NAME in t,
+                       attempts=2)
+    except AssertionError as exc:
+        assert 'Nie rozpoznaję tego NPC.' in str(exc)
+    else:
+        raise AssertionError('A missing NPC must NEVER be accepted by the test')
+    return 2
+
+
 if __name__ == '__main__':
-    print('AUTOGRACZ TCP CONTRACT: '+str(selftest())+' PASS. '
+    checks = selftest() + asyncio.run(_contract_async_reply_order())
+    print('AUTOGRACZ TCP CONTRACT: '+str(checks)+' PASS. '
           'Prawdziwe połączenia uruchamia ostatnia bramka pieciu graczy.')

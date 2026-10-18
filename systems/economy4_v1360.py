@@ -30,6 +30,11 @@ BUILDINGS = {
     'tartak': ('Tartak gildii', 'oak_log', 10, 26000, 800),
     'farma': ('Ogrody gildii', 'moonflower', 3, 34000, 800),
     'warsztat': ('Warsztat gildii', 'iron_ingot', 3, 44000, 1000),
+    # v11: four independent late-game guild holdings; existing four remain.
+    'obserwatorium': ('Obserwatorium Wieczności', 'mithril_ore', 2, 110000, 2700),
+    'archiwum': ('Archiwum Pradawnych', 'soul_shard', 1, 145000, 3700),
+    'stocznia': ('Stocznia Gildyjna', 'oak_plank', 9, 120000, 3150),
+    'runiczna_kuznia': ('Runiczna Kuźnia', 'gold_ore', 4, 165000, 4200),
 }
 
 

@@ -141,8 +141,12 @@ class SessionQuestNpcMixin:
                     return
                 completed=sum(1 for qid in chain if (row:=self.server.db.quest(self.account_id,qid))
                               and row['status']=='completed')
-                await self.send(f'Droga Legendy {npc["v800_required_class"]}: {completed}/120. '
+                active_stage = next((qid for qid in chain if (row:=self.server.db.quest(self.account_id,qid))
+                                     and row['status']=='active'), None)
+                await self.send(f'Droga Legendy {npc["v800_required_class"]}: ukończono {completed}/120. '
                                 'quest list — jeden etap; przyjmij 1; oddaj quest.')
+                if active_stage:
+                    await self.announce_active_quest_progress(active_stage)
                 return
             if npc.get('v601_profession_master'):
                 completed = 0
@@ -150,9 +154,13 @@ class SessionQuestNpcMixin:
                     row=self.server.db.quest(self.account_id,qid)
                     if row and row['status']=='completed':
                         completed+=1
+                active_stage = next((qid for qid in chain if (row:=self.server.db.quest(self.account_id,qid))
+                                     and row['status']=='active'), None)
                 await self.send(f'Droga Mistrza: ukończone {completed} z {len(chain)} etapów. '
                                 'Wpisz quest list, następnie przyjmij 1. '
                                 'Pokazuję tylko najbliższe zadanie, bez 120 powtarzanych pozycji.')
+                if active_stage:
+                    await self.announce_active_quest_progress(active_stage)
                 return
 
             tool_type = npc.get("specialist_tool_type")
@@ -407,6 +415,8 @@ class SessionQuestNpcMixin:
             await self.announce_npc_quest_context_v099(npc_id, npc)
 
             if npc.get("teacher_class"):
+                if quest_ids and npc.get('v1112_teacher_quests'):
+                    await self.show_npc_quest_offers(npc_id, npc)
                 await self.teacher_lesson(npc)
                 return
 

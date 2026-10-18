@@ -4,7 +4,8 @@ import time
 from core.large_number_math import decimal_value, rounded_product
 
 # Prices in gold, 100 silver per gold. Roles remain distinct by design.
-# Each player class has one hireable mercenary; Paladin stays as a bonus role.
+# Each of the 22 playable classes has one hireable mercenary.
+# Paladin retains the same contract key, NPC name and original statistics.
 # The historical key `lucznik` is retained for existing contracts in SQLite.
 MERCENARIES = {
     "wojownik":   {"name": "Gareth", "role": "Wojownik",   "class": "Wojownik",   "cost": 100, "power": 1.00, "attack_type": "physical", "ability": "Ciężkie Cięcie"},
@@ -21,7 +22,14 @@ MERCENARIES = {
     "psionik":    {"name": "Theon",  "role": "Psionik",    "class": "Psionik",    "cost": 205, "power": 1.04, "attack_type": "magic",    "ability": "Impuls Umysłu"},
     "mec":        {"name": "Vex",    "role": "Mec",        "class": "Mec",        "cost": 245, "power": 1.16, "attack_type": "physical", "ability": "Strzał Rdzenia"},
     "inzynier":   {"name": "Odrik",  "role": "Inżynier",   "class": "Inżynier",   "cost": 190, "power": 0.93, "attack_type": "physical", "ability": "Impuls Omni-Narzędzia"},
-    "paladyn":    {"name": "Seren",  "role": "Paladyn",    "class": None,        "cost": 220, "power": 0.80, "attack_type": "physical", "ability": "Święty Cios"},
+    "paladyn":    {"name": "Seren",  "role": "Paladyn",    "class": "Paladyn",   "cost": 220, "power": 0.80, "attack_type": "physical", "ability": "Święty Cios"},
+    "samuraj":    {"name": "Akira",  "role": "Samuraj",    "class": "Samuraj",   "cost": 230, "power": 1.12, "attack_type": "physical", "ability": "Cięcie Honoru"},
+    "korsarz":    {"name": "Mirella","role": "Korsarz",    "class": "Korsarz",   "cost": 225, "power": 1.12, "attack_type": "physical", "ability": "Salwa Sztormu"},
+    "gladiator":  {"name": "Cassian","role": "Gladiator",  "class": "Gladiator", "cost": 235, "power": 1.16, "attack_type": "physical", "ability": "Cios Areny"},
+    "chronomanta": {"name": "Erys",   "role": "Chronomanta","class": "Chronomanta","cost": 245, "power": 1.14, "attack_type": "magic",    "ability": "Impuls Czasu"},
+    "iluzjonista": {"name": "Nyra",   "role": "Iluzjonista","class": "Iluzjonista","cost": 230, "power": 1.12, "attack_type": "magic",    "ability": "Lustrzany Rozbłysk"},
+    "bard":       {"name": "Lyrian", "role": "Bard",       "class": "Bard",      "cost": 220, "power": 1.10, "attack_type": "magic",    "ability": "Akord Burzy"},
+    "szaman":     {"name": "Thara",  "role": "Szaman",     "class": "Szaman",    "cost": 235, "power": 1.13, "attack_type": "magic",    "ability": "Gniew Przodków"},
 }
 
 # v1.21.2: contracts are permanent (0 is also the persisted sentinel).

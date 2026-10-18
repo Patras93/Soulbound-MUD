@@ -23,6 +23,17 @@ except Exception as exc:
 
 from validation.v4200_virtual_source import read_actual_refactored_source_v4200 as _v410_virtual_read
 
+# Release invariant is checked before older test suites temporarily alter rows.
+from validation.v1110_unique_skill_names import run_regression as _v1110_names
+print(f"UNIKALNE NAZWY SKILLI v11.00.10: {_v1110_names()} checks PASS")
+
+# v11.00.11: direct skill-name HELP for 22 classes (never casts skills).
+from validation.v1111_skill_help_dispatch import run_regression as _v1111_skill_help
+print(f"HELP SKILLI v11.00.11: {_v1111_skill_help()} checks PASS")
+# v11.00.12: named class teachers, real 24 quests, class help and mountain chests.
+from validation.v1112_teacher_quests import run_regression as _v1112_teacher_quests
+print(f"NAUCZYCIELE/QUESTY/SKRZYNIE v11.00.12: {_v1112_teacher_quests()} checks PASS")
+
 from admin.fast_predeploy_audit_v0571 import FAST_PREDEPLOY_AUDIT_V0571 as audit
 
 # v1.14.4: the source catalog may list adds without ever selecting an ability.
@@ -3702,7 +3713,8 @@ print(f"COMBAT BALANCE v1.17.3 FAST: {_combat_balance_v1173['checks']} checks, "
       f"{_combat_balance_v1173['classes']} classes, 0 errors")
 # v1.17.6: base-profession/tool timing, batch difficulty and bulk XP smoke.
 from validation.profession_balance_v1176 import audit_profession_balance_v1176
-_profession_fast_v1176 = audit_profession_balance_v1176()
+# The early v11 skill/teacher release tests load the complete 22-profession world.
+_profession_fast_v1176 = audit_profession_balance_v1176(runtime=True)
 if _profession_fast_v1176["error_count"]:
     raise RuntimeError("PROFESSIONS v1.17.6 FAST: " + "; ".join(_profession_fast_v1176["errors"]))
 print(f"PROFESSIONS v1.17.6 FAST: {_profession_fast_v1176['checks']} checks, "
@@ -4443,3 +4455,42 @@ print(f"DROGA LEGENDY 14x120 v8.00.0 FAST: {_v800_paths()} checks PASS")
 # v9.00.0: eight new classes/races and Soul Weapons, 960 quests, SQLite.
 from validation.v900_heroes import run_regression as _v900_heroes
 print(f"NOWI BOHATEROWIE v9.00.0: {_v900_heroes()} checks PASS")
+from validation.v1000_horizons import run_regression as _v1000_horizons
+print(f"ZAPOMNIANE HORYZONTY v10.00.0: {_v1000_horizons()} checks PASS")
+from validation.v1100_fame_multicap import run_regression as _v1100_fame
+from validation.v1100_eternal_glory import run_regression as _v1100_world
+print(f"FAME v11: {_v1100_fame()} checks PASS")
+from validation.v1802_fame_expansion import run_regression as _v1100_fame_targets
+_v1100_scope = _v1100_fame_targets()
+assert _v1100_scope['targets'] >= 500 and _v1100_scope['pending_payout_once']
+print(f"FAME 6.0 CELE: {_v1100_scope['targets']} waznych celow, normalne moby BEZ FAME PASS")
+print(f"NOWY SWIAT v11: {_v1100_world()} checks PASS")
+
+from systems.eternal_glory_companions_v1100 import run_regression as _v1100_companions
+print(f'NAJEMNICY I PRZYWOLANIA v11: {_v1100_companions()} checks PASS')
+from validation.v1100_worldcraft_depths import run_regression as _v1100_content_checks
+print(f"PODZIEMIA, RZEMIOSLO, OCEAN v11: {_v1100_content_checks()} checks PASS")
+
+# V11 additional real-class/elemental skill validation
+from core.class_mastery_v1100 import run_regression as _v1100_classes_regression
+print(f"KLASY 22 / ZYWIOLOWA SYNERGIA v11: {_v1100_classes_regression()} checks PASS")
+
+from validation.v1100_guild_tactics import run_regression as _v1100_guild_regression
+print(f"GILDIE 7.0 BUDYNKI SQLITE v11: {_v1100_guild_regression()} checks PASS")
+from validation.v1101_quests_mercenaries import run_regression as _v1101_class_mercenaries
+print(f"QUESTY GILDYJNE 22 KLAS / DROGA LEGENDY ETAP 2 / 22 NAJEMNIKOW v11.00.1: {_v1101_class_mercenaries()} checks PASS")
+from validation.v1103_help_global import run_regression as _global_help_1103
+print(f"GLOBAL HELP v11.00.3: {_global_help_1103()} checks PASS")
+from validation.v1104_tools_board import run_regression as _tools_board_1104
+print(f"NARZEDZIA 22 / TABLICA GILDII v11.00.4: {_tools_board_1104()} checks PASS")
+from validation.v1105_profession_soul import run_regression as _profession_soul_1105
+print(f"PROFESJE BEZ SOUL XP v11.00.5: {_profession_soul_1105()} checks PASS")
+from validation.v1106_readable_commands import run_regression as _readable_commands_1106
+print(f"PROSTE KOMENDY v11.00.6: {_readable_commands_1106()} checks PASS")
+from validation.v1107_global_commands_help import run_regression as _global_commands_help_1107
+print(f"GLOBALNE KOMENDY / HELP v11.00.7: {_global_commands_help_1107()} checks PASS")
+
+from validation.v1108_wood_planks import run_regression as _wood_planks_1108
+print(f"DESKI / DRWALSTWO v11.00.8: {_wood_planks_1108()} checks PASS")
+from validation.v1109_quest_progress_visibility import run_regression as _quest_visibility_1109
+print(f"POSTEP QUESTOW v11.00.9: {_quest_visibility_1109()} checks PASS")

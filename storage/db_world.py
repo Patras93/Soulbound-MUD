@@ -275,7 +275,14 @@ class DatabaseWorldMixin:
             "SELECT room_id, ep_points FROM exploration_room_points_v2322 WHERE account_id=?",
             (account_id,),
         ).fetchall()
-        return {str(row['room_id']): int(row['ep_points']) for row in rows}
+        awards = {str(row['room_id']): int(row['ep_points']) for row in rows}
+        zero_rows = self.conn.execute(
+            "SELECT room_id FROM exploration_zero_ep_v1002 WHERE account_id=?",
+            (account_id,),
+        ).fetchall()
+        for row in zero_rows:
+            awards.setdefault(str(row['room_id']), 0)
+        return awards
 
     def discovered_room_ids(self, account_id):
         rows = self.conn.execute(
@@ -866,3 +873,5 @@ DatabaseWorldMixin.courier_guild_state_v0530 = _sb420_bind(_sb420_src_02.courier
 DatabaseWorldMixin.save_courier_guild_state_v0530 = _sb420_bind(_sb420_src_02.save_courier_guild_state_v0530, globals(), "DatabaseWorldMixin")
 DatabaseWorldMixin.add_city_reputation_v0710 = _sb420_bind(_sb420_src_02.add_city_reputation_v0710, globals(), "DatabaseWorldMixin")
 
+
+DatabaseWorldMixin.claim_landmark_ep_v1002 = _sb420_bind(_sb420_src_01.claim_landmark_ep_v1002, globals(), "DatabaseWorldMixin")
