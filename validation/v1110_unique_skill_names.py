@@ -19,7 +19,7 @@ def run_regression():
         checks += 1
         if not value:
             raise AssertionError('NAZWY SKILLI v11.00.10: ' + message)
-    ck(VERSION in ('11.00.10','11.00.11','11.00.12'), 'candidate version')
+    ck(VERSION in ('11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'candidate version')
     ck(len(CLASS_SKILLS) == 22, 'all playable classes')
     ck(sum(len(rows) for rows in CLASS_SKILLS.values()) == 5461,'all skill IDs retained')
     ck(V1110_UNIQUE_SKILL_NAMES['renamed'] == 4659,'all generic mastery names replaced')

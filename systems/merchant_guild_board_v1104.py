@@ -52,7 +52,7 @@ def install(rooms, npcs, shops, shop_sellers, items, topics, aliases):
         'Tablica Zleceń znajduje się w Sali Głównej Gildii Dusz.',
         'W gildii: bounty — lista; bounty przyjmij 1 — przyjęcie; bounty odbierz — nagroda; bounty odswiez — nowe oferty.',
         'Z dowolnego miejsca: bounty aktywne — postęp; bounty porzuc — porzucenie. Zlecenia bojowe: guildbounty.',
-        'Zamówienia profesji nadal są na rynku i w porcie: profesje6 zamowienie <profesja> i profesje6 oddaj <profesja>.',
+        'Zamówienia profesji nadal są na rynku i w porcie: profesja zamowienie <profesja> i profesja oddaj <profesja>.',
     ]
     aliases.update({'tablica':'tablica_zlecen','tablica zlecen':'tablica_zlecen','tablica zleceń':'tablica_zlecen'})
     return {'shop_tools': registered, 'board_room':'guild_hall'}

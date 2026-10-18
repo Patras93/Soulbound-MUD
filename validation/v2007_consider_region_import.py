@@ -57,9 +57,11 @@ async def _exercise(cls, room_id, query, template_id='goblin'):
 
     class Session(cls):
         def __init__(self):
-            self.character = SimpleNamespace(room_id=room_id)
+            self.character = SimpleNamespace(room_id=room_id, character_level=18)
             self.server = SimpleNamespace(world=World())
             self.messages = []
+        def character_progression_power(self):
+            return 20
         async def send(self, message):
             self.messages.append(message)
         def protected_friendly_npc(self, raw):
@@ -102,7 +104,7 @@ def run_regression():
         assert any('Adaptive Combat' in m for m in msgs), msgs
         checks += 1
         # In a higher-level area, NVDA must speak the danger warning.
-        assert any('UWAGA: przeciwnik ma zalecany etap' in m for m in msgs), msgs
+        assert any('UWAGA: przeciwnik ma zalecany etap' in m for m in msgs) == (expected_stage >= 30), msgs
         checks += 1
         assert msgs[-1].startswith('Consider jest tylko oceną'), msgs[-1]
         checks += 1

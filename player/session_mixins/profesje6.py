@@ -150,7 +150,7 @@ class SessionProfesje6Mixin:
         await self.profesje6_command('praca ' + str(args or ''))
 
     async def profession_named_shortcut_v1106(self, args, profession):
-        """`kupiectwo pakuj` == `profesje6 praca Kupiectwo pakuj`.
+        """`kupiectwo pakuj` == `profesja praca Kupiectwo pakuj`.
 
         Also accepts `kupiectwo praca pakuj 25`, `kupiectwo kup`,
         `kupiectwo zamowienie`, `kupiectwo oddaj` and `kupiectwo status`.

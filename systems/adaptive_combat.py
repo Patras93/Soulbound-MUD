@@ -179,6 +179,52 @@ def adaptive_underlevel_pressure_v3000(template, character_level, room=None):
     return hp_percent, round(incoming, 4)
 
 
+# v11.00.13: actual level disadvantage, not a restriction on player damage.
+# The stage is an authored requirement; 20+ levels of disadvantage must be
+# threatening even to exceptionally equipped characters and their companions.
+V110013_RANK_PRESSURE = {
+    "normal": 1.0, "elite": 1.35, "rare": 1.55,
+    "mini": 2.0, "boss": 2.7, "world_boss": 3.6,
+}
+
+
+def underlevel_threat_v110013(template, character_level, room=None):
+    """Return severity (>=0) and rank strength; no effect at proper level.
+
+    Fractions depend on *level difference*, not equipment, class count,
+    summons, mercenary contracts or capped stat values. Never modifies XP.
+    """
+    if character_level is None:
+        return 0.0, 1.0
+    stage = adaptive_encounter_stage_v2325(template, room)
+    if stage <= 0:
+        return 0.0, 1.0
+    level = max(1, int(character_level))
+    gap = max(0, stage - level)
+    if gap <= 5:
+        return 0.0, 1.0
+    # Soft ramp until 20; at +20 the severe curve starts. Bounded severity
+    # preserves numeric stability for unbounded dungeon floor IDs.
+    severity = 60.0 if gap >= 905 else (gap - 5) / 15.0
+    return severity, V110013_RANK_PRESSURE[adaptive_combat_rank_v11330(template)]
+
+
+def underlevel_hp_multiplier_v110013(template, character_level, room=None):
+    severity, rank = underlevel_threat_v110013(template, character_level, room)
+    if severity <= 0:
+        return 1.0
+    return 1.0 + rank * (3.0 * severity + 5.0 * severity * severity)
+
+
+def underlevel_incoming_fraction_v110013(template, character_level, room=None):
+    severity, rank = underlevel_threat_v110013(template, character_level, room)
+    if severity <= 0:
+        return 0.0
+    # At level 18 vs requirement 57 normal foes target >=100% HP per action;
+    # bosses and world bosses hit harder. No reductions to raw player damage.
+    return min(2.75, (0.13 * severity + 0.37 * severity ** 1.5) * rank)
+
+
 def adaptive_combined_pressure_v3000(template, character_level, room=None):
     """Keep previous high-area guarantees; strengthen any underleveled area."""
     old_hp, old_damage = adaptive_dungeon_pressure_v2325(template, character_level, room)
@@ -215,6 +261,11 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=
     hp_percent, _ = adaptive_combined_pressure_v3000(template, party_level, room)
     if hp_percent > 100:
         target = (target * hp_percent + 99) // 100
+    # Extra armor/health against much lower-level parties also protects against
+    # full-strength summons and mercenaries without nerfing their actual hits.
+    boost = underlevel_hp_multiplier_v110013(template, party_level, room)
+    if boost > 1.0:
+        target = target * int(boost)
     return target
 
 
@@ -247,7 +298,8 @@ def adaptive_target_incoming_fraction_v11330(template, party_size=1, player_leve
     party_pressure = min(1.28, 1.0 + 0.04 * max(0, int(party_size or 1) - 1))
     normal = min(0.22, base * party_pressure)
     _, underlevel_multiplier = adaptive_combined_pressure_v3000(template, player_level, room)
-    return min(0.45, normal * underlevel_multiplier)
+    previous = min(0.45, normal * underlevel_multiplier)
+    return max(previous, underlevel_incoming_fraction_v110013(template, player_level, room))
 
 
 def adaptive_beginner_incoming_target_v2005(template, player_level, base_expected, desired, room=None):

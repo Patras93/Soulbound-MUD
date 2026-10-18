@@ -29,7 +29,7 @@ def run_regression(runtime=None):
         if not value:
             raise AssertionError('V1112 NAUCZYCIELE: ' + label)
 
-    ck(VERSION == runtime.VERSION == '11.00.12', 'version')
+    ck(VERSION == runtime.VERSION and VERSION in ('11.00.12', '11.00.13', '11.00.14', '11.00.15', '11.00.16','11.00.17'), 'version')
     ck(len(runtime.QUESTS) == 6769, 'old 6745 quests + exactly 24 teacher quests')
     ck(len(TEACHER_QUEST_IDS) == 24 and TEACHER_QUEST_IDS <= set(runtime.QUESTS), 'all teacher quests in world')
     ck(len(TEACHER_NAMES) == len(TEACHER_TRIALS) == 8, 'eight independent teachers')

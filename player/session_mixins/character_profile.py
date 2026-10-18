@@ -269,11 +269,12 @@ class SessionCharacterProfileMixin:
                 label, target, power = self.exp_area_dynamic_threat(area, room_id=c.room_id)
                 await self.send(f"Ocena terenu dla tej postaci: {label}.")
                 await self.send(
-                    f"Orientacyjna siła progresji: {power}/{CHARACTER_MAX_LEVEL}. Próg terenu: {target}/{CHARACTER_MAX_LEVEL}."
+                    f"Poziom postaci: {c.character_level}. Orientacyjna siła bojowa: {power}/{CHARACTER_MAX_LEVEL}. Próg terenu: {target}/{CHARACTER_MAX_LEVEL}. "
+                    f"{self.exp_area_safety_summary_v110016(area, room_id=c.room_id)}"
                 )
             else:
                 await self.send(
-                    f"Orientacyjna siła progresji: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
+                    self.combat_power_explanation_v110016()
                 )
             await self.send(f"Główne poziomy postaci, Biegłości i Duszy rozwijają się do {CHARACTER_MAX_LEVEL}. Statystyki bazowe pozostają bez limitu. Generator Core został usunięty.")
 

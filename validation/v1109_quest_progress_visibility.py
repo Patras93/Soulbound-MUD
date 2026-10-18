@@ -63,7 +63,7 @@ def run_regression():
         if not condition:
             raise AssertionError('QUEST PROGRESS v11.00.9: '+why)
     quests=server.QUESTS
-    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12'), 'canonical release')
+    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'canonical release')
     counts=Counter(str(q.get('kind')) for q in quests.values())
     ck(len(counts)==18, f'18 canonical quest kinds: {counts}')
     from validation.v1100_release_counts import expected_quest_total_v1100

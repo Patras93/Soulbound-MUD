@@ -36,7 +36,7 @@ def run_regression(runtime=None):
         assert condition, 'v6.00.1: '+str(label)
         checks+=1
 
-    ok(len(quests)==(expected_quest_total_v1100() if getattr(runtime,'VERSION','') in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6585 if getattr(runtime,'VERSION','') in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 6573 if getattr(runtime,'VERSION','') == '9.00.0' else 5605 if getattr(runtime,'VERSION','') == '8.00.0' else 3925 if getattr(runtime,'VERSION','') in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') else 3861), f'expected release quest total, got {len(quests)}')
+    ok(len(quests)==(expected_quest_total_v1100() if getattr(runtime,'VERSION','') in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 6585 if getattr(runtime,'VERSION','') in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 6573 if getattr(runtime,'VERSION','') == '9.00.0' else 5605 if getattr(runtime,'VERSION','') == '8.00.0' else 3925 if getattr(runtime,'VERSION','') in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 3861), f'expected release quest total, got {len(quests)}')
     ok(len(ALL_QUEST_IDS)==960 and len(set(ALL_QUEST_IDS))==960,'960 unique IDs')
     ok(len(QUEST_IDS_BY_PROFESSION)==8 and len(CHAPTERS)==12, '8x12 chapters')
     reachable=_reachable(rooms)
@@ -73,7 +73,7 @@ def run_regression(runtime=None):
             ok(q.get('requires_quest')==(ids[idx-1] if idx else None), qid+' prerequisite')
             ok(q['needed']>=3 and q['reward_profession_xp']>0 and q['reward_tool_xp']>0, qid+' rewards')
             ok(q['reward_silver']>0 and not q['repeatable'] and q['giver']==npc_name, qid+' payout')
-            ok('profesje6 praca' in q['description'] and q['v601_profession_path'],qid+' instructions')
+            ok('profesja praca' in q['description'] and q['v601_profession_path'],qid+' instructions')
             ok(work_for(prof,q['required_action_code'],tier) is not None,qid+' executable action')
             ok(not checker.validate_quest_rewards_v1106(qid,q),qid+' reward guard')
         ok(stage_level(0)==1 and stage_level(119)==800,prof+' 1..800')

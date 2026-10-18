@@ -35,7 +35,7 @@ def run_regression():
         checks+=1
         if not condition:
             raise AssertionError(f'HELP v11.00.3: {message}')
-    ck(VERSION in ('11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12') and server.VERSION == VERSION, 'current version')
+    ck(VERSION in ('11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) and server.VERSION == VERSION, 'current version')
     for cmd in ('help', 'pomoc'):
         ck(resolve_session_command(cmd, 'kupiectwo') == 'help', f'{cmd} dispatch')
     ck(COMMAND_CATALOG.definition('help').handler=='show_help', 'registered command')
@@ -46,7 +46,7 @@ def run_regression():
         ck(tool_name in '\n'.join(rows), f'{prof} tool')
         for act in BASE_ACTIONS:
             if act.prof==prof:
-                ck(f'profesje6 praca {prof} {act.code}' in '\n'.join(rows), f'{prof}: {act.code}')
+                ck(f'profesja praca {prof} {act.code}' in '\n'.join(rows), f'{prof}: {act.code}')
     rows=asyncio.run(_help('klasy'))
     ck('22 grywalne' in '\n'.join(rows), 'help klasy uses canonical topic, not multiclass')
     ck(rows[0] == 'POMOC: KLASY', 'help klasy canonical title')

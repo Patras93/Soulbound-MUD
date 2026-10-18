@@ -59,7 +59,7 @@ def run_regression():
         checks += 1
         if not condition: raise AssertionError('PROFESSIONS WITHOUT SOUL v11.00.5: '+reason)
 
-    ck(server.VERSION in ('11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12'), 'candidate version')
+    ck(server.VERSION in ('11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'candidate version')
     ck(len(PROFESSIONS) == 8, 'new 8 professions unchanged')
     ck(len(QUESTS) >= 6745, 'full quest catalog is loaded')
     examples = [

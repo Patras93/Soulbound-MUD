@@ -120,7 +120,7 @@ def install(rooms, npcs, quests, items):
                 'description':(
                     f'Etap {stage} z 120 (poziom orientacyjny {level}). '
                     f'Wykonaj {count} razy czynność „{action.title}” '
-                    f'komendą profesje6 praca {profession} {action.code} {tier}. '
+                    f'komendą profesja praca {profession} {action.code} {tier}. '
                     f'Wymagany próg pracy co najmniej {tier}; czynność wykonuj '
                     'po przyjęciu zadania, w odpowiednim terenie, zużywając rzeczywiste materiały.'
                 ),

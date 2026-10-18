@@ -144,7 +144,7 @@ def install(rooms, npcs, quests, items, help_topics):
                 'name':f'Kronika Imperium: {title} — część {stage+1}',
                 'giver':npc_name,'kind':'profession_action','target':prof,
                 'needed':2+stage*2,
-                'description':f'{subject}. Wykonaj {2+stage*2} razy profesje6 praca '
+                'description':f'{subject}. Wykonaj {2+stage*2} razy profesja praca '
                               f'{prof} {action.code} {tier}. Wymagane materiały i narzędzie. '
                               f'Próg profesji przynajmniej {tier}.',
                 'required_profession':prof,'min_profession_level':tier,

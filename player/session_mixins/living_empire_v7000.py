@@ -203,7 +203,7 @@ class SessionLivingEmpireV7000Mixin:
         if mode in ('pomoc','help','lista'):
             await self.send('IMPERIUM 7: status, koszt <projekt>, ulepsz <pole|stado|warsztat|magazyn|stocznia|mury|latarnia|twierdza>, praca <rolnictwo|hodowla|inżynieria>.')
             await self.send('lowy lista/start/odbierz — prawdziwe zabicia elit i bossów; wyprawa lista/start <rafa|stolica|burze|row>/odbierz; karawana lista/start <rynek|port|kuźnia|targ>/odbierz.')
-            await self.send('mistrzostwo lista/<profesja>; fabula; nvda zwięźle/pełne. Wymagane realne wyroby z profesje6 i starych profesji.')
+            await self.send('mistrzostwo lista/<profesja>; fabula; nvda zwięźle/pełne. Wymagane realne wyroby z profesja i starych profesji.')
             return
         if mode=='status':
             projects=', '.join(f'{key} {self._v7_upgrade(key)}/8' for key in UPGRADES)

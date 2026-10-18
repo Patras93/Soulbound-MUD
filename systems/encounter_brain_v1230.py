@@ -84,38 +84,50 @@ def tactical_element_v1230(mob, template, current_profile=None):
 
 
 def ordinary_tactics_v1230(world, mob, template, now=None):
-    """Every sixth melee action: defend a wounded ally or rally the pack.
+    """Combat-local decisions for ordinary mobs, including dungeon and crypt mobs.
 
-    Keeps the original specialist-Monster-AI eligibility and audits intact.
-    Returns a message only when the action REPLACES the basic mob attack.
+    Bosses retain their authored encounter scripts. A support move replaces (never
+    accompanies) the mob's attack; frequency depends on observed combat state.
     """
-    turn = max(0, int(getattr(mob, 'combat_turn', 0) or 0))
     if (not mob or not getattr(mob, 'alive', False) or not getattr(mob, 'engaged_by', None)
             or getattr(mob, 'monster_ai_summoned_v1160', False)
             or any(template.get(flag) for flag in PROTECTED_FLAGS)
-            or monster_ai_eligible_v1160(mob, template)
-            or turn < 6 or turn % 6):
+            or monster_ai_eligible_v1160(mob, template)):
+        return ''
+    turn = max(0, int(getattr(mob, 'combat_turn', 0) or 0))
+    if turn < 3:
         return ''
     now = time.monotonic() if now is None else float(now)
     if now < float(getattr(mob, 'monster_ai_next_action_v1160', 0) or 0):
         return ''
     from data.mobs import MOB_TEMPLATES
-    allies = [candidate for candidate in world.mobs.values()
+    # Room-indexed lookup: no expensive whole-world scan on each combat tick.
+    allies = [candidate for candidate in world.room_mobs(mob.room_id)
               if candidate is not mob and getattr(candidate, 'alive', False)
-              and candidate.room_id == mob.room_id and candidate.engaged_by == mob.engaged_by
+              and candidate.engaged_by == mob.engaged_by
               and not getattr(candidate, 'monster_ai_summoned_v1160', False)]
-    injured = [ally for ally in allies if ally.hp * 100 < 65 * max(1, int(
-               getattr(ally, 'adaptive_max_hp_v11330', 0) or
-               MOB_TEMPLATES.get(ally.template_id, {}).get('max_hp', 1) or 1))]
+    injured = []
+    for ally in allies:
+        cap = max(1, int(getattr(ally, 'adaptive_max_hp_v11330', 0) or
+                         MOB_TEMPLATES.get(ally.template_id, {}).get('max_hp', 1) or 1))
+        if ally.hp * 100 <= 55 * cap and now >= float(getattr(ally, 'monster_ai_guard_until_v1160', 0) or 0):
+            injured.append((ally.hp / cap, ally))
     name = template.get('name', mob.template_id)
-    if injured:
-        target = min(injured, key=lambda ally: ally.hp)
+    # Wounded pack members get priority over self-buffs, but the mob cannot
+    # spam a protective action or permanently avoid its regular attacks.
+    if injured and turn % 4 == 0:
+        target = min(injured, key=lambda pair: pair[0])[1]
         target.monster_ai_guard_until_v1160 = now + 10.0
         mob.monster_ai_next_action_v1160 = now + 18.0
         return f"{name} osłania rannego sojusznika na 10 sekund."
+    own_cap = max(1, int(getattr(mob, 'adaptive_max_hp_v11330', 0) or template.get('max_hp', 1) or 1))
+    # Hurt monsters rally earlier; healthy mobs coordinate less frequently.
+    interval = 5 if mob.hp * 100 <= 40 * own_cap else 7
+    if turn % interval:
+        return ''
     mob.monster_ai_empowered_until_v1160 = now + 12.0
     mob.monster_ai_next_action_v1160 = now + 18.0
-    return f"{name} mobilizuje się do silniejszego kontrataku."
+    return f"{name} zmienia taktykę i przygotowuje silniejszy kontratak."
 
 
 def mercenary_combo_v1230(role, all_roles, definitions):

@@ -139,7 +139,7 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v11.00.12 - IMIENNI NAUCZYCIELE I ICH QUESTY"
+LATEST_CHANGES_TITLE = "Soulbound v11.00.17 - PROSTE KOMENDY PROFESJI"
 LATEST_CHANGES = [
     "v11.00.12: osiem imiennych nauczycieli klas v9 oferuje po trzy własne questy klasowe; rozmowa pokazuje zadanie i nadal umożliwia learn. Help mag i pozostale klasy wyświetlają opis bez proszenia o wpisanie nazwy skilla. Skradzione Skrzynie Rudy częściej wypadają z trolli, wymagane 10 sztuk i nagrody bez zmian.",
     "v11.00.11: help <nazwa skilla> otwiera pełny opis, tak samo jak help skill <nazwa>; działają nowe nazwy 22 klas, stare aliasy, ID i polskie znaki. Bez wykonywania skilla ani zmiany balansu.",

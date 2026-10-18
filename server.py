@@ -241,16 +241,16 @@ for _help_profession, (_help_tool_type, _help_tool_id, _help_tool_name) in _HELP
     _help_rows = [
         f"{_help_profession} — profesja i {_help_tool_name}, poziomy 1–800.",
         f"Krótko: profesja status {_help_profession}; profesja kup {_help_profession}; pracuj {_help_profession} <czynność>.",
-        f"profesje6 kup {_help_profession} — narzędzie za 1200 srebra, tylko raz na postać. Kupno u mistrza profesji, na targu, w porcie lub kuźni.",
-        f"profesje6 status {_help_profession}; profesje6 czynnosci {_help_profession} — poziom i lista rzeczywistych czynności.",
+        f"profesja kup {_help_profession} — narzędzie za 1200 srebra, tylko raz na postać. Kupno u mistrza profesji, na targu, w porcie lub kuźni.",
+        f"profesja status {_help_profession}; profesja czynnosci {_help_profession} — poziom i lista rzeczywistych czynności.",
     ]
     for _help_action in _HELP_V1103_ACTIONS:
         if _help_action.prof == _help_profession:
             _help_rows.append(
-                f"profesje6 praca {_help_profession} {_help_action.code} [próg] — {_help_action.title}. "
+                f"profesja praca {_help_profession} {_help_action.code} [próg] — {_help_action.title}. "
                 f"Teren: {_help_action.region}; poziom od {_help_action.min_level}."
             )
-    _help_rows.append(f"profesje6 zamowienie {_help_profession}; profesje6 oddaj {_help_profession} — zamówienia.")
+    _help_rows.append(f"profesja zamowienie {_help_profession}; profesja oddaj {_help_profession} — zamówienia.")
     _help_rows.append("Progi rozwoju: 1, 25, 75, 150, 300, 500, 700. Zadania: Droga Mistrza u odpowiedniego mistrza profesji.")
     HELP_TOPICS[_help_key] = _help_rows
     HELP_TOPIC_ALIASES[_help_key.replace("_", "")] = _help_key
@@ -269,7 +269,7 @@ HELP_TOPICS['karawana'] = [
     'imperium7 karawana start <rynek|port|kuźnia|targ> — wyrusz karawaną z rynku.',
     'imperium7 karawana odbierz — odbierz ukończony transport; wcześniej nie rozpoczniesz następnego.',
     'Wymagane posiadana Waga Kupiecka, poziom Kupiectwa i materiały na wybraną trasę.',
-    'To inny mechanizm niż profesje6 praca Kupiectwo wyslij/dostarcz.',
+    'To inny mechanizm niż profesja praca Kupiectwo wyslij/dostarcz.',
 ]
 HELP_TOPIC_ALIASES['handlowanie'] = 'kupiectwo'
 

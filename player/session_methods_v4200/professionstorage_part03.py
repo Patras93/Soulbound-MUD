@@ -127,22 +127,7 @@ async def grant_profession_reward_xp(
         tlevel = int(trow["level"])
         txp = int(trow["xp"]) + tool_xp
         uses = int(trow["uses"])
-        tool_name = {
-            "fishing": "Wędka",
-            "mining": "Kilof",
-            "woodcutting": "Piła",
-            "crafting": "Młot Rzemieślniczy",
-            "cooking": "Nóż Kucharski",
-            "herbalism": "Sierp Zielarski",
-            "alchemy": "Moździerz Alchemiczny",
-            "jewelcrafting": "Szczypce Jubilerskie",
-            "tailoring": "Zestaw Krawiecki",
-            "leatherworking": "Nóż Garbarski",
-            "carpentry": "Narzędzia Ciesielskie",
-            "enchanting": "Fokus Runiczny",
-            "archaeology": "Pędzel Archeologa",
-            "cartography_profession": "Kompas Mierniczy",
-        }[tool_type]
+        tool_name = self.tool_display_name_v11343(tool_type)
 
         await self.send(f"{tool_name}: nagroda +{tool_xp} XP.")
 

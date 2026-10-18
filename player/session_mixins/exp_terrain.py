@@ -27,6 +27,51 @@ class SessionExpTerrainMixin:
             """Generated combat progression estimate 1-600, including Character Level."""
             return self.combat_xp_power_v023()
 
+    def combat_power_explanation_v110016(self):
+            """Separate actual level from the estimate; never present it as a level."""
+            level = max(1, int(getattr(self.character, "character_level", 1) or 1))
+            power = self.character_progression_power()
+            return (
+                f"Poziom postaci: {level}. "
+                f"Orientacyjna siła bojowa: {power}/{CHARACTER_MAX_LEVEL}. "
+                "Siła bojowa uwzględnia biegłości, Duszę, statystyki i wyposażenie; "
+                "nie zastępuje poziomu postaci ani nie gwarantuje wygranej."
+            )
+
+    def exp_area_safety_summary_v110016(self, area, room_id=None):
+            """Show entry danger against real character level, not just combat score."""
+            level = max(1, int(getattr(self.character, "character_level", 1) or 1))
+            target = max(1, int(self.exp_area_target_power(area, room_id=room_id)))
+            area_id = str(area.get("id", ""))
+            target = max(target, int(EXP_AREA_TARGET_POWER.get(area_id, 1)))
+            if area_id == "trening":
+                return "Zagrożenie: bezpieczny plac treningowy."
+            if area_id == "mythic_crypt":
+                target = max(target, 130)
+            elif area_id == "mythic_astral":
+                target = max(target, 150)
+            elif area_id == "astral":
+                target = max(target, 110)
+            elif area_id == "krypta":
+                target = max(target, 30)
+            gap = target - level
+            if gap >= 20:
+                label = "ekstremalnie niebezpieczny — NIEPOLECANY"
+            elif gap > 8:
+                label = "zbyt trudny — niepolecany"
+            elif gap > 0:
+                label = "trudny — zachowaj ostrożność"
+            elif gap >= -15:
+                label = "odpowiedni do rozważenia"
+            else:
+                label = "raczej łatwy na wejściu"
+            return (
+                f"Zagrożenie wejścia: {label}. "
+                f"Orientacyjny próg przeciwników: {target}, "
+                f"poziom postaci: {level}. "
+                "Bossowie i głębsze piętra mogą być trudniejsze."
+            )
+
     def exp_area_target_power(self, area, room_id=None):
             static_target = int(
                 EXP_AREA_TARGET_POWER.get(
@@ -98,10 +143,42 @@ class SessionExpTerrainMixin:
             return min(CHARACTER_MAX_LEVEL, minimum), min(CHARACTER_MAX_LEVEL, maximum)
 
     def exp_area_recommended(self, area):
-            # v0.30.12: wszystkie tereny są dobierane po Levelu postaci.
+            """Recommend the ENTRY encounter, never just an obsolete soul range.
+
+            Recommended zones must be plausible at the character's own level,
+            even when multiclass equipment or high stats inflate combat power.
+            Entry danger is computed from actual room spawns when possible;
+            an empty entry room cannot mask the area's minimum danger.
+            """
             level = max(1, int(getattr(self.character, "character_level", 1) or 1))
+            area_id = str(area.get("id", ""))
             minimum, maximum = self.exp_area_character_level_band_v03012(area)
-            return minimum <= level <= maximum
+            target = self.exp_area_target_power(area)
+            # An open portal is not a recommendation. Explicit minimum danger
+            # wins over misleading legacy fields (mythic crypt soul_min=1).
+            target = max(target, int(EXP_AREA_TARGET_POWER.get(area_id, 1)))
+            if area_id == "trening":
+                return level <= 12
+            if area_id == "mythic_crypt":
+                target = max(target, 130)
+            elif area_id == "mythic_astral":
+                target = max(target, 150)
+            elif area_id == "astral":
+                target = max(target, 110)
+            elif area_id == "krypta":
+                # Recommendation refers only to the first floor, not every
+                # level of the infinite crypt or its tenth-floor bosses.
+                target = max(target, 30)
+            if level < max(1, minimum) and target > level + 8:
+                return False
+            if target >= level + 20:
+                return False
+            if target > level + 8:
+                return False
+            # Avoid suggesting trivial entry content as the primary grind.
+            if level > max(maximum, target + 40):
+                return False
+            return True
 
     def exp_area_for_room(self, room_id=None):
             room_id = room_id or (self.character.room_id if self.character else "")
@@ -234,10 +311,14 @@ class SessionExpTerrainMixin:
     def exp_area_category_text(self, area, room_id=None):
             base = EXP_AREA_BASE_CATEGORY.get(area.get("id"), "Umiarkowany")
             dynamic, target, power = self.exp_area_dynamic_threat(area, room_id=room_id)
+            if area.get("id") == "trening":
+                dynamic, target = "Treningowy (bezpieczny)", 1
             return (
                 f"Kategoria bazowa: {base}. "
                 f"Dla twojej obecnej postaci: {dynamic}. "
-                f"Siła postaci {power}/{CHARACTER_MAX_LEVEL}, próg terenu około {target}/{CHARACTER_MAX_LEVEL}"
+                f"Poziom postaci {self.character.character_level}, orientacyjna siła bojowa {power}/{CHARACTER_MAX_LEVEL}, "
+                f"próg terenu około {target}/{CHARACTER_MAX_LEVEL}. "
+                f"{self.exp_area_safety_summary_v110016(area, room_id=room_id)}"
             )
 
     def resolve_terrain_zone(self, query):
@@ -497,8 +578,9 @@ class SessionExpTerrainMixin:
                 ]
                 await self.send(
                     f"POLECANE EXPOWISKA. "
-                    f"Soul Level: {self.character.soul_level}. "
-                    f"Orientacyjna siła postaci: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
+                    f"Level postaci: {self.character.character_level}. "
+                    f"Orientacyjna siła bojowa: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}. "
+                    "Siła bojowa nie jest poziomem. Polecane na podstawie zagrożenia przy wejściu; bossowie i głębsze piętra mogą być dużo trudniejsze."
                 )
                 if not areas:
                     await self.send(
@@ -509,7 +591,7 @@ class SessionExpTerrainMixin:
                     return
                 for area in areas:
                     await self.send(
-                        f"{area['name']}. "
+                        f"{area['name']}{' — tylko pierwsze piętro' if area.get('id') == 'krypta' else ''}. "
                         f"{self.exp_area_category_text(area)}. "
                         f"{area['description']}"
                     )
@@ -528,7 +610,7 @@ class SessionExpTerrainMixin:
 
             await self.send(
                 f"EXPOWISKA. Soul Level: {self.character.soul_level}. "
-                f"Orientacyjna siła postaci: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
+                f"Poziom postaci: {self.character.character_level}. Orientacyjna siła bojowa: {self.character_progression_power()}/{CHARACTER_MAX_LEVEL}."
             )
             await self.send(
                 "Tereny mają kategorię bazową: Początkujący, Umiarkowany, Trudny, "

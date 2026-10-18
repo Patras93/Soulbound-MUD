@@ -57,11 +57,11 @@ def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
         'Tempo czynności sprawdzaj w help tempo_profesji; premie za dobre materiały i wyjątkowe zbiory nadal działają.',
     ]
     topics['profesje6'] = [
-        'Nowe profesje 6.00.0 — osobne narzędzia od poziomu 1 do 800.',
-        'profesje6 lista — nazwy, narzędzia i czynności; profesje6 status <nazwa> — rozwój.',
-        'profesje6 kup <nazwa> — zakup narzędzia tylko raz na postać; profesje6 czynnosci <nazwa> — możliwe prace.',
-        'profesje6 praca <nazwa> <czynność> [próg] — wykonaj pracę i zdobądź EXP.',
-        'profesje6 zamowienie <nazwa> oraz profesje6 oddaj <nazwa> — zlecenia i nagrody.',
+        'Nowe zawody — osobne narzędzia od poziomu 1 do 800.',
+        'profesja lista — nazwy, narzędzia i czynności; profesja status <nazwa> — rozwój.',
+        'profesja kup <nazwa> — zakup narzędzia tylko raz na postać; profesja czynnosci <nazwa> — możliwe prace.',
+        'profesja praca <nazwa> <czynność> [próg] — wykonaj pracę i zdobądź EXP.',
+        'profesja zamowienie <nazwa> oraz profesja oddaj <nazwa> — zlecenia i nagrody.',
     ]
     topics['atlas'] = [
         'atlas / atlas odkrycia — Globalny Atlas świata: regiony, miasta, wyspy, lochy, platformy, ruiny, superbossy i sekrety.',
@@ -108,7 +108,7 @@ def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
         'Przed wejściem na kolejne piętro użyj exits i wybierz właściwy kierunek.',
     ]
     topics['zamowienia'] = [
-        'zamowienia / zamówienia — aktywne i rotujące kontrakty dawnych profesji i nowe zamówienia: profesje6 zamowienie <nazwa>.; nagrody zostały podniesione w v1.40.6.',
+        'zamowienia / zamówienia — aktywne i rotujące kontrakty dawnych profesji i nowe zamówienia: profesja zamowienie <nazwa>.; nagrody zostały podniesione w v1.40.6.',
         'zamowienie porzuc — porzuca aktywny kontrakt bez usuwania posiadanych materiałów i bez kasowania historii.',
         'Nowa oferta ma własną wypłatę i EXP; wcześniej przyjęta zachowuje nagrodę zapisaną przy przyjęciu.',
     ]

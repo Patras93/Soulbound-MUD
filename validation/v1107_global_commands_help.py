@@ -34,7 +34,7 @@ def run_regression():
         checks += 1
         if not ok:
             raise AssertionError('GLOBALNE KOMENDY / HELP v11.00.7: ' + why)
-    ck(VERSION == server.VERSION and VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12'), 'consistent version')
+    ck(VERSION == server.VERSION and VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'consistent version')
     ck(not COMMAND_CATALOG.conflicts(), 'no catalog alias conflicts')
     for canonical, names in VERSIONLESS_COMMAND_ALIASES_V1107:
         ck(canonical in COMMAND_REGISTRY, 'existing handler ' + canonical)

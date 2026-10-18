@@ -1,6 +1,48 @@
-Soulbound v11.00.12 — IMIENNI NAUCZYCIELE, WŁASNE QUESTY, SKRZYNIE, HELP KLAS
-Aktualna paczka: v11.00.12
+HOTFIX v11.00.17 — HELP profesji: polecenia widoczne w pomocy 22 profesji ujednolicone z komendami profesja; poprawa regresji GLOBAL HELP 71/71 PASS.
 
+Soulbound v11.00.17 — HOTFIX NAGRÓD PROFESJI (ŁOWIECTWO I 22 PROFESJE)
+- Naprawiono KeyError: hunting podczas turnin: przyznawanie EXP używa centralnej nazwy narzędzia obsługującej 14 pierwotnych i 8 nowych profesji.
+- Usunięto analogiczny słownik z grant_tool_reward_xp. Przyznawanie XP i limity bez zmian.
+- Nie zmieniono danych graczy ani schematu SQLite. Uwaga: jeśli stary błąd nastąpił już po oznaczeniu questa jako ukończony, część nagród mogła nie zostać wypłacona; automatyczny zwrot nie jest wykonywany, aby uniknąć duplikatów.
+- Wymagany pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v11.00.17 — PROSTE KOMENDY PROFESJI
+- Komendy dla gracza: profesje lista, profesja status <nazwa>, profesja kup <nazwa>, profesja czynnosci <nazwa>, profesja praca <nazwa> <czynność>, profesja zamowienie <nazwa>, profesja oddaj <nazwa>.
+- Teksty pomocy, zadań i tablic kierują do przyjaznych komend bez cyfry 6. Dawny alias profesje6 pozostaje wewnętrznie dla zgodności ze starymi skryptami.
+- 22 profesje, postęp, narzędzia, zdobyte EXP, nagrody i zapis SQLite bez zmian. Nie ma resetów ani kasowania profesji.
+- Przed wdrożeniem wymagany PREDEPLOY 60/60 PLUS.
+
+Soulbound v11.00.16 — POZIOM POSTACI, SIŁA BOJOWA, ZAGROŻENIE
+- Hotfix PREDEPLOY: testy starszych systemów akceptują wersje 11.00.15 i 11.00.16; komunikat con poprawiony dla uproszczonych sesji testowych bez pola character_level. Bez zmiany zasad walki, EXP i bazy SQLite.
+- Rozdzielono trzy komunikaty w score, con i expowiska: rzeczywisty poziom postaci, orientacyjna siła bojowa (z biegłości, Duszy, statystyk i wyposażenia) oraz ocena zagrożenia przeciwnika lub wejścia na teren.
+- `con <mob>` wyjaśnia, że ryzyko jest prognozowane z konkretnej walki, a nie wyłącznie z siły ogólnej.
+- `expowiska`, `expowiska polecane`, `expowiska <teren>` pokazują oddzielnie poziom i siłę, a ocenę niebezpieczeństwa odnoszą do rzeczywistego poziomu postaci. Próg >=20 poziomów wyżej oznacza ekstremalne zagrożenie; bezpieczny plac treningowy zachowuje swoją osobną klasyfikację.
+- Bez zmian obrażeń, HP, EXP, dropów, siły najemników i przywołań, zapisów SQLite i dostępności terenów. Wymagany Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v11.00.15 — UCZCIWE EXPOWISKA I ZAGROŻENIA
+- `expowiska polecane` nie ufa już samemu staremu zakresowi Soul Level; sprawdza poziom postaci i rzeczywistą przybliżoną trudność wejścia, z ochroną przed terenami co najmniej 20 poziomów ponad postacią.
+- Mityczna Krypta nie jest polecana początkującym tylko dlatego, że jej brama jest dostępna od poziomu 1. Inne mityczne i wysokopoziomowe obszary też podlegają kontroli.
+- Zwykła Krypta może być polecona tylko dla wejściowego pierwszego piętra i dopiero przy odpowiednim poziomie; rekomendacja nie oznacza bezpieczeństwa na piętrach kolejnych lub przy bossach.
+- Stary Cmentarz, Kanały, Jaskinie, Obozowiska, Dzicz i pozostałe zdefiniowane regiony pozostają na liście i są oceniane tą samą regułą; Plac Treningowy jest rozpoznawany jako bezpieczny trening, a nie śmiertelne expowisko.
+- Bez zmian EXP, statystyk, obrażeń, świata, NPC, kont i bazy SQLite. Wymagany PREDEPLOY Windows 60/60 PLUS.
+
+Soulbound v11.00.14 — INTELIGENTNIEJSZE POTWORY W CAŁYM ŚWIECIE
+- Zwykłe potwory w świecie, kryptach, lochach i wymiarach częściej reagują na przebieg walki. Priorytetem jest osłona najbardziej rannego sojusznika, a samotny lub ranny potwór zmienia tempo kontrataku.
+- Taktyka uwzględnia HP, aktywną osłonę, własne rundy i czas od poprzedniej decyzji; akcja taktyczna zastępuje podstawowy atak i ma przerwę czasową, zamiast dawać darmowy dodatkowy cios.
+- Skany sojuszników ograniczono do pokoju walki. Magia/nekromancja i dedykowane skrypty bossów/superbossów zachowują własną logikę — nie są zastąpione ogólnym AI.
+- Zachowano skalowanie trudności v11.00.13, obrażenia graczy/najemników/przywołań, EXP, drop, SQLite i brak migracji.
+- Inteligencja bossów pozostaje zależna od ich istniejących skryptów; ta poprawka rozszerza wspólny moduł zwykłych przeciwników, a nie dodaje nowych decyzji każdemu bossowi.
+- Wymagany pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v11.00.13 — BALANS WYSOKOPOZIOMOWYCH POTWORÓW
+- Walka z przeciwnikiem o wymaganym poziomie o co najmniej 20 wyższym jest ekstremalnie trudna. Przy różnicy 6-19 poziomów trudność rośnie płynnie.
+- Wysokopoziomowe moby mają znacząco większe efektywne HP i potężniejsze ataki; bossowie, minibossowie i superbossowie otrzymują osobne, coraz silniejsze mnożniki przewagi poziomu.
+- Przywołania i najemnicy zachowują własne pełne obrażenia, lecz nie mogą łatwo obejść przewagi poziomu przez szybkie wyeliminowanie słabego skalowanego przeciwnika.
+- Brak twardej blokady ataku i brak obcinania obrażeń gracza, statystyk, EXP, dropu ani poziomów. Postacie o odpowiednim lub wyższym poziomie zachowują dotychczasowy balans.
+- Wszystkie zmiany są obliczane podczas starcia; brak migracji lub zmian schematu SQLite.
+
+Soulbound v11.00.12 — IMIENNI NAUCZYCIELE, WŁASNE QUESTY, SKRZYNIE, HELP KLAS
+Aktualna paczka: v11.00.17
 - Ośmiu nauczycieli nowych klas ma unikatowe imiona w normalnym NPC i w `help <klasa>`: Paladyn — Mistrzyni Serafina, Samuraj — Mistrz Hiroto, Korsarz — Kapitan Roksana, Gladiator — Mistrz Aureliusz, Chronomanta — Mistrzyni Eona, Iluzjonista — Mistrzyni Miraluna, Bard — Mistrz Arion, Szaman — Mistrzyni Nalara.
 - Każdy nauczyciel daje trzy klasowe zadania szkoleniowe: walka, zbieranie surowca i finałowa walka. 24 zadania mają rzeczywisty postęp SQLite, wymagają danej klasy, mają osobne nagrody i zachowują jednego NPC w pokoju. U nauczyciela działa `quest list` i krótkie `przyjmij 1`; nauka skilli `learn` pozostaje bez zmian.
 - Pomoc `help mag`, `help paladyn` i pozostałe klasy korzysta z dotychczasowych opisów klasy i pokazuje imiennego nauczyciela. `help <nazwa skilla>` nadal wyświetla opis skilla bez jego używania.

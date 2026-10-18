@@ -757,6 +757,12 @@ class SessionCombatDamageMixin:
                 await self.send(
                     f"Ocena zagrożenia: {rating['label']}."
                 )
+                await self.send(
+                    f"Poziom postaci: {max(1, int(getattr(self.character, "character_level", 1) or 1))}. "
+                    f"Orientacyjna siła bojowa: {self.character_progression_power()}. "
+                    "Ocena zagrożenia wynika z prognozy tego starcia, "
+                    "a nie z samej liczby siły bojowej."
+                )
                 _danger_stage = adaptive_encounter_stage_v2325(
                     template, ROOMS.get(str(self.character.room_id), {})
                 )
