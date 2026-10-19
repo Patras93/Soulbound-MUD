@@ -36,7 +36,7 @@ def run_regression(runtime=None):
         assert condition, 'v6.00.1: '+str(label)
         checks+=1
 
-    ok(len(quests)==(expected_quest_total_v1100() if getattr(runtime,'VERSION','') in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 6585 if getattr(runtime,'VERSION','') in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 6573 if getattr(runtime,'VERSION','') == '9.00.0' else 5605 if getattr(runtime,'VERSION','') == '8.00.0' else 3925 if getattr(runtime,'VERSION','') in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) else 3861), f'expected release quest total, got {len(quests)}')
+    ok(len(quests)==(expected_quest_total_v1100() if getattr(runtime,'VERSION','') in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',) else 6585 if getattr(runtime,'VERSION','') in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',) else 6573 if getattr(runtime,'VERSION','') == '9.00.0' else 5605 if getattr(runtime,'VERSION','') == '8.00.0' else 3925 if getattr(runtime,'VERSION','') in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',) else 3861), f'expected release quest total, got {len(quests)}')
     ok(len(ALL_QUEST_IDS)==960 and len(set(ALL_QUEST_IDS))==960,'960 unique IDs')
     ok(len(QUEST_IDS_BY_PROFESSION)==8 and len(CHAPTERS)==12, '8x12 chapters')
     reachable=_reachable(rooms)
@@ -139,6 +139,35 @@ def run_regression(runtime=None):
         ok(quester.quest_ids_for_npc(npc_id,npc)==[ids[0]],'active quest remains first')
         db.complete_quest(aid,ids[0])
         ok(quester.quest_ids_for_npc(npc_id,npc)==[ids[1]],'next unlocked via first slot')
+        # Player has gathered mint in `herbs` (the physical `herbbag`), not
+        # regular inventory; the Lv 1 ambush consumes it and credits the mentor.
+        db.start_quest(aid,ids[1])  # second mentor quest: zasadzka
+        ok(quests[ids[1]]['required_action_code']=='zasadzka', 'second mentor action is ambush')
+        existing_tracks = db.item_qty(aid,'v600_tracks')
+        db.add_item(aid,'v600_tracks',2)
+        db.add_storage_item(aid,'herbbag','mint',1)
+        ok(db.item_qty(aid,'mint')==0 and db.storage_qty(aid,'herbbag','mint')==1,
+           'mint only in herbs bag')
+        before_progress=int(db.quest(aid,ids[1])['progress'])
+        before_xp=int(db.profession(aid,'Łowiectwo')['xp'])
+        response=asyncio.run(session.do('praca Łowiectwo zasadzka 1'))
+        ok('Łowiectwo —' in response and 'Brak materiałów' not in response,
+           'ambush accepts herbs bag mint')
+        ok(db.storage_qty(aid,'herbbag','mint')==0, 'mint consumed exactly once')
+        ok(db.item_qty(aid,'v600_tracks')==existing_tracks, 'ambush consumes exactly two tracks')
+        ok(db.quest(aid,ids[1])['progress']==before_progress+1,
+           'herb-assisted ambush advances mentor quest')
+        ok(int(db.profession(aid,'Łowiectwo')['xp'])>before_xp,
+           'herb-assisted ambush awards profession XP')
+        # A second attempt without mint must not give a free quest step.
+        db.conn.execute('DELETE FROM prof6_cooldowns WHERE account_id=? AND action=?',
+                        (aid,'Łowiectwo:zasadzka'))
+        db.conn.commit()
+        db.add_item(aid,'v600_tracks',2)
+        response=asyncio.run(session.do('praca Łowiectwo zasadzka 1'))
+        ok('Brak materiałów: 1 × Mięta' in response, 'zero herbs rejects second ambush')
+        ok(db.quest(aid,ids[1])['progress']==before_progress+1,
+           'no duplicate mentor quest progress when mint missing')
         db.conn.close()
         restored=Database(str(Path(tmp)/'quests.sqlite'))
         ok(restored.quest(aid,ids[0])['status']=='completed','saved across restart')

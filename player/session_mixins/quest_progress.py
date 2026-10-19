@@ -447,6 +447,9 @@ class SessionQuestProgressMixin:
                     crafted_base = str(item.get("crafted_base_id_v03054") or "")
                     if crafted_base:
                         grouped.setdefault(crafted_base, []).append(str(item_id))
+                    resource_base = str(item.get("base_resource_id") or "")
+                    if resource_base:
+                        grouped.setdefault(resource_base, []).append(str(item_id))
                 cache = (len(ITEMS), {key: tuple(values) for key, values in grouped.items()})
                 type(self).quest_crafted_equivalent_ids_v0333._v0717_cache = cache
             ids = {base_id}

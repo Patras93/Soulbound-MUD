@@ -39,7 +39,7 @@ def run_regression():
         nonlocal checks
         checks+=1
         if not ok: raise AssertionError('DESKI DRWALSTWO v11.00.8: '+why)
-    ck(VERSION == server.VERSION and VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'release identity')
+    ck(VERSION == server.VERSION and VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',), 'release identity')
     ck('obrabiaj' in COMMAND_REGISTRY and COMMAND_REGISTRY['obrabiaj'][0]=='process_wood_v1108', 'command handler')
     ck(resolve_session_command('deski')=='obrabiaj', 'short alias')
     ck(not COMMAND_CATALOG.conflicts(), 'command catalog clean')

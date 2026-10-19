@@ -4,6 +4,8 @@ import time
 import unicodedata
 from systems.new_professions import PROFESSIONS, AREAS, TIERS, BASE_ACTIONS, TIER_BONUS_INPUT, work_for
 from data.items import ITEMS
+from systems.items_resources import FISH_STORAGE_IDS, HERB_STORAGE_IDS, WOOD_STORAGE_IDS
+from systems.equipment_crafting import MINING_STORAGE_IDS
 from contextlib import contextmanager
 
 SILVER_PER_MITHRIL = 100_000_000
@@ -49,21 +51,62 @@ def ensure_schema(db):
     db._prof6_schema_ready = True
 
 
+def _material_containers(item):
+    """Use the real gathering bag for raw resources, plus the craft casket.
+
+    `herbs` is an alias of `herbbag` in profession storage.  Never treat
+    unrelated containers as a source of a given material.
+    """
+    containers = ["craftbox"]
+    if item in HERB_STORAGE_IDS:
+        containers.append("herbbag")
+    if item in FISH_STORAGE_IDS:
+        containers.append("net")
+    if item in WOOD_STORAGE_IDS:
+        containers.append("woodpile")
+    if item in MINING_STORAGE_IDS:
+        containers.append("bag")
+    return tuple(containers)
+
+
 def _sum(db, account, item):
-    return db.item_qty(account,item)+db.storage_qty(account,"craftbox",item)
+    return db.item_qty(account, item) + sum(
+        db.storage_qty(account, container, item)
+        for container in _material_containers(item)
+    )
 
 
 def _remove_all(db, account, item, qty):
-    """Consume real inventory + craftbox in a single SQLite transaction."""
-    if _sum(db,account,item)<qty: return False
-    stored=min(db.storage_qty(account,"craftbox",item),qty)
-    if stored:
-        res=db.conn.execute("UPDATE profession_storage SET quantity=quantity-? WHERE account_id=? AND container='craftbox' AND item_id=? AND quantity>=?",(stored,account,item,stored))
-        if res.rowcount!=1: return False
-    left=qty-stored
-    if left:
-        res=db.conn.execute("UPDATE inventory SET quantity=quantity-? WHERE account_id=? AND item_id=? AND quantity>=?",(left,account,item,left))
-        if res.rowcount!=1: return False
+    """Spend exactly the requested quantity across the right storage sources.
+
+    Caller owns the SQLite transaction. All guarded writes are reversible on
+    failure, including professional XP and quest progress.
+    """
+    if _sum(db, account, item) < qty:
+        return False
+    remaining = qty
+    for container in _material_containers(item):
+        stored = min(db.storage_qty(account, container, item), remaining)
+        if not stored:
+            continue
+        res = db.conn.execute(
+            "UPDATE profession_storage SET quantity=quantity-? "
+            "WHERE account_id=? AND container=? AND item_id=? AND quantity>=?",
+            (stored, account, container, item, stored),
+        )
+        if res.rowcount != 1:
+            return False
+        remaining -= stored
+        if not remaining:
+            break
+    if remaining:
+        res = db.conn.execute(
+            "UPDATE inventory SET quantity=quantity-? "
+            "WHERE account_id=? AND item_id=? AND quantity>=?",
+            (remaining, account, item, remaining),
+        )
+        if res.rowcount != 1:
+            return False
     return True
 
 

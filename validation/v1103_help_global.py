@@ -35,7 +35,7 @@ def run_regression():
         checks+=1
         if not condition:
             raise AssertionError(f'HELP v11.00.3: {message}')
-    ck(VERSION in ('11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) and server.VERSION == VERSION, 'current version')
+    ck(VERSION in ('11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',) and server.VERSION == VERSION, 'current version')
     for cmd in ('help', 'pomoc'):
         ck(resolve_session_command(cmd, 'kupiectwo') == 'help', f'{cmd} dispatch')
     ck(COMMAND_CATALOG.definition('help').handler=='show_help', 'registered command')

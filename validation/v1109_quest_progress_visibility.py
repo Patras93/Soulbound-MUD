@@ -63,7 +63,7 @@ def run_regression():
         if not condition:
             raise AssertionError('QUEST PROGRESS v11.00.9: '+why)
     quests=server.QUESTS
-    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',), 'canonical release')
+    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',), 'canonical release')
     counts=Counter(str(q.get('kind')) for q in quests.values())
     ck(len(counts)==18, f'18 canonical quest kinds: {counts}')
     from validation.v1100_release_counts import expected_quest_total_v1100
@@ -134,6 +134,59 @@ def run_regression():
     ):
         ck('await self.announce_active_quest_progress(' in source,
            label+' must not use hidden normal combat messages')
+    # Old-world NPC stories, especially Loran's copper ore delivery, must show
+    # honest progression including actual carried stock and rare raw resources.
+    # A test only creates its own temporary SQLite and never edits live data.
+    from tempfile import TemporaryDirectory
+    from pathlib import Path
+    from storage.database import Database
+    from core.classes_skills import CLASSES, RACES
+    from data.items import ITEMS
+    loran='v3100_old_5_2'
+    ck(loran in quests and quests[loran]['target']=='copper_ore'
+       and quests[loran]['kind']=='collect',"Loran's authored ore story exists")
+    with TemporaryDirectory(prefix='soulbound_story_progress_') as tmp:
+        db=Database(str(Path(tmp)/'story.sqlite'))
+        try:
+            master=db.create_account('StoryProgressTest','VeryLongTestPassword2026!')
+            grammar={g:'Tester' for g in ('nom','gen','dat','acc','ins','loc','voc')}
+            aid,_=db.create_character_for_master(master,'ProbaFabuly',RACES[0],CLASSES[0],grammar)
+            db.add_storage_item(aid,'bag','copper_ore',3)
+            db.start_quest(aid,loran)
+            ck(int(db.quest(aid,loran)['progress'])==0, 'old ore stash does not credit Loran')
+            changed=db.increment_item_collect_quest(aid,'copper_ore',1)
+            ck(any(qid==loran for qid,*_ in changed),'fresh ore credits Loran')
+            ck(int(db.quest(aid,loran)['progress'])==1,'Loran 1/2 progress persisted')
+            # A separate resource quest must not be incidentally credited.
+            herb_base='mint'
+            variants=[item_id for item_id,item in ITEMS.items()
+                      if item.get('base_resource_id')==herb_base]
+            ck(bool(variants),'existing real rare herb variants')
+            if variants:
+                herb_variant=variants[0]
+                story_herb=next((qid for qid,q in quests.items()
+                      if q.get('kind')=='collect' and q.get('target')==herb_base),None)
+                if story_herb:
+                    db.start_quest(aid,story_herb)
+                    db.add_storage_item(aid,'herbbag',herb_variant,1)
+                    changed=db.increment_item_collect_quest(aid,herb_variant,1)
+                    ck(any(qid==story_herb for qid,*_ in changed),'rare mint credits only mint collection')
+                    obj=Probe({story_herb:{'status':'active','progress':1}})
+                    obj.server=SimpleNamespace(db=db)
+                    obj.account_id=aid
+                    # Rebind the real stock-aware helpers instead of Probe's
+                    # fake numeric values (which test only speaker formatting).
+                    from types import MethodType
+                    obj.quest_crafted_item_have_v0333=MethodType(
+                        SessionQuestProgressMixin.quest_crafted_item_have_v0333,obj)
+                    obj.quest_progress_for_turnin=MethodType(
+                        SessionQuestProgressMixin.quest_progress_for_turnin,obj)
+                    ck(obj.quest_crafted_item_have_v0333(herb_base)==1,
+                       'rare mint counted in herb bag for turnin')
+                    ck(obj.quest_progress_value(story_herb)==1,
+                       'rare mint quest shows honest 1/needed')
+        finally:
+            db.conn.close()
     # The master NPC displays both completed stages and live progress.
     code=inspect.getsource(SessionQuestNpcMixin.show_specialist_quest_progression)
     ck(code.count('await self.announce_active_quest_progress(active_stage)')==2,

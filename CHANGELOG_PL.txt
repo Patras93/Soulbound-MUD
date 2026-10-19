@@ -1,3 +1,18 @@
+POPRAWKA v11.00.18 — ZALICZANIE SUROWCÓW W FABULE I TEST ŁOWIECTWA
+- PREDEPLOY: poprawiono test Łowiectwa: czynność zasadzka musi zużyć dokładnie dwa ślady, ale nie usuwa wcześniej zdobytych śladów z tropienia. Wcześniejszy błędny warunek wymagał wyzerowania całego zapasu testowej postaci.
+- ZADANIA FABULARNE: odbiór surowców po przyjęciu zadania zalicza także rzadkie warianty tego samego zioła, drewna lub ryby. Inny surowiec nigdy nie zalicza niepowiązanego questa.
+- DZIENNIK I ODDANIE: sprawdzanie zapasu dla zwykłych questów zbierania widzi również odpowiadające rzadkie warianty w torbach profesji, bez ręcznego przekładania.
+- PRZYKŁAD: Złamane stemple — Zapasy dla ocalałych (Górnik Loran) zlicza nową rudę miedzi, a posiadany zapas jest brany pod uwagę przy oddawaniu.
+- Nie przyznajemy postępu za stary zapas zdobyty przed przyjęciem zlecenia i nie zmieniamy nagród, poziomów, EXP, obrażeń ani schematu SQLite.
+- Wymagany pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v11.00.18 — NAPRAWA MIĘTY Z TORBY ZIELARSKIEJ W ŁOWIECTWIE
+Aktualna paczka: v11.00.18
+- Naprawiono czynność Łowiectwo zasadzka: Mięta z komendy herbs (Torba Zielarska) jest prawidłowo rozpoznawana, pobierana i zużywana. Bez ręcznego przekładania do ekwipunku.
+- Materiały pozostałych ośmiu nowych profesji mogą pochodzić z właściwej siatki rybackiej, sakwy górniczej lub stosu drewna, o ile pasują identyfikatorami do danego surowca. Szkatułka i zwykły ekwipunek nadal działają.
+- Zużycie surowców, przyznanie EXP, postęp zadania i czas odnowienia pozostają jedną transakcją; test regresyjny obejmuje brak podwójnego zaliczenia oraz rollback błędu EXP.
+- Bez zmian parametrów EXP, obrażeń, limitów, NPC, ekwipunku i schematu SQLite. Wymagany Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
 HOTFIX v11.00.17 — HELP profesji: polecenia widoczne w pomocy 22 profesji ujednolicone z komendami profesja; poprawa regresji GLOBAL HELP 71/71 PASS.
 
 Soulbound v11.00.17 — HOTFIX NAGRÓD PROFESJI (ŁOWIECTWO I 22 PROFESJE)

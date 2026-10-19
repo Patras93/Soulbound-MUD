@@ -49,7 +49,7 @@ def run_regression():
         nonlocal checks
         checks+=1
         if not condition: raise AssertionError('HELP SKILLI v11.00.11: '+why)
-    ck(VERSION in ('11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',) and server.VERSION==VERSION, 'release version')
+    ck(VERSION in ('11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',) and server.VERSION==VERSION, 'release version')
     ck(len(CLASS_SKILLS)==22, '22 class catalogues')
     ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5461, 'global matching index complete')
     ck(sum(len(v) for v in CLASS_SKILLS.values())==5461, 'all skills retained')

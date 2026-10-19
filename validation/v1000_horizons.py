@@ -22,7 +22,7 @@ def run_regression(runtime=None):
         if not condition:
             raise AssertionError('v10: '+label)
         checks+=1
-    ck(runtime.VERSION in ('10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17',),'release identity')
+    ck(runtime.VERSION in ('10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',),'release identity')
     ck(len(REGIONS)==6 and len(NEW_ROOM_IDS)==72 and len(LANDMARK_IDS)==18,'authored region IDs')
     ck(len(QUEST_IDS)==12,'12 additional quest IDs')
     ck(NEW_ROOM_IDS <= set(runtime.ROOMS),'all new rooms installed')

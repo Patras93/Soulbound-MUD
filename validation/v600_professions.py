@@ -110,6 +110,56 @@ async def _run_sqlite():
                 assert _sum(db,aid,item)>=qty, (cmd,item)
                 checks+=1
             checks+=2
+        # The native resource bags must work as inputs to professions 6.00;
+        # not just inventory and the casket, which never receives gathered mint.
+        from player.session_mixins.profesje6 import _remove_all
+        from systems.items_resources import HERB_STORAGE_IDS
+        assert 'mint' in HERB_STORAGE_IDS
+        checks+=1
+        for item, container in [('mint','herbbag'), ('silver_trout','net'),
+                                 ('ash_log','woodpile'), ('iron_ore','bag')]:
+            db.conn.execute('DELETE FROM inventory WHERE account_id=? AND item_id=?',(aid,item))
+            db.conn.execute('DELETE FROM profession_storage WHERE account_id=? AND item_id=?',(aid,item))
+            db.conn.commit()
+            db.add_storage_item(aid,container,item,3)
+            assert _sum(db,aid,item)==3, (item,container,'visible')
+            assert not _remove_all(db,aid,item,4), (item,container,'no overdraft')
+            assert _sum(db,aid,item)==3
+            assert _remove_all(db,aid,item,2), (item,container,'consume')
+            assert db.storage_qty(aid,container,item)==1
+            db.conn.commit()
+            checks+=5
+        # Mixed raw material sources spend exactly once, without requiring a
+        # player to manually move mint out of `herbs`.
+        db.add_storage_item(aid,'herbbag','mint',1)
+        db.add_item(aid,'mint',1)
+        assert _sum(db,aid,'mint')==3
+        assert _remove_all(db,aid,'mint',3)
+        assert db.item_qty(aid,'mint')==0 and db.storage_qty(aid,'herbbag','mint')==0
+        db.conn.commit()
+        checks+=3
+        # XP failure rolls back herb consumption, outputs and changes to XP.
+        db.add_storage_item(aid,'herbbag','mint',1)
+        db.add_item(aid,'v600_tracks',2)
+        db.conn.execute('DELETE FROM prof6_cooldowns WHERE account_id=? AND action=?',
+                        (aid,'Łowiectwo:zasadzka'))
+        db.conn.commit()
+        sess.character.room_id='meadow'
+        sess.break_reward=True
+        mint_before=db.storage_qty(aid,'herbbag','mint')
+        tracks_before=db.item_qty(aid,'v600_tracks')
+        profession_before=int(db.profession(aid,'Łowiectwo')['xp'])
+        try:
+            await sess.do('praca Łowiectwo zasadzka 1')
+        except RuntimeError as exc:
+            assert 'Simulated failure' in str(exc)
+        else:
+            raise AssertionError('Mint ambush XP failure was not propagated')
+        assert db.storage_qty(aid,'herbbag','mint')==mint_before
+        assert db.item_qty(aid,'v600_tracks')==tracks_before
+        assert int(db.profession(aid,'Łowiectwo')['xp'])==profession_before
+        sess.break_reward=False
+        checks+=4
         # Character-scoped daily order, not account-wide and not repeatable.
         for prof in PROFESSIONS:
             sess.character.room_id='market'

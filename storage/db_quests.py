@@ -4,6 +4,7 @@
 import time
 
 from data.quests import QUESTS
+from data.items import ITEMS
 from storage.db_shared import canonical_profession_resource_id
 
 class DatabaseQuestMixin:
@@ -177,7 +178,14 @@ class DatabaseQuestMixin:
                 not quest
                 or quest.get("kind") != "collect"
                 or quest.get("track_craft_progress")
-                or quest.get("target") != item_id
+                or (
+                    quest.get("target") != item_id
+                    # Rare gathered herb/wood/fish variants have a canonical
+                    # base_resource_id. Only a real gathered variant of the
+                    # exact quest resource counts, never a different item.
+                    and str(ITEMS.get(item_id, {}).get("base_resource_id") or "")
+                        != str(quest.get("target") or "")
+                )
             ):
                 continue
             needed = max(1, int(quest.get("needed", 1)))

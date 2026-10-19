@@ -139,8 +139,9 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v11.00.17 - PROSTE KOMENDY PROFESJI"
+LATEST_CHANGES_TITLE = "Soulbound v11.00.18 - MIETA Z TORBY ZIOLARSKIEJ W LOWIECTWIE"
 LATEST_CHANGES = [
+    "v11.00.18: Łowiectwo zasadzka zużywa Miętę bezpośrednio z Torby Zielarskiej (herbs); nowe profesje pobierają także właściwe ryby, drewno i rudę z pojemników. Atomowe zużycie materiałów, XP i postęp zadań. Bez zmian kosztów i EXP.",
     "v11.00.12: osiem imiennych nauczycieli klas v9 oferuje po trzy własne questy klasowe; rozmowa pokazuje zadanie i nadal umożliwia learn. Help mag i pozostale klasy wyświetlają opis bez proszenia o wpisanie nazwy skilla. Skradzione Skrzynie Rudy częściej wypadają z trolli, wymagane 10 sztuk i nagrody bez zmian.",
     "v11.00.11: help <nazwa skilla> otwiera pełny opis, tak samo jak help skill <nazwa>; działają nowe nazwy 22 klas, stare aliasy, ID i polskie znaki. Bez wykonywania skilla ani zmiany balansu.",
     "v11.00.10: 4659 nazw skilli odróżnia klasy i mechanikę. Zachowano 5461 ID, wszystkie parametry, wyuczone skille i stare aliasy dla makr.",
