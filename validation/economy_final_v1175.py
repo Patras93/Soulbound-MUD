@@ -33,7 +33,7 @@ def audit_economy_final_v1175():
             errors.append(message)
 
     from core.bootstrap_economy_professions import VERSION
-    expected_professions = 22 if VERSION.startswith(('6.','7.','8.','9.','10.','11.')) else 14
+    expected_professions = 22 if int(VERSION.split('.',1)[0]) >= 6 else 14
     check(len(PROFESSION_RANK_NAMES) == expected_professions,
           f"profession definitions mismatch: expected {expected_professions}, got {len(PROFESSION_RANK_NAMES)}")
     check((SILVER_PER_GOLD, SILVER_PER_MITHRIL) == (100, 100_000_000),

@@ -684,6 +684,14 @@ def configure_v0856_help_categories(*args, **kwargs):
 configure_v0856_help_categories = _sb420_topbind(_sb420_topsrc01.configure_v0856_help_categories, globals())
 
 configure_v0856_help_categories()
+# v12.00.1: extend help *after* the historically hash-verified original function.
+# `xp` remains the old EXP status; `xp <text>` now means player chat.
+HELP_TOPICS["xp"] = [
+    "Samo xp pokazuje aktualny EXP postaci i ile brakuje do kolejnego poziomu.",
+    "xp <tekst> wysyła wiadomość na publicznym kanale rozmów XP. Przykład: xp Kto idzie na Kryptę?",
+    "xp off wycisza kanał XP, xp on włącza odbieranie, channels history xp pokazuje historię.",
+    "Ten kanał służy tylko do rozmów i nie przyznaje doświadczenia.",
+]
 
 
 def configure_v0917_help():
@@ -846,7 +854,7 @@ V0861_CLASS_SLOT_PRICE_FACTOR = {
 
 # v0.30.51: Social & Mentor help
 HELP_TOPICS["kanaly"] = [
-    "Kanały komunikacji: gossip <tekst> — rozmowy ogólne; newbie <tekst> — pytania i pomoc dla nowych; trade <tekst> — handel.",
+    "Kanały komunikacji: gossip <tekst> — rozmowy ogólne; newbie <tekst> — pytania i pomoc dla nowych; trade <tekst> — handel; xp <tekst> — publiczne rozmowy na kanale XP. Samo xp pokazuje stan EXP.",
     "Lokalnie: say. Prywatnie: tell. Drużyna: pc. Gildia: gildia czat <tekst>.",
     "channels lub kanaly wyświetla skrót kanałów.",
 ]
@@ -857,7 +865,7 @@ HELP_TOPICS["mentor"] = [
 ]
 
 # v0.30.51 Social Suite 2.0
-HELP_TOPICS["social"] = ["Social 2.0: ignore/unignore, friends/friend, afk, whois, mail, board, lfg, inspect, emote/smile/wave/cheer.", "Kanały gossip/newbie/trade mają on/off, historię i ochronę przed spamem."]
+HELP_TOPICS["social"] = ["Social 2.0: ignore/unignore, friends/friend, afk, whois, mail, board, lfg, inspect, emote/smile/wave/cheer.", "Kanały gossip/newbie/trade/xp mają on/off, historię i ochronę przed spamem. xp <tekst> to czat, a samo xp pokazuje EXP."]
 HELP_TOPICS["mail"] = ["mail list; mail send <gracz> <tekst>; mail read <id>; mail delete <id>."]
 HELP_TOPICS["lfg"] = ["lfg crypt [opis]; lfg boss [opis]; lfg profession [opis]; lfg list; lfg off."]
 HELP_TOPICS["house"] = ["house — własny dom; house name <tekst>; house decor <tekst>; house upgrade; house chest; house store/take <przedmiot> [ilość]; house trophies."]

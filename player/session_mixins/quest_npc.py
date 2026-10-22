@@ -390,11 +390,23 @@ class SessionQuestNpcMixin:
 
             npc_id, npc = found
             dialogue = npc["dialogue"]
+            scripted_dialogue = npc.get('olc_dialogue_after_quest')
+            if (isinstance(scripted_dialogue, dict)
+                    and self.quest_completed(scripted_dialogue.get('quest_id', ''))):
+                dialogue = scripted_dialogue['text']
+            from systems.live_olc17_quest_dependencies import multi_dialogue_text
+            multi_line = multi_dialogue_text(npc, self.quest_completed)
+            if multi_line is not None:
+                dialogue = multi_line
             rank_reaction = self.profession_rank_reaction(npc_id, npc)
             if rank_reaction:
                 dialogue = f"{dialogue} {rank_reaction}"
             await self.send(f"{npc['name']}: {dialogue}")
 
+            for _qid, _kind, _target, _done, _max in self.server.db.increment_multi_objective_v1800(
+                self.account_id, 'talk', npc_id
+            ):
+                await self.announce_active_quest_progress(_qid)
             await self.process_starter_talk_quests(npc_id, npc)
 
             # Sama rozmowa z NPC ustawia kontekst jego oferty.

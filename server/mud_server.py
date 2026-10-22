@@ -29,6 +29,9 @@ class MudServer:
                 self.infinite_equipment_restored_v11330 += 1
         # v1.25.0: deploy/restart must NOT collapse the mine or teleport miners.
         self.mine_startup_state = self.db.mine_startup_status()
+        # v12.00.4: restore additive live rooms/mobs/exits BEFORE World() spawns.
+        from systems.live_content_v1204 import LiveContentV1204
+        self.live_content_v1204 = LiveContentV1204(self.db)
         self.world = World()
         self.sessions = set()
         self.parties = {}

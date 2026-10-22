@@ -132,7 +132,7 @@ class SessionActivityGuidanceV0560Mixin:
                 )
 
         # 4. Pick the current combat area from the real dynamic recommendation logic.
-        recommended = [area for area in EXP_AREAS if self.exp_area_recommended(area)]
+        recommended = self.recommended_exp_areas_v2910()
         if recommended:
             area = recommended[0]
         elif EXP_AREAS:

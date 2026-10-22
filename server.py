@@ -399,6 +399,11 @@ SINGLE_NPC_ROOMS_V3101 = _install_single_npc_v3101(ROOMS, NPCS, SHOP_SELLERS)
 # All added annexes must also be visible to Exploration Points.
 _v3100_ep_refresh()
 
+# v12.00.1: 2 separate, first-kill-only champion encounters in each
+# existing combat region; ordinary mobs still never yield Fame.
+from systems.world_fame_v1201 import install as _install_world_fame_v1201
+V1201_WORLD_FAME = _install_world_fame_v1201(ROOMS, MOB_TEMPLATES, MOB_SPAWNS, HELP_TOPICS)
+
 from systems.mob_name_cleanup import normalize_runtime_mob_names_v1142, audit_runtime_mob_names_v1142
 MOB_NAME_CLEANUP_V1142 = normalize_runtime_mob_names_v1142(MOB_TEMPLATES)
 MOB_NAME_AUDIT_V1142 = audit_runtime_mob_names_v1142(MOB_TEMPLATES)

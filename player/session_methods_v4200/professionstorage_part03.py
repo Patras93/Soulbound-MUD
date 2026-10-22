@@ -4,7 +4,7 @@ Globals are bound to the historical host module at class initialization.
 """
 async def grant_profession_reward_xp(
     self, profession, profession_xp, tool_type, tool_xp, *,
-    content_level=None
+    content_level=None, quest=None
 ):
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
@@ -72,6 +72,32 @@ async def grant_profession_reward_xp(
                 0,int(round(actual_profession_xp*authored_prof_mult))
             )
             tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
+        from systems.profession_exp_pacing_v1201 import improved_work_xp
+        actual_profession_xp = improved_work_xp(
+            actual_profession_xp,
+            self.profession_xp_to_next(plevel, profession),
+            plevel, content_level, tool=False)
+        tool_xp = improved_work_xp(
+            tool_xp, self.tool_xp_to_next(tlevel_preview, tool_type),
+            tlevel_preview, content_level, tool=True)
+        from systems.profession_xp_v1203 import reward_xp_v1203
+        actual_profession_xp = reward_xp_v1203(
+            actual_profession_xp, self.profession_xp_to_next(plevel, profession),
+            plevel, content_level)
+        tool_xp = reward_xp_v1203(
+            tool_xp, self.tool_xp_to_next(tlevel_preview, tool_type),
+            tlevel_preview, content_level, tool=True)
+        if quest is not None:
+            from systems.profession_xp_v1203 import quest_reward_floor_v1203
+            actual_profession_xp = quest_reward_floor_v1203(
+                actual_profession_xp,
+                self.profession_xp_to_next(plevel, profession),plevel,quest)
+            tool_xp = quest_reward_floor_v1203(
+                tool_xp,self.tool_xp_to_next(tlevel_preview,tool_type),
+                tlevel_preview,quest,tool=True)
+        from systems.live_progression_v1206 import xp_with_live_bonus
+        actual_profession_xp = xp_with_live_bonus(actual_profession_xp, profession)
+        tool_xp = xp_with_live_bonus(tool_xp, tool_type, tool=True)
         actual_profession_xp=max(0,int(round(actual_profession_xp*(1.0+_guild_pct/100.0))))
         tool_xp=max(0,int(round(tool_xp*(1.0+_guild_pct/100.0))))
         _title_pct = self.v0260_profession_xp_bonus_percent(profession, tool_type)

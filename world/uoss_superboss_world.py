@@ -251,6 +251,7 @@ for idx,key in enumerate(_ORDER,1):
     MOB_TEMPLATES.setdefault(mid,{
         "name":spec["name"],"max_hp":int(scanner.get("max_hp") or max(5000, level*250)),
         "max_mp":scanner.get("max_mp"),"source_xp":scanner.get("xp"),"source_xp_exact":bool(scanner.get("xp") is not None),
+        "uoss_source_hp_exact": bool(scanner.get("max_hp") is not None),
         "uoss_full_progression_source_xp_exact":bool(
             int(scanner.get("xp") or 0) == UOSS_FULL_PROGRESSION_SOURCE_XP_V11331
         ),

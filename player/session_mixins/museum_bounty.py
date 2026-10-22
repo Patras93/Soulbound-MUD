@@ -354,10 +354,31 @@ class SessionMuseumBountyMixin:
                 if v0863_is_boss_template(template):
                     continue
                 result.append((mob_id, template.get("name") or "Nieznany przeciwnik"))
-            return result
+            # Pick only reachable, level-appropriate ordinary mobs.
+            # If an exact band has no mobs, prefer the closest lower-level
+            # targets. Never assign a wildly over-level target.
+            char_level = max(1, min(800, int(getattr(
+                getattr(self, 'character', None), 'character_level', 1) or 1)))
+            ceiling = max(10, int(char_level * 1.20) + 5)
+            lower = max(1, int(char_level * 0.65))
+            eligible = [(mob_id, name, v0190_mob_stage(MOB_TEMPLATES[mob_id]))
+                        for mob_id, name in result
+                        if v0190_mob_stage(MOB_TEMPLATES[mob_id]) <= ceiling]
+            close = [(mob_id, name) for mob_id, name, level in eligible
+                     if lower <= level <= ceiling]
+            if close:
+                return close
+            if eligible:
+                best = max(level for _, _, level in eligible)
+                return [(mob_id, name) for mob_id, name, level in eligible
+                        if level >= max(1, best - 10)]
+            return []
 
     def generate_bounty_offers(self):
             offers = []
+            char_level = max(1, min(800, int(getattr(
+                getattr(self, 'character', None), 'character_level', 1) or 1)))
+            board_band = (char_level - 1) // 10
             kinds = list(BOUNTY_KINDS)
             random.shuffle(kinds)
             # Trzy różne typy na planszy zwiększają szansę, że gracz może wykonać
@@ -394,7 +415,8 @@ class SessionMuseumBountyMixin:
                 if kind == "kill" and target in MOB_TEMPLATES:
                     reward_stage=v0190_mob_stage(MOB_TEMPLATES[target])
                 elif kind in ("mine","fish","wood","herb"):
-                    reward_stage=max(1,self.profession_level_for_tool({"mine":"mining","fish":"fishing","wood":"woodcutting","herb":"herbalism"}[kind]))
+                    resource_level=max(1,self.profession_level_for_tool({"mine":"mining","fish":"fishing","wood":"woodcutting","herb":"herbalism"}[kind]))
+                    reward_stage=max(resource_level, int(math.sqrt(char_level*resource_level)))
                 else:
                     _char = getattr(self, "character", None)
                     _soul = int(getattr(_char, "soul_level", 1) or 1) if _char is not None else 1
@@ -416,6 +438,7 @@ class SessionMuseumBountyMixin:
                     "label": label,
                     "needed": int(needed),
                     "stage": int(reward_stage),
+                    "board_band": int(board_band),
                     "reward_soul_xp": int(soul_xp),
                     "reward_gold": int(gold),
                 })
@@ -430,7 +453,8 @@ class SessionMuseumBountyMixin:
                         base_needed,
                         int(math.ceil(base_needed * v096_fishing_workload_scale(fish_level))),
                     )
-                reward_stage=max(1,self.profession_level_for_tool({"mine":"mining","fish":"fishing","wood":"woodcutting","herb":"herbalism"}[kind]))
+                resource_level=max(1,self.profession_level_for_tool({"mine":"mining","fish":"fishing","wood":"woodcutting","herb":"herbalism"}[kind]))
+                reward_stage=max(resource_level, int(math.sqrt(char_level*resource_level)))
                 soul_xp=max(1,int(round(v0190_log_curve(reward_stage,V019_SOUL_KILL_NORMAL)*max(2.0,math.sqrt(base_needed)))))
                 reward_coins=max(1,int(round(v0190_log_curve(reward_stage,V019_QUEST_COIN)*0.75)))
                 gold=max(1,reward_coins//SILVER_PER_GOLD)
@@ -440,6 +464,7 @@ class SessionMuseumBountyMixin:
                     "label": f"{BOUNTY_RESOURCE_LABELS[kind]}: {needed} sztuk",
                     "needed": int(needed),
                     "stage": int(reward_stage),
+                    "board_band": int(board_band),
                     "reward_soul_xp": int(soul_xp),
                     "reward_gold": int(gold),
                 })
@@ -495,6 +520,20 @@ class SessionMuseumBountyMixin:
                 )
                 return state
 
+            active_contract = state.get('active') or {}
+            board_level = max(1, min(800, int(getattr(
+                getattr(self, 'character', None), 'character_level', 1) or 1)))
+            board_band = (board_level - 1) // 10
+            offers = state.get('offers') or []
+            if (not active_contract and offers and
+                    any(int(offer.get('board_band', -1)) != board_band
+                        for offer in offers)):
+                state['offers'] = self.generate_bounty_offers()
+                self.server.db.save_bounty_board_state(
+                    self.account_id, offers=state['offers'],
+                    active={}, completed_count=state.get('completed_count', 0))
+                return state
+
             # v0.38.7: napraw również już zapisane oferty/aktywny kontrakt
             # z wcześniejszej wersji, bez zerowania postępu gracza.
             changed = False
@@ -544,6 +583,63 @@ class SessionMuseumBountyMixin:
                 "Komendy: bounty accept <1-3>, bounty aktywne, bounty odbierz, bounty porzuć; "
                 "bounty odśwież losuje nową tablicę tylko bez aktywnego kontraktu."
             )
+
+    async def share_bounty_with_party_v1119(self, contract):
+            """Lider synchronizuje NOWY kontrakt z aktywnymi kontami w drużynie.
+
+            Każdy członek otrzymuje osobny trwały wpis SQLite: własny progres,
+            własne nagrody i dotychczasową tablicę ofert. Aktywne kontrakty
+            innych graczy są nietykalne; przyjęcie nie wykonuje się ponownie
+            podczas logowania ani podczas rezygnacji lidera.
+            """
+            party_key = self.server.party_key_for_account(self.account_id)
+            if party_key is None or int(party_key) != int(self.account_id):
+                return
+            candidates = list(self.server.party_sessions(self.account_id) or ())
+            added = []
+            skipped = []
+            seen = {self.account_id}
+            for member in sorted(candidates, key=lambda session: (
+                str(getattr(getattr(session, "character", None), "name", "")).casefold(),
+                str(getattr(session, "account_id", "")),
+            )):
+                account_id = getattr(member, "account_id", None)
+                if (account_id is None or account_id in seen
+                        or getattr(member, "closed", False)
+                        or not getattr(member, "character", None)):
+                    continue
+                seen.add(account_id)
+                # Nie udostępniaj kontraktu sesji, która wyszła z drużyny.
+                if self.server.party_key_for_account(account_id) != party_key:
+                    continue
+                state = self.server.db.bounty_board_state(account_id)
+                if state.get("active"):
+                    skipped.append(member.character.name)
+                    await member.send(
+                        f"Lider {self.character.name} przyjął bounty, lecz masz już "
+                        "aktywny kontrakt. Twój postęp pozostał bez zmian."
+                    )
+                    continue
+                own_contract = dict(contract)
+                own_contract["progress"] = 0
+                own_contract["completed"] = False
+                self.server.db.save_bounty_board_state(
+                    account_id,
+                    offers=state.get("offers", []),
+                    active=own_contract,
+                    completed_count=state.get("completed_count", 0),
+                )
+                added.append(member.character.name)
+                await member.send(
+                    f"Lider {self.character.name} przyjął dla drużyny bounty: "
+                    f"{own_contract.get('label', 'Kontrakt')}. "
+                    f"Postęp 0 z {int(own_contract.get('needed', 1))}. "
+                    "Twój postęp i nagrody są niezależne. Sprawdź: bounty aktywne."
+                )
+            if added:
+                await self.send("Bounty otrzymali członkowie drużyny: " + ", ".join(added) + ".")
+            if skipped:
+                await self.send("Nie nadpisano aktywnych kontraktów: " + ", ".join(skipped) + ".")
 
     async def handle_bounty(self, args=""):
             raw = str(args or "").strip()
@@ -693,6 +789,7 @@ class SessionMuseumBountyMixin:
                     f"Przyjęto kontrakt: {active['label']}. Postęp 0 z {int(active['needed'])}. "
                     f"Nagroda: {int(active['reward_soul_xp'])} Soul XP i " + currency_reading_text(0, int(active['reward_gold']), 0) + "."
                 )
+                await self.share_bounty_with_party_v1119(active)
                 return
 
             await self.send(

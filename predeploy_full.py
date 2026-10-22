@@ -1051,3 +1051,175 @@ from validation.v1108_wood_planks import run_regression as _wood_planks_1108
 print(f"DESKI / DRWALSTWO v11.00.8: {_wood_planks_1108()} checks PASS")
 from validation.v1109_quest_progress_visibility import run_regression as _quest_visibility_1109
 print(f"POSTEP QUESTOW v11.00.9: {_quest_visibility_1109()} checks PASS")
+
+# v11.00.20: 57 high-level minions, class restriction, persistence, level gates.
+from validation.v1120_high_class_minions import run_regression as _v1120_high_minions
+print(f"LEGENDARNE MINIONY KLAS 200/400/600 v11.00.20: {_v1120_high_minions()} checks PASS")
+
+# v11.00.19: actual summon persistence, class coverage, full HP and death guards.
+from validation.v1119_class_minions_and_guards import run_regression as _v1119_guards
+print(f"MINIONY 22 KLAS / LECZENIE / TELEPORT v11.00.19: {_v1119_guards()} checks PASS")
+from validation.v1119_party_bounty import run_regression as _v1119_party_bounty
+print(f"BOUNTY DLA DRUZYNY v11.00.19: {_v1119_party_bounty()} checks PASS")
+
+# v12: actual SQLite inventory/wallet/XP rollback; autonomous class decisions.
+from validation.v1200_ai_professions import run_regression as _v1200_ai_professions
+print(f'V12 AI 22 KLAS / JAMMER / 22 PROFESJE: {_v1200_ai_professions()} checks PASS')
+from validation.v1201_profession_pacing_board import run_regression as _v1201_professions
+print(f'V12.00.1 EXP PROFESJE / NARZEDZIA / TABLICA: {_v1201_professions()} checks PASS')
+from validation.v1201_xp_chat import run_regression as _v1201_xp_chat
+print(f'V12.00.1 KANAL ROZMOW XP: {_v1201_xp_chat()} checks PASS')
+from validation.v1201_world_fame import run_regression as _v1201_world_fame
+print(f'V12.00.1 CALY SWIAT FAME: {_v1201_world_fame()} checks PASS')
+from validation.v1201_crypt_balancing import run_regression as _v1201_crypt
+print(f'V12.00.1 KRYPTA / EXP / FAME: {_v1201_crypt()} checks PASS')
+
+# v12.00.2: real stages of Crypt / Giants / Astral Towers / Magitek.
+from validation.v1202_dungeon_endgame import run_regression as _v1202_dungeons
+print(f"V12.00.2 KRYPTY / WIEZE / LOCHY: {_v1202_dungeons()} checks PASS")
+
+# v12.00.2 HOTFIX: jewelry crafts and cutting gem XP, pliers and material tiers.
+from validation.v1203_all_professions_quests import run_regression as _v1203_professions
+print(f"V12.00.3 WSZYSTKIE 22 PROFESJE, NARZEDZIA I 2221 QUESTOW: {_v1203_professions()} checks PASS")
+from validation.v1204_news_channel import run_regression as _v1204_news
+print(f"V12.00.4 KANAL NEWS: {_v1204_news()} checks PASS")
+from validation.v1204_live_content import run_regression as _v1204_live
+print(f"V12.00.4 HOT RELOAD SWIATA / SQLITE: {_v1204_live()} checks PASS")
+from validation.v1205_full_olc import run_regression as _v1205_olc
+print(f"V12.00.5 PELNY EDYTOR OLC / PUBLIKACJA: {_v1205_olc()} checks PASS")
+from validation.v1206_live_progression_qol import run_regression as _v1206_live_qol
+print(f"V12.00.6 OLC PROFESJE / NARZEDZIA / SKILLE / REPLY / LOOK / KONIEC WALKI: {_v1206_live_qol()} checks PASS")
+from validation.v1207_resource_live_olc import run_regression as _v1207_resource_live
+print(f"V12.00.7 INDYWIDUALNE EXP SUROWCOW / IMPORT JSON / COFANIE: {_v1207_resource_live()} checks PASS")
+from validation.v1208_sound_events import run_regression as _v1208_sound
+print(f"V12.00.8 SOUND EVENT / BANK / CAP / HP / PLAYER / TELL: {_v1208_sound()} checks PASS")
+from validation.v1209_quest_news_olc import run_regression as _v1209_quest_news
+print(f"V12.00.9 QUESTY / EXP / NEWS OLC: {_v1209_quest_news()} checks PASS")
+from validation.v1209_profession_quest_olc import run_regression as _v1209_professions_olc
+print(f"V12.00.9 QUESTY 22 PROFESJI / EXP / NARZĘDZIA: {_v1209_professions_olc()} checks PASS")
+from validation.v1202_jewelcraft_xp import run_regression as _v1202_jewelcraft
+print(f"V12.00.2 JUBILERSTWO / SZLIFOWANIE / SZCZYPCE: {_v1202_jewelcraft()} checks PASS")
+
+from validation.v12010_live_reward_modes import run_regression as _v12010_modes
+print(f"V12.00.10 AUTO/RECZNE NAGRODY/OBNIZANIE: {_v12010_modes()} checks PASS")
+
+from validation.v12010_edit_preview import run_regression as _v12010_preview
+print(f"V12.00.10 PODGLAD POL EDYCJI: {_v12010_preview()} checks PASS")
+from validation.v12011_olc4_catalog import run_regression as _v12011_olc4
+print(f"V12.00.11 OLC4 KATALOGI/SKLEPY/NPC: {_v12011_olc4()} checks PASS")
+from validation.v12012_olc4_boss_phases import run as _v12012_bosses
+print(f"V12.00.12 OLC4 NOWE BOSSY/FAZY/COFANIE: {_v12012_bosses()} checks PASS")
+from validation.v12013_new_skills_olc import run as _v12013_skills
+print(f"V12.00.13 OLC4 NOWE SKILLE KLAS I BEZPIECZNY HOT RELOAD: {_v12013_skills()} checks PASS")
+
+from validation.v12100_big_olc import run as _v12100_big_olc
+print(f'V12.10.0 WIELKIE OLC 4.0: {_v12100_big_olc()} checks PASS')
+from validation.v1300_olc5_world import run as _v1300_olc5
+print(f'V13.00.0 OLC5 IMPERIUM ZYWEGO SWIATA: {_v1300_olc5()} checks PASS')
+
+from validation.v1310_existing_skill_editor import run as _v1310_edit_skills
+print(f'V13.10.0 EDYCJA ISTNIEJACYCH SKILLI / OLC6: {_v1310_edit_skills()} checks PASS')
+from validation.v1400_olc7_world_master import run as _v1400_olc7
+print(f'V14.00.0 OLC7 WLADCA SWIATA: {_v1400_olc7()} checks PASS')
+
+# v15 OLC8 — retained historical systems plus new data-only runtime features.
+from validation.v1500_olc8_world import run as _v1500_olc8
+print(f'V15.00.0 OLC8 / SKILLE / BOSS / QUEST / EQ / PROF / BALANS / NPC / PANEL: {_v1500_olc8()} checks PASS')
+
+from validation.v1520_olc10_passive_and_boss import run as _v1520_olc10
+print(f"V15.20.0 OLC10 / PASYWNE BOOSTY I PRIORYTET BOSSOW: {_v1520_olc10()} checks PASS")
+from validation.v1530_olc11_boss_guardians import run as _v1530_olc11
+print(f"V15.30.0 OLC11 / FALE POMOCNIKOW BOSSOW: {_v1530_olc11()} checks PASS")
+from validation.v1510_olc9_runtime import run as _v1510_olc9
+print(f"V15.10.0 OLC9 / SKILLE / BOSS ELEMENTY / RECEPTURY: {_v1510_olc9()} checks PASS")
+
+# v15.40.0: ordinary boss guardian EXP/currency and OLC revision safety.
+from validation.v1540_olc12_guardian_rewards import run as _v1540_olc12
+print(f'V15.40.0 OLC12 / NAGRODY POMOCNIKOW: {_v1540_olc12()} checks PASS')
+
+# v16.00.0 — full audit includes OLC mass edit, persistence and guards.
+from validation.v1600_olc13_mass_editor import run as _v1600_mass_olc
+print(f'V16.00.0 OLC13 / OPERACJE GRUPOWE: {_v1600_mass_olc()} checks PASS')
+
+
+# v17.00.0 OLC14: multiple quest prerequisites and bounded existing craft/item batches.
+
+# v18.00.0 OLC15: multi-objective kill+talk+collect, SQLite persistence and regressions.
+from validation.v1800_multi_objective_quests import run as _v1800_multigoal
+print(f"V18.00.0 OLC15 / WIELOCELOWE QUESTY: {_v1800_multigoal()} checks PASS")
+
+from validation.v1700_olc14_dependencies_crafting import run as _v1700_olc14
+print(f"V17.00.0 OLC14 / WIELE QUESTOW / RECEPTURY / PRZEDMIOTY: {_v1700_olc14()} checks PASS")
+
+# Soulbound v19.00.0: isolated real status turn engine + OLC chance validators.
+from validation.v1900_olc_status_skills import run as _v1900_status_run
+print(f"V19.00.0 OLC16 / SKILLE STATUSY: {_v1900_status_run()} checks PASS")
+
+# v20.00.0 OLC17: validated staged tactical boss profiles and configurable on-hit DOT.
+from validation.v2000_olc17_phase_tactics import run as _v2000_phase_tactics
+print(f'V20.00.0 OLC17 / FAZY BOSSOW I EFEKTY SKILLI: {_v2000_phase_tactics()} checks PASS')
+from validation.v2000_olc17_sqlite import run as _v2000_olc_sqlite
+print(f'V20.00.0 OLC17 / SQLITE / AUTO / OCHRONA UOSS: {_v2000_olc_sqlite()} checks PASS')
+
+# v21.00.0 / OLC18: 9 phase strategy controls, direct AI paths, SQLite persist/undo.
+from validation.v2100_olc18_phase_strategy import run as _v2100_strategy
+print(f'V21.00.0 OLC18 / TAKTYKI FAZOWE BOSSOW: {_v2100_strategy()} checks PASS')
+# v22.00.0 / OLC19–26: eight-domain controls, real runtime reward/event/AI paths, SQLite undo.
+from validation.v2200_olc26_empire import run as _v2200_grand
+print(f'V22.00.0 OLC19-26 / WIELKI OLC 8 SYSTEMOW: {_v2200_grand()} checks PASS')
+from validation.v2300_olc27_growth import run as _v2300_growth
+print(f'V23.00.0 OLC27 / MULTI CAP PRZYWOLANIA EVENTY: {_v2300_growth()} checks PASS')
+from validation.v35004_uoss_source_hp import run as _v35004_uoss_hp
+print(f'V35.00.4 SOURCE UOSS HP / GLOBAL HP OCHRONA: {_v35004_uoss_hp()} checks PASS')
+from validation.v2400_olc28_35 import run as _v2400_revolution
+print(f'V24.00.0 OLC28-35 / 8 OBSZAROW + SQLITE: {_v2400_revolution()} checks PASS')
+from validation.v2401_quest_gold_olc import run as _v2401_quest_gold
+print(f'V24.00.1 QUEST GOLD OLC / WYPLATY I RESTART: {_v2401_quest_gold()} checks PASS')
+
+# v25.00.0 OLC36-43: atomic workflows, UOSS rewards, events, regeneration, 80 cap steps.
+from validation.v2500_olc36_43 import run as _v2500_empire
+print(f'V25.00.0 OLC36-43 / IMPERIUM KONTROLI: {_v2500_empire()} checks PASS')
+from validation.v2600_olc44_51 import run as _v2600_empire
+print(f'V26.00.0 OLC44-51 / OSIEM OBSZAROW: {_v2600_empire()} checks PASS')
+from validation.v2700_olc52_59 import run as _v2700_master
+print(f'V27.00.0 OLC52-59 / OSIEM OBSZAROW: {_v2700_master()} checks PASS')
+
+# v28 / OLC60-67: data-only rules + eight runtime consumers, SQLite revision.
+from validation.v2800_olc60_67 import run as _v2800_expansion
+print(f'V28.00.0 OLC60-67 / OSIEM OBSZAROW: {_v2800_expansion()} checks PASS')
+
+# v28: numerowana lista NEWS i odczyt jednego artykulu.
+from validation.v2800_news_read import run as _v28_news_read
+print(f'V28 NEWS READ: {_v28_news_read()} checks PASS')
+
+# v29 / OLC68-75 — eight creation workflows, persisted revisions and real runtime integration.
+from validation.v2900_olc68_75 import run as _v2900_creation
+print(f'V29.00.0 OLC68-75 / 8 SYSTEMOW: {_v2900_creation()} checks PASS')
+
+# v29.10: odswiezanie expowisk po level-up, dobieranie poziomu i NVDA.
+from validation.v2910_dynamic_exp_areas import run as _v2910_exp_refresh
+print(f'V29.10.0 DYNAMICZNE EXPOWISKA / LEVEL UP: {_v2910_exp_refresh()} checks PASS')
+
+# v30: prawdziwe krainy 401-800 + fazy UOSS i moc nowych summonow.
+from validation.v3000_world_olc import run as _v3000_world
+print(f'V30.00.0 KRAINY 401-800 + OLC: {_v3000_world()} checks PASS')
+
+# v31.00.0: realne cztery kroniki endgame 401-800, 24 zadania, NPC i EXP.
+from validation.v3100_chronicles_401_800 import run as _v3100_chronicles
+print(f'V31.00.0 CZTERY KRONIKI 401-800: {_v3100_chronicles()} checks PASS')
+
+# v32: OLC76–83, 8 runtime integrations, SQLite rollback and editor safety.
+from validation.v3200_olc76_83 import run as _v3200_olc
+print(f'V32.00.0 OLC76-83 / 8 SYSTEMOW: {_v3200_olc()} checks PASS')
+
+# Soulbound v33.00.0 — osiem realnych integracji mechaniki i ich transakcje OLC.
+from validation.v3300_olc84_91 import run as _v3300_olc
+print(f'V33.00.0 OLC84-91 / 8 MECHANIK: {_v3300_olc()} checks PASS')
+
+# Soulbound v34.00.0 — osiem działających integracji OLC 92–99.
+from validation.v3400_integration import run as _v3400_integration
+print(f'V34.00.0 OLC92-99 / 8 INTEGRACJI: {_v3400_integration()} checks PASS')
+
+# Soulbound v35.00.0 — four integrated endgame systems, transactional SQLite.
+from validation.v3500_four_systems import run as _v3500_four_systems
+print(f'V35.00.0 CZTERY SYSTEMY / OLC100-103: {_v3500_four_systems()} checks PASS')

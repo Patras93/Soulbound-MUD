@@ -143,7 +143,11 @@ class SessionShopsTeachersMixin:
 
     def shop_offer_effective_money_silver(self, item):
             base = self.shop_item_base_value_silver(item)
-            return max(0, base - self.shop_offer_unit_cashback_silver(item))
+            from systems.live_olc26_world import shop_price
+            from systems.live_olc27_master import shop_room_price
+            from systems.live_olc29_creation import trade_price
+            return trade_price(self.character.room_id, shop_room_price(self.character.room_id,
+                shop_price(max(0, base - self.shop_offer_unit_cashback_silver(item)))), 'buy')
 
     def shop_offer_token_parts(self, item, quantity=1):
             token_id = item.get("fur_shop_token")
@@ -414,7 +418,9 @@ class SessionShopsTeachersMixin:
                 await self.profesje6_command('kup ' + _PROF6_TOOL_PROF_BY_ITEM[item_id])
                 return
 
-            _legacy_bound_tool = item.get("type") == "tool" and is_character_bound_item(item_id)
+            from systems.live_olc24_revolution import ACTIVE
+            _v24_bound_tools={profile['tool_item_id'] for profile in ACTIVE['professions'].values()}
+            _legacy_bound_tool = item.get("type") == "tool" and (is_character_bound_item(item_id) or item_id in _v24_bound_tools)
             if _legacy_bound_tool:
                 # Canonical persistent purchase history for ALL 22 tools.
                 # Existing owned inventory is imported on-demand so the

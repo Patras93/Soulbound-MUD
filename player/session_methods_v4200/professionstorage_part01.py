@@ -145,7 +145,8 @@ def profession_content_xp_multiplier_v11342(self, content_level, tool_type=""):
 
 def grant_profession_progress(
     self, profession, prof_xp, tool_type, tool_xp,
-    tool_progress=True, content_level=None, batch_count=1
+    tool_progress=True, content_level=None, batch_count=1,
+    jewel_recipe=None, content_key=None
 ):
         if not self.valid_tool_type(tool_type):
             raise ValueError(f"Nieznany typ narzędzia: {tool_type}")
@@ -229,6 +230,45 @@ def grant_profession_progress(
             )),
         )
 
+        # v12.00.1: normalize progression against real required EXP only
+        # for appropriately difficult work, never lowering existing awards.
+        from systems.profession_exp_pacing_v1201 import improved_work_xp
+        actual_prof_xp = improved_work_xp(
+            actual_prof_xp, self.profession_xp_to_next(plevel, profession),
+            plevel, content_level, tool=False)
+        if tool_progress:
+            tool_xp = improved_work_xp(
+                tool_xp, self.tool_xp_to_next(tlevel_preview, tool_type),
+                tlevel_preview, content_level, tool=True)
+
+        # v12.00.3: reward the actual material or recipe, NOT repetitive
+        # weak-tier grinding. Do not touch zero-XP actions or old payouts.
+        from systems.profession_xp_v1203 import reward_xp_v1203
+        actual_prof_xp = reward_xp_v1203(
+            actual_prof_xp, self.profession_xp_to_next(plevel, profession),
+            plevel, content_level, content_key=content_key)
+        if tool_progress:
+            tool_xp = reward_xp_v1203(
+                tool_xp, self.tool_xp_to_next(tlevel_preview, tool_type),
+                tlevel_preview, content_level, tool=True, content_key=content_key)
+
+        # v12.00.2: only fully successful jewelry recipes have a
+        # profession-specific supplement. The previous reward is a floor.
+        # Quality and material usage come from the actual recipe, never
+        # from the level of the character or a guessed synthetic tier.
+        if (profession == "Jubilerstwo" and tool_type == "jewelcrafting"
+                and isinstance(jewel_recipe, dict)):
+            from systems.jewelcrafting_xp_v1202 import improved_jewelry_recipe_xp
+            actual_prof_xp, tool_xp = improved_jewelry_recipe_xp(
+                actual_prof_xp, tool_xp, jewel_recipe
+            )
+
+        # v12.00.6: owner-approved in-memory OLC EXP rule; other 21 professions untouched.
+        from systems.live_progression_v1206 import xp_with_live_bonus
+        actual_prof_xp = xp_with_live_bonus(actual_prof_xp, profession)
+        if tool_progress:
+            tool_xp = xp_with_live_bonus(tool_xp, tool_type, tool=True)
+
         # v1.17.6: a batch is still a single action, but its XP must not
         # plateau merely because the authored XP ratio was capped. Apply
         # effort after the generated baseline, with diminishing returns.
@@ -250,6 +290,11 @@ def grant_profession_progress(
             self.mentor_record_activity_v03051()
         actual_prof_xp = self.apply_double_xp(actual_prof_xp)
         tool_xp = self.apply_double_xp(tool_xp)
+        from systems.live_olc26_world import profession_xp_bonus
+        actual_prof_xp = profession_xp_bonus(profession, actual_prof_xp)
+        from systems.live_olc27_master import profession_tool_xp
+        if tool_progress:
+            tool_xp = profession_tool_xp(profession, tool_xp)
         # v2.32.19: the ordinary gather/craft route MUST obey the same
         # independent full Multi Cap as class, quest, order and skill XP.
         # Preserve all surplus in separate SQLite profession/tool ledgers.
@@ -435,6 +480,15 @@ def grant_tool_progress(
             )
         else:
             tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
+        from systems.profession_exp_pacing_v1201 import improved_work_xp
+        tool_xp = improved_work_xp(
+            tool_xp, self.tool_xp_to_next(level, tool_type), level,
+            content_level, tool=True)
+        from systems.profession_xp_v1203 import reward_xp_v1203
+        tool_xp = reward_xp_v1203(
+            tool_xp,self.tool_xp_to_next(level,tool_type),level,content_level,tool=True)
+        from systems.live_progression_v1206 import xp_with_live_bonus
+        tool_xp = xp_with_live_bonus(tool_xp, tool_type, tool=True)
         tool_xp = self.apply_double_xp(tool_xp)
         from systems.experience_bank_v2011 import banked_experience_v2011
         tool_xp = banked_experience_v2011(

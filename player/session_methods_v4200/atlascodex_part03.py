@@ -350,11 +350,11 @@ async def describe_target(self, query):
                 rewards.append(f"{quest['reward_stat_progress']} EXP każdej statystyki")
             if quest.get("reward_profession_xp"):
                 rewards.append(
-                    f"{quest['reward_profession_xp']} XP profesji {quest.get('reward_profession','')}"
+                    f"{quest['reward_profession_xp']} bazowego XP profesji {quest.get('reward_profession','')} (wypłata skalowana)"
                 )
             if quest.get("reward_tool_xp"):
                 tool = "Wędki" if quest.get("reward_tool_type") == "fishing" else "Kilofa"
-                rewards.append(f"{quest['reward_tool_xp']} XP {tool}")
+                rewards.append(f"{quest['reward_tool_xp']} bazowego XP {tool} (wypłata skalowana)")
             if (
                 quest.get("reward_silver")
                 or quest.get("reward_gold")

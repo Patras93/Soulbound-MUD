@@ -1,0 +1,18 @@
+{
+  "resource_edits": {
+    "iron_ore": {
+      "prof_xp": 5000,
+      "tool_xp": 3500
+    },
+    "brown_trout": {
+      "prof_percent": 180,
+      "tool_percent": 180
+    },
+    "mint": {
+      "prof_percent": 150
+    },
+    "oak_log": {
+      "tool_percent": 200
+    }
+  }
+}

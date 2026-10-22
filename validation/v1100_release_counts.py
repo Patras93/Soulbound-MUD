@@ -12,7 +12,7 @@ def expected_quest_total_v1100():
     assert len(all_ids)==sum(map(len,extensions)),'v11 quest ID collision'
     assert [len(s) for s in extensions]==[24,24,22,66,12,12], 'v11 missing quest modules'
     from core.bootstrap_economy_professions import VERSION
-    if VERSION in ('11.00.12', '11.00.13', '11.00.14', '11.00.15', '11.00.16','11.00.17','11.00.18'):
+    if VERSION in ('11.00.12', '11.00.13', '11.00.14', '11.00.15', '11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','20.00.0','21.00.0','22.00.0',):
         from systems.class_legend_paths_v900 import TEACHER_QUEST_IDS
         assert len(TEACHER_QUEST_IDS) == 24 and not (TEACHER_QUEST_IDS & all_ids)
         return 6585 + len(all_ids) + len(TEACHER_QUEST_IDS)

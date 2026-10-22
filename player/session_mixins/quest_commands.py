@@ -128,6 +128,7 @@ class SessionQuestCommandsMixin:
                     reward_tool_type,
                     reward_tool_xp,
                     content_level=quest_content_level,
+                    quest=q,
                 )
             elif reward_tool_xp and reward_tool_type:
                 await self.grant_tool_reward_xp(
@@ -143,7 +144,7 @@ class SessionQuestCommandsMixin:
             # v0.9.14: każdy quest walki daje prawdziwy EXP sześciu statystyk.
             # Korzystamy z istniejącego add_stat_progress, więc rosną bezpośrednio
             # Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.
-            reward_exp = v0914_combat_quest_stat_reward(q)
+            reward_exp = q.get("olc_reward_stat_xp", v0914_combat_quest_stat_reward(q))
 
             quest_stat_applied = []
             if reward_exp:
@@ -158,7 +159,8 @@ class SessionQuestCommandsMixin:
             # v0.52.2: questy typu kill rozwijają także Biegłość aktywnych klas.
             # grant_class_xp zachowuje istniejące x2 EXP, bonus Gildii, Mentora
             # i podział puli pomiędzy aktywne klasy.
-            reward_class_xp = v0522_combat_quest_class_reward(q) if is_combat_quest else 0
+            reward_class_xp = (q.get("olc_reward_class_xp", v0522_combat_quest_class_reward(q))
+                               if is_combat_quest else 0)
             if reward_class_xp:
                 await self.send(f"Nagroda questa walki: {reward_class_xp} EXP Biegłości.")
                 await self.grant_class_xp(
@@ -170,7 +172,8 @@ class SessionQuestCommandsMixin:
             # v0.52.2: progresja profesji/rzemiosł nie zasila już Broni Duszy.
             # Zwykłe questy nieprofesyjne zachowują dotychczasowy Soul XP.
             is_profession_quest = v0522_is_profession_quest(q)
-            reward_soul_xp = 0 if is_profession_quest else v0914_combat_quest_soul_reward(q, self.character)
+            reward_soul_xp = (0 if is_profession_quest else
+                              q.get("olc_reward_soul_xp", v0914_combat_quest_soul_reward(q, self.character)))
             if reward_soul_xp:
                 await self.send(f"Nagroda questa: {reward_soul_xp} Soul XP.")
                 await self.grant_soul_xp(
@@ -186,18 +189,26 @@ class SessionQuestCommandsMixin:
                 factor=market_factor_v1300(q['v1300_market_contract'],q.get('v1300_market_category','ore'))
                 quest_coins=max(1,int(quest_coins*factor))
                 await self.send(f'Popyt lokalnego rynku: x{factor:.3f}. Wypłata kontraktu: {quest_coins} srebra.')
+            from systems.live_olc28_expansion import quest_coins as _olc28_quest_coins
+            quest_coins=_olc28_quest_coins(quest_coins)
             quest_bonus_coins_v11324 = quest_completion_bonus_v11324(
                 q, quest_coins, random.random()
             )
             self.character.silver += quest_coins + quest_bonus_coins_v11324
-            quest_character_xp=v0270_quest_character_reward(q)
+            quest_character_xp=q.get("olc_reward_xp", v0270_quest_character_reward(q))
+            from systems.live_olc27_master import quest_character_xp as _quest_xp_v27
+            quest_character_xp=_quest_xp_v27(quest_character_xp)
             for _msg in self.add_character_xp_with_event(
                 quest_character_xp,
                 content_level=quest_content_level,
                 content_scaled=True,
             ):
                 await self.send(_msg)
-            for item_id, qty in (q.get("reward_items") or {}).items():
+            from systems.live_olc32_finale import quest_bonus_items
+            _quest_reward_items32 = dict(q.get("reward_items") or {})
+            for _id32, _qty32 in quest_bonus_items(quest_id).items():
+                _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32
+            for item_id, qty in _quest_reward_items32.items():
                 self.server.db.add_item(self.account_id, item_id, qty)
                 await self.record_item_collection(
                     item_id,
@@ -207,6 +218,12 @@ class SessionQuestCommandsMixin:
                 )
             reward_guild_class = str(q.get("reward_guild_class") or "").strip()
             reward_guild_rep = int(q.get("reward_guild_reputation", 0) or 0)
+            from systems.live_olc33_mechanics import quest_guild_reward
+            _guild33=quest_guild_reward(quest_id)
+            if _guild33:
+                # Preserve the original award. An authored branch contributes separately.
+                _rep33=self.character.add_guild_reputation(_guild33['guild_class'],_guild33['guild_rep'])
+                await self.send(f'Gildia {_guild33["guild_class"]}: +{_guild33["guild_rep"]} reputacji. Teraz {_rep33}/1000.')
             if reward_guild_class and reward_guild_rep:
                 new_guild_rep = self.character.add_guild_reputation(
                     reward_guild_class, reward_guild_rep
@@ -222,6 +239,12 @@ class SessionQuestCommandsMixin:
                     str(q.get("reward_faction_v016")), int(q.get("reward_faction_amount_v016", 0) or 0),
                     reason=f"quest:{quest_id}",
                 )
+            from systems.live_olc34_integration import quest_faction_reward
+            _faction34=quest_faction_reward(quest_id)
+            if _faction34:
+                await self.add_faction_reputation_v016(
+                    _faction34['faction'],_faction34['reputation'],
+                    reason=f'quest_olc34:{quest_id}')
             if q.get("reward_city_v0710"):
                 await self.add_city_reputation_v0710(
                     str(q.get("reward_city_v0710")),
@@ -230,6 +253,11 @@ class SessionQuestCommandsMixin:
                     announce=True,
                 )
             await self.send(f"Zadanie ukończone: {q['name']}.")
+            # v30: opublikowane przez OLC zakonczenie wybranej galezi.
+            from systems.live_olc29_creation import quest_ending_text
+            _ending30 = quest_ending_text(quest_id)
+            if _ending30:
+                await self.send(f'Zakonczenie fabularne: {_ending30}')
             if q.get("unlocks_soul_tier"):
                 await self.send(
                     f"Próba Broni Duszy zakończona. Tier "
@@ -267,7 +295,11 @@ class SessionQuestCommandsMixin:
                     + currency_reading_text(quest_bonus_coins_v11324, 0, 0)
                     + "."
                 )
-            for item_id, qty in (q.get("reward_items") or {}).items():
+            from systems.live_olc32_finale import quest_bonus_items
+            _quest_reward_items32 = dict(q.get("reward_items") or {})
+            for _id32, _qty32 in quest_bonus_items(quest_id).items():
+                _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32
+            for item_id, qty in _quest_reward_items32.items():
                 await self.send(
                     f"{turnin_npc} wręcza ci nagrodę: "
                     f"{ITEMS[item_id]['name']} x{qty}."

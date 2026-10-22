@@ -1,0 +1,53 @@
+{
+  "mob_edits": {
+    "v4000_ancient_00_boss": {
+      "olc_ancient_phases": [
+        {
+          "hp_percent": 80,
+          "name": "Błysk Pierwszy",
+          "attack_percent": 130,
+          "element": "lightning",
+          "duration_seconds": 20
+        },
+        {
+          "hp_percent": 50,
+          "name": "Burza Druga",
+          "attack_percent": 160,
+          "element": "ice",
+          "duration_seconds": 31
+        },
+        {
+          "hp_percent": 20,
+          "name": "Ostatnia Odsiecz",
+          "attack_percent": 200,
+          "element": "fire",
+          "duration_seconds": 55
+        }
+      ]
+    }
+  },
+  "summon_edits": {
+    "Druid": {
+      "role": "heal",
+      "bonus_percent": 150
+    },
+    "Mag": {
+      "role": "mark",
+      "bonus_percent": 160
+    },
+    "Nekromanta": {
+      "role": "curse",
+      "bonus_percent": 140
+    }
+  },
+  "world_overrides": {
+    "combat_xp_bonus_percent": 125,
+    "event_cycle_minutes": 120,
+    "event_order": [
+      "basalt",
+      "echo",
+      "star",
+      "myth"
+    ]
+  }
+}

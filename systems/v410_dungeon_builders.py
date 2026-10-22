@@ -242,6 +242,22 @@ def build_crypt_200_floors():
             "crypt_floor":floor,"corpse_equipment_pool":gear,"corpse_equipment_guaranteed":1,
         }, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
         MOB_SPAWNS.append((room_id,tid))
+        if floor == 1 or floor % 5 == 0:
+            # Dedicated natural elite, never a regular mob or runtime variant.
+            elite_id = f"crypt_elite_guardian_{floor}"
+            elite_template = dict(MOB_TEMPLATES[tid])
+            elite_template.update({
+                "name": f"Elitarny Strażnik Krypty, piętro {floor}",
+                "rank": "elite", "fame_target": True,
+                "crypt_floor": floor,
+                "max_hp": max(1, int(elite_template["max_hp"] * 3)),
+                "damage": max(1, int(elite_template["damage"] * 2)),
+                "class_xp_reward": max(1, int(elite_template["class_xp_reward"] * 3)),
+                "soul_reward": max(1, int(elite_template["soul_reward"] * 3)),
+                "stat_reward": max(1, int(elite_template["stat_reward"] * 3)),
+            })
+            _catalog_mut.catalog_assign(elite_template, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
+            MOB_SPAWNS.append((room_id, elite_id))
         if is_crypt_boss_floor(floor):
             bid=f"crypt_boss_{floor}"; pool=list(gear)
             _catalog_mut.catalog_assign({

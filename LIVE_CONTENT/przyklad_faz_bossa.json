@@ -1,0 +1,26 @@
+{
+  "mob_edits": {
+    "bandit_captain": {
+      "olc_boss_phases": [
+        {
+          "hp_percent": 75,
+          "attack_multiplier": 1.24,
+          "duration_seconds": 23,
+          "message": "Kapitan bandytów zbiera siły"
+        },
+        {
+          "hp_percent": 50,
+          "attack_multiplier": 1.36,
+          "duration_seconds": 28,
+          "message": "Kapitan bandytów przechodzi do kontrataku"
+        },
+        {
+          "hp_percent": 25,
+          "attack_multiplier": 1.48,
+          "duration_seconds": 33,
+          "message": "Kapitan bandytów rusza do ostatniego ataku"
+        }
+      ]
+    }
+  }
+}

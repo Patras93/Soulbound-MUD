@@ -327,7 +327,15 @@ def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None)
     multiplier *= self.equipment_damage_multiplier(resolved_type)
     multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
     multiplier *= party_synergy_damage_multiplier_v11338(self, resolved_type)
-    return multiplier
+    from systems.live_olc28_expansion import skill_damage_multiplier
+    from systems.live_olc32_finale import skill_combo
+    from systems.live_olc33_mechanics import skill_alternation
+    from systems.live_olc34_integration import skill_chain
+    skill_id=skill.get('id','')
+    multiplier=skill_damage_multiplier(multiplier)
+    multiplier=skill_combo(self,skill_id,multiplier)
+    multiplier=skill_chain(self,skill_id,multiplier)
+    return skill_alternation(self,skill_id,multiplier)
 
 
 async def apply_superboss_helper_after_skill_v11192(self, targets):

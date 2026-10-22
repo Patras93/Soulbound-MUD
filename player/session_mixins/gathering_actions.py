@@ -351,7 +351,7 @@ class SessionGatheringActionsMixin:
             )
             messages, profession_level, new_tool_level = self.grant_profession_progress(
                 "Wędkarstwo", profession_xp, "fishing", tool_xp,
-                content_level=fish_content_level,
+                content_level=fish_content_level, content_key=item_id,
             )
             for msg in messages:
                 await self.send(msg)
@@ -573,7 +573,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
-                content_level=mining_content_level,
+                content_level=mining_content_level, content_key=item_id,
             )
             for msg in messages:
                 await self.send(msg)
@@ -790,7 +790,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
-                content_level=wood_content_level,
+                content_level=wood_content_level, content_key=item_id,
             )
             for msg in messages:
                 await self.send(msg)
@@ -933,7 +933,7 @@ class SessionGatheringActionsMixin:
                         )),
                     ),
                 ),
-                content_level=herb_content_level,
+                content_level=herb_content_level, content_key=item_id,
             )
             for msg in messages:
                 await self.send(msg)

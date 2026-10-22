@@ -650,3 +650,10 @@ for _id, (_name, _type) in _V600_ITEMS.items():
     ITEMS[_id] = {"name":_name,"type":_type,"price":None,"sell_silver":5,"desc":"Produkt nowej profesji (v6.00.0)."}
 # Items are not purchasable through generic shop; their single purchase is
 # recorded against character id by the profession command.
+
+# v12.00.0: 22 distinct, player-craftable masterworks; no new tool item.
+from systems.profession_projects_v1200 import crafted_items as _v1200_masterwork_items
+for _id, _spec in _v1200_masterwork_items().items():
+    if _id in ITEMS:
+        raise RuntimeError('Duplicate masterwork item: '+_id)
+    ITEMS[_id] = _spec

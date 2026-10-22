@@ -967,3 +967,6 @@ COMMAND_ALIAS_DEFINITIONS.update({'wielkawyprawa':'grandex1260', 'wielkiewyprawy
 
 # v1.26.0: NVDA-friendly commodity demand.
 COMMAND_ALIAS_DEFINITIONS.update({'notowania':'marketquotes1260','cenyrynku':'marketquotes1260','marketquotes':'marketquotes1260'})
+
+# v12.00.4 — only the canonical NEWS channel (not another XP alias).
+COMMAND_ALIAS_DEFINITIONS.update({"news": "news", "wiadomosci": "news", "wiadomości": "news"})

@@ -173,7 +173,7 @@ class SessionExplorationProfessionsV1100Mixin:
             max(1, int(round(base_xp * discovery_mult * event_xp_mult))),
             "archaeology",
             max(20, int(round((35 + access) * (1.50 if is_new else 1.00) * event_xp_mult))),
-            content_level=_required,
+            content_level=_required, content_key=item_id,
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         prefix = "NOWE ZNALEZISKO" if is_new else "Znalezisko"
@@ -250,7 +250,7 @@ class SessionExplorationProfessionsV1100Mixin:
             profession_xp,
             "cartography_profession",
             tool_xp,
-            content_level=effective,
+            content_level=effective, content_key=room_id,
         )
         self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
         name = room.get("name", room_id)

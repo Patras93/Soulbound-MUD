@@ -346,7 +346,31 @@ class SessionQuestTurninMixin:
                 await self.send(f"Zadanie {q['name']} jest już ukończone.")
                 return
 
-            if q["kind"] in ("kill", "party_contract"):
+            if q['kind'] == 'multi_objective':
+                progress, total, ready, details = self.multi_objective_status_v1800(quest_id)
+                if not ready:
+                    await self.send(
+                        f"Quest aktywny: {q['name']}. Cele {progress} z {total}. "
+                        + '; '.join(f'{kind} {target} {have}/{needed}'
+                                    for kind, target, have, needed in details)
+                    )
+                    return
+                errors = self.validate_quest_rewards_v1106(quest_id, q)
+                if errors:
+                    await self.send('Błąd konfiguracji nagrody: ' + '; '.join(errors))
+                    return
+                # One event loop / one session; preflight all inventory first.
+                # Rewards are only granted by the unchanged complete_quest.
+                for item_id, quantity in q['objectives'].get('collect', {}).items():
+                    if self.quest_crafted_item_have_v0333(item_id) < int(quantity):
+                        await self.send('Brakuje przedmiotów do oddania questa.')
+                        return
+                for item_id, quantity in q['objectives'].get('collect', {}).items():
+                    if not self.consume_quest_crafted_items_v0333(item_id, quantity):
+                        await self.send('Nie udało się pobrać przedmiotów questa.')
+                        return
+
+            elif q["kind"] in ("kill", "party_contract"):
                 progress = int(row["progress"])
                 if progress < q["needed"]:
                     await self.send(

@@ -28,12 +28,26 @@ def boss_companion_due_v1281(mob, template, opening=False):
     if not (any(template.get(marker) for marker in _BOSS_MARKERS)
             or template.get('elite_legend_rank_v1250')):
         return False
+    from systems.live_olc4_boss_phases import eligible_boss
+    if eligible_boss(template):
+        threshold = template.get('olc_boss_guardian_hp_threshold')
+        if type(threshold) is int and 1 <= threshold <= 100:
+            maximum = max(1, int(getattr(mob,'adaptive_max_hp_v11330',0) or template.get('max_hp',1) or 1))
+            if int(getattr(mob, 'hp', 0)) * 100 > threshold * maximum:
+                return False
     turn = int(getattr(mob, "combat_turn", 0) or 0)
     if opening:
         # First wave starts with combat: strong parties may kill before turn four.
         return not bool(getattr(mob, 'boss_opening_summoned_v1301', False))
-    # More guardians every three enemy actions, with no cap on live summons.
-    return (turn >= 3 and turn % 3 == 0
+    # Default remains one wave per three enemy actions. OLC applies to ordinary
+    # bosses only and cannot change source-authored UOSS summons.
+    interval = int(template.get("olc_boss_guardian_interval", 3) or 3)
+    interval = interval if 2 <= interval <= 12 else 3
+    if eligible_boss(template):
+        from systems.live_olc21_phase_strategy import phase_setting
+        interval = phase_setting(template, getattr(mob, 'v1230_boss_phase', 0),
+                                 'olc_boss_phase_guardian_intervals', interval)
+    return (turn >= interval and turn % interval == 0
             and int(getattr(mob, "boss_last_summon_turn_v1281", -1)) != turn)
 
 
@@ -80,5 +94,18 @@ GUARDIAN_ROLES_V12811 = (
 def boss_guardian_role_v12811(template, boss_mob, sequence):
     """Rotate summon combat roles; later HP phases change the lineup."""
     stage = max(0, min(3, int(getattr(boss_mob, 'v1230_boss_phase', 0) or 0)))
+    custom = template.get('olc_boss_guardian_roles')
+    from systems.live_olc4_boss_phases import eligible_boss
+    if eligible_boss(template):
+        from systems.live_olc20_phase_tactics import boss_stage_cycle, ROLES
+        phase_roles = boss_stage_cycle(template, getattr(boss_mob, 'v1230_boss_phase', 0),
+                                       'olc_boss_guardian_phase_roles', ROLES)
+        if phase_roles is not None:
+            custom = phase_roles
+    known = {row[0]: row for row in GUARDIAN_ROLES_V12811}
+    if (isinstance(custom, list) and 1 <= len(custom) <= 10
+            and all(type(key) is str and key in known for key in custom)):
+        index = (max(1, int(sequence)) - 1 + stage * 2) % len(custom)
+        return known[custom[index]]
     index = (max(1, int(sequence)) - 1 + stage * 2) % len(GUARDIAN_ROLES_V12811)
     return GUARDIAN_ROLES_V12811[index]

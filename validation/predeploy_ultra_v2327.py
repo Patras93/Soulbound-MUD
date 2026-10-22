@@ -177,17 +177,29 @@ def available_port():
 
 
 def stop_child(proc):
+    """Stop the exact disposable child and wait before deleting TEMP files.
+
+    Windows taskkill /T can itself hang for >12 seconds even when a TCP test
+    has already succeeded, leaving server.log locked. Terminate the Popen
+    child directly instead of relying on taskkill /T.
+    Never swallow a failure to stop the process.
+    """
     if proc.poll() is not None:
+        proc.wait()
         return
-    if os.name=='nt':
-        subprocess.run(['taskkill','/PID',str(proc.pid),'/T','/F'],
-              stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=12,check=False)
+    if os.name == 'nt':
+        proc.terminate()
     else:
         os.killpg(proc.pid, signal.SIGTERM)
     try:
-        proc.wait(timeout=12)
+        proc.wait(timeout=20)
     except subprocess.TimeoutExpired:
-        proc.kill(); proc.wait(timeout=12)
+        # Force the tracked child down, and close inherited file handles.
+        proc.kill()
+        try:
+            proc.wait(timeout=15)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError(f'Test server PID {proc.pid} did not stop; TEMP files may remain locked') from exc
 
 
 def case_twenty_tcp():

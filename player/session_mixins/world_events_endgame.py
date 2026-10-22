@@ -274,6 +274,10 @@ class SessionWorldEventsEndgameMixin:
             if faction_id not in V016_FACTIONS:
                 return 0
             old = self.server.db.faction_reputation_v016(self.account_id, faction_id)
+            from systems.live_olc26_world import faction_reward
+            amount = faction_reward(faction_id, amount)
+            from systems.live_olc27_master import faction_extra
+            amount = faction_extra(faction_id, amount)
             new = self.server.db.add_faction_reputation_v016(self.account_id, faction_id, amount)
             old_rank = v0160_faction_rank(old)
             new_rank = v0160_faction_rank(new)

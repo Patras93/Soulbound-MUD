@@ -1793,3 +1793,15 @@ if "profesje" in HELP_TOPICS:
 
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 
+
+# v30.00.0: rzeczywiste, polaczone regiony endgame 401-800.
+from world.v3000_endgame_401_800 import install as _sb3000_install
+EXP_AREAS = EXP_AREAS + _sb3000_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, EXP_AREAS,
+    EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+    __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+)
+
+# v31.00.0: dalsze cztery kroniki endgame, prawdziwe questy i unikalni NPC.
+from world.v3100_endgame_chronicles import install as _sb3100_install
+_sb3100_install(ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, EXP_AREAS)

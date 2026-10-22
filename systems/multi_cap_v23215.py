@@ -19,11 +19,13 @@ This module only changes per-award cap, never XP requirements or base rewards.
 def multi_cap_level_increment_v23217(level):
     """Increment earned by reaching *this* level; unbounded integer math."""
     level = max(1, int(level))
+    from systems.live_olc24_revolution import extra_cap_value
+    bonus = extra_cap_value(level)-extra_cap_value(level-1) if level>1 else extra_cap_value(1)
     if level <= 10:
-        return 500
+        return 500 + bonus
     if level <= 20:
-        return 1000
-    return 2500 * ((level - 1) // 10)
+        return 1000 + bonus
+    return 2500 * ((level - 1) // 10) + bonus
 
 
 def multi_cap_level_value_v23217(level):
@@ -32,13 +34,15 @@ def multi_cap_level_value_v23217(level):
     O(1) arithmetic even for extremely high, uncapped statistic levels.
     """
     level = max(1, int(level))
+    from systems.live_olc24_revolution import extra_cap_value
+    bonus = extra_cap_value(level)
     if level <= 10:
-        return 500 * level
+        return 500 * level + bonus
     if level <= 20:
-        return 5000 + 1000 * (level - 10)
+        return 5000 + 1000 * (level - 10) + bonus
     full, remaining = divmod(level - 20, 10)
     # 21..30 => 5000/level, 31..40 => 7500/level, ...
-    return 15000 + 12500 * full * (full + 3) + 2500 * (full + 2) * remaining
+    return 15000 + 12500 * full * (full + 3) + 2500 * (full + 2) * remaining + bonus
 
 
 def _levels(serialized):
@@ -96,7 +100,17 @@ def multi_cap_calculation_v23217(conn, account_id):
                          (SELECT cp.class_name FROM class_progress cp
                           WHERE cp.account_id=c.account_id AND cp.active_slot=1 LIMIT 1))),
                    (SELECT cp.class_name FROM class_progress cp
-                    WHERE cp.account_id=c.account_id AND cp.active_slot=1 LIMIT 1)
+                    WHERE cp.account_id=c.account_id AND cp.active_slot=1 LIMIT 1),
+                   (SELECT GROUP_CONCAT(class_name, CHAR(30)) FROM class_progress
+                     WHERE account_id=c.account_id),
+                   (SELECT GROUP_CONCAT(lvl) FROM (
+                         SELECT MAX(COALESCE(level,1),1) AS lvl FROM class_progress
+                         WHERE account_id=c.account_id GROUP BY class_name)),
+                   (SELECT GROUP_CONCAT(rank) FROM ascension_progress_v021
+                         WHERE account_id=c.account_id AND rank > 0 AND
+                           (track NOT LIKE 'class:%' OR SUBSTR(track,7) IN
+                             (SELECT class_name FROM class_progress
+                              WHERE account_id=c.account_id)))
               FROM characters c WHERE c.account_id=?
         """, (account_id,)).fetchone()
     except Exception as exc:
@@ -108,16 +122,20 @@ def multi_cap_calculation_v23217(conn, account_id):
     if row is None:
         return None
     core = [max(1, int(value or 1)) for value in row[:10]]
-    # Archived skills are never deleted; only skills belonging to the actual
-    # primary class can contribute to cap. Generic/non-class skills remain.
+    # Default v22: only primary class skills; when explicitly enabled by admin,
+    # all learned skills belonging to owned classes can contribute. Non-class
+    # skills remain included. Archived classes do not become active in combat.
+    from systems.live_olc22_state import WORLD_OVERRIDES
+    include_owned = bool(WORLD_OVERRIDES.get('multi_cap_all_owned_classes',False))
     owners = _class_skill_owners_v71101()
     primary = str(row[15] or '')
+    allowed_classes = set(str(row[16] or '').split(chr(30))) if include_owned else {primary}
     owned_skills = []
     for pair in str(row[13] or '').split(chr(30)):
         if chr(29) not in pair:
             continue
         sid, level = pair.rsplit(chr(29), 1)
-        if owners.get(sid, primary) == primary:
+        if owners.get(sid, primary) in allowed_classes:
             owned_skills.append(max(1, int(level)))
     chunks = {
         'postać': core[:1],
@@ -125,17 +143,22 @@ def multi_cap_calculation_v23217(conn, account_id):
         'soul tier': core[2:3],
         'broń duszy': core[3:4],
         'statystyki': core[4:10],
-        # Only the primary class counts; secondary mastery is historical archive.
-        'klasy': _levels(row[10]) or [1],
+        # Default primary-only, optional all-owned; no duplicates per class ID.
+        'klasy': _levels(row[17] if include_owned else row[10]) or [1],
         'profesje': _levels(row[11]),
         'narzędzia': _levels(row[12]),
         'skille': owned_skills,
         # Ascension rank 0 is not earned; ignore it.
-        'wzniesienia': _levels(row[14]),
+        'wzniesienia': _levels(row[18] if include_owned else row[14]),
     }
     level_parts = {name: sum(v) for name, v in chunks.items()}
+    category_bonus = WORLD_OVERRIDES.get('multi_cap_category_bonus', {})
+    overall_bonus = WORLD_OVERRIDES.get('multi_cap_bonus_percent',100)
     cap_parts = {name: sum(multi_cap_level_value_v23217(level) for level in v)
                  for name, v in chunks.items()}
+    # Bonuses only. Never decrease baseline contribution, never discard banked XP.
+    cap_parts = {name: (base * category_bonus.get(name,100) * overall_bonus + 9999)//10000
+                 for name, base in cap_parts.items()}
     return sum(cap_parts.values()), sum(level_parts.values()), level_parts, cap_parts
 
 

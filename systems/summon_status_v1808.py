@@ -111,13 +111,15 @@ def summon_status_enemy_turn_v1808(mob, now=None):
             status['skip_left'] = 0
             skip = True
             label = 'zamrożony' if kind == 'freeze' else 'porażony'
-            messages.append(f'Przeciwnik jest {label} przez przywołanie i traci jedną akcję.')
+            origin = 'umiejętność' if status.get('source') == 'OLC skill' else 'przywołanie'
+            messages.append(f'Przeciwnik jest {label} przez {origin} i traci jedną akcję.')
         if kind in ('poison', 'burn') and status['ticks_left'] > 0 and now >= status['next_tick']:
             status['ticks_left'] -= 1
             status['next_tick'] = now + 3.0
             damage = min(max(0, int(mob.hp)), status['power'])
             mob.hp -= damage
-            messages.append(f'{"Trucizna kobry" if kind == "poison" else "Podpalenie żywiołaka"}: {damage} obrażeń okresowych. HP przeciwnika: {max(0, mob.hp)}.')
+            source = ('Trucizna' if kind == 'poison' else 'Podpalenie') if status.get('source') == 'OLC skill' else ('Trucizna kobry' if kind == 'poison' else 'Podpalenie żywiołaka')
+            messages.append(f'{source}: {damage} obrażeń okresowych. HP przeciwnika: {max(0, mob.hp)}.')
             if mob.hp <= 0:
                 return tuple(messages), True, True
     return tuple(messages), skip, False

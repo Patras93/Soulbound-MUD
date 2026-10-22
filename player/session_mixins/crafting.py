@@ -313,7 +313,18 @@ class SessionCraftingMixin:
                     "cartography_profession": ("surveyor_compass", "Kompas Mierniczy"),
                 }
                 tool_type = str(recipe["tool_type"])
-                item_id, name = mapping[tool_type]
+                if tool_type in mapping:
+                    item_id, name = mapping[tool_type]
+                else:
+                    # v24: custom profession tools are validated by the live
+                    # OLC registry, not listed in the original 14 static tools.
+                    from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+                    item_id = recipe.get('tool_item_id')
+                    meta = ITEMS.get(item_id, {})
+                    if (tool_type not in TOOL_PROFESSION_MAP or
+                            meta.get('type') != 'tool' or meta.get('tool_type') != tool_type):
+                        raise ValueError('Nieprawidłowy typ narzędzia nowej profesji.')
+                    name = meta['name']
                 return tool_type, recipe.get("tool_item_id", item_id), recipe.get("tool_name", name)
             if recipes is CRAFT_RECIPES:
                 return "crafting", "crafting_hammer", "Młot Rzemieślniczy"
@@ -544,9 +555,32 @@ class SessionCraftingMixin:
                 bonus_quantity = quantity
 
             total_quantity = quantity + bonus_quantity
+            from systems.live_olc28_expansion import craft_yield
+            total_quantity = craft_yield(profession, total_quantity)
+            from systems.live_olc32_finale import crafting_bonus
+            total_quantity = crafting_bonus(recipe_id, self.character.room_id, total_quantity)
+            from systems.live_olc35_finale import city_craft_bonus
+            _guild35=self.guild_row_v0926()
+            total_quantity = city_craft_bonus(self.server.db.conn, int(_guild35['clan_id']) if _guild35 else None, total_quantity)
             self.server.db.add_item(
                 self.account_id, crafted_output_id, total_quantity
             )
+            # OLC33: award a configured material only after a successful craft.
+            from systems.live_olc33_mechanics import craft_byproduct
+            _byproduct33 = craft_byproduct(self,recipe_id)
+            if _byproduct33:
+                self.server.db.add_item(self.account_id,_byproduct33[0],_byproduct33[1])
+                await self.record_item_collection(
+                    _byproduct33[0],source='Produkt uboczny rzemiosła',
+                    announce=True,amount=_byproduct33[1])
+            # OLC34: an additional, independently authored exploration material.
+            from systems.live_olc34_integration import profession_find
+            _material34=profession_find(self,recipe_id)
+            if _material34:
+                self.server.db.add_item(self.account_id,_material34[0],_material34[1])
+                await self.record_item_collection(
+                    _material34[0],source='Odkrycie rzemieslnicze',
+                    announce=True,amount=_material34[1])
             # Kolekcje/questy śledzą bazowy przedmiot, aby wariant jakości nie
             # rozbijał istniejących celów i progresji.
             await self.record_item_collection(
@@ -705,7 +739,9 @@ class SessionCraftingMixin:
                 profession_xp,
                 tool_type,
                 tool_xp,
-                content_level=content_level,
+                content_level=content_level, content_key=output_id,
+                jewel_recipe=(dict(recipe, gem_quality=ITEMS.get(recipe['output'], {}).get('gem_quality', 'raw'))
+                              if recipes is JEWELCRAFT_RECIPES else None),
             )
             for message in messages:
                 await self.send(message)
@@ -1038,3 +1074,24 @@ class SessionCraftingMixin:
 
     async def alchemy_item(self, query):
             return await self.perform_recipe(query, ALCHEMY_RECIPES, "alchemia")
+
+    async def handle_custom_activities_v3500(self, query=''):
+        from systems.live_olc35_finale import ACTIVE
+        activities=ACTIVE['activities']
+        name=str(query or '').strip()
+        if not name or name.casefold() in ('lista','list','info'):
+            await self.send(f'CZYNNOŚCI OLC35: {len(activities)} dostępnych. Użyj: czynnosci live_ID.')
+            for key,row in sorted(activities.items()):
+                await self.send(f'{key}: {row["name"]} (receptura {row["recipe"]}).')
+            return
+        activity=activities.get(name)
+        if activity is None:
+            await self.send('Nie ma takiej czynności. Użyj: czynnosci lista.')
+            return
+        from data.crafting_recipes import CRAFT_RECIPES
+        rid=activity['recipe']
+        recipe=CRAFT_RECIPES.get(rid)
+        if recipe is None:
+            await self.send('Receptura nie jest dostępna. Zgłoś to administratorowi.')
+            return
+        return await self.perform_recipe(rid,{rid:recipe},activity['name'])

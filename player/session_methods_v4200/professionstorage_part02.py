@@ -390,7 +390,15 @@ async def grant_tool_reward_xp(
             )
         else:
             tool_xp=max(0,int(round(tool_xp*authored_tool_mult)))
+        from systems.profession_exp_pacing_v1201 import improved_work_xp
+        tool_xp = improved_work_xp(
+            tool_xp, self.tool_xp_to_next(level, tool_type),
+            level, content_level, tool=True)
+        from systems.profession_xp_v1203 import reward_xp_v1203
+        tool_xp=reward_xp_v1203(tool_xp,self.tool_xp_to_next(level,tool_type),level,content_level,tool=True)
         tool_xp = self.apply_double_xp(tool_xp)
+        from systems.live_progression_v1206 import xp_with_live_bonus
+        tool_xp = xp_with_live_bonus(tool_xp, tool_type, tool=True)
         self.session_summary_add("tool_xp", tool_xp, tool_type)
         xp = int(row["xp"]) + tool_xp
         uses = int(row["uses"])

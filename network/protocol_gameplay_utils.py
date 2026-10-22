@@ -384,13 +384,14 @@ def mob_respawn_seconds(template):
     else:
         base_seconds = REGULAR_MOB_RESPAWN_SECONDS
 
-    return max(
+    from systems.live_olc24_revolution import respawn_seconds
+    return respawn_seconds(max(
         1,
         int(round(
             base_seconds
             * GLOBAL_MOB_RESPAWN_MULTIPLIER
         )),
-    )
+    ))
 
 def safe_name(name: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9_-]{3,20}", name))

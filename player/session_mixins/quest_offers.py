@@ -57,6 +57,13 @@ class SessionQuestOffersMixin:
                 return ["brak definicji zadania"]
 
             reasons = []
+            from systems.live_olc29_creation import quest_choice_text
+            from systems.live_olc26_world import conflicting_quests
+            for alternative in conflicting_quests(quest_id):
+                row = self.server.db.quest(self.account_id, alternative)
+                if row and row['status'] in ('active','completed'):
+                    reasons.append('wybrano inną ścieżkę: '+QUESTS.get(alternative,{}).get('name',alternative))
+                    break
 
             # Questy nie mają żadnej blokady poziomem.
             # Level postaci, Soul Level/Tier oraz poziom profesji/narzędzia mogą
@@ -70,6 +77,14 @@ class SessionQuestOffersMixin:
                     "wymaga ukończenia: "
                     + previous.get("name", required_quest)
                 )
+
+            from systems.live_olc17_quest_dependencies import quest_requirements
+            for prerequisite in quest_requirements(quest):
+                if prerequisite == required_quest:
+                    continue
+                if not self.quest_completed(prerequisite):
+                    previous = QUESTS.get(prerequisite, {})
+                    reasons.append("wymaga ukończenia: " + previous.get("name", prerequisite))
 
             required_class = str(quest.get("required_class") or "").strip()
             if required_class and required_class not in self.active_class_names():
@@ -779,6 +794,10 @@ class SessionQuestOffersMixin:
                 requirements.append(
                     "ukończ quest " + QUESTS.get(required_quest, {}).get("name", required_quest)
                 )
+            from systems.live_olc17_quest_dependencies import quest_requirements
+            for requirement in quest_requirements(quest):
+                if requirement != required_quest:
+                    requirements.append("ukończ quest " + QUESTS.get(requirement, {}).get("name", requirement))
             if requirements:
                 await self.send("Wymagania logiczne: " + ", ".join(requirements) + ".")
             else:
@@ -797,20 +816,21 @@ class SessionQuestOffersMixin:
                 reward_parts.append(f"{item_name} x{qty}")
             if quest.get("reward_profession_xp"):
                 reward_parts.append(
-                    f"{quest.get('reward_profession', 'profesja')} XP {quest['reward_profession_xp']}"
+                    f"{quest.get('reward_profession', 'profesja')} XP bazowe {quest['reward_profession_xp']} (rzeczywista wypłata zależy od poziomu i premii)"
                 )
             if quest.get("reward_tool_xp"):
-                reward_parts.append(f"XP narzędzia {quest['reward_tool_xp']}")
-            generated_character = v0270_quest_character_reward(quest)
+                reward_parts.append(f"XP narzędzia bazowe {quest['reward_tool_xp']} (rzeczywista wypłata zależy od poziomu i premii)")
+            generated_character = quest.get('olc_reward_xp', v0270_quest_character_reward(quest))
             if generated_character:
                 reward_parts.append(f"EXP postaci {generated_character}")
-            generated_stat=v0190_quest_stat_reward(quest)
+            generated_stat = quest.get('olc_reward_stat_xp', v0190_quest_stat_reward(quest))
             if generated_stat:
                 reward_parts.append(f"EXP każdej statystyki {generated_stat}")
             # Present the same Soul XP rule used by the actual quest turn-in.
             # Profession contracts (also silver-only profession_action quests)
             # never award Soul XP.
-            generated_soul = 0 if v0522_is_profession_quest(quest) else v0190_quest_soul_reward(quest)
+            generated_soul = (0 if v0522_is_profession_quest(quest) else
+                              quest.get('olc_reward_soul_xp', v0190_quest_soul_reward(quest)))
             if generated_soul:
                 reward_parts.append(f"Soul XP {generated_soul}")
             if quest.get("unlocks_soul_tier"):

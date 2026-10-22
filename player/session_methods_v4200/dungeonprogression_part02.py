@@ -253,11 +253,18 @@ async def grant_soul_xp(
                 f"Awans Soul Level odnawia całe HP. "
                 f"HP: {self.current_hp} z {self.max_hp()}."
             )
+            hint_fn = getattr(self, "exp_area_soul_level_up_hint_v2910", None)
+            hint = hint_fn(old_level, self.character.soul_level) if callable(hint_fn) else None
+            if hint:
+                await self.send(hint)
 
         return self.character.soul_level > old_level
 
 
 async def use_catacomb_portal_v2010(self, raw):
+        if getattr(self, "current_hp", 1) <= 0 or getattr(self, "is_downed_v0371", lambda: False)():
+            await self.send("Martwa lub powalona postać nie może korzystać z portali. Najpierw się odrodź.")
+            return
         from world.world_expansion_v import CATACOMB_LEVELS_V0900
         if self.combat_mob_key:
             await self.send('Nie można używać portalu Katakumb podczas walki.')
@@ -296,6 +303,8 @@ async def use_catacomb_portal_v2010(self, raw):
         moved=[]; skipped=[]
         for member in candidates:
             if not member or not getattr(member,'character',None): continue
+            if getattr(member, 'current_hp', 1) <= 0 or getattr(member, 'is_downed_v0371', lambda: False)():
+                skipped.append(f'{member.character.name}: postać martwa lub powalona'); continue
             if member.combat_mob_key:
                 skipped.append(f'{member.character.name}: trwa walka'); continue
             if floor is not None and floor not in member.catacomb_unlocked_floors_v2010():
@@ -337,6 +346,9 @@ async def show_checkpoint_portal_status_v11331(
 async def party_checkpoint_portal_exit_v11331(
         self, *, kind, floor, target_room, label
 ):
+        if getattr(self, "current_hp", 1) <= 0 or getattr(self, "is_downed_v0371", lambda: False)():
+            await self.send("Martwa lub powalona postać nie może korzystać z portali.")
+            return True
         """Exit a cleared 10-floor checkpoint with eligible local party."""
         party_key = self.party_key()
         if self.portal_requires_local_leader_v12811():
@@ -368,6 +380,9 @@ async def party_checkpoint_portal_exit_v11331(
         skipped = []
         for member in candidates:
             if not member or not getattr(member, "character", None):
+                continue
+            if getattr(member, 'current_hp', 1) <= 0 or getattr(member, 'is_downed_v0371', lambda: False)():
+                skipped.append(f"{member.character.name}: postać martwa lub powalona")
                 continue
             if member.combat_mob_key:
                 skipped.append(f"{member.character.name}: trwa walka")

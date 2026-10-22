@@ -210,6 +210,23 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
         _configure_dynamic_corpse_material(skeleton)
         spawns.append((room_id, skeleton_id))
 
+    if floor == 1 or floor % 5 == 0:
+        elite_id = f"crypt_elite_guardian_{floor}"
+        elite = dict(template)
+        elite.update({
+            "name": f"Elitarny Strażnik Krypty, piętro {floor}",
+            "rank": "elite", "fame_target": True,
+            "crypt_floor": floor,
+            "max_hp": max(1, int(template["max_hp"] * 3)),
+            "damage": max(1, int(template["damage"] * 2)),
+            "class_xp_reward": max(1, int(template["class_xp_reward"] * 3)),
+            "soul_reward": max(1, int(template["soul_reward"] * 3)),
+            "stat_reward": max(1, int(template["stat_reward"] * 3)),
+        })
+        _catalog_mut.catalog_assign(elite, 'MOB_TEMPLATES', MOB_TEMPLATES, (elite_id,))
+        _configure_dynamic_corpse_material(elite)
+        spawns.append((room_id, elite_id))
+
     if is_crypt_boss_floor(floor):
         boss_id = f"crypt_boss_{floor}"
         bname, mechanic, mechanic_text = _infinite_crypt_boss_profile(floor)

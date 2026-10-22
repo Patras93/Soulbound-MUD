@@ -3,6 +3,9 @@
 Globals are bound to the historical host module at class initialization.
 """
 async def use_astral_portal(self, raw):
+        if getattr(self, "current_hp", 1) <= 0 or getattr(self, "is_downed_v0371", lambda: False)():
+            await self.send("Martwa lub powalona postać nie może korzystać z portali. Najpierw się odrodź.")
+            return
         party_key = self.party_key()
         if self.portal_requires_local_leader_v12811():
             leader = self.server.session_by_account(party_key)
@@ -125,6 +128,9 @@ async def use_astral_portal(self, raw):
         for member in candidates:
             if not member or not getattr(member, "character", None):
                 continue
+            if getattr(member, 'current_hp', 1) <= 0 or getattr(member, 'is_downed_v0371', lambda: False)():
+                skipped.append(f"{member.character.name}: postać martwa lub powalona")
+                continue
             if member.combat_mob_key:
                 skipped.append(f"{member.character.name}: trwa walka")
                 continue
@@ -183,6 +189,9 @@ async def show_portal_status(self, kind="crypt"):
 
 
 async def use_crypt_portal(self, raw):
+        if getattr(self, "current_hp", 1) <= 0 or getattr(self, "is_downed_v0371", lambda: False)():
+            await self.send("Martwa lub powalona postać nie może korzystać z portali. Najpierw się odrodź.")
+            return
         party_key = self.party_key()
         if self.portal_requires_local_leader_v12811():
             leader = self.server.session_by_account(party_key)
@@ -323,6 +332,9 @@ async def use_crypt_portal(self, raw):
         skipped = []
         for member in candidates:
             if not member or not getattr(member, "character", None):
+                continue
+            if getattr(member, 'current_hp', 1) <= 0 or getattr(member, 'is_downed_v0371', lambda: False)():
+                skipped.append(f"{member.character.name}: postać martwa lub powalona")
                 continue
             if member.combat_mob_key:
                 skipped.append(f"{member.character.name}: trwa walka")

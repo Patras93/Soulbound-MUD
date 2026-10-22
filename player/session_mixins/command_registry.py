@@ -20,6 +20,7 @@ COMMAND_REGISTRY = {
     # v11.00.6: readable player commands; numeric historical names remain valid.
     'profesja': ('profesje6_command', (COMMAND_TEXT,), {}),
     'pracuj': ('profession_work_shortcut_v1106', (COMMAND_TEXT,), {}),
+    'czynnosci': ('handle_custom_activities_v3500', (COMMAND_TEXT,), {}),
     'karawana': ('imperium_caravan_shortcut_v1106', (COMMAND_TEXT,), {}),
     'lowy': ('imperium_hunts_shortcut_v1106', (COMMAND_TEXT,), {}),
     'wyprawa': ('imperium_voyage_shortcut_v1106', (COMMAND_TEXT,), {}),
@@ -244,7 +245,8 @@ COMMAND_REGISTRY = {
     'effects': ('show_active_effects_v11331', (), {}),
     'efekty': ('show_active_effects_v11331', (), {}),
     'level': ('show_character_level', (), {}),
-    'xp': ('show_character_xp', (), {}),
+    'xp': ('xp_chat_v1201', (COMMAND_TEXT,), {}),
+    'news': ('news_channel_v1204', (COMMAND_TEXT,), {}),
     'experience': ('show_experience_cap_v2009', (COMMAND_TEXT,), {}),
     'expbank': ('show_exp_bank_v2011', (COMMAND_TEXT,), {}),
     'your': ('show_experience_cap_v2009', (COMMAND_TEXT,), {}),

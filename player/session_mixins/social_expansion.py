@@ -61,17 +61,101 @@ class SessionSocialExpansionMixin:
             if session.is_ignored_v03051(session.account_id,self.account_id): continue
             await session.send(text,history_category='chat')
 
+    async def xp_chat_v1201(self, message=''):
+        """Bare `xp` keeps the original EXP status; `xp text` is public chat."""
+        message = str(message or '').strip()
+        if not message:
+            await self.show_character_xp()
+            return
+        await self.channel_broadcast_v03050('xp', message)
+
+    async def news_channel_v1204(self, message=''):
+        """Persistent admin-only news channel; players can read and mute."""
+        raw = str(message or '').strip()
+        norm = normalize_lookup_text(raw)
+        channel = 'news'
+        if norm in ('on', 'wlacz', 'włącz', 'off', 'wylacz', 'wyłącz'):
+            enabled = 0 if norm in ('off', 'wylacz', 'wyłącz') else 1
+            self.server.db.conn.execute(
+                'INSERT INTO social_channel_settings_v03051(account_id,channel,enabled) VALUES(?,?,?) '
+                'ON CONFLICT(account_id,channel) DO UPDATE SET enabled=excluded.enabled',
+                (self.account_id, channel, enabled))
+            self.server.db.conn.commit()
+            await self.send('NEWS: ' + ('włączono.' if enabled else 'wyciszono.'))
+            return
+        # v28: indeks bez zalewania ekranu długimi wiadomościami.
+        # Numery są pozycjami w kolejności od najnowszej; 1 = najnowszy NEWS.
+        # Zachowujemy istniejącą tabelę i wcześniejsze wpisy bez migracji.
+        parts = raw.split()
+        verb = parts[0].casefold() if parts else ''
+        if not parts or verb in ('list', 'lista'):
+            limit = 20
+            if len(parts) > 1:
+                if len(parts) != 2 or not parts[1].isascii() or not parts[1].isdecimal():
+                    await self.send('NEWS: użycie: news, news lista [1-100], news read NUMER, news on/off.')
+                    return
+                limit = int(parts[1])
+                if limit < 1 or limit > 100:
+                    await self.send('NEWS: zakres listy to 1-100.')
+                    return
+            rows = self.server.db.conn.execute(
+                'SELECT sender_name,message,created_at FROM social_channel_history_v03051 '
+                'WHERE channel=? ORDER BY id DESC LIMIT ?', (channel, limit)).fetchall()
+            if not rows:
+                await self.send('NEWS: brak wiadomości.')
+                return
+            await self.send(f'NEWS: {len(rows)} najnowszych wpisów (1 = najnowszy). '
+                            'Aby odczytać jeden: news read NUMER.')
+            for number, row in enumerate(rows, start=1):
+                excerpt = ' '.join(str(row['message']).split())
+                if len(excerpt) > 70:
+                    excerpt = excerpt[:70].rstrip() + '...'
+                await self.send(f"{number}. {row['created_at']} {row['sender_name']}: {excerpt}")
+            return
+        if verb in ('read', 'czytaj'):
+            if len(parts) != 2 or not parts[1].isascii() or not parts[1].isdecimal():
+                await self.send('NEWS: użycie: news read NUMER, np. news read 1.')
+                return
+            number = int(parts[1])
+            if not 1 <= number <= 500:
+                await self.send('NEWS: numer powinien być od 1 do 500.')
+                return
+            row = self.server.db.conn.execute(
+                'SELECT sender_name,message,created_at FROM social_channel_history_v03051 '
+                'WHERE channel=? ORDER BY id DESC LIMIT 1 OFFSET ?', (channel, number - 1)).fetchone()
+            if row is None:
+                await self.send(f'NEWS: brak wpisu numer {number}. Użyj news, aby zobaczyć listę.')
+            else:
+                await self.send(f"NEWS numer {number}. {row['created_at']} {row['sender_name']}: {row['message']}")
+            return
+        if not self.is_admin():
+            await self.send('NEWS: ogłoszenia mogą publikować tylko administratorzy. Użyj news, news read NUMER lub news on/off.')
+            return
+        if len(raw) > 500:
+            await self.send('NEWS: wiadomość za długa; maksymalnie 500 znaków.')
+            return
+        self.server.db.conn.execute(
+            'INSERT INTO social_channel_history_v03051(channel,sender_account_id,sender_name,message) VALUES(?,?,?,?)',
+            ('news', self.account_id, self.character.name, raw))
+        self.server.db.conn.commit()
+        self.server.db.record_admin_action_v1224(
+            self.server.db.account_name(self.master_account_id), 'news_v1204', str(len(raw)))
+        for session in tuple(self.server.sessions):
+            if session.closed or not session.character or not session.channel_enabled_v03051('news'):
+                continue
+            await session.send(f'[NEWS] Administracja ({self.character.name}): {raw}', history_category='chat')
+
     async def show_channels_v03050(self):
-        states=', '.join(f"{c}={'on' if self.channel_enabled_v03051(c) else 'off'}" for c in ('gossip','newbie','trade'))
-        await self.send(f"KANAŁY: {states}. Użycie: gossip/newbie/trade <tekst> albo on/off. channels history [gossip|newbie|trade].")
+        states=', '.join(f"{c}={'on' if self.channel_enabled_v03051(c) else 'off'}" for c in ('gossip','newbie','trade','xp','news'))
+        await self.send(f"KANAŁY: {states}. Użycie: gossip/newbie/trade/xp/news <tekst> albo on/off. Samo xp pokazuje EXP postaci. NEWS: news (lista), news read NUMER (jedna wiadomosc), news lista 50. channels history [gossip|newbie|trade|xp|news].")
 
     async def show_channel_history_v03051(self, channel='gossip', limit=20):
         channel=normalize_lookup_text(channel or 'gossip'); channel={'plotki':'gossip','handel':'trade','nowi':'newbie'}.get(channel,channel)
-        if channel not in ('gossip','newbie','trade'): await self.send("Kanał historii: gossip, newbie albo trade."); return
+        if channel not in ('gossip','newbie','trade','xp','news'): await self.send("Kanał historii: gossip, newbie, trade, xp albo news."); return
         rows=self.server.db.conn.execute("SELECT sender_account_id,sender_name,message,created_at FROM social_channel_history_v03051 WHERE channel=? ORDER BY id DESC LIMIT ?",(channel,max(1,min(20,int(limit))))).fetchall()[::-1]
         await self.send(f"HISTORIA {channel.upper()}:")
         for r in rows:
-            if not self.is_ignored_v03051(self.account_id,r['sender_account_id']): await self.send(f"{r['created_at']} {r['sender_name']}: {r['message']}")
+            if channel == 'news' or not self.is_ignored_v03051(self.account_id,r['sender_account_id']): await self.send(f"{r['created_at']} {r['sender_name']}: {r['message']}")
         if not rows: await self.send("Brak wiadomości.")
 
     async def handle_afk_v03051(self,args=''):
@@ -94,6 +178,11 @@ class SessionSocialExpansionMixin:
         await target.send(f"[TELL] {self.character.name}: {msg}",history_category='tell'); await self.send(f"[TELL do {target.character.name}] {msg}",history_category='tell')
         afk=self.server.db.conn.execute("SELECT message FROM social_afk_v03051 WHERE account_id=?",(target.account_id,)).fetchone()
         if afk: await self.send(f"{target.character.name} jest AFK: {afk['message']}")
+        # v12.00.8: sound event only after the actual successful delivery.
+        from systems.sound_events_v1208 import _event
+        _type = 'REPLY_RECEIVED' if getattr(self, '_sound_reply_mode_v1208', False) else 'TELL_RECEIVED'
+        await target.send(_event(_type, **{'from': self.character.name}), history_store=False)
+        return True
 
     def _guild_name_v03051(self, aid):
         row=self.server.db.conn.execute("SELECT c.name FROM player_clan_members m JOIN player_clans c ON c.id=m.clan_id WHERE m.account_id=?",(int(aid),)).fetchone(); return row['name'] if row else ''

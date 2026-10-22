@@ -43,7 +43,8 @@ def _verify(rooms, npcs, mobs, spawns, quests, items, stats):
             check(dest in rooms and rooms[dest].get('exits',{}).get(directions[dr])==rid, 'nonreversible '+rid+dr)
     mids={m for r,m in spawns}
     for qid,q in quests.items():
-        if not qid.startswith('v3100_'):
+        if not qid.startswith('v3100_') or any(qid.startswith(f'v3100_{slug}_quest_') for slug in ('scarlet','crystal','abyss','eternal')):
+            # Four 401-800 chronicles added in v31 have their own regression.
             continue
         check(q.get('giver') in {v['name'] for v in npcs.values()}, 'missing NPC giver '+qid)
         check(q['needed']>0, 'empty goal '+qid)

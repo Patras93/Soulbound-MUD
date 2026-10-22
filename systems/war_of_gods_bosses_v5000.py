@@ -31,6 +31,18 @@ def unique_phase(mob, template, now=None):
     if not mob or not getattr(mob, 'alive', False) or int(getattr(mob, 'hp', 0)) <= 0:
         return None
     thresholds, names, multipliers, elements = PROFILES[int(idx)]
+    custom = template.get('olc_ancient_phases')
+    if custom is not None:
+        from systems.live_olc22_empire import validate_ancient
+        try:
+            validate_ancient(custom)
+        except (ValueError,TypeError):
+            custom = None  # no runtime crash from corrupted historic state
+        if custom is not None:
+            thresholds = tuple(stage['hp_percent'] for stage in custom)
+            names = tuple(stage['name'] for stage in custom)
+            multipliers = tuple(stage['attack_percent'] / 100 for stage in custom)
+            elements = tuple(stage['element'] for stage in custom)
     maximum = max(1, int(getattr(mob, 'adaptive_max_hp_v11330', 0) or template.get('max_hp', 1)))
     pct = 100.0 * max(0, int(mob.hp)) / maximum
     target = sum(pct <= t for t in thresholds)
@@ -41,7 +53,8 @@ def unique_phase(mob, template, now=None):
     mob.v1230_phase_attack_multiplier = multipliers[target - 1]
     mob.v500_phase_element = elements[target - 1]
     now = time.monotonic() if now is None else float(now)
-    mob.monster_ai_empowered_until_v1160 = now + 16.0 + target * 7.0
+    duration = (custom[target-1]['duration_seconds'] if custom is not None else 16.0 + target * 7.0)
+    mob.monster_ai_empowered_until_v1160 = now + duration
     return (f"{template.get('name', 'Pradawny')}: FAZA {target}/3 — {names[target-1]}. "
             f"Następne ataki: {elements[target-1]}. Przygotuj obronę przed kontratakiem.")
 

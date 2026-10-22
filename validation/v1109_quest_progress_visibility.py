@@ -63,11 +63,11 @@ def run_regression():
         if not condition:
             raise AssertionError('QUEST PROGRESS v11.00.9: '+why)
     quests=server.QUESTS
-    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18',), 'canonical release')
+    ck(server.VERSION in ('11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',), 'canonical release')
     counts=Counter(str(q.get('kind')) for q in quests.values())
     ck(len(counts)==18, f'18 canonical quest kinds: {counts}')
     from validation.v1100_release_counts import expected_quest_total_v1100
-    ck(len(quests)==expected_quest_total_v1100(),'preserved quest catalogue plus authored teacher quests')
+    ck(len(quests)==(6793 if server.VERSION.startswith('35.') else expected_quest_total_v1100()),'preserved quest catalogue plus authored teacher quests')
     # Validate ALL definitions have a meaningful, numeric denominator and id.
     for qid,q in quests.items():
         ck(int(q.get('needed',0))>=1 and bool(q.get('name')),

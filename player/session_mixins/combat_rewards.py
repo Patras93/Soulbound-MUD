@@ -59,7 +59,13 @@ def _final_combat_reward(*args, **kwargs):
     # This function is historically overridden through several world layers.
     # Importing it only when combat resolves preserves the final v0.46 behaviour.
     from world.global_difficulty_overdrive import v0190_combat_reward
-    return v0190_combat_reward(*args, **kwargs)
+    result=v0190_combat_reward(*args, **kwargs)
+    axis=args[1] if len(args)>1 else kwargs.get('axis')
+    template=args[0] if args else kwargs.get('template', {})
+    if axis in ('class','soul','character','stat') and isinstance(template,dict):
+        from systems.live_olc22_empire import ordinary_reward_bonus
+        return ordinary_reward_bonus(result, exact=bool(template.get('source_xp_exact') or template.get('uoss_full_progression_source_xp_exact') or superboss_key_from_template_v11135(template)))
+    return result
 
 
 def _final_boss_floor_identity(*args, **kwargs):
@@ -115,6 +121,53 @@ async def _run_with_deferred_kill_commits_v11125(session, callback, *args, **kwa
         return await callback(session, *args, **kwargs)
 
 
+async def _announce_cleared_encounter_v1206(session, mob, room_id, was_engaged):
+    """Report the final defeated opponent to every local teammate, once.
+
+    Only previously engaged mobs count. Do not refresh/respawn the world in
+    the check; a not-yet-accounted-for AoE kill is still alive=True until its
+    own mob_defeated callback completes, preventing premature announcements.
+    """
+    if room_id is None or not was_engaged or getattr(mob, 'alive', True):
+        return
+    if not session.character or session.closed or session.character.room_id != room_id:
+        return
+    members = session.server.party_sessions(session.account_id, same_room=room_id) or [session]
+    members = [member for member in members if member.character and not member.closed
+               and member.character.room_id == room_id]
+    if not members:
+        return
+    owner_names = {member.character.name for member in members}
+    for enemy in session.server.world.mobs.values():
+        if (enemy.room_id == room_id and enemy.alive
+            and (enemy.engaged_by in owner_names
+                 or getattr(enemy, 'aoe_engaged_by', None) in owner_names)):
+            return
+    # Concurrent AoE rewards may finish independently once every enemy is
+    # already marked dead. The first completed callback announces the result;
+    # other callbacks in the same engagement must not repeat it. A fresh
+    # fight has a strictly newer monotonic engaged_at timestamp.
+    key = (getattr(session.server, 'party_key_for_account', lambda _: None)(session.account_id)
+           or session.account_id, room_id)
+    announced = getattr(session.server, '_combat_end_announce_v1206', None)
+    if announced is None:
+        announced = {}
+        session.server._combat_end_announce_v1206 = announced
+    engaged_at = float(getattr(mob, 'engaged_at', 0.0) or 0.0)
+    last = float(announced.get(key, -1.0))
+    if engaged_at > 0 and engaged_at <= last:
+        return
+    if not engaged_at and last > 0:
+        # A legacy/reused object without a valid engagement timestamp is not
+        # reliable evidence of a new encounter; never duplicate a victory.
+        return
+    announced[key] = time.monotonic()
+    announcement = 'KONIEC WALKI: Wszyscy przeciwnicy zostali pokonani.'
+    for member in members:
+        await member.send(announcement, combat_detail='essential',
+                          history_category='combat')
+
+
 def deferred_kill_commits_v11125(callback):
     async def wrapped(self, mob, *args, **kwargs):
         # v1.40.0: kill events can converge from AoE, realtime attacks and
@@ -127,10 +180,15 @@ def deferred_kill_commits_v11125(callback):
         if getattr(mob, "v1400_kill_in_progress", False):
             return None
         mob.v1400_kill_in_progress = True
+        _room = getattr(mob, 'room_id', None)
+        _was_engaged = bool(getattr(mob, 'engaged_by', None)
+                            or getattr(mob, 'aoe_engaged_by', None))
         try:
-            return await _run_with_deferred_kill_commits_v11125(
+            result = await _run_with_deferred_kill_commits_v11125(
                 self, callback, mob, *args, **kwargs
             )
+            await _announce_cleared_encounter_v1206(self, mob, _room, _was_engaged)
+            return result
         finally:
             mob.v1400_kill_in_progress = False
     wrapped.__name__ = callback.__name__
@@ -220,38 +278,55 @@ class SessionCombatRewardsMixin:
                         1, int(template.get("source_xp", 0) or 0),
                         max(1, int(template.get("level", 1) or 1)) * 400,
                     ))
+                    _custom_guardian_reward_v1540 = (
+                        getattr(mob, 'olc_guardian_rewards_v1540', None)
+                        if template.get('boss_companion_v1281') else None
+                    )
                     for session in sorted(recipients, key=lambda s: s.character.name.lower()):
-                        _xp_v1281 = min(V019_SAFE_INT, max(1, int(_base_xp_v1281)))
-                        _xp_v1281 = session.apply_double_xp(_xp_v1281)
+                        _xp_v1281 = min(V019_SAFE_INT, max(0, int(
+                            _custom_guardian_reward_v1540['xp']
+                            if _custom_guardian_reward_v1540 is not None else _base_xp_v1281
+                        )))
+                        _xp_v1281 = session.apply_double_xp(_xp_v1281) if _xp_v1281 else 0
                         from systems.experience_bank_v2011 import banked_experience_v2011
-                        for _stat in session.character.STAT_PROGRESS_FIELDS:
-                            _stat_paid = banked_experience_v2011(
-                                session.server.db, session.account_id, _xp_v1281,
-                                'stat', session.character.character_level, source_key=_stat,
-                                overcap=combat_overcap_v2009(
-                                    template, session.character.character_level),
+                        if _xp_v1281 > 0:
+                            for _stat in session.character.STAT_PROGRESS_FIELDS:
+                                _stat_paid = banked_experience_v2011(
+                                    session.server.db, session.account_id, _xp_v1281,
+                                    'stat', session.character.character_level, source_key=_stat,
+                                    overcap=combat_overcap_v2009(
+                                        template, session.character.character_level),
+                                )
+                                for _msg in session.character.add_stat_progress(
+                                    _stat_paid, targets=(_stat,), single_level_cap=False,
+                                ):
+                                    await session.send(_msg)
+                            await session.grant_combat_soul_xp_v11350(
+                                _xp_v1281, content_level=v0190_mob_stage(template),
+                                content_scaled=True,
                             )
-                            for _msg in session.character.add_stat_progress(
-                                _stat_paid, targets=(_stat,), single_level_cap=False,
+                            await session.grant_class_xp(
+                                _xp_v1281, single_level_cap=False,
+                                content_level=v0190_mob_stage(template), content_scaled=True,
+                            )
+                            for _msg in session.add_character_xp_with_event(
+                                _xp_v1281, single_level_cap=False,
+                                content_level=v0190_mob_stage(template), content_scaled=True,
                             ):
                                 await session.send(_msg)
-                        await session.grant_combat_soul_xp_v11350(
-                            _xp_v1281, content_level=v0190_mob_stage(template),
-                            content_scaled=True,
-                        )
-                        await session.grant_class_xp(
-                            _xp_v1281, single_level_cap=False,
-                            content_level=v0190_mob_stage(template), content_scaled=True,
-                        )
-                        for _msg in session.add_character_xp_with_event(
-                            _xp_v1281, single_level_cap=False,
-                            content_level=v0190_mob_stage(template), content_scaled=True,
-                        ):
-                            await session.send(_msg)
-                        await session.send(
-                            f"Pokonujesz pomocnika: {template['name']}. "
-                            f"EXP +{_xp_v1281} (postać, klasa, Soul i rozwój statystyk)."
-                        )
+                            await session.send(
+                                f"Pokonujesz pomocnika: {template['name']}. "
+                                f"EXP +{_xp_v1281} (postać, klasa, Soul i rozwój statystyk)."
+                            )
+                        if _custom_guardian_reward_v1540 is not None:
+                            from systems.guardian_rewards_v1540 import grant_guardian_currency_v1540
+                            _coins_v1540 = grant_guardian_currency_v1540(
+                                session.character, _custom_guardian_reward_v1540)
+                            if any(_coins_v1540):
+                                await session.send(
+                                    "Nagroda walutowa za pomocnika: "
+                                    + currency_reading_text(*_coins_v1540) + "."
+                                )
                     return
                 self.server.world.clear_monster_ai_adds_v1160(mob)
                 _nemesis_owner = int(template.get("v029_nemesis_owner_account_id", 0) or 0)
@@ -610,6 +685,15 @@ class SessionCombatRewardsMixin:
                 if generated_coins>0:
                     for session in recipients:
                         currency_rewards["silver"][session.account_id]=generated_coins
+                # OLC36: explicitly authored UOSS denominations are paid via
+                # the actual party reward path (not only changed in templates).
+                # Absent fields retain the original calculated reward.
+                manual_uoss_coins = template.get('olc_uoss_currency_override',{})
+                if superboss_key_from_template_v11135(template) and isinstance(manual_uoss_coins,dict):
+                    for denomination, amount in manual_uoss_coins.items():
+                        if denomination in currency_rewards:
+                            for session in recipients:
+                                currency_rewards[denomination][session.account_id] = int(amount)
 
                 _v0927_guild_progressed = set()
                 for session in recipients:
@@ -737,6 +821,8 @@ class SessionCombatRewardsMixin:
                         combat_multiplier=xp_mult,
                         downstream_multiplier=_double_factor_v1286 * _mentor_factor_v1286 * _guild_factor_v1286,
                     )
+                    from systems.live_olc33_mechanics import guild_boss_class_xp
+                    class_xp_reward = guild_boss_class_xp(template,session,class_xp_reward)
                     soul_xp_reward = dungeon_recipient_xp_v1286(
                         template, "soul", soul_xp_reward, session.character.soul_level,
                         combat_multiplier=xp_mult,
@@ -808,6 +894,13 @@ class SessionCombatRewardsMixin:
                             _is_boss=v0866_is_boss_template(template)
                             self.server.db.clan_metric_add(_gid,"boss_kills" if _is_boss else "mob_kills",1)
                             _changed=self.server.db.guild_contract_add_v0927(_gid,"bosses" if _is_boss else "kills",1)
+                            if _is_boss:
+                                from systems.live_olc35_finale import war_boss_kill
+                                _war_update=war_boss_kill(self.server.db.conn,_gid,int(time.time()),True)
+                                if _war_update and _war_update[2]:
+                                    self.server.db.clan_log(_gid,session.account_id,
+                                        f'Zakonczono wojne PvE: {_war_update[0]}/{_war_update[1]}; nagroda skarbca {_war_update[2]} srebra.')
+                                    await session.send('Gildia wygrywa kampanie PvE! Nagroda trafia do skarbca.')
                             await session.finish_ready_guild_contracts_v0927(_gid,_changed)
                             if template.get("guild_boss") and int(template.get("guild_id",0))==_gid:
                                 _rec=self.server.db.conn.execute("SELECT fastest_kill_ms FROM player_guild_boss_records_v0927 WHERE clan_id=?",(_gid,)).fetchone()
@@ -817,6 +910,8 @@ class SessionCombatRewardsMixin:
                                 self.server.db.conn.execute("INSERT INTO player_guild_boss_records_v0927(clan_id,kills,fastest_kill_ms,last_boss_name,last_killed_at) VALUES(?,1,?,?,CURRENT_TIMESTAMP) ON CONFLICT(clan_id) DO UPDATE SET kills=kills+1,fastest_kill_ms=?,last_boss_name=?,last_killed_at=CURRENT_TIMESTAMP",(_gid,_best,_name,_best,_name))
                                 self.server.db.conn.execute("INSERT INTO player_guild_trophies_v0927(clan_id,trophy_id,name,count) VALUES(?,?,?,1) ON CONFLICT(clan_id,trophy_id) DO UPDATE SET count=count+1",(_gid,_tid,f"Trofeum: {_name}"))
                                 _reward=(2_000+int(template.get('guild_hall_level',1))*1_000)*SILVER_PER_GOLD
+                                from systems.live_olc34_integration import guild_treasury_reward
+                                _reward=guild_treasury_reward(_reward)
                                 self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(_reward,_gid)); self.server.db.conn.commit(); self.server.db.clan_metric_add(_gid,"guild_boss_kills",1); self.server.db.clan_log(_gid,session.account_id,f"Gildia pokonuje {_name}. Trofeum zapisane; do skarbca trafia {currency_reading_text(_reward,0,0)}.")
                                 await session.send(f"Boss Gildii pokonany. Trofeum zapisane, a skarbiec otrzymuje {currency_reading_text(_reward,0,0)}.")
                     await self.server.events.publish(PlayerMobKillProgressionEvent(
@@ -891,6 +986,13 @@ class SessionCombatRewardsMixin:
                                 quest_id,
                                 template.get("name", mob.template_id),
                             )
+
+                    # OLC15: exactly one event for one killed mob, even if it
+                    # has several quest aliases. Existing kill rewards untouched.
+                    for _qid, _kind, _target, _done, _max in self.server.db.increment_multi_objective_v1800(
+                        session.account_id, 'kill', mob.template_id, aliases=quest_targets
+                    ):
+                        await session.announce_active_quest_progress(_qid)
 
                     # v8.00.0: only this real rewarded victory advances the
                     # class's saga; no alias double-count, no foreign-class XP.

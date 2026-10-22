@@ -25,14 +25,17 @@ from systems.soulstones_v1701 import SOULSTONE_TIERS, STONE_ALIASES, STONE_BY_KE
 from systems.mage_elementals_v1702 import ELEMENTALS, ELEMENTS, RANKS, resolve_elemental
 from systems.druid_call_v1708 import ANIMALS, terrain_animals, biome_for_room, normalize_animal
 from systems.necro_constructs_v1710 import NECRO_MINIONS, summon_key
+from systems.class_minions_v1119 import CLASS_MINIONS_V1119, CLASS_MINIONS_BY_CLASS_V1119
 SUMMONS.update({key:(spec['name'],'Mag',{},'magic',spec['damage']) for key,spec in ELEMENTALS.items()})
 SUMMONS.update({key:(spec['name'],'Druid',{},spec['damage_kind'],spec['damage']) for key,spec in ANIMALS.items() if key not in SUMMONS})
 SUMMONS.update({key:(spec[0],'Nekromanta',spec[3],spec[4],spec[5]) for key,spec in NECRO_MINIONS.items()})
+SUMMONS.update({key:(row[1],row[2],{},row[5],row[6]) for key,row in CLASS_MINIONS_V1119.items()})
 SUMMON_MANA = {'pajak':45,'wojownik':90,'mag':120,'lifeoak':80,
                'ancientoak':180,'wilk':50,'sowa':55,'niedzwiedz':110}
 SUMMON_MANA.update({key: spec['mana'] for key,spec in ELEMENTALS.items()})
 SUMMON_MANA.update({key: spec['mana'] for key,spec in ANIMALS.items()})
 SUMMON_MANA.update({key: spec[2] for key,spec in NECRO_MINIONS.items()})
+SUMMON_MANA.update({key: row[4] for key,row in CLASS_MINIONS_V1119.items()})
 # Druids unlock living oaks much later than ordinary woodland calls.
 DRUID_OAK_MIN_LEVEL={'lifeoak':150, 'ancientoak':400}
 
@@ -63,6 +66,8 @@ def ensure_schema(conn):
       active INTEGER NOT NULL DEFAULT 1, soul_rank INTEGER NOT NULL DEFAULT 0,
       hp INTEGER NOT NULL DEFAULT 0, max_hp INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY(account_id,summon_type))''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS summon_ai_prefs_v1200 (
+      account_id INTEGER PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 1)''')
     conn.execute('''CREATE TABLE IF NOT EXISTS cities_v1700 (
       account_id INTEGER PRIMARY KEY, title TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 1,
       walls INTEGER NOT NULL DEFAULT 0, market INTEGER NOT NULL DEFAULT 0,
@@ -155,7 +160,12 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             factor=ANIMALS[kind]['hp_factor']
         if kind in NECRO_MINIONS:
             factor=NECRO_MINIONS[kind][6]
-        return max(40,int(owner_hp*factor*(1+max(0,int(level)-1)*.075)))
+        if kind in CLASS_MINIONS_V1119:
+            factor=CLASS_MINIONS_V1119[kind][7]
+        from systems.live_olc24_revolution import summon_factor
+        from systems.live_olc29_creation import ACTIVE as _custom_summons30
+        authored_hp = _custom_summons30['summons'].get(kind,{}).get('hp_percent',100)
+        return max(40,int(owner_hp*factor*(1+max(0,int(level)-1)*.075)*summon_factor(kind,'hp_percent')/100*authored_hp/100))
 
     def _v1806_owner_summon_level(self, kind, fallback=1):
         """Battle level follows the owner, never a second creature XP curve."""
@@ -235,7 +245,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             if kind not in SUMMONS or not self._v1700_class(SUMMONS[kind][1]):
                 continue
             maximum = max(1, int(r['max_hp']))
-            gain = max(1, (maximum * 3 + 99) // 100)
+            from systems.live_olc24_revolution import summon_factor
+            gain = max(1, (maximum * 3 * summon_factor(kind,'regen_percent') + 9999) // 10000)
             new_hp = min(maximum, int(r['hp']) + gain)
             if new_hp <= int(r['hp']):
                 continue
@@ -409,8 +420,14 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
               if r['summon_type'] in SUMMONS and self._v1700_class(SUMMONS[r['summon_type']][1])]
         if not pets:return False
-        if (random.random() if roll is None else roll)>=(.52 if any(
-                r['stance']=='bron' for r in pets) else .32):return False
+        from systems.live_olc27_master import summon_may_intercept
+        pets=[r for r in pets if summon_may_intercept(r['summon_type'],r['hp'],r['max_hp'])]
+        if not pets:return False
+        from systems.live_olc26_world import summon_intercept_chance, summon_incoming_damage
+        guarding = any(r['stance']=='bron' for r in pets)
+        # An active summoned protector contributes its authored intercept chance.
+        chance = max(summon_intercept_chance(r['summon_type'],guarding) for r in pets)
+        if (random.random() if roll is None else roll)>=chance:return False
         chosen=random.choice(pets)
         hp=int(chosen['hp']);maximum=max(1,int(chosen['max_hp']))
         # A real monster hit. The percentage floor prevents companions from
@@ -431,7 +448,7 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         if kind in NECRO_MINIONS or kind in ANIMALS:
             reduction=min(.15,max(0,int(chosen['level'])-1)*.002)
             hit=max(1,int(hit*(1-reduction)))
-        hit=min(hp,hit)
+        hit=min(hp,summon_incoming_damage(kind,hit))
         remaining=max(0,hp-hit)
         conn.execute('UPDATE summons_v1700 SET hp=?,active=? '
                      'WHERE account_id=? AND summon_type=? AND hp=? AND active=1',
@@ -506,6 +523,49 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
     async def summons_v1700(self, raw=''):
         if not self.character:return
         text=ascii_fold(raw); parts=text.split()
+        if getattr(self, 'current_hp', 1) <= 0 or (getattr(self, 'is_downed_v0371', lambda: False)()):
+            await self.send('Nie możesz przywoływać ani aktywować pomocników po śmierci. Najpierw się odrodź.')
+            return
+        if parts and parts[0] in ('ai','sztuczna','inteligencja'):
+            conn=self._v1700_conn()
+            if len(parts)>1 and parts[1] in ('on','off','wlacz','wylacz'):
+                enabled=0 if parts[1] in ('off','wylacz') else 1
+                conn.execute('INSERT INTO summon_ai_prefs_v1200(account_id,enabled) VALUES(?,?) '
+                             'ON CONFLICT(account_id) DO UPDATE SET enabled=excluded.enabled',
+                             (self.account_id,enabled));conn.commit()
+                await self.send('AI przywołań: '+('włączona' if enabled else 'wyłączona')+'. Zapisano dla postaci.')
+            else:
+                row=conn.execute('SELECT enabled FROM summon_ai_prefs_v1200 WHERE account_id=?',(self.account_id,)).fetchone()
+                await self.send('AI przywołań: '+('włączona' if row is None or row['enabled'] else 'wyłączona')+'. Komendy: chowaniec ai on/off/status. Miniony samodzielnie leczą, osłaniają i używają umiejętności klasowych bez zewnętrznego API.')
+            return
+        if parts and parts[0] in ('umiejetnosci','zdolnosci'):
+            from systems.summon_ai_v1200 import CLASS_AI
+            for cls in sorted(self.active_class_names()):
+                if cls in CLASS_AI:
+                    title,role,_=CLASS_AI[cls]
+                    await self.send(f'{cls}: {title} — {role}. Aktywne w walce, gdy sytuacja tego wymaga.')
+            return
+        if parts and parts[0] in ('klasy','klasa','klasowe'):
+            classes=set(self.active_class_names())
+            filter_name=ascii_fold(' '.join(parts[1:]))
+            only_available=filter_name in ('dostepne','odblokowane','available')
+            if filter_name and not only_available:
+                matching={name for name in classes if ascii_fold(name)==filter_name}
+                if not matching:
+                    await self.send('Nie masz aktywnej klasy o tej nazwie. Wpisz chowaniec klasy, aby poznać dostępne klasy.')
+                    return
+                classes=matching
+            current_level=max(1,int(getattr(self.character,'character_level',1) or 1))
+            await self.send('PRZYWOŁANIA KLASOWE: chowaniec klasy <nazwa klasy> (krótka lista) / chowaniec klasy dostepne (odblokowane na twoim poziomie). Progi 1, 90, 200, 400 i 600. chowaniec przywolaj <kod>. Limit 3 aktywne łącznie; po zalogowaniu przywołujesz od nowa. Miniony skalują się do twojej postaci.')
+            for cname in sorted(classes):
+                for row in CLASS_MINIONS_BY_CLASS_V1119.get(cname, ()):
+                    if only_available and current_level<row[3]:
+                        continue
+                    status=('DOSTĘPNY' if current_level>=row[3] else 'ZABLOKOWANY')
+                    await self.send(f'{cname}: {row[1]} — {status}; chowaniec przywolaj {row[0]}; poziom {row[3]}+, koszt {row[4]} MP.')
+                if cname in ('Druid','Mag','Nekromanta'):
+                    await self.send(f'{cname}: istniejące przywołania: ' + ('call list' if cname=='Druid' else 'mag lista' if cname=='Mag' else 'nekro lista') + '.')
+            return
         if parts and parts[0] in ('kamienie','kolory','soulstone'):
             await self.send('KAMIENIE DUSZY — od najsłabszego do najsilniejszego:')
             for i, tier in enumerate(SOULSTONE_TIERS):
@@ -517,11 +577,15 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             self._v1702_prepare_summon_lives(conn)
             self._v1710_refresh_summon_health(conn)
             rows=conn.execute('SELECT summon_type,level,active,soul_rank,hp,max_hp FROM summons_v1700 WHERE account_id=? ORDER BY summon_type',(self.account_id,)).fetchall()
-            await self.send('CHOWAŃCE: chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>; chowaniec odwolaj <nazwa|wszystkie>. Do 3 aktywnych. Poziom wszystkich = poziom właściciela, bez osobnego EXP. Żywe regenerują HP poza walką. Powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
+            await self.send('CHOWAŃCE: chowaniec klasy (miniony twoich klas); chowaniec lecz <nazwa|wszystko> (mana i tylko żywe przywołania); chowaniec przywolaj <typ>, chowaniec ulepsz <wojownik|mag> <kolor>, chowaniec kamienie, chowaniec schowaj/aktywuj <typ>; chowaniec odwolaj <nazwa|wszystkie>. Do 3 aktywnych. Poziom wszystkich = poziom właściciela, bez osobnego EXP. Żywe regenerują HP poza walką. Powrót wymaga many i materiałów właściwych dla rodzaju (Mag bez materiałów).')
             await self.send('Nekromanta: pająk — 2 zwykłe zęby; wojownik — 1 smoczy ząb; mag — 2 smocze zęby. Dziewięć kolorów Kamieni Duszy ulepsza wojowników i magów. nekro wyrwij; nekro scal <kolor>.')
             await self.send('Druid: call list (zwierzęta na aktualnym terenie), call <zwierzę>, call squirrel (wiewiórka dostarcza szyszki za 20 MP), order <zwierzę> <atakuj|bron|wspieraj|czekaj>. Bez Pieczęci Chowańców. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP.')
             await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; moc z Twojej magii i aktualnego poziomu, bez osobnego EXP; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
             await self.send('Nekromanta: nekro lista — konstrukty, nieumarli, materiały, mana, wymagane poziomy. nekro przywolaj metal / gliniany / kostny_straznik itd. Rozkazy: order <nazwa|all> <atakuj|bron|wspieraj|czekaj>.')
+            from systems.live_olc29_creation import ACTIVE as _OLC29_ACTIVE
+            for _kind in sorted(_OLC29_ACTIVE['summons']):
+                _spec=SUMMONS[_kind]
+                await self.send(f"Nowe przywołanie: {_spec[0]}; komenda chowaniec przywolaj {_kind}; klasa {_spec[1]}; mana {SUMMON_MANA[_kind]} MP.")
             if not rows:await self.send('Nie masz jeszcze przywołań.')
             for row in rows:
                 spec=SUMMONS.get(row['summon_type'])
@@ -589,6 +653,11 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             minimum=DRUID_OAK_MIN_LEVEL[kind]
             if int(getattr(self.character,'character_level',1) or 1)<minimum:
                 await self.send(f'{name} wymaga poziomu Druida {minimum}. Nie zużyto many ani szyszek.');return
+        if kind in CLASS_MINIONS_V1119 and action in ('przywolaj','aktywuj'):
+            required_level=CLASS_MINIONS_V1119[kind][3]
+            if int(getattr(self.character,'character_level',1) or 1)<required_level:
+                await self.send(f'{name} wymaga poziomu postaci {required_level}. Nie zużyto many ani materiałów.')
+                return
         if kind in NECRO_MINIONS and action in ('przywolaj','aktywuj'):
             min_level=NECRO_MINIONS[kind][1]
             if int(getattr(self.character,'character_level',1) or 1)<min_level:
@@ -632,7 +701,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 active=conn.execute('SELECT COUNT(*) FROM summons_v1700 WHERE account_id=? AND active=1',(self.account_id,)).fetchone()[0]
                 if active>=3:
                     await self.send('Maksymalnie 3 aktywne przywołania. Schowaj inne.');return
-                mana_cost=SUMMON_MANA[kind]
+                from systems.live_olc24_revolution import summon_factor
+                mana_cost=(SUMMON_MANA[kind]*summon_factor(kind,'mana_percent')+99)//100
                 if not await self._v1701_need_mana(mana_cost):return
             # Trees always require fresh pinecones. Every fallen beast or skeleton
             # must also pay its original material cost. Living hidden summons cost MP
@@ -661,7 +731,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         count=conn.execute('SELECT COUNT(*) FROM summons_v1700 WHERE account_id=? AND active=1',(self.account_id,)).fetchone()[0]
         if count>=3:
             await self.send('Masz 3 aktywne przywołania. Najpierw schowaj jedno.');return
-        mana_cost=SUMMON_MANA[kind]
+        from systems.live_olc24_revolution import summon_factor
+        mana_cost=(SUMMON_MANA[kind]*summon_factor(kind,'mana_percent')+99)//100
         if not await self._v1701_need_mana(mana_cost):return
         if not self._v1700_spend_and_write(costs,
             'INSERT INTO summons_v1700(account_id,summon_type,level,active,hp,max_hp,xp) VALUES(?,?,?,1,?,?,0)',
@@ -878,6 +949,12 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
         self._v1710_refresh_summon_health(conn)
         rows=conn.execute('SELECT summon_type,level,soul_rank,stance FROM summons_v1700 WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
         if not rows:return
+        from systems.summon_ai_v1200 import (plan_for_class, profession_amulet_bonus)
+        _ai_pref=conn.execute('SELECT enabled FROM summon_ai_prefs_v1200 WHERE account_id=?',(self.account_id,)).fetchone()
+        _ai_enabled=(_ai_pref is None or bool(_ai_pref['enabled']))
+        _ai_step=int(getattr(self,'_v1200_ai_step',0) or 0)+1
+        self._v1200_ai_step=_ai_step
+        _amulet_bonus=profession_amulet_bonus(self.server.db,self.account_id) if _ai_enabled else 0.0
         # Mixed assault/guard/support orders produce a small tactical synergy.
         # Calculated from the existing active summon rows: no new timers or tables.
         _v1800_team_roles={str(r['stance']) for r in rows if r['summon_type'] in SUMMONS}
@@ -906,6 +983,60 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             name,_,_,kind,factor=spec
             stance=row['stance'] if 'stance' in row.keys() else 'atakuj'
             if stance=='czekaj':continue
+            _ai_plan=None
+            _ai_message=''
+            if _ai_enabled:
+                _injured=[]
+                # Legacy combat fixtures have no party lookup; ordinary solo
+                # summons still run their full AI. Real party servers expose
+                # party_sessions and continue to share heals with teammates.
+                _party_sessions=getattr(self.server,'party_sessions',None)
+                if callable(_party_sessions):
+                    for _ally in (_party_sessions(self.account_id,same_room=self.character.room_id) or []):
+                        if (not getattr(_ally,'closed',False) and getattr(_ally,'character',None)
+                                and getattr(_ally,'current_hp',0)>0
+                                and _ally.current_hp<_ally.max_hp()):
+                            _injured.append(_ally)
+                if (self.current_hp>0 and self.current_hp<self.max_hp()
+                        and self not in _injured):
+                    _injured.append(self)
+                from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
+                _injured=[a for a in _injured if not superboss_healing_blocked_v11179(a)]
+                _injured.sort(key=lambda a:a.current_hp/max(1,a.max_hp()))
+                _ai_plan=plan_for_class(
+                    spec[1],owner_hp=self.current_hp,owner_max=owner_max_hp,
+                    ally_needs_heal=bool(_injured),guarded=int(getattr(self,'skill_guard',0) or 0)>0,
+                    enemy_hp=mob.hp,enemy_max=max(1,getattr(mob,'max_hp',mob.hp)),
+                    boss=bool(MOB_TEMPLATES.get(mob.template_id,{}).get('boss') or
+                              MOB_TEMPLATES.get(mob.template_id,{}).get('is_boss')),
+                    marked=float(getattr(mob,'_v1200_marked_until',0) or 0)>time.monotonic(),
+                    controlled=max(0,int(getattr(mob,'v11196_logic_bomb_rounds',0) or 0))>0,
+                    step=_ai_step)
+                if _ai_plan['action']=='heal' and _injured:
+                    _ally=_injured[0]
+                    _missing=max(0,_ally.max_hp()-_ally.current_hp)
+                    if _missing>0:
+                        _healed=min(_missing,max(1,int(_ally.max_hp()*(.018+_ai_plan['bonus']*.32+_amulet_bonus*.20))))
+                        _ally.current_hp+=_healed
+                        _ai_message=f"{_ai_plan['ability']}: {_ally.character.name} +{_healed} HP."
+                        if _ally is not self:
+                            await _ally.send(f'{name} leczy cię o {_healed} HP.')
+                elif _ai_plan['action']=='guard':
+                    _guard=max(1,int(owner_max_hp*(.018+_ai_plan['bonus']*.25+_amulet_bonus*.20)))
+                    self.skill_guard=max(int(getattr(self,'skill_guard',0) or 0),_guard)
+                    _ai_message=f"{_ai_plan['ability']}: osłona +{_guard}."
+                elif _ai_plan['action']=='mark':
+                    mob._v1200_marked_until=time.monotonic()+12.0
+                    _ai_message=f"{_ai_plan['ability']}: cel oznaczony."
+                elif _ai_plan['action'] in ('curse','slow'):
+                    _template=MOB_TEMPLATES.get(mob.template_id,{})
+                    from systems.boss_companions_v1281 import boss_jammer_immune_v1281
+                    if not boss_jammer_immune_v1281(_template):
+                        mob.v11196_logic_bomb_rounds=max(2,int(getattr(mob,'v11196_logic_bomb_rounds',0) or 0))
+                        mob.v11196_logic_bomb_effects=set(getattr(mob,'v11196_logic_bomb_effects',set()) or set())|({'slow'} if _ai_plan['action']=='slow' else {'curse'})
+                        mob.v11196_logic_bomb_cleanseable=True
+                        _ai_message=f"{_ai_plan['ability']}: {_ai_plan['action']} na 2 akcje."
+
             elemental=ELEMENTALS.get(row['summon_type'])
             if elemental:
                 # Alter Aeon-style sustaining energy: no mana means no elemental strike.
@@ -925,11 +1056,27 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
             mastery=self._v1806_owner_summon_level(row['summon_type'],row['level'])
             # Elementals always scale with the Mage's spell power (INT/WIS and
             # equipment), NOT physical strength or their obsolete summon XP.
-            caster_power=spell_power if elemental else raw_power
+            caster_power=(spell_power if elemental or (row['summon_type'] in CLASS_MINIONS_V1119 and kind=='magic') else max(1,int(self.physical_power())) if row['summon_type'] in CLASS_MINIONS_V1119 else raw_power)
             stance_factor=.8 if stance=='bron' else (.7 if stance=='wspieraj' else 1.0)
             formation_bonus,formation_guard=self._v1800_form_bonus()
             workshop_bonus=(1+min(.28,.008*_workshop))
             amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*workshop_bonus))
+            from systems.live_olc24_revolution import summon_factor
+            amount=max(1,int(amount*summon_factor(row['summon_type'],'damage_percent')/100))
+            from systems.live_olc28_expansion import summon_outgoing
+            amount=summon_outgoing(row['summon_type'],amount)
+            from systems.live_olc32_finale import summon_combo
+            amount=summon_combo(self, row['summon_type'], amount)
+            from systems.live_olc34_integration import summon_finisher
+            amount=summon_finisher(row['summon_type'],mob,amount)
+            from systems.live_olc33_mechanics import summon_support
+            _heal33=summon_support(self,row['summon_type'])
+            if _heal33:
+                await self.send(f'Przywołanie {name} leczy cię o {_heal33} HP.')
+            if _ai_plan:
+                amount=max(1,int(amount*(1+_ai_plan['bonus']+_amulet_bonus)))
+                if float(getattr(mob,'_v1200_marked_until',0) or 0)>time.monotonic():
+                    amount=max(1,int(amount*1.06))
             if elemental:
                 amount=effective_elemental_strike_v2008(
                     amount, elemental, owner_expected_magic, stance_factor,
@@ -986,6 +1133,8 @@ class SessionSkyV1700Mixin(SessionChaosV1800Mixin):
                 msg+=f' Mana -{elemental["upkeep"]} MP.'
             if necro:
                 msg+=f' Mana utrzymania -{necro[8]} MP.'
+            if _ai_message:
+                msg += ' AI: ' + _ai_message
             if summon_status_text:
                 msg += ' ' + summon_status_text
             await self.send_combat(msg,detail='essential')

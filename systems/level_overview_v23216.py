@@ -65,7 +65,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
         active_count = sum(r['active_slot'] == 1 for r in classes)
         class_entries = [
             '{}: poziom {}{}'.format(str(r['class_name']), _level(r['level']),
-                ' (główna)' if r['active_slot'] == 1 else ' (archiwalna, bez bonusów)')
+                ' (główna)' if r['active_slot'] == 1 else ' (archiwalna, bez umiejętności klasy)')
             for r in classes
         ]
         _section(lines, f'KLASY — odblokowanych {len(classes)}, aktywnych {active_count}:', class_entries)

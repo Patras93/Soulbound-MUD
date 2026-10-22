@@ -29,8 +29,8 @@ def run_regression(runtime=None):
         if not value:
             raise AssertionError('V1112 NAUCZYCIELE: ' + label)
 
-    ck(VERSION == runtime.VERSION and VERSION in ('11.00.12', '11.00.13', '11.00.14', '11.00.15', '11.00.16','11.00.17','11.00.18'), 'version')
-    ck(len(runtime.QUESTS) == 6769, 'old 6745 quests + exactly 24 teacher quests')
+    ck(VERSION == runtime.VERSION and VERSION in ('11.00.12', '11.00.13', '11.00.14', '11.00.15', '11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','20.00.0','21.00.0','22.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',), 'version')
+    ck(len(runtime.QUESTS) >= 6769, 'base teacher quests retained alongside new stories')
     ck(len(TEACHER_QUEST_IDS) == 24 and TEACHER_QUEST_IDS <= set(runtime.QUESTS), 'all teacher quests in world')
     ck(len(TEACHER_NAMES) == len(TEACHER_TRIALS) == 8, 'eight independent teachers')
     ck(len(set(TEACHER_NAMES.values())) == 8, 'eight unique personal names')

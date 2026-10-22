@@ -65,10 +65,14 @@ class SessionAdminToolsMixin:
                 await self.send("admin give <item_id> [ilość] / administrator daj <item_id> [ilość].")
                 await self.send("admin haslo reset <login> - jednorazowy kod do prywatnego przekazania właścicielowi konta.")
                 await self.send("admin pomoc gracze / serwer / swiat / postacie - Admin Tools 2.0.")
+                await self.send("admin live - nowe lokacje, przejscia, potwory i balans bez restartu.")
                 await self.send("Wyczysc naprawione POTWIERDZAM - usuwa wyłącznie oznaczone jako naprawione błędy SB, nie postacie.")
                 await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
                 await self.send("wipe wszystkie postacie POTWIERDZAM / wipe all characters CONFIRM.")
                 await self.send("Wipe usuwa postacie i ich progres, ale NIE usuwa kont/loginów/haseł.")
+                return
+            if norm == "live" or norm.startswith("live "):
+                await self.admin_live_v1204(raw[4:].strip())
                 return
             if await self.admin_tools_v1224(raw):
                 return
@@ -134,6 +138,638 @@ class SessionAdminToolsMixin:
                 await self.send(f"ADMIN: dodano {ITEMS[item_id]['name']} x{qty}.")
                 return
             await self.send("Nieznana opcja admin. Wpisz admin help.")
+
+    async def admin_live_v1204(self, args=''):
+        """Validated in-game OLC: no Python execution and no server restart."""
+        if not self.is_admin():
+            await self.send("Nieznana komenda. Wpisz help.")
+            return
+        service = self.server.live_content_v1204
+        raw = str(args or '').strip()
+        parts = raw.split(maxsplit=1)
+        cmd = parts[0].lower() if parts else ''
+        tail = parts[1].strip() if len(parts) > 1 else ''
+        help_text = (
+            "ADMIN LIVE OLC23: status skilla: edytuj skill ID olc_status (JSON: kind poison/burn/freeze/shock, chance 0.01-1.0; dla poison/burn opcjonalne power_percent 1-200, ticks 1-5); auto cofa status. cele QUEST; celezmien QUEST | JSON_CELOW; nowywielocelowy live_ID | NAZWA | NPC | {\"kill\":{\"bandit\":5},\"collect\":{\"iron_ore\":2},\"talk\":[\"npc_id\"]} | SREBRO | OPIS; zaleznosci QUEST; grupapodglad quest/surowiec/skill/mob/receptura/przedmiot PREFIKS POLE; grupazmien KATEGORIA PREFIKS POLE | WARTOSC; quest requires_quests | [\"id1\",\"id2\"]; status; pokoj ID | poziom | nazwa | opis | region; "
+            "polacz OD KIERUNEK DO; potwor ID | poziom | nazwa | HP | obrazenia | EXP; "
+            "spawn POKOJ MOB; balans MOB POLE LICZBA; nowyskill live_ID | KLASA | NAZWA | damage/aoe_damage/heal/group_heal/guard/drain/regen/evade/boost | BIEGLOSC | MANA | MULT | SKALA | OPIS [| EFFECT]; quest ID; questy PROFESJA [STRONA]; edytuj skill ID POLE [| WARTOSC/auto]; katalog KATEGORIA [FRAZA] [STRONA]; pola KATEGORIA ID; wczytaj; sprawdz; aktywuj POTWIERDZAM; "
+            "edytuj KATEGORIA ID POLE (pokaż obecną wartość i gotową komendę); "
+            "edytuj KATEGORIA ID POLE | NOWA_WARTOSC (przygotuj zmianę); "
+            "quest: reward_xp, xp_profesji, xp_narzedzia, reward_class_xp, reward_soul_xp, reward_stat_xp (liczba lub auto), needed, target, kind, reward_items, repeatable, repeat_cooldown, requires_quests, min_profession_level, min_tool_level; "
+            "surowiec ID; surowiec: prof_fixed, tool_fixed, prof_scale, tool_scale, prof_mode, tool_mode=auto/manual/percent; wyczysc surowiec ID; "
+            "OLC4: mob live_ID boss | true (nowy boss); mob ID olc_boss_phases (JSON 3–5 faz), olc_boss_tactic_element, olc_boss_tactic_interval lub auto; sklep ID inventory (lista JSON); receptura: stations, output, quantity; NPC: room, quest, shopkeeper; potwór: silver, gold, mithril, damage_type; "
+            "nowyquest live_ID | NAZWA | NPC | kill/collect | CEL | LICZBA | SREBRO | OPIS; lancuch QUEST POPRZEDNI; kopiujrecepture live_ID | ID_RECEPTURY | NAZWA; nowabizuteria live_ID | NAZWA | ring | strength | 50 | 40 | 2500 | OPIS; audyt; nowyprzedmiot live_ID | armor/consumable/craft_material | NAZWA | OPIS | SLOT/heal/- | MOC | CENA; porownaj [limit]; wczytaj [plik.json]; eksport [plik.json]; "
+            "nowyquestzestaw live_ID | NAZWA | NPC | {\"iron_ore\":3,\"copper_ore\":2} | SREBRO | OPIS; "
+            "nowyekwipunek live_ID | NAZWA | SLOT | OBRONA | ATAK | JSON_STATYSTYK | POZIOM | CENA | OPIS; "
+            "balansgrupa PREFIKS_ID max_hp/damage/EXP KWOTA (1–100 mobów); "
+            "bonusprofesje 80/auto; bonusnarzedzia 80/auto; mozliwosci; "
+            "OLC8: questmaterialy QUEST | JSON; nowamagiaeq ID | NAZWA | SLOT | DEF | ATK | MAGIC_ATK | MAGIC_DEF | WEAPON_POWER | JSON_STATYSTYK | LVL | CENA | OPIS; "
+            "respawngrupa PREFIKS SEKUNDY; recepturyprof PROFESJA [STRONA]; panel KATEGORIA ID; "
+            "OLC18/v21: strategie fazowe bossa JSON faz 0-5: olc_boss_phase_tactic_intervals, olc_boss_phase_guardian_intervals, olc_boss_phase_guard_thresholds, olc_boss_phase_support_intervals, olc_boss_phase_support_durations, olc_boss_phase_support_priorities (weakest/strongest), olc_boss_phase_rally_hp_thresholds, olc_boss_phase_rally_intervals, olc_boss_phase_rally_durations; auto cofa. OLC17: mob olc_boss_guardian_hp_threshold 1-100, olc_boss_rally_hp_threshold 5-95; mob olc_boss_guardian_phase_roles i olc_boss_phase_element_cycles jako JSON faz 0-5; auto przywraca domyslne. "
+            "OLC10: nowyskill boost z EFFECT 1.01-1.90 to pasywna premia po nauczeniu (mana=0, cooldown=0); mob olc_boss_support_priority weakest/strongest. "
+            "OLC9: nowyskill ... | EFFECT/- | ELEMENT/- | COOLDOWN (0-3600); edytuj skill live_ID cooldown | 120; boss olc_boss_element_cycle | [\"fire\",\"ice\"]; nowareceptura live_ID | NAZWA | PROFESJA | NARZEDZIE | PRODUKT | JSON_MATERIALOW | STACJA | POZIOM | ILOSC | OPIS; "
+            "npc ID olc_dialogue_after_quest | {\"quest_id\":\"ID\",\"text\":\"Tekst\"}; npc olc_dialogue_after_quests | {\"quests\":[\"id1\",\"id2\"],\"text\":\"Tekst\"}; nowyskill ... | EFFECT/- | ZYWIOŁ. "
+            "OLC22: edytuj mob ID olc_ancient_phases | [{hp_percent,name,attack_percent,element,duration_seconds} x3] dla v500; "
+            "edytuj przywolanie Druid role/ability/bonus_percent | WARTOSC; "
+            "edytuj swiat global combat_xp_bonus_percent/event_cycle_minutes/event_order | WARTOSC; "
+            "world_bonus obejmuje zwykłe nagrody, nie UOSS source_xp_exact; auto cofa. "
+            "OLC23: olc23, kalendarz 8, edytuj swiat global multi_cap_bonus_percent, multi_cap_category_bonus, multi_cap_all_owned_classes, event_offset_minutes; edytuj przywolanie Mag tactic_interval, guard_threshold_percent i execute_threshold_percent. "
+            "cofnij POTWIERDZAM; anuluj. Nowe identyfikatory zaczynaja sie od live_. "
+            "Zmiany widoczne po aktywacji, trwale w SQLite i bez restartu. "
+            "Nie przeladowuje kodu Python ani migracji bazy."
+        )
+        if cmd in ('olc35','olc100','olc103','final35'):
+            from systems.live_olc35_finale import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('pakiet35','pakietfinalny'):
+            from systems.live_olc35_finale import package
+            await self.send(package(service,tail.split('|',1)[-1].strip()))
+            return
+        if cmd in ('olc34','olc92','olc99','integracja34'):
+            from systems.live_olc34_integration import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('pakiet34','pakietintegracji'):
+            from systems.live_olc34_integration import package
+            await self.send(package(service,tail.split('|',1)[-1].strip()))
+            return
+        if cmd in ('olc33','olc84','olc91','silnik33'):
+            from systems.live_olc33_mechanics import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('pakiet33','pakietmechanik'):
+            from systems.live_olc33_mechanics import package
+            await self.send(package(service,tail.split('|',1)[-1].strip()))
+            return
+        if cmd in ('olc32','olc76','olc83','imperium32'):
+            from systems.live_olc32_finale import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('pakiet32','pakietfinale'):
+            from systems.live_olc32_finale import package
+            source=tail.split('|',1)[-1].strip()
+            await self.send(package(service,source))
+            return
+        if cmd in ('olc30','expowiska30','krainy30'):
+            await self.send(
+                'OLC v30: cztery otwarte regiony Level 401-800 od Korony Swiata: '
+                'Szkarłatne Pogranicze 401-500, Kryształowe Bezmiary 501-600, '
+                'Otchłań Nieskończoności 601-700, Tron Wieczności 701-800. '
+                'Gracz: expowiska polecane, prowadz szkarłatne pogranicze. '
+                'Boss UOSS (fazy): admin live edytuj boss29 black_rabite definicja | '
+                '{"cycle":3,"extra_damage_percent":180,"phase_threshold_percent":25,"phase_damage_percent":160}. '
+                'Nowy przywolany: admin live edytuj summon29 live_wilk_burzy definicja | '
+                '{"name":"Wilk Burzy","class":"Druid","mana":120,"kind":"magic",'
+                '"power":100,"materials":{},"hp_percent":150,"attack_percent":120}. '
+                'Nowe profesje/receptury: admin live pakietfach; nowe skille: pakietskilli; '
+                'questy i zakonczenia fabuly: fabula29 ID definicja | '
+                '{"text":"Wybor","ending":"Zakonczenie historii"}; '
+                'gildia/miasto: gildia29 i swiat29. '
+                'Opublikuj: sprawdz, porownaj, aktywuj POTWIERDZAM. '
+                'Auto: wycofanie wybranego pola. Tylko obslugiwane przez silnik funkcje; '
+                'nowe rodzaje kodu i migracje wymagaja restartu.'
+            )
+            return
+        if cmd in ('olc29','olc68','olc75','imperium29'):
+            from systems.live_olc29_creation import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('olc28','olc60','olc67','imperium28'):
+            from systems.live_olc28_expansion import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('olc27','olc52','olc59','imperium27'):
+            from systems.live_olc27_master import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('olc26','olc44','olc51','imperium26'):
+            from systems.live_olc26_world import help_text
+            await self.send(help_text())
+            return
+        if cmd in ('olc25','olc36','olc43','imperium25'):
+            from systems.live_olc25_workflows import summary
+            await self.send(summary(service))
+            return
+        if cmd in ('olc24','rewolucja24'):
+            await self.send('OLC24: nowafach live_ID | NAZWA | live_TOOL | tool_type | NAZWA_TOOL | POKOJ | CENA | OPIS; edytuj fach live_ID definicja | JSON; '
+                'uoss black_rabite lockout_hours/max_hp_percent/damage_percent; '
+                'przywolany pajak hp_percent/damage_percent/mana_percent; '
+                'capkroki global step_extra_exp | [0,0,500,...]; '
+                'event basalt title/boss_name; kontrola global respawn_percent; '
+                'fachreceptura live_RECEPTURA | NAZWA | live_PROFESJA | PRODUKT | MATERIALY_JSON | POZIOM | ILOSC | OPIS; '
+                'fabula | JSON z quests i npcs; komboskill SKILL | ELEMENT | STATUS_JSON. '
+                'Każde pole ma podgląd obecnej wartości oraz auto, sprawdz i aktywuj POTWIERDZAM.')
+            return
+        if cmd in ('olc23','rozwoj23'):
+            await self.send('OLC23: Multi Cap — swiat global multi_cap_bonus_percent 100-1000, '
+                            'multi_cap_category_bonus jako JSON kategorii, '
+                            'multi_cap_all_owned_classes true/false (archiwalne klasy); '
+                            'przywolania — guard_threshold_percent, execute_threshold_percent, tactic_interval; '
+                            'nawigacja wydarzeń — swiat global event_offset_minutes 0-719 i admin live kalendarz 8. '
+                            'Wpisz admin live edytuj swiat global POLE bez kreski, aby usłyszeć aktualną wartość.')
+            return
+        if cmd in ('kalendarz','harmonogram'):
+            from systems.live_olc23_calendar import event_calendar_lines
+            limit = int(tail) if tail else 8
+            for line in event_calendar_lines(limit):
+                await self.send(line)
+            return
+        if cmd in ('megaupdate','mega','olc22'):
+            # The detailed OLC24 guide is available at admin live olc24.
+            await self.send(
+                'SOULBOUND v22 OLC19-26: 1 superbossy v500: edytuj mob ID olc_ancient_phases; '
+                '2 przywołania 22 klas: edytuj przywolanie Druid role/ability/bonus_percent; '
+                '3 profesje, narzędzia i nowe receptury: stare edytory; '
+                '4 skille: efekty poison/burn/freeze/shock, AoE, koszt, cooldown; '
+                '5 bonus EXP zwykłych potworów: edytuj swiat global combat_xp_bonus_percent; '
+                '6 inwazje: edytuj swiat global event_cycle_minutes/event_order; '
+                '7 NPC i fabuła: questy wielocelowe, zależności i dialog po questach; '
+                '8 świat: pokoje, bezkolizyjne portale/przejścia, sklepy, NPC i respawn. '
+                'Każde pole: podgląd obecnej wartości, edytuj ... | WARTOSC, auto, sprawdz, aktywuj POTWIERDZAM; '
+                'nie dotyka skryptów UOSS i danych postaci.')
+            return
+        if cmd == 'mozliwosci':
+            await self.send(
+                'OLC22: wpisz admin live megaupdate po osiem domen i przykłady. OLC18: 9 fazowych ustawien zwyklych bossow: taktyka, fale pomocnikow, oslona i kontra. Edytuj mob ID olc_boss_phase_tactic_intervals | JSON faz 0-5; auto usuwa. '
+                'OLC15: admin live cele QUEST (podgląd), questy wielocelowe kill/collect/talk; do 12 celów, osobny postęp SQLite, nagroda po wszystkich celach. OLC14: do 8 warunków ukończonych questów na zadanie, walidacja cykli; grupowe receptury i przedmioty. '
+                'OLC 7.0: skille atak/obszar/leczenie/ochrona/wysysanie/regeneracja/unik/egzekucja; '
+                'bossowie zwykli: fazy HP, taktyka żywiołu, odstępy i czas osłony/rally; '
+                'questy: kill/collect, zestaw 2–8 surowców, zależności, EXP, odnowienia; '
+                'wyposażenie: pancerze i akcesoria z 1–6 statystykami; '
+                'profesje: kopiowanie/edycja receptur, surowce i EXP; '
+                'balans: pojedyncze i grupowe zmiany mobów; katalog, pola, porownaj, audyt, NEWS, cofnij. '
+                'OLC8: żywioły nowych ataków, próg osłony bossów, zestawy surowców questów, magiczny sprzęt, ' 'recepturyprof, respawngrupa, warunkowy dialog NPC, panel. '
+                ' OLC9: opcjonalne cooldowny nowych skilli, edycja elementu live skilla, cykl żywiołów zwykłych bossów, nowareceptura. ' 'Dowolne nowe klasy i wykonywalne skrypty superbossów nadal wymagają zmian silnika; nowe profesje i receptury obsługuje nowafach/fachreceptura/pakietfach.'
+            )
+            return
+        if cmd in ('cele', 'wielocele'):
+            from systems.live_olc18_multi_objective import describe_goals
+            from data.quests import QUESTS
+            await self.send(describe_goals(service, tail, QUESTS))
+            return
+        if cmd in ('', 'help', 'pomoc'):
+            await self.send(help_text)
+            return
+        read_only_preview = False
+        try:
+            if cmd == 'pakiet29':
+                from systems.live_olc29_creation import package
+                await self.send(package(service,tail.partition('|')[2].strip() if '|' in tail else tail))
+                return
+            if cmd == 'pakietskilli':
+                from systems.live_olc25_workflows import bundle_new_skills
+                await self.send(bundle_new_skills(service,tail.partition('|')[2].strip() if '|' in tail else tail))
+                return
+            if cmd == 'pakietfach':
+                from systems.live_olc25_workflows import profession_package
+                await self.send(profession_package(service,tail))
+                return
+            if cmd == 'pakietzmian':
+                from systems.live_olc25_workflows import batch
+                category,sep,changes = tail.partition('|')
+                if not sep: raise ValueError('pakietzmian SKILLE | JSON')
+                await self.send(batch(service, category.strip().casefold(),changes.strip()))
+                return
+            if cmd == 'nowafach':
+                parts=[x.strip() for x in tail.split('|')]
+                if len(parts)!=8:
+                    raise ValueError('Użycie: admin live nowafach live_ID | NAZWA_PROFESJI | live_ID_NARZEDZIA | TOOL_TYPE | NAZWA_NARZEDZIA | ID_POKOJU | CENA_SREBRO | OPIS')
+                await self.send(service.stage_new_profession_and_tool_v2400(*parts))
+                return
+            if cmd == 'fachreceptura':
+                parts=[x.strip() for x in tail.split('|',7)]
+                if len(parts)!=8:
+                    raise ValueError('Użycie: admin live fachreceptura live_ID | NAZWA | live_ID_PROFESJI | ID_PRODUKTU | JSON_MATERIAŁY | POZIOM | ILOŚĆ | OPIS')
+                await self.send(service.stage_new_profession_recipe_v2400(*parts))
+                return
+            if cmd == 'fabula':
+                read_only_preview=False
+                from systems.live_olc24_revolution import stage_story_arc
+                await self.send(stage_story_arc(service,tail))
+                return
+            if cmd == 'komboskill':
+                read_only_preview=False
+                from systems.live_olc24_revolution import stage_skill_combo
+                parts=[x.strip() for x in tail.split('|',2)]
+                if len(parts)!=3: raise ValueError('Użycie: admin live komboskill SKILL_ID | fire | {"status":"burn",...}')
+                skill_id,element,status=parts
+                await self.send(stage_skill_combo(service,skill_id,element,status))
+                return
+            if cmd in ('porownaj', 'diff', 'zmiany'):
+                read_only_preview = True
+                from systems.live_olc4_diff import describe_diff
+                limit = int(tail) if tail else 15
+                await self.send(describe_diff(service.active, service.draft, limit=limit))
+                return
+            if cmd in ('zaleznosci', 'wymaganiaquest'):
+                read_only_preview = True
+                from data.quests import QUESTS
+                from systems.live_olc17_quest_dependencies import describe_quest_dependencies
+                if not tail or len(tail.split()) != 1:
+                    raise ValueError('Użycie: admin live zaleznosci bandit_patrol')
+                await self.send(describe_quest_dependencies(service, tail, QUESTS))
+                return
+            if cmd in ('panel', 'szczegoly'):
+                read_only_preview = True
+                from systems.live_olc8_dashboard import describe_object
+                bits = tail.split(maxsplit=1)
+                if len(bits) != 2:
+                    raise ValueError('Użycie: admin live panel quest bandit_patrol')
+                await self.send(describe_object(service, bits[0], bits[1]))
+                return
+            if cmd == 'recepturyprof':
+                read_only_preview = True
+                from systems.live_olc8_dashboard import profession_recipes
+                await self.send(profession_recipes(service, tail))
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('boss32','uoss32','fach32','profesja32','summon32','przywolanie32','skill32','magia32','event32','wydarzenie32','fabula32','quest32','gildia32','frakcja32','swiat32','warsztat32'):
+                from systems.live_olc32_finale import help_text
+                await self.send(help_text())
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('boss29','uoss29','fach29','praca29','summon29','przywolany29','skill29','magia29','event29','wydarzenie29','fabula29','wybor29','gildia29','frakcja29','swiat29','ekonomia29'):
+                from systems.live_olc29_creation import help_text
+                await self.send(help_text())
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('uoss28','boss28','fach28','rzemioslo28','summon28','przywolany28','skill28','magia28','event28','wydarzenie28','fabula28','quest28','gildia28','frakcja28','ekonomia28','swiat28'):
+                from systems.live_olc28_expansion import help_text
+                await self.send(help_text())
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('uoss27','boss27','fach27','prof27','summon27','przywolany27','magia27','skill27','event27','wydarzenie27','fabula27','quest27','frakcja27','sklep27'):
+                from systems.live_olc27_master import help_text
+                await self.send(help_text())
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('uoss26','boss26','fach26','summon26','przywolany26','event26','wybor26','frakcja26','ekonomia26'):
+                from systems.live_olc26_world import help_text
+                await self.send(help_text())
+                return
+            if cmd in ('pola','fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('fach','nowaprofesja','uoss','superboss','przywolany','summontyp','capkroki','event','wydarzenie','kontrola','swiat24'):
+                domain=tail.split(maxsplit=1)[0]
+                from systems.live_olc24_revolution import UOSS_FIELDS, SUMMON_FIELDS as SUMMON24_FIELDS, EVENT_FIELDS, WORLD_FIELDS as WORLD24_FIELDS
+                field_sets={'fach':'definicja','nowaprofesja':'definicja',
+                    'uoss':', '.join(sorted(UOSS_FIELDS)), 'superboss':', '.join(sorted(UOSS_FIELDS)),
+                    'przywolany':', '.join(sorted(SUMMON24_FIELDS)), 'summontyp':', '.join(sorted(SUMMON24_FIELDS)),
+                    'capkroki':'step_extra_exp (1–80 przedziałów)', 'event':', '.join(sorted(EVENT_FIELDS)),
+                    'wydarzenie':', '.join(sorted(EVENT_FIELDS)),
+                    'kontrola':', '.join(sorted(WORLD24_FIELDS)), 'swiat24':', '.join(sorted(WORLD24_FIELDS))}
+                await self.send('OLC24 pola '+domain+': '+field_sets[domain]+'.')
+                return
+            if cmd in ('pola', 'fields') and tail.strip() and tail.split(maxsplit=1)[0] in ('przywolanie','summon','swiat','world'):
+                bits=tail.split()
+                if len(bits)!=2: raise ValueError('Użycie: admin live pola przywolanie Druid / swiat global')
+                from systems.summon_ai_v1200 import CLASS_AI
+                from systems.live_olc22_empire import SUMMON_FIELDS, WORLD_FIELDS
+                if bits[0] in ('przywolanie','summon'):
+                    if bits[1] not in CLASS_AI: raise ValueError('Nieznana klasa.')
+                    keys=SUMMON_FIELDS
+                else:
+                    if bits[1]!='global': raise ValueError('Wpisz swiat global.')
+                    keys=WORLD_FIELDS
+                await self.send('OLC23 dostępne pola: '+', '.join(sorted(keys))+'. Podgląd: admin live edytuj '+tail+' POLE')
+                return
+            if cmd in ('katalog', 'catalog') and tail.strip() in ('przywolanie','summon','swiat','world'):
+                from systems.summon_ai_v1200 import CLASS_AI
+                await self.send('OLC22: '+(', '.join(sorted(CLASS_AI)) if tail.strip() in ('przywolanie','summon') else 'global'))
+                return
+            if cmd in ('pola', 'fields'):
+                from systems.live_olc4_browse import fields_for
+                words = tail.split()
+                if len(words) != 2:
+                    raise ValueError('Użycie: admin live pola quest bandit_patrol')
+                await self.send(fields_for(service, *words))
+                return
+            if cmd in ('katalog', 'catalog'):
+                from systems.live_olc4_browse import find_catalog
+                words = tail.split()
+                if not words:
+                    raise ValueError('Użycie: admin live katalog mob bandit [strona]')
+                category = words.pop(0)
+                page = int(words.pop()) if words and words[-1].isdigit() else 1
+                await self.send(find_catalog(service, category, ' '.join(words), page))
+                return
+            if cmd in ('questy', 'zadania'):
+                from data.quests import QUESTS
+                from systems.live_quest_olc_v1209 import profession_quest_ids
+                bits = tail.split()
+                page = 1
+                if bits and bits[-1].isdigit():
+                    page = int(bits.pop())
+                if page < 1 or page > 100000:
+                    raise ValueError('Strona listy musi być dodatnia.')
+                profession = ' '.join(bits).strip()
+                if not profession:
+                    raise ValueError('Użycie: admin live questy Wedkarstwo [strona].')
+                found = profession_quest_ids(QUESTS, profession)
+                page_size = 12
+                pages = max(1, (len(found) + page_size - 1) // page_size)
+                if page > pages:
+                    raise ValueError(f'Nie ma strony {page}. Dostępnych stron: {pages}.')
+                show = found[(page - 1) * page_size: page * page_size]
+                await self.send(f'OLC questy {profession}: {len(found)} zadań, strona {page}/{pages}. '
+                                + ('; '.join(f'{qid} ({str(QUESTS[qid].get("name", qid))[:55]})' for qid in show)
+                                   if show else 'Brak zadań.'))
+                return
+            if cmd in ('quest', 'zadanie'):
+                from data.quests import QUESTS
+                definition = QUESTS.get(tail)
+                if not definition:
+                    raise ValueError('Nieznany quest. Podaj dokładne ID, np. bandit_patrol.')
+                active = service.active['quest_edits'].get(tail, {})
+                draft = service.draft['quest_edits'].get(tail, {})
+                from core.progression_resources import (v0270_quest_character_reward,
+                     v0522_combat_quest_class_reward, v0522_is_profession_quest, v0190_quest_soul_reward)
+                from core.progression_resources import v0190_quest_stat_reward
+                auto_char = v0270_quest_character_reward(definition)
+                auto_stat = v0190_quest_stat_reward(definition)
+                auto_class = v0522_combat_quest_class_reward(definition)
+                auto_soul = (0 if v0522_is_profession_quest(definition)
+                             else v0190_quest_soul_reward(definition))
+                def xp_view(field, generated):
+                    if field in active:
+                        return f'{active[field]} (ręczny)'
+                    return f'{generated} (automatyczny)'
+                await self.send(
+                    f'OLC QUEST {tail}: {definition.get("name", tail)}. '
+                    f'Typ: {definition.get("kind", "?")}; cel: {definition.get("target", "?")}; '
+                    f'wymagane: {definition.get("needed", "?")}. '
+                    f'EXP postaci: {xp_view("olc_reward_xp", auto_char)}; '
+                    f'EXP biegłości: {xp_view("olc_reward_class_xp", auto_class)}; '
+                    f'EXP statystyk: {xp_view("olc_reward_stat_xp", auto_stat)}; '
+                    f'EXP Duszy: {("0 (quest profesyjny)") if v0522_is_profession_quest(definition) else xp_view("olc_reward_soul_xp", auto_soul)}; '
+                    f'EXP profesji bazowe: {definition.get("reward_profession_xp", 0)}; '
+                    f'EXP narzędzia bazowe: {definition.get("reward_tool_xp", 0)}; '
+                    f'Odnowienie: {definition.get("repeat_cooldown", "domyślne")} s; '
+                    f'Powtarzalny: {definition.get("repeatable", False)}. '
+                    f'Poziom profesji (informacyjny): {definition.get("min_profession_level", "brak")}; '
+                    f'Poziom narzędzia (informacyjny): {definition.get("min_tool_level", "brak")}; '
+                    f'aktywne nadpisania: {active or "brak"}; robocze: {draft or "brak"}. '
+                    'Wartości bazowe przed premiami, skalowaniem i EXP Bank.')
+                return
+            if cmd == 'surowiec':
+                from data.items import ITEMS
+                item = ITEMS.get(tail)
+                if not item or item.get('type') not in (
+                        'resource', 'material', 'craft_material', 'gem_raw', 'archaeology_find'):
+                    raise ValueError('Podaj istniejący identyfikator surowca, np. iron_ore.')
+                active = service.active['resource_edits'].get(tail, {})
+                draft = service.draft['resource_edits'].get(tail, {})
+                await self.send(f'HOT RELOAD SUROWIEC {tail}: {item["name"]}. '
+                                f'Aktywne: {active or "automatyczny EXP"}; '
+                                f'przygotowane: {draft or "automatyczny EXP"}. '
+                                'prof_fixed/tool_fixed = ręczne EXP bazowe (także 0); '
+                                'prof_scale/tool_scale = 0–1000% bazowego EXP; '
+                                'prof_mode/tool_mode = auto/manual/percent. '
+                                'Stare prof_xp/tool_xp nadal są minimami. '
+                                'Ostateczne EXP zależy od poziomu i premii.')
+                return
+            if cmd == 'wyczysc':
+                what = tail.split()
+                if len(what) != 2 or what[0] not in ('surowiec', 'resource'):
+                    raise ValueError('Użycie: admin live wyczysc surowiec iron_ore')
+                service.stage_clear_resource(what[1])
+                await self.send('HOT RELOAD: usunięto ustawienie z wersji roboczej. '
+                                'Aby opublikować: admin live aktywuj POTWIERDZAM.')
+                return
+            if cmd in ('wczytaj', 'import'):
+                from pathlib import Path
+                import re
+                filename = tail or 'nowe_lokacje.json'
+                if not re.fullmatch(r'[a-zA-Z0-9_-]{1,70}\.json', filename):
+                    raise ValueError('Nazwa pliku: litery, cyfry, _, - oraz .json; bez katalogów.')
+                incoming = Path(__file__).resolve().parents[2] / 'LIVE_CONTENT' / filename
+                result = service.stage_file(incoming)
+                await self.send('HOT RELOAD: wczytano pakiet JSON: '+result+'. ' 
+                                'Sprawdź admin live sprawdz, następnie aktywuj POTWIERDZAM.')
+                return
+            if cmd == 'eksport':
+                from pathlib import Path
+                import re
+                filename = tail or 'pakiet_olc.json'
+                if not re.fullmatch(r'[a-zA-Z0-9_-]{1,70}\.json', filename):
+                    raise ValueError('Nazwa pliku JSON bez katalogów i znaków specjalnych.')
+                dest = Path(__file__).resolve().parents[2] / 'LIVE_CONTENT' / filename
+                service.export(dest, draft=True)
+                await self.send(f'HOT RELOAD: wyeksportowano roboczy pakiet do LIVE_CONTENT/{filename}.')
+                return
+            if cmd == 'audyt':
+                read_only_preview = True
+                from systems.live_olc5_audit import live_audit_summary
+                await self.send(live_audit_summary(service))
+                return
+            if cmd in ('status', 'sprawdz'):
+                await self.send(f"HOT RELOAD: aktywna rewizja {service.revision}: {service.validate(service.active)}. "
+                                f"Przygotowane: {service.validate(service.draft)}.")
+                return
+            if cmd in ('anuluj', 'cancel'):
+                service.reset_draft()
+                await self.send("HOT RELOAD: anulowano niezatwierdzone zmiany.")
+                return
+            if cmd in ('grupapodglad', 'grupazmien'):
+                from systems.live_olc13_batch import preview as batch_preview, stage as batch_stage
+                if cmd == 'grupapodglad':
+                    bits = tail.split()
+                    if len(bits) != 3:
+                        raise ValueError('Użycie: admin live grupapodglad quest bandit_ reward_xp')
+                    read_only_preview = True
+                    await self.send(batch_preview(service, *bits))
+                else:
+                    head, separator, value = tail.partition('|')
+                    bits = head.strip().split()
+                    if not separator or len(bits) != 3:
+                        raise ValueError('Użycie: admin live grupazmien quest bandit_ reward_xp | 50000')
+                    await self.send(batch_stage(service, *bits, value.strip()))
+                return
+            if cmd in ('edytuj', 'edit'):
+                args2 = tail.split(maxsplit=3)
+                if len(args2) == 3:
+                    read_only_preview = True
+                    from systems.live_olc35_finale import preview as preview35
+                    result35=preview35(service,*args2)
+                    if result35 is not None:
+                        await self.send(result35)
+                        return
+                    from systems.live_olc34_integration import preview as preview34
+                    result34=preview34(service,*args2)
+                    if result34 is not None:
+                        await self.send(result34)
+                        return
+                    from systems.live_olc33_mechanics import preview as preview33
+                    result33=preview33(service,*args2)
+                    if result33 is not None:
+                        await self.send(result33)
+                        return
+                    from systems.live_olc32_finale import preview as preview32
+                    result32=preview32(service,*args2)
+                    if result32 is not None:
+                        await self.send(result32)
+                    else:
+                        from systems.live_olc29_creation import preview as preview29
+                        result29=preview29(service,*args2)
+                        if result29 is not None:
+                            await self.send(result29)
+                        else:
+                            from systems.live_olc_preview_v12010 import describe_current_edit
+                            await self.send(describe_current_edit(service,*args2))
+                    return  # Tylko odczyt: bez zmiany wersji roboczej i bez NEWS.
+                if len(args2) != 4:
+                    raise ValueError('Użycie: admin live edytuj quest bandit_patrol reward_gold | 100 (lub reward_gold 100).')
+                section, key, field, value = args2
+                if '|' in value:
+                    raw_value = value.split('|', 1)[1].strip()
+                elif (section.casefold() in ('quest', 'zadanie')
+                      and field.casefold() in ('reward_silver', 'reward_gold', 'reward_mithril')
+                      and value.strip().isdecimal()):
+                    # Accessible short form: admin live edytuj quest ID reward_gold 100.
+                    # Keep explicit | delimiter mandatory for free-form text/JSON.
+                    raw_value = value.strip()
+                else:
+                    raise ValueError('Użycie: admin live edytuj quest bandit_patrol reward_gold | 100 (lub reward_gold 100).')
+                service.stage_edit(section.lower(), key, field.lower(), raw_value)
+            elif cmd in ('nowyskill', 'nowaumiejetnosc'):
+                parts = [x.strip() for x in tail.split('|')]
+                if len(parts) not in (9, 10, 11, 12):
+                    raise ValueError('Użycie: admin live nowyskill live_id | Wojownik | Nazwa | damage | 40 | 20 | 1.0 | strength | Opis | EFFECT/- | fire')
+                sid, class_name, name, kind, unlock, mana, mult, scale, description = parts[:9]
+                effect = parts[9] if len(parts) >= 10 and parts[9] not in ('-', '') else None
+                element = parts[10] if len(parts) >= 11 and parts[10] not in ('-', '') else None
+                cooldown = parts[11] if len(parts) == 12 else 0
+                service.stage_new_skill(sid, class_name, name, kind, unlock, mana,
+                                        mult, scale, description, effect, element, cooldown)
+            elif cmd in ('nowareceptura', 'nowyprzepis'):
+                args = [v.strip() for v in tail.split('|')]
+                if len(args) != 10:
+                    raise ValueError('Użycie: admin live nowareceptura live_ID | Nazwa | Profesja | ID_NARZEDZIA | ID_PRODUKTU | JSON_MATERIALOW | ID_STACJI | POZIOM | ILOSC | Opis')
+                service.stage_new_recipe(*args)
+            elif cmd == 'questmaterialy':
+                bits = [v.strip() for v in tail.split('|', 1)]
+                if len(bits) != 2:
+                    raise ValueError('Użycie: admin live questmaterialy QUEST_ID | {"iron_ore":2,"copper_ore":3}')
+                service.stage_quest_materials(*bits)
+            elif cmd == 'nowamagiaeq':
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 12:
+                    raise ValueError('Użycie: admin live nowamagiaeq live_ID | Nazwa | slot | obrona | atak | magic_attack | magic_defense | weapon_power | JSON_STATS | level | cena | opis')
+                service.stage_magic_equipment(*bits)
+            elif cmd == 'respawngrupa':
+                bits = tail.split()
+                if len(bits) != 2:
+                    raise ValueError('Użycie: admin live respawngrupa PREFIKS SEKUNDY')
+                service.stage_respawn_group(*bits)
+            elif cmd in ('nowyekwipunek', 'nowazbroja'):
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 9:
+                    raise ValueError('Użycie: admin live nowyekwipunek live_ID | NAZWA | SLOT | OBRONA | ATAK | JSON_STATYSTYK | POZIOM | CENA | OPIS')
+                service.stage_new_equipment(*bits)
+            elif cmd in ('celezmien', 'zmiencele'):
+                bits = [v.strip() for v in tail.split('|', 1)]
+                if len(bits) != 2 or not all(bits):
+                    raise ValueError('Użycie: admin live celezmien ID_QUESTA | JSON_CELOW')
+                service.stage_change_multi_objectives_v1800(*bits)
+            elif cmd in ('nowywielocelowy', 'questwielecelow'):
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 6:
+                    raise ValueError('Użycie: admin live nowywielocelowy live_ID | NAZWA | NPC | JSON_CELOW | SREBRO | OPIS')
+                service.stage_new_multi_objective_quest_v1800(*bits)
+            elif cmd in ('nowyquestzestaw', 'questzestaw'):
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 6:
+                    raise ValueError('Użycie: admin live nowyquestzestaw live_ID | NAZWA | NPC | JSON_SUROWCÓW | SREBRO | OPIS')
+                service.stage_new_resource_set_quest(*bits)
+            elif cmd in ('nowyprzedmiot', 'nowyitem'):
+                parts = [x.strip() for x in tail.split('|')]
+                if len(parts) != 7:
+                    raise ValueError('Użycie: admin live nowyprzedmiot live_id | armor | Nazwa | Opis | body | 100 | 500')
+                service.stage_new_item(*parts)
+            elif cmd in ('nowyquest', 'nowezadanie'):
+                parts = [x.strip() for x in tail.split('|')]
+                if len(parts) != 8:
+                    raise ValueError('Użycie: admin live nowyquest live_id | Nazwa | NPC | kill | mob_id | 10 | 500 | Opis')
+                qid, name, giver, kind, target, needed, silver, description = parts
+                service.stage_new_quest(qid, name, giver, kind, target, needed, silver, description)
+            elif cmd == 'nowabizuteria':
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 8:
+                    raise ValueError('Użycie: admin live nowabizuteria live_ID | Nazwa | ring | strength | 50 | 40 | 2500 | Opis')
+                service.stage_new_jewelry(*bits)
+            elif cmd in ('lancuch', 'łańcuch'):
+                bits = tail.split()
+                if len(bits) != 2:
+                    raise ValueError('Użycie: admin live lancuch ID_QUESTA ID_POPRZEDNIEGO_QUESTA')
+                service.stage_quest_chain(*bits)
+            elif cmd == 'kopiujrecepture':
+                bits = [v.strip() for v in tail.split('|')]
+                if len(bits) != 3:
+                    raise ValueError('Użycie: admin live kopiujrecepture live_id | istniejaca_receptura | Nowa nazwa')
+                service.stage_copy_recipe(*bits)
+            elif cmd == 'pokoj':
+                fields = [x.strip() for x in tail.split('|')]
+                if len(fields) != 5:
+                    raise ValueError("Uzycie: admin live pokoj live_id | 80 | Nazwa | Opis | Region")
+                rid, level, name, desc, zone = fields
+                level = int(level)
+                service.stage_room(rid, level, name, desc, zone)
+            elif cmd in ('polacz', 'przejscie'):
+                fields = tail.split()
+                if len(fields) != 3:
+                    raise ValueError('Uzycie: admin live polacz OD KIERUNEK DO')
+                service.stage_link(*fields)
+            elif cmd == 'potwor':
+                fields = [x.strip() for x in tail.split('|')]
+                if len(fields) != 6:
+                    raise ValueError('Uzycie: admin live potwor live_id | 80 | Nazwa | 50000 | 500 | 10000')
+                mid, level, name, hp, damage, exp = fields
+                service.stage_mob(mid, name, int(level), int(hp), int(damage), int(exp))
+            elif cmd == 'spawn':
+                fields = tail.split()
+                if len(fields) != 2:
+                    raise ValueError('Uzycie: admin live spawn POKOJ MOB')
+                service.stage_spawn(*fields)
+            elif cmd in ('bonusprofesje', 'bonusnarzedzia'):
+                if not tail:
+                    raise ValueError('Użycie: admin live bonusprofesje 80 (lub auto).')
+                service.stage_progression_group('profesje' if cmd == 'bonusprofesje' else 'narzedzia', tail)
+            elif cmd == 'balansgrupa':
+                bits = tail.split()
+                if len(bits) != 3:
+                    raise ValueError('Użycie: admin live balansgrupa PREFIKS_ID max_hp|damage|class_xp_reward LICZBA')
+                service.stage_balance_group(bits[0], bits[1], bits[2])
+            elif cmd == 'balans':
+                fields = tail.split()
+                if len(fields) != 3:
+                    raise ValueError('Uzycie: admin live balans MOB max_hp|damage|class_xp_reward|soul_reward|stat_reward LICZBA')
+                service.stage_balance(fields[0], fields[1], int(fields[2]))
+            elif cmd in ('aktywuj', 'zastosuj'):
+                if tail != 'POTWIERDZAM':
+                    raise ValueError('Potwierdzenie: admin live aktywuj POTWIERDZAM')
+                login = self.server.db.account_name(self.master_account_id)
+                previous = service.active
+                outcome = service.apply(self.server, login)
+                self.server.db.record_admin_action_v1224(login, 'live_activate_v1204', str(service.revision))
+                await self.send('HOT RELOAD: '+outcome)
+                if outcome != 'Nie ma nowych zmian.':
+                    await self.news_channel_v1204(service.describe_news(previous))
+                return
+            elif cmd == 'cofnij':
+                if tail != 'POTWIERDZAM':
+                    raise ValueError('Potwierdzenie: admin live cofnij POTWIERDZAM')
+                login = self.server.db.account_name(self.master_account_id)
+                previous = service.active
+                outcome = service.apply(self.server, login, rollback=True)
+                self.server.db.record_admin_action_v1224(login, 'live_rollback_v1204', str(service.revision))
+                await self.send('HOT RELOAD: '+outcome)
+                if outcome != 'Nie ma nowych zmian.':
+                    await self.news_channel_v1204(service.describe_news(previous, rollback=True))
+                return
+            else:
+                await self.send(help_text)
+                return
+            await self.send('HOT RELOAD: przygotowano zmianę; '+service.validate(service.draft)+'. ' 
+                            'Uzyj admin live sprawdz, potem admin live aktywuj POTWIERDZAM.')
+        except (ValueError, TypeError, OverflowError) as exc:
+            if not read_only_preview:
+                service.reset_draft()
+            ending = 'Wersja robocza bez zmian.' if read_only_preview else 'Zmiany robocze anulowano.'
+            await self.send(f'HOT RELOAD: odrzucono zmianę: {exc}. {ending}')
 
     async def prepare_character_wipe(self):
             """Wyczyść stan sesyjny bez zapisywania usuwanej postaci."""

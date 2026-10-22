@@ -692,8 +692,23 @@ async def realtime_combat_loop(self):
                                         (_elemental_attack_v11339 or {}).get("label") or ""
                                     ),
                                 }
+                                from systems.live_olc27_master import uoss_desperation_factor
+                                from systems.live_olc26_world import uoss_berserk_factor
+                                from systems.live_olc29_creation import boss_pulse_factor
+                                from systems.live_olc28_expansion import boss_finisher_factor
+                                from systems.live_olc33_mechanics import uoss_restore
+                                uoss_restore(enemy_mob, _enemy_template)
+                                from systems.live_olc35_finale import boss_action
+                                _olc35_attack_factor = boss_action(enemy_mob, _enemy_template)
                                 _enemy_action_mult_v11324 = (
-                                    _uoss_mult
+                                    _olc35_attack_factor
+                                    * boss_pulse_factor(enemy_mob, _enemy_template)
+                                    * __import__("systems.live_olc34_integration",fromlist=["boss_pressure"]).boss_pressure(enemy_mob,_enemy_template)
+                                    * __import__('systems.live_olc32_finale',fromlist=['uoss_phase_multiplier']).uoss_phase_multiplier(enemy_mob, _enemy_template)
+                                    * boss_finisher_factor(_enemy_template, target_session.current_hp, target_session.max_hp())
+                                    * uoss_berserk_factor(enemy_mob, _enemy_template)
+                                    * uoss_desperation_factor(enemy_mob, _enemy_template)
+                                    * _uoss_mult
                                     * _flavor_mult_v11324
                                     * _adaptive_enemy_mult_v11330
                                     * (1.0 + .09 * max(0,min(3,int(getattr(enemy_mob,'_v1900_god_phase',0) or 0)))

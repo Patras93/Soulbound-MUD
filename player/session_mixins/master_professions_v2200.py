@@ -38,7 +38,7 @@ class SessionMasterProfessionsV2200Mixin:
             try:
                 item,name,xp,txp=recipes.craft(conn,self.account_id,prof,level,tier=tier)
                 tool_type=recipes.TOOL_TYPES[prof]
-                messages,_,_=self.grant_profession_progress(prof,xp,tool_type,txp,content_level=max(100,level))
+                messages,_,_=self.grant_profession_progress(prof,xp,tool_type,txp,content_level=max(100,level),content_key=item)
                 await self.send(f'Wytworzono: {name} x1. Materiały odjęte, przedmiot zapisany w SQLite.')
                 for message in messages:await self.send(message)
                 await self.announce_craft_quest_progress(item,1)

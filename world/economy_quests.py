@@ -298,11 +298,22 @@ def repair_world_topology_v0855():
 repair_world_topology_v0855()
 
 
-def apply_global_mob_hp_multiplier():
-    """Zwiększa HP wszystkich mobów i bossów po zbudowaniu całego świata."""
-    for template in MOB_TEMPLATES.values():
+def apply_global_mob_hp_multiplier(registry=None):
+    """Globalny bonus HP zwykłych mobów, bez naruszania źródłowego HP UOSS.
+
+    UOSS ma własne pule z katalogu źródłowego (np. Black Rabite 3 300 000),
+    później modyfikowalne jawnie przez OLC. Ogólny mnożnik x2 nie może
+    bez wiedzy administratora podmieniać tych wartości.
+    """
+    targets = MOB_TEMPLATES if registry is None else registry
+    for template in targets.values():
         base_hp = max(1, int(template.get("max_hp", 1)))
         template["base_max_hp"] = base_hp
+        if (template.get("uoss_unique_superboss_key")
+                and template.get("uoss_source_hp_exact")):
+            # Tylko UOSS z dokładnie znanym HP; nieskanowane bossy
+            # zachowują dotychczasowy balans ogólny.
+            continue
         template["max_hp"] = max(
             1,
             int(round(base_hp * GLOBAL_MOB_HP_MULTIPLIER)),

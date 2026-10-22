@@ -375,6 +375,9 @@ class World:
         )
         add.monster_ai_parent_v1160 = boss_mob.key
         add.monster_ai_summoned_v1160 = True
+        # Snapshot only for ordinary boss companions; no change to scripted UOSS.
+        from systems.guardian_rewards_v1540 import guardian_reward_snapshot_v1540
+        add.olc_guardian_rewards_v1540 = guardian_reward_snapshot_v1540(parent_template)
         add.v016_ephemeral = True
         add.v016_expires_at = time.time() + 1800
         self.mobs[add.key] = add
@@ -738,6 +741,11 @@ class World:
         mob.v016_ephemeral=True
         mob.v029_expires_at=float(event['expires_at'])
         self.mobs[key]=mob
+        # OLC33: a bounded wave of real ephemeral mobs shares the event slot.
+        from systems.live_olc33_mechanics import spawn_guardians
+        spawn_guardians(event,room_id,self.mobs,MOB_TEMPLATES,MobState)
+        from systems.live_olc34_integration import spawn_reinforcements
+        spawn_reinforcements(event,room_id,self.mobs,MOB_TEMPLATES,MobState)
         self._last_refresh_at=0.0
         return True
 

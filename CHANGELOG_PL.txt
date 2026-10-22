@@ -1,3 +1,1785 @@
+==============================================================================
+Soulbound v35.00.4 — ZRODLOWE HP UOSS / NAPRAWA PREDEPLOY
+==============================================================================
+Aktualna paczka: v35.00.4
+- Poprawiono faktyczny blad globalnego balansu HP: dawny mnoznik x2 obejmowal
+  rowniez superbossow UOSS, chociaz maja wlasne scisle wartosci HP.
+- Black Rabite ma ponownie 3 300 000 HP zgodnie z katalogiem UOSS;
+  source_xp nadal 18 900 000. Chronione sa tylko bossy z dokladnie znanym HP.
+- Zwykle potwory zachowuja globalny mnoznik HP x2; nie obnizono im HP.
+- Jawne zmiany HP UOSS przez admin live nadal sa uwzgledniane.
+- Dodatkowa regresja oddzielnie sprawdza zrodlo UOSS i zwykle potwory.
+- Poprawiono historyczny test OLC27: po cofnieciu nagroda eventu wraca
+  do rzeczywistej nagrody wydarzenia bazowego, nie do stalego 500 EXP.
+- Naprawione oba etapy FAIL w logu v35.00.3 wynikajace z testu v24.
+- Nie zmieniono SQLite, kont graczy, EXP ani walut. Wymagany nowy PREDEPLOY.
+
+==============================================================================
+Soulbound v35.00.3 — NAPRAWA WYNIKÓW PREDEPLOY v35.00.2
+==============================================================================
+Aktualna paczka: v35.00.3
+- Synchronizacja tożsamości wydania: VERSION, CHANGELOG_PL i changes = v35.00.3.
+- Quest OLC: komenda `auto` usuwa ustawienia opublikowane dla wszystkich
+  obsługiwanych pól (w tym `requires_quests`), przywracając stan bazowy
+  bez wymagania wpisywania listy JSON. Nadal obowiązuje walidacja DRAFT.
+- Test 3 fal TCP: sprzątanie Windows kończy najpierw dokładny proces serwera
+  i czeka na jego zamknięcie. Bez blokującego `taskkill /T` przy normalnym
+  zakończeniu. Trzy fale i wszystkie warunki sieciowe nadal są sprawdzane.
+- Testy zgodności wersji v35.00.3 nadal wymagają poprawnej tożsamości wydania.
+- Nie zmieniono EXP, walut, UOSS, postępów postaci ani schematu SQLite.
+- WYMAGANY nowy Windows PREDEPLOY 60/60 PLUS dla aktualnego SHA256 ZIP.
+
+==============================================================================
+Soulbound v35.00.2 — NAPRAWA TESTU OLC13 / PREDEPLOY
+==============================================================================
+- Poprawiono historyczny test OLC13: wybiera precyzyjny prefiks bandit_cap,
+  a nie wszystkie potwory bandit (112/261 podczas audytu Windows).
+- Nadal testuje blokade zmian grupowych powyzej 100 elementow; limit
+  OLC13 pozostaje bez zmian, by chronic swiat przed przypadkowa edycja.
+- Uzupelniono historyczne testy list wersji o 35.00.2 bez usuwania asercji.
+- Brak zmian w ekonomii, obrazeniach, EXP, zapisach graczy i schemacie SQLite.
+- KANDYDAT: wymagany nowy Windows PREDEPLOY 60/60 PLUS przed wdrozeniem.
+
+==============================================================================
+Soulbound v35.00.1 — POPRAWKA PREDEPLOY (bez zmian balansu i bazy postaci)
+==============================================================================
+Aktualna paczka: v35.00.1
+- Poprawione trzy blokady predeploy v35: szybki kontrakt semantyczny, stary
+  test liczby questow oraz PLUS po migracji na kopii SQLite.
+- Ujednolicona wersja silnika, CHANGELOG i komendy changes.
+- Test expowisk przekazuje content_level do bramek Character/Soul EXP.
+- OLC: edycja grupy odnowien mobow do 400 definicji (dotad 100);
+  nadal obowiazuje walidacja liczby edycji i atomowy DRAFT.
+- Audyt wyjatkow: oczekiwane pomijanie odczytu informacji pomocniczych
+  udokumentowane; blad sprzatania w testach konczy test niepowodzeniem.
+- Zachowano 6793 questy, OLC 100-103, wojny PvE, miasta gildii,
+  EXP Bank, Multi Cap, kroniki 401-800 oraz news read.
+- Brak bazy realnych graczy w ZIP. Uruchom od nowa TESTUJ_Soulbound.bat,
+  wynik 60/60 PLUS musi dotyczyc TEGO pliku ZIP i jego SHA256.
+
+==============================================================================
+Soulbound v35.00.0 — WIELKI FINAŁ CZTERECH SYSTEMÓW (OLC 100–103)
+==============================================================================
+BAZA: pełne v34.00.0. Aktualizacja kodu, bez soulbound.db oraz WAL/SHM.
+1. UOSS: do 5 faz z malejącymi progami HP; wybrane akcje strike/heal wykonywane przez AI w czasie walki. Data-only, ograniczone parametry. Bez arbitralnego wykonywania Python.
+2. Profesje: nowe identyfikatory czynności OLC, powiązane z istniejącymi lub nowymi recepturami. Komenda czynnosci i czynnosci live_ID wykonuje prawdziwy crafting z narzędziami, poziomami, materiałami i EXP. Nie tworzy dowolnego kodu nowej czynności.
+3. Wojny gildii PvE: gildia wojna, gildia wojna start. Lider i siedziba min. 2; postęp za rzeczywiste zabicia bossów, raz na gildię za jedno starcie, nagroda skarbca tylko raz, cooldown w SQLite. Strażnica wspiera przygotowanie kampanii.
+4. Miasta gildii: gildia miasto; gildia miasto rozbuduj warsztat/spichlerz/straznica. Budynki połączone ze skarbcem, poziomami i bonusami, trwałe w osobnych tabelach SQLite, rozbudowuje tylko lider. Warsztat daje bonus uzysku od poziomu 3; spichlerz skraca przerwę PvE; strażnica zmniejsza wymagany cel.
+5. OLC 100-103: admin live olc35; edytuj boss35/czyn35/wojna35/miasto35 ... definicja | JSON; pakiet35 | JSON; sprawdz, porownaj, aktywuj POTWIERDZAM, auto. SQLite revision i rollback.
+6. Historyczne zapisy OLC są kompatybilne. Brak edycji kodu serwera w locie, aktualizacja binarnego silnika wymaga restartu.
+7. Starsze kontrole wersji v1110 i v4100 uzupełniono o aktualne wydania; nie wyłączono asercji.
+8. Testy: validation.v3500_four_systems. Uruchom TESTUJ_Soulbound.bat i wymagany PREDEPLOY 60/60 PLUS na Windows 11 przed wdrożeniem.
+OGRANICZENIE: edytor obsługuje podany katalog akcji, nie uniwersalne skrypty; miasta rozwijają GILDIE, nie są niezależnymi państwami graczy.
+
+SOULBOUND v34.00.0 — WIELKA INTEGRACJA OLC 92–99 (Windows)
+=========================================================
+Aktualna paczka: v34.00.0
+DATA: 21.10.2026. BAZA: kompletny Soulbound v33.00.0.
+STATUS: KANDYDAT do Windows PREDEPLOY 60/60 PLUS; bez bazy postaci.
+
+OSIEM DZIALAJACYCH INTEGRACJI:
+1. OLC92 / UOSS: programowalny rytm narastania atakow (every,
+   stack_percent, max_stacks) odczytywany przy rzeczywistym ciosie bossa.
+2. OLC93 / Profesje: dodatkowe znalezisko materialu co N prawdziwych
+   udanych craftingow (material, amount, every). Trafia do ekwipunku.
+3. OLC94 / Przywolania: bonus obrazen przy niskim HP przeciwnika
+   (below_hp, damage_percent), bez kar do normalnej mocy przywolania.
+4. OLC95 / Skille: nowa para nastepujacych po sobie ofensywnych skilli
+   (after, bonus_percent). Integracja z dotychczasowymi kombinacjami.
+5. OLC96 / Wydarzenia: kolejna grupa prawdziwych przeciwnikow
+   (reinforcement, count) w obecnej arenie, z uplywem czasu i blokada duplikacji.
+6. OLC97 / Fabuła: nagroda reputacji istniejacej frakcji za ukonczony
+   quest (faction, reputation) przy faktycznym oddaniu zadania.
+7. OLC98 / Gildie: konfigurowalna premia do skarbca po pokonaniu
+   bossa gildyjnego, bez uszczuplania wyplaty graczom.
+8. OLC99 / Swiat: bezpieczne dwukierunkowe portale miedzy pokojami
+   (direction, destination, return_direction), z cofnieciem obu koncow.
+
+WSZYSTKIE NOWE REGULY:
+- Wartosc domyslna auto: brak zmian w dotychczasowych systemach.
+- DRAFT, podglad aktualnej i nowej wartosci, walidacja, SQLite, cofanie.
+- Zaden wpis OLC nie wykonuje dowolnego kodu Python.
+- UOSS ma swoje prawdziwe stare nagrody EXP i waluty bez automatycznych zmian.
+- Nie sa to jeszcze dowolne skrypty bossow ani pelny silnik wojen gildyjnych.
+
+KOMENDY:
+admin live olc34
+admin live edytuj boss34 black_rabite definicja | {"every":2,"stack_percent":110,"max_stacks":4}
+admin live edytuj fach34 iron_ingot definicja | {"material":"iron_ore","amount":1,"every":3}
+admin live edytuj summon34 pajak definicja | {"below_hp":35,"damage_percent":150}
+admin live edytuj skill34 ID_SKILLA definicja | {"after":"ID_INNEGO_SKILLA","bonus_percent":150}
+admin live edytuj event34 basalt definicja | {"reinforcement":"bandit","count":2}
+admin live edytuj fabula34 bandit_patrol definicja | {"faction":"miners","reputation":20}
+admin live edytuj gildia34 global definicja | {"treasury_bonus_percent":125}
+admin live edytuj swiat34 ID_POKOJU definicja | {"direction":"up","destination":"ID_CELU","return_direction":"down"}
+admin live pakiet34 | {"guilds":{"global":{"treasury_bonus_percent":125}}}
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+
+TESTY: validation/v3400_integration.py jest dolaczone do
+predeploy_check.py i predeploy_full.py. To nie zastępuje PREDEPLOY 60/60 PLUS
+na docelowym Windowsie; wykonaj kopie soulbound.db oraz WAL i SHM.
+
+---------------------------------------------------------
+
+SOULBOUND v33.00.0 — WIELKIE MECHANIKI OLC 84–91 (Windows)
+=========================================================
+BAZA: pełny Soulbound v32.00.0. Nowy kod + test; bez bazy postaci.
+STATUS: kandydat do testów; Windows PREDEPLOY 60/60 PLUS wymagany.
+
+NOWE FUNKCJE — 8 RZECZYWISTYCH ŚCIEŻEK SILNIKA:
+1. OLC84 UOSS: opcjonalne odnawianie HP superbossa pod wybranym progiem
+   HP co N jego akcji. Nie wskrzesza pokonanego bossa ani nie zmienia EXP.
+2. OLC85 Profesje: materiał jako produkt uboczny co N udanych wykonań
+   konkretnej receptury; rzeczywista wypłata do plecaka i kolekcji.
+3. OLC86 Przywołania: stworzenie może leczyć swojego właściciela co N
+   ataków. Blokada leczenia przy UOSS pozostaje respektowana.
+4. OLC87 Skille: bonus za użycie wskazanego drugiego skilla bezpośrednio
+   po pierwszym. Działa poprzez mnożnik ofensywny istniejących skilli.
+5. OLC88 Wydarzenia: 1–3 prawdziwych strażników potwora-eventu w tej
+   samej lokacji, związanych z rotacją i czasem wygaśnięcia. Zmiana już
+   trwającego eventu pojawi się przy następnym jego spawnie/rotacji.
+6. OLC89 Fabuła: nagroda reputacji jednej istniejącej gildii klasowej
+   za ukończony quest, poza dotychczasową nagrodą.
+7. OLC90 Gildie: opcjonalna premia do EXP klasy ze zwykłych bossów dla
+   członków gildii. Bazowy EXP i dokładne UOSS source_xp bez zmian.
+8. OLC91 Świat: nowy kierunkowy portal/przejście z istniejącego pokoju
+   do istniejącego pokoju, bez zajmowania wcześniejszego wyjścia.
+   Po publikacji ROOMS widzi nowe wyjście; wycofanie odtwarza stare.
+
+Komendy w MUD:
+admin live olc33
+admin live edytuj boss33 black_rabite definicja | {"below_hp":35,"every":3,"restore_percent":2}
+admin live edytuj fach33 iron_ingot definicja | {"byproduct":"iron_ore","amount":2,"every":3}
+admin live edytuj summon33 pajak definicja | {"heal_owner_percent":2,"every":4}
+admin live edytuj skill33 ID_SKILLA definicja | {"alternate_with":"ID_INNEGO_SKILLA","bonus_percent":130}
+admin live edytuj event33 basalt definicja | {"guardian":"bandit","count":2}
+admin live edytuj fabula33 bandit_patrol definicja | {"guild_class":"Wojownik","guild_rep":10}
+admin live edytuj gildia33 global definicja | {"boss_class_xp_percent":125}
+admin live edytuj swiat33 ID_POKOJU definicja | {"direction":"up","destination":"ID_CELU"}
+admin live pakiet33 | {"guilds":{"global":{"boss_class_xp_percent":125}}}
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+Bez JSON za polem definicja jest podgląd aktualnego ustawienia i DRAFT.
+Wartość auto wycofuje zmianę konkretnej kategorii.
+
+BEZPIECZEŃSTWO: Wszystkie osiem kategorii neutralne bez konfiguracji.
+Nie przyjmujemy kodu Python/eval, skryptów ani surowych zmian SQLite.
+Istniejący system rewizji i cofania OLC zachowany. Nie nadpisujemy
+zajętych wyjść; nie dokładamy NPC w pokojach ani pułapek.
+Nie ma sztucznego limitu obrażeń gracza ani obniżania nagród domyślnych.
+
+TEST: python -m validation.v3300_olc84_91
+Dodatkowy test v33 jest dołączony do predeploy_check.py i predeploy_full.py.
+Wykonane testy lokalne: v33 54 PASS, v32 46 PASS, v31 533 PASS,
+v30 232 PASS, v29 56 PASS, v24.00.1 18 PASS.
+Część dłuższych regresji nie zakończyła się w limicie wykonania.
+Pełne 60/60 PLUS na Windows + gra na kopii bazy: NIEPOTWIERDZONE.
+
+OGRANICZENIA: Nie jest to uniwersalny interpreter dowolnych skryptów UOSS,
+zupełnie nowych czynności narzędzi, pełny silnik wojen i miast ani
+nieograniczone programowanie mechanik podczas gry. Rozszerza osiem
+istniejących systemów o wymienione, ściśle walidowane operacje.
+
+=========================================================
+
+SOULBOUND v32.00.0 — WIELKA ROZBUDOWA OLC 76-83 (Windows)
+==================================================================
+BAZA: pełny Soulbound v31.00.0. ZIP bez danych i bazy postaci.
+STATUS: kandydat do wdrożenia; Windows PREDEPLOY 60/60 PLUS wymagany.
+
+OSIEM ROZSZERZEŃ Z PRAWDZIWYM WPŁYWEM NA GRĘ:
+1. UOSS: do pięciu malejących progów HP; osobny rytm i moc ataków faz.
+2. Profesje: gwarantowane dodatkowe sztuki produktu dla wskazanej receptury.
+3. Przywołania: mocniejsze uderzenie co N ataków konkretnego typu summona.
+4. Skille: mocniejszy co N użycie danego skilla (mnożnik ofensywny).
+5. Wydarzenia: godziny UTC, w których własny event może wejść do rotacji.
+6. Fabuła: dodatkowe przedmioty do faktycznej nagrody za wskazany quest.
+7. Gildie: trwałe premie za osiągnięcie określonych poziomów gildii.
+8. Świat: wydajność wytwarzania w wyznaczonych pokojach warsztatowych.
+
+Komendy administracyjne:
+admin live olc32
+admin live edytuj boss32 black_rabite definicja | {"phases":[{"below_hp":50,"interval":3,"damage_percent":150}]}
+admin live edytuj fach32 live_RECEPTURA definicja | {"extra_output":2}
+admin live edytuj summon32 pajak definicja | {"combo_every":3,"combo_percent":150}
+admin live edytuj skill32 ID_SKILLA definicja | {"combo_every":3,"combo_percent":150}
+admin live edytuj event32 live_EVENT definicja | {"hours_utc":[8,9,10]}
+admin live edytuj fabula32 bandit_patrol definicja | {"bonus_items":{"iron_ore":2}}
+admin live edytuj gildia32 global definicja | {"milestones":[{"level":10,"bonus_percent":3}]}
+admin live edytuj swiat32 ID_POKOJU definicja | {"workshop_yield_percent":150}
+admin live pakiet32 | {"guilds":{"global":{"milestones":[{"level":10,"bonus_percent":3}]}}}
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+Każde pole: odczyt bieżącej wartości bez |, edycja z | JSON i auto do cofnięcia.
+Publikacja działa przez istniejący OLC SQLite, bez wykonywania kodu administratora.
+Ustawienia domyślnie wyłączone: brak osłabiania EXP, obrażeń czy graczy.
+
+OGRANICZENIA: to rozbudowa wszystkich ośmiu obszarów, nie uniwersalny
+interpreter nowych skryptów bossów/efektów magii, ani kompletny silnik
+wojen PvE i miast. OLC skorzysta z obsługiwanych już mechanizmów.
+Pełny PREDEPLOY Windows 60/60 PLUS oraz gra na kopii bazy: DO SPRAWDZENIA.
+TEST JEDNOSTKOWY: python -m validation.v3200_olc76_83
+
+==================================================================
+
+SOULBOUND v31.00.0 — CZTERY WIELKIE KRONIKI 401-800 (Windows)
+=============================================================================
+BAZA: pelny Soulbound v30.00.0; brak bazy postaci w ZIP.
+STATUS: kandydat do wdrozenia; wymagany Windows PREDEPLOY 60/60 PLUS.
+
+NOWA ZAWARTOSC — ROZSZERZENIE CZTERECH OTWARTYCH KRAIN:
+* Kazda kraine 401-500, 501-600, 601-700, 701-800 rozszerzono
+  z 6 do 12 prawdziwych pomieszczen (24 dodatkowe pomieszczenia).
+* 16 nowych typow mobow z EXP postaci, Duszy i statystyk, waluta, lootem.
+* 4 nowi minibossowie z osobnymi spawnami i nagrodami.
+* 4 NPC w czterech ODDZIELNYCH pomieszczeniach. Nigdy dwoch NPC razem.
+* 24 rzeczywiste kill-questy: po 6 na kraine, powiazane lancuchem
+  wymagan. Cztery etapy zabijania mobow, miniboss, dotychczasowy boss
+  krainy. Zadania zlicza silnik gry i zapisuje w dotychczasowej SQLite.
+* Jedno nowe przejscie na wschod od trzeciego pokoju kazdej krainy.
+  Dwukierunkowe przejscia; brak pulapek i nowych blokad levelowych.
+* Przy kazdym mentorze: quest list, przyjmij 1; podglad jednego
+  aktualnego etapu dla NVDA zamiast listy wszystkich rozdzialow.
+* expowiska kroniki / expowiska saga: cztery krotkie linie statusu
+  kampanii, ukonczone etapy z szesciu oraz wskazanie NPC i przejscia.
+* Zachowana zgodnosc z EXP Bank, Multi Cap, party kill credit, OLC,
+  news read <numer>, balansami i postaciami. Nie obnizono EXP.
+* Wewnętrzna wersja zostala wyrownana do 31.00.0; poprawiono changes.
+
+EDYCJA W LOCIE:
+Dotychczasowe OLC nadal pozwala edytowac obslugiwane questy, moby,
+NPC i pokoje przez DRAFT -> sprawdz -> porownaj -> aktywuj. Samo
+DODANIE kodu tej duzej kampanii wymaga aktualizacji serwera i restartu.
+Nie dodawano dowolnego skryptowania Pythona, nie ma eval/exec.
+
+TESTY: validation/v3100_chronicles_401_800.py w obu predeploy.
+Dodatkowe testy bez modyfikowania postaci uruchom: python -m
+validation.v3100_chronicles_401_800. Pelne 60/60 PLUS na Windows
+z rzeczywista kopia danych pozostaje warunkiem przed wdrozeniem.
+
+=============================================================================
+
+SOULBOUND v30.00.0 — NOWE KRAINY 401-800 + ROZBUDOWA OLC (Windows)
+=============================================================================
+BAZA: pelna paczka Soulbound v29.10.0. Nie zawiera bazy postaci SQLite.
+STATUS: kandydat do WDROZENIA; predeploy 60/60 PLUS wymagany na Windows.
+
+NOWE OTWARTE TERENY — PRAWDZIWY SWIAT, NIE TYLKO LISTA EXPOWISK:
+* Szkarłatne Pogranicze: Level 401-500, przejscie w gore z Korony Swiata.
+* Kryształowe Bezmiary: Level 501-600, za Szkarłatnym Pograniczem.
+* Otchłań Nieskończoności: Level 601-700, za Kryształowymi Bezmiarami.
+* Tron Wieczności: Level 701-800, za Otchłanią Nieskończoności.
+Kazdy region ma 6 prawdziwych pokoi, 4 nowe szablony mobow i bossa.
+LACZNIE: 24 pokoje, 16 rodzajow zwyklych mobow, 4 bossow.
+Moby posiadaja rzeczywiste HP, obrazenia, EXP postaci, Duszy, statystyk,
+pieniadze i loot. Bossy odradzaja sie przez istniejacy system spawnow.
+Nie ma pulapek. Regiony sa polaczone dwukierunkowo; wejscie nie wymaga
+Soul 100. Dla poziomow 401-800 ranking 'expowiska polecane' wskazuje
+odpowiednia nowa kraine na pierwszym miejscu, pozostawiajac lochy jako
+alternatywe. System powiadomien po awansie v29.10 pozostaje aktywny.
+Nie zmienia EXP Bank, Multi Cap, ograniczen obrazen ani postaci.
+
+EDYCJA W LOCIE (OLC):
+* Boss29/UOSS: opcjonalne phase_threshold_percent (1-99) oraz
+  phase_damage_percent (100-500). Przy niskim HP bossa dodatkowy mnoznik
+  dziala w rzeczywistym rozliczeniu ataku; dotychczasowy cykl pozostaje.
+* Summon29: opcjonalne hp_percent i attack_percent (100-500) dla
+  NOWEGO typu przywolania. Dzialaja w HP i mocy rzeczywistego summona.
+* Fabula29: opcjonalne ending obok text; po ukonczeniu zadania gra wyswietla
+  opublikowany wariant zakonczenia. Zachowuje istniejaca blokade questow
+  z wykluczajacych sie sciezek.
+* Admin live olc30: krotka pomoc z komendami do edycji nowych i starych
+  mechanik. Istniejace edytory pokojow, mobow, NPC, sklepow, receptur,
+  gildii, eventow i skilli sa nadal aktywne.
+* Wszystkie nowe pola OLC korzystaja z DRAFT -> sprawdz -> porownaj ->
+  aktywuj POTWIERDZAM; walidacja, historia SQLite, pole auto. Stare
+  definicje bez nowych pol zachowuja dotychczasowe dzialanie.
+
+PRZYKLADY:
+admin live olc30
+admin live edytuj boss29 black_rabite definicja | {"cycle":3,"extra_damage_percent":180,"phase_threshold_percent":25,"phase_damage_percent":160}
+admin live edytuj summon29 live_wilk_burzy definicja | {"name":"Wilk Burzy","class":"Druid","mana":120,"kind":"magic","power":100,"materials":{},"hp_percent":150,"attack_percent":120}
+admin live edytuj fabula29 bandit_patrol definicja | {"text":"Wybor strazy","ending":"Szlak obroniono."}
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+
+WAZNE GRANICE FUNKCJI:
+Nie oznacza to jeszcze mozliwosci instalacji nowego kodu Python w locie.
+Dowolne nowe typy akcji profesyjnych, autorskie skrypty UOSS poza
+obslugiwanymi regułami, nowe silniki efektow skilli, kompletne wojny
+gildii i miasta graczy nadal wymagaja rozwoju. OLC pozostaje bez eval/exec.
+Instalacja tej wersji kodu wymaga zwyklego wdrozenia i restartu;
+opublikacja wspieranych ustawien OLC dziala bez restartu.
+
+TESTY: validation/v3000_world_olc.py i zaktualizowany
+validation/v2910_dynamic_exp_areas.py w obu skryptach predeploy.
+Nie podmieniac SQLite z paczki (bazy postaci w niej nie ma).
+
+=============================================================================
+
+SOULBOUND v29.10.0 — DYNAMICZNE POLECANE EXPOWISKA / LEVEL UP (Windows)
+=============================================================================
+BAZA: pelna wersja v29.00.0; bez bazy postaci i jej modyfikacji.
+
+NOWOSCI:
+- Polecane expowiska sa przeliczane przy kazdej komendzie z biezacego
+  Levelu postaci (1-800), zamiast wykorzystywac zapamietana liste.
+- Przy awansie Levelu postaci lub Soul Level system porownuje stare
+  i nowe rekomendacje. Kiedy zestaw miejsc sie zmieni, wysyla JEDEN
+  krotki komunikat
+  dla NVDA, rowniez po kilku awansach za jedna nagrode EXP.
+- 'expowiska polecane' pokazuje domyslnie 5 najlepszych propozycji,
+  zaczynajac od najlepiej dopasowanych do poziomu i zagrozenia.
+- 'expowiska polecane 2' / 'expowiska polecane 10': ilosc pozycji.
+- 'expowiska polecane wszystkie': lista wszystkich aktualnie polecanych.
+- 'co robic' wybiera teraz najwyzej dopasowane expowisko, nie pierwszy
+  wynik w kolejnosci pliku.
+- Ponad zakresem otwartych regionow 390-400 mozna polecac lochy
+  skalowane pietrami (Krypta, Astral), z ostrzezeniem o doborze glebi;
+  bez wymyslania regionow 401-800 i bez omijania wymogu Soul 100
+  dla Wiezy Astralnej.
+- Nie zmienia poziomow, przeciwnikow, EXP, dropu, Multi Cap, bossow,
+  zakupow ani postaci. Nie modyfikuje zadnego zapisu SQLite.
+
+TESTY: validation/v2910_dynamic_exp_areas.py jest dolaczony do obu
+skryptow predeploy. Pelny Windows PREDEPLOY 60/60 PLUS jest konieczny
+przed wdrozeniem na Twoim serwerze.
+
+=============================================================================
+
+SOULBOUND v29.00.0 — WIELKA REWOLUCJA TWORZENIA SWIATA / OLC68-75
+=============================================================================
+BAZA: pelny Soulbound v28.00.0 (827 plikow). Archiwum nie zawiera bazy postaci SQLite.
+STATUS: kandydat do PREDEPLOY 60/60 PLUS, NIE automatycznie wdrozona wersja.
+
+NOWOSCI — OSIEM OBSZAROW (RZECZYWISTE PODLACZENIA SILNIKA):
+1. Bossowie UOSS: definiowany cykl specjalnego impulsu obrazen; dziala w
+   prawdziwym cyklu ataku z oddzielnym licznikiem na instancje bossa.
+   Mozna tez tworzyc NOWE zwykle bossy i ich spawny przez pakiet29.
+2. Profesje: atomowe nowe profesje + narzedzia + receptury (pakiet29),
+   nazwa nowej czynnosci jest instalowana do katalogu craftingu.
+3. Przywolania: autorskie typy live_ID, dla Maga, Druida i Nekromanty;
+   koszt MP, fizyczny/magiczny atak, materialy i moc w realnym SUMMONS.
+   Chowaniec przywolaj live_ID i chowaniec lista pokazuja nowe stworzenie.
+4. Skille: nowe umiejetnosci z istniejacym typem efektu i statusem przez
+   pakietskilli/pakiet29; zmiana nazwy w realnym katalogu klasy.
+5. Wydarzenia: wlasny event26 mozna przypisac do lokacji/areny w swiecie;
+   rotacja i prawdziwy spawner wykorzystuja wskazane room_id.
+6. Fabuła: tekst wyboru jest widoczny w realnym opisie questa, a rozgalezienia
+   i blokowanie alternatywnych questow korzystaja z wybor26.
+7. Gildie: bonus rosnacy z poziomem prawdziwej gildii w tabeli player_clans;
+   parametry level_step, bonus_per_step, maximum_bonus.
+8. Swiat i ekonomia: ceny kupna i sprzedazy przypisane do pokoju; dotycza
+   realnych operacji sklepu i sprzedazy, bez ingerencji w salda postaci.
+
+KOMENDY (NVDA/Generic MUD):
+admin live olc29
+admin live edytuj summon29 live_wilk_burzy definicja
+admin live edytuj summon29 live_wilk_burzy definicja | {"name":"Wilk Burzy","class":"Druid","mana":120,"kind":"magic","power":90,"materials":{}}
+admin live edytuj boss29 black_rabite definicja | {"cycle":3,"extra_damage_percent":180}
+admin live edytuj gildia29 global definicja | {"level_step":10,"bonus_per_step":1,"maximum_bonus":50}
+admin live edytuj swiat29 square definicja | {"buy_percent":110,"sell_percent":100}
+admin live pakiet29 | {"bosses":[],"professions":[],"summons":{},"skills":[],"events":[],"story":{},"guilds":{},"world":{}}
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+Cofniecie jednego ustawienia: admin live edytuj KATEGORIA ID definicja | auto
+Przyklady pelnych definicji: admin live olc29.
+
+BEZPIECZENSTWO: DRAFT bez skutku do publikacji; walidacja obiektow i kluczy,
+zapis rewizji i cofanie przez stary system SQLite; brak eval/exec i kodu
+wykonywalnego administratora. Cofniecie typu summona jest blokowane, jesli
+ktos ma juz takiego summona na postaci (ochrona trwałych danych).
+Puste/neutralne v29_rules nie zmieniaja statystyk starej gry.
+Zachowany EXP Bank, Multi Cap, wszystkie wczesniejsze OLC, news read NUMER,
+reward_gold bandit_patrol i nagrody istniejacych UOSS.
+
+OGRANICZENIA: OLC29 nie jest dowolnym jezykiem skryptow bossow ani pełnym
+silnikiem nowych klas, nie dodaje niestandardowych efektow zaklec poza juz
+zaimplementowanymi typami, nie daje nowych mechanik wojen i miast graczy.
+Areny wydarzen wymagaja prawidlowej lokacji i dojscia stworzonego OLC.
+Kazdy rodzaj systemu musi zostac sprawdzony na realnym serwerze.
+
+TESTY: validation.v2900_olc68_75; regresje v24-v28; kontrola ZIP;
+Windows PREDEPLOY 60/60 PLUS WYMAGANY PRZED WDROZENIEM.
+
+POPRZEDNIE ZMIANY (HISTORIA):
+=============================================================================
+SOULBOUND v28.00.0 — WIELKIE OLC 60–67 + NEWS READ (WINDOWS PREDEPLOY)
+=============================================================================
+BAZA: pelen Soulbound v27.00.0. Archiwum nie zawiera bazy postaci SQLite.
+STATUS: kandydat do testow; lokalny PREDEPLOY 60/60 PLUS wymagany.
+
+NOWOSC DLA NVDA: NUMEROWANY NEWS BEZ CZYTANIA WSZYSTKIEGO
+- news                 -> 20 ostatnich wiadomosci z numerami, datami i skrotami
+- news read 1          -> tylko NAJNOWSZA wiadomosc, w pelnej tresci
+- news read 2          -> tylko druga wiadomosc, w pelnej tresci
+- news czytaj 3        -> polski alias, tylko trzecia wiadomosc
+- news lista 50        -> lista 50 ostatnich naglowkow; do 100
+- news on/off          -> bez zmian, wlaczenie/wyciszenie powiadomien
+- channels history news -> stara historia pozostaje dostepna
+Numeracja jest wzgledna, od NAJNOWSZEGO wpisu. Po dodaniu kolejnego wpisu
+numery przesuwaja sie o 1. Nie ma migracji SQLite ani usuwania historii.
+Odczyt dziala dla kazdego gracza, nawet jesli NEWS jest wyciszony; tylko
+administrator moze publikowac ogloszenia. Zabezpieczenia: walidacja numerow,
+granica 1-500, brak interpretacji polecen read jako wiadomosci administratora.
+
+OLC60–67: OSIEM RZECZYWISTYCH PUNKTOW KONTROLNYCH
+1. UOSS: finisher_damage_percent + finisher_target_hp_percent — premia
+   obrazen przeciw postaci z niskim HP (tylko UOSS, domyslnie 100%).
+2. Profesje: craft_yield_percent — dodatkowa wydajnosc rzeczywistego craftingu.
+3. Przywolania: outgoing_damage_percent — obrazenia przywolanych stworzen.
+4. Umiejetnosci: damage_percent — globalny mnoznik obrazen skilli.
+5. Wydarzenia: rotation_weight — czestosc wlasnego event26 w istniejacej rotacji.
+6. Fabuła: quest_currency_percent — waluta za oddanie zwyklych questow.
+7. Gildie: bonus_extra_percent — dodatkowa premia dla czlonkow gildii.
+8. Ekonomia: sell_value_percent — kwoty z odsprzedazy przedmiotow.
+Podrecznik: admin live olc28. Podglad pola: admin live edytuj KATEGORIA ID POLE
+Zmiana: admin live edytuj KATEGORIA ID POLE | LICZBA
+Cofniecie ustawienia: admin live edytuj KATEGORIA ID POLE | auto
+Sprawdzenie i publikacja: admin live sprawdz; admin live porownaj;
+                            admin live aktywuj POTWIERDZAM
+Wszystkie wartosci neutralne bez edycji. Rewizje OLC w SQLite, walidacja,
+publikacja i cofanie. Zachowane EXP Bank, Multi Cap, source_xp UOSS, nagrody,
+naprawa reward_gold, oraz postepy graczy. Nowe rozwiazania NIE sa dowolnym
+silnikiem skryptow UOSS, nowymi gatunkami summonow, ani pelna edycja miast.
+
+TESTY: validation.v2800_olc60_67, validation.v2800_news_read,
+       validation.v1204_news_channel plus starsze zestawy regresji.
+
+POPRZEDNIE ZMIANY (HISTORIA):
+=============================================================================
+SOULBOUND v27.00.0 — MISTRZOSTWO OLC 52–59 (DUZY UPDATE, WINDOWS PREDEPLOY)
+=============================================================================
+BAZA: kompletny Soulbound v26.00.0. Archiwum NIE zawiera bazy postaci SQLite.
+STATUS: kandydat do testow. Pelny Windows PREDEPLOY 60/60 PLUS wymagany.
+
+8 RZECZYWISTYCH ROZSZERZEN OLC (zmiany dopiero po publikacji w admin live):
+1. OLC52 / UOSS: desperacja przy utracie HP. Bonus obrazen bossa rosnie plynnie
+   od x1 przy pelnym HP do ustawionej wartosci przy 0 HP. Dotyczy tylko UOSS.
+   admin live edytuj uoss27 black_rabite desperation_damage_percent | 180
+   100 oznacza calkowity brak nowej premii. Dziala obok istniejacego berserku.
+2. OLC53 / PROFESJE I NARZEDZIA: wlasny mnoznik XP narzedzia dla czynnosci
+   profesji, po pozostalych premiach, przed EXP Bank. Istniejacy procent EXP
+   profesji nie jest mnozony ponownie. Bez obnizania domyslnych nagrod.
+   admin live edytuj fach27 Górnictwo tool_xp_percent | 175
+3. OLC54 / PRZYWOLANIA: prog procentowy HP summonow dopuszczonych do
+   przechwycenia ciosu. Domyslne 0% zachowuje stare zachowanie.
+   admin live edytuj summon27 pajak intercept_min_hp_percent | 35
+   Nie dotyka HP i skalowania martwych summonow ani obrony UOSS.
+4. OLC55 / MAGIA: globalny procent kosztu MP faktycznie odczytywany przez
+   efektywne koszty, komunikaty i wykonywanie skilli. Klasy niemagiczne
+   posiadajace darmowe koszty pozostaja darmowe (0 MP).
+   admin live edytuj magia27 global mana_percent | 150
+5. OLC56 / WYDARZENIA: osobne XP postaci, duszy i statystyk dla bossow
+   utworzonych przez event26 (na istniejacych czterech arenach).
+   admin live edytuj event27 live_earth_trial class_xp_reward | 200000
+   admin live edytuj event27 live_earth_trial soul_reward | 100000
+   admin live edytuj event27 live_earth_trial stat_reward | 25000
+   Nie zmienia nagrod tradycyjnych czterech inwazji ani UOSS.
+6. OLC57 / FABULA: premia EXP postaci za oddanie zwyklego questa; nagroda
+   przechodzi standardowa sciezka EXP/Bank. Nie zmienia zlota i EXP profesji.
+   admin live edytuj fabula27 global quest_xp_percent | 225
+7. OLC58 / FRAKCJE: dodatkowa stala premia reputacji, naliczana tylko gdy
+   wydarzenie rzeczywiscie przyznaje reputacje (wpis 0 pozostaje 0).
+   admin live edytuj frakcja27 miners reputation_extra | 70
+8. OLC59 / SWIAT - EKONOMIA: cena zakupu w konkretnym sklepie (nie globalnie),
+   po juz istniejacym rabacie oraz globalnym mnozniku. Jedna sciezka kwoty
+   dla prezentacji i transakcji; nie dotyka sprzedazy, nie tworzy nowych NPC.
+   admin live edytuj sklep27 ID_SKLEPU price_percent | 130
+
+ZASADY:
+- Wszystkie nowe ustawienia maja 100% lub 0% (zgodnie z rola) jako neutralny
+  stan domyslny. Bez recznej zmiany zachowanie v26 jest niezmienione.
+- Podglad obecnego ustawienia: admin live edytuj KATEGORIA ID POLE
+- Przywrocenie pojedynczego pola: admin live edytuj KATEGORIA ID POLE | auto
+- Podrecznik: admin live olc27
+- Publikacja: admin live sprawdz; admin live porownaj;
+              admin live aktywuj POTWIERDZAM
+- SQLite: historyczne rewizje v26 zachowane; publikacja atomowa i cofanie.
+- Nowe ustawienia sa danymi JSON (nigdy wykonywanym kodem administratora).
+- Zachowane: nagrody reward_gold questow, UOSS source_xp, Multi Cap 1–800,
+  EXP Bank, sumowanie klas, walki AoE, summon HP, gildie, frakcje, OLC 1–51.
+- Nowe nagrody i koszty mozna regulowac tylko w wyznaczonych zakresach, ze
+  sprawdzaniem typu, poprawnosci ID i relacji event26 <-> event27.
+- Zmiany szablonu bossa wydarzenia dotyczace opublikowanych definicji beda
+  mialy wplyw na przyszly spawn, a nie wymusza restartu trwajacej walki.
+
+TESTY KANDYDATA (LOKALNE):
+- OLC52–59: 51 PASS; SQLite publikacja, restart, auto i rzeczywiste sciezki.
+- Wczesniejsze zestawy OLC 19–26: bez zmian funkcjonalnych; testy regresji.
+- Pelny test Windows 60/60 PLUS musi zostac osobno uruchomiony na Windows.
+
+NIE DODANO: dowolnego programowania skryptow UOSS, nowych gatunkow summonow,
+nowych ras ani rozbudowy bazowego katalogu gildii bez podlaczonego silnika.
+
+SOULBOUND v26.00.0 — WIELKIE OLC 44–51 (8 OBSZAROW, WINDOWS PREDEPLOY)
+========================================================================
+BAZA: pelny Soulbound v25.00.0. Bez bazy SQLite graczy w ZIP.
+STATUS: kandydat do testow. Wymagane TESTUJ_Soulbound.bat / 60 ETAPOW PLUS.
+
+REALNE NOWOSCI (dopiero po admin live aktywuj POTWIERDZAM):
+1. OLC44 UOSS: sterowanie berserkiem progiem HP i rzeczywistym mnoznikiem
+   ataku w turze potwora. Nie obniza obrazen gracza ani oryginalnego source_xp.
+   admin live edytuj uoss26 black_rabite berserk_hp_percent | 30
+   admin live edytuj uoss26 black_rabite berserk_damage_percent | 180
+2. OLC45 PROFESJE: dodatkowy procent rzeczywistego XP profesji po dawnych
+   bonusach, lecz przed EXP Bank. Nie zmienia XP narzedzi.
+   admin live edytuj fach26 Górnictwo xp_percent | 150
+   Nowe profesje/receptury: wciaz admin live pakietfach.
+3. OLC46 PRZYWOLANIA: szansa przechwycenia ataku i redukcja obrazen
+   otrzymywanych przez summon. Domyslnie 32%/52% i 100% obrazen.
+   admin live edytuj summon26 pajak intercept_chance_percent | 70
+   admin live edytuj summon26 pajak incoming_damage_percent | 50
+4. OLC47 SKILLE: atomowe tworzenie 1–12 zdolnosci jako JSON. Prawdziwe
+   klasy i istniejace efekty poison/burn/freeze/shock.
+   admin live pakietskilli | [{"id":"live_v26_fire","class":"Mag",
+   "name":"Plomien","kind":"damage","unlock":40,"mana":50,
+   "mult":1.5,"scale":"intelligence","desc":"Atak ognisty",
+   "element":"fire","status":{"kind":"burn","chance":0.3}}]
+5. OLC48 WYDARZENIA: nowe bossy w cyklu czterech prawdziwych inwazji, na
+   tych samych czterech arenach. Definicja JSON: name,boss_name,city
+   (basalt/echo/star/myth),style,element,hp,damage,silver.
+   admin live edytuj event26 live_zywiol definicja | JSON
+   Szablon bossa: v26_event_live_zywiol.
+6. OLC49 FABULA: grupy wzajemnie wykluczajacych sie questow. Wziecie lub
+   ukonczenie jednej galezi blokuje przyjecie pozostalych.
+   admin live edytuj wybor26 live_wybor questy | ["bandit_patrol","goblin_problem"]
+7. OLC50 FRAKCJE: bonus reputacji dla kazdej z pieciu istniejacych frakcji.
+   admin live edytuj frakcja26 miners reputation_percent | 160
+8. OLC51 EKONOMIA: procent ceny zakupu w standardowych sklepach 25–500%,
+   liczony po rabacie Charyzmy (100% = stara cena).
+   admin live edytuj ekonomia26 global shop_price_percent | 85
+
+PODGLAD: admin live olc26; admin live edytuj KATEGORIA ID POLE (bez wartosci).
+COFANIE: admin live edytuj KATEGORIA ID POLE | auto.
+PUBLIKACJA: admin live sprawdz; admin live porownaj;
+            admin live aktywuj POTWIERDZAM.
+Zmiany nie ruszaja danych postaci, dopoki nie zostana opublikowane.
+Wszystkie stare rewizje, OLC, EXP Bank, Multi Cap i quest reward_gold zostaja.
+
+OGRANICZENIA: NIE dodano wgrywania dowolnego kodu Python UOSS, nowych
+ras/klas, niezaleznych systemow gildii lub miast, autonomicznej magii ani
+calkiem nowych aktywnosci profesji. Nowe eventy reuzywaja istniejacych aren.
+Pelne Windows PREDEPLOY 60/60 PLUS musi byc potwierdzone przed wdrozeniem.
+
+SOULBOUND v25.00.0 - IMPERIUM OLC 36-43, 8 OBSZAROW (WINDOWS PREDEPLOY)
+=====================================================================
+Baza: caly kod v24.00.1. Bez danych SQLite graczy w ZIP. Wszystkie poprzednie
+poprawki (w tym reward_gold w bandit_patrol) pozostaja.
+STATUS: KANDYDAT DO TESTOW; PELNY WINDOWS PREDEPLOY 60/60 PLUS WYMAGANY.
+
+ZREALIZOWANE ROZSZERZENIA (8 OBSZAROW):
+1. OLC36 / UOSS: ręczne source_xp (uzywany przez dokladna sciezke EXP UOSS),
+   gold, silver i mithril (REALNA wyplata kazdemu czlonkowi druzyny),
+   istniejace HP/damage i blokady ponownego wyzwania. Brak zmian bez edycji.
+   admin live edytuj uoss black_rabite gold | 100
+   admin live edytuj uoss black_rabite silver | 0
+   admin live edytuj uoss black_rabite mithril | 0
+   admin live edytuj uoss black_rabite source_xp | 18900000
+   Bez recznego wpisu oryginalne 18.9 mln XP i oryginalna waluta pozostaja.
+   Zakres ochronny waluty nie moze przekroczyc SQLite safe total.
+2. OLC37 / PROFESJE: atomowy pakiet nowa profesja + nowe narzedzie + receptura.
+   admin live pakietfach 8_POL_NOWAFACH | 8_POL_FACHRECEPTURA
+   Dwie fazy walidacji, w razie bledu caly draft pozostaje bez zmian.
+   Istniejacy system zakupu narzedzia raz na postac i prawdziwy crafting.
+3. OLC38 / PRZYWOLANIA: edycja regeneracji HP poza walka (co 5 sekund),
+   w polaczeniu z juz dzialajacym HP, obrazeniami i mana.
+   admin live edytuj przywolany pajak regen_percent | 200
+   100% oznacza stare zachowanie. Bez wskrzeszenia martwych summonow.
+4. OLC39 / MULTI CAP: 80 przedzialow co 10 poziomow, na 1-800,
+   zmienna dodatnia premia do Multi Cap. Nigdy nie obniza EXP/gracza.
+   admin live edytuj capkroki global step_extra_exp | [100,200,300]
+5. OLC40 / SKILLE: pakietzmian skille | {"live_ID":{"mana":35}};
+   operacja 1-24 ID, 64 pol maks., rollback calego DRAFT przy bledzie.
+6. OLC41 / EVENTY: typ ciosu physical/magic, zywiol 4 prawdziwych inwazji,
+   globalna moc HP i damage ich bossow (100-500%).
+   admin live edytuj event basalt style | magic
+   admin live edytuj event basalt element | fire
+   admin live edytuj kontrola global event_hp_percent | 180
+   admin live edytuj kontrola global event_damage_percent | 140
+   Szablony bossow zmieniane przy publikacji, nie w trwajacej walce.
+7. OLC42 / FABULA: zbiorowe zaleznosci, opisy oraz nagrody questow w realnych
+   quest_edits; walidacja zaleznosci, bez resetowania postepu.
+   admin live fabula {"quests":{"bandit_patrol":{"reward_gold":100}}}
+8. OLC43 / SWIAT: atomowa edycja istniejacych lokacji, sklepów, przedmiotow,
+   NPC, questow, receptur i skilli wspolnym pakietem JSON.
+   admin live pakietzmian pokoje | {"square":{"name":"Nowa Nazwa"}}
+   Zachowany dotychczasowy respawn_percent i OLC poprzednich wersji.
+
+PODGLAD I PUBLIKACJA:
+admin live olc25
+admin live pola uoss black_rabite
+admin live edytuj uoss black_rabite gold
+admin live sprawdz
+admin live porownaj
+admin live aktywuj POTWIERDZAM
+admin live edytuj uoss black_rabite gold | auto
+
+OGRANICZENIA: Nie ma mozliwosci wgrywania dowolnych skryptow Python UOSS,
+tworzenia calkiem nowych kategorii wydarzen/miast/frakcji/gildii ani nowego
+systemu czynnosci profesji. Nowa profesja nadal potrzebuje receptury.
+Dla eventow dostepne sa CZTERY istniejace inwazje. Nowe ustawienia wymagaja
+publikacji i nie modyfikuja progresu ani SQLite graczy. UOSS source_xp
+przyznawane jest zgodnie z obecnym mechanizmem limitow/EXP Bank.
+
+TESTY: validation.v2500_olc36_43, v2400_olc28_35, v2401_quest_gold_olc
+oraz wszystkie starsze pakiety OLC. Przed wdrozeniem uzyj PREDEPLOY 60/60 PLUS.
+
+SOULBOUND v24.00.1 — NAPRAWA ZLOTA W OLC QUESTOW (WINDOWS)
+============================================================
+- Naprawiono edycję reward_gold, reward_silver i reward_mithril przez admin live.
+  Opublikowana zmiana nadpisuje również chronioną nagrodę ręczną
+  manual_currency_reward_coins; wcześniej np. bandit_patrol ignorował gold.
+- Po edycji nominału wypłata jest dokładną SUMĄ trzech nominałów, bez generatora
+  i bez losowej koperty. 100 złota + istniejące srebro = suma obu kwot.
+- Aby quest dawał dokładnie 100 złota: ustaw reward_gold na 100, reward_silver
+  na 0 i reward_mithril na 0, następnie sprawdz / aktywuj POTWIERDZAM.
+- Można używać obu form: admin live edytuj quest bandit_patrol reward_gold 100
+  oraz admin live edytuj quest bandit_patrol reward_gold | 100.
+- Podgląd OLC odróżnia teraz ręcznie ustawione nominały od automatycznych.
+- Zachowano postępy graczy, QUESTS ID, SQLite, EXP i wszystkie pliki v24.00.0.
+- Nowy test validation/v2401_quest_gold_olc.py sprawdza faktyczną wypłatę,
+  restart, zmianę rewizji i rollback. Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v24.00.0 — WIELKIE OLC 28–35, 8 OBSZARÓW, WINDOWS PREDEPLOY
+DATA: 21.10.2026. BAZA: pelny ZIP v23.00.0 (OLC27), zachowano poprzednie systemy.
+STATUS: KANDYDAT DO TESTOW. WYMAGANY PELNY WINDOWS PREDEPLOY 60/60 PLUS.
+
+ZAKRES FAKTYCZNIE ZREALIZOWANYCH FUNKCJI
+
+1. OLC28 — NOWE PROFESJE I NARZEDZIA (PODSTAWY Z DZIALAJACYM CRAFTINGIEM)
+- admin live nowafach live_ID | NAZWA | live_TOOL_ID | tool_type | NAZWA NARZEDZIA | ID_POKOJU | CENA | OPIS
+- Profesja i narzedzie powstaja w jednej transakcji OLC. Nowe narzedzie jest
+  prawdziwym przedmiotem type=tool; istnieje mozliwosc dodania go do sklepu.
+- Zakup nowego narzedzia: tylko raz na postac, trwale w bazie SQLite.
+- admin live fachreceptura live_RECEPTURA | NAZWA | live_PROFESJA | ID_PRODUKTU | {"iron_ore":2} | POZIOM | ILOSC | OPIS
+- Receptura rejestruje sie w uzywanym przez gre CRAFT_RECIPES; test sprawdza
+  powiazanie z narzedziem w prawdziwej metodzie crafting.recipe_tool_info.
+- Kontrola typu produktu, ID, istnienia skladnikow, poziomow 1–800, stacji
+  i przeciwdzialanie prostemu powielaniu narzedzi lub produktu w skladnikach.
+- Profesja i narzedzie otrzymuja mapowanie do istniejacego systemu poziomow.
+- Nowych sposobow wydobycia/zbierania przedmiotow gra nie generuje automatycznie.
+
+2. OLC29 — SKRYPTOWANE SUPERBOSSY UOSS (KONTROLOWANE PARAMETRY)
+- admin live edytuj uoss black_rabite max_hp_percent | 125
+- admin live edytuj uoss black_rabite damage_percent | 150
+- admin live edytuj uoss black_rabite lockout_hours | 48
+- Zmiany trafiaja do realnych szablonow UOSS i blokady ponownego wyzwania;
+  nie zmieniaja oryginalnego, scisle okreslonego EXP ani dropu.
+- Nie ma jeszcze dowolnego tworzenia skryptow nowych UOSS i wszystkich ich faz.
+
+3. OLC30 — PRZYWOLANIA
+- admin live edytuj przywolany pajak hp_percent | 150
+- admin live edytuj przywolany pajak damage_percent | 180
+- admin live edytuj przywolany pajak mana_percent | 110
+- Mnozniki wplywaja na istniejace skalowanie przywolania do wlasciciela;
+  zachowano domyslne wartosci 100%, bez domyslnych kar.
+
+4. OLC31 — MULTI CAP / EXP
+- admin live edytuj capkroki global step_extra_exp | [100,200,300]
+- Dodatkowy skladnik Multi Cap liczony arytmetycznie dla przedzialow
+  co 10 poziomow. Dla poziomow ponad ostatnim zdefiniowanym przedzialem
+  uzywana jest ostatnia premia. Domyslnie premia 0.
+- System EXP Bank, status poziomow i pozostale ustawienia OLC23 zachowane.
+- Nie zastapiono jeszcze wszystkich wzorow postepu dowolnym edytorem formul.
+
+5. OLC32 — KOMBINACJE SKILLI
+- admin live komboskill live_ID_SKILLA | fire | {"kind":"burn","chance":0.6,"power_percent":15,"ticks":2}
+- Jedna transakcja nadaje istniejacemu edytowalnemu skillowi typ zywiolu
+  i istniejacy rzeczywisty efekt statusowy (burn/poison/freeze/shock).
+- Nie jest to interpreter dowolnych nowych skryptow efektow.
+
+6. OLC33 — WYDARZENIA
+- admin live edytuj event basalt title | Najazd Stalowych Smokow
+- admin live edytuj event basalt boss_name | Stalowy Smok
+- Edytowane opisy stanowia dane zwracane do faktycznej logiki 4 inwazji.
+  Harmonogram/rotacja/offset pochodza z v22 i v23.
+- Nie dodano niezaleznego systemu tworzenia nowego piatego wydarzenia.
+
+7. OLC34 — FABULA, NPC I QUESTY
+- admin live fabula | {"quests":{"ID_QUESTA":["ID_POPRZEDNIKA"]}}
+- Atomowe ustawianie zaleznosci istniejacych questow oraz edycji dialogow
+  NPC przez istniejace walidowane katalogi, z zakazem cykli w fabule.
+- Rozgalezione moralne zakonczenia wymagaja jeszcze osobnej logiki gry.
+
+8. OLC35 — KONTROLA SWIATA
+- admin live edytuj kontrola global respawn_percent | 150
+- Prawdziwy czas odrodzenia mobow moze byc edytowany globalnie. Domyslnie
+  100% i brak kar przez skrocenie odrodzenia. Zachowane edytory stref,
+  pokojow, sklepow, portalow, NPC, questow oraz inne mozliwosci z v12–v23.
+- Pelen edytor logiki frakcji, gildii, twierdz i miast nie jest tu ukonczony.
+
+EDYCJA I BEZPIECZENSTWO
+- admin live olc24 — pomoc; admin live sprawdz — walidacja;
+  admin live aktywuj POTWIERDZAM — zapis zmian w SQLite;
+  admin live cofnij POTWIERDZAM — wroc do poprzedniej rewizji;
+  admin live edytuj KATEGORIA KLUCZ POLE | auto — reset pola.
+- Pola w OLC pokazują aktualne wartosci; nowe ustawienia sa nieaktywne
+  do zatwierdzenia. Wersja zachowuje strukture istniejacej bazy SQLite.
+- Profesji juz opublikowanych nie wolno usuwac, jesli mogloby to osierocic
+  trwale postepy postaci. Aktywne walki chronione przed edycja UOSS/summonow.
+- Przygotowano testy nowego OLC oraz zgodnosci wstecznej v19–v23.
+- To KANDYDAT. Ani lokalne regresje, ani kontrola skladni nie zastepuja
+  WINDOWS PREDEPLOY 60/60 PLUS na prawdziwej kopii bazy.
+- NIE wdrazac bez kopii soulbound.db, pozostawic SHM/WAL zgodnie z procedura.
+
+=== HISTORIA POPRZEDNICH WYDAN (ZACHOWANA) ===
+
+Soulbound v23.00.0 — OLC 27: MULTI CAP + INTELIGENTNE PRZYWOŁANIA + KALENDARZ INWAZJI
+Aktualna paczka: v23.00.0
+DATA: 21.10.2026. BAZA: pełny ZIP v22.00.0. KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+
+NOWE, NAPRAWDĘ DZIAŁAJĄCE FUNKCJE:
+1. OLC: Multi Cap bonus globalny 100–1000% (swiat global multi_cap_bonus_percent).
+2. OLC: dziesięć osobnych mnożników Multi Cap 100–1000% jako JSON
+   (multi_cap_category_bonus), z sumowaniem składników identycznym jak w expcap.
+   Dostępne klucze: postać, dusza, soul tier, broń duszy, statystyki,
+   klasy, profesje, narzędzia, skille, wzniesienia.
+3. OLC: opcjonalne wliczanie WSZYSTKICH odblokowanych klas do Multi Cap
+   bez powtórzeń; zapisane klasy archiwalne podnoszą cap, ale NIE dają
+   drugiej aktywnej klasy, skilli do użycia ani statów w walce.
+   Domyślnie false: zgodność z v7.10.1. Włącz jawnie przez OLC.
+4. Inteligentne przywołania 22 klas: próg osłony 5–100% HP,
+   próg egzekucji 1–95% HP celu i częstotliwość akcji specjalnej 1–12 tur.
+   Pola guard_threshold_percent, execute_threshold_percent, tactic_interval.
+   Stare zdolności/role/bonusy AI i skalowanie właściciela pozostają.
+5. Harmonogram inwazji: event_offset_minutes (0–719), prawdziwy
+   czas startu/końca jest przesuwany razem z rzeczywistymi spawnami.
+6. Nowe komendy NVDA: admin live olc23; admin live kalendarz 8
+   (teraz i następne wydarzenia, czas lokalny serwera).
+7. Wszystkie ustawienia w istniejącym SQLite OLC: DRAFT, walidacja,
+   podgląd obecnej i wpisanej wartości, aktywuj POTWIERDZAM, auto,
+   historia rewizji i cofnij POTWIERDZAM; restart przywraca dane.
+8. Domyślne parametry zachowują v22.00.0; statystyki postaci, EXP Bank,
+   nagrody UOSS i skrypty Black Rabite/Yiazmat/Serpentarius bez zmian.
+
+PRZYKŁADY:
+admin live olc23
+admin live edytuj swiat global multi_cap_bonus_percent
+admin live edytuj swiat global multi_cap_bonus_percent | 150
+admin live edytuj swiat global multi_cap_category_bonus | {"klasy":200,"profesje":150}
+admin live edytuj swiat global multi_cap_all_owned_classes | true
+admin live edytuj przywolanie Strażnik guard_threshold_percent | 95
+admin live edytuj przywolanie Berserker execute_threshold_percent | 55
+admin live edytuj przywolanie Mag tactic_interval | 2
+admin live edytuj swiat global event_offset_minutes | 30
+admin live kalendarz 8
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+admin live edytuj swiat global multi_cap_bonus_percent | auto
+
+OGRANICZENIA: nowe profesje/narzędzia, własne skrypty UOSS,
+nowe reguły frakcji/gildii i edycja kosztów/HP summonów
+wymagają osobnych zmian silnika. Nie są w v23.00.0.
+Przed wdrożeniem wymagane: backup SQLite + Windows PREDEPLOY 60/60 PLUS.
+Brak raportów TXT w ZIP; tylko CHANGELOG_PL.txt.
+
+---
+Soulbound v22.00.0 — WIELKIE OLC 19–26: ROZBUDOWA OŚMIU DZIEDZIN
+DATA: 21.10.2026. BAZA: pełna v21.00.0. KANDYDAT — Windows PREDEPLOY 60/60 PLUS WYMAGANY.
+
+CO NAPRAWDĘ DODAJE TA WERSJA:
+1. PRADAWNI BOSSOWIE V500: edycja trzech rzeczywistych faz HP dla 12 bossów
+   (progi, nazwy, procent ataku bossa, żywioły, czas fazy); nie dotyka UOSS
+   ani Black Rabite/Yiazmat/Serpentariusa. Pole mob: olc_ancient_phases.
+2. PRZYWOŁANIA 22 KLAS: admin może edytować zdolność, rolę AI i bonus taktyki
+   (100–300% dotychczasowej wartości), bez poziomów summonów i bez kar od statów
+   właściciela. Pola: ability, role, bonus_percent. Realny plan_for_class korzysta
+   z opublikowanego profilu. Nie są to edytory HP/kosztów/recept summonów.
+3. PROFESJE/RZEMIOSŁO: pozostają tworzenie przedmiotów/receptur, zasady
+   profesji/narzędzi/surowców; dodatkowo edycja profession_xp istniejącej
+   receptury. Nie są jeszcze obsługiwane NOWE rodzaje profesji czy narzędzia,
+   które wymagałyby integracji z bazą i całym panelem postaci.
+4. SKILLE: zachowano edytor ~5461 istniejących skilli, dodawanie nowych
+   i obsługę realnych statusów poison/burn/freeze/shock oraz ich czasu/procentu.
+   OLC nie przyjmuje dowolnego nowego kodu efektów.
+5. BALANS: nowy globalny procent BONUSU doświadczenia 100–300 w zwykłej walce
+   dla osi EXP postaci, klasy, Duszy, statystyk, naliczany przed EXP bank/cap.
+   Specjalne UOSS, nagrody z dokładnego source_xp oraz Fame/EP bez zmian.
+   Multi Cap i wymagań EXP nie ruszamy, EXP nie jest nigdy obniżany.
+6. EVENTY: nowe ustawienie długości rotacji inwazji (30–720 minut) i kolejności
+   4 istniejących inwazji (wszystkie muszą pozostać), bez nowych fałszywych eventów.
+7. NPC/FABUŁA: nadal edycja dialogów warunkowych po questach, łańcuchy,
+   wielocelowe kill/collect/talk i prawdziwe liczniki SQLite.
+8. ŚWIAT: zachowane katalogi pokoi, mobów, sklepów, NPC i receptur,
+   bezkolizyjne przejścia między nowymi lokacjami, edycja respawnu i balans grup.
+
+NOWE KOMENDY ADMIN LIVE (zawsze DRAFT — publikacja dopiero po POTWIERDZAM):
+admin live megaupdate
+admin live pola przywolanie Druid
+admin live edytuj przywolanie Druid bonus_percent
+admin live edytuj przywolanie Druid bonus_percent | 180
+admin live edytuj przywolanie Mag role | mark
+admin live edytuj przywolanie Nekromanta ability | Szept Otchłani
+admin live edytuj swiat global combat_xp_bonus_percent
+admin live edytuj swiat global combat_xp_bonus_percent | 150
+admin live edytuj swiat global event_cycle_minutes | 120
+admin live edytuj swiat global event_order | ["basalt","echo","star","myth"]
+admin live edytuj mob v4000_ancient_00_boss olc_ancient_phases
+admin live edytuj mob v4000_ancient_00_boss olc_ancient_phases | [JSON_3_FAZ]
+admin live edytuj receptura ID profession_xp | 1000
+admin live sprawdz
+admin live porownaj 30
+admin live aktywuj POTWIERDZAM
+admin live edytuj przywolanie Druid role | auto
+admin live edytuj swiat global event_cycle_minutes | auto
+admin live edytuj mob v4000_ancient_00_boss olc_ancient_phases | auto
+
+BEZPIECZEŃSTWO I ZGODNOŚĆ:
+- Jedna historia wersji OLC w SQLite + rollback, działanie w pamięci do publikacji,
+  ścisła walidacja JSON, brak exec/eval, import wyłącznie z LIVE_CONTENT.
+- Ochrona NPC 1/pokój, danych postaci, progression cap i zapisanych questów.
+- Nowe bonusy EXP nie łamią oryginalnej ścieżki exact source XP UOSS.
+- Walidacja całego pliku przy importach; brak dodatkowych plików raportowych TXT.
+- Test v22: 121 PASS (w tym realne funkcje, odczyt po ponownym
+  uruchomieniu usługi, walidacja błędnych danych, cofnięcie z SQLite).
+- Testy regresyjne v19/v20/v21: 64+52+49+267 PASS.
+- Pełny PREDEPLOY 60/60 PLUS NA WINDOWS na kopii twojej rzeczywistej bazy: WYMAGANY.
+
+OGRANICZENIA: pełne edytory nowych klas, nowych profesji/narzędzi, formuł Multi Cap,
+frakcji, gildii i skryptów UOSS nie są częścią v22. Nie należy traktować ich
+jako wdrożonych. Ta aktualizacja rozszerza osiem obszarów OLC w bezpiecznym
+zakresie już działających systemów.
+
+Soulbound v21.00.0 — OLC 18.0: STRATEGIE FAZOWE BOSSÓW I KONTROLA TAKTYK
+DATA: 21.10.2026. BAZA: pełny ZIP v20.00.0; zachowane wszystkie starsze pliki i systemy.
+KANDYDAT do Windows PREDEPLOY 60/60 PLUS — wdrażaj dopiero po PASS.
+
+NOWOŚĆ: DZIEWIĘĆ NIEZALEŻNYCH STRATEGII ZWYKŁEGO BOSSA, ZALEŻNYCH OD FAZY HP:
+1. olc_boss_phase_tactic_intervals — co ile tur atak żywiołowy (2–12).
+2. olc_boss_phase_guardian_intervals — co ile tur nowa fala pomocników (2–12).
+3. olc_boss_phase_guard_thresholds — próg HP dla osłony sojusznika (5–95%).
+4. olc_boss_phase_support_intervals — częstotliwość osłony (2–12).
+5. olc_boss_phase_support_durations — czas osłony (1–30 sekund).
+6. olc_boss_phase_support_priorities — kogo chronić: weakest/strongest.
+7. olc_boss_phase_rally_hp_thresholds — kiedy boss przyspiesza kontratak (5–95% HP).
+8. olc_boss_phase_rally_intervals — co ile tur kontratak (2–12).
+9. olc_boss_phase_rally_durations — czas wzmocnienia kontrataku (1–30 sekund).
+
+KAZDE POLE: obiekt JSON faz "0"–"5", np. {"0":5,"2":3,"3":2}.
+- Można ustawić tylko potrzebne fazy; niewymienione dziedziczą dotychczasową konfigurację
+  bossa i natywne AI. Nie zmienia się zachowanie przy braku tych pól.
+- Każda wartość jest niezależna; nie ma ustawiania globalnego limitu obrażeń
+  gracza, liczby pomocników ani EXP.
+- OLC waliduje pojedyncze pole i cały import/publikację; odrzuca float, bool,
+  fazę poza 0–5, nieznane priorytety i nieskryptowanych przeciwników niebędących bossami.
+- Nie edytuje UOSS, Black Rabite ani skryptów superbossów. Dotychczasowy system
+  nagród pomocników i EXP Bank pozostaje w całości.
+- Podgląd `admin live edytuj` podaje wartość obecną, stan auto/dziedziczenia,
+  oraz komendę gotową do skopiowania w kliencie NVDA.
+- Edycja zapisuje najpierw DRAFT; zmiany obowiązują dopiero po
+  `admin live aktywuj POTWIERDZAM`.
+- Cofnięcie pojedynczego pola przez `auto` albo globalna historia OLC.
+- Zmiany definicji zapisują się w standardowej rewizji SQLite, bez resetu postaci.
+
+PRZYKŁADOWE KOMENDY:
+admin live pola mob bandit_captain
+admin live edytuj mob bandit_captain olc_boss_phase_tactic_intervals
+admin live edytuj mob bandit_captain olc_boss_phase_tactic_intervals | {"0":5,"2":3,"3":2}
+admin live edytuj mob bandit_captain olc_boss_phase_guardian_intervals | {"0":6,"2":3}
+admin live edytuj mob bandit_captain olc_boss_phase_support_priorities | {"0":"weakest","2":"strongest"}
+admin live edytuj mob bandit_captain olc_boss_phase_rally_durations | {"2":22}
+admin live porownaj 50
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+admin live edytuj mob bandit_captain olc_boss_phase_tactic_intervals | auto
+
+TESTY DOSTARCZONE Z PACZKĄ:
+- validation/v2100_olc18_phase_strategy.py — 267 kontroli PASS: ścisła walidacja,
+  decyzje AI podczas walki, chronione UOSS, przygotowanie, zapis w SQLite, odczyt
+  po ponownym otwarciu oraz cofanie ustawień.
+- Regresje v19: 64 PASS; v20: 49 + 52 PASS.
+- Nowa walidacja włączona również do predeploy_check.py i predeploy_full.py.
+- Pełne 60/60 PLUS na Windows z rzeczywistą bazą: WYMAGANE PRZED WDROŻENIEM.
+- Brak plików raportowych TXT w ZIP; tylko CHANGELOG_PL.txt.
+
+Soulbound v20.00.0 — OLC 17.0: WIELKIE TAKTYKI BOSSÓW I POTĘGA EFEKTÓW WALKI
+DATA: 21.10.2026. BAZA: kompletna v19.00.0 — bez usunięcia wcześniejszych plików.
+KANDYDAT do Windows PREDEPLOY 60/60 PLUS — nie wdrażać bez pełnego zaliczenia.
+
+NOWOŚCI — NAPRAWDĘ WYKONYWANE PRZEZ ISTNIEJĄCY SILNIK:
+1. Dla poison/burn nowych i wspieranych istniejących skilli ofensywnych:
+   - power_percent: opcjonalnie 1–200% faktycznego trafienia na impuls;
+   - ticks: opcjonalnie 1–5 możliwych impulsów w turach przeciwnika;
+   - bez nowych globalnych limitów obrażeń; brak konfiguracji = identycznie jak v19.
+   - freeze i shock dalej maks. jedna odebrana akcja; nie przyjmują powyższych dwóch pól.
+2. Zwykli bossowie, nowe pole olc_boss_guardian_hp_threshold = 1–100:
+   - przywoływanie pomocników może zacząć się dopiero poniżej progu HP;
+   - dotychczasowe przywołania bez zmian, gdy brak konfiguracji.
+3. olc_boss_guardian_phase_roles = JSON: faza HP -> lista ról pomocników
+   - osobne role dla faz 0–5, np. {"0":["zbrojny"],"2":["uzdrowiciel","furia"]}.
+4. olc_boss_phase_element_cycles = JSON: faza HP -> kolejność żywiołów
+   - np. {"0":["fire","ice"],"2":["holy","lightning"]};
+   - istniejący pojedynczy wymuszony żywioł ma nadal pierwszeństwo.
+5. olc_boss_rally_hp_threshold = 5–95: próg wcześniejszego kontrataku.
+6. OLC: ścisła walidacja faz/żywiołów/ról/zakresów przed publikacją,
+   podgląd obecnie/przygotowane, cofanie przez auto, standardowe SQLite i NEWS.
+
+PRZYKŁADOWE KOMENDY:
+admin live edytuj skill live_jadowe_ciecie olc_status | {"kind":"poison","chance":0.45,"power_percent":20,"ticks":5}
+admin live edytuj mob bandit_captain olc_boss_guardian_hp_threshold | 65
+admin live edytuj mob bandit_captain olc_boss_guardian_phase_roles | {"0":["zbrojny"],"2":["uzdrowiciel","furia"]}
+admin live edytuj mob bandit_captain olc_boss_phase_element_cycles | {"0":["fire","ice"],"2":["holy","lightning"]}
+admin live edytuj mob bandit_captain olc_boss_rally_hp_threshold | 35
+admin live porownaj 50
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+admin live edytuj mob bandit_captain olc_boss_guardian_phase_roles | auto
+
+OCHRONA ISTNIEJĄCEJ GRY:
+- Black Rabite, przywołania UOSS, nagrody pomocników i skryptowani superbossowie bez zmian.
+- EXP, Multi Cap, EXP Bank, HP graczy, profesje, narzędzia, wyposażenie, questy i SQLite postępów bez zmian.
+- Nie wykonuje migracji danych graczy ani kodu skryptowego przez OLC.
+- Nowe ustawienia bossów działają na nieskryptowanych bossach z normalnym AI.
+
+TESTY LOKALNE:
+- v20 nowe walidacje/status/impulsy: 49 kontroli PASS (bez serwera).
+- v19 istniejące efekty statusów: 64 kontrole PASS.
+- Rzeczywiste ścieżki: pomocnicy i blokada UOSS, fazowy atak holy,
+  próg kontrataku: osobne testy PASS.
+- Test publikacji nowego OLC przez pełny katalog/SQLite: PRZERWANY limitem środowiska, nie PASS.
+- Całe źródło Python: składnia PASS; archiwum ZIP integralne.
+- PEŁNY Windows PREDEPLOY 60/60 PLUS: WYMAGANY.
+
+Soulbound v19.00.0 — OLC 16.0: PRAWDZIWE EFEKTY WALKI UMIEJĘTNOŚCI
+
+BAZA: pełny Soulbound v18.00.0, bez usuwania starszych systemów.
+- OLC: ręczna konfiguracja efektu zwykłego skilla ofensywnego: poison, burn, freeze, shock.
+- Obsługa istniejących skilli damage/aoe_damage (bez skryptów specjalnych) oraz nowo dodanych live_ skilli.
+- Komenda: admin live edytuj skill ID olc_status | {"kind":"poison","chance":0.32}
+- Cofnięcie konfiguracji: admin live edytuj skill ID olc_status | auto
+- Czas, liczbę impulsów, limity kontroli i ostrożność wobec bossów pobiera wspólny silnik statusów przywołań.
+- Działanie po faktycznym trafieniu; nie podczas look/score, nie po nieskutecznym rzuceniu, nie na martwych mobach.
+- Trucizna/podpalenie: impulsy obrażeń w turach moba; zamrożenie/porażenie: najwyżej jedna utracona akcja.
+- Efekty nie przedłużają się przez spam, mają wspólną pulę cooldownów z przywołaniami; specjalne skrypty superbossów bez zmian.
+- Statystyki postaci, wzory obrażeń bezpośrednich, EXP, EXP Bank, Fame, EP i nagrody bez zmian.
+- Zatwierdzenie, NEWS i zapis/odczyt SQLite: przez istniejący system OLC.
+- Przed wdrożeniem pełny Windows PREDEPLOY 60/60 PLUS.
+
+Soulbound v18.00.0 — OLC 15.0: WIELOCELOWE QUESTY FABULARNE
+
+- Nowe questy multi_objective: zabijanie, rozmowy i fizyczne zbieranie w jednym zadaniu.
+- Komenda admin live nowywielocelowy; 2–12 celów, bez skryptów wykonywalnych.
+- Kill/talk: trwałe osobne liczniki w istniejącej tabeli SQLite, bez ponawiania aliasów.
+- Przedmioty sprawdzane i pobierane przy oddaniu, po spełnieniu wszystkich celów.
+- Atomowa edycja celów komendą admin live celezmien QUEST | JSON; auto-przeliczenie needed.
+- Podgląd admin live cele QUEST; ochrona zmian celów aktywnych zadań.
+- Istniejące nagrody, EXP, Multi Cap, EXP Bank, Soundpack, NEWS i klasy bez zmiany formuł.
+- Przed wdrożeniem konieczny Windows PREDEPLOY 60/60 PLUS.
+
+Aktualna paczka: v17.00.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v17.00.0 — OLC 14.0: WIELKIE ŁAŃCUCHY QUESTÓW I RZEMIOSŁO W LOCIE.
+BAZA: pełna v16.00.0, włącznie ze wszystkimi starszymi systemami.
+
+NOWOŚCI OLC14 (dane tylko, bez eval i restartu):
+- Każdy istniejący quest może wymagać ukończenia 0–8 innych questów: requires_quests.
+- Poprzednie requires_quest jest zachowane; obie reguły działają łącznie.
+- Warunki są sprawdzane przy przyjmowaniu i wyświetlaniu oferty; zaliczone wcześniej zadania nie są resetowane.
+- Publikacja sprawdza błędne ID, duplikaty, odwołania do samego siebie oraz cykle w całym katalogu.
+- Grupa receptur: ilość produktu (quantity), poziom profesji, poziom narzędzia i EXP narzędzia — tylko pola naprawdę obecne.
+- Grupa przedmiotów: cena, wymagany poziom, leczenie, obrona, atak oraz istniejące parametry EQ — tylko pola naprawdę obecne.
+- Warunkowy dialog NPC odblokowywany po ukończeniu kilku wybranych questów; stary dialog pozostaje bez zmian.
+- Limity 100 dopasowań w grupie; bez częściowego zapisu i bez zmiany po samym podglądzie.
+- Wszystkie zmiany trafiają do standardowej rewizji SQLite, cofania zgodnych zmian i pojedynczego NEWS.
+
+PRZYKŁADOWE KOMENDY:
+admin live zaleznosci bandit_patrol
+admin live edytuj quest bandit_patrol requires_quests
+admin live edytuj quest bandit_patrol requires_quests | ["temple_rats","haldor_crafting_order"]
+admin live edytuj quest bandit_patrol requires_quests | auto
+admin live edytuj npc ID_NPC olc_dialogue_after_quests | {"quests":["temple_rats","bandit_patrol"],"text":"Dobra robota."}
+admin live grupapodglad receptura iron_ingot quantity
+admin live grupazmien receptura iron_ingot quantity | 2
+admin live grupapodglad przedmiot healing_potion heal
+admin live grupazmien przedmiot healing_potion heal | 40
+admin live porownaj 50
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+
+OGRANICZENIA: to wiele WARUNKÓW ODBLOKOWANIA, nie nowe wielocelowe
+mechaniki kill+collect+talk w jednym queście. Poison/Paralysis, osobne klasy,
+nowe profesje i autorskie skrypty superbossów nie są tutaj deklarowane jako gotowe.
+Przed instalacją obowiązuje własny Windows PREDEPLOY 60/60 PLUS.
+
+--- HISTORIA WCZEŚNIEJSZYCH WERSJI ---
+Aktualna paczka: v16.00.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v16.00.0 — OLC 13.0: WIELKI EDYTOR GRUPOWY EXP, NAGRÓD I ODNOWIEŃ.
+BAZA: pełna v15.40.0. Zachowane wszystkie klasy, questy, moby, profesje,
+narzędzia, historie postaci, SQLite, Soundpack i mechaniki walki.
+
+NOWE komendy (tylko administrator, bez restartu):
+- admin live grupapodglad quest bandit reward_xp
+- admin live grupazmien quest bandit reward_xp | 50000
+- admin live grupapodglad quest elia_ repeat_cooldown
+- admin live grupazmien quest elia_ reward_xp | 10000
+- admin live grupapodglad surowiec iron prof_scale
+- admin live grupazmien surowiec iron prof_scale | 80
+- admin live grupazmien surowiec iron tool_fixed | 0
+- admin live grupazmien surowiec iron prof_mode | auto
+- admin live grupapodglad mob bandit silver
+- admin live grupazmien mob bandit silver | 100
+- admin live grupazmien mob bandit respawn_seconds | 600
+- admin live grupazmien skill warrior_power_slash mana | 50
+- admin live grupazmien skill warrior_power_slash mana | auto
+
+PODGLĄD: rzeczywiste ID, aktywne i przygotowane wartości; tylko odczyt.
+Zmiana: wszystkie pasujące ID jednym atomowym pakietem roboczym (do 100).
+Prefiks musi mieć 3-80 znaków ASCII, bez '*' i innych wildcardów.
+Zmiany celu/rodzaju questów, identyfikatorów skilli i dowolnego kodu są zablokowane.
+Zmiana EXP questów działa na przyszłe wypłaty, nie resetuje postępu graczy.
+Surowce: 0 i wartości poniżej 100% są poprawne; auto wraca do algorytmu.
+Skille: wyłącznie istniejące pola w istniejących umiejętnościach.
+Błędna wartość w choć jednym obiekcie unieważnia CAŁĄ operację.
+
+Publikacja bez restartu (jedna rewizja SQLite i jeden NEWS) dopiero po:
+admin live porownaj 50
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+Można anulować wersję roboczą lub skorzystać z bezpiecznego cofania OLC.
+OLC nie wykonuje arbitralnego Pythona. Black Rabite/UOSS pozostają nietknięte,
+a EXP, Multi Cap, EXP Bank, Fame, EP i istniejące obrażenia nie zmieniają się
+bez świadomej decyzji administratora.
+
+TESTY: walidacja OLC 13.0; pełne Windows PREDEPLOY 60/60 PLUS WYMAGANE.
+NIE WDRAŻAĆ PRZED PASS WSZYSTKIE 60 ETAPÓW PLUS.
+
+==============================================================================
+
+Aktualna paczka: v15.40.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v15.40.0 — OLC 12.0: EDYCJA NAGRÓD POMOCNIKÓW ZWYKŁYCH BOSSÓW.
+- admin live edytuj mob bandit_captain olc_boss_guardian_rewards
+- admin live edytuj mob bandit_captain olc_boss_guardian_rewards | {"xp":100000,"silver":500,"gold":2,"mithril":0}
+- admin live edytuj mob bandit_captain olc_boss_guardian_rewards | auto
+- Zmiana jest atomowa, publikowana z NEWS i odwracalna do automatu. Podgląd pokazuje obecną wartość.
+- Bez ręcznej konfiguracji dawny EXP i zerowe pieniądze pomocników pozostają bez zmian.
+- Nagrody dotyczą tylko pomyślnie pokonanych zwykłych strażników, dla każdego gracza w grupie w pokoju.
+- Dotychczasowe mnożniki Double EXP, Multi Cap i EXP Bank działają dla nagrody EXP.
+- UOSS Black Rabite i inni skryptowani superbossowie NIE są modyfikowani.
+- Brak nowego systemu dropu, Fame, EP i zaliczania questów dla pomocników.
+- Pełny Windows PREDEPLOY 60/60 PLUS wymagany przed wdrożeniem.
+
+Aktualna paczka: v15.30.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v15.30.0 — OLC 11.0: FALE POMOCNIKÓW ZWYKŁYCH BOSSÓW.
+- Nowe pola mob OLC: olc_boss_guardian_interval (2–12 rund), olc_boss_guardian_roles (lista 1–10 znanych ról).
+- Domyślna konfiguracja wszystkich istniejących bossów BEZ ZMIAN (co 3 rundy, dotychczasowa rotacja ról).
+- UOSS Black Rabite, skryptowani superbossowie, ich EXP i nagrody walutowe BEZ ZMIAN.
+- Pomocnicy nadal dostają EXP zgodnie z dawną funkcją; obecny silnik nie przyznaje im automatycznie waluty.
+- Pełna walidacja danych OLC, podgląd pól, cofnięcie do auto i NEWS przy zatwierdzaniu.
+- Nowy test walidacji, przywołania i publikacji ustawień; predeploy 60/60 PLUS wymagany.
+
+Aktualna paczka: v15.20.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v15.20.0 — OLC 10.0: PASYWNE WZMOCNIENIA I TAKTYKA OCHRONY BOSSÓW.
+Pełna kontynuacja v15.10.0, bez kasowania starych danych ani zmiany EXP i obrażeń bazowych.
+
+NOWE — wyłącznie po zatwierdzeniu przez admin live aktywuj POTWIERDZAM:
+- Skill boost dla 22 istniejących klas korzysta z realnego pasywnego bonusu już
+  istniejącego silnika. Po nauczeniu bonus jest stale aktywny; skill NIE ma
+  many ani zwykłego cooldownu. EFFECT to mnożnik 1.01–1.90.
+- Przykład: admin live nowyskill live_moc_burzy | Wojownik | Moc Burzy | boost | 50 | 0 | 1.0 | strength | Stałe wzmocnienie | 1.20
+- Zwykły boss: zmiana sposobu wyboru osłanianego, RANNEGO sojusznika.
+- admin live edytuj mob bandit_captain olc_boss_support_priority | strongest
+- admin live edytuj mob bandit_captain olc_boss_support_priority | weakest
+- admin live edytuj mob bandit_captain olc_boss_support_priority | auto
+- Pola są walidowane. Specjalne skrypty superbossów pozostają nienaruszone.
+- Podgląd: admin live edytuj mob bandit_captain olc_boss_support_priority;
+  admin live porownaj 20; admin live sprawdz; publikacja generuje jeden NEWS.
+
+TO NIE SĄ NOWE MECHANIKI trucizny DoT, paraliżu, summonów bossów ani nowych
+profesji. Starsze zawartości działają jak dotychczas, jeśli nie zmienisz OLC.
+Pełny Windows PREDEPLOY 60/60 PLUS nadal WYMAGANY przed wdrożeniem.
+
+==============================================================================
+
+Aktualna paczka: v15.10.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v15.10.0 — OLC 9.0: STABILNE ROZSZERZENIA SKILLI, BOSSOW I RECEPTUR.
+Pełna kontynuacja v15.00.0. Zachowane starsze ID, questy, XP, EXP Bank, Multi Cap, Soundpack, SQLite.
+
+NOWE (każdorazowo dopiero po admin live aktywuj POTWIERDZAM):
+- Nowe skille: opcjonalny cooldown 0-3600 sekund. 0 = zwykły skill bez limitu;
+  dodatnia liczba = już istniejący mechanizm odnowienia. Brak zmian istniejących skilli.
+- admin live nowyskill live_ID | KLASA | NAZWA | damage | 40 | 10 | 2.0 | intelligence | OPIS | - | fire | 90
+- admin live edytuj skill live_ID cooldown | 60 (tylko nowy skill OLC).
+- admin live edytuj skill live_ID element | ice (lub auto; tylko damage/aoe_damage).
+- Zwykli bossowie: cykl znanych żywiołów w taktycznym ataku w wybranej kolejności;
+  skrypty superbossów oraz starsze szablony pozostają nietknięte.
+- admin live edytuj mob bandit_captain olc_boss_element_cycle | ["fire","ice","lightning"]
+- admin live edytuj mob bandit_captain olc_boss_element_cycle | auto
+- Nowa receptura od zera, ale na bazie rzeczywistego profilu profesji i narzędzia
+  używanego już przez silnik. Dozwolone są istniejące składniki, produkt i stacja.
+- admin live nowareceptura live_przyklad | NOWA NAZWA | Kowalstwo | hammer | iron_ingot | {"iron_ore":2} | forge | 40 | 1 | OPIS
+  (Powyższy identyfikator narzędzia jest wyłącznie przykładowy; sprawdź w recepturyprof.)
+- Komendy podglądu: admin live panel, pola, edytuj [bez wartości], porownaj, sprawdz.
+- NEWS: jedna wiadomość po udanym zatwierdzeniu; brak NEWS podczas podglądu.
+
+POZOSTAŁE OGRANICZENIA: bez wykonywania arbitralnego Pythona; nie wprowadzono
+nowych profesji/narzędzi, nowego DoT/paraliżu ani autorskich skryptów superbossów.
+Nie podmieniaj tego ZIP-a na żywym serwerze przed pełnym Windows 60/60 PLUS PASS.
+
+==============================================================================
+
+Aktualna paczka: v15.00.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v15.00.0 — ABSOLUTNA KONTROLA SWIATA: OLC 8.0 (rozszerzenia 8 obszarów)
+BAZA: pełna v14.00.0; zachowane wszystkie historyczne pliki, ID, SQLite, Soundpack, NEWS.
+NIE WDRAŻAĆ PRZED WYNIKIEM WINDOWS PREDEPLOY 60/60 PLUS PASS.
+
+NOWE SPRAWDZALNE FUNKCJE:
+1. SKILLE: nowe ataki damage/aoe_damage mogą mieć jawny żywioł (fire, ice,
+   poison itd.) z istniejącego silnika; walidacja odrzuca nieznane elementy
+   i żywioły na leczeniu. Komenda nowyskill przyjmuje 11. argument: żywioł,
+   a 10. argument to EFFECT lub znak -. Trucizna jest żywiołem, NIE nowym DoT.
+2. ZWYKLI BOSSOWIE: olc_boss_guard_threshold 5–95 (%) steruje momentem
+   osłaniania rannego sojusznika; auto przywraca 55%. Realny kod AI odczytuje pole.
+   Skrypty superbossów pozostają nietknięte.
+3. QUESTY: questmaterialy ID | JSON atomowo edytuje cele 2–8 surowców
+   w istniejącym collect_resource_set, aktualizuje target i needed.
+   Serwer blokuje publikację zmienionych celów, kiedy quest jest aktywny.
+4. EKWIPUNEK: nowamagiaeq tworzy zbroję/akcesorium z atakiem, obroną,
+   magic_attack, magic_defense, weapon_power i 1–6 statystykami. Korzysta
+   z realnego licznika premii wyposażenia, bez nowego typu broni.
+5. PROFESJE: recepturyprof PROF [STRONA] przeszukuje rzeczywiste receptury
+   i pokazuje ID, nazwę, poziom. Nadal działa kopiowanie i edycja receptur.
+6. BALANS: respawngrupa PREFIKS SEKUNDY przygotowuje zmianę odnowienia
+   1–100 istniejących szablonów mobów. Nadal wymagane zatwierdzenie.
+7. NPC/FABULA: olc_dialogue_after_quest w istniejącym NPC (JSON
+   {"quest_id":"ID","text":"Tekst"}) daje nowy dialog po ukończeniu questa,
+   rozpoznawany przez rzeczywistą komendę talk; bez własnych skryptów.
+8. PANEL: panel KATEGORIA ID pokazuje rzeczywisty obiekt, aktywne
+   nadpisanie oraz robocze zmiany. Odczyt nie zapisuje ani nie publikuje NEWS.
+
+PRZYKŁADOWE POLECENIA ADMINISTRATORA (przygotowują zmianę):
+- admin live nowyskill live_lod_test | Mag | Szron Próby | damage | 40 | 20 | 1.5 | intelligence | Lodowy atak | - | ice
+- admin live edytuj mob bandit_captain olc_boss_guard_threshold | 70
+- admin live questmaterialy live_quest_materialy | {"iron_ore":4,"copper_ore":2}
+- admin live nowamagiaeq live_pancerz_magii | Pancerz Magii | body | 100 | 10 | 40 | 30 | 20 | {"strength":5,"wisdom":4} | 40 | 3000 | Magiczna zbroja
+- admin live recepturyprof Kowalstwo 1
+- admin live respawngrupa bandit_ 600
+- admin live edytuj npc fisher_tomas olc_dialogue_after_quest | {"quest_id":"fisher_30_fish","text":"Brawo, mistrzu wędkarstwa!"}
+- admin live panel quest bandit_patrol
+- admin live porownaj 50
+- admin live sprawdz
+- admin live aktywuj POTWIERDZAM
+UWAGA: questmaterialy wymaga istniejącego zadania collect_resource_set;
+recepturyprof i panel są wyłącznie odczytem.
+
+WE WSZYSTKICH OŚMIU OBSZARACH NIE MA DOWOLNEGO PISANIA KODU W LOCIE.
+Braki: osobne statusy trucizny/paraliżu, skryptowane superbossy,
+questy kill+collect+talk jednocześnie, całkiem nowe profesje/narzędzia,
+owe silnikowe globalne wzory balansu oraz programowalne wydarzenia.
+To nie są obiecane funkcje tego ZIP-a.
+
+Wszystkie nowe wpisy to dane walidowane. Nie zmieniono EXP, Multi Cap,
+EXP Banku, Fame ani EP poza jawnie zatwierdzanymi zmianami OLC.
+Zmiany aktywuje tylko admin live aktywuj POTWIERDZAM (jedna wiadomość NEWS).
+
+==============================================================================
+
+Aktualna paczka: v14.00.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v14.00.0 — WLADCA SWIATA: OLC 7.0 (duża, skumulowana aktualizacja)
+BAZA: pełna v13.10.0; zachowane wszystkie poprzednie funkcje.
+TESTY NA WINDOWS WYMAGANE. NIE WDRAŻAĆ BEZ 60/60 PLUS PASS.
+
+NOWE FUNKCJE OLC 7.0 (tylko istniejące mechaniki silnika):
+1. Nowe skille typu execute (Egzekucja) — efekt execute_mult 1.0–2.0,
+   oparty na rzeczywistej istniejącej formule walki. Wszystkie stare skille zostają.
+2. Zwykli bossowie: olc_boss_support_interval 2–12 rund,
+   olc_boss_support_duration 1–30 sekund, olc_boss_rally_interval 2–12 rund,
+   olc_boss_rally_duration 1–30 sekund; auto przywraca stare zachowanie.
+   Unikatowe/superbossy z własnymi skryptami pozostają chronione.
+3. Nowy quest zasobowy z 2–8 różnymi surowcami korzysta z istniejącego
+   collect_resource_set, realnego SQLite, fizycznego oddawania materiałów.
+   admin live nowyquestzestaw live_proba | Próba | Rybak Borys | {"iron_ore":3,"copper_ore":2} | 100 | Opis
+4. Ekwipunek typu armor z wieloma statystykami, ochroną, atakiem i poziomem:
+   admin live nowyekwipunek live_pancerz | Pancerz | body | 100 | 20 | {"strength":15,"constitution":10} | 40 | 2000 | Opis
+   Nie dodaje nowej mechaniki broni lub slotu broni duszy.
+5. Rozwijanie receptur istniejących profesji nadal działa przez kopiujrecepture,
+   edytuj receptura ... ingredients/stations/output/min_profession_level/tool_xp.
+   Nowe rodzaje profesji/narzędzi wymagają kodu, którego nie edytujemy w locie.
+6. Grupowa zmiana EXP wszystkich istniejących profesji i narzędzi (także redukcja),
+   admin live bonusprofesje 80 / admin live bonusnarzedzia 80 / auto.
+   Zmiana jest tylko przygotowana do ręcznego zatwierdzenia, potem jeden NEWS.
+7. Grupowy balans wzorów mobów (1–100 ID z danym prefiksem) — tylko świadome
+   nadpisanie danych po publikacji, bez zmian dotychczasowych ustawień domyślnych.
+   admin live balansgrupa PREFIX damage 500
+8. Przegląd NVDA: admin live mozliwosci; historyczne katalog/pola/porownaj/audyt,
+   aktywacja z NEWS i cofanie z historią SQLite pozostają niezmienione.
+
+OGÓLNE ZASADY: brak usuwania historycznych ID, brak nowego eval/exec,
+bez zmiany wzorów Multi Cap, EXP Bank, EP, Fame, maksymalnych poziomów,
+bez automatycznej zmiany EXP ani obrażeń gracza. Nowe treści OLC są danymi
+walidowanymi przed opublikowaniem. Zachować kopię bazy postaci.
+
+OGRANICZENIA: Nie wszystkie nowe rodzaje magii, AI superbossów, nowe klasy,
+profesje i wieloetapowe skrypty fabularne można dodać bez zmian kodu.
+Zawartość oparta na zarejestrowanych typach silnika działa bez restartu.
+Przed wdrożeniem wymagany Windows PREDEPLOY 60/60 PLUS.
+
+==============================================================================
+
+Aktualna paczka: v13.10.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v13.10.0 — MISTRZOSTWO UMIEJĘTNOŚCI: OLC 6.0
+BAZA: kompletne Soulbound v13.00.0, bez usuwania starszych systemów.
+KANDYDAT TESTOWY. NIE WDRAŻAĆ BEZ WINDOWS PREDEPLOY 60/60 PLUS.
+
+NOWE: EDYCJA ISTNIEJĄCYCH SKILLI 22 KLAS (5461 DEFINICJI):
+- admin live katalog skill NAZWA / admin live pola skill ID.
+- admin live edytuj skill ID POLE — podgląd oryginalnej, aktywnej i przygotowanej wartości.
+- admin live edytuj skill ID POLE | WARTOŚĆ — przygotowanie zmiany bez publikacji.
+- Pola tylko gdy rzeczywiście istnieją: name, desc, aliases (lista JSON), unlock, mana,
+  cooldown, mult, boost, base_power, guard, heal_pct, drain_pct, execute_mult,
+  duration, scale, secondary_scale, element, kind (damage <-> aoe_damage wyłącznie
+  dla zwykłych, kompatybilnych ataków bez specjalnej obsługi celu).
+- auto (lub oryginalne) usuwa ręczną edycję wskazanego pola; wartości historyczne
+  są przywracane przy publikacji nowej rewizji.
+- Zmiana nazwy nie zmienia ID ani istniejących aliasów, nauki skilli i progresu w SQLite.
+- Nie ma usuwania ani zmiany klas skilli, nie uruchamiamy własnego kodu/skryptów.
+- Walidacja typu danych i zakresów; blokada niezgodnego kind, kolizji nowych nazw,
+  NaN/Infinity, zmian pól specjalnych. Publikacja między walkami jak w v13.00.0.
+- Zatwierdzanie, cofanie zgodnych rewizji, podgląd i jednorazowe NEWS po aktywacji.
+- Automatyczna kolejka walki otrzymuje nowe parametry po zatwierdzeniu.
+
+PRZYKŁAD:
+admin live katalog skill Potężne Cięcie
+admin live pola skill warrior_power_slash
+admin live edytuj skill warrior_power_slash mult
+admin live edytuj skill warrior_power_slash mult | 2.5
+admin live porownaj 20
+admin live sprawdz
+admin live aktywuj POTWIERDZAM
+
+OGRANICZENIA: Nie można zmieniać dowolnych skryptów ani systemów skilli
+specjalnych. Pole cooldown zachowuje mechanikę istniejącego silnika; nie
+wprowadzamy nowego timera przez samą zmianę wartości. Edycja efektywna
+jest ograniczona do pól rzeczywiście czytanych przez istniejącą implementację.
+Pełny predeploy 60/60 PLUS wymagany na Windows. Bazę żywych postaci zachować.
+
+==============================================================================
+
+Aktualna paczka: v13.00.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v13.00.0 — IMPERIUM ŻYWEGO ŚWIATA: OLC 5.0
+BAZA: pełne Soulbound v12.10.0 (w tym wcześniejsze v12.00.11–13 i v12.00.10).
+KANDYDAT TESTOWY; NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
+
+NOWE DZIAŁAJĄCE FUNKCJE EDYTORA:
+1. Skille: drain, regen, evade przez admin live nowyskill (dotychczasowe rodzaje zachowane).
+   drain: parametr EFFECT = procent leczenia z zadanych obrażeń, 0.01–1.0.
+   regen i evade: bez EFFECT, działają przez oryginalny silnik umiejętności.
+   Przykład: admin live nowyskill live_wysysanie | Mag | Wysysanie Próby | drain | 30 | 15 | 1.5 | wisdom | Opis | 0.25
+2. NPC/questy: admin live lancuch live_quest2 live_quest1 — wymaga ukończenia poprzedniego questa.
+   Używa istniejącego requires_quest, sprawdza brak cykli i zachowuje postęp kont.
+3. Receptury: admin live kopiujrecepture live_receptura | oak_plank | Moja deska
+   Tylko zgodne, nieskryptowane wzorce; skopiowane parametry można edytować OLC.
+4. Biżuteria: admin live nowabizuteria live_ring | Pierścień Siły | ring | strength | 50 | 40 | 2500 | Opis
+   Typ wykonawczy armor (slot ring/bracelet/charm/accessory); jedna podstawowa statystyka,
+   poziom wymagany i cena w srebrze. Edycja stats przez JSON dla nowego przedmiotu.
+5. Boss AI: admin live edytuj mob bandit_captain olc_boss_tactic_element | fire
+   Dozwolone: fire/ice/lightning/dark/poison/shadow/holy.
+   Dodatkowo: admin live edytuj mob bandit_captain olc_boss_tactic_interval | 6
+   Częstotliwość taktyki co 2–12 rund; domyślnie co 4, auto usuwa nadpisanie.
+   Wpływa tylko na istniejący
+   taktyczny atak żywiołowy zwykłych niechronionych bossów, bez zmiany UOSS, skryptów
+   ani obrażeń gracza. auto przywraca oryginalne zachowanie.
+6. Krótka kontrola bez zapisu: admin live audyt. Dla NVDA zgłasza zmienione sekcje,
+   rewizję i wynik pełnej walidacji projektu; bez wysyłania NEWS.
+7. ZACHOWANE: wyświetlanie aktualnych wartości, porównaj, podgląd, cofanie zgodnych
+   rewizji, historia SQLite, jednorazowy NEWS po zatwierdzeniu zmian.
+
+OGRANICZENIA, KTÓRYCH NIE OGŁASZAMY JAKO GOTOWYCH:
+- Brak wykonywania dowolnych skryptów Pythona lub tworzenia nowej klasy w locie.
+- Wielocelowe questy z kilkoma rodzajami warunków naraz wymagają zmian silnika.
+- Specjalne skrypty superbossów i autorskie eventy pozostają chronione.
+- Skalowanie całego świata oraz konstrukcja nowych profesji/narzędzi nie zostały
+  przeniesione pod jeden uniwersalny edytor.
+- Przedmioty: tylko bezpieczne, rozpoznawane przez silnik typy i efekty.
+- Publikacja nie usuwa opublikowanych ID, które mogą być już w SQLite graczy.
+- Nowy skill nie zmienia istniejących 5461 skilli ani starych statystyk graczy.
+- PREDEPLOY musi przejść na Windows w kopii bazy; brak automatycznego wdrożenia.
+
+==============================================================================
+
+Aktualna paczka: v12.10.0 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v12.10.0 — WIELKA AKTUALIZACJA OLC 4.0: SKILLE, BOSSOWIE, QUESTY, PODGLĄD
+KANDYDAT DO WINDOWS PREDEPLOY 60/60 PLUS; NIE WDRAŻAĆ BEZ PASS.
+Baza: pełna v12.00.13, włącznie z v12.00.11–12 i wdrożoną v12.00.10.
+
+1. NOWE SKILLE W LOCIE: damage, aoe_damage, heal, group_heal, guard.
+   Efekty leczenia i ochrony są wykonywane przez dotychczasowe funkcje walki.
+   admin live nowyskill live_leczenie | Mag | Leczenie Próby | heal | 20 | 40 | 1.0 | wisdom | Leczenie sojusznika | 0.10
+   group_heal analogicznie; dla guard EFFECT to całkowita siła ochrony, np. 1000.
+   Nowy skill można edytować: admin live edytuj skill live_leczenie effect | 0.20
+   Starsze skille bez pola effect nadal wczytują się bez migracji; żadne istniejące skille nie są zmieniane.
+2. BOSSOWIE: 3–5 progów faz HP w istniejącym JSON olc_boss_phases.
+   Oryginalne, nieedytowane AI zachowuje 3 fazy i wszystkie skrypty superbossów.
+   Komunikat fazy używa właściwej liczby etapów.
+3. NOWE QUESTY: admin live nowyquest live_pogrom | Pogrom | Rybak Borys | kill | temple_rat | 10 | 250 | Pokonaj bandytów.
+   Dostępne wyłącznie istniejące proste rodzaje kill i collect; potem można zmienić nagrody, EXP,
+   odnawianie, wymagania i zależności w istniejącym edytorze. Quest wymaga NPC z katalogu.
+4. NOWE PODSTAWOWE PRZEDMIOTY: admin live nowyprzedmiot live_helm_test | armor | Testowy Hełm | Opis | head | 20 | 500
+   Alternatywnie consumable | Nazwa | Opis | heal | 100 | 80 albo craft_material | Nazwa | Opis | - | 0 | 100.
+   Wyłącznie istniejące rodzaje efektów: zbroja/obrona, mikstura/leczenie, materiał; bez skryptów, nowych statystyk i tokenów.
+5. PRZEJRZYSTE PORÓWNANIE: admin live porownaj [1–50] pokazuje było/będzie dla rewizji,
+   nie zmienia SQLite, nie wysyła NEWS ani zdarzeń dźwiękowych.
+6. ZACHOWANE: wszystkie starsze systemy, 22 klasy, 22 profesje i narzędzia, Multi Cap,
+   EXP Bank, EP, Fame, dźwięki OGG i protokół Generic MUD, SQLite i historia rewizji.
+7. ZABEZPIECZENIA: istniejące walidacje schematu, cofanie, blokada edycji skilli podczas walk,
+   brak dynamicznego Pythona, brak usuwania opublikowanych ID, NEWS po udanym aktywowaniu.
+
+Soulbound v12.00.13 — OLC 4.0: nowe skille klas w locie (etap pierwszy)
+
+- Baza: pełne v12.00.12, zachowane v12.00.11 oraz wdrożone v12.00.10 i wszystkie poprzednie mechaniki.
+- Nowe skille dla istniejących 22 klas przez bezpieczne definicje danych w SQLite.
+- Na tym etapie działają wyłącznie istniejące mechaniki damage i aoe_damage. Nowych typów skilli i AI nie deklarujemy jako gotowych.
+- Dodano: admin live nowyskill live_testowy_cios | Wojownik | Testowy Cios | damage | 40 | 0 | 1.5 | strength | Opis.
+- Można sprawdzać: admin live katalog skill testowy, admin live pola skill live_testowy_cios; edytować: admin live edytuj skill live_testowy_cios mult | 2.0.
+- Publikacja w jednej rewizji: admin live sprawdz; admin live aktywuj POTWIERDZAM. Zmiany pojawiają się w NEWS.
+- Nowe skille widoczne w katalogu i silniku walki, a po zalogowaniu także u nauczycieli; nauka wymaga normalnej biegłości i istniejących reguł ceny.
+- Nowe identyfikatory nie mogą być później cofnięte do nieistnienia po publikacji (mogły już zostać zapisane w postępie postaci).
+- Nazwy i aliasy bez kolizji; żadnego eval/Python w danych; nie można publikować skilli w trakcie walki.
+- Dotychczasowe 5461 skilli i ich XP, wszystkie profesje, obrażenia i formuły nie zostały przeliczone ani zresetowane.
+- Do wdrożenia wymagany Windows PREDEPLOY 60/60 PLUS na kopii realnej bazy.
+
+Aktualna paczka: v12.00.12 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Soulbound v12.00.12 — OLC 4.0, ETAP II: FAZY ZWYKŁYCH BOSSÓW — KANDYDAT DO WINDOWS PREDEPLOY
+BAZA: pełna v12.00.11; bez zmian w nagrodach, EXP, EP, Fame, Multi Cap i EXP Banku.
+- Nowe zwykłe bossy: admin live potwor live_ID ...; admin live edytuj mob live_ID boss | true; potem edycja trzech faz.
+- Edycja trzech faz istniejących zwykłych bossów z domyślnym AI faz (nie UOSS, nie bossy skryptowane).
+- admin live edytuj mob bandit_captain olc_boss_phases — podgląd aktualnej konfiguracji.
+- admin live edytuj mob bandit_captain olc_boss_phases | [{"hp_percent":75,"attack_multiplier":1.24,"duration_seconds":23,"message":"Wzmacnia ataki"},{"hp_percent":50,"attack_multiplier":1.36,"duration_seconds":28,"message":"Przechodzi do kontrataku"},{"hp_percent":25,"attack_multiplier":1.48,"duration_seconds":33,"message":"Ostatnia faza"}]
+- auto przywraca oryginalne progi, obrażenia i komunikaty (na nowe walki).
+- Gotowy przykład LIVE_CONTENT/przyklad_faz_bossa.json, do sprawdzenia: admin live wczytaj przyklad_faz_bossa.json; sprawdz; aktywuj POTWIERDZAM.
+- Fazy nie edytują skilli, nie uruchamiają kodu; weryfikacja ścisłych progów i opisów, historia SQLite i cofanie.
+- Katalog OLC pokazuje także nowe obiekty przygotowane, jeszcze nieopublikowane.
+- Predeploy: dodane testy OLC 4.0 etap I i II do predeploy_check.py/predeploy_full.py.
+- Publikacja między walkami ze zmienianym bossem. Bez restartu i bez zmiany już rozpoczętych potyczek.
+- HISTORYCZNE skrypty UOSS i superbossów zachowują swój kod oraz priorytet.
+- Wydanie kandydackie: obowiązkowy Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+==============================================================================
+
+Soulbound v12.00.11 — OLC 4.0, ETAP I: KATALOGI I EDYCJA NA ŻYWO — KANDYDAT DO WINDOWS PREDEPLOY
+UWAGA: nie jest to jeszcze kompletny edytor wszystkich mechanik gry. Brak nowych typów skilli i faz AI bossów.
+BAZA: pełna v12.00.10; wszystkie wcześniejsze funkcje i reguły postępów zachowane.
+- Komenda admin live katalog KATEGORIA [FRAZA] [STRONA] — wyszukiwanie istniejących ID po nazwie (12 wyników na stronę).
+- Komenda admin live pola KATEGORIA ID — dozwolone pola i podpowiedź, jak wyświetlić bieżącą wartość.
+- Istniejące sklepy: admin live edytuj sklep ID inventory | ["item1","item2"] (lista do 120 istniejących towarów).
+- Istniejące receptury: stacje, ilość produktu, produkt, a tam gdzie istnieją także min_tool_level i tool_xp.
+- Istniejące przedmioty: waluta, wybrane ceny sprzedaży oraz istniejące parametry heal, attack, defense, required_level.
+- Istniejące potwory: silver, gold, mithril, damage_type physical/magic i respawn_seconds; ostatni parametr działa wyłącznie tam, gdzie odczytuje go dotychczasowy silnik.
+- NPC: room (tylko istniejąca, niezajęta lokacja), quest (zgodny z NPC), shopkeeper (true/false).
+- Wszystkie te zmiany przechodzą istniejące walidacje, podgląd, atomową aktywację SQLite, historię, cofanie i zbiorczy NEWS.
+- Bez uruchamiania wczytanego Pythona, zmiany istniejących ID, usuwania danych graczy i ingerencji we wzory EXP, EP, Fame, Multi Cap lub EXP Bank.
+- Testy modułowe: validation/v12011_olc4_catalog.py; pełny Windows PREDEPLOY 60/60 PLUS nadal wymagany przed wdrożeniem.
+==============================================================================
+
+Soulbound v12.00.10 — OLC NAGRODY AUTO/RĘCZNE, OBNIŻANIE EXP I PODGLĄD — KANDYDAT DO WINDOWS PREDEPLOY
+Aktualna paczka: v12.00.10 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+==============================================================================
+BAZA: kompletna v12.00.9; aktualizacja danych OLC bez zmian w historycznych wzorach EXP.
+- Questy: reward_xp, reward_class_xp, reward_soul_xp, reward_stat_xp,
+  xp_profesji, xp_narzedzia: liczba (także 0) albo auto.
+  Przy auto zostaje usunięte nadpisanie OLC, powraca istniejące wyliczanie.
+- Surowce: prof_fixed/tool_fixed = ręczne EXP bazowe (także 0),
+  prof_scale/tool_scale = procent oryginalnego EXP 0–1000,
+  prof_mode/tool_mode = auto/manual/percent; stare prof_xp/tool_xp
+  zachowują znaczenie MINIMUM dla zgodności wstecznej.
+- Profesje/narzędzia: xp_scale 0–1000% zamiast dotychczasowego
+  bonusu xp_percent >=100; auto przywraca normalne obliczenia.
+- Edytuj bez wartości: pokaż faktyczną wartość aktywną oraz komendę z gotową liczbą do skopiowania w Generic MUD/NVDA; dla automatycznego EXP bez jednej stałej liczby pokaż ostrzeżenie.
+- Quest: podgląd wyliczonego bazowego EXP postaci, Biegłości i statystyk
+  oraz odnowienia. EXP Duszy dynamiczne, zależne od postaci.
+- Quest: repeat_cooldown nadal 0–31536000 s i edycja repeatable.
+- NEWS po publikacji, historia rewizji, cofanie i ochrona aktywnych questów.
+- Zmiany liczbowe dotyczą PRZYSZŁYCH wypłat po publikacji.
+- Bez zmian w EXP Bank, Multi Cap, EP, Fame i systemach walki.
+==============================================================================
+
+Soulbound v12.00.9 — OLC QUEST EXP / CELE / NEWS SZCZEGÓŁOWY — KANDYDAT DO PREDEPLOY
+Aktualna paczka: v12.00.9 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+==============================================================================
+BAZA: wdrożona v12.00.8; zachowano całą istniejącą grę i dane SQLite.
+
+ROZSZERZENIE: EDYCJA QUESTÓW WSZYSTKICH 22 PROFESJI
+- Questy profesji mają edytowalne EXP profesji i narzędzia oraz EXP postaci,
+  ilości wymaganych działań, nagrody pieniężne/przedmiotowe i cooldown.
+- Krótkie aliasy: xp_profesji, xp_narzedzia, xp_postaci,
+  poziom_profesji, poziom_narzedzia. Przykład:
+  admin live questy Wedkarstwo
+  admin live quest ID
+  admin live edytuj quest ID xp_profesji | 50000
+  admin live edytuj quest ID xp_narzedzia | 25000
+  admin live edytuj quest ID needed | 20
+  admin live sprawdz
+  admin live aktywuj POTWIERDZAM
+- "admin live questy NAZWA [STRONA]": wyszukiwanie identyfikatorów i
+  stronicowany podgląd 12 questów, także Droga Mistrza i nowych 8 profesji.
+- min_profession_level / min_tool_level: edycja parametrów opisowych / poziomu
+  treści (domyślnie nie odblokowują i nie blokują etapów u specjalisty).
+- Wszystkie nagrody przechodzą przez dotychczasowy system premiowania,
+  EXP Bank i ograniczenia gry. Nie dodano Soul EXP do questów profesji.
+- Limit edycji questów OLC zwiększony z 400 do 8000, pozostałe limity bez zmian.
+- NEWS po jednej zatwierdzonej rewizji zawiera najpierw istotne kwoty
+  EXP profesji, EXP narzędzia, EXP postaci i licznik zadań.
+- Zapis SQLite i cofanie pozostawiają postępy już aktywnych zadań.
+- Walidacja 22 profesji i nowych aliasów działa w osobnym teście v1209.
+
+NOWOŚCI OLC QUESTÓW BEZ RESTARTU:
+- reward_xp: dokładna bazowa nagroda EXP postaci za oddanie questa,
+  reward_class_xp: bazowa Biegłość za zadania walki,
+  reward_soul_xp: bazowy Soul XP za nieprofesjonalne zadania,
+  reward_stat_xp: bazowy EXP każdej statystyki.
+- needed, target i kind (kill/collect), nagrody pieniężne i przedmiotowe,
+  powtarzalność, czas odnowienia, wymagany wcześniejszy quest, poziom treści.
+- Wszystkie nadpisania EXP są opcjonalne. Bez ustawień OLC stare wzory i
+  bonusy (gildia, Double EXP, Multi Cap i EXP Bank) pozostają bez zmian.
+- Zmiana kind/target jest blokowana przy aktywnych questach danego ID;
+  zmiana nagród i needed nie zeruje zapisanych postępów graczy.
+- Pole reward_xp można ustawić: admin live edytuj quest bandit_patrol reward_xp | 50000.
+- Publikacja: admin live sprawdz; admin live aktywuj POTWIERDZAM.
+
+NEWS:
+- Po udanej publikacji OLC serwer emituje jeden NEWS z konkretną zmianą,
+  np. nazwa questa, EXP postaci, potrzebne zabójstwa, typ innej zmiany.
+- NEWS respektuje news off/on i historię; bez spamu podczas edycji, look, score.
+- Cofnięcie bezpiecznej rewizji OLC publikuje informację o cofnięciu.
+- Nie publikuje w NEWS identyfikatorów kont ani opisów prywatnej administracji.
+
+BEZPIECZEŃSTWO:
+- Nie wolno dynamicznie wykonywać kodu Pythona, usuwać zadań z bazy,
+  zmieniać typu celu questów z przyjętym postępem ani pomijać walidatora.
+- Istniejące 22 klasy, 22 profesje i 22 narzędzia pozostają zachowane.
+- Pełny Windows PREDEPLOY 60/60 PLUS wymagany przed wdrożeniem.
+
+==============================================================================
+
+Soulbound v12.00.8 — SOUNDPACK + ZACHOWANE OLC BEZ RESTARTU — KANDYDAT DO PREDEPLOY
+Aktualna paczka: v12.00.8 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+==============================================================================
+BAZA: pełna paczka v12.00.7; żadnych usuniętych systemów ani plików gry.
+
+NOWY STABILNY PROTOKÓŁ TEKSTOWY GENERIC MUD (linie SOUND_EVENT):
+- EXP_BANK amount=<rzeczywiscie_zapisany_przyrost> kind=<dziedzina>.
+- HALF_CAP / FULL_CAP przy realnej nagrodzie względem limitu jednej nagrody.
+- PLAYER_LOGIN / PLAYER_LOGOUT — dla innych zalogowanych postaci na całym serwerze,
+  także przy opuszczeniu postaci do wyboru postaci.
+- TELL_RECEIVED / REPLY_RECEIVED — wyłącznie po dostarczeniu wiadomości.
+- MOB_HP id=<instancja> current=<aktualne_HP> max=<maksymalne_HP>,
+  włączając AoE, zmianę HP po walce i zero po pokonaniu przeciwnika.
+- Brak zapisów SOUND_EVENT do buforów historii; brak zdarzeń wywoływanych
+  przez samo sprawdzanie look, score i expbank.
+- Obsługa zdarzeń dodana NAD istniejącymi funkcjami v4.20.0 bez zmiany ich
+  audytowanych AST, bez zmiany wzorów obrażeń, EXP, EP, Fame ani Multi Cap.
+- Sanitizacja pól zdarzeń oraz ograniczenie rozmiaru kolejki telemetrycznej.
+
+OLC LIVE:
+- Zachowano wszystkie możliwości publikowania bez restartu z v12.00.7:
+  lokacje, przejścia, potwory, spawny, przedmioty, NPC w osobnych pokojach,
+  proste questy, sklepy, receptury, parametry istniejących skilli i EXP surowców.
+- Nowe typy mechanik skilli, zaawansowane fazy AI bossów i skrypty questowe
+  NIE są jeszcze częścią tej paczki. Nadal wymagają osobnej implementacji.
+
+WERYFIKACJA:
+- testy jednostkowe: python -m validation.v1208_sound_events
+- wymagane: pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+- testy linuksowe są pomocnicze; nie zastępują Windows PREDEPLOY.
+
+==============================================================================
+
+Soulbound v12.00.7 — OLC EXP POSZCZEGÓLNYCH SUROWCÓW / AKTUALIZACJE BEZ RESTARTU
+Aktualna paczka: v12.00.7 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+Baza dla aktualizacji: wdrożona v12.00.6.
+
+NOWOŚCI v12.00.7:
+- Administrator może zmienić EXP osobnej rudy, ryby, rośliny, drewna i
+  innego zarejestrowanego surowca w czasie pracy serwera.
+- Oddzielny EXP profesji oraz EXP narzędzia dla konkretnego surowca.
+- prof_xp i tool_xp są MINIMALNĄ nagrodą po wcześniejszych regulatorach;
+  następnie nadal obowiązują premie gildii, eventów, Multi Cap i EXP Bank.
+- prof_percent i tool_percent (100–1000) zwiększają wyliczony EXP materiału.
+  Nie obniżamy historycznych wypłat ani nie nadajemy EXP czynnościom 0 XP.
+- Rzadkie warianty ryb i pozostałych surowców mogą mieć osobne reguły;
+  w braku reguły wariantu odziedziczą ustawienia bazowego surowca.
+- Komendy administracyjne (ID surowca, nie jego nazwa):
+    admin live surowiec iron_ore
+    admin live edytuj surowiec iron_ore prof_xp | 5000
+    admin live edytuj surowiec iron_ore tool_xp | 4000
+    admin live edytuj surowiec iron_ore prof_percent | 200
+    admin live edytuj surowiec brown_trout tool_percent | 250
+    admin live edytuj surowiec mint prof_xp | 750
+    admin live sprawdz
+    admin live aktywuj POTWIERDZAM
+    admin live wyczysc surowiec iron_ore
+- Wiele surowców: LIVE_CONTENT/przyklad_exp_surowcow.json; skopiuj i
+  dostosuj JSON, a potem admin live wczytaj przyklad_exp_surowcow.json.
+  Wczytanie tylko przygotowuje zmiany, nie publikuje ich automatycznie.
+- Zmiany zapisane w SQLite: przeżywają restart, obsługują eksport i cofanie.
+- Komendy tylko dla admina, walidacja znanych surowców i zakresów 100–1000%.
+- Poprawiono przekazywanie identyfikatora faktycznie złowionej ryby, dzięki
+  czemu albinos / złoty wariant może mieć swój własny EXP.
+- Zachowane: wszystkie 22 profesje, 22 narzędzia, 2221 questów profesji,
+  wszystkie skille, bronie, miniony, EXP Bank, Fame, EP, SQLite postaci.
+
+OGRANICZENIE / WAŻNE:
+Pierwsze wdrożenie kodu v12.00.7 nadal wymaga standardowego ZIP i pełnego
+Windows PREDEPLOY 60/60 PLUS. Dopiero PO tym wdrożeniu kolejne zmiany tych
+obsługiwanych danych (EXP konkretnych surowców i dotychczasowego OLC) można
+publikować bez wyłączania serwera i bez rozłączania graczy. To nie jest hot
+swap dowolnego kodu Pythona, nowych mechanik ani migracji SQLite.
+
+==============================================================================
+
+Soulbound v12.00.6 — OLC EXP / PROFESJE / NARZĘDZIA / SKILLE / REPLY / LOOK / WALKA
+Aktualna paczka: v12.00.6 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+
+DODATKOWE POPRAWKI v12.00.6 — REPLY, LOOK, WALKA (NVDA):
+- reply <tekst> po skutecznym wysłaniu wyświetla osobne potwierdzenie
+  „REPLY: odpowiedź wysłana do ...”; błędy i brak odbiorcy bez potwierdzenia.
+- look i look <gracz> wskazują powalonego członka własnej drużyny w pokoju
+  oznaczeniem „POWALONY — można wskrzesić”. Obcy gracze nie są tak oznaczani.
+- Po ostatnim zabiciu w walce (także AoE i party): osobny ważny komunikat
+  „KONIEC WALKI: Wszyscy przeciwnicy zostali pokonani.” dla lokalnej drużyny.
+  Pozostali zaangażowani w walkę wrogowie oraz niezakończone zabicia AoE
+  blokują przedwczesny komunikat. Wycofanie się nie jest zwycięstwem.
+
+Soulbound v12.00.6 — OLC EXP PROFESJI/NARZĘDZI I PARAMETRÓW SKILLI (KANDYDAT)
+
+- Nadal cała gra v12.00.5 / v12.00.3: lokacje, moby, NPC, questy, profesje, Fame, Krypta, SQLite.
+- admin live edytuj profesja Jubilerstwo xp_percent | 180
+- admin live edytuj narzedzie jewelcrafting xp_percent | 200
+- admin live edytuj skill warrior_power_slash mana | 10
+- admin live edytuj skill warrior_power_slash mult | 1.75
+- Działa na istniejących 22 profesjach, 22 typach narzędzi i liczbowych polach
+  istniejących 5461 skilli (tylko pola realnie występujące w danym skillu).
+- Procent EXP 100–1000; nie zmniejszamy historycznych nagród. Bonus obejmuje
+  zwykłe czynności, nagrody profesyjne i rozwój narzędzi; zapisy postaci nietknięte.
+- Skille: pola mana, cooldown, mult, boost, guard, base_power; brak dowolnego kodu.
+- Edycje skilli publikowane tylko poza trwającą walką, bez wylogowania graczy.
+- Zmiany rejestrowane w historii SQLite, import/eksport JSON, cofanie rewizji.
+- Duże zmiany KODU Pythona nadal wymagają testów i osobnej architektury sesji.
+- Nadal obowiązuje Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+Soulbound v12.00.5 — ROZBUDOWANY OLC / EDYCJA I PUBLIKOWANIE SWIATA NA ZYWO
+Aktualna paczka: v12.00.5 — KANDYDAT do Windows PREDEPLOY 60/60 PLUS.
+===============================================================================
+Rozszerzenie v12.00.4 (nie usuwa żadnego istniejącego systemu):
+- Nadal: nowe lokacje, przejścia, potwory, spawny, EXP/HP/obrażenia.
+- NOWE: edycje istniejących pokoi (nazwa/opis/region/poziom), mobów (nazwa,
+  statystyki, drop, auto-aggro), istniejących NPC (nazwa/dialog), przedmiotów
+  (nazwa, opis, cena), questów (opis i nagrody) i receptur (opis, poziom, składniki).
+- NOWE: JSON może utworzyć przedmioty typu craft_material, NPC w własnym wolnym
+  pokoju, proste questy kill/collect, sklepy i receptury wykorzystujące istniejący
+  system rzemiosła. Każdy NPC zajmuje OSOBNY pokój; nie dwa NPC w jednym.
+- NIE obsługuje jeszcze deklaratywnego tworzenia nowych typów skilli, boss AI,
+  nowych klas, sprzętu z nową logiką, skryptów questowych lub zmian kodu Python.
+- Przykład pakietu: LIVE_CONTENT/przyklad_regionu_olc.json; jest tylko wzorem,
+  nie aktywuje się samoczynnie i nie tworzy dodatkowych NPC podczas instalacji.
+- Pakiety tworzone na serwerze testowym mogą być wyeksportowane do JSON, skopiowane
+  do LIVE_CONTENT na serwerze głównym i tam zwalidowane przed aktywacją.
+- Każda aktualizacja zmienia rejestry IN PLACE, zapisuje wersję SQLite i historię;
+  nie uruchamia Python z pliku JSON, nie zmienia kont, postaci ani ich EXP.
+- Chronimy aktywne walki przed edycją mobów, chronimy pokoje graczy przy cofaniu;
+  opublikowanych identyfikatorów questów i przedmiotów nie można usuwać prostym
+  rollbackiem, gdy mogły już wejść do stanu zapisanych postaci.
+- Kanał NEWS może automatycznie ogłosić aktywację lub cofnięcie zmiany.
+
+NOWE KOMENDY (po WDROŻENIU):
+- admin live edytuj mob temple_rat max_hp | 10000
+- admin live edytuj mob temple_rat drops | {"soul_shard": 0.25}
+- admin live edytuj pokoj temple_basement desc | Nowy opis.
+- admin live edytuj quest fisher_30_fish reward_profession_xp | 5000
+- admin live edytuj przedmiot healing_potion price | 30
+- admin live edytuj npc fisher_tomas dialogue | Zapraszam na ryby!
+- admin live edytuj receptura iron_ingot desc | Nowy opis sztabki.
+- admin live eksport test_olc.json — zapis wersji roboczej do LIVE_CONTENT.
+- admin live wczytaj test_olc.json — import lokalnego pliku z LIVE_CONTENT.
+- admin live sprawdz — walidacja i liczba proponowanych zmian.
+- admin live aktywuj POTWIERDZAM — publikacja bez restartu.
+- admin live cofnij POTWIERDZAM — bezpieczne cofnięcie ostatniej rewizji,
+  jeżeli nie usuwa utrwalonych identyfikatorów questów lub przedmiotów.
+- news / news on / news off — historia i powiadomienia administracji.
+
+WAŻNE BEZPIECZEŃSTWO I OGRANICZENIA:
+- W v12.00.5 dodanie przedmiotu OLC to craft_material (trzymany w zwykłym
+  ekwipunku), NIE pełny nowy typ sprzętu ani automatyczna nowa kategoria Szkatułki.
+- Nowe questy OLC tylko kill/collect, wymagają rzeczywistego NPC z własnym pokojem.
+- Jeśli NPC już prowadzi questy, jego nazwy nie wolno zmienić tak, by je osierocić.
+- Receptury mogą korzystać jedynie z istniejących typów rzemiosła i narzędzi.
+- Zmiany Python i migracje schematu SQLite: nadal pełny PREDEPLOY + restart.
+- Nie omijaj TESTUJ_Soulbound.bat ani 60/60 PLUS; zmiany live testuj również
+  na osobnym klonie świata przed publikacją na działającym serwerze.
+- Nie używamy GitHub; dostarczamy kompletny ZIP, zawierający CHANGELOG_PL.txt.
+
+TESTY LOKALNE KANDYDATA: szybki PREDEPLOY PASS, pełny audyt historyczny PASS.
+- 30 testów nowego OLC PASS; 24 testy bazowego Hot Reload PASS.
+- 11 testów kanału NEWS PASS. Świat World(): NPC/spawn/lokacje na żywo PASS.
+- Kontrole historyczne: 24 894 profesje/questy, 5 329 lochy,
+  1 176 Jubilerstwo, 1 606 Fame i testy AI przywołań — PASS.
+- Windows PREDEPLOY 60/60 PLUS wymaga osobnego uruchomienia na Windows.
+===============================================================================
+
+Soulbound v12.00.4 — HOT RELOAD SWIATA / NEWS (Windows, kandydat do PREDEPLOY)
+Aktualna paczka: v12.00.4 (kandydat do Windows PREDEPLOY 60/60 PLUS)
+==============================================================================
+- Bezrestartowe, właścicielskie OLC: tworzenie nowych lokacji, przejść i potworów,
+  dodawanie spawnów i modyfikowanie balansu potworów przez admin live.
+- Pakiet nowych regionów: LIVE_CONTENT/nowe_lokacje.json (UTF-8, do 1 MB),
+  komenda admin live wczytaj, potem sprawdz i aktywuj.
+- Etapowanie, walidacja i potwierdzenie admin live aktywuj POTWIERDZAM. Zmiany
+  danych są trwałe w SQLite i odtwarzane przed budową świata przy restarcie.
+- Cofanie ostatniej aktywacji: admin live cofnij POTWIERDZAM; zabezpieczenie
+  przed wycofaniem pokoju zajmowanego przez gracza i spawnu w walce.
+- admin live anuluj cofa wyłącznie niezatwierdzone zmiany.
+- Zwykłe komendy ruchu i look odczytują aktualny katalog bez restartu.
+- Kanał NEWS: news (historia), news on/off, news TEKST (tylko administrator),
+  channels history news. Komunikaty natychmiast dla graczy i trwałe w SQLite.
+- Brak wykonywania kodu z danych oraz brak hot reload modułów Python. Zmiany
+  silnika, nowe typy mechanik i migracje bazy nadal wymagają pełnego PREDEPLOY.
+- Dotychczasowe mechaniki 22 profesji/narzędzi, 2221 questów, lochów, EXP,
+  Fame, przywołań, poziomy do 800 i postacie pozostają zachowane.
+- Zmiany admin live nie nadpisują istniejących połączeń ani identyfikatorów
+  świata, nie wymagają GitHuba, PR ani brancha.
+
+PRZYKŁADY KOMEND NVDA / MUSHCLIENT — po WDROŻENIU v12.00.4:
+- admin live status
+- admin live pokoj live_grota_legionu | 80 | Grota Legionu | Wilgotna grota. | Góry Legend
+- admin live polacz temple_basement northeast live_grota_legionu
+- admin live polacz live_grota_legionu southwest temple_basement
+- admin live potwor live_straznik_groty | 80 | Strażnik Groty | 50000 | 500 | 20000
+- admin live spawn live_grota_legionu live_straznik_groty
+- admin live sprawdz
+- admin live aktywuj POTWIERDZAM
+- admin live cofnij POTWIERDZAM (gdy nikt nie przebywa w wycofywanym pokoju)
+- admin live anuluj (usuwa tylko zmiany oczekujące)
+- news Dodaliśmy nową grotę do świata!
+- news (czytanie ogłoszeń), news on, news off, channels history news
+
+MASOWE DODAWANIE POKOJÓW:
+- Utwórz folder LIVE_CONTENT obok server.py, np. C:\Soulbound-MUD\LIVE_CONTENT.
+- Zapisz LIVE_CONTENT\nowe_lokacje.json (UTF-8); w JSON możesz podać
+  sekcje rooms, links, mobs, spawns, balances, każdą opcjonalnie.
+- Przykład JSON (jeden nowy pokój):
+  {"rooms":{"live_brama_testowa":{"name":"Brama Północy","desc":"Kamienna brama.","zone":"Północ","generator_level":80}},"links":[["temple_basement","northeast","live_brama_testowa"],["live_brama_testowa","southwest","temple_basement"]]}
+- W grze: admin live wczytaj, admin live sprawdz, admin live aktywuj POTWIERDZAM.
+- Maksymalnie 1 MB pakietu; w aktywnym katalogu live maks. 200 lokacji,
+  200 nowych potworów, 800 przejść i 400 spawnów. Nazwy identyfikatorów
+  lokacji/potworów mają zaczynać się od live_.
+- Nie nadpisuj istniejącego przejścia kierunkowego; w celu aktualizacji
+  silnika Python, nowych klas, mechanik, migracji SQLite użyj PREDEPLOY 60/60.
+
+TESTY KANDYDATA v12.00.4:
+- Szybki PREDEPLOY PASS; pełny audyt historyczny PASS.
+- 24 kontrole Hot Reload/SQLite/rollback PASS i 11 NEWS PASS.
+- Przetestowano też rzeczywiste World(): nowe lokacje, poziomy, spawn
+  wariantów potworów, zapis stanu i bezpieczne cofnięcie bez osieroconych spawnów.
+- 24894 testów EXP 22 profesji/questów, 5329 testów lochów, 1176 Jubilerstwa,
+  1606 Fame, 995 legendarnych minionów — wszystkie PASS.
+- Nie jest to jeszcze wynik testu Windows 60/60 PLUS. Przed wdrożeniem
+  koniecznie uruchom TESTUJ_Soulbound.bat i prześlij log PREDEPLOY.
+
+Soulbound v12.00.3 — EXP 22 PROFESJI I 22 NARZĘDZI / KAŻDY SUROWIEC
+Aktualna paczka: v12.00.3 (kandydat do Windows PREDEPLOY 60/60 PLUS)
+
+- Jednolita korekta za małych nagród dla wszystkich 22 profesji i 22 narzędzi: za trudną pracę w odpowiednim zakresie levelu awans jest wyraźniejszy. Unikamy uciążliwych tysięcy powtórzeń, nie ruszając krzywej wymaganego EXP ani limitu 800.
+- Każdy konkretny surowiec i dostępna receptura ma stały, rozróżnialny wpływ na przyznany EXP (tożsamość materiału, poziom pracy, istniejące bonusy). Brak losowania nowych premii przy każdym użyciu.
+- Prace niskopoziomowe nie przyznają endgame EXP postaci na poziomie 600/799. Nigdy nie obniżono dotychczasowej nagrody; EXP Bank i Multi Cap pozostają aktywne.
+- Podniesiono również nagrody za właściwe poziomy projektów mistrzowskich. Dwa dodatkowe progi projektów 700 i 775 dla wszystkich 22 profesji wykorzystują istniejące narzędzia i surowce; żaden nowy rodzaj narzędzia.
+- `profesja projekt wykonaj <profesja>` bez liczby automatycznie wybiera najwyższy odblokowany poziom; nadal można jawnie wskazać starszy poziom.
+- Zweryfikowano 2221 questów profesji ze wszystkich 22 zawodów. Nagrody EXP za ukończenie etapów są podnoszone do rozsądnej części wymaganego poziomu, odpowiednio do liczby czynności, poziomu zadania i powtarzalności. Stare nagrody pozostają dolną granicą; nie ma darmowego endgame EXP z podstawowych questów ani XP zadań profesyjnych dla Duszy.
+- Opisy nagród w dialogach i atlasie odróżniają wartości bazowe od realnych wypłat z premii; nie resetowano ani nie zmieniano identyfikatorów questów czy ich postępu.
+- Zachowano hotfix Jubilerstwa, nowe Krypty/Wieże, EXP z v12.00.1, Fame, kanał rozmów XP, AI przywołań, postacie i SQLite.
+- Cała gra w ZIP bez bazy postaci, bez GitHuba i bez dodatkowych raportów TXT; wymagane pełne 60/60 PLUS PASS przed wdrożeniem.
+
+Soulbound v12.00.2 — KRYPTY, WIEŻE, LOCHY I EXP JUBILERSTWA (HOTFIX)
+Aktualna paczka: v12.00.2
+
+- HOTFIX JUBILERSTWO: udane `jubilerstwo <receptura>` i `szlifuj <kamien>` mają znacznie większy EXP Jubilerstwa oraz osobny EXP Szczypiec Jubilerskich. Nowa premia po wspólnym regulatorze v12.00.1, więc nie zanika przez normalizację starych poziomów.
+- Szlifowanie zużywa klejnot górniczy i daje premię adekwatną do wymaganej obróbki; Czyste, Doskonałe i Perfekcyjne kamienie otrzymują dodatkowe XP względem zwykłego kamienia. Biżuteria zużywająca więcej sztabek daje wyższą nagrodę. Tylko udany craft, bez dodatkowych materiałów i darmowych nagród.
+- Wymagania poziomów 1–800, EXP innych 21 profesji, statystyki postaci, stare punkty profesji i narzędzi, ekwipunek, SQLite i całe wzmocnienie Krypt/Wiez/Magiteku bez zmian.
+- Nowa regresja w szybkim oraz pełnym audycie, Windows PREDEPLOY 60/60 PLUS obowiązkowy przed wdrożeniem.
+
+- Krypta zwykła: od piętra 1 przeciwnicy mają etap generatora minimum 80, później etap wzrasta piętro po piętrze. Większe realne HP, obrażenia i EXP. Działa dla bossów i elit Fame, także ponad piętrem 200.
+- Twierdza Gigantów: poziom generatora co najmniej 91 na pierwszym piętrze; mocniejsze minima HP i obrażeń z rosnącą głębokością; istniejący bossowie mają przewagę.
+- Wieża Astralna: wzmocnione minima HP i obrażeń na piętrach od 100, przy zachowaniu wszystkich wcześniejszych mutatorów, wyższych statystyk i nagród.
+- Nieskończony Magitek: start po WarMechu od realnego etapu 390, +7 na kolejne piętro aż do 800, zalecany poziom w opisie zgodny z generatorem. Bez zmniejszania mocy zawartości autorskiej.
+- Mityczna Krypta, Mityczna Wieża, Deep Dungeon, megalochy i trudne regionalne instancje zachowują dotychczasową wysoką trudność. Lochy profesyjne i strefy początkujące nie są podnoszone do poziomu 80.
+- Zachowano postacie, konta, zapis SQLite, exp bank, Fame, wszystkie 22 klasy i profesje, skille, narzędzia, ekwipunek, nagrody i systemy v12.00.1. Brak obniżania obrażeń graczy lub pomocników i brak obniżania progów rozwoju.
+- Wymagany Windows PREDEPLOY 60/60 PLUS przed wdrożeniem. Kompletna paczka ZIP z CHANGELOG_PL.txt bez raportów TXT i GitHuba.
+
+Soulbound v12.00.1 — PROFESJE I NARZĘDZIA: UCZCIWY EXP / TABLICA POZIOMÓW
+Aktualna paczka: v12.00.1
+
+- Nowy publiczny kanał rozmów `xp <tekst>` (np. `xp Kto idzie na Krypte?`) działa jak gossip, newbie i trade: powiadamia graczy online, respektuje ignorowanie, wyciszenie `xp off/on`, ograniczenie spamu, historię `channels history xp`. Samo `xp` nadal pokazuje doświadczenie postaci i nie wysyła wiadomości. Kanał rozmów nie generuje EXP.
+
+- EXP wszystkich 22 profesji i 22 narzędzi podniesiony tam, gdzie historyczna nagroda była rażąco niska względem wymaganego EXP. Wspólny regulator nagród obejmuje czynności podstawowe, wytwarzanie, oddawanie zamówień i osobne nagrody EXP narzędzi.
+- Wyższy poziom profesji nie podnosi automatycznie nagrody za marny materiał: mocna premia za rzeczywiście trudny materiał, recepturę lub projekt w stosunku do poziomu profesji/narzędzia. Działania bez określonej trudności dostają bezpieczne, umiarkowane podbicie, nie premię jak za endgame.
+- Żadna nowa nagroda nie jest mniejsza od historycznej (dla tej samej pracy). Nie zmieniono wymaganego EXP, poziomów do 800, istniejącego EXP, EXP Bank, Multi Cap, dropów, surowców, klas, obrażeń ani postaci.
+- Tablica Zleceń Gildii Dusz losuje zwykłe, realnie występujące moby odpowiednie do poziomu postaci. Wyklucza bossów, ukryte warianty i przeciwników istotnie przewyższających gracza; w przypadku braku dokładnego poziomu dobiera możliwie bliskie, łatwiejsze cele.
+- Po przejściu postaci do kolejnego przedziału 10 poziomów nowe oferty tablicy dostosowują się automatycznie. Już przyjęty kontrakt i jego postęp są nietknięte; jego oddanie odblokowuje nową tablicę.
+- Krypta Nieskończona od piętra 1: dużo wyższe faktyczne HP i obrażenia z końcowej warstwy balansu, proporcjonalnie większe nagrody Class/Soul/Stat EXP. Zalecany poziom postaci 80+; nie jest to obszar treningowy dla nowych postaci.
+- Każde piętro rośnie dalej i pozostaje trudniejsze od poprzedniego, również piętra generowane po 200 i 600. Bossowie co 10 pięter wciąż silniejsi od zwykłych przeciwników.
+- Więcej Fame w całym świecie: w istniejących regionach z naturalnymi przeciwnikami pojawiają się osobne elitarne straże (do dwóch nowych, różnych celów na region, bez zmieniania zwykłych mobów). Każda daje +1 Fame wyłącznie za pierwsze zabicie na konto; trwały zapis w istniejącym SQLite. Zachowano wszystkie wcześniejsze punkty Fame, nazwy i identyfikatory bossów, premie 100% Multi Cap i drużynowe zaliczenie.
+- Więcej Fame w Krypcie: specjalny elitarny strażnik na piętrze 1 i co 5 kolejnych pięter (41 dodatkowych unikalnych celów w pierwszych 200 piętrach, dalej kolejne na piętrach generowanych). +1 Fame wyłącznie za pierwsze zabicie konkretnej elity, per gracz i konto. Nie dotyczy zwykłych mobów, bossowie zachowują swoje Fame, nie ma duplikacji przy respawnie.
+- Dotychczasowe 22 profesje i narzędzia bez nowych typów, przywołania AI v12 i cała baza SQLite zachowane. Jedno kompletne archiwum ZIP; przed wdrożeniem wymagany Windows PREDEPLOY 60/60 PLUS.
+
+Soulbound v12.00.0 — ERA ŻYWYCH LEGEND: AI PRZYWOŁAŃ 8.0 I PROFESJE 10.0
+Aktualna paczka: v12.00.0
+
+HOTFIX PREDEPLOY v12.00.0 (19.10.2026) — AI / MAG / SZKATUŁKA
+- Poprawiono AI: opcjonalne wsparcie od projektów mistrzowskich czyta zarówno zwykły ekwipunek, jak i Szkatułkę Rzemieślniczą przez istniejące API bazy Soulbound. Wcześniej wyroby projektów były w craftbox, a AI sprawdzało błędnie tylko inventory.
+- Poprawiono zgodność ze starszymi lekkimi testami żywiołaków Maga: jeśli baza testowa ma wyłącznie interfejs item_qty/storage_qty i nie tworzy inventory, AI działa bez wyjątku i bez utraty bojowych umiejętności.
+- Dodano oddzielne regresje: brak tabeli inventory w testowej bazie Maga, aktywny bonus z craftbox, brak bonusu po usunięciu, migracyjne przedmioty w inventory.
+- Zaktualizowano historyczny audyt ekonomii, aby v12 nadal wymagała wszystkich 22 istniejących profesji (zamiast błędnej gałęzi oczekującej 14). Warunki testowania ekonomii i liczba kontroli pozostały bez zmian.
+- Analogiczną kontrolę liczby 22 profesji utrzymano w audycie pełnych systemów v0.30.62 dla numeru wydania 12, bez usuwania testu.
+- Wszystkie starsze funkcje i liczby obrażeń, EXP, klasy, profesje, dane SQLite, przywołania v11.00.20 i bounty zachowane. Wymagany pełny PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+PRZYWOŁANIA 8.0 — AUTONOMICZNA SZTUCZNA INTELIGENCJA
+- Taktyczna, lokalna AI działa automatycznie dla istniejących minionów WSZYSTKICH 22 klas: indywidualne zachowania związane z klasą, specjalizacja, współpraca w drużynie, oznaczanie celów, osłony, leczące przywołania, ataki kończące, klątwy oraz spowolnienia. Zdolności działają w rzeczywistej pętli walki, nie tylko w katalogu nazw.
+- AI ocenia HP właściciela i pobliskich sojuszników; nie leczy celu z pełnym HP, nie odnawia aktywnej osłony i nie powtarza niepotrzebnych efektów. Nie zużywa przedmiotów ani dodatkowego MP za swoje decyzje. Leczenie respektuje Nullify Healing.
+- Jammer Meca wymaga prawdziwego aktywnego paraliżu Logic Bomb; tylko jedna próba na jedno nałożenie paraliżu. Żaden boss odporny na jammer nie jest poprawnym celem. Brak kwalifikowanego celu = brak kosztu many i czasu odnowienia. Dotyczy także ręcznego Jammera i AoE.
+- AI domyślnie włączone: chowaniec ai status/on/off, stan trwale zapisany w osobnej tabeli. chowaniec umiejetnosci — krótkie opisy zdolności aktywnych klas dla NVDA. Działanie lokalne, bez API, abonamentu lub połączenia z internetem.
+- Nie zmieniono starych kodów przywołań, kosztów przywołania, limitu 3 aktywnych, zasad po zalogowaniu, skalowania do właściciela, braku własnego EXP ani odporności bossów. Zachowano wszystkie 95 minionów 19 klas z v11.00.20, a także przywołania Druida, Maga i Nekromanty.
+
+PROFESJE 10.0 — MISTRZOWIE WYTWARZANIA
+- 22 odrębne, nazwane projekty mistrzowskie łączące gotowe produkty różnych profesji. Cztery poziomy trudności 25, 200, 400, 600 (88 kombinacji receptur zużywających rzeczywiste surowce). Każdy zawód ma własny wyrób oraz dzienny kontrakt mistrzowski.
+- Komendy: profesja projekt lista; profesja projekt <nazwa>; profesja projekt wykonaj <nazwa> <25|200|400|600>; profesja projekt oddaj <nazwa>.
+- Wyroby można zachować: posiadanie choć jednego projektu mistrzowskiego daje niewielkie, niestackujące wsparcie inteligentnej taktyki przywołań; to wyłącznie bonus, nigdy obowiązek przywołania. Można je też przekazywać do codziennego kontraktu za srebro i EXP profesji/narzędzia.
+- Materiały automatycznie pobierane z właściwych toreb (zioła, ryby, drewno, rudy), szkatułki lub ekwipunku. Materiały, wyrób, postęp i wypłata wymagają atomowej transakcji SQLite; nieudana produkcja lub nieudany odbiór nie niszczy przedmiotów i nie daje niezasłużonych nagród.
+- Zachowano 22 dotychczasowe narzędzia i ich jednorazowy zakup na postać, 22 profesje, ich istniejące receptury, bazowe czynności, wcześniejsze specjalizacje i Drogę Mistrza. Zero nowych narzędzi. Obróbka desek nadal należy do Drwalstwa i Piły, gotowe wyroby do Stolarstwa.
+- Bez obniżania starych nagród EXP, żadnych zmian w krzywej rozwoju 1–800, EXP Bank, Fame, Multi Cap, dropie czy obrażeniach.
+
+WERYFIKACJA I WDROŻENIE
+- Do istniejących bramek szybki/predeploy pełny dodano dedykowane testy AI 22 klas, bezpieczeństwa Jammera, realnej bazy SQLite, 22 projektów, 22 zamówień i rollbacku transakcji. Zachowano wszystkie wcześniejsze testy, z aktualizacją kontrolowanego fingerprintu zmodyfikowanej metody skilla.
+- PEŁNE 60/60 PLUS na Windows jest obowiązkowe PRZED wdrożeniem. Nie należy używać WDRAZAM_Soulbound.bat bez PASS; testowanie wyłącznie na kopii bazy. Bez GitHuba, bez osobnych raportów TXT.
+
+Soulbound v11.00.20 — LEGENDARNE PRZYWOŁANIA KLAS 200/400/600
+Aktualna paczka: v11.00.20
+- Dla wszystkich 19 klas z nowymi przywołaniami dodano po trzy odrębne, tematyczne miniony na poziomy postaci 200, 400 i 600: 57 dodatkowych stworzeń, 95 klasowych typów łącznie dla tych 19 klas.
+- Przykłady: Wojownik — Weteran Żelaznego Legionu, Marszałek Stali, Awatar Przysięgi; Bard — Duch Rezonansu, Orkiestra Burz, Symfonia Legend; Mec — Egzoszkielet Eskorty, Autonomiczny Pancerz, Orbitalny Tytan. Wszystkie klasy mają osobne, unikalne kody i nazwy, wyświetlane przez chowaniec klasy.
+- Przywołania skalują swoje obrażenia fizyczne/magiczne, poziom i HP do aktualnego właściciela, nie zdobywają własnego EXP, korzystają z istniejącego SQLite. Dla magicznych minionów koszt MP rośnie z poziomem; fizyczne zachowują koszt 0 MP. Poziomy wejścia są sprawdzane PRZED wydaniem many, bez obchodzenia zasad klas.
+- Istniejące 38 typów, wszystkie przywołania Druida, Maga i Nekromanty, wcześniejsze wypłaty/EXP/questy, limit 3 aktywnych i zapis postaci pozostają bez zmian. Nie ma limitu obrażeń ani redukcji mocy właściciela/najemników.
+- Dodano czytelne dla NVDA filtry: chowaniec klasy <nazwa klasy> oraz chowaniec klasy dostepne, obok pełnej listy chowaniec klasy.
+- Dodano osobny test przywołań poziomów 200, 400 i 600 oraz zachowano starsze 273 testy leczenia, teleportacji i minionów i 19 testów bounty drużynowego.
+- Pełny Windows PREDEPLOY 60/60 PLUS wymagany przed wdrożeniem. Bez GitHuba; tylko kompletna paczka ZIP.
+
+Soulbound v11.00.19 — PRZYWOŁANIA WSZYSTKICH KLAS, BEZPIECZNE LECZENIE I TELEPORTACJA
+Aktualna paczka: v11.00.19
+
+HOTFIX PREDEPLOY v11.00.19 (19.10.2026)
+- Dopisano 11.00.19 do akceptowanych wersji w regresji nauczycieli 8 klas, 24 zadan i skrzyn; nie zmieniano tresci ani wymagan testu.
+- Zachowano naprawy leczenia przy pelnym HP, blokady teleportacji postaci martwych, przywolania 22 klas i bounty druzynowe.
+- Wymagane kompletne TESTUJ_Soulbound.bat 60/60 PLUS PASS przed wdrozeniem; test lokalny nie zastępuje Windows.
+
+- Leczenie: skille nie marnują many ani odnowienia, jeśli cel ma pełne HP. Poprawiono również Regen, Cure Beam i Heal Beam (grupowe leczą rannych sojuszników, nawet gdy rzucający ma pełne HP).
+- Teleportacja: /, teleport Świątyni, portale Krypty/Astralne/Katakumb i teleport drużyny nie przenoszą postaci martwych ani powalonych. Odrodzenie i wskrzeszenie pozostają oddzielnymi mechanizmami.
+- 22 klasy mają własne przywołania: dotychczasowe Druida/Maga/Nekromanty zachowane, dla pozostałych 19 klas dodano po 2 tematyczne miniony (38 nowych). Chowaniec klasy — lista; chowaniec przywolaj <kod> — przywołanie. Koszt i próg poziomu podawany osobno.
+- Bounty dla party: gdy lider przyjmie kontrakt na Tablicy Zleceń, otrzymują go również zalogowani członkowie jego drużyny (niezależnie od pokoju). Każdy ma osobny postęp i odbiór nagrody. Istniejące aktywne kontrakty i oferty innych członków nie są nadpisywane; gracze offline nie zostają automatycznie zapisani.
+- Wszystkie przywołania działają w dotychczasowym systemie walki, skalują poziom i HP do właściciela, nie mają osobnego EXP. Maksymalnie 3 aktywne łącznie; po zalogowaniu trzeba je przywołać ponownie. Brak osłabienia obrażeń gracza, najemników lub starych summonów.
+- Zachowano całą istniejącą bazę SQLite, postacie, questy, waluty i EXP. Nie usuwamy starych ID ani przywołań.
+- Wymagany Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
 POPRAWKA v11.00.18 — ZALICZANIE SUROWCÓW W FABULE I TEST ŁOWIECTWA
 - PREDEPLOY: poprawiono test Łowiectwa: czynność zasadzka musi zużyć dokładnie dwa ślady, ale nie usuwa wcześniej zdobytych śladów z tropienia. Wcześniejszy błędny warunek wymagał wyzerowania całego zapasu testowej postaci.
 - ZADANIA FABULARNE: odbiór surowców po przyjęciu zadania zalicza także rzadkie warianty tego samego zioła, drewna lub ryby. Inny surowiec nigdy nie zalicza niepowiązanego questa.

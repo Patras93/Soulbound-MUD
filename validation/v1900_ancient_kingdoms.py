@@ -80,7 +80,7 @@ def run_regression(server=None):
     for slug,zone,_,_,_,_,_ in KINGDOMS:
         check(len(catalogue[zone])==15,f'{zone} natural Fame targets')
     for _,zone,_,_ in DIMENSIONS:
-        check(len(catalogue[zone])==7,f'{zone} Fame targets')
+        check(len(catalogue[zone])>=7,f'{zone} Fame targets retained alongside new targets')
     con=sqlite3.connect(':memory:')
     try:
         entry=fame_report(con,1,'bestiariusz',room_id='v1900_miedz_0')

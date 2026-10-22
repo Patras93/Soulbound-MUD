@@ -523,6 +523,21 @@ class SessionForgeGuildsMixin:
 
     def refresh_guild_bonus_v0926(self):
             pct=self.server.db.guild_bonus_percent_v0926(self.account_id) if getattr(self,"account_id",None) else 0
+            from systems.live_olc28_expansion import guild_extra_bonus
+            membership = self.guild_row_v0926()
+            pct = int(pct) + guild_extra_bonus(bool(membership))
+            if membership:
+                from systems.live_olc29_creation import guild_level_bonus
+                # Guild growth level is stored in player_clans, not in a character.
+                row = self.server.db.conn.execute(
+                    'SELECT level FROM player_clans WHERE id=?',
+                    (int(membership['clan_id']),)).fetchone()
+                _guild_level = int(row['level']) if row else 1
+                pct += guild_level_bonus(_guild_level)
+                from systems.live_olc32_finale import guild_milestone_bonus
+                pct += guild_milestone_bonus(_guild_level)
+                from systems.live_olc35_finale import city_bonus
+                pct += city_bonus(self.server.db.conn,int(membership['clan_id']))
             if getattr(self,"character",None):
                 self.character._guild_bonus_percent=int(pct)
             return int(pct)
@@ -889,7 +904,7 @@ class SessionForgeGuildsMixin:
                 if level<V0926_GUILD_MAX_LEVEL: await self.send(f"Następna rozbudowa kosztuje {currency_price_text(next_cost)}.")
                 hall=self.server.db.guild_hall_v0927(cid)
                 await self.send(f"Siedziba: {int(hall['hall_level'])}/10. Kontrakty, bossowie i budynki są dostępne przez komendy Gildii.")
-                await self.send("Komendy: gildia członkowie, zaproś, dołącz, chat, wpłać, wypłać, skarbiec, bank, rangi, ranga, rozbuduj, siedziba, budynek, kontrakty, kontrakt, boss, trofea, log, osiągnięcia.")
+                await self.send("Komendy: gildia członkowie, zaproś, dołącz, chat, wpłać, wypłać, skarbiec, bank, rangi, ranga, rozbuduj, siedziba, budynek, kontrakty, kontrakt, boss, trofea, wojna, miasto, log, osiągnięcia.")
                 return
             parts=raw.split(maxsplit=1); action=normalize_lookup_text(parts[0]); rest=parts[1].strip() if len(parts)>1 else ""
             if action in ("kurierow","kurierów","couriers","courier"):
@@ -939,6 +954,49 @@ class SessionForgeGuildsMixin:
                 await self.send(f"Dołączasz do Gildii {inv['name']}."); return
             if not row: await self.send("Nie należysz do Gildii."); return
             cid=int(row["clan_id"]); rank=str(row["rank"]); self.server.db.ensure_guild_default_roles_v0926(cid)
+            if action in ('wojna','war'):
+                from systems.live_olc35_finale import war_status, start_war, war_config
+                import time as _time35
+                state=war_status(conn,cid); now=int(_time35.time())
+                if normalize_lookup_text(rest) in ('start','rozpocznij','rozpocznij potwierdz'):
+                    if rank!='leader': await self.send('Tylko lider rozpoczyna kampanię PvE.'); return
+                    if int(self.server.db.guild_hall_v0927(cid)['hall_level'])<2:
+                        await self.send('Wojny PvE wymagają siedziby poziom 2.'); return
+                    if start_war(conn,cid,now):
+                        await self.send('Wojna PvE rozpoczęta. Pokonuj bossów razem z gildia. Postęp: gildia wojna.')
+                    else: await self.send('Wojna jest aktywna albo trwa przerwa po zwycięstwie.')
+                    return
+                cfg=war_config()
+                if state:
+                    await self.send(f'WOJNA PVE: {int(state["progress"])}/{int(state["target"])} bossów; '
+                                    f'{"aktywna" if state["active"] else "zakonczona"}; '
+                                    f'nagroda {int(state["reward"])} srebra; '
+                                    f'przerwa {max(0,int(state["ready_at"])-now)} sekund.')
+                else: await self.send(f'WOJNA PVE: nie rozpoczęta. Cel {cfg["bosses_needed"]} bossów.')
+                await self.send('Komendy: gildia wojna; gildia wojna start (lider).')
+                return
+            if action in ('miasto','city'):
+                from systems.live_olc35_finale import city_level, city_upgrade, city_config, city_bonus
+                opts=('warsztat','spichlerz','straznica')
+                sub=rest.split(); cfg=city_config()
+                if len(sub)==2 and normalize_lookup_text(sub[0])=='rozbuduj':
+                    if rank!='leader': await self.send('Tylko lider może rozbudowywać miasto.'); return
+                    kind=normalize_lookup_text(sub[1])
+                    if kind not in opts: await self.send('Miasto: warsztat, spichlerz, straznica.'); return
+                    try: success,level,cost=city_upgrade(conn,cid,kind)
+                    except ValueError as exc: await self.send(str(exc)); return
+                    if not success: await self.send('Ten budynek ma maksymalny poziom.'); return
+                    self.server.db.clan_log(cid,self.account_id,f'Miasto: rozbudowa {kind} poziom {level}, koszt {cost} srebra.')
+                    self.refresh_guild_bonus_v0926()
+                    await self.send(f'Miasto: {kind} poziom {level}. Koszt: {cost} srebra ze skarbca.')
+                    return
+                await self.send(f'MIASTO GILDII: premia rozwoju +{city_bonus(conn,cid)}%.')
+                for kind in opts:
+                    level=city_level(conn,cid,kind)
+                    await self.send(f'{kind}: poziom {level}/{cfg["max_level"]}; '
+                                    f'następna rozbudowa {cfg["base_cost_silver"]*(level+1)**2 if level<cfg["max_level"] else 0} srebra.')
+                await self.send('Komenda lidera: gildia miasto rozbuduj <warsztat/spichlerz/straznica>.')
+                return
             if action in ("siedziba","hall","estate"):
                 await self.handle_guild_hall_v0927(rest,row); return
             if action in ("budynek","building"):

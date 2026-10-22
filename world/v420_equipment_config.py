@@ -132,6 +132,7 @@ def densify_static_dungeon_spawns():
         regular = [
             tid for tid in existing
             if tid in MOB_TEMPLATES and not _is_boss_for_density(MOB_TEMPLATES[tid])
+            and not MOB_TEMPLATES[tid].get("fame_target")
         ]
         if not regular:
             continue

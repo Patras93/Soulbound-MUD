@@ -233,10 +233,18 @@ def elemental_target_ward_text_v11339(session, element):
     return f" Ward {V11339_ELEMENT_LABELS[element]} redukuje ten atak o {int(round(ward * 100))}%."
 
 
+# Pure data mapping, installed and rolled back by LiveContentV1204.
+# The original combat method remains byte-for-byte unchanged.
+OLC_SKILL_ELEMENTS_V1500 = {}
+
+
 def skill_element_v11339(class_name, skill_name="", explicit_element=""):
     explicit = canonical_element_v11339(explicit_element)
     if explicit:
         return explicit
+    configured = OLC_SKILL_ELEMENTS_V1500.get((str(class_name or "").strip(), str(skill_name or "")))
+    if configured:
+        return configured
     cls = str(class_name or "").strip()
     name = str(skill_name or "").casefold()
     from core.class_mastery_v1100 import SKILL_ELEMENTS

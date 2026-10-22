@@ -381,6 +381,11 @@ class SessionHelpSystemMixin:
     def skill_help_effect_details(self, skill):
             parts = []
             kind = skill.get("kind")
+            status = skill.get('olc_status')
+            if isinstance(status, dict) and status.get('kind') in ('poison','burn','freeze','shock'):
+                labels = {'poison':'trucizna', 'burn':'podpalenie',
+                          'freeze':'zamrożenie', 'shock':'porażenie'}
+                parts.append(f"Efekt po trafieniu: {labels[status['kind']]}, szansa bazowa {round(float(status['chance'])*100)} procent; bossowie mają dodatkowe odporności")
             if skill.get("scale"):
                 parts.append("Skalowanie: " + self.skill_help_scale_label(skill.get("scale")))
             if "mult" in skill:

@@ -3,6 +3,9 @@
 Globals are bound to the historical host module at class initialization.
 """
 async def use_class_skill(self, raw):
+            if getattr(self, 'current_hp', 1) <= 0 or getattr(self, 'is_downed_v0371', lambda: False)():
+                await self.send('Martwa lub powalona postać nie może używać umiejętności. Najpierw się odrodź lub poczekaj na wskrzeszenie.')
+                return
             skill, target_text = self.find_skill_from_input(raw)
             if not skill:
                 await self.send("Nie rozpoznaję tej umiejętności albo naturalny skrót jest niejednoznaczny. Wpisz skills albo umiejetnosci i użyj pełnej nazwy.")
@@ -474,6 +477,9 @@ async def use_class_skill(self, raw):
                         return
                 else:
                     _regen_target=self
+                if _regen_target.current_hp >= _regen_target.max_hp():
+                    await self.send(f"{skill['name']}: {_regen_target.character.name} ma już pełne HP. Nie wydano many.")
+                    return
                 if superboss_healing_blocked_v11179(_regen_target):
                     await self.send(
                         "Nullify Healing blokuje Regen na tym celu."
@@ -523,6 +529,9 @@ async def use_class_skill(self, raw):
                         return
                 else:
                     _cure_beam_target = self
+                if _cure_beam_target.current_hp >= _cure_beam_target.max_hp():
+                    await self.send(f"Cure Beam: {_cure_beam_target.character.name} ma pełne HP. Nie wydano many.")
+                    return
                 if superboss_healing_blocked_v11179(_cure_beam_target):
                     await self.send(
                         "Nullify Healing blokuje Cure Beam na tym celu."
@@ -554,6 +563,10 @@ async def use_class_skill(self, raw):
                         await self.send(
                             "Heal Beam: brak żywych członków drużyny w tej lokacji."
                         )
+                        return
+                    _heal_beam_targets = [sess for sess in _heal_beam_targets if sess.current_hp < sess.max_hp()]
+                    if not _heal_beam_targets:
+                        await self.send('Heal Beam: wszyscy żywi członkowie drużyny mają pełne HP. Nie wydano many.')
                         return
                     if all(
                         superboss_healing_blocked_v11179(sess)
@@ -587,6 +600,9 @@ async def use_class_skill(self, raw):
                                 "sojusznika w tej lokacji. Przeciwnik nie może być celem."
                             )
                             return
+                    if _heal_target.current_hp >= _heal_target.max_hp():
+                        await self.send(f"Heal Beam: {_heal_target.character.name} ma pełne HP. Nie wydano many.")
+                        return
                     if superboss_healing_blocked_v11179(_heal_target):
                         await self.send(
                             "Nullify Healing blokuje Heal Beam na tym celu."
@@ -594,6 +610,18 @@ async def use_class_skill(self, raw):
                         return
                     _heal_beam_targets = [_heal_target]
 
+            # Mec Jammer: no cast, MP or cooldown unless there is at least one
+            # living, paralyzed, previously unjammed non-boss opponent.
+            _v1200_jammer_targets=[]
+            if str(skill.get('mec_special',''))=='jammer':
+                from systems.summon_ai_v1200 import jammer_eligible
+                _jam_candidates=[mob] if mob else []
+                if support_effect and self.offensive_aoe_enabled_v11120():
+                    _jam_candidates=[x for x in self.server.world.room_mobs(self.character.room_id) if x.alive]
+                _v1200_jammer_targets=[x for x in _jam_candidates if x and jammer_eligible(x,MOB_TEMPLATES[x.template_id])]
+                if not _v1200_jammer_targets:
+                    await self.send('Jammer: brak sparaliżowanego celu, na którym Stop nie był jeszcze użyty. Bossowie są odporni. Mana i cooldown bez zmian.')
+                    return
             self.current_mana -= mana_cost
             if effective_cooldown > 0:
                 self.start_skill_cooldown_v0364(skill, effective_cooldown, now)
@@ -1382,19 +1410,8 @@ async def use_class_skill(self, raw):
                         await self.ensure_realtime_combat()
                         return
                     if special=="jammer":
-                        self.server.world.refresh()
-                        targets=[mob]
-                        # Support Effect źródłowo rozszerza Jammer na wszystkich
-                        # przeciwników, ale globalne "aoe off" ma pierwszeństwo
-                        # jako świadomy bezpiecznik gracza przed multi-target.
-                        if support_effect and self.offensive_aoe_enabled_v11120():
-                            targets=[
-                                x for x in self.server.world.room_mobs(
-                                    self.character.room_id
-                                )
-                                if x.alive
-                            ]
-                        targets=[x for x in targets if x and x.alive]
+                        # Preserve the exact eligible set checked before MP debit.
+                        targets=[x for x in _v1200_jammer_targets if x and x.alive]
                         if not targets:
                             return
                         _jammer_level=max(1,min(SKILL_MAX_LEVEL,int(skill_level)))
@@ -1457,6 +1474,10 @@ async def use_class_skill(self, raw):
                                     self,_jam_target
                                 )
                                 continue
+                            # One attempted Jammer per actual paralysis event;
+                            # even a resisted attempt cannot be spammed.
+                            from systems.summon_ai_v1200 import paralysis_token
+                            _jam_target.v1200_jammer_attempted_token=paralysis_token(_jam_target)
                             _jam_accuracy=_jammer_base_accuracy
                             _jam_machine=bool(
                                 _jam_template.get("machine")
@@ -1603,6 +1624,7 @@ async def use_class_skill(self, raw):
                             getattr(mob,"v11196_logic_bomb_effects",set()) or set()
                         )
                         mob.v11196_logic_bomb_rounds=_existing+_logic_rounds
+                        mob.v1200_logic_paralyze_token=int(getattr(mob,'v1200_logic_paralyze_token',0) or 0)+1
                         mob.v11196_logic_bomb_effects=_existing_effects|_logic_effects
                         mob.v11196_logic_bomb_cleanseable=True
                         mob.v11196_logic_paralyze_skip_chance=float(

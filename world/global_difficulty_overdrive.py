@@ -250,6 +250,22 @@ def v0190_apply_combat_template(template):
     Generator refreshes can normalize those templates downward during spawn, so
     preserve the original authored floor values once and never compound them.
     """
+    # v12.00.2: real endgame floor levels, not just huge multipliers of
+    # generator stage 1. This runs on spawn/respawn as well as static creation.
+    if isinstance(template, dict) and template.get("giant_fortress_floor") is not None:
+        floor = max(1, int(template.get("giant_fortress_floor") or 1))
+        # The historic Giant Fortress is an advanced combat location. Preserve
+        # higher authored/elite/boss levels instead of lowering any encounter.
+        template["generator_level"] = max(
+            89 + 2 * floor,
+            int(template.get("generator_level", template.get("v019_stage", 1)) or 1),
+        )
+        template["giant_endgame_floor_v1202"] = True
+    if isinstance(template, dict) and template.get("astral_floor") is not None and template.get("mythic_astral_floor") is None:
+        template["generator_level"] = max(
+            int(template.get("astral_floor") or 100),
+            int(template.get("generator_level", template.get("v019_stage", 1)) or 1),
+        )
     if isinstance(template, dict) and _v0386_instance_kind(template) == "magitek":
         if "_v0386_authored_hp" not in template:
             template["_v0386_authored_hp"] = int(template.get("max_hp", 1) or 1)
@@ -283,6 +299,40 @@ def v0190_apply_combat_template(template):
             _saved = int(result.get(f"_v0386_authored_{_key}", 0) or 0)
             if _saved > int(result.get(_key, 0) or 0):
                 result[_key] = _saved
+
+    # v12.00.2: Endgame room-specific minimum AFTER older balance wrappers,
+    # BEFORE final global scaling. No reductions or repeated final stacking.
+    # Profession dungeons and starter regions are intentionally excluded.
+    if result.get("giant_fortress_floor") is not None:
+        stage = min(800, _v0386_stage(result))
+        rank = _v0386_rank(result)
+        hp_floor = int(balance_math.mob_hp(stage, rank) * 4.0)
+        dmg_floor = int(balance_math.mob_damage(stage, rank) * 1.75)
+        result["max_hp"] = max(int(result.get("max_hp", 1) or 1), hp_floor)
+        result["base_max_hp"] = result["max_hp"]
+        result["damage"] = max(int(result.get("damage", 1) or 1), dmg_floor)
+    elif result.get("mythic_crypt_floor") is not None:
+        # Mythic must remain a clear step ABOVE the newly stronger ordinary
+        # Crypt entrance; this is a minimum and cannot nerf historic superbosses.
+        stage = min(800, _v0386_stage(result))
+        rank = _v0386_rank(result)
+        result["max_hp"] = max(int(result.get("max_hp", 1) or 1), int(balance_math.mob_hp(stage, rank) * 5.5))
+        result["base_max_hp"] = result["max_hp"]
+        result["damage"] = max(int(result.get("damage", 1) or 1), int(balance_math.mob_damage(stage, rank) * 2.15))
+    elif result.get("mythic_astral_floor") is not None:
+        stage = min(800, _v0386_stage(result))
+        rank = _v0386_rank(result)
+        result["max_hp"] = max(int(result.get("max_hp", 1) or 1), int(balance_math.mob_hp(stage, rank) * 4.5))
+        result["base_max_hp"] = result["max_hp"]
+        result["damage"] = max(int(result.get("damage", 1) or 1), int(balance_math.mob_damage(stage, rank) * 2.15))
+    elif result.get("astral_floor") is not None and result.get("mythic_astral_floor") is None:
+        stage = min(800, _v0386_stage(result))
+        rank = _v0386_rank(result)
+        hp_floor = int(balance_math.mob_hp(stage, rank) * 4.0)
+        dmg_floor = int(balance_math.mob_damage(stage, rank) * 1.55)
+        result["max_hp"] = max(int(result.get("max_hp", 1) or 1), hp_floor)
+        result["base_max_hp"] = result["max_hp"]
+        result["damage"] = max(int(result.get("damage", 1) or 1), dmg_floor)
 
     mult = global_difficulty_multipliers_v0386(result)
 
@@ -357,6 +407,21 @@ def v0190_combat_reward(template, kind):
 
 
 v0190_combat_reward._global_difficulty_overdrive_v0386 = True
+
+
+# v12.00.2: static authored floors are defined before the final world combat
+# layer is installed. Refresh only the five reviewed dungeon families at
+# bootstrap; lazy floors receive the same logic during spawn/respawn.
+for _v1202_tid, _v1202_template in list(MOB_TEMPLATES.items()):
+    if isinstance(_v1202_template, dict) and (
+        _v1202_template.get("giant_fortress_floor") is not None
+        or _v1202_template.get("crypt_floor") is not None
+        or _v1202_template.get("mythic_crypt_floor") is not None
+        or _v1202_template.get("mythic_astral_floor") is not None
+        or (_v1202_template.get("astral_floor") is not None
+            and _v1202_template.get("mythic_astral_floor") is None)
+    ):
+        v0190_apply_combat_template(_v1202_template)
 
 
 # New dynamic encounters created after startup are already routed through

@@ -159,7 +159,8 @@ class SessionCharacterProfileMixin:
                 f"{name}: {amount} poziomów, +{cap_parts[name]} EXP"
                 for name, amount in parts.items()) + ".")
             await self.send("Przyrost co 10 poziomów: 1-10 +500; 11-20 +1000; "
-                            "21-30 +5000; 31-40 +7500; dalej stawka +2500 co 10 poziomów, bez końca.")
+                            "21-30 +5000; 31-40 +7500; dalej stawka +2500 co 10 poziomów, bez końca. "
+                            "Premie OLC Multi Cap, jeśli włączone, powiększają te wkłady.")
             await self.send(
                 "Ten sam limit dotyczy osobno każdej nagrody dla postaci, "
                 "każdej klasy, Duszy, statystyki, skilla, profesji i narzędzia. "
@@ -168,7 +169,8 @@ class SessionCharacterProfileMixin:
             await self.send(
                 "Walka nie rozwija profesji ani narzędzi. Rozwój profesji i "
                 "narzędzi podnosi jednak Multi Cap do przyszłych walk. "
-                "Nieodblokowane skille i klasy nie podnoszą limitu."
+                "Nieodblokowane skille i klasy nie podnoszą limitu. "
+                "Archiwalne klasy można uwzględnić ustawieniem OLC multi_cap_all_owned_classes."
             )
             await self.send(
                 "Doublecap silnego bossa: do " + str(cap * 2)

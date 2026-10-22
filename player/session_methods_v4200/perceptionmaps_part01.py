@@ -159,7 +159,10 @@ def visible_item_for_look(self, query):
 async def look_at_player(self, session):
         character = session.character
         classes = character.active_class_names()
-        await self.send(f"{character.name}. Gracz.")
+        _same_party = self.party_key() is not None and self.party_key() == session.party_key()
+        _downed = _same_party and session.is_downed_v0371()
+        await self.send(f"{character.name}. Gracz."
+                        + (" POWALONY — można wskrzesić." if _downed else ""))
         await self.send(
             f"Rasa: {character.race}. "
             f"Klasa: {', '.join(classes)}. "

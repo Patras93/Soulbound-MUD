@@ -1,0 +1,27 @@
+{
+  "skills": {
+    "live_proba_heal_v1210": {
+      "class_name": "Mag", "name": "Próba Leczenia OLC", "desc": "Bezpieczna testowa umiejętność leczenia.",
+      "kind": "heal", "unlock": 25, "mana": 50, "cooldown": 0,
+      "scale": "wisdom", "mult": 1.0, "aliases": [], "effect": 0.1
+    }
+  },
+  "mob_edits": {
+    "bandit_captain": {
+      "olc_boss_phases": [
+        {"hp_percent": 90, "attack_multiplier": 1.20, "duration_seconds": 15, "message": "Zbiera siły."},
+        {"hp_percent": 70, "attack_multiplier": 1.32, "duration_seconds": 18, "message": "Szykuje kontratak."},
+        {"hp_percent": 50, "attack_multiplier": 1.44, "duration_seconds": 20, "message": "Walcząc, wydaje rozkazy."},
+        {"hp_percent": 30, "attack_multiplier": 1.56, "duration_seconds": 25, "message": "Rusza do desperackiej szarży."},
+        {"hp_percent": 10, "attack_multiplier": 1.68, "duration_seconds": 30, "message": "Ostatni zryw!"}
+      ]
+    }
+  },
+  "items": {
+    "live_zbroja_proba_v1210": {"name": "Testowa Zbroja OLC", "desc": "Przykład lekkiego pancerza.", "type": "armor", "price": 500, "currency": "silver", "slot": "body", "defense": 20},
+    "live_mikstura_proba_v1210": {"name": "Testowa Mikstura OLC", "desc": "Leczy 100 HP.", "type": "consumable", "price": 50, "currency": "silver", "heal": 100}
+  },
+  "quests": {
+    "live_zadanie_proba_v1210": {"name": "Próba Pogromcy", "giver": "Rybak Borys", "kind": "kill", "target": "temple_rat", "needed": 5, "description": "Przykładowy quest, który można następnie edytować w OLC.", "reward_silver": 100}
+  }
+}

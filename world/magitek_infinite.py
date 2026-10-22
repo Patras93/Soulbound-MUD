@@ -10,7 +10,7 @@ import re as _re_v0382
 
 V0382_MAGITEK_VERSION = "0.38.2"
 MAGITEK_INFINITY_ZONE = "Nieskończony Kompleks Magitek"
-MAGITEK_INFINITY_START_LEVEL = 110
+MAGITEK_INFINITY_START_LEVEL = 383  # first infinite floor 390, after WarMech Zero 390
 MAGITEK_BOSS_INTERVAL = 10
 
 
@@ -155,6 +155,7 @@ def create_infinite_magitek_floor_definition(floor):
         ),
         "exits": exits,
         "recommended_mastery": stage,
+        "generator_level": stage,
         "procedural_infinite": True,
         "magitek_floor": floor,
     }, 'ROOMS', ROOMS, (room_id,))
@@ -195,6 +196,7 @@ def create_infinite_magitek_floor_definition(floor):
             "class_xp_reward": max(1, int(round(base_class_xp * variant_mult))),
             "soul_reward": max(1, int(round(base_soul_xp * variant_mult))),
             "magitek_floor": floor,
+            "generator_level": stage,
             "magitek_infinite": True,
             "rank": "normal",
             "corpse_equipment_pool": gear_pool,
@@ -233,6 +235,7 @@ def create_infinite_magitek_floor_definition(floor):
             "class_xp_reward": max(1, int(round(base_class_xp * 4.0))),
             "soul_reward": max(1, int(round(base_soul_xp * 4.0))),
             "magitek_floor": floor,
+            "generator_level": stage,
             "magitek_infinite": True,
             "elite": True,
             "rank": "elite",
@@ -273,6 +276,7 @@ def create_infinite_magitek_floor_definition(floor):
             "class_xp_reward": max(1, int(round(base_class_xp * 9.0))),
             "soul_reward": max(1, int(round(base_soul_xp * 9.0))),
             "magitek_floor": floor,
+            "generator_level": stage,
             "magitek_infinite": True,
             "magitek_boss": True,
             "machine_boss": True,

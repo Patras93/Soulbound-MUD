@@ -169,9 +169,18 @@ class SessionRuntimeStateMixin:
                 self.server.db, self.account_id, actual, 'character',
                 self.character.character_level, overcap=overcap)
             self.session_summary_add("character_xp", actual)
-            return self.character.add_character_xp(
+            previous_level = int(self.character.character_level)
+            messages = self.character.add_character_xp(
                 actual, single_level_cap=single_level_cap
             )
+            if int(self.character.character_level) > previous_level:
+                # Brak trwałego cache; powiadom tylko, gdy zmieniła się lista.
+                # Awans o wiele leveli na raz = jedno powiadomienie, nie spam.
+                hint_fn = getattr(self, "exp_area_level_up_hint_v2910", None)
+                hint = hint_fn(previous_level, self.character.character_level) if callable(hint_fn) else None
+                if hint:
+                    messages.append(hint)
+            return messages
 
     async def show_double_xp_event(self):
             state = self.double_xp_state()
@@ -241,6 +250,9 @@ class SessionRuntimeStateMixin:
             """Teleport one online session to the temple without recursing through party logic."""
             if not self.character or self.closed:
                 return False
+            if getattr(self, 'current_hp', 1) <= 0 or getattr(self, 'is_downed_v0371', lambda: False)():
+                await self.send('Nie możesz teleportować się po śmierci. Najpierw się odrodź lub poczekaj na wskrzeszenie.')
+                return False
             if self.guide_task_active():
                 await self.cancel_guide(announce=False)
             if self.resting or self.rest_task:
@@ -282,6 +294,9 @@ class SessionRuntimeStateMixin:
 
     async def teleport_to_temple_command(self):
             if not self.character:
+                return
+            if getattr(self, 'current_hp', 1) <= 0 or getattr(self, 'is_downed_v0371', lambda: False)():
+                await self.send('Jesteś martwy lub powalony. Teleportacja nie działa przed odrodzeniem.')
                 return
             origin_room = self.character.room_id
             party_members = self.server.party_sessions(

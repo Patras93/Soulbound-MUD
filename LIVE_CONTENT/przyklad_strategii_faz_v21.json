@@ -1,0 +1,12 @@
+{
+  "mob_id": "bandit_captain",
+  "olc_boss_phase_tactic_intervals": {"0": 5, "2": 3, "3": 2},
+  "olc_boss_phase_guardian_intervals": {"0": 6, "2": 3},
+  "olc_boss_phase_guard_thresholds": {"0": 35, "2": 80},
+  "olc_boss_phase_support_intervals": {"0": 6, "2": 3},
+  "olc_boss_phase_support_durations": {"2": 18},
+  "olc_boss_phase_support_priorities": {"0": "weakest", "2": "strongest"},
+  "olc_boss_phase_rally_hp_thresholds": {"0": 30, "2": 75},
+  "olc_boss_phase_rally_intervals": {"2": 3},
+  "olc_boss_phase_rally_durations": {"2": 20}
+}

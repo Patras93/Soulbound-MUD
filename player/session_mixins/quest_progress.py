@@ -92,6 +92,14 @@ class SessionQuestProgressMixin:
                 if mask & (1 << index)
             )
 
+    def multi_objective_status_v1800(self, quest_id):
+        from systems.live_olc18_multi_objective import objective_status
+        quest = QUESTS[quest_id]
+        return objective_status(
+            self.server.db, self.account_id, quest_id, quest.get('objectives', {}),
+            self.quest_crafted_item_have_v0333,
+        )
+
     def quest_progress_value(self, quest_id):
             q = QUESTS.get(quest_id)
             if not q:
@@ -100,6 +108,10 @@ class SessionQuestProgressMixin:
             row = self.server.db.quest(self.account_id, quest_id)
             if not row or row["status"] != "active":
                 return None
+
+            if q["kind"] == 'multi_objective':
+                progress, _, _, _ = self.multi_objective_status_v1800(quest_id)
+                return progress
 
             if q["kind"] in ("kill", "party_contract"):
                 return min(int(row["progress"]), int(q["needed"]))
@@ -149,6 +161,16 @@ class SessionQuestProgressMixin:
                 return
 
             needed = int(q["needed"])
+
+            if q.get('kind') == 'multi_objective':
+                current, total, ready, details = self.multi_objective_status_v1800(quest_id)
+                await _send_progress(
+                    f"Quest aktywny: {q['name']}. Cele {current} z {total}. "
+                    + '; '.join(f'{kind} {target} {have}/{needed}'
+                                for kind, target, have, needed in details)
+                    + ('. GOTOWE DO ODDANIA.' if ready else '.')
+                )
+                return
 
             if q.get("kind") == "collect":
                 # v0.34.4: collect pokazuje ten sam fizyczny stan, z którego
@@ -520,6 +542,10 @@ class SessionQuestProgressMixin:
                 return 0, False
 
             needed = int(q.get("needed", 0))
+            if q["kind"] == 'multi_objective':
+                current, total, ready, _ = self.multi_objective_status_v1800(quest_id)
+                return current, ready
+
             if q["kind"] in ("kill", "party_contract"):
                 progress = int(row["progress"])
                 return progress, progress >= needed

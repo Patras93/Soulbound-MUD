@@ -154,3 +154,13 @@ SessionCombatSkillsMixin.handle_aoe_setting_v11120 = _sb420_bind(_sb420_src_01.h
 SessionCombatSkillsMixin.use_class_skill = _sb420_bind(_sb420_src_02.use_class_skill, globals(), "SessionCombatSkillsMixin")
 
 
+
+# OLC 16: optional on-hit status adapter for selected edited/created skills.
+# Historical method body and its AST fingerprint remain completely unchanged.
+from systems.live_olc19_status_skills import cast_with_olc_status_v1900 as _olc19_cast
+_OLC19_HISTORICAL_CAST = SessionCombatSkillsMixin.use_class_skill
+from functools import wraps as _olc19_wraps
+@_olc19_wraps(_OLC19_HISTORICAL_CAST)
+async def _olc19_status_cast(self, raw):
+    return await _olc19_cast(self, raw, _OLC19_HISTORICAL_CAST)
+SessionCombatSkillsMixin.use_class_skill = _olc19_status_cast

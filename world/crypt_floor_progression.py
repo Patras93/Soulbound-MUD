@@ -8,8 +8,8 @@ preserving its same-room combat dungeon exit behavior and all prior milestones.
 """
 
 V03610_CRYPT_BASE_XP = {
-    "crypt_regular": (2.50, 100.0),
-    "crypt_boss": (4.00, 60.0),
+    "crypt_regular": (8.00, 60.0),
+    "crypt_boss": (12.00, 45.0),
     "mythic_regular": (4.00, 80.0),
     "mythic_boss": (7.00, 50.0),
 }
@@ -48,7 +48,7 @@ def _v03610_hp_mult(kind, floor):
         if kind == "mythic_boss":
             mult *= 2.0
         return mult
-    mult = 2.4 + floor / 45.0
+    mult = 7.0 + floor / 32.0
     if kind == "crypt_boss":
         mult *= 2.25
     return mult
@@ -61,7 +61,7 @@ def _v03610_damage_mult(kind, floor):
         if kind == "mythic_boss":
             mult *= 1.35
         return mult
-    mult = 1.45 + floor / 250.0
+    mult = 4.0 + floor / 135.0
     if kind == "crypt_boss":
         mult *= 1.35
     return mult
@@ -156,6 +156,28 @@ _v03610_canonical_combat_refresh = _v0190_apply_combat_template_before_v0368
 
 
 def v0190_apply_combat_template(template):
+    # v12.00.2: Crypt is an endgame dungeon from the very first floor.
+    # Legacy floor=1 templates wrongly used generator stage 1; multiplying
+    # level-1 HP and XP still leaves them trivial for a level-20 character.
+    # Preserve identity/floor IDs and do not lower any authored higher stage.
+    if isinstance(template, dict) and template.get("crypt_floor") is not None:
+        floor = _v03610_floor(template)
+        endgame_stage = min(CHARACTER_MAX_LEVEL, 79 + floor)
+        try:
+            old_stage = int(template.get("generator_level", template.get("v019_stage", floor)) or floor)
+        except (ValueError, TypeError, OverflowError):
+            old_stage = floor
+        template["generator_level"] = max(endgame_stage, old_stage)
+        template["crypt_endgame_stage_v1202"] = True
+    elif isinstance(template, dict) and template.get("mythic_crypt_floor") is not None:
+        floor = _v03610_floor(template)
+        mythic_stage = min(CHARACTER_MAX_LEVEL, 115 + floor)
+        try:
+            old_stage = int(template.get("generator_level", template.get("v019_stage", floor)) or floor)
+        except (ValueError, TypeError, OverflowError):
+            old_stage = floor
+        template["generator_level"] = max(mythic_stage, old_stage)
+        template["mythic_crypt_endgame_stage_v1202"] = True
     result = _v03610_canonical_combat_refresh(template)
     return _v03610_apply_crypt_threat(result)
 
@@ -273,3 +295,11 @@ LATEST_CHANGES = [
     "Skalowanie nie zatrzymuje się na 200 ani 600; nieskończone lazy-generated piętra zachowują wzrost przez numer piętra.",
     "Zachowano wszystkie wcześniejsze zmiany, w tym same-room dungeon exit podczas walki i lokalne komunikaty Soul Tier."
 ]
+
+HELP_TOPICS.setdefault("krypta", []).append(
+    "v12.00.1: KRYPTA OD PIERWSZEGO PIĘTRA TO STREFA DLA DOŚWIADCZONYCH "
+    "GRACZY (zalecany poziom postaci 80+). Potwory mają znacznie większe HP "
+    "i obrażenia, odpowiednio większy Class/Soul/Stat EXP, a co pięć pięter "
+    "czeka elitarny strażnik dający +1 Fame za pierwsze pokonanie. "
+    "Zwykłe moby nadal nie dają Fame; bossowie co 10 pięter zachowują Fame."
+)

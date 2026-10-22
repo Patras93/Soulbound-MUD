@@ -253,6 +253,7 @@ class SessionBaseSocialMixin:
             await self.send(
                 f"[TELL do {target.character.name}] {message}", history_category="tell"
             )
+            return True
 
     async def reply_private_v0928(self, message):
             message = str(message or "").strip()
@@ -266,7 +267,11 @@ class SessionBaseSocialMixin:
             if not target or target.closed or not target.character:
                 await self.send(f"{self.last_private_sender_name} nie jest teraz online.")
                 return
-            await self.tell(f"{target.character.name} {message}")
+            sent = await self.tell(f"{target.character.name} {message}")
+            # v12.00.6: a second lookup can fail if the recipient goes offline.
+            # Confirm only when tell itself delivered and acknowledged the message.
+            if sent:
+                await self.send(f"REPLY: odpowiedź wysłana do {target.character.name}.", history_category="tell")
 
     async def channel_broadcast_v03050(self, channel, message):
             message = str(message or "").strip()

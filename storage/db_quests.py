@@ -80,6 +80,53 @@ class DatabaseQuestMixin:
             (account_id,),
         ).fetchall()
 
+    def increment_multi_objective_v1800(self, account_id, kind, target, amount=1, aliases=()):
+        """Credit a real kill or NPC conversation once per quest and event."""
+        from systems.live_olc18_multi_objective import objective_key
+        if kind not in ('kill', 'talk') or type(amount) is not int or amount <= 0:
+            return []
+        candidates = set(aliases) | {target} if kind == 'kill' else {target}
+        changed = []
+        for record in self.conn.execute(
+            "SELECT quest_id FROM quests WHERE account_id=? AND status='active'",
+            (account_id,),
+        ).fetchall():
+            qid = str(record['quest_id'])
+            quest = QUESTS.get(qid, {})
+            if quest.get('kind') != 'multi_objective':
+                continue
+            group = quest.get('objectives', {}).get(kind, {})
+            if kind == 'talk':
+                group = {npc: 1 for npc in group}
+            matches = [key for key in group if key in candidates]
+            if not matches:
+                continue
+            # Different kill aliases can refer to the SAME monster. One kill
+            # advances at most one matching objective in each quest.
+            key = matches[0]
+            maximum = int(group[key])
+            storage_key = objective_key(kind, key)
+            row = self.conn.execute(
+                'SELECT progress FROM quest_resource_progress_v0929 '
+                'WHERE account_id=? AND quest_id=? AND target_id=?',
+                (account_id, qid, storage_key),
+            ).fetchone()
+            old = int(row['progress']) if row else 0
+            new = min(maximum, old + amount)
+            if old == new:
+                continue
+            self.conn.execute(
+                'INSERT INTO quest_resource_progress_v0929 '
+                '(account_id,quest_id,target_id,progress) VALUES(?,?,?,?) '
+                'ON CONFLICT(account_id,quest_id,target_id) '
+                'DO UPDATE SET progress=excluded.progress',
+                (account_id, qid, storage_key, new),
+            )
+            changed.append((qid, kind, key, new, maximum))
+        if changed:
+            self.conn.commit()
+        return changed
+
     def increment_quest(self, account_id, target):
         rows = self.conn.execute(
             "SELECT * FROM quests WHERE account_id=? AND status='active'",

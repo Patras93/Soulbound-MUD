@@ -1,0 +1,94 @@
+{
+  "rooms": {
+    "live_przyklad_bramy_1205": {
+      "name": "Brama Zapomnianego Wąwozu",
+      "desc": "Ciężka brama prowadzi w głąb wąwozu.",
+      "zone": "Zapomniany Wąwóz",
+      "generator_level": 100
+    },
+    "live_przyklad_chaty_1205": {
+      "name": "Chata Strażniczki",
+      "desc": "Niewielka chata z drewnianym stołem.",
+      "zone": "Zapomniany Wąwóz",
+      "generator_level": 100
+    }
+  },
+  "links": [
+    [
+      "temple_basement",
+      "northeast",
+      "live_przyklad_bramy_1205"
+    ],
+    [
+      "live_przyklad_bramy_1205",
+      "southwest",
+      "temple_basement"
+    ],
+    [
+      "live_przyklad_bramy_1205",
+      "east",
+      "live_przyklad_chaty_1205"
+    ],
+    [
+      "live_przyklad_chaty_1205",
+      "west",
+      "live_przyklad_bramy_1205"
+    ]
+  ],
+  "mobs": {
+    "live_przyklad_wilk_1205": {
+      "name": "Wilk Zapomnianego Wąwozu",
+      "generator_level": 100,
+      "max_hp": 85000,
+      "damage": 525,
+      "class_xp_reward": 50000
+    }
+  },
+  "spawns": [
+    [
+      "live_przyklad_bramy_1205",
+      "live_przyklad_wilk_1205"
+    ]
+  ],
+  "items": {
+    "live_przyklad_odlamek_1205": {
+      "name": "Wąwozowy Odłamek",
+      "desc": "Materiał rzemieślniczy z wilczej groty.",
+      "type": "craft_material",
+      "price": 150,
+      "currency": "silver"
+    }
+  },
+  "mob_edits": {
+    "live_przyklad_wilk_1205": {
+      "drops": {
+        "live_przyklad_odlamek_1205": 0.25
+      }
+    }
+  },
+  "npcs": {
+    "live_przyklad_strazniczka_1205": {
+      "name": "Strażniczka Wąwozu",
+      "room": "live_przyklad_chaty_1205",
+      "dialogue": "Potrzebuję pomocy w obronie bramy.",
+      "quest": "live_przyklad_polowanie_1205",
+      "shopkeeper": true
+    }
+  },
+  "quests": {
+    "live_przyklad_polowanie_1205": {
+      "name": "Obrona Wąwozu",
+      "giver": "Strażniczka Wąwozu",
+      "kind": "kill",
+      "target": "live_przyklad_wilk_1205",
+      "needed": 2,
+      "description": "Pokonaj dwa wilki strzegące drogi.",
+      "reward_silver": 1000
+    }
+  },
+  "shops": {
+    "live_przyklad_chaty_1205": [
+      "live_przyklad_odlamek_1205"
+    ]
+  }
+}

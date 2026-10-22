@@ -248,8 +248,13 @@ async def look(self, query=""):
                     f"{MOB_TEMPLATES[boss.template_id]['name']}."
                 )
 
+        # v12.00.6: explicitly identify downed party allies for NVDA.
+        # Never confuse an unrelated player with a party member.
+        _my_party = self.party_key()
         others = [
-            session.character.name
+            (session.character.name + " (POWALONY — można wskrzesić)"
+             if (_my_party is not None and session.party_key() == _my_party
+                 and session.is_downed_v0371()) else session.character.name)
             for session in self.server.sessions
             if (
                 session is not self

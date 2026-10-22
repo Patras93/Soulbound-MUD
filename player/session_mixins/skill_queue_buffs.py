@@ -21,7 +21,12 @@ _SKILLS_BY_ID_V3005 = {
 
 class SessionSkillQueueBuffsMixin:
     def skill_by_id(self, skill_id):
-            return _SKILLS_BY_ID_V3005.get(str(skill_id))
+            # Late-published OLC definitions are registered in the same catalog.
+            sid = str(skill_id)
+            if sid.startswith('live_'):
+                return next((row for rows in CLASS_SKILLS.values() for row in rows
+                             if row.get('id') == sid), None)
+            return _SKILLS_BY_ID_V3005.get(sid)
 
     def auto_queue_eligible_v3005(self, skill):
             if not skill:

@@ -119,3 +119,7 @@ class Session(
 ):
     """Player session composed from focused subsystem mixins."""
     pass
+
+# v12.00.8: game-mechanics-preserving sound events layered above audited methods.
+from systems.sound_events_v1208 import install_sound_hooks_v1208 as _sound_install_v1208
+_sound_install_v1208(Session)

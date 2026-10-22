@@ -223,12 +223,15 @@ class SessionProfesje6Mixin:
         ensure_schema(db)
         parts=str(args or '').strip().split()
         if not parts or parts[0].casefold() in {'lista','pomoc','help'}:
-            await self.send('Profesje: profesje lista; profesja status <nazwa>; profesja kup <nazwa>; profesja czynnosci <nazwa>; profesja praca <nazwa> <czynność> [próg]; profesja zamowienie <nazwa>; profesja oddaj <nazwa>. Możesz też wpisać kupiectwo pakuj albo kupiectwo praca pakuj.')
+            await self.send('Profesje: profesje lista; profesja status <nazwa>; profesja kup <nazwa>; profesja czynnosci <nazwa>; profesja praca <nazwa> <czynność> [próg]; profesja zamowienie <nazwa>; profesja oddaj <nazwa>. Projekty mistrzowskie wszystkich 22 profesji: profesja projekt lista. Możesz też wpisać kupiectwo pakuj albo kupiectwo praca pakuj.')
             await self.send('Poziomy profesji i narzędzi 1–800, trudność pracy: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie kupujesz tylko raz na postać.')
             for prof,(tt,i,name) in PROFESSIONS.items():
                 await self.send(f'{prof}: {name}; {", ".join(a.code for a in BASE_ACTIONS if a.prof==prof)}.')
             return
         verb=parts[0].casefold()
+        if verb in {'projekt','projekty','masterwork'}:
+            await self._v1200_masterwork_command(parts[1:])
+            return
         if verb in {'nasiona','nasiono'}:
             await self._prof6_seeds(parts[1:],db,aid)
             return
@@ -380,7 +383,7 @@ class SessionProfesje6Mixin:
             db.conn.execute('INSERT INTO prof6_cooldowns(account_id,action,ready_at) VALUES(?,?,?) '
                             'ON CONFLICT(account_id,action) DO UPDATE SET ready_at=excluded.ready_at',
                             (aid,prof+':'+work.code,now+work.cooldown))
-        messages,_,_=self.grant_profession_progress(prof,work.xp,tool_type,work.tool_xp,content_level=tier)
+        messages,_,_=self.grant_profession_progress(prof,work.xp,tool_type,work.tool_xp,content_level=tier,content_key=work.code)
         changed_quests=db.increment_profession_action_quests_v0700(
             aid,prof,tool_type,1,action_code=work.code,tier=tier)
         db.conn.commit()  # deferred until XP, materials AND quest progress are valid
@@ -479,7 +482,7 @@ class SessionProfesje6Mixin:
                     oldbalance=(self.character.silver,self.character.gold,self.character.mithril)
                     self._prof6_apply_wallet(balance)
                     tool_type=PROFESSIONS[prof][0]
-                    msgs,_,_=self.grant_profession_progress(prof,75+tier*8,tool_type,40+tier*5,content_level=tier)
+                    msgs,_,_=self.grant_profession_progress(prof,75+tier*8,tool_type,40+tier*5,content_level=tier,content_key=good)
                     db.conn.commit()
                 except Exception:
                     db.conn.rollback()
@@ -492,3 +495,109 @@ class SessionProfesje6Mixin:
 
         await self.send(f'Zamówienie {prof} zakończone: {description}. Następne jutro.')
         for m in msgs: await self.send(str(m))
+
+    async def _v1200_masterwork_command(self, parts):
+        """22 cross-profession projects and one nonrepeatable daily contract each."""
+        from systems.profession_projects_v1200 import (
+            PROJECTS, LEVELS, resolve, project_item_id, recipe, order_quantity,
+            ensure_schema as ensure12)
+        db=self.server.db; aid=self.account_id
+        if aid is None or not self.character:
+            await self.send('Najpierw zaloguj się postacią.'); return
+        if not parts or parts[0].casefold() in ('lista','list','pomoc','help'):
+            await self.send('PROJEKTY MISTRZOWSKIE 10.0: profesja projekt <nazwa>, profesja projekt wykonaj <nazwa> <25|200|400|600|700|775>, profesja projekt oddaj <nazwa>. Każdy projekt łączy dwie profesje. Przedmioty wspierają AI przywołań, ale nie są wymagane do walki.')
+            for prof,p in PROJECTS.items():
+                await self.send(f'{prof}: {p.title} ({p.partner_profession}).')
+            return
+        verb=parts[0].casefold()
+        action=verb if verb in ('wykonaj','zrob','zrób','oddaj','dostarcz') else 'info'
+        arguments=parts[1:] if action!='info' else parts
+        tier=None  # without an explicit tier, use the strongest unlocked project
+        if action in ('wykonaj','zrob','zrób') and arguments and arguments[-1].isdigit():
+            tier=int(arguments[-1]);arguments=arguments[:-1]
+            if tier not in LEVELS:
+                await self.send('Próg projektu musi wynosić 25, 200, 400, 600, 700 albo 775.');return
+        profession=resolve(' '.join(arguments))
+        if not profession:
+            await self.send('Nieznana profesja. Wpisz profesja projekt lista.');return
+        proj=PROJECTS[profession]
+        tool=proj.tool
+        ensure12(db.conn)
+        p_level=int(db.profession(aid,profession)['level'])
+        t_level=int(db.tool(aid,tool)['level'])
+        available=max((i for i in LEVELS if min(p_level,t_level)>=i),default=None)
+        item_id=project_item_id(profession)
+        if action=='info':
+            show=available or 25
+            ingredients=recipe(profession,show)
+            await self.send(f'Projekt {profession}: {proj.title}. Poziom profesji {p_level}, narzędzia {t_level}; wymagany próg {show}. Powiązana profesja: {proj.partner_profession}. Materiały: {_format_resources(ingredients)}. Wybierz profesja projekt wykonaj {profession} {show}.')
+            owned=_sum(db,aid,item_id)
+            await self.send(f'Gotowe wyroby: {owned}. Kontrakt dzienny: profesja projekt oddaj {profession}; wymaga {order_quantity(show)} sztuk; zaawansowane progi dają większą nagrodę.')
+            return
+        if available is None:
+            await self.send('Projekt wymaga co najmniej poziomu 25 profesji ORAZ narzędzia.');return
+        if action in ('wykonaj','zrob','zrób'):
+            if tier is None:
+                tier=available
+            if tier>available:
+                await self.send(f'Poziom projektu {tier} jest zablokowany. Profesja: {p_level}; narzędzie: {t_level}. Nie zużyto materiałów.');return
+            if profession in PROFESSIONS:
+                _,tool_item,_=PROFESSIONS[profession]
+                purchased=db.conn.execute('SELECT 1 FROM prof6_tools_owned WHERE account_id=? AND item_id=?',(aid,tool_item)).fetchone()
+                if not purchased or db.item_qty(aid,tool_item)<1:
+                    await self.send('Najpierw kup i miej przy sobie istniejące narzędzie tej profesji.');return
+            ingredients=recipe(profession,tier)
+            missing=[(item,qty-_sum(db,aid,item)) for item,qty in ingredients if _sum(db,aid,item)<qty]
+            if missing:
+                await self.send('Brak materiałów: '+_format_resources(missing)+'.');return
+            try:
+                with db.conn.deferred_commits():
+                    try:
+                        for item,qty in ingredients:
+                            if not _remove_all(db,aid,item,qty):
+                                raise RuntimeError('Materiał zniknął podczas projektu; transakcja wycofana.')
+                        db.add_item(aid,item_id,1,commit=False)
+                        db.conn.execute('INSERT INTO prof12_masterworks(account_id,profession,made) VALUES(?,?,1) '
+                                        'ON CONFLICT(account_id,profession) DO UPDATE SET made=made+1',(aid,profession))
+                        messages,_,_=self.grant_profession_progress(
+                            profession,650+tier*14,tool,450+tier*10,content_level=tier,content_key=project_item_id(profession)+':'+str(tier))
+                        db.conn.commit()
+                    except Exception:
+                        db.conn.rollback();raise
+            except Exception:
+                db.conn.rollback();raise
+            await self.send(f'Wykonano {proj.title} (poziom {tier}). Zużyto: {_format_resources(ingredients)}. Gotowy wyrób możesz zachować dla AI przywołań lub dostarczyć w kontrakcie.')
+            for msg in messages: await self.send(str(msg))
+            return
+        day=int(time.time())//86400
+        already=db.conn.execute('SELECT 1 FROM prof12_contract_claims WHERE account_id=? AND profession=? AND day=?',(aid,profession,day)).fetchone()
+        if already:
+            await self.send('Ten kontrakt mistrzowski został już dziś oddany.');return
+        tier=available
+        count=order_quantity(tier)
+        if _sum(db,aid,item_id)<count:
+            await self.send(f'Kontrakt {profession}: potrzeba {count} × {proj.title}. Masz {_sum(db,aid,item_id)}. Zachowane wyroby możesz wykorzystać jutro.');return
+        coins=2500+int(tier)*75
+        old_balance=(self.character.silver,self.character.gold,self.character.mithril)
+        from player.session_mixins.profesje6 import _coins
+        try:
+            with db.conn.deferred_commits():
+                try:
+                    if not _remove_all(db,aid,item_id,count):
+                        raise RuntimeError('Nie można pobrać gotowych wyrobów.')
+                    db.conn.execute('INSERT INTO prof12_contract_claims(account_id,profession,day) VALUES(?,?,?)',(aid,profession,day))
+                    db.conn.execute('UPDATE prof12_masterworks SET turned_in=turned_in+? WHERE account_id=? AND profession=?',(count,aid,profession))
+                    balance=_coins(db,aid,coins)
+                    if balance is False: raise RuntimeError('Przekroczony limit waluty podczas kontraktu.')
+                    messages,_,_=self.grant_profession_progress(
+                        profession,900+tier*16,tool,600+tier*12,content_level=tier,content_key=project_item_id(profession)+':contract:'+str(tier))
+                    db.conn.commit()
+                except Exception:
+                    db.conn.rollback();raise
+            self._prof6_apply_wallet(balance)
+        except Exception:
+            db.conn.rollback()
+            self._prof6_apply_wallet(old_balance)
+            raise
+        await self.send(f'Kontrakt mistrzowski {profession} ukończony. Oddano {count} × {proj.title}. Nagroda: {coins} srebra i EXP profesji oraz narzędzia. Następny kontrakt jutro.')
+        for msg in messages: await self.send(str(msg))
