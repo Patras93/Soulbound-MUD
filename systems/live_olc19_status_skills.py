@@ -48,6 +48,55 @@ def parse_status(raw):
     return result
 
 
+def parse_statuses(raw):
+    """Up to two safe, distinct on-hit statuses using the existing turn engine.
+
+    The existing engine holds at most two statuses and one control effect per
+    control cooldown. Restrict the authored combination to those same limits.
+    """
+    if isinstance(raw, str):
+        if raw.strip().casefold() in ('auto', 'automatyczny', '-'):
+            return None
+        try:
+            raw = json.loads(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('Efekty: wymagana lista JSON maksymalnie 2 statusow.') from exc
+    if not isinstance(raw, list) or not 1 <= len(raw) <= 2:
+        raise ValueError('Efekty: lista 1 lub 2 statusow.')
+    parsed = [parse_status(entry) for entry in raw]
+    if any(entry is None for entry in parsed):
+        raise ValueError('Efekty: auto dozwolone tylko dla calego pola.')
+    kinds = [entry['kind'] for entry in parsed]
+    if len(set(kinds)) != len(kinds):
+        raise ValueError('Efekty: nie powtarzaj tego samego statusu.')
+    if len(CONTROL.intersection(kinds)) > 1:
+        raise ValueError('Efekty: tylko jedno zamrozenie lub porazenie.')
+    return parsed
+
+
+def skill_effect_bundle(skill):
+    """Return safe runtime effect set, maintaining backwards compatibility."""
+    if skill.get('olc_statuses') is not None:
+        return parse_statuses(skill['olc_statuses'])
+    old = skill.get('olc_status')
+    return [parse_status(old)] if old is not None else []
+
+
+def apply_skill_effects_v9300(mob, statuses, hit_damage, template=None, now=None, rolls=None):
+    """Apply existing effects to one mob. No instant damage or DB writes."""
+    statuses = parse_statuses(statuses)
+    if not statuses:
+        return ()
+    messages = []
+    for index, status in enumerate(statuses):
+        roll = None if rolls is None else rolls[index]
+        message = apply_skill_status_v1900(mob, status, hit_damage,
+                                          template=template, now=now, roll=roll)
+        if message:
+            messages.append(message)
+    return tuple(messages)
+
+
 def apply_skill_status_v1900(mob, status, hit_damage, template=None, now=None, roll=None):
     """Attach status to the canonical runtime pool, without another instant hit.
 
@@ -109,7 +158,7 @@ async def cast_with_olc_status_v1900(self, raw, baseline, templates=None):
     `look`, failed casts, no mana, already-dead mobs or stale movement.
     """
     skill, _target = self.find_skill_from_input(raw)
-    config = skill.get('olc_status') if isinstance(skill,dict) else None
+    config = skill_effect_bundle(skill) if isinstance(skill,dict) else []
     if not config or skill.get('kind') not in ('damage','aoe_damage'):
         return await baseline(self,raw)
     room_id = getattr(getattr(self,'character',None),'room_id',None)
@@ -135,9 +184,8 @@ async def cast_with_olc_status_v1900(self, raw, baseline, templates=None):
         actual = old_hp-int(getattr(mob,'hp',0) or 0)
         if actual <= 0 or int(getattr(mob,'hp',0)) <= 0:
             continue
-        message = apply_skill_status_v1900(mob,config,actual,
-                                            templates.get(mob.template_id))
-        if message:
+        for message in apply_skill_effects_v9300(mob,config,actual,
+                                                   templates.get(mob.template_id)):
             await self.server.party_combat_broadcast(self,
                 f'{skill["name"]}: {message}',detail='normal')
     return result

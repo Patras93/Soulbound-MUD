@@ -88,6 +88,7 @@ class DatabaseProgressionMixin:
         row = self.class_progress_row(account_id, class_name)
         level = int(row["level"])
         xp = int(row["xp"])
+        previous_level, previous_xp = level, xp
         requested_gain = max(0, int(amount))
         # v1.13.60: Class XP nie jest już obcinany do jednego awansu na źródło.
         # Parametr single_level_cap pozostaje tylko dla kompatybilności API.
@@ -106,9 +107,14 @@ class DatabaseProgressionMixin:
 
         overflow_xp = 0
         if level >= CLASS_MASTERY_MAX_LEVEL:
-            level = CLASS_MASTERY_MAX_LEVEL
-            overflow_xp = max(0, int(xp))
-            xp = 0
+            # Existing XP must survive lowering the cap. New class XP can
+            # still flow into the separate Ascension reward path.
+            if previous_level >= CLASS_MASTERY_MAX_LEVEL:
+                overflow_xp = max(0, int(gain))
+                xp = previous_xp
+            else:
+                overflow_xp = max(0, int(xp))
+                xp = 0
 
         self.conn.execute(
             "UPDATE class_progress SET level=?,xp=? "
@@ -439,7 +445,8 @@ class DatabaseProgressionMixin:
         self.ensure_skill_progress(account_id, skill_id)
         row = self.skill_progress(account_id, skill_id)
         level = int(row["level"])
-        xp = int(row["xp"]) + max(0, int(amount))
+        previous_level, previous_xp = level, int(row["xp"])
+        xp = previous_xp + max(0, int(amount))
         uses = int(row["uses"]) + 1
         level_ups = 0
 
@@ -452,8 +459,8 @@ class DatabaseProgressionMixin:
             level_ups += 1
 
         if level >= SKILL_MAX_LEVEL:
-            level = SKILL_MAX_LEVEL
-            xp = 0
+            # Freeze, do not erase, XP accumulated before a lower admin cap.
+            xp = previous_xp if previous_level >= SKILL_MAX_LEVEL else 0
 
         self.conn.execute(
             "UPDATE skill_progress SET level=?,xp=?,uses=? WHERE account_id=? AND skill_id=?",

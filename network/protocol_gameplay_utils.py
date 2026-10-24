@@ -3,6 +3,8 @@ import unicodedata
 from core import balance_math
 from typing import Optional
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
+from core.progression_600 import CHARACTER_MAX_LEVEL
+from core.bootstrap_economy_professions import PROFESSION_MAX_LEVEL
 import network.v420_chests as _sb420_topsrc01
 import network.v420_lookups as _sb420_topsrc02
 
@@ -109,6 +111,9 @@ HELP_TOPICS["admin_owner"] = [
     "v0.30.1: w MENU POSTACI admin widzi ukrytą opcję 6 Administrator; zwykłe konta nie widzą tej pozycji wcale.",
     "Panel działa także przy 0/14 postaci: lista kont, postacie konta, wipe własnego lub wskazanego konta, usunięcie jednej postaci i wipe wszystkich postaci serwera.",
     "admin help / administrator pomoc - lista opcji właściciela podczas gry postacią.",
+    "v35.00.5: admin god on/off/status - awaryjna nieśmiertelność właściciela w tej sesji.",
+    "v35.00.5: admin cios grom/nawalnica/wyrok [cel] - specjalne ciosy właściciela; tylko na żywe potwory w pokoju.",
+    "Pomoc kolegom: admin ulecz NICK POTWIERDZAM; admin wskrzes NICK POTWIERDZAM; admin przywolaj NICK POTWIERDZAM; admin goto gracz NICK.",
     "wipe moje postacie POTWIERDZAM - usuwa postacie Twojego konta, ale zachowuje konto i hasło.",
     "wipe wszystkie postacie POTWIERDZAM - serwerowy wipe postaci bez kasowania kont.",
 ]
@@ -718,6 +723,7 @@ def v03041_salvage_material_key(item):
 # v0.30.42 - KOWALSTWO: ULEPSZANIE KAŻDEGO EQ +1..+10
 # ============================================================
 V03042_EQ_UPGRADE_MAX = 10
+EQUIPMENT_MAX_LEVEL = 800  # editable item-level cap, not equip eligibility
 V03042_UPGRADE_STAT_STEP = 2
 V03042_UPGRADE_SLOT_FALLBACK_STAT = {
     "head": "willpower", "body": "constitution", "hands": "strength",
@@ -729,7 +735,7 @@ V03042_UPGRADE_SLOT_FALLBACK_STAT = {
 V03042_MAIN_STATS = ("strength", "dexterity", "constitution", "intelligence", "willpower")
 
 def v03042_equipment_level(item):
-    return max(1, min(CHARACTER_MAX_LEVEL, int(
+    return max(1, min(EQUIPMENT_MAX_LEVEL, int(
         item.get("required_character_level", item.get("required_mastery", 1)) or 1
     )))
 
@@ -886,7 +892,7 @@ def v0926_guild_upgrade_cost(current_level):
 
 def v0926_guild_bonus_percent(level):
     """Poziomy 1-600 bez zmian; 601-800 daje dalszy, łagodny wzrost do 35%."""
-    level=max(1,min(V0926_GUILD_MAX_LEVEL,int(level or 1)))
+    level=max(1,min(800,int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
         return balance_math.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
     if level <= V0926_GUILD_PREVIOUS_CAP:
@@ -895,7 +901,7 @@ def v0926_guild_bonus_percent(level):
     if level <= V0926_GUILD_OLD_CAP:
         progress=(level-V0926_GUILD_PREVIOUS_CAP)/(V0926_GUILD_OLD_CAP-V0926_GUILD_PREVIOUS_CAP)
         return min(29,23+int(round(6*(progress**0.90))))
-    progress=(level-V0926_GUILD_OLD_CAP)/(V0926_GUILD_MAX_LEVEL-V0926_GUILD_OLD_CAP)
+    progress=(level-V0926_GUILD_OLD_CAP)/(800-V0926_GUILD_OLD_CAP)
     return min(35,29+int(round(6*(progress**0.90))))
 
 

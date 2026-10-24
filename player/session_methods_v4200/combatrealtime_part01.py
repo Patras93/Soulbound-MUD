@@ -250,26 +250,12 @@ async def realtime_player_action(self, mob):
             # source helps establish weapon/stat gates and relative strength,
             # but provide no numeric bonus. Until the real hand/weapon model
             # supplies a canonical mastery modifier, do not fabricate one here.
-            # v0.35.1: Soul Weapon Mastery wzmacnia wyłącznie zwykły atak broni.
-            mastery = soul_weapon_mastery_bonuses(self.character.soul_weapon_mastery_level)
-            damage = max(0, int(round(damage * (1.0 + (mastery["damage_percent"] + weapon_resonance_percent(self.character.soul_weapon_mastery_level)) / 100.0))))
-            # v0.33.16: właściwości Soul Tier działają tylko na zwykły atak
-            # Broni Duszy. Nie modyfikują skilli ani spelli.
-            trait_totals = soul_weapon_trait_totals_v11193(self.character.soul_tier, self.character.class_name)
-            damage = max(0, int(round(damage * (1.0 + trait_totals["damage_percent"] / 100.0))))
-            if mob.hp <= max(
-                1,
-                int(round(self.mob_effective_max_hp_v11330(mob, template) * 0.35)),
-            ):
-                damage = max(0, int(round(damage * (1.0 + trait_totals["execute_damage_percent"] / 100.0))))
-            _is_boss_target = any(template.get(flag) for flag in (
-                "world_boss", "mini_boss", "crypt_boss", "astral_boss",
-                "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
-            ))
-            if _is_boss_target:
-                _boss_bonus = float(trait_totals["boss_damage_percent"]) + float(mastery["boss_damage_percent"])
-                if _boss_bonus > 0 and not _zantetsuken_no_melee:
-                    damage = max(1, int(round(damage * (1.0 + _boss_bonus / 100.0))))
+            # v80: this exact multiplier+critical routine is also called on the
+            # disconnected arena actor; no second, divergent formula.
+            from systems.uoss_basic_weapon_shared_v8000 import weapon_attack_boost
+            damage, critical, weapon_crit_chance, trait_totals, mastery = weapon_attack_boost(
+                self,mob,template,damage,zantetsuken=_zantetsuken_no_melee
+            )
             mana_focus_gain = int(getattr(self, "_last_mana_focus_gain", 0) or 0)
             if mana_focus_gain > 0:
                 await self.send_combat(
@@ -277,11 +263,7 @@ async def realtime_player_action(self, mob):
                     f"Mana {self.current_mana} z {self.max_mana()}.",
                     "normal",
                 )
-            weapon_crit_chance = min(0.60, self.critical_chance() + trait_totals["crit_chance"] + mastery["crit_chance"])
-            critical = random.random() < weapon_crit_chance
             if critical:
-                weapon_crit_multiplier = self.critical_multiplier() * (1.0 + (trait_totals["crit_damage_percent"] + mastery["crit_damage_percent"]) / 100.0)
-                damage = max(0, int(round(damage * weapon_crit_multiplier)))
                 await self.send_combat(
                     f"TRAFIENIE KRYTYCZNE BRONI DUSZY! Zręczność {self.effective_dexterity()}. "
                     f"Szansa tego ataku: {round(weapon_crit_chance * 100, 1)} procent.",
@@ -303,38 +285,19 @@ async def realtime_player_action(self, mob):
             # hits sequentially and stop immediately when the target dies,
             # matching logs where a nearly dead target receives fewer hits.
             _potential_hits = 1 if _zantetsuken_no_melee else self.basic_attack_hit_count_v11196()
-            _actual_hits = 0
             damage = max(0, int(damage * self.class_damage_multiplier_v1700()))
-            _per_hit_damage = max(0, int(damage))
-            _total_basic_damage = 0
-            for _ in range(_potential_hits):
-                if mob.hp <= 0:
-                    break
-                mob.hp -= _per_hit_damage
-                _total_basic_damage += _per_hit_damage
-                _actual_hits += 1
-            damage = _total_basic_damage
+            from systems.uoss_basic_weapon_shared_v8000 import apply_weapon_hit_series
+            damage, _actual_hits, _per_hit_damage = apply_weapon_hit_series(
+                mob, damage, _potential_hits
+            )
             self._recap52_dealt=int(getattr(self,"_recap52_dealt",0))+max(0,int(damage))+max(0,int(_uoss_helper_damage))
             await self.grant_soul_weapon_mastery_hit_xp(mob)
-            echo_damage = 0
-            if not _zantetsuken_no_melee and mob.hp > 0 and mastery["echo_chance"] > 0 and random.random() < mastery["echo_chance"]:
-                echo_damage = max(1, int(round(damage * mastery["echo_damage_percent"] / 100.0)))
-                mob.hp -= echo_damage
-                self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0)) + echo_damage
-            soul_heal = 0
-            _eq_specials_v1150 = self.equipment_property_totals()
-            _lifesteal = float(trait_totals.get("lifesteal_percent", 0.0) or 0.0) + min(8.0, float(_eq_specials_v1150.get("lifesteal_percent", 0.0) or 0.0))
-            if _lifesteal > 0 and self.current_hp < self.max_hp() and not superboss_healing_blocked_v11179(self):
-                soul_heal = min(self.max_hp() - self.current_hp, max(1, int(round(damage * _lifesteal / 100.0))))
-                if soul_heal > 0:
-                    self.current_hp += soul_heal
-                    self._recap52_heal = int(getattr(self, "_recap52_heal", 0)) + soul_heal
-            _mana_restore = 0
-            _mana_pct = float(trait_totals.get("mana_restore_percent", 0.0) or 0.0) + min(6.0, float(_eq_specials_v1150.get("mana_restore_percent", 0.0) or 0.0))
-            if _mana_pct > 0 and self.current_mana < self.max_mana():
-                _mana_restore = min(self.max_mana() - self.current_mana, max(1, int(round(damage * _mana_pct / 100.0))))
-                if _mana_restore > 0:
-                    self.current_mana += _mana_restore
+            # v81: same source post-hit effects are used by isolated UOSS LAB.
+            from systems.uoss_basic_weapon_shared_v8000 import weapon_after_hit
+            echo_damage, soul_heal, _mana_restore = weapon_after_hit(
+                self, mob, damage, trait_totals, mastery,
+                disabled=_zantetsuken_no_melee,
+            )
             technique = SOUL_WEAPON_ATTACK_TECHNIQUES.get(
                 self.character.class_name, "Atak Broni Duszy"
             )

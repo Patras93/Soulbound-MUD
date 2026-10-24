@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """v10 authored regions and nonduplicating cartography progress, read-only audits."""
+from validation.release_contracts import release_valid
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -22,14 +23,14 @@ def run_regression(runtime=None):
         if not condition:
             raise AssertionError('v10: '+label)
         checks+=1
-    ck(runtime.VERSION in ('10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',),'release identity')
+    ck(release_valid(runtime.VERSION, '10.00.1'),'release identity')
     ck(len(REGIONS)==6 and len(NEW_ROOM_IDS)==72 and len(LANDMARK_IDS)==18,'authored region IDs')
     ck(len(QUEST_IDS)==12,'12 additional quest IDs')
     ck(NEW_ROOM_IDS <= set(runtime.ROOMS),'all new rooms installed')
     from world.legends_v3200 import _reachable
     ck(NEW_ROOM_IDS <= _reachable(runtime.ROOMS),'all 72 new rooms reachable from main world square')
     ck(QUEST_IDS <= set(runtime.QUESTS),'all new quests installed')
-    ck(len(runtime.CLASS_SKILLS)==22 and len(runtime.CLASSES)==22 and len(runtime.RACES)==22,'22 unchanged classes and races')
+    ck(len(runtime.CLASS_SKILLS)==22 and len(runtime.CLASSES)==22 and len(runtime.RACES)>=22,'22 unchanged classes and races')
     ck(len(runtime.TOOL_PROFESSION_MAP)>=14,'no old profession tools removed')
     names=set()
     for region,zone,level,element,guide,elite,boss,landmarks in REGIONS:

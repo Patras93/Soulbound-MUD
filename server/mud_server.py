@@ -16,6 +16,13 @@ class MudServer:
     def __init__(self):
         self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
+        # v71: restore conservative character-creator profiles in place.
+        from systems.admin_live_heritage_v7100 import restore as _restore_heritage_v7100
+        _restore_heritage_v7100()
+        from systems.admin_live_races_v7600 import restore as _restore_custom_races
+        _restore_custom_races()
+        from systems.admin_live_classes_v7700 import restore as _restore_custom_classes
+        _restore_custom_classes()
         # v0.42.0: one central event bus decouples combat/gathering producers
         # from quest, bounty, chronicle and progression consumers.
         self.events = build_default_event_bus(self)

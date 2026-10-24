@@ -78,8 +78,12 @@ class SessionSkillLearningMixin:
 
     def class_teacher(self, class_name=None):
             wanted = class_name or self.character.class_name
+            from systems.admin_live_classes_v7700 import inherited_parent
+            wanted_base=inherited_parent(wanted) or wanted
             for npc_id, npc in NPCS.items():
-                if npc.get("teacher_class") == wanted:
+                if npc.get("teacher_class") == wanted_base:
+                    if wanted_base != wanted:
+                        npc=dict(npc,teacher_class=wanted)
                     return npc_id, npc
             return None, None
 

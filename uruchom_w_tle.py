@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from windows_launcher_state import process_alive
 from windows_runtime_state import fallback_dir
+from release_readme_cleanup import cleanup_legacy_readmes, ReadmeCleanupError
 import socket
 import subprocess
 import sys
@@ -71,6 +72,14 @@ def main() -> int:
         if _already_running():
             _log('Soulbound jest juz uruchomiony w tym folderze. Druga kopia nie zostanie wlaczona.')
             return 0
+        # First deployment from v96 can use the OLD updater, which cannot run
+        # the NEW updater's cleanup. Do this once on the first new-version start.
+        try:
+            old_readmes, saved_at = cleanup_legacy_readmes(ROOT)
+            if old_readmes:
+                _log(f'Usunieto {len(old_readmes)} historycznych README. Kopia: {saved_at}')
+        except (OSError, ReadmeCleanupError) as exc:
+            _log(f'UWAGA: Nie udalo sie uprzatnac starych README: {exc}', error=True)
         # Pythonw hides the console. Fallback also has CREATE_NO_WINDOW and DETACHED_PROCESS.
         pythonw = Path(sys.executable).with_name('pythonw.exe')
         interpreter = str(pythonw if pythonw.is_file() else Path(sys.executable))

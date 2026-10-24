@@ -15,6 +15,7 @@ class SessionRuntimeStateMixin:
             self.account_id = None
             self.character = None
             self.closed = False
+            self.admin_god_v35005 = False  # session-only: never saved to SQLite
             self.current_hp = 0
             self.current_mana = 0
             self.combat_mob_key = None

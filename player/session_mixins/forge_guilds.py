@@ -74,7 +74,7 @@ class SessionForgeGuildsMixin:
                 for index, (item_id, item, free_qty) in enumerate(free_rows, 1):
                     material = v03041_salvage_material_key(item)
                     salvage_id = V0925_SALVAGE_MATERIALS[material][0]
-                    level = max(1, min(CHARACTER_MAX_LEVEL, int(item.get("required_character_level", item.get("required_mastery", 1)) or 1)))
+                    level = v03042_equipment_level(item)
                     await self.send(
                         f"{index}. {player_item_display_name_v0335(item_id)}. Wolne {free_qty}. "
                         f"Poziom {level}. Odzysk: {ITEMS[salvage_id]['name']}."
@@ -619,7 +619,7 @@ class SessionForgeGuildsMixin:
                 ("guild50","Gildia Poziomu 50",level>=50),("guild100","Gildia Poziomu 100",level>=100),
                 ("guild200","Gildia Poziomu 200",level>=200),("guild300","Gildia Poziomu 300",level>=300),
                 ("guild600","Gildia Poziomu 600",level>=600),
-                ("guild800","Gildia Poziomu 800",level>=V0926_GUILD_MAX_LEVEL),
+                ("guild800","Gildia Poziomu 800",level>=800),
                 ("deposit_1m_gold","Milion Złota Wpłacony",metrics.get("money_deposited",0)>=1_000_000*SILVER_PER_GOLD),
                 ("boss100","Stu Bossów Gildii",metrics.get("boss_kills",0)>=100),
                 ("crypt1000","Tysiąc Pięter",max_crypt>=1000),
@@ -1096,7 +1096,7 @@ class SessionForgeGuildsMixin:
             if action in ("rozbuduj","upgrade"):
                 if rank!="leader": await self.send("Tylko lider może wydawać skarbiec na rozbudowę Gildii."); return
                 grow=conn.execute("SELECT level,treasury FROM player_clans WHERE id=?",(cid,)).fetchone(); level=int(grow["level"]); treasury=int(grow["treasury"])
-                if level>=V0926_GUILD_MAX_LEVEL: await self.send("Gildia ma już maksymalny poziom 800."); return
+                if level>=V0926_GUILD_MAX_LEVEL: await self.send(f'Gildia ma limit poziomu {V0926_GUILD_MAX_LEVEL}.'); return
                 cost=v0926_guild_upgrade_cost(level); confirm=normalize_lookup_text(rest) in ("potwierdz","potwierdź","confirm","tak")
                 if not confirm:
                     await self.send(f"Rozbudowa Gildii z poziomu {level} na {level+1} kosztuje {currency_price_text(cost)}. Skarbiec: {currency_reading_text(treasury,0,0)}. Aby wydać środki wpisz: gildia rozbuduj potwierdz."); return

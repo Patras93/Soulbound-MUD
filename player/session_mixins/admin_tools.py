@@ -48,24 +48,90 @@ class SessionAdminToolsMixin:
             return bool(username and username in ADMIN_ACCOUNT_NAMES)
 
     async def admin_command(self, args=""):
+            raw = str(args or "").strip()
+            first_guardian = raw.split(maxsplit=1)[0].casefold() if raw else ""
+            guardian_direct = {"test", "moc", "ratunek", "wsparcie", "spawn", "event",
+                               "kraina", "balans", "panel", "questdiag", "questnapraw", "role"}
+            history_guardian = raw.casefold().startswith(("historia olc", "historia szczegoly", "historia quest", "historia cofnij"))
+            if first_guardian == "guardian11":
+                from systems.admin_guardian11_v4500 import handle_guardian11
+                await handle_guardian11(self, raw)
+                return
+            if first_guardian == "guardian10":
+                from systems.admin_guardian10_v4400 import handle_guardian10
+                await handle_guardian10(self, raw)
+                return
+            if first_guardian == "guardian9":
+                from systems.admin_guardian9_v4300 import handle_guardian9
+                await handle_guardian9(self, raw)
+                return
+            if first_guardian == "guardian8":
+                from systems.admin_guardian8_v4200 import handle_guardian8
+                await handle_guardian8(self, raw)
+                return
+            if first_guardian == "guardian7":
+                from systems.admin_guardian7_v4100 import handle_guardian7
+                await handle_guardian7(self, raw)
+                return
+            if first_guardian == "guardian6":
+                from systems.admin_guardian6_v4000 import handle_guardian6
+                await handle_guardian6(self, raw)
+                return
+            if first_guardian == "guardian5":
+                from systems.admin_guardian5_v3900 import handle_guardian5
+                await handle_guardian5(self, raw)
+                return
+            if first_guardian == "guardian4":
+                from systems.admin_guardian4_v3800 import handle_guardian4
+                await handle_guardian4(self, raw)
+                return
+            if first_guardian == "guardian3":
+                from systems.admin_guardian3_v3700 import handle_guardian3
+                await handle_guardian3(self, raw)
+                return
+            if first_guardian == "guardian" or first_guardian in guardian_direct or history_guardian:
+                from systems.admin_guardian2_v3600 import handle_guardian
+                await handle_guardian(self, raw if first_guardian == "guardian" else "guardian " + raw)
+                return
             if not self.is_admin():
                 await self.send("Nieznana komenda. Wpisz help.")
                 return
-            raw = str(args or "").strip()
             norm = self.normalize_description_query(raw)
             # v1.40.5: convenient admin form must never be mistaken for a wipe.
             if norm.startswith(("wyczysc naprawione", "wyczyść naprawione")):
                 await self.admin_error_cleanup_shortcut_v1405(norm)
                 return
+            if norm == "god" or norm.startswith("god "):
+                await self.admin_god_mode_v35005(raw[3:].strip())
+                return
+            if norm == "cios" or norm.startswith("cios "):
+                await self.admin_unique_strike_v35005(raw[4:].strip())
+                return
             if not norm or norm in ("help", "pomoc"):
                 await self.send("ADMIN OWNER-ONLY")
                 await self.send("admin status / administrator status — status uprawnień.")
                 await self.send("admin heal / administrator ulecz — pełne HP i Mana.")
+                await self.send("admin god on/off/status — nieśmiertelność awaryjna tylko dla administratora.")
+                await self.send("admin cios grom/nawalnica/wyrok [cel] — specjalne ataki admina podczas walki.")
+                await self.send("admin pomoc gracze — ulecz/wskrzes/przywolaj kolegów.")
                 await self.send("admin goto <room_id> / administrator teleport <room_id> — teleport testowy.")
                 await self.send("admin give <item_id> [ilość] / administrator daj <item_id> [ilość].")
                 await self.send("admin haslo reset <login> - jednorazowy kod do prywatnego przekazania właścicielowi konta.")
                 await self.send("admin pomoc gracze / serwer / swiat / postacie - Admin Tools 2.0.")
                 await self.send("admin live - nowe lokacje, przejscia, potwory i balans bez restartu.")
+                await self.send("admin live arena pomoc — testowa walka, skille i sprzet, bez nowych numerow guardian.")
+                await self.send("admin guardian pomoc — narzedzia Wladcy Swiata 2.0, arena, ratunek, role i kreator krain.")
+                await self.send("admin guardian3 pomoc — rozszerzenia v37: arena, kraina do 20 pokoi, questy, balans, eventy, role i historia.")
+                await self.send("admin guardian4 pomoc — v38: prognozy areny, laczenie pokoi DRAFT, skan questow.")
+                await self.send("admin guardian5 pomoc — v39: EXP 6 statystyk, katalog i diagnostyka questow, arenowe metadane bossow, raport OLC.")
+                await self.send("admin guardian6 pomoc — v40: nagrody grupowe DRAFT, audyt questow, zaleznosci i OLC preflight.")
+                await self.send("admin guardian7 pomoc 1 — v41: prywatna arena zasad UOSS, naprawy questow i cofanie DRAFT.")
+                await self.send("admin guardian8 pomoc 1 — v42: wzmocniona arena UOSS, efekty czasowe i seryjne naprawy questow DRAFT.")
+                await self.send("admin guardian9 pomoc 1 — v43: prognozy i migawki areny UOSS, kontrola DRAFT questow.")
+                await self.send("admin guardian10 pomoc 1 — v44: odizolowane RNG LAB, porownania wariantow i migawki.")
+                await self.send("admin guardian11 pomoc 1 — v45: skille i testowy ekwipunek w arenie UOSS LAB, sekwencje tur.")
+                await self.send("admin live pomoc 1/2/3 — v46: jedna pomoc, arena druzyna i bezpieczne naprawy questow.")
+                await self.send("admin blad lista 20; admin blad diagnoza NUMER; admin blad questy NICK; admin blad napraw NUMER NICK QUEST_ID POTWIERDZAM.")
                 await self.send("Wyczysc naprawione POTWIERDZAM - usuwa wyłącznie oznaczone jako naprawione błędy SB, nie postacie.")
                 await self.send("wipe moje postacie POTWIERDZAM / wipe my characters CONFIRM.")
                 await self.send("wipe wszystkie postacie POTWIERDZAM / wipe all characters CONFIRM.")
@@ -78,7 +144,7 @@ class SessionAdminToolsMixin:
                 return
             if norm in ("status",):
                 await self.send(
-                    f"Administrator: TAK. Konto: {self.server.db.account_name(self.master_account_id)}."
+                    f"Administrator: TAK. Konto: {self.server.db.account_name(self.master_account_id)}. GOD: {'WLACZONY' if getattr(self, 'admin_god_v35005', False) else 'WYLACZONY'}."
                 )
                 return
             if norm in ("heal", "ulecz", "wylecz"):
@@ -139,6 +205,88 @@ class SessionAdminToolsMixin:
                 return
             await self.send("Nieznana opcja admin. Wpisz admin help.")
 
+    async def admin_god_mode_v35005(self, args=""):
+        """Session-only owner immortality; ordinary play stays unchanged."""
+        if not self.is_admin():
+            await self.send("Nieznana komenda. Wpisz help.")
+            return
+        choice = self.normalize_description_query(str(args or "").strip())
+        if choice in ("", "status"):
+            state = "WLACZONA" if getattr(self, "admin_god_v35005", False) else "WYLACZONA"
+            await self.send(f"ADMIN GOD: {state}. Uzyj admin god on/off.")
+            return
+        if choice not in ("on", "off"):
+            await self.send("Uzycie: admin god on / admin god off / admin god status.")
+            return
+        enabled = choice == "on"
+        self.admin_god_v35005 = enabled
+        if enabled:
+            self.current_hp = self.max_hp()
+        self.server.db.record_admin_action_v1224(
+            self.server.db.account_name(self.master_account_id),
+            "god_on" if enabled else "god_off", self.character.name,
+        )
+        await self.send(
+            "ADMIN GOD WLACZONY: nie mozesz zginac; koledzy nadal graja normalnie. "
+            "Wylacz przez admin god off. Tryb nie zapisuje sie po wylogowaniu."
+            if enabled else "ADMIN GOD WYLACZONY: wracasz do normalnej walki."
+        )
+
+    async def admin_unique_strike_v35005(self, args=""):
+        """Owner-only rescue strike; uses canonical victory and party credit."""
+        if not self.is_admin():
+            await self.send("Nieznana komenda. Wpisz help.")
+            return
+        from data.mobs import MOB_TEMPLATES as _mob_catalog
+        from world.uoss_superboss_runtime import superboss_attack_gate_v11137
+        words = str(args or "").strip().split(maxsplit=1)
+        if not words or self.normalize_description_query(words[0]) not in ("grom", "nawalnica", "wyrok"):
+            await self.send("Uzycie: admin cios grom/nawalnica/wyrok [cel]. Grom 15%, nawalnica 35%, wyrok 100% HP celu.")
+            return
+        technique = self.normalize_description_query(words[0])
+        query = words[1].strip() if len(words)>1 else ""
+        mob = None
+        if query:
+            mob = self.server.world.find_mob(self.character.room_id, query)
+        elif self.combat_mob_key:
+            mob = self.server.world.mobs.get(self.combat_mob_key)
+        if not mob or not mob.alive or mob.room_id != self.character.room_id:
+            await self.send("ADMIN CIOS: najpierw rozpocznij walke lub podaj zywego potwora z pokoju.")
+            return
+        template = _mob_catalog[mob.template_id]
+        # No direct bypass of source boss prerequisites, party ownership or combat gates.
+        allowed, reason = superboss_attack_gate_v11137(self, template)
+        if not allowed:
+            await self.send(reason)
+            return
+        if self.combat_mob_key != mob.key:
+            await self.attack(query or template["name"])
+            if self.combat_mob_key != mob.key or not mob.alive:
+                return
+        if not self.server.engagement_allowed(self, mob):
+            await self.send(self.engagement_block_message(mob))
+            return
+        percent = {"grom": 15, "nawalnica": 35, "wyrok": 100}[technique]
+        effective_hp = max(1, int(self.mob_effective_max_hp_v11330(mob, template)))
+        damage = min(max(0, int(mob.hp)), max(1, effective_hp * percent // 100))
+        mob.hp -= damage
+        self._recap52_dealt = int(getattr(self, "_recap52_dealt", 0) or 0) + damage
+        self.server.db.record_admin_action_v1224(
+            self.server.db.account_name(self.master_account_id),
+            "admin_cios_" + technique, mob.template_id,
+        )
+        await self.server.party_combat_broadcast(
+            self,
+            f"ADMIN {self.character.name}: {technique.upper()}! {damage} obrazen w "
+            f"{template['name']}. Pozostalo HP {max(0, mob.hp)}.", detail="essential",
+        )
+        await self.send(
+            f"ADMIN CIOS {technique.upper()}: {damage} obrazen. "
+            f"{template['name']}: {max(0, mob.hp)} HP."
+        )
+        if mob.hp <= 0:
+            await self.mob_defeated(mob)
+
     async def admin_live_v1204(self, args=''):
         """Validated in-game OLC: no Python execution and no server restart."""
         if not self.is_admin():
@@ -149,7 +297,271 @@ class SessionAdminToolsMixin:
         parts = raw.split(maxsplit=1)
         cmd = parts[0].lower() if parts else ''
         tail = parts[1].strip() if len(parts) > 1 else ''
+        # v102: local native engine tunnel, guarded mechanic vocabulary and audit.
+        if cmd in ('pomoc','arena','audyt'):
+            from systems.admin_live_final_v10200 import dispatch_v10200
+            if await dispatch_v10200(self,cmd,tail):return
+        # v101: declarative mechanics, live CAS progression and arena series.
+        if cmd in ('pomoc','mechaniki','postacie','arena'):
+            from systems.admin_live_v10100 import dispatch_v10100
+            if await dispatch_v10100(self,cmd,tail):return
+        # v100: five bounded additions. Register before legacy fallback.
+        if cmd in ('pomoc','skill','questy','zadania','postacie','arena','boss'):
+            from systems.admin_live_ultimate_v10000 import dispatch_v10000
+            if await dispatch_v10000(self,cmd,tail):return
+        # v99: five guarded extensions. Legacy admin live commands remain intact.
+        if cmd in ('pomoc','skill','questy','zadania','arena','postacie','boss'):
+            from systems.admin_live_five_v9900 import dispatch_v9900
+            if await dispatch_v9900(self,cmd,tail):return
+        # v98: three new owner-only tools, keeping all older aliases intact.
+        if cmd in ('pomoc','boss'):
+            from systems.admin_live_uoss_v9800 import dispatch_v9800_uoss
+            if await dispatch_v9800_uoss(self,cmd,tail):return
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_quest_doctor_v9800 import dispatch_v9800_doctor
+            if await dispatch_v9800_doctor(self,cmd,tail):return
+        if cmd in ('pomoc','postacie'):
+            from systems.admin_live_advancement_v9800 import dispatch_v9800_advancement
+            if await dispatch_v9800_advancement(self,cmd,tail):return
+        # v97: 8-character atomic offline stat edits and safe existing inventory stack corrections.
+        if cmd in ('pomoc','postacie'):
+            from systems.admin_live_offline_v9700 import dispatch_v9700_offline
+            if await dispatch_v9700_offline(self,cmd,tail):return
+        # v97: clone existing *executable* scripted UOSS profiles in a validated DRAFT bundle.
+        if cmd in ('pomoc','boss'):
+            from systems.admin_live_uoss_profiles_v9700 import dispatch_v9700_uoss
+            if await dispatch_v9700_uoss(self,cmd,tail):return
+        # v96: unlocked class + learned-skill progress (not new unlocks), EXP bank inspection.
+        if cmd in ('pomoc','postacie'):
+            from systems.admin_live_mastery_v9600 import dispatch_v9600
+            if await dispatch_v9600(self,cmd,tail):return
+        # v95: offline progression recovery with SQLite CAS, audit and undo.
+        if cmd in ('pomoc','postacie'):
+            from systems.admin_live_progress_v9500 import dispatch_v9500
+            if await dispatch_v9500(self,cmd,tail):return
+        # v94: multi-quest final-state patches, exact counter fixes, skill effect bundles.
+        if cmd in ('pomoc','questy','zadania','skill'):
+            from systems.admin_live_v9400 import dispatch_v9400
+            if await dispatch_v9400(self,cmd,tail):return
+        # v93: one atomic package for quest prerequisites AND multiple target kinds.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_v9300 import dispatch_v9300
+            if await dispatch_v9300(self,cmd,tail):return
+        # v92: atomically repair real quest targets, rewards and NPC giver links.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_v9200 import dispatch_v9200
+            if await dispatch_v9200(self,cmd,tail):return
+        # v91: full-graph migration of stale quest dependency IDs; DRAFT-only.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_v9100 import dispatch_v9100
+            if await dispatch_v9100(self,cmd,tail):return
+        # v90: OLC revision history and safe DRAFT-only restore.
+        if cmd in ('pomoc','rewizje'):
+            from systems.admin_live_v9000 import dispatch_v9000
+            if await dispatch_v9000(self,cmd,tail):return
+        # v89: publication safety gate and full screen-reader diff.
+        if cmd in ('pomoc','aktualizacja'):
+            from systems.admin_live_v8900 import dispatch_v8900
+            if await dispatch_v8900(self,cmd,tail):return
+        # v88: validated cross-domain atomic Admin Live changeset, DRAFT-only.
+        if cmd in ('pomoc','aktualizacja'):
+            from systems.admin_live_v8800 import dispatch_v8800
+            if await dispatch_v8800(self,cmd,tail):return
+        # v87: atomic cross-quest & multi-superboss editing, DRAFT-only.
+        if cmd in ('pomoc','questy','zadania','boss'):
+            from systems.admin_live_v8700 import dispatch_v8700
+            if await dispatch_v8700(self,cmd,tail):return
+        # v86: native full-engine arena lifecycle inside existing admin live.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_native_arena_v8600 import dispatch_v8600
+            if await dispatch_v8600(self,cmd,tail):return
+        # v78: source player basic attack on a detached test Session only.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_arena_damage_v7800 import dispatch_v7800
+            if await dispatch_v7800(self,cmd,tail):return
+        # v77: additive playable archetype classes; first route before inherited panels.
+        if cmd in ('pomoc','rodowod'):
+            from systems.admin_live_classes_v7700 import dispatch_v7700
+            if await dispatch_v7700(self,cmd,tail):return
+        # v76: truly selectable new races, persisted and protected against deletion if used.
+        if cmd in ('pomoc','rodowod'):
+            from systems.admin_live_races_v7600 import dispatch_v7600
+            if await dispatch_v7600(self,cmd,tail):return
+        # v75: native atomic UOSS mechanics editor using real OLC24/32/33/34.
+        if cmd in ('pomoc','boss'):
+            from systems.admin_live_v7500 import dispatch_v7500
+            if await dispatch_v7500(self,cmd,tail):return
+        # v74: safe legacy quest parent repair, dependency impact, UOSS encounter data.
+        if cmd in ('pomoc','questy','zadania','boss'):
+            from systems.admin_live_v7400 import dispatch_v7400
+            if await dispatch_v7400(self,cmd,tail):return
+        # v73: multi-object final-state OLC validation and safe scripted boss audit.
+        if cmd in ('pomoc','questy','zadania','boss'):
+            from systems.admin_live_v7300 import dispatch_v7300
+            if await dispatch_v7300(self,cmd,tail):return
+        # v72: targeted extensions before older commands consume their subtrees.
+        if cmd in ('pomoc','questy','zadania','boss','postacie'):
+            from systems.admin_live_v7200 import dispatch_v7200
+            if await dispatch_v7200(self,cmd,tail):return
+        # v71: owner-only, validated, NVDA-friendly eight-area maintenance routes.
+        if cmd in ('pomoc','arena','questy','zadania','skill','boss','limity'):
+            from systems.admin_live_v7100 import dispatch_v7100
+            if await dispatch_v7100(self,cmd,tail):return
+        if cmd in ('pomoc','postacie'):
+            from systems.admin_live_characters_v7100 import dispatch_v7100_characters
+            if await dispatch_v7100_characters(self,cmd,tail):return
+        if cmd in ('pomoc','rodowod'):
+            from systems.admin_live_heritage_v7100 import dispatch_v7100_heritage
+            if await dispatch_v7100_heritage(self,cmd,tail):return
+        # v70.00.3: targeted, read-only quest / skill / boss diagnosis.
+        if cmd in ('pomoc','questy','zadania','boss','skill','centrum'):
+            from systems.admin_live_diagnostics_v7003 import dispatch_v7003_diagnostics
+            if await dispatch_v7003_diagnostics(self,cmd,tail):return
+        # v70.00.3: opt-in vendor progression and live cap-adaptive authoring.
+        if cmd in ('pomoc','sklep','sklepy'):
+            from systems.admin_live_shop_progression_v7003 import dispatch_v7003_shop
+            if await dispatch_v7003_shop(self,cmd,tail):return
+        # v70.00.2: sourced UOSS trace, EQ coverage and atomic deterministic quest repairs.
+        if cmd in ('pomoc','arena','eq','questy','zadania'):
+            from systems.admin_live_v7002 import dispatch_v7002
+            if await dispatch_v7002(self,cmd,tail):return
+        # v69: one navigable index instead of scattered Guardian commands.
+        if cmd in ('pomoc','centrum'):
+            from systems.admin_live_v6900 import dispatch_v69
+            if await dispatch_v69(self,cmd,tail):return
+        # v70: read-only release acceptance gate, never claims predeploy PASS.
+        if cmd in ('pomoc','odbior'):
+            from systems.admin_live_v7000 import dispatch_v70
+            if await dispatch_v70(self,cmd,tail):return
+        # v68: production helper targeting + party support on detached LAB clones.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_v6800 import dispatch_v68
+            if await dispatch_v68(self,cmd,tail):return
+        # v67: deterministic helper support results on detached LAB clones.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_v6700 import dispatch_v67
+            if await dispatch_v67(self,cmd,tail):return
+        # v66: exact UOSS helper action choice/utility on detached clones.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_v6600 import dispatch_v66
+            if await dispatch_v66(self,cmd,tail):return
+        # v65: source UOSS status immunity and helper passives, isolated LAB gear.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_v6500 import dispatch_v65
+            if await dispatch_v65(self,cmd,tail):return
+        # v64: read-only counts and NVDA help for atomic linked quest repairs.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_v6400 import dispatch_v64
+            if await dispatch_v64(self,cmd,tail):return
+        # v63: unified cap-aware class comparisons and scalar fields in bundled OLC.
+        if cmd in ('pomoc','arena'):
+            from systems.admin_live_v6300 import dispatch_v63
+            if await dispatch_v63(self,cmd,tail):return
+        # v62: multi-type quest transaction, high-level quest gear and class audit.
+        if cmd in ('pomoc','questy','zadania','eq','arena'):
+            from systems.admin_live_bundle_v6200 import dispatch_v62
+            if await dispatch_v62(self,cmd,tail):return
+        # v61: owner-confirmed NPC / resource / multi-objective references, DRAFT only.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_quest_refs_v6100 import dispatch_v61
+            if await dispatch_v61(self,cmd,tail):return
+        # v60: owner-confirmed item/target ID corrections; only DRAFT.
+        if cmd in ('pomoc','questy','zadania'):
+            from systems.admin_live_quest_id_v6000 import dispatch_v60
+            if await dispatch_v60(self,cmd,tail):return
+        # v59: world loot preview and explicit quest dependency corrections.
+        if cmd in ('pomoc','eq','questy','zadania'):
+            from systems.admin_live_v5900 import dispatch_v59
+            if await dispatch_v59(self,cmd,tail):return
+        # v58: owner-only post-800 chest EQ and quest reward ID audit.
+        if cmd in ('pomoc','skrzynie'):
+            from systems.admin_live_equipment_v5800 import dispatch_v58
+            if await dispatch_v58(self,cmd,tail):return
+        if cmd in ('questy','zadania'):
+            from systems.admin_live_quest_items_v5800 import dispatch_quest_items_v5800
+            if await dispatch_quest_items_v5800(self,cmd,tail):return
+        # v57: real boss chest post-800 gold preview, owner only.
+        if cmd in ('pomoc','skrzynie'):
+            from systems.admin_live_chests_v5700 import dispatch_v57
+            if await dispatch_v57(self,cmd,tail):
+                return
+        # v56: read-only normal mob equipment drop forecast.
+        if cmd in ('pomoc','eq'):
+            from systems.admin_live_loot_v5600 import dispatch_v56
+            if await dispatch_v56(self,cmd,tail):
+                return
+        # v55: real post-800 crafting forecast; short owner-only NVDA commands.
+        if cmd in ('pomoc','eq'):
+            from systems.admin_live_endless_v5500 import dispatch_v55
+            if await dispatch_v55(self,cmd,tail):
+                return
+        # v54: final diagnostics; all public commands remain under admin live.
+        if cmd in ('pomoc','questy','zadania','arena','eq','limity','limit','capy','gotowosc'):
+            from systems.admin_live_finish_v5400 import dispatch_v54
+            if await dispatch_v54(self,cmd,tail):
+                return
+        # v52: caps, persisted atomically, take effect without restarting.
+        if cmd in ('limity', 'limit', 'capy'):
+            from systems.admin_live_level_caps_v5200 import dispatch_v52_caps
+            await dispatch_v52_caps(self, tail)
+            return
+        # v51: canonical OLC multi-field transactions and 22-class detached LAB.
+        if cmd in ('pomoc','questy','zadania','arena'):
+            from systems.admin_live_complete_v5100 import dispatch_v51
+            if await dispatch_v51(self,cmd,tail):
+                return
+        # v50: bounded quest corrections and whole-graph audit, strictly DRAFT.
+        if cmd in ('pomoc','questy','zadania','arena'):
+            from systems.admin_live_final_v5000 import dispatch_v50
+            if await dispatch_v50(self,cmd,tail):
+                return
+        # v49: bounded read-only quest integrity scan and isolated LAB trace.
+        if cmd in ('pomoc','questy','zadania','arena'):
+            from systems.admin_live_integrity_v4900 import dispatch_v49
+            if await dispatch_v49(self,cmd,tail):
+                return
+        # v48: targeted quest-type diagnostics and fully isolated party comparisons.
+        if cmd in ('pomoc','questy','zadania','arena'):
+            from systems.admin_live_expansion_v4800 import dispatch_v48
+            if await dispatch_v48(self,cmd,tail):
+                return
+        # v47: read-only diagnostics from the same familiar `admin live` menu.
+        if cmd in ('pomoc','gotowosc','questy','zadania','arena'):
+            from systems.admin_live_release_v4700 import dispatch_release
+            if await dispatch_release(self,cmd,tail):
+                return
+        # v46: a single `admin live` entry point; only intercept new subcommands.
+        # Existing OLC, Guardian aliases and publication flow remain untouched.
+        if (cmd == 'pomoc' and tail) or cmd in ('arena','questy','zadania'):
+            from systems.admin_live_ultimate_v4600 import dispatch_live_ultimate
+            if await dispatch_live_ultimate(self, cmd, tail):
+                return
+        # v45: one consistent owner workflow. Keep guardianN as legacy aliases,
+        # but expose all new LAB operations in the existing `admin live` menu.
+        # This is a dispatch-only bridge: no publication, world writes or SQL.
+        if cmd == 'arena':
+            from systems.admin_live_guardian_bridge_v4500 import dispatch_live_arena
+            await dispatch_live_arena(self, tail)
+            return
+        if cmd == 'nagrody':
+            from systems.admin_guardian6_v4000 import handle_guardian6
+            await handle_guardian6(self, 'guardian6 nagrody '+tail)
+            return
+        if cmd in ('questy', 'zadania') and tail:
+            from systems.admin_live_guardian_bridge_v4500 import dispatch_live_quest
+            if await dispatch_live_quest(self, tail):
+                return
+        if cmd == 'olc' and tail.casefold() == 'kontrola':
+            from systems.admin_guardian7_v4100 import handle_guardian7
+            await handle_guardian7(self, 'guardian7 olc kontrola')
+            return
         help_text = (
+            "ADMIN LIVE: arena pomoc [1/2/3]; arena start BOSS HP ATAK; "
+            "arena klasa KLASA BIEGLOSC MANA POTWIERDZAM; arena skille; "
+            "arena skill ID; arena przedmiot ID; arena sekwencja plan AKCJE; "
+            "arena migawka; arena prognoza LICZBA; questy skan; "
+            "questy audyt FRAZA; nagrody katalog FRAZA. "
+            "Zwykle komendy OLC ponizej: "
             "ADMIN LIVE OLC23: status skilla: edytuj skill ID olc_status (JSON: kind poison/burn/freeze/shock, chance 0.01-1.0; dla poison/burn opcjonalne power_percent 1-200, ticks 1-5); auto cofa status. cele QUEST; celezmien QUEST | JSON_CELOW; nowywielocelowy live_ID | NAZWA | NPC | {\"kill\":{\"bandit\":5},\"collect\":{\"iron_ore\":2},\"talk\":[\"npc_id\"]} | SREBRO | OPIS; zaleznosci QUEST; grupapodglad quest/surowiec/skill/mob/receptura/przedmiot PREFIKS POLE; grupazmien KATEGORIA PREFIKS POLE | WARTOSC; quest requires_quests | [\"id1\",\"id2\"]; status; pokoj ID | poziom | nazwa | opis | region; "
             "polacz OD KIERUNEK DO; potwor ID | poziom | nazwa | HP | obrazenia | EXP; "
             "spawn POKOJ MOB; balans MOB POLE LICZBA; nowyskill live_ID | KLASA | NAZWA | damage/aoe_damage/heal/group_heal/guard/drain/regen/evade/boost | BIEGLOSC | MANA | MULT | SKALA | OPIS [| EFFECT]; quest ID; questy PROFESJA [STRONA]; edytuj skill ID POLE [| WARTOSC/auto]; katalog KATEGORIA [FRAZA] [STRONA]; pola KATEGORIA ID; wczytaj; sprawdz; aktywuj POTWIERDZAM; "
@@ -989,6 +1401,15 @@ class SessionAdminToolsMixin:
                     )
 
                 reward = boss_chest_reward_roll(kind, floor, power)
+                # v57: deterministic continuation after the ORIGINAL reward roll.
+                # Never changes the individual player rolls, keys, items or chest state.
+                from systems.endless_chests_v5700 import extend_boss_chest_reward_v5700
+                reward = extend_boss_chest_reward_v5700(kind, floor, reward)
+                # v58: ONE additional equipment chance for each eligible
+                # high-floor chest recipient. Previous authored reward roll
+                # (and v57 gold) stays intact; never touches UOSS uniques.
+                from systems.endless_chest_equipment_v5800 import enhance_boss_chest_equipment_v5800
+                reward = enhance_boss_chest_equipment_v5800(kind, floor, reward)
                 member.character.gold += int(reward["gold"])
                 for item_id in reward["items"]:
                     self.server.db.add_item(member.account_id, item_id, 1)
@@ -1076,8 +1497,8 @@ class SessionAdminToolsMixin:
         if action == "pomoc":
             category = parts[1].casefold() if len(parts)>1 else ""
             menus = {
-                "gracze": "admin online; gracz NICK; goto gracz NICK; przywolaj NICK POTWIERDZAM; ulecz NICK POTWIERDZAM; wskrzes NICK POTWIERDZAM; odbuguj NICK POTWIERDZAM; wyrzuc NICK POTWIERDZAM",
-                "serwer": "admin serwer; admin blad SB-XXXXXXXX; admin blad naprawiony SB-XXXXXXXX; admin blad otworz SB-XXXXXXXX; admin log ostatnie 20; admin log aktywne; admin log naprawione; admin log podglad; admin log wyczysc naprawione POTWIERDZAM; wyczysc naprawione POTWIERDZAM; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
+                "gracze": "admin god on/off/status; admin cios grom/nawalnica/wyrok [cel]; admin online; gracz NICK; goto gracz NICK; przywolaj NICK POTWIERDZAM; ulecz NICK POTWIERDZAM; wskrzes NICK POTWIERDZAM; odbuguj NICK POTWIERDZAM; wyrzuc NICK POTWIERDZAM",
+                "serwer": "admin serwer; admin blad lista 20; admin blad diagnoza NUMER; admin blad questy NICK; admin blad napraw NUMER NICK QUEST_ID POTWIERDZAM; admin blad SB-XXXXXXXX; admin blad naprawiony SB-XXXXXXXX; admin blad otworz SB-XXXXXXXX; admin log ostatnie 20; admin log aktywne; admin log naprawione; admin log podglad; admin log wyczysc naprawione POTWIERDZAM; wyczysc naprawione POTWIERDZAM; komendy wolne; backup; baza sprawdz; oglos TEKST; historia 20",
                 "swiat": "admin lokacja ID; npc NAZWA; moby ID; boss NAZWA",
                 "postacie": "admin profesje NICK; zamowienia NICK; prace NICK; najemnicy NICK; questy NICK; eq NICK; napraw postac NICK (diagnoza) / ... POTWIERDZAM (tylko błędna lokacja)",
             }
@@ -1109,6 +1530,9 @@ class SessionAdminToolsMixin:
             await self.send(f"SERWER: online {online}; połączeń {len(self.server.sessions)}; lokacji {len(ROOMS)}; mobów {mobs}; czas działania {uptime}s; baza {size//1024} KiB; RAM {ram_text}; CPU procesu {time.process_time():.1f}s.")
             return True
         if action == "blad":
+            from systems.admin_error_quest_v36001 import handle_error_quest_command
+            if await handle_error_quest_command(self, parts):
+                return True
             import re
             error_id = parts[-1].upper() if len(parts) >= 2 else ""
             if len(parts) not in (2, 3) or not re.fullmatch(r"SB-[0-9A-F]{8}", error_id):

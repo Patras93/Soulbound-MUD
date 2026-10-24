@@ -33,7 +33,7 @@ def validate_new_skills(skills, active):
     for sid, meta in skills.items():
         if not isinstance(sid, str) or not ID.fullmatch(sid) or sid in occupied_ids:
             raise ValueError(f'OLC skill: identyfikator musi być wolnym live_: {sid}.')
-        if not isinstance(meta, dict) or not (FIELDS <= set(meta) and set(meta) <= FIELDS | {'effect', 'element', 'olc_status'}):
+        if not isinstance(meta, dict) or not (FIELDS <= set(meta) and set(meta) <= FIELDS | {'effect', 'element', 'olc_status', 'olc_statuses'}):
             raise ValueError(f'OLC skill {sid}: wymagane pola {sorted(FIELDS)}.')
         if meta['class_name'] not in CLASS_SKILLS:
             raise ValueError(f'OLC skill {sid}: nieznana klasa.')
@@ -41,7 +41,8 @@ def validate_new_skills(skills, active):
         _text(meta['desc'], 700, 'Opis skilla')
         if meta['kind'] not in ALLOWED_KINDS or meta['scale'] not in ALLOWED_SCALES:
             raise ValueError(f'OLC skill {sid}: rodzaj damage/aoe_damage/heal/group_heal/guard/drain/regen/evade; skala strength/dexterity/intelligence/wisdom/willpower/constitution.')
-        _integer(meta['unlock'], 1, 800, 'Wymagana biegłość')
+        from systems.olc_level_bounds_v7003 import level_bound
+        _integer(meta['unlock'], 1, level_bound('bieglosc'), 'Wymagana biegłość')
         _integer(meta['mana'], 0, 1000000, 'Mana')
         # Ordinary skills remain cooldown-free by default. Explicit OLC
         # cooldowns use the EXISTING mechanic_cooldown runtime timer.
@@ -80,6 +81,12 @@ def validate_new_skills(skills, active):
             from systems.elemental_combat import V11339_ELEMENT_LABELS
             if meta['kind'] not in ('damage', 'aoe_damage') or meta['element'] not in V11339_ELEMENT_LABELS:
                 raise ValueError('Żywioł: tylko atak damage/aoe_damage i element obsługiwany przez silnik.')
+        if 'olc_statuses' in meta:
+            from systems.live_olc19_status_skills import parse_statuses
+            if 'olc_status' in meta or meta['kind'] not in ('damage','aoe_damage'):
+                raise ValueError('Kombinacje efektow: tylko zwykly atak bez olc_status.')
+            if not isinstance(meta['olc_statuses'], list) or parse_statuses(meta['olc_statuses']) is None:
+                raise ValueError('Efekty musza byc lista JSON 1–2 elementow.')
         if 'olc_status' in meta:
             from systems.live_olc19_status_skills import parse_status
             if meta['kind'] not in ('damage','aoe_damage'):
@@ -109,6 +116,8 @@ def new_skill_definition(sid, meta):
               'mult':meta['mult']}
     if 'olc_status' in meta:
         result['olc_status'] = dict(meta['olc_status'])
+    if 'olc_statuses' in meta:
+        result['olc_statuses'] = [dict(status) for status in meta['olc_statuses']]
     if meta['cooldown']:
         result['mechanic_cooldown'] = True
     if 'element' in meta:

@@ -49,7 +49,15 @@ AUTHORED_RACE_PASSIVE_PROFILES = {
 
 
 def _clamp_level(character_level: int) -> int:
-    return max(1, min(CHARACTER_RESOURCE_MAX_LEVEL, int(character_level or 1)))
+    level=max(1, int(character_level or 1))
+    if level <= CHARACTER_RESOURCE_MAX_LEVEL:
+        return level
+    # Legacy HP/mana curves are unchanged through level 800. When an admin
+    # raises the character cap, level-based resources keep scaling beyond it.
+    from core.live_level_caps_v5200 import cap
+    limit=cap('postac')
+    return min(level, CHARACTER_RESOURCE_MAX_LEVEL if limit is not None and limit <= 800
+               else limit if limit is not None else level)
 
 
 def _character_resource_level_scale(

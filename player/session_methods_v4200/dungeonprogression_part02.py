@@ -187,18 +187,28 @@ async def grant_combat_quest_stat_xp(
     content_level=None, content_scaled=False
 ):
         """Przyznaje EXP do każdej z sześciu statystyk z systemu questowego."""
-        raw_reward = max(0, int(raw_reward or 0))
-        if raw_reward <= 0:
+        # v39: accepts either old common int or individual stat-name -> int map.
+        # Every reward uses the SAME native scaling, double XP and EXP bank.
+        from collections.abc import Mapping
+        if isinstance(raw_reward, Mapping):
+            if set(raw_reward) != set(self.character.STAT_PROGRESS_FIELDS):
+                raise ValueError('Nagrody statystyk: wymagane dokladnie szesc statystyk.')
+            rewards = {name: max(0, int(raw_reward[name])) for name in raw_reward}
+        else:
+            one = max(0, int(raw_reward or 0))
+            rewards = {name: one for name in self.character.STAT_PROGRESS_FIELDS}
+        if not any(rewards.values()):
             return []
-        raw_reward=self.scale_progression_xp_v11342(
-            raw_reward,
-            content_level,
-            content_scaled=content_scaled,
-        )
         applied = []
         for stat_name in self.character.STAT_PROGRESS_FIELDS:
+            base = rewards[stat_name]
+            if not base:
+                applied.append(0)
+                continue
+            base = self.scale_progression_xp_v11342(
+                base, content_level, content_scaled=content_scaled)
             granted = v0874_quest_stat_progress_base_grant(
-                self.character, stat_name, raw_reward, repeatable
+                self.character, stat_name, base, repeatable
             )
             granted = self.apply_double_xp(granted)
             from systems.experience_bank_v2011 import banked_experience_v2011
@@ -211,10 +221,13 @@ async def grant_combat_quest_stat_xp(
         lo = min(applied) if applied else 0
         hi = max(applied) if applied else 0
         amount_text = str(lo) if lo == hi else f"{lo}-{hi}"
-        await self.send(
-            f"{source_label}: {amount_text} EXP osobno do Siły, Zręczności, "
-            "Kondycji, Inteligencji, Siły Woli i Charyzmy."
-        )
+        if lo == hi:
+            await self.send(f"{source_label}: {amount_text} EXP do kazdej statystyki.")
+        else:
+            labels = self.character.STAT_PROGRESS_FIELDS
+            await self.send(f"{source_label}: " + ', '.join(
+                f'{labels[name][0]} {amount}'
+                for name, amount in zip(labels, applied)) + ' EXP.')
         return applied
 
 

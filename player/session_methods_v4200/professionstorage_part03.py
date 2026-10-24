@@ -133,8 +133,8 @@ async def grant_profession_reward_xp(
             await self.send(f"AWANS PROFESJI: {profession} osiąga poziom {plevel}.")
 
         if plevel >= profession_cap:
-            plevel = profession_cap
-            pxp = 0
+            # Preserve XP already earned above the new cap.
+            pxp = 0 if int(prow["level"]) < profession_cap else int(prow["xp"])
 
         self.server.db.save_profession(
             self.account_id, profession, plevel, pxp, actions
@@ -167,8 +167,8 @@ async def grant_profession_reward_xp(
             await self.send(f"{tool_name} osiąga poziom {tlevel}.")
 
         if tlevel >= tool_level_cap:
-            tlevel = tool_level_cap
-            txp = 0
+            # Preserve XP already earned above the new cap.
+            txp = 0 if int(trow["level"]) < tool_level_cap else int(trow["xp"])
 
         self.server.db.save_tool(
             self.account_id, tool_type, tlevel, txp, uses

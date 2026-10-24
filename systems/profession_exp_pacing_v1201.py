@@ -18,10 +18,12 @@ def improved_work_xp(existing, required_next, level, content_level, *, tool=Fals
     original = max(0, int(existing or 0))
     if original == 0:
         return 0
-    level = max(1, min(800, int(level or 1)))
+    level = max(1, int(level or 1))
     # Even untagged legacy actions get an uplift, but no level-scaled floor.
     minimum = original * (4 if tool else 2)
-    if content_level is None or level >= 800:
+    # Preserve exact historical behavior at the authored milestone 800, but
+    # never disable content-aware XP pacing for *higher* unlocked levels.
+    if content_level is None or level == 800:
         return minimum
     content = max(1, min(800, int(content_level or 1)))
     # ~300-1900 meaningful profession actions / ~450-2200 tool actions.

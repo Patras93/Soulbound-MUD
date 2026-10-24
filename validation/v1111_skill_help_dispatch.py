@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """v11.00.11: help NAME must show skill documentation, never cast a skill."""
 from __future__ import annotations
+from validation.release_contracts import release_valid
 import asyncio
 from types import SimpleNamespace
 import server  # Install complete HELP and 22-class skill indexes.
@@ -49,7 +50,7 @@ def run_regression():
         nonlocal checks
         checks+=1
         if not condition: raise AssertionError('HELP SKILLI v11.00.11: '+why)
-    ck(VERSION in ('11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','23.00.0','24.00.0','24.00.1','25.00.0','26.00.0','27.00.0','28.00.0','29.00.0','29.10.0','30.00.0','31.00.0','32.00.0','33.00.0','34.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',) and server.VERSION==VERSION, 'release version')
+    ck(release_valid(VERSION, '11.00.11') and server.VERSION==VERSION, 'release version')
     ck(len(CLASS_SKILLS)==22, '22 class catalogues')
     ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5461, 'global matching index complete')
     ck(sum(len(v) for v in CLASS_SKILLS.values())==5461, 'all skills retained')

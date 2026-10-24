@@ -8,6 +8,15 @@ fields retain the exact preexisting generated game award.
 """
 import json
 
+STAT_XP_FIELDS_V3900 = {
+    'strength': 'olc_reward_stat_strength',
+    'dexterity': 'olc_reward_stat_dexterity',
+    'constitution': 'olc_reward_stat_constitution',
+    'intelligence': 'olc_reward_stat_intelligence',
+    'willpower': 'olc_reward_stat_willpower',
+    'charisma': 'olc_reward_stat_charisma',
+}
+
 QUEST_XP_ALIASES = {
     'reward_xp': 'olc_reward_xp',
     'xp_bieglosci': 'olc_reward_class_xp',
@@ -16,6 +25,18 @@ QUEST_XP_ALIASES = {
     'reward_class_xp': 'olc_reward_class_xp',
     'reward_soul_xp': 'olc_reward_soul_xp',
     'reward_stat_xp': 'olc_reward_stat_xp',
+    'reward_stat_strength': STAT_XP_FIELDS_V3900['strength'],
+    'reward_stat_dexterity': STAT_XP_FIELDS_V3900['dexterity'],
+    'reward_stat_constitution': STAT_XP_FIELDS_V3900['constitution'],
+    'reward_stat_intelligence': STAT_XP_FIELDS_V3900['intelligence'],
+    'reward_stat_willpower': STAT_XP_FIELDS_V3900['willpower'],
+    'reward_stat_charisma': STAT_XP_FIELDS_V3900['charisma'],
+    'xp_sila': STAT_XP_FIELDS_V3900['strength'],
+    'xp_zrecznosc': STAT_XP_FIELDS_V3900['dexterity'],
+    'xp_kondycja': STAT_XP_FIELDS_V3900['constitution'],
+    'xp_inteligencja': STAT_XP_FIELDS_V3900['intelligence'],
+    'xp_wola': STAT_XP_FIELDS_V3900['willpower'],
+    'xp_charyzma': STAT_XP_FIELDS_V3900['charisma'],
     # Krótkie aliasy komend; w pliku JSON używaj kanonicznych nazw pól.
     'xp_profesji': 'reward_profession_xp',
     'xp_narzedzia': 'reward_tool_xp',
@@ -49,6 +70,12 @@ FIELD_TITLES = {
     'olc_reward_stat_xp': 'EXP statystyk',
     'reward_profession_xp': 'EXP profesji',
     'reward_tool_xp': 'EXP narzędzia',
+    'olc_reward_stat_strength': 'EXP Siły',
+    'olc_reward_stat_dexterity': 'EXP Zręczności',
+    'olc_reward_stat_constitution': 'EXP Kondycji',
+    'olc_reward_stat_intelligence': 'EXP Inteligencji',
+    'olc_reward_stat_willpower': 'EXP Siły Woli',
+    'olc_reward_stat_charisma': 'EXP Charyzmy',
     'min_profession_level': 'poziom profesji (informacyjny)',
     'min_tool_level': 'poziom narzędzia (informacyjny)',
     'reward_stat_progress': 'postęp statystyk',
@@ -77,7 +104,14 @@ def parse_quest_edit(field, value):
     if field not in QUEST_EDIT_FIELDS:
         raise ValueError(f'Quest: niedozwolone pole {field}.')
     if field in INTEGER_FIELDS:
-        ceiling = 800 if field in ('generator_level', 'min_profession_level', 'min_tool_level') else (365 * 86400 if field == 'repeat_cooldown' else 10**15)
+        # v59: OLC respects owner-adjusted caps while retaining the historical
+        # limit 800 unless deliberately changed through admin live.
+        if field in ('generator_level','min_profession_level','min_tool_level'):
+            from core.live_level_caps_v5200 import cap,effective_number
+            axis={'generator_level':'postac','min_profession_level':'profesje','min_tool_level':'narzedzia'}[field]
+            ceiling=effective_number(cap(axis))
+        else:
+            ceiling=365 * 86400 if field == 'repeat_cooldown' else 10**15
         floor = 1 if field in ('generator_level', 'needed', 'min_profession_level', 'min_tool_level') else 0
         return field, _number(value, floor, ceiling, field)
     if field == 'repeatable':
@@ -88,6 +122,8 @@ def parse_quest_edit(field, value):
         if value.lower() not in ('true', 'false', 'tak', 'nie', '1', '0'):
             raise ValueError('repeatable: true albo false.')
         return field, value.lower() in ('true', 'tak', '1')
+    if field == 'requires_quest' and value is None:
+        return field, None
     if field == 'requires_quests':
         if isinstance(value, str):
             try: value = json.loads(value)
@@ -139,6 +175,12 @@ def validate_quest_edit(quest_id, base, patch, items, mobs, quests, npcs, live_n
         if 'kind' in patch or 'target' in patch:
             if target not in allowed and not (target == '*' and effective['kind'] == 'kill'):
                 raise ValueError('Quest: wskazany cel nie istnieje w odpowiednim katalogu.')
+    elif effective.get('kind') == 'collect_resource_set':
+        # v61: permit synchronized target + resource set edits, but never a
+        # standalone redirect. The resource-set validator below checks every
+        # material, count, total and whether target belongs to the new set.
+        if 'kind' in patch or ('target' in patch and 'resource_targets' not in patch):
+            raise ValueError('Zestaw surowcow: cel zmieniaj tylko razem z resource_targets.')
     elif 'kind' in patch or 'target' in patch:
         raise ValueError('Zmiana rodzaju/celu jest bezpieczna tylko dla prostych questów kill/collect.')
     if 'objectives' in patch or (effective.get('kind') == 'multi_objective' and 'needed' in patch):
@@ -176,7 +218,7 @@ def validate_quest_edit(quest_id, base, patch, items, mobs, quests, npcs, live_n
             raise ValueError('requires_quests: nieznane ID lub odwołanie do samego siebie.')
     if 'requires_quest' in patch:
         target = effective['requires_quest']
-        if target not in quests or target == quest_id:
+        if target is not None and (target not in quests or target == quest_id):
             raise ValueError('requires_quest: nieznany quest lub odwołanie do samego siebie.')
     if any(field in patch for field in ('reward_silver', 'reward_gold', 'reward_mithril')):
         from core.bootstrap_economy_professions import (

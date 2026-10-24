@@ -433,11 +433,41 @@ async def realtime_combat_loop(self):
                                     f"{MOB_TEMPLATES[_companion.template_id]['name']} dołącza do walki u boku {MOB_TEMPLATES[enemy_mob.template_id]['name']}.",
                                     detail="essential",
                                 )
+                            # v99: declarative UOSS regeneration is executed ONCE per
+                            # real boss action, never per target in a party. Rewards,
+                            # original abilities and encounter ownership are untouched.
+                            from systems.uoss_regeneration_v9900 import apply_regen as _v99_regen
+                            _v99_healed, _v99_label = _v99_regen(enemy_mob, _action_template)
+                            if _v99_healed:
+                                await self.server.party_combat_broadcast(
+                                    self, f"{_action_template['name']}: {_v99_label} (+{_v99_healed} HP).",
+                                    detail='essential')
                             _party_targets = self.server.party_combat_targets(self, enemy_mob)
                             # One mob action attacks the whole living local party.
                             # The existing realtime loop owner remains the sole
                             # executor for mobs whose engaged_by belongs to it,
                             # preventing duplicate party-wide attacks.
+                            # v98: one scripted-safe tactical decision per enemy action.
+                            from systems.uoss_tactics_v9800 import tactic as _v98_tactic
+                            _v98_phase, _v98_target_id = _v98_tactic(enemy_mob, _action_template, _party_targets)
+                            if _v98_phase:
+                                await self.server.party_combat_broadcast(
+                                    self, f"{_action_template['name']}: {_v98_phase['label']}!", detail='essential')
+                            # v100: phase AI only when ACTIVE, one selection per boss action.
+                            from systems.uoss_ai_v10000 import action as _v100_action, apply as _v100_apply
+                            _v100_instruction = _v100_action(enemy_mob, _action_template, _party_targets)
+                            if _v100_instruction:
+                                await self.server.party_combat_broadcast(self,
+                                    f"{_action_template['name']}: {_v100_instruction[3]}!", detail="essential")
+                            # v101: configurable, validated composite mechanics.
+                            # Boss-local turn stamp avoids duplicate healing; target
+                            # stamps avoid repeated MP effects in the same action.
+                            from systems.live_mechanics_v10100 import on_boss_turn as _v101_turn, apply_to_target as _v101_target
+                            _v101_event = _v101_turn(enemy_mob, _action_template, _party_targets)
+                            if _v101_event:
+                                await self.server.party_combat_broadcast(self,
+                                    f"{_action_template['name']}: {_v101_event['label']}! Odnowiono {_v101_event['boss_healed']} HP.",
+                                    detail='essential')
                             for target_session in _party_targets:
                                 if not (
                                     target_session
@@ -445,6 +475,11 @@ async def realtime_combat_loop(self):
                                     and target_session.current_hp > 0
                                 ):
                                     continue
+                                if _v101_event:
+                                    _v101_changes = _v101_target(target_session, _v101_event)
+                                    if _v101_changes:
+                                        await target_session.send('MECHANIKA BOSSA: ' + ', '.join(
+                                            f'{k}={v}' for k,v in _v101_changes.items()))
                                 _enemy_template = MOB_TEMPLATES[enemy_mob.template_id]
                                 if not getattr(enemy_mob,"uoss_start_effects_done_v11176",False):
                                     enemy_mob.uoss_start_effects_done_v11176=True
@@ -471,6 +506,11 @@ async def realtime_combat_loop(self):
                                     continue
                                 for _ended in superboss_advance_timed_effects_v11179(target_session):
                                     await self.server.party_combat_broadcast(target_session,f"{target_session.character.name}: kończy się efekt {_ended}.",detail="essential")
+                                # No effect on dead/absent targets, no reward hooks.
+                                _v100_mana = _v100_apply(target_session, _v100_instruction)
+                                if _v100_mana:
+                                    await self.server.party_combat_broadcast(target_session,
+                                        f"{_enemy_template['name']}: {_v100_instruction[3]} (-{_v100_mana} many).", detail="essential")
                                 _source_ability = superboss_source_ability_v11162(_enemy_template, enemy_mob)
                                 if await target_session.mec_intercept_incoming_attack_v11196(
                                     enemy_mob
@@ -709,6 +749,8 @@ async def realtime_combat_loop(self):
                                     * uoss_berserk_factor(enemy_mob, _enemy_template)
                                     * uoss_desperation_factor(enemy_mob, _enemy_template)
                                     * _uoss_mult
+                                    * __import__('systems.uoss_tactics_v9800',fromlist=['modifier']).modifier(
+                                        _v98_phase,_v98_target_id,target_session)
                                     * _flavor_mult_v11324
                                     * _adaptive_enemy_mult_v11330
                                     * (1.0 + .09 * max(0,min(3,int(getattr(enemy_mob,'_v1900_god_phase',0) or 0)))

@@ -546,6 +546,12 @@ class SessionCraftingMixin:
             crafted_output_id, critical_affix = crafting_quality_output_v03054(
                 output_id, quality_key, critical_craft, mastery_before
             )
+            # v55: existing materials, profession checks, quality and crit stay
+            # authoritative; only the successfully crafted EQ is strengthened.
+            from systems.endless_crafting_v5500 import endless_crafted_equipment_v5500
+            crafted_output_id = endless_crafted_equipment_v5500(
+                crafted_output_id, profession_level, old_tool_level
+            )
 
             tier = tool_tier(old_tool_level)
             bonus_chance = tool_tier_bonus_chance(old_tool_level)
@@ -565,6 +571,13 @@ class SessionCraftingMixin:
             self.server.db.add_item(
                 self.account_id, crafted_output_id, total_quantity
             )
+            if ITEMS.get(crafted_output_id, {}).get('infinite_depth_source') == 'forge':
+                crafted_v55 = ITEMS[crafted_output_id]
+                await self.send(
+                    f'REZONANS RZEMIOSLA: etap {crafted_v55["source_progression_stage"]}; '
+                    f'wymagana Bieglosc {crafted_v55["required_mastery"]}. '
+                    'Materialy zuzyto wedlug receptury.'
+                )
             # OLC33: award a configured material only after a successful craft.
             from systems.live_olc33_mechanics import craft_byproduct
             _byproduct33 = craft_byproduct(self,recipe_id)

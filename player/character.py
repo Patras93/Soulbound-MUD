@@ -155,9 +155,9 @@ class Character:
     def add_soul_weapon_mastery_xp(self, amount):
         amount = max(0, int(amount or 0))
         if self.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
-            self.soul_weapon_mastery_level = SOUL_WEAPON_MASTERY_MAX_LEVEL
-            self.soul_weapon_mastery_xp = 0
-            return {"level_ups": 0, "level": self.soul_weapon_mastery_level, "xp": 0, "next_xp": 0}
+            # Lowering an admin cap must NEVER reduce an existing level.
+            return {"level_ups": 0, "level": self.soul_weapon_mastery_level,
+                    "xp": self.soul_weapon_mastery_xp, "next_xp": 0}
         self.soul_weapon_mastery_xp += amount
         level_ups = 0
         while self.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
@@ -168,7 +168,6 @@ class Character:
             self.soul_weapon_mastery_level += 1
             level_ups += 1
         if self.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
-            self.soul_weapon_mastery_level = SOUL_WEAPON_MASTERY_MAX_LEVEL
             self.soul_weapon_mastery_xp = 0
         return {
             "level_ups": level_ups,
@@ -183,8 +182,7 @@ class Character:
     def add_character_xp(self, amount, single_level_cap=False):
         requested_amount=max(0,int(amount or 0))
         if self.character_level >= CHARACTER_MAX_LEVEL:
-            self.character_level=CHARACTER_MAX_LEVEL
-            self.character_xp=0
+            # Existing progress is never downleveled by an admin cap edit.
             return []
         # v1.13.60: zdobyty EXP nigdy nie jest obcinany do jednego awansu.
         # Parametr zachowany tylko dla zgodności ze starymi wrapperami.
@@ -200,7 +198,6 @@ class Character:
             self.character_level += 1
             messages.append(f"Level postaci wzrasta do {self.character_level}.")
         if self.character_level >= CHARACTER_MAX_LEVEL:
-            self.character_level=CHARACTER_MAX_LEVEL
             self.character_xp=0
         if amount:
             next_needed=character_xp_to_next(self.character_level) if self.character_level < CHARACTER_MAX_LEVEL else 0
@@ -267,14 +264,18 @@ class Character:
     def class_passive_text(self):
         return self.class_passive_text_for(self.class_name)
 
+    def _class_archetype_v7700(self):
+        from systems.admin_live_classes_v7700 import inherited_parent
+        return inherited_parent(self.class_name) or self.class_name
+
     def class_physical_damage_multiplier(self):
         multiplier = 1.0
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "physical_damage": multiplier *= 1.0 + p["value"]
-        if self.class_name in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
+        if self._class_archetype_v7700() in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
-        elif self.class_name == "Łotrzyk":
+        elif self._class_archetype_v7700() == "Łotrzyk":
             multiplier *= 1.0 + self.soul_weapon_rogue_damage_bonus_percent() / 100.0
         return multiplier
 
@@ -283,7 +284,7 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "magic_damage": multiplier *= 1.0 + p["value"]
-        if self.class_name in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
+        if self._class_archetype_v7700() in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
         return multiplier
 
@@ -292,7 +293,7 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "healing": multiplier *= 1.0 + p["value"]
-        if self.class_name in ("Mnich", "Kapłan", "Druid"):
+        if self._class_archetype_v7700() in ("Mnich", "Kapłan", "Druid"):
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
         return multiplier
 
@@ -301,18 +302,18 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"] == "drain_healing": multiplier *= 1.0 + p["value"]
-        if self.class_name == "Nekromanta":
+        if self._class_archetype_v7700() == "Nekromanta":
             multiplier *= 1.0 + self.soul_weapon_bonus_percent() / 100.0
         return multiplier
 
     def class_dodge_bonus(self):
         bonus=sum(self._generated_class_passive(name)["value"] for name in self.active_class_names() if self._generated_class_passive(name)["kind"]=="dodge")
-        if self.class_name == "Łotrzyk": bonus += self.soul_weapon_dodge_bonus()
+        if self._class_archetype_v7700() == "Łotrzyk": bonus += self.soul_weapon_dodge_bonus()
         return bonus
 
     def class_damage_reduction_percent(self):
         percent=100.0*sum(self._generated_class_passive(name)["value"] for name in self.active_class_names() if self._generated_class_passive(name)["kind"]=="damage_reduction")
-        if self.class_name == "Strażnik": percent += self.soul_weapon_guardian_reduction_percent()
+        if self._class_archetype_v7700() == "Strażnik": percent += self.soul_weapon_guardian_reduction_percent()
         return int(round(percent))
 
     def class_magic_defense_multiplier(self):
@@ -320,7 +321,7 @@ class Character:
         for name in self.active_class_names():
             p=self._generated_class_passive(name)
             if p["kind"]=="magic_defense": multiplier *= 1.0+p["value"]
-        if self.class_name == "Psionik": multiplier *= 1.0 + self.soul_weapon_bonus_percent()/100.0
+        if self._class_archetype_v7700() == "Psionik": multiplier *= 1.0 + self.soul_weapon_bonus_percent()/100.0
         return multiplier
 
     def apply_class_damage_reduction(self, damage):
@@ -480,39 +481,39 @@ class Character:
 
     def soul_weapon_class_bonus_text(self):
         percent = self.soul_weapon_bonus_percent()
-        if self.class_name in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
+        if self._class_archetype_v7700() in ("Wojownik", "Berserker", "Łowca", "Paladyn", "Samuraj", "Korsarz", "Gladiator"):
             return (
                 f"+{percent} procent obrażeń fizycznych z Broni Duszy "
                 f"klasy {self.class_name}"
             )
-        if self.class_name == "Łotrzyk":
+        if self._class_archetype_v7700() == "Łotrzyk":
             pp = int(round(self.soul_weapon_dodge_bonus() * 100))
             dmg = self.soul_weapon_rogue_damage_bonus_percent()
             return (
                 f"+{dmg} procent obrażeń fizycznych i +{pp} punktów "
                 "procentowych uniku z Broni Duszy Łotrzyka"
             )
-        if self.class_name in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
+        if self._class_archetype_v7700() in ("Mag", "Czarownik", "Chronomanta", "Iluzjonista", "Bard", "Szaman"):
             return (
                 f"+{percent} procent obrażeń magicznych z Broni Duszy "
                 f"klasy {self.class_name}"
             )
-        if self.class_name in ("Mnich", "Kapłan", "Druid"):
+        if self._class_archetype_v7700() in ("Mnich", "Kapłan", "Druid"):
             return (
                 f"+{percent} procent mocy leczenia z Broni Duszy "
                 f"klasy {self.class_name}"
             )
-        if self.class_name == "Nekromanta":
+        if self._class_archetype_v7700() == "Nekromanta":
             return (
                 f"+{percent} procent leczenia z wysysania życia "
                 "z Broni Duszy Nekromanty"
             )
-        if self.class_name == "Strażnik":
+        if self._class_archetype_v7700() == "Strażnik":
             return (
                 f"+{self.soul_weapon_guardian_reduction_percent()} procent "
                 "redukcji wszystkich obrażeń z Broni Duszy Strażnika"
             )
-        if self.class_name == "Psionik":
+        if self._class_archetype_v7700() == "Psionik":
             return (
                 f"+{percent} procent obrony magicznej "
                 "z Broni Duszy Psionika"
@@ -750,9 +751,9 @@ class Character:
                     )
                     break
         if self.soul_level >= SOUL_MAX_LEVEL:
-            self.soul_level = SOUL_MAX_LEVEL
-            self.soul_xp = 0
-            messages.append(f"Osiągnięto maksymalny Soul Level {SOUL_MAX_LEVEL}.")
+            if self.soul_level == SOUL_MAX_LEVEL:
+                self.soul_xp = 0
+            messages.append(f"Osiągnięto limit Soul Level {SOUL_MAX_LEVEL}.")
         return messages
 
 

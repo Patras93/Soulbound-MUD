@@ -110,7 +110,8 @@ def validate(rows, *, payload=None):
                 for milestone in milestones:
                     if type(milestone) is not dict or set(milestone)!={'level','bonus_percent'}:
                         raise ValueError('Gildia32: level,bonus_percent.')
-                    _number(milestone['level'],1,800,'Poziom gildii')
+                    from systems.olc_level_bounds_v7003 import level_bound
+                    _number(milestone['level'],1,level_bound('gildia'),'Poziom gildii')
                     _number(milestone['bonus_percent'],1,30,'Bonus gildii')
                     if milestone['level']<=previous: raise ValueError('Progi gildii muszą rosnąć.')
                     previous=milestone['level']

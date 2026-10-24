@@ -855,7 +855,9 @@ class DatabaseInventoryMixin:
         return max(0, int(row["upgrade_level"])) if row else 0
 
     def set_equipment_upgrade_level_v03042(self, account_id, item_id, level):
-        level = max(0, min(V03042_EQ_UPGRADE_MAX, int(level)))
+        existing=self.equipment_upgrade_level_v03042(account_id,item_id)
+        # Existing +levels are not rolled back when an admin lowers the cap.
+        level = max(0, min(max(V03042_EQ_UPGRADE_MAX, existing), int(level)))
         if level <= 0:
             self.conn.execute(
                 "DELETE FROM equipment_upgrades_v03042 WHERE account_id=? AND item_id=?",

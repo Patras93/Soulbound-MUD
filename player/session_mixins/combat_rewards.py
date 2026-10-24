@@ -29,6 +29,7 @@ from systems.dungeon_experience_v1285 import dungeon_recipient_xp_v1286
 from systems.experience_cap_v2009 import capped_experience_v2009, combat_overcap_v2009
 from systems.legendary_reborn import boss_legendary_roll_v1150
 from systems.infinite_equipment import infinite_equipment_variant_for_drop
+from systems.endless_loot_v5600 import convert_normal_equipment_drop_v5600
 from systems.elemental_combat import mob_element_affinities_v11339
 from systems.milestone import dungeon_party_bonus_v0320
 from systems.combat_profile_records import record_combat_profile_v11341
@@ -1082,14 +1083,18 @@ class SessionCombatRewardsMixin:
                         # whole eligible party. Roll the configured chance exactly once
                         # per defeated mob; on success each present reward recipient gets
                         # one copy of the same item.
+                        # v56: same single successful roll for the entire party;
+                        # scale only ordinary EQ from real infinite-depth sources.
+                        # Never change the source template/drop chance or boss codex identity.
+                        _awarded_item_v5600 = convert_normal_equipment_drop_v5600(item_id, template)
                         drop_recipients = party_drop_recipients_v0359(item_id, recipients)
                         for winner in drop_recipients:
                             if item_id in globals().get("TECH_COMPONENT_IDS", set()) or ITEMS.get(item_id, {}).get("craftbox_category") == "technology":
                                 self.server.db.add_storage_item(winner.account_id, "craftbox", item_id, 1)
                             else:
-                                self.server.db.add_item(winner.account_id, item_id, 1)
+                                self.server.db.add_item(winner.account_id, _awarded_item_v5600, 1)
                             await winner.record_item_collection(
-                                item_id, source=template["name"], announce=True
+                                _awarded_item_v5600, source=template["name"], announce=True
                             )
 
                         boss_id_for_drop = canonical_bestiary_template_id(mob.template_id)
@@ -1105,15 +1110,15 @@ class SessionCombatRewardsMixin:
                                     )
 
                         for party_session in drop_recipients:
-                            if party_session.loot_message_allowed(item_id):
+                            if party_session.loot_message_allowed(_awarded_item_v5600):
                                 if count > 1:
                                     await party_session.send(
                                         f"Drop drużynowy: każdy obecny członek otrzymuje "
-                                        f"{ITEMS[item_id]['name']}."
+                                        f"{ITEMS[_awarded_item_v5600]['name']}."
                                     )
                                 else:
                                     await party_session.send(
-                                        f"Drop: otrzymujesz {ITEMS[item_id]['name']}."
+                                        f"Drop: otrzymujesz {ITEMS[_awarded_item_v5600]['name']}."
                                     )
 
                 # v1.15.0: independent and rare boss-relic/catalyst roll.

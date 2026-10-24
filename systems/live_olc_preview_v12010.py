@@ -14,7 +14,7 @@ from data.mobs import MOB_TEMPLATES
 from data.npcs import NPCS
 from data.crafting_recipes import CRAFT_RECIPES
 from data.shops import SHOPS
-from systems.live_quest_olc_v1209 import QUEST_EDIT_FIELDS, QUEST_XP_ALIASES
+from systems.live_quest_olc_v1209 import QUEST_EDIT_FIELDS, QUEST_XP_ALIASES, STAT_XP_FIELDS_V3900
 from core.bootstrap_economy_professions import PROFESSION_RANK_NAMES, TOOL_PROFESSION_MAP
 from systems.live_content_v1204 import CLASS_SKILLS
 from systems.live_olc6_skill_editor import EDITABLE_FIELDS
@@ -76,7 +76,7 @@ def _auto_quest_xp(field, definition):
         return v0270_quest_character_reward(definition)
     if field == 'olc_reward_class_xp':
         return v0522_combat_quest_class_reward(definition)
-    if field == 'olc_reward_stat_xp':
+    if field == 'olc_reward_stat_xp' or field in STAT_XP_FIELDS_V3900.values():
         return v0190_quest_stat_reward(definition)
     if field == 'olc_reward_soul_xp':
         if v0522_is_profession_quest(definition):
@@ -150,6 +150,9 @@ def describe_current_edit(service, section, key, field):
         if canonical in active:
             value = active[canonical]
             note = 'ręczna wartość bazowa'
+        elif canonical in STAT_XP_FIELDS_V3900.values() and 'olc_reward_stat_xp' in active:
+            value = active['olc_reward_stat_xp']
+            note = 'dziedziczy wspólny EXP statystyk; brak osobnego nadpisania'
         else:
             value = _auto_quest_xp(canonical, definition)
             note = 'automatycznie wyliczona wartość bazowa'

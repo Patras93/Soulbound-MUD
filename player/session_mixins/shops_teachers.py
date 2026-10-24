@@ -48,7 +48,8 @@ class SessionShopsTeachersMixin:
                         for item_id in stock:
                             if item_id in ITEMS and item_id not in offers:
                                 offers.append(item_id)
-                return offers
+                from systems.admin_live_shop_progression_v7003 import append_progression_offer
+                return append_progression_offer(room_id, offers)
 
             selected = list(class_names)
             query = normalize_lookup_text(class_filter or "")
@@ -90,7 +91,8 @@ class SessionShopsTeachersMixin:
                     continue
                 if item_id not in offers:
                     offers.append(item_id)
-            return offers
+            from systems.admin_live_shop_progression_v7003 import append_progression_offer
+            return append_progression_offer(room_id, offers)
 
     def shop_offer_lock_text(self, item_id, item):
             """Krótki stan dostępności do czytania na numerowanej liście sklepu."""
@@ -409,6 +411,9 @@ class SessionShopsTeachersMixin:
                 return
 
             item_id, item = found
+            if item.get('shop_tier_v7003') and quantity != 1:
+                await self.send('Wariant Rezonansu Głębi ze sklepu kupuj po jednej sztuce.')
+                return
             # v11.00.4: the shop and profesje6 share ONE immutable purchase ledger.
             # Generic buy must not bypass the profession's once-per-character rule.
             if item_id in _PROF6_TOOL_PROF_BY_ITEM:
@@ -583,6 +588,9 @@ class SessionShopsTeachersMixin:
             )
 
     async def teacher_lesson(self, npc, only_available=False):
+            from systems.admin_live_classes_v7700 import inherited_parent
+            if (self.character and inherited_parent(self.character.class_name) == npc.get('teacher_class')):
+                npc=dict(npc, teacher_class=self.character.class_name)
             class_name = npc["teacher_class"]
             learned = self.server.db.learned_skill_ids(self.account_id)
 

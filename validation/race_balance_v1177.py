@@ -53,18 +53,21 @@ def audit_race_balance_v1177(*, runtime=False):
             errors.append(description)
 
     race_names = [r[0] for r in RACES]
+    from systems.admin_live_races_v7600 import current as custom_races
+    custom=custom_races()
+    expected_names=set(EXPECTED)|set(custom)
     class_names = [c[0] for c in CLASSES]
-    check(len(RACES) == 22 and len(set(race_names)) == 22, 'race catalogue must contain 14 unique races')
+    check(len(RACES) == 22+len(custom) and len(set(race_names)) == len(RACES), 'unique 22 baseline races plus custom')
     check(len(CLASSES) == 22 and len(set(class_names)) == 22, 'class catalogue must contain 14 unique classes')
-    check(set(race_names) == set(EXPECTED), 'race names differ from anchored 14-race list')
-    check(set(AUTHORED_RACE_PASSIVE_PROFILES) == set(EXPECTED) | {'Smoczy'}, 'race passive profile roster drift')
+    check(set(race_names) == expected_names, 'race names differ from anchored baseline plus custom')
+    check(set(AUTHORED_RACE_PASSIVE_PROFILES) == expected_names | {'Smoczy'}, 'race passive profile roster drift')
     check(race_passive_profile('Smoczy') == race_passive_profile('Smok'), 'legacy Smoczy no longer matches Smok')
     check(set(RACE_CLASS_RECOMMENDATIONS) == set(race_names), 'race recommendations are incomplete')
 
     for race in RACES:
         name = race[0]
         check(sum(race[2:]) == 50, f'{name}: race stat budget no longer 50')
-        kind, value = EXPECTED[name]
+        kind, value = EXPECTED[custom[name]['parent']] if name in custom else EXPECTED[name]
         row = race_passive_profile(name)
         check(row == {'kind': kind, 'value': value}, f'{name}: race passive diverges from described profile')
         check('brak' not in race_passive_text_pl(name).lower(), f'{name}: missing passive text')
@@ -85,7 +88,7 @@ def audit_race_balance_v1177(*, runtime=False):
     if runtime:
         from player.character import Character
         for name in race_names + ['Smoczy']:
-            kind, val = EXPECTED['Smok' if name == 'Smoczy' else name]
+            kind, val = EXPECTED[custom[name]['parent']] if name in custom else EXPECTED['Smok' if name == 'Smoczy' else name]
             ch = object.__new__(Character)
             ch.race = name
             check(ch._generated_race_passive() == race_passive_profile(name), f'{name}: runtime passive profile mismatch')

@@ -367,16 +367,18 @@ configure_equipment_mastery_requirements_v0918 = _sb420_topbind(_sb420_topsrc02.
 V0918_EQUIPMENT_MASTERY_CONFIGURED = configure_equipment_mastery_requirements_v0918()
 
 
+EQUIPMENT_MAX_LEVEL = 800  # admin live item-level normalization ceiling
+
 # v0.9.19: globalna siatka wymagań EQ. Poziom 1 pozostaje startowy dla
 # zgodności save'ów, a wszystkie dalsze progi są dokładnie co 10 Biegłości.
 EQUIPMENT_MASTERY_LEVELS_V0919 = (1,) + tuple(range(10, CLASS_MASTERY_MAX_LEVEL + 1, 10))
 
 
 def normalize_equipment_mastery_v0919(value):
-    value = max(1, min(CHARACTER_MAX_LEVEL, int(value or 1)))
+    value = max(1, min(EQUIPMENT_MAX_LEVEL, int(value or 1)))
     if value <= 1:
         return 1
-    return min(CHARACTER_MAX_LEVEL, ((value + 9) // 10) * 10)
+    return min(EQUIPMENT_MAX_LEVEL, ((value + 9) // 10) * 10)
 
 
 def normalize_all_equipment_mastery_v0919():

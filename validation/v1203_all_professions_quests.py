@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """v12.00.3: 22 profession/tool pacing and all quest catalog integrity."""
 from __future__ import annotations
+from validation.release_contracts import modern_quest_catalog
 from collections import Counter, defaultdict
 
 def run_regression():
@@ -76,7 +77,7 @@ def run_regression():
             assert any(quest_reward_floor_v1203(max(1,int(q.get('reward_profession_xp') or 0)),required,400,q)>max(1,int(q.get('reward_profession_xp') or 0)) for q in high)
             c+=1
     # Quest progress is never altered in this release: no new or removed IDs.
-    assert len(QUESTS)==(6793 if str(server.VERSION).startswith('35.') else 6769)
+    assert len(QUESTS)==(6793 if modern_quest_catalog(server.VERSION) else 6769)
     c+=1
     return c
 

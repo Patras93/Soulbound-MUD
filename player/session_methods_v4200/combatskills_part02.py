@@ -2272,11 +2272,14 @@ async def use_class_skill(self, raw):
                 else:
                     critical=False
             else:
-                damage = max(
-                    1,
-                    int(core_power * multiplier) + random.randint(-2, 3),
-                )
-                damage, critical = self.roll_critical_hit(damage)
+                # v83: a single tested source primitive shared with the detached
+                # Admin Live arena. Do not change Mec, execute or advanced paths.
+                if kind == "damage" and not skill.get("mec_authored"):
+                    from systems.uoss_plain_skill_shared_v8300 import plain_skill_damage_roll
+                    damage, critical = plain_skill_damage_roll(self, core_power, multiplier)
+                else:
+                    damage = max(1, int(core_power * multiplier) + random.randint(-2, 3))
+                    damage, critical = self.roll_critical_hit(damage)
             if critical:
                 self.record_social_record_v03051("biggest_crit", damage)
                 if (

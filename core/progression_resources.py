@@ -1,4 +1,4 @@
-from core.bootstrap_economy_professions import V019_SAFE_INT, PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
+from core.bootstrap_economy_professions import V019_SAFE_INT, PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL, SOUL_MAX_LEVEL
 from data.mobs import MOB_TEMPLATES
 from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
 
@@ -384,9 +384,16 @@ def _late_game_axis_requirement(kind, level, requirement_multiplier):
     return v4210_required_xp(scale_player_requirement_v1407(historical, level), kind, level)
 
 
+def _runtime_axis_max_v5200(kind, fallback):
+    # Dynamic read also covers modules imported after admin changed the cap.
+    from core.live_level_caps_v5200 import cap, effective_number
+    return effective_number(cap(kind))
+
+
 def character_xp_to_next(level):
-    level=max(1,min(CHARACTER_MAX_LEVEL,int(level)))
-    if level >= CHARACTER_MAX_LEVEL:
+    runtime_max = _runtime_axis_max_v5200("postac", 800)
+    level=max(1,min(runtime_max,int(level)))
+    if level >= runtime_max:
         return 0
     return _late_game_axis_requirement(
         "character", level, CHARACTER_XP_REQUIREMENT_MULTIPLIER
@@ -394,8 +401,9 @@ def character_xp_to_next(level):
 
 
 def class_mastery_xp_to_next(level):
-    level = max(1, min(CLASS_MASTERY_MAX_LEVEL, int(level)))
-    if level >= CLASS_MASTERY_MAX_LEVEL:
+    runtime_max = _runtime_axis_max_v5200("bieglosc", 800)
+    level = max(1, min(runtime_max, int(level)))
+    if level >= runtime_max:
         return 0
     return _late_game_axis_requirement(
         "class", level, CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER
@@ -403,8 +411,9 @@ def class_mastery_xp_to_next(level):
 
 
 def soul_xp_to_next(level):
-    level = max(1, min(CHARACTER_MAX_LEVEL, int(level)))
-    if level >= CHARACTER_MAX_LEVEL:
+    runtime_max = _runtime_axis_max_v5200("dusza", 800)
+    level = max(1, min(runtime_max, int(level)))
+    if level >= runtime_max:
         return 0
     return _late_game_axis_requirement(
         "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
@@ -422,8 +431,9 @@ def class_type_for_name(class_name):
 # ale osiągalną progresję.
 
 def skill_xp_to_next(level):
-    level = max(1, min(SKILL_MAX_LEVEL, int(level)))
-    if level >= SKILL_MAX_LEVEL:
+    runtime_max = _runtime_axis_max_v5200("skille", 800)
+    level = max(1, min(runtime_max, int(level)))
+    if level >= runtime_max:
         return 0
     return v4210_required_xp(scale_player_requirement_v1407(v0190_requirement("skill", level), level), "skill", level)
 
@@ -437,8 +447,9 @@ def skill_cooldown_multiplier(level):
 # Nie rozwija skilli/spelli i nie jest Soul Levelem ani Biegłością klasy.
 
 def soul_weapon_mastery_xp_to_next(level):
-    level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
-    if level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+    runtime_max = _runtime_axis_max_v5200("bron_duszy", 800)
+    level = max(1, min(runtime_max, int(level)))
+    if level >= runtime_max:
         return 0
     base = v0190_requirement("skill", level)
     historical = max(
@@ -448,15 +459,17 @@ def soul_weapon_mastery_xp_to_next(level):
     return v4210_required_xp(scale_player_requirement_v1407(historical, level), "weapon", level)
 
 def soul_weapon_mastery_bonuses(level):
-    level = max(1, min(SOUL_WEAPON_MASTERY_MAX_LEVEL, int(level)))
-    progress = (level - 1) / float(SOUL_WEAPON_MASTERY_MAX_LEVEL - 1)
+    # Bonuses reach their authored values at 800; increasing the *level* cap
+    # must not silently weaken existing characters.
+    level = max(1, int(level))
+    progress = (level - 1) / 799.0
     # Premie są celowo umiarkowane i dotyczą wyłącznie podstawowego ataku.
     return {
         "damage_percent": round(8.0 * (progress ** 0.85), 4),
         "crit_chance": round(0.02 * (progress ** 0.90), 6),
         "crit_damage_percent": round(12.0 * (progress ** 0.90), 4),
         "boss_damage_percent": round(5.0 * (progress ** 1.05), 4),
-        "echo_chance": round((0.01 + 0.04 * (((level - 200) / float(max(1, SOUL_WEAPON_MASTERY_MAX_LEVEL - 200))) ** 0.85)) if level >= 200 else 0.0, 6),
+        "echo_chance": round((0.01 + 0.04 * (((level - 200) / float(600)) ** 0.85)) if level >= 200 else 0.0, 6),
         "echo_damage_percent": 30.0 if level >= 200 else 0.0,
     }
 

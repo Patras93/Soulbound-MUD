@@ -146,10 +146,15 @@ class SessionQuestCommandsMixin:
             # Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.
             reward_exp = q.get("olc_reward_stat_xp", v0914_combat_quest_stat_reward(q))
 
+            from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900
+            stat_reward_by_name = {
+                name: q.get(field, reward_exp)
+                for name, field in STAT_XP_FIELDS_V3900.items()
+            }
             quest_stat_applied = []
-            if reward_exp:
+            if any(stat_reward_by_name.values()):
                 quest_stat_applied = await self.grant_combat_quest_stat_xp(
-                    reward_exp,
+                    stat_reward_by_name,
                     q.get("repeatable", False),
                     source_label=f"Quest: {q['name']}",
                     content_level=quest_content_level,
@@ -208,7 +213,9 @@ class SessionQuestCommandsMixin:
             _quest_reward_items32 = dict(q.get("reward_items") or {})
             for _id32, _qty32 in quest_bonus_items(quest_id).items():
                 _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32
+            from systems.quest_equipment_v6200 import quest_equipment_id_v6200
             for item_id, qty in _quest_reward_items32.items():
+                item_id = quest_equipment_id_v6200(item_id, q)
                 self.server.db.add_item(self.account_id, item_id, qty)
                 await self.record_item_collection(
                     item_id,
@@ -272,18 +279,13 @@ class SessionQuestCommandsMixin:
                     "To zadanie jest powtarzalne. Będzie ponownie dostępne "
                     f"za {max(1, cooldown // 60)} minut."
                 )
-            if reward_exp:
-                if quest_stat_applied:
-                    lo = min(quest_stat_applied)
-                    hi = max(quest_stat_applied)
-                    amount_text = str(lo) if lo == hi else f"{lo}-{hi}"
-                else:
-                    amount_text = "0"
-                await self.send(
-                    f"Bazowa nagroda EXP statystyk: {reward_exp}; "
-                    f"zastosowano {amount_text} EXP osobno do Siły, Zręczności, Kondycji, "
-                    "Inteligencji, Siły Woli i Charyzmy przed bonusem rasy."
+            if any(stat_reward_by_name.values()):
+                from player.character import Character
+                applied_text = ', '.join(
+                    f'{Character.STAT_PROGRESS_FIELDS[name][0]} {stat_reward_by_name[name]} bazowe / {earned} naliczone'
+                    for name, earned in zip(stat_reward_by_name, quest_stat_applied)
                 )
+                await self.send('Nagroda EXP statystyk: ' + applied_text + '.')
             if quest_coins:
                 await self.send(
                     f"{turnin_npc} wręcza ci nagrodę: "
@@ -299,7 +301,9 @@ class SessionQuestCommandsMixin:
             _quest_reward_items32 = dict(q.get("reward_items") or {})
             for _id32, _qty32 in quest_bonus_items(quest_id).items():
                 _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32
+            from systems.quest_equipment_v6200 import quest_equipment_id_v6200
             for item_id, qty in _quest_reward_items32.items():
+                item_id = quest_equipment_id_v6200(item_id, q)
                 await self.send(
                     f"{turnin_npc} wręcza ci nagrodę: "
                     f"{ITEMS[item_id]['name']} x{qty}."

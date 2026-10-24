@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "35.00.4"
+VERSION = "102.00.5"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -426,12 +426,22 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
 def soul_weapon_trait_for_tier(tier, class_name=None):
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
+    # Additional Admin Live classes inherit the real soul trait table of their
+    # combat archetype instead of silently using the Wojownik fallback.
+    if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
+        from systems.admin_live_classes_v7700 import inherited_parent
+        class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     return rows.get(tier)
 
 def soul_weapon_trait_totals(tier, class_name=None):
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
+    # Additional Admin Live classes inherit the real soul trait table of their
+    # combat archetype instead of silently using the Wojownik fallback.
+    if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
+        from systems.admin_live_classes_v7700 import inherited_parent
+        class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     totals = {
         "damage_percent": 0.0, "crit_chance": 0.0, "crit_damage_percent": 0.0,

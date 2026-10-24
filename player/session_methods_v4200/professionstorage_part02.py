@@ -423,8 +423,8 @@ async def grant_tool_reward_xp(
             )
 
         if level >= cap:
-            level = cap
-            xp = 0
+            # Preserve XP already earned above the new cap.
+            xp = 0 if int(row["level"]) < cap else int(row["xp"])
 
         self.server.db.save_tool(
             self.account_id,

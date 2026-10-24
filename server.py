@@ -40,6 +40,361 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
+# v39: Historical legacy modules still export older LATEST_CHANGES_TITLE and
+# overwrite the first release title during compatibility assembly. Restore the
+# canonical release identity *after* assembly, without re-executing catalogs or
+# modifying gameplay. Keep prior NEWS entries accessible in this session.
+if VERSION in ("39.00.0", "39.00.1", "39.00.2", "39.00.3"):
+    import sys as _guardian39_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v39.00.3 - Admin Guardian 5.0: questy i EXP statystyk (PREDEPLOY)"
+    )
+    _v39_first_news = (
+        "v39.00.3: poprawka Dockerfile COPY seed; admin guardian5 pomoc; szesc osobnych nagrod EXP statystyk "
+        "questow, wspolny reward_stat_xp zachowany, katalog i diagnostyka, "
+        "podglad faz UOSS bez symulowania prawdziwej walki."
+    )
+    LATEST_CHANGES = [_v39_first_news] + [
+        row for row in LATEST_CHANGES if not str(row).startswith(('v39.00.0:', 'v39.00.1:', 'v39.00.2:', 'v39.00.3:'))
+    ]
+    for _v39_module in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v39_loaded = _guardian39_sys.modules.get(_v39_module)
+        if _v39_loaded is not None:
+            _v39_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v39_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v40 Guardian 6.0 release identity. No catalog reload and no changes to quest XP engine.
+if VERSION == "40.00.0":
+    import sys as _guardian40_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v40.00.0 - Admin Guardian 6.0: audyt questow i DRAFT nagrod (PREDEPLOY)"
+    )
+    _v40_first_news = (
+        "v40.00.0: admin guardian6 pomoc; zbiorcze przygotowywanie wspolnego i szesciu "
+        "osobnych EXP statystyk w DRAFT, katalog nagrod, audyt i zaleznosci questow, "
+        "korekty potrzebnych ilosci, kontrola przejsc krain, OLC preflight i statyczna analiza bossow. "
+        "Prawdziwa arena UOSS wciaz nie jest dostepna."
+    )
+    LATEST_CHANGES = [_v40_first_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith(('v40.00.0:',))]
+    for _v40_module in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v40_loaded = _guardian40_sys.modules.get(_v40_module)
+        if _v40_loaded is not None:
+            _v40_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v40_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v41 Guardian 7.0: private source-rule arena and atomic quest repair DRAFT.
+# No grant, real HP, real mob or live world-state changes from arena commands.
+if VERSION == "41.00.0":
+    import sys as _guardian41_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v41.00.0 - Admin Guardian 7.0: arena UOSS LAB i naprawa questow (PREDEPLOY)"
+    )
+    _v41_first_news = (
+        "v41.00.0: admin guardian7 pomoc 1/2/3; prywatna arena bossow z bezpiecznym "
+        "modelem zdolnosci i faz UOSS, testowe miniony, statusy i raport; "
+        "wielopolowe zmiany questow w DRAFT, plan, cofanie oraz przeglad i audyt. "
+        "Arena nie jest pelna produkcyjna walka PvE/AI, brak prawdziwych nagrod."
+    )
+    LATEST_CHANGES = [_v41_first_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith(('v41.00.0:',))]
+    for _v41_module in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v41_loaded = _guardian41_sys.modules.get(_v41_module)
+        if _v41_loaded is not None:
+            _v41_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v41_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v42 Guardian 8.0: pure-source rehearsal and atomic quest DRAFT batches.
+if VERSION == "42.00.0":
+    import sys as _guardian42_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v42.00.0 - Admin Guardian 8.0: arena UOSS i questy (PREDEPLOY)"
+    )
+    _v42_first_news = (
+        "v42.00.0: admin guardian8 pomoc 1/2/3; izolowane zasady UOSS, "
+        "efekty czasowe, statusy i testowe AI minionow; serie napraw questow "
+        "walidowane atomowo w DRAFT, z mozliwoscia cofania. "
+        "Nie jest to pelna produkcyjna walka ani prawdziwe nagrody."
+    )
+    LATEST_CHANGES = [_v42_first_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v42.00.0:')]
+    for _v42_module in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v42_loaded = _guardian42_sys.modules.get(_v42_module)
+        if _v42_loaded is not None:
+            _v42_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v42_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v43 Guardian 9.0: reversible isolated arena simulations and OLC review.
+if VERSION == "43.00.0":
+    import sys as _guardian43_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v43.00.0 - Admin Guardian 9.0: migawki areny UOSS i audyt DRAFT (PREDEPLOY)"
+    )
+    _v43_first_news = (
+        "v43.00.0: admin guardian9 pomoc 1/2/3; arena prognoza i seria do 20 tur, "
+        "migawki i przywracanie prywatnej areny, poprawiona zgodnosc HP aktora testowego; "
+        "questy seria roznice / draft / zaleznosci tylko odczyt. Bez pelnej produkcyjnej walki, "
+        "bez nagrod i bez publikacji DRAFT."
+    )
+    LATEST_CHANGES = [_v43_first_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v43.00.0:')]
+    for _v43_module in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v43_loaded = _guardian43_sys.modules.get(_v43_module)
+        if _v43_loaded is not None:
+            _v43_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v43_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v44 Guardian 10: per-arena RNG, reproducible snapshots and scenario comparisons.
+if VERSION == "44.00.0":
+    import sys as _guardian44_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v44.00.0 - Admin Guardian 10: prywatna losowosc i scenariusze areny UOSS (PREDEPLOY)"
+    )
+    _guardian44_news = (
+        "v44.00.0: admin guardian10 pomoc 1/2/3; arena z wlasnym RNG, migawka i replay, "
+        "porownaj trzy warianty atak/obrona/lecz, odczyt nagrod i diagnostyki questow. "
+        "Bez produkcyjnej petli walki, pelnego AI i realnego ekwipunku, bez wyplat i publikacji."
+    )
+    LATEST_CHANGES = [_guardian44_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v44.00.0:')]
+    for _v44_mod in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _v44_loaded = _guardian44_sys.modules.get(_v44_mod)
+        if _v44_loaded is not None:
+            _v44_loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v44_loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v45: isolated skill and test-equipment experiments. No live XP/combat changes.
+if VERSION == "45.00.0":
+    import sys as _guardian45_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v45.00.0 - Admin Live: skille i taktyki w UOSS LAB (PREDEPLOY)"
+    )
+    _guardian45_news = (
+        "v45.00.0: admin live arena pomoc 1/2/3; testowe klasy, katalog skilli, "
+        "mana z definicji umiejetnosci, podglad przedmiotow i sekwencje walki. "
+        "Bez prawdziwej petli produkcyjnej, rzeczywistego EQ, EXP ani zmian bazy."
+    )
+    LATEST_CHANGES = [_guardian45_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v45.00.0:')]
+    for _v45_mod in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _guardian45_sys.modules.get(_v45_mod)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v46: next generation of the existing admin live workflow; never auto-deploy.
+if VERSION == "46.00.0":
+    import sys as _adminlive46_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v46.00.0 - Admin Live Ultimate: druzyny LAB i kontrola questow (PREDEPLOY)"
+    )
+    _adminlive46_news = (
+        "v46.00.0: admin live pomoc 1/2/3; arena druzyna (do 4 fikcyjnych postaci), "
+        "katalog skilli i bezpieczne prognozy; questy karta/szukaj/napraw plan, "
+        "zatwierdz i cofnij w DRAFT. Brak prawdziwych nagrod, zmian SQLite, "
+        "pelnego AI 1:1 i automatycznej publikacji. Wymagany Windows PREDEPLOY 60/60 PLUS."
+    )
+    LATEST_CHANGES = [_adminlive46_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v46.00.0:')]
+    for _adminlive46_mod in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded46 = _adminlive46_sys.modules.get(_adminlive46_mod)
+        if _loaded46 is not None:
+            _loaded46.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded46.LATEST_CHANGES = LATEST_CHANGES
+
+# v47: release readiness and unified, read-only admin live commands.
+if VERSION == "47.00.0":
+    import sys as _adminlive47_sys
+    LATEST_CHANGES_TITLE = (
+        "Soulbound v47.00.0 - Admin Live Ultimate: audyt questow i zabezpieczenia wdrozenia (PREDEPLOY)"
+    )
+    _adminlive47_news = (
+        "v47.00.0: admin live pomoc 4; questy exp ID (aktywny i DRAFT); "
+        "questy global [strona] (pelny statyczny audyt); questy preflight; "
+        "arena zgodnosc [ID]; gotowosc. Bez zmian nagrod i postepu graczy, "
+        "bez zmian produkcyjnej walki. Arena pozostaje modelem, nie UOSS 1:1. "
+        "Wymagany Windows PREDEPLOY 60/60 PLUS przed wdrozeniem."
+    )
+    LATEST_CHANGES = [_adminlive47_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v47.00.0:')]
+    for _adminlive47_mod in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded47 = _adminlive47_sys.modules.get(_adminlive47_mod)
+        if _loaded47 is not None:
+            _loaded47.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded47.LATEST_CHANGES = LATEST_CHANGES
+
+# v48 release identity; retains v47 release news for changelog history.
+if VERSION == "48.00.0":
+    import sys as _v48_sys
+    LATEST_CHANGES_TITLE = "Soulbound v48.00.0 - Admin Live: questy 18 typow i LAB druzyny (PREDEPLOY)"
+    _v48_news = ("v48.00.0: admin live pomoc 5; questy typy, typ NAZWA, diagnoza ID; "
+        "arena druzyna klasy, gotowy KLASA i porownaj TURY. Bez zmian w produkcyjnej "
+        "walce, EXP, bazie, postepie. Wymagany PREDEPLOY 60/60 PLUS.")
+    LATEST_CHANGES = [_v48_news] + [row for row in LATEST_CHANGES if not str(row).startswith('v48.00.0:')]
+    for _v48_name in ('systems.content_registry','player.session_mixins.help_system'):
+        _v48_mod = _v48_sys.modules.get(_v48_name)
+        if _v48_mod is not None:
+            _v48_mod.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v48_mod.LATEST_CHANGES = LATEST_CHANGES
+
+# v49: release identity for conservative quest and LAB integrity tools.
+if VERSION == "49.00.0":
+    import sys as _v49_sys
+    LATEST_CHANGES_TITLE = "Soulbound v49.00.0 - Admin Live: audyt questow i przebieg LAB (PREDEPLOY)"
+    _v49_news = ("v49.00.0: admin live pomoc 6; questy bledy / bledytyp / sprawdz / lancuch; "
+        "arena druzyna raport / przebieg TURY. Wyłącznie odczyt i prywatny LAB; "
+        "bez zmian EXP, aktywnych questow i postepow. Wymagany PREDEPLOY 60/60 PLUS.")
+    LATEST_CHANGES = [_v49_news] + [row for row in LATEST_CHANGES if not str(row).startswith('v49.00.0:')]
+    for _v49_name in ('systems.content_registry','player.session_mixins.help_system'):
+        _v49_mod = _v49_sys.modules.get(_v49_name)
+        if _v49_mod is not None:
+            _v49_mod.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v49_mod.LATEST_CHANGES = LATEST_CHANGES
+
+# v50: unified admin live with owner-confirmed DRAFT fixes and full dependency scan.
+if VERSION == "50.00.0":
+    import sys as _v50_sys
+    LATEST_CHANGES_TITLE = "Soulbound v50.00.0 - Admin Live: korekty questow i scenariusze LAB (PREDEPLOY)"
+    _v50_news = ("v50.00.0: admin live pomoc 7; questy korekta lista/plan/zastosuj/cofnij/anuluj; "
+        "questy cykle/pokrycie; arena scenariusze. Zmiany tylko DRAFT, bez automatycznej "
+        "publikacji, SQLite i nagrod. Arena LAB wciaz nie stanowi produkcyjnego UOSS 1:1. "
+        "Wymagany Windows PREDEPLOY 60/60 PLUS i testy NVDA.")
+    LATEST_CHANGES = [_v50_news] + [row for row in LATEST_CHANGES if not str(row).startswith('v50.00.0:')]
+    for _v50_name in ('systems.content_registry','player.session_mixins.help_system'):
+        _v50_mod = _v50_sys.modules.get(_v50_name)
+        if _v50_mod is not None:
+            _v50_mod.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v50_mod.LATEST_CHANGES = LATEST_CHANGES
+
+# v51: canonical multi-field quest DRAFT and isolated 22-class comparison.
+if VERSION == "51.00.0":
+    import sys as _v51_sys
+    LATEST_CHANGES_TITLE = "Soulbound v51.00.0 - Admin Live: edycja questow i LAB klas (PREDEPLOY)"
+    _v51_news = ("v51.00.0: admin live pomoc 8; questy edycja plan/zatwierdz/cofnij/status/anuluj; "
+        "arena klasy test 1-3 [strona], arena bossy test 1-3 [strona]. Kanoniczna walidacja DRAFT, ochrona przed "
+        "kolizjami zmian, izolowane eksperymenty 22 klas. Brak publikacji automatycznej, "
+        "realnego EQ, SQL i nagrod. Nie jest to walka UOSS 1:1; "
+        "wymagane testy NVDA i Windows PREDEPLOY 60/60 PLUS.")
+    LATEST_CHANGES = [_v51_news] + [row for row in LATEST_CHANGES if not str(row).startswith('v51.00.0:')]
+    for _v51_name in ('systems.content_registry','player.session_mixins.help_system'):
+        _v51_mod = _v51_sys.modules.get(_v51_name)
+        if _v51_mod is not None:
+            _v51_mod.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _v51_mod.LATEST_CHANGES = LATEST_CHANGES
+
+if VERSION == '52.00.0':
+    import sys as _v52_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v52.00.0 - Admin Live: limity poziomow (PREDEPLOY)'
+    _v52_news = ('v52.00.0: admin live limity / limity ustaw DZIEDZINA LICZBA lub bezlimitu POTWIERDZAM; '
+        'limity reset, wszystkie, wczytaj. Trwaly zapis poza SQLite, ochrona przed downlevelingiem; '
+        'Soul Tier i budynki gildii nadal maja wlasne progi. Wymagany Windows PREDEPLOY 60/60 PLUS.')
+    LATEST_CHANGES = [_v52_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v52.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v52_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+# v54: one Admin Live inspection dashboard, without changes to real combat/EXP.
+if VERSION == '54.00.0':
+    import sys as _v54_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v54.00.0 - Admin Live: audyt koncowy i kontrola wdrozenia (PREDEPLOY)'
+    _v54_news = ('v54.00.0: admin live pomoc 9; questy przeglad/napraw; arena przeglad; '
+        'eq pokrycie; limity kontrola; gotowosc finalna. Raporty tylko do odczytu; '
+        'DRAFT i publikacja pozostaja pod osobnymi zatwierdzeniami. '
+        'Arena NIE jest produkcyjnym UOSS 1:1; wymagane Windows PREDEPLOY 60/60 PLUS i NVDA.')
+    LATEST_CHANGES = [_v54_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v54.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v54_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+# v55: actual progressive crafting above 800 with persistent item-ID restore.
+if VERSION == '55.00.0':
+    import sys as _v55_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v55.00.0 - Admin Live: rzemioslo i EQ ponad 800 (PREDEPLOY)'
+    _v55_news = ('v55.00.0: autentyczny craft EQ po poziomie 800 profesji i narzedzia, '
+        'Rezonans Rzemiosla i trwale odtwarzanie wyrobionych wariantow po restarcie. '
+        'admin live eq craft 1000 930; pomoc 10. '
+        'Materialy, stara jakosc i progi zakladania bez zmian. '
+        'Wymagane Windows PREDEPLOY 60/60 PLUS oraz NVDA.')
+    LATEST_CHANGES = [_v55_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v55.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v55_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+# v56: scale ordinary equipment from authored infinite mobs AFTER a normal roll.
+if VERSION == '56.00.0':
+    import sys as _v56_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v56.00.0 - Admin Live: zwykly loot EQ z glebin (PREDEPLOY)'
+    _v56_news = ('v56.00.0: zwykle EQ z mobow nieskonczonych lochow zyskuje '
+        'Rezonans Glebi po realnym dropie; identyczne szanse i nagrody calej '
+        'druzyny, bez zmiany unikatow UOSS, materialow i odkryc Boss Codex. '
+        'admin live eq drop krypta 901 leather_vest; pomoc 11. '
+        'Wymagane Windows PREDEPLOY 60/60 PLUS oraz NVDA.')
+    LATEST_CHANGES = [_v56_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v56.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v56_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+# v53 owner-configurable gear requirements for truly deep-world EQ.
+# v57: real infinite boss chest payout beyond the historical 800 plateau.
+if VERSION == '57.00.0':
+    import sys as _v57_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v57.00.0 - Admin Live: skrzynie bossow ponad 800 (PREDEPLOY)'
+    _v57_news = ('v57.00.0: złoto ze skrzyn bossow Krypt, Mitycznej Krypty i Magitek '
+        'dalej rosnie ponad 800; bonus nakladany po dotychczasowym losowaniu, '
+        'bez zmian przedmiotow, kluczy i nagrod druzyny. '
+        'admin live skrzynie krypta 901 1000; pomoc 12. '
+        'Wymagane Windows PREDEPLOY 60/60 PLUS i test NVDA.')
+    LATEST_CHANGES = [_v57_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v57.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v57_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+# v58: real high-floor boss chest bonus EQ and quest item-ID diagnostics.
+if VERSION == '58.00.0':
+    import sys as _v58_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v58.00.0 - Admin Live: bonusowe EQ skrzyn i kontrola nagrod questow (PREDEPLOY)'
+    _v58_news = ('v58.00.0: wysokie skrzynie Krypt, Mitycznej Krypty, Wiezy Astralnej i '
+        'Mitycznej Wiezy daja dodatkowa 25% szanse na EQ Rezonansu Glebi na osobe, '
+        'bez naruszania bazowych nagrod. admin live skrzynie eq krypta 901; '
+        'questy itemy; pomoc 13. Wymagane PREDEPLOY 60/60 PLUS.')
+    LATEST_CHANGES = [_v58_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v58.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v58_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
+if VERSION == '53.00.0':
+    import sys as _v53_sys
+    LATEST_CHANGES_TITLE = 'Soulbound v53.00.0 - Admin Live: rozwoj EQ i audyt EXP (PREDEPLOY)'
+    _v53_news = ('v53.00.0: admin live limity audyt; limity progi 801; '
+        'limity eq prognoza krypta 901. Warianty EQ z glebi rosna z limitem EQ '
+        'i biegłości; domyslne 800 zachowuje wymaganie 600. '
+        'Wymagany Windows PREDEPLOY 60/60 PLUS.')
+    LATEST_CHANGES = [_v53_news] + [row for row in LATEST_CHANGES
+        if not str(row).startswith('v53.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _module = _v53_sys.modules.get(_name)
+        if _module is not None:
+            _module.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _module.LATEST_CHANGES = LATEST_CHANGES
+
 # v1.28.12 authored city network: register AFTER all crypt floor modules,
 # before late boot audits / live World() initialization.
 from systems.underground_cities_v12812 import register_rewards_v12812, install_cities_v12812
@@ -531,5 +886,733 @@ else:
         )
     RUNTIME_MEMORY_COMPACTION_V0616["post_audit"] = _memory_post
 
-if __name__ == "__main__":
+# v52: apply saved per-axis level caps only AFTER the native runtime and
+# authoring audits have finished importing. Earlier would invalidate static
+# baseline-800 boot audits or freeze partial module bindings.
+if VERSION in ('52.00.0','53.00.0','54.00.0','55.00.0','56.00.0','57.00.0','58.00.0','59.00.0','60.00.0','61.00.0','62.00.0','63.00.0','64.00.0','65.00.0','66.00.0','67.00.0','68.00.0','69.00.0','70.00.0','70.00.1','70.00.2','70.00.3','71.00.0','72.00.0','73.00.0','74.00.0','75.00.0','76.00.0','77.00.0','78.00.0','79.00.0','80.00.0','81.00.0','82.00.0','83.00.0','84.00.0','85.00.0','86.00.0','87.00.0','88.00.0','89.00.0','90.00.0','91.00.0','92.00.0','93.00.0','94.00.0','95.00.0','95.00.0','96.00.0','96.00.1','96.00.2','96.00.3','96.00.4','97.00.0'):
+    try:
+        from core.live_level_caps_v5200 import load as _load_caps_v5200
+        _load_caps_v5200()
+    except (ValueError, OSError) as _caps_load_error_v5200:
+        print('UWAGA admin live limity: odczyt ustawien nie powiodl sie: '
+              + str(_caps_load_error_v5200), flush=True)
+
+# v59 release title after legacy runtime assembly, no content reload.
+if VERSION == "59.00.0":
+    import sys as _v59_sys
+    LATEST_CHANGES_TITLE = "Soulbound v59.00.0 - Admin Live: EQ swiata ponad 800 i zaleznosci questow (PREDEPLOY)"
+    _v59_first = ("v59.00.0: skalowanie zwyklych dropow EQ z mobow swiata ponad poziomem 800; "
+                  "admin live eq swiat, questy zamien plan/zatwierdz/cofnij. "
+                  "UOSS unikatow nie konwertujemy; questy tylko DRAFT; PREDEPLOY wymagany.")
+    LATEST_CHANGES = [_v59_first] + [x for x in LATEST_CHANGES if not str(x).startswith('v59.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v59_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v60 canonical title; no re-import of runtime catalogues or game state.
+if VERSION == "60.00.0":
+    import sys as _v60_sys
+    LATEST_CHANGES_TITLE = "Soulbound v60.00.0 - Admin Live: bezpieczna zamiana ID nagrod i celow questow (PREDEPLOY)"
+    _v60_first = ("v60.00.0: questy id karta/znajdz/plan/zatwierdz/cofnij; walidowana zamiana "
+                  "ID przedmiotow w nagrodach oraz celu kill/collect w DRAFT, maks. 8 questow. "
+                  "Wymagane jawne ID, brak automatycznej publikacji i zapisu SQLite. PREDEPLOY wymagany.")
+    LATEST_CHANGES = [_v60_first] + [x for x in LATEST_CHANGES if not str(x).startswith('v60.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v60_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v61: canonical release title. Legacy command dispatch stays unchanged.
+if VERSION == "61.00.0":
+    import sys as _v61_sys
+    LATEST_CHANGES_TITLE = "Soulbound v61.00.0 - Admin Live: naprawy NPC, surowcow i celow questow (PREDEPLOY)"
+    _v61_first = ("v61.00.0: admin live questy ref karta/znajdz/plan/zatwierdz/cofnij; "
+                  "seryjna zamiana zleceniodawcow NPC, surowcow i celow wielocelowych "
+                  "kill/collect/talk. Walidacja OLC, do 8 questow, tylko DRAFT. "
+                  "Brak publikacji i zmian w SQLite. PREDEPLOY wymagany.")
+    LATEST_CHANGES = [_v61_first] + [x for x in LATEST_CHANGES if not str(x).startswith('v61.00.0:')]
+    for _module_name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v61_sys.modules.get(_module_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v62 canonical release title. Older dispatchers remain as aliases.
+if VERSION == "62.00.0":
+    import sys as _v62_sys
+    LATEST_CHANGES_TITLE = "Soulbound v62.00.0 - Admin Live: questy, nagrody EQ, klasy (PREDEPLOY)"
+    _v62_first = ("v62.00.0: pakiet wielorodzajowych zmian questow tylko DRAFT, "
+                  "Rezonans Glebi wysokopoziomowych questow, skille 22 klas ponad 800. "
+                  "Przed wdrozeniem wymagane PREDEPLOY 60/60 PLUS i test NVDA.")
+    LATEST_CHANGES = [_v62_first] + [x for x in LATEST_CHANGES if not str(x).startswith('v62.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v62_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v63 release title; all earlier Admin Live commands preserved.
+if VERSION in ("63.00.0", "64.00.0"):
+    import sys as _v63_sys
+    LATEST_CHANGES_TITLE = "Soulbound v63.00.0 - Admin Live: pakiet pol questow, bieglosc areny (PREDEPLOY)"
+    _v63_change = ("v63.00.0: questy pakiet plan pole QUEST_ID POLE WARTOSC laczone z innymi naprawami; "
+                  "arena klasy porownaj TURY STRONA BIEGLOSC; prywatni pomocnicy powyzej 800. "
+                  "DRAFT tylko za potwierdzeniem. Wymagany Windows PREDEPLOY 60/60 PLUS.")
+    LATEST_CHANGES = [_v63_change] + [x for x in LATEST_CHANGES if not str(x).startswith('v63.00.0:')]
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v63_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v64 release title: all earlier Admin Live commands remain intact.
+if VERSION == "64.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v64.00.0 - Admin Live: atomowe naprawy celow questow (PREDEPLOY)"
+    LATEST_CHANGES = ["v64.00.0: pakiet pole objectives/resource_targets JSON ; dopasuj QUEST_ID - kanoniczna walidacja calosci, bez publikowania i nagrod."] + [x for x in LATEST_CHANGES if not str(x).startswith('v64.00.0:')]
+    import sys as _v64_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v64_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v65: pass real UOSS status/equipment rules to detached Admin Live LAB only.
+if VERSION == "65.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v65.00.0 - Admin Live: odpornosci EQ i pasywy UOSS (PREDEPLOY)"
+    LATEST_CHANGES = ["v65.00.0: arena uoss ekwipunek/status/pasywy: produkcyjne funkcje UOSS na kopii, bez SQLite i nagrod."] + [x for x in LATEST_CHANGES if not str(x).startswith('v65.00.0:')]
+    import sys as _v65_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v65_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v66: source helper choice inspection, never live combat.
+if VERSION == "66.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v66.00.0 - Admin Live: prawdziwy wybor akcji pomocnikow UOSS (PREDEPLOY)"
+    LATEST_CHANGES = ["v66.00.0: arena uoss pomocnik [tura/seria/prognoza] - izolowane decyzje pomocnikow z kodu UOSS."] + [x for x in LATEST_CHANGES if not str(x).startswith('v66.00.0:')]
+    import sys as _v66_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v66_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v67: helper support in source balance, detached arena, never live combat.
+if VERSION == "67.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v67.00.0 - Admin Live: pomocnicy UOSS, skutki wsparcia (PREDEPLOY)"
+    LATEST_CHANGES = ["v67.00.0: arena uoss pomocnik skutki - leczenie, mana, Bubble, debuff na prywatnych kopiach."] + [x for x in LATEST_CHANGES if not str(x).startswith('v67.00.0:')]
+    import sys as _v67_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v67_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v68: production UOSS helper party target selection, isolated laboratory.
+if VERSION == "68.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v68.00.0 - Admin Live: UOSS wsparcie calej druzyny (PREDEPLOY)"
+    LATEST_CHANGES = ["v68.00.0: arena uoss druzyna wsparcie - 1-3 graczy na odizolowanych kopiach."] + [x for x in LATEST_CHANGES if not str(x).startswith('v68.00.0:')]
+    import sys as _v68_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _v68_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v69: Admin Live centrum komend NVDA; no live combat or EXP mutation.
+if VERSION == "69.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v69.00.0 - Admin Live: centrum komend NVDA (PREDEPLOY)"
+    LATEST_CHANGES = ["v69.00.0: admin live centrum - centrum komend NVDA."] + [x for x in LATEST_CHANGES if not str(x).startswith('v69.00.0:')]
+    import sys as _release_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v70: Admin Live odbior wydania i bramki PREDEPLOY; no live combat or EXP mutation.
+if VERSION in ("70.00.0", "70.00.1"):
+    LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - Admin Live: poprawki PREDEPLOY (PREDEPLOY)"
+    LATEST_CHANGES = ["v70.00.1: poprawki bramek PREDEPLOY, bez zmian rozgrywki."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.0:')]
+    import sys as _release_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v70.00.2: Admin Live test tools and deterministic DRAFT corrections.
+if VERSION == "70.00.2":
+    LATEST_CHANGES_TITLE = "Soulbound v70.00.2 - Admin Live: UOSS, EQ, questy (PREDEPLOY)"
+    LATEST_CHANGES = ["v70.00.2: uoss reguly, eq pokrycie, questy automaty z DRAFT/undo."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.2:')]
+    import sys as _release_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v70.00.3: cap-adaptive editor, owner-opt-in scalable shop offers and diagnostics.
+if VERSION == "70.00.3":
+    LATEST_CHANGES_TITLE = "Soulbound v70.00.3 - Admin Live: Sklepy, poziomy, skille, questy (PREDEPLOY)"
+    LATEST_CHANGES = ["v70.00.3: edycja ponad 800 wg limitow, zwykle skille mechanic_cooldown, wlaczane przez admina EQ w sklepach, diagnostyka questow/bossow/skilli."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.3:')]
+    import sys as _release_sys
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v72: this release is a strictly administrative extension, no combat rewards.
+if VERSION == "72.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v72.00.0 - Admin Live: questy, fazy bossow, postacie (PREDEPLOY)"
+    LATEST_CHANGES = [
+        "v72.00.0: admin live pomoc 32; questy zaleznosci plan/undo DRAFT, "
+        "boss fazy ustaw/zestaw DRAFT, postacie pakiet OFFLINE z atomowym audytem. "
+        "Brak UOSS 1:1 i nowych grywalnych klas oraz ras. Wymagany Windows PREDEPLOY 60/60 PLUS."
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v72.00.0:')]
+    import sys as _release_sys_v7200
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys_v7200.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v73: atomic OLC drafts only; UOSS catalog report is read-only.
+if VERSION == "73.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v73.00.0 - Admin Live: pakiety questow i bossow (PREDEPLOY)"
+    LATEST_CHANGES = [
+        "v73.00.0: admin live pomoc 33; pakietowe zaleznosci questow i fazy zwyklych bossow "
+        "w DRAFT (z cofnieciem); raport faz i ochrona skryptowanych UOSS. "
+        "Nie jest to UOSS 1:1. Wymagany Windows PREDEPLOY 60/60 PLUS."
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v73.00.0:')]
+    import sys as _release_sys_v7300
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _release_sys_v7300.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+
+
+
+
+# v74: correct the runtime release identity and expose new Admin Live help.
+if VERSION == "74.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v74.00.0 - Admin Live: lancuchy questow i katalog UOSS (PREDEPLOY)"
+    LATEST_CHANGES = [
+        "v74.00.0: admin live pomoc 34; bezpieczna podmiana legacy requires_quest "
+        "w DRAFT, raport wplywu i poprzednikow questow, lista i karta 21 skryptowanych "
+        "spotkan UOSS. UOSS nadal nie jest walka 1:1. Windows 60/60 PLUS wymagany."
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v74.00.0:')]
+    import sys as _release_sys_v7400
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys_v7400.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+
+# v75: native UOSS mechanics and legacy prerequisite removal.
+if VERSION == "75.00.0":
+    LATEST_CHANGES_TITLE = "Soulbound v75.00.0 - rzeczywiste mechaniki UOSS i stabilizacja Admin Live (PREDEPLOY)"
+    LATEST_CHANGES = [
+        "v75.00.0: admin live pomoc 35, atomowa edycja skryptowanych faz, leczenia, furii i skali "
+        "superbossow przez wykonywane mechaniki OLC24/32/33/34. Bez pelnej areny 1:1.",
+        "v75.00.0: admin live questy zaleznosci stare usun plan ID; poprawnosc usuniecia "
+        "starego requires_quest takze po publikacji i restarcie.",
+        "v75.00.0: naprawa cofania rodowodu; zakaz publikacji leczenia/furii UOSS w trakcie walki. "
+        "Obowiazkowy osobny PREDEPLOY 60/60 PLUS na Windows."
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v75.00.0:')]
+    import sys as _release_sys_v7500
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _release_sys_v7500.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+
+# v76: persistent, playable new races with authored inherited passives.
+if VERSION == '76.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v76.00.0 - grywalne nowe rasy w Admin Live (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v76.00.0: admin live pomoc 36; rodowod nowa rasa plan / zatwierdz / cofnij.',
+        'v76.00.0: prawdziwy kreator postaci, dzialajace pasywy rasowe i SQLite; max 32 nowe rasy.',
+        'v76.00.0: bezpieczne wspoldzialanie z edycja starych ras, zachowanie przy aktualizacji.',
+        'v76.00.0: brak kreatora nowych klas i pelnej areny UOSS 1:1; Windows 60/60 PLUS obowiazkowy.'
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v76.00.0:')]
+    import sys as _release_sys_v7600
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_release_sys_v7600.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v77: playable additional class archetypes, independent class skill IDs,
+# compatible trainers, passive stats, and Soul Weapon trait inheritance.
+if VERSION == '77.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v77.00.0 - grywalne klasy oparte na archetypach (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v77.00.0: admin live pomoc 37; rodowod nowa klasa plan/zatwierdz/cofnij.',
+        'v77.00.0: 8 nowych klas na bazie Wojownik, Mag, Kaplan; wlasne ID skilli, pasyw, biegosc, bron.',
+        'v77.00.0: nauka u istniejącego nauczyciela klasy bazowej i zapis w SQLite.',
+        'v77.00.0: nie dodaje nowych typow AI ani nowych skryptow specjalnych; Windows 60/60 PLUS wymagane.',
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v77.00.0:')]
+    import sys as _release_sys_v7700
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_release_sys_v7700.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v78: detached actor uses actual production player_damage for basic attacks.
+if VERSION == '78.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v78.00.0 - UOSS surowy autoatak z produkcyjnej metody (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v81.00.0: admin live pomoc 41; bron UOSS - Echo, leczenie i odzysk MP.',
+        'v80.00.0: admin live pomoc 40; arena uoss bron - wspolny krytyk i hit series.',
+        'v78.00.0: admin live pomoc 38; arena uoss gracz prognoza/atak/stan.',
+        'v78.00.0: player_damage liczone na klonie prawdziwej postaci; lokalne RNG i mana.',
+        'v78.00.0: dotychczasowa reszta tury UOSS jest modelem, nie pelna walka 1:1.',
+        'v78.00.0: bez zmian prawdziwych postaci i nagrod; Windows 60/60 PLUS wymagane.',
+    ] + [x for x in LATEST_CHANGES if not str(x).startswith('v78.00.0:')]
+    import sys as _release_sys_v7800
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_release_sys_v7800.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v82: production and detached LAB now select the same auto-queue skill.
+# This release does NOT enable side-effecting skill casts within the LAB.
+if VERSION == '82.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v82.00.0 - bezpieczny wybor skilla z auto-kolejki UOSS (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v82.00.0: admin live pomoc 42; arena uoss kolejka nastepny.',
+        'v82.00.0: wspolny selektor skilli dla prawdziwej walki i prywatnego podgladu.',
+        'v82.00.0: brak wykonania skilli/AI 1:1 w LAB; odczyt DB bez zapisow i izolacja kopii.',
+        'v82.00.0: naprawiono wczytywanie zapisanych limitow admin live dla v79-v82.',
+    ] + [row for row in LATEST_CHANGES if not str(row).startswith('v82.00.0:')]
+    import sys as _sys82
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _sys82.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+
+# v83: safe, limited actual direct-skill cast, never world-side use_class_skill.
+if VERSION == '83.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v83.00.0 - pierwsze bezpieczne rzucanie zwyklych skilli w LAB (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v83.00.0: admin live pomoc 43; arena uoss kolejka prosty prognoza/rzuc POTWIERDZAM.',
+        'v83.00.0: wspolna z normalna walka formula bazowego ataku bezposrednim skillem.',
+        'v83.00.0: koszt many i obrona bossa liczone na kopiach; prywatna rotacja i rollback.',
+        'v83.00.0: AoE, Mec, reakcje zywiolowe, efekty specjalne i AI 1:1 NADAL zablokowane.',
+    ] + [row for row in LATEST_CHANGES if not str(row).startswith('v83.00.0:')]
+    import sys as _sys83
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _sys83.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v84: actual game runtime isolation (separate process, private DB, loopback-only).
+# Deliberately NOT an in-session complete Guardian combat engine.
+if VERSION == '84.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v84.00.0 - pelny silnik walki w izolowanej kopii serwera (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v84.00.0: ARENA_UOSS_REAL_1_DO_1.bat - oddzielna pelna instancja gry na 127.0.0.1:4900.',
+        'v84.00.0: migawka SQLite na prywatnej kopii, oddzielny zapis i seed swiata.',
+        'v84.00.0: na kopii dziala rzeczywisty silnik walki (skille, AI, przywolania, dropy).',
+        'v84.00.0: po zakonczeniu kasowana jest kopia, nagrody i zmiany nie trafiaja na serwer 4000.',
+        'v84.00.0: administracyjna arena wewnatrz serwera nadal jest modelem i NIE jest 1:1.',
+    ] + [row for row in LATEST_CHANGES if not str(row).startswith('v84.00.0:')]
+    import sys as _sys84
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _sys84.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v85: native engine TCP E2E and strict isolation safety release.
+if VERSION == '85.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v85.00.0 - prawdziwy test TCP walki UOSS i twarda izolacja (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v85.00.0: pelny test TCP - logowanie, NPC, quest, Szczur i trwaly zapis kill 1/10 tylko na kopii.',
+        'v85.00.0: --fresh nigdy nie czyta/kopiuje istniejącej bazy, blokada rekursywnego kopiowania.',
+        'v85.00.0: izolacja kluczy srodowiska, zamykanie SQLite i obsluga Ctrl+Break na Windows.',
+        'v85.00.0: prawdziwa walka 1:1 tylko na osobnym serwerze 127.0.0.1:4900, nie w srodku admin live.',
+    ] + [row for row in LATEST_CHANGES if not str(row).startswith('v85.00.0:')]
+    import sys as _sys85
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _sys85.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v86: native full-engine arena lifecycle exposed within the existing admin live.
+if VERSION == '86.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v86.00.0 - pelna izolowana arena UOSS zarzadzana z admin live (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v86.00.0: admin live pomoc 44; arena real start/status/stop z POTWIERDZAM.',
+        'v86.00.0: jeden prawdziwy silnik walki na 127.0.0.1:4900, migawka SQLite, bez produkcyjnych nagrod.',
+        'v86.00.0: sygnal zatrzymania i automatyczne zamkniecie po smierci serwera wlasciciela.',
+        'v86.00.0: wbudowane laboratorium w tej samej sesji nadal jest symulatorem, nie walka 1:1.',
+    ] + [row for row in LATEST_CHANGES if not str(row).startswith('v86.00.0:')]
+    import sys as _sys86
+    for _name in ('systems.content_registry', 'player.session_mixins.help_system'):
+        _loaded = _sys86.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE = LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES = LATEST_CHANGES
+
+# v87: atomic quest + scripted UOSS multi-entity OLC and fresh native arena.
+if VERSION == '87.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v87.00.0 - duzy Admin Live: questy, UOSS, bezpieczna arena (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v87.00.0: pomoc 45; questy caly pakiet - stare i nowe zaleznosci 8 questow jednym planem.',
+        'v87.00.0: boss uoss zbiorczy - do 8 superbossow, 16 rzeczywistych zasad walki.',
+        'v87.00.0: arena real start pusta POTWIERDZAM - pelny silnik na pustej bazie bez kont graczy.',
+        'v87.00.0: plany tylko DRAFT, zatwierdzenie i cofanie z kontrola konfliktow; publikacja osobno.',
+        'v87.00.0: Windows PREDEPLOY 60/60 PLUS wymagane przed produkcyjnym wdrozeniem.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v87.00.0:')]
+    import sys as _sys87
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys87.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v88: one atomic, cross-domain plan in the existing Admin Live panel.
+if VERSION == '88.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v88.00.0 - Admin Live: aktualizacja calosciowa 8 dziedzin (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v88.00.0: pomoc 46; aktualizacja plan - do 24 zmian w 8 dziedzinach jednoczesnie.',
+        'v88.00.0: questy, skille, moby, przedmioty, receptury, sklepy, NPC i skryptowane superbossy UOSS.',
+        'v88.00.0: aktualizacja karta TYP ID POLE - prawdziwe wartosci ACTIVE i DRAFT dla NVDA.',
+        'v88.00.0: calosciowa walidacja i kontrola konfliktow; zatwierdzanie i cofanie TYLKO DRAFT.',
+        'v88.00.0: publikacja osobno; brak automatycznych zmian w SQLite i bazie postaci.',
+        'v88.00.0: Windows PREDEPLOY 60/60 PLUS wymagane przed wdrozeniem.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v88.00.0:')]
+    import sys as _sys88
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys88.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v89: read-only production publication gate and NVDA-readable global diff.
+if VERSION == '89.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v89.00.0 - Admin Live: bezpieczna publikacja i pelne porownanie DRAFT (PREDEPLOY)'
+    LATEST_CHANGES = [
+        'v89.00.0: pomoc 47; aktualizacja porownaj [STRONA] - realne zmiany osmiu dziedzin.',
+        'v89.00.0: aktualizacja publikacja sprawdz - prawdziwe kontrole przed aktywacja bez zapisow.',
+        'v89.00.0: ochrona aktywnych questow, walk UOSS, spawnow i integralnosci katalogow.',
+        'v89.00.0: dodatkowa kontrola braku zapisow SQLite; aktywacja nadal osobno.',
+        'v89.00.0: Windows PREDEPLOY 60/60 PLUS wymagane przed wdrozeniem.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v89.00.0:')]
+    import sys as _sys89
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys89.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v90: real durable revision recovery and conflict-safe publication.
+if VERSION == '90.00.0':
+    LATEST_CHANGES_TITLE = 'Soulbound v90.00.0 - Admin Live: historia rewizji, bezpieczne przywracanie i ochrona publikacji'
+    LATEST_CHANGES = [
+        'v90.00.0: pomoc 48; rewizje lista [STRONA], karta NUMER i audyt zapisu SQLite.',
+        'v90.00.0: rewizje przywroc plan NUMER; zatwierdz i cofnij tylko w DRAFT.',
+        'v90.00.0: wykrywanie przestarzalych rewizji; odmowa nadpisania cudzej publikacji.',
+        'v90.00.0: historia nigdy nie jest nadpisywana; publikacja ciagle odrebna i zabezpieczona.',
+        'v90.00.0: wymaga Windows PREDEPLOY 60/60 PLUS przed wdrozeniem.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v90.00.0:')]
+    import sys as _sys90
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys90.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v91: complete tested archetype inheritance and atomic stale prerequisite repair.
+if VERSION in ('91.00.0','92.00.0','93.00.0','94.00.0','95.00.0','95.00.0','96.00.0','96.00.1','96.00.2','96.00.3','96.00.4','97.00.0'):
+    LATEST_CHANGES_TITLE = 'Soulbound v91.00.0 - Admin Live: 22 archetypy, migracja ID questow, bezpieczna publikacja'
+    LATEST_CHANGES = [
+        'v91.00.0: pomoc 49; do 32 nowych grywalnych klas opartych na wszystkich 22 archetypach.',
+        'v91.00.0: nowa klasa mieszana - osobna baza, zestaw skilli, pasyw oraz Bron Duszy.',
+        'v91.00.0: questy zaleznosci migracja - zastepowanie nieistniejacych ID w calym grafie questow.',
+        'v91.00.0: aktywne questy chronione przed zmiana poprzednikow takze przy publikacji.',
+        'v91.00.0: plan i cofanie bez ingerencji w SQLite; publikacja wymaga PREDEPLOY 60/60 PLUS.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v91.00.0:')]
+    import sys as _sys91
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys91.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v92: one atomic multi-domain quest repair release.
+if VERSION in ('92.00.0','93.00.0','94.00.0','95.00.0','95.00.0','96.00.0','96.00.1','96.00.2','96.00.3','96.00.4','97.00.0'):
+    LATEST_CHANGES_TITLE = 'Soulbound v92.00.0 - Admin Live: zbiorcza naprawa celow questow'
+    LATEST_CHANGES = [
+        'v92.00.0: pomoc 50; questy cele znajdz TRYB STARE_ID - pokaz odwolania.',
+        'v92.00.0: questy cele plan - do 16 jawnych migracji kill, collect, talk, surowiec, reward i npc.',
+        'v92.00.0: walidacja calego DRAFT; blokada kolizji i aktywnych questow, cofanie atomowe.',
+        'v92.00.0: zadne EXP, zloto ani postep postaci nie sa modyfikowane przez plan i zatwierdz.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v92.00.0:')]
+    import sys as _sys92
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded = _sys92.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v93: combined quest repair and safe two-effect authored attack skills.
+if VERSION == '93.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v93.00.0 - Admin Live: kompleksowe naprawy i kombinacje efektow'
+    LATEST_CHANGES=[
+        'v93.00.0: pomoc 51; kompleksowy atomowy plan naprawy poprzednikow i celow questow.',
+        'v93.00.0: skille damage i aoe_damage - olc_statuses dla dwoch bezpiecznych efektow trafienia.',
+        'v93.00.0: walidacja DRAFT, blokada questow przyjetych, cofanie i publikacja osobno.',
+    ] + [line for line in LATEST_CHANGES if not str(line).startswith('v93.00.0:')]
+    import sys as _sys93
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys93.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v94: one substantive update spanning final-state quest fixes, deterministic
+# counter repair and batch real combat status effects.
+if VERSION == '94.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v94.00.0 - Admin Live: kompleksowe questy i skille'
+    LATEST_CHANGES=[
+        'v94.00.0: pomoc 52 - questy pakiet plan, do 32 pol w 16 questach na raz.',
+        'v94.00.0: liczniki skan i plan - tylko matematycznie jednoznaczne needed.',
+        'v94.00.0: skill efekty pakiet - do 16 skilli, atomowa migracja statusow.',
+        'v94.00.0: ochrona aktywnych questow, cofanie DRAFT; publikacja osobna.',
+    ]+[line for line in LATEST_CHANGES if not str(line).startswith('v94.00.0:')]
+    import sys as _sys94
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys94.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v95: in-engine custom passive values for newly created classes/races;
+# transactional, offline, explicit recovery of intrinsic level/XP pairs.
+if VERSION == '95.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v95.00.0 - Admin Live: rozwoj postaci i autorskie pasywy'
+    LATEST_CHANGES=[
+        'v95.00.0: pomoc 53; offline plan poziom+EXP postaci, Duszy i Broni Duszy, CAS i audyt.',
+        'v95.00.0: nowe grywalne klasy i rasy: bezpieczne autorskie rodzaje/moc pasywow.',
+        'v95.00.0: testy rollback SQLite, limitow, praw dostepu i odtwarzania po restarcie.',
+        'v95.00.0: brak zmiany banku EXP, klasy/bieglosci, waluty i nagrod.',
+    ]+[line for line in LATEST_CHANGES if not str(line).startswith('v95.00.0:')]
+    import sys as _sys95
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys95.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v96: offline correction of already unlocked class and learned skill progression.
+if VERSION in ('96.00.0','96.00.1','96.00.2','96.00.3','96.00.4','97.00.0'):
+    LATEST_CHANGES_TITLE='Soulbound v96.00.0 - Admin Live: bieglosci klas i wyuczonych skilli'
+    LATEST_CHANGES=[
+        'v96.00.0: pomoc 54; plan i korekta do 16 istniejacych klas i skilli offline.',
+        'v96.00.0: atomowa transakcja SQLite, kontrola zmian, audyt i bezpieczne cofniecie.',
+        'v96.00.0: bank EXP: stronicowany raport tylko do odczytu, bez wyplat i zmiany salda.',
+        'v96.00.0: brak uczenia skilli, dodawania klas, zmiany uzyc i nagrod; PREDEPLOY 60/60 PLUS przed wdrozeniem.',
+    ]+[line for line in LATEST_CHANGES if not str(line).startswith('v96.00.0:')]
+    import sys as _sys96
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys96.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v96.00.1: audited Windows predeploy historical regressions; no gameplay changes.
+if VERSION == '96.00.1':
+    LATEST_CHANGES_TITLE='Soulbound v96.00.1 - korekta walidatorow PREDEPLOY 60/60 PLUS'
+    LATEST_CHANGES=[
+        'v96.00.1: testy historyczne rozpoznaja nowe wersje bez list zamknietych na v76.',
+        'v96.00.1: bezwarunkowo pilnuje 6793 questow dla wspolczesnego katalogu.',
+        'v96.00.1: mechanika gry i dane graczy pozostaja bez zmian.',
+    ]+LATEST_CHANGES
+    import sys as _sys9601
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9601.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v96.00.2: restore both pre-v70 and current Admin Live command grammars.
+if VERSION == '96.00.2':
+    LATEST_CHANGES_TITLE='Soulbound v96.00.2 - zgodnosc dawnych komend Admin Live'
+    LATEST_CHANGES=[
+        'v96.00.2: eq pokrycie bez argumentow oraz eq pokrycie ID [ETAP] dzialaja osobno.',
+        'v96.00.2: przywrocono zgodnosc questy pakiet v62/v64 i v94, w tym cofanie i liczniki.',
+        'v96.00.2: bez zmian mechaniki, baz postaci i wynagrodzen; PREDEPLOY wymagany.',
+    ]+LATEST_CHANGES
+    import sys as _sys9602
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9602.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+
+# v96.00.3: finish cumulative predeploy gates without dropping any test case.
+if VERSION == '96.00.3':
+    LATEST_CHANGES_TITLE='Soulbound v96.00.3 - pelna zgodnosc testow Windows PREDEPLOY'
+    LATEST_CHANGES=[
+        'v96.00.3: poprawiona weryfikacja wersji w historycznej regresji Admin Live v87.',
+        'v96.00.3: czas na pelny audyt dostosowany do duzej liczby testow; wszystkie 60 etapow pozostaje obowiazkowe.',
+        'v96.00.3: brak zmian EXP, walki, skilli, questow i bazy produkcyjnej.',
+    ]+LATEST_CHANGES
+    import sys as _sys9603
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9603.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v96.00.4: keep static content_registry release and runtime /changes aligned.
+if VERSION == '96.00.4':
+    LATEST_CHANGES_TITLE='Soulbound v96.00.4 - naprawa testu TCP i zgodnosci wersji'
+    LATEST_CHANGES=[
+        'v96.00.4: poprawione odbieranie bannera w izolowanej arenie UOSS (Telnet negocjuje kodowanie przed banerem).',
+        'v96.00.4: zgodnosc numeru wydania w rejestrze, silniku i CHANGELOG.',
+        'v96.00.4: testy obowiazkowe; bez zmian EXP, walki i baz postaci.',
+    ]+LATEST_CHANGES
+    import sys as _sys9604
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9604.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v97: active registry displays cumulative update without altering old version snapshots.
+if VERSION == '97.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v97.00.0 - Admin Live: wielki pakiet postacie, plecak i UOSS'
+    LATEST_CHANGES=[
+        'v97.00.0: admin live pomoc 55 - korekta statystyk do 8 postaci offline (do 24 pol), jedna transakcja CAS z cofaniem.',
+        'v97.00.0: admin live pomoc 55 - kontrola i korekta ilosci do 16 istniejacych stosow w plecaku; zakupione, chronione i wyposazone bez zmian.',
+        'v97.00.0: admin live pomoc 56 - kopiowanie czterech prawdziwych mechanik UOSS z DRAFT lub ACTIVE do DRAFT wielu superbossow.',
+        'v97.00.0: 120 kontroli nowych funkcji; brak zmian automatycznych w bazach graczy i zasadach walki.',
+    ]+LATEST_CHANGES
+    import sys as _sys9700
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9700.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+
+# v98: three owner-only Admin Live capabilities in one cumulative package.
+if VERSION == '98.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v98.00.0 - Superbossowie 2.0, Quest Doctor, Postepy offline'
+    LATEST_CHANGES=[
+        'v98.00.0: pomoc 57 - nowe taktyki atakow, fazy HP i celowanie UOSS, tylko DRAFT do aktywacji.',
+        'v98.00.0: pomoc 58 - Quest Doctor, bezpieczna diagnoza i deterministyczna korekta licznikow.',
+        'v98.00.0: pomoc 59 - offline korekty istniejacych profesji, narzedzi i banku EXP.',
+        'v98.00.0: wymagany Windows PREDEPLOY 60/60 PLUS; bez zmian danych postaci w ZIP.',
+    ]+LATEST_CHANGES
+    import sys as _sys9800
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9800.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v99: five real Admin Live extensions, preserving earlier releases.
+if VERSION == '99.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v99.00.0 - Piec rozszerzen Admin Live'
+    LATEST_CHANGES=[
+        'v99.00.0: pomoc 60/61 - nowe deklaratywne skille i kontrolowane naprawy questow w DRAFT.',
+        'v99.00.0: pomoc 62 - osobny silnik areny na prywatnej migawce SQLite.',
+        'v99.00.0: pomoc 63 - korekta HP/many online poza walka, audyt i cofanie.',
+        'v99.00.0: pomoc 64 - fazowa regeneracja UOSS w prawdziwej petli walki.',
+        'v99.00.0: przed wdrozeniem wykonaj Windows PREDEPLOY 60/60 PLUS.',
+    ]+LATEST_CHANGES
+    import sys as _sys9900
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys9900.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v100: source-backed, explicitly bounded Admin Live additions.
+if VERSION == '100.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v100.00.0 - Admin Live Ultimate: 5 bezpiecznych rozszerzen'
+    LATEST_CHANGES=[
+        'v100.00.0: pomoc 65 - kopiowanie skilli z katalogu jako walidowany nowy DRAFT.',
+        'v100.00.0: pomoc 66 - audyt questow NPC, zaleznosci, cykle i aktywne postepy.',
+        'v100.00.0: pomoc 67 - CAS edycja podstawowych statystyk postaci ONLINE poza walka i raport rozwoju.',
+        'v100.00.0: pomoc 68 - w-sesji arena LAB; osobny pelny serwer nadal dostepny przez arena real.',
+        'v100.00.0: pomoc 69 - nowe fazowe AI UOSS: celowanie i oslabianie many w prawdziwej walce.',
+        'v100.00.0: wymagany Windows PREDEPLOY 60/60 PLUS; bez dowolnych skryptow Python.',
+    ]+LATEST_CHANGES
+    import sys as _sys10000
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys10000.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v102: native full-engine isolated tunnel, declarative mechanic conditions, audited Admin Live.
+if VERSION in ('102.00.0', '102.00.1', '102.00.2', '102.00.3', '102.00.4', '102.00.5'):
+    LATEST_CHANGES_TITLE=f'Soulbound v{VERSION} - Admin Live: pelny silnik przez tunel, efekty, audyt'
+    LATEST_CHANGES=[
+        'v102.00.5: automatyczne usuwanie osmiu starych README z bezpieczna kopia poza folderem gry.',
+        'v102.00.4: jeden plik README zamiast 8; bez zmian gry i bez omijania testow.',
+        'v102.00.3: poprawka licznika 52 testow Admin Live v102 w PREDEPLOY, bez zmian gry.',
+        'v102.00.2: czytelna obsluga rozlaczen tunelu i zgodnosc komendy admin live audyt z OLC5.',
+        'v102.00.1: naprawa identyfikatora wydania i odcisku kontrolnego modularizacji (bez zmian walki).',
+        'v102.00.0: pomoc 74 - arena real tunel POTWIERDZAM w tym samym kliencie, silnik 1:1 nadal na izolowanej kopii.',
+        'v102.00.0: pomoc 75 - nowe conditions oraz restore_health w kompozytorze mechanik, OLC DRAFT i publikacja.',
+        'v102.00.0: pomoc 76 - audyt raport/komendy/olc/arena, tylko odczyt; raport nie jest certyfikatem.',
+        'v102.00.0: brak obcego Pythona; produkcyjna baza i nagrody pozostaja poza arena.',
+        'v102.00.0: pelny PREDEPLOY Windows 60/60 PLUS wymagany.',
+    ]+LATEST_CHANGES
+    import sys as _sys10200
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys10200.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v101: three bounded expansions. No code execution or unsafe direct in-session full combat.
+if VERSION == '101.00.0':
+    LATEST_CHANGES_TITLE='Soulbound v101.00.0 - Admin Live: mechaniki, rozwoj online, arena LAB'
+    LATEST_CHANGES=[
+        'v101.00.0: pomoc 70 - kompozytor fazowych mechanik bossow przez JSON, plan DRAFT, publikacja OLC bez restartu.',
+        'v101.00.0: pomoc 71 - postacie online rozwoj: level/EXP postaci, duszy, broni, SQLite+sesja CAS.',
+        'v101.00.0: pomoc 73 - online wpisy: istniejace klasy, skille, profesje, narzedzia, EXP bank i niechronione stosy.',
+        'v101.00.0: pomoc 72 - arena sesja seria i porownaj, izolowane testy LAB bez nagrod.',
+        'v101.00.0: pelny silnik 1:1 nadal izolowany, wymaga osobnego klienta na porcie 4900.',
+        'v101.00.0: wymagany PREDEPLOY 60/60 PLUS na Windows i backup SQLite/WAL przed wdrozeniem.',
+    ]+LATEST_CHANGES
+    import sys as _sys10100
+    for _name in ('systems.content_registry','player.session_mixins.help_system'):
+        _loaded=_sys10100.modules.get(_name)
+        if _loaded is not None:
+            _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
+            _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+if __name__ == '__main__':
     main()
+

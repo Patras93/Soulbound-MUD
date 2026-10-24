@@ -15,6 +15,7 @@ import re
 
 from data import catalog_mutations as _catalog_mut
 from data.items import ITEMS
+from core.equipment_growth_v5300 import infinite_equipment_requirement
 
 
 INFINITE_EQUIPMENT_VERSION = "1.13.30"
@@ -27,6 +28,10 @@ _SOURCE_LABELS = {
     "tower": "Wieza Astralna",
     "mythictower": "Mityczna Wieza Astralna",
     "magitek": "Nieskonczony Kompleks Magitek",
+    "forge": "Rzemioslo Mistrzow",
+    "world": "Potwory i Bossowie Swiata",
+    "quest": "Nagroda wysokopoziomowego questa",
+    "shop": "Oferta sklepu kontrolowana przez Admin Live",
 }
 _GRADE_LABELS = {
     "r": "zwykly",
@@ -34,7 +39,7 @@ _GRADE_LABELS = {
     "b": "boss",
 }
 _DEEP_ID_RE = re.compile(
-    r"^deepq_(crypt|mythiccrypt|tower|mythictower|magitek)_([reb])_r([1-9]\d*)_(.+)$"
+    r"^deepq_(crypt|mythiccrypt|tower|mythictower|magitek|forge|world|quest|shop)_([reb])_r([1-9]\d*)_(.+)$"
 )
 
 
@@ -99,6 +104,17 @@ def infinite_source_profile(template):
         # Ordinary Astral starts at floor/mastery 100 and advances one gear
         # circle every 10 floors: 100..109 => 100, 110..119 => 110, etc.
         raw_stage = 100 + max(0, (floor - 100) // 10) * 10
+    elif template.get("level") is not None or template.get("generator_level") is not None:
+        # v59: ordinary high-level world mobs/elite/bosses only. Existing
+        # loot tables remain the sole source of drops; no extra RNG rolls.
+        # Skip malformed/out-of-range levels instead of treating them as 801+.
+        value=template.get("level", template.get("generator_level"))
+        if isinstance(value,bool):return None
+        try:
+            raw_stage=int(value)
+        except (TypeError,ValueError,OverflowError):return None
+        if not 801<=raw_stage<=1_000_000_000:return None
+        source="world"
     else:
         return None
 
@@ -217,6 +233,54 @@ def _scale_numeric_mapping(values, multiplier, *, decimals=None):
     return result
 
 
+def _v53_refresh_requirement_description(item, requirement):
+    desc=str(item.get('desc') or '')
+    # Both historical v1.13 and newly generated v53 Rezonans descriptions.
+    desc=re.sub(r'Wymaganie założenia wynosi Biegłość 600 \(próg wariantu Rezonansu Głębi\);',
+                f'Wymaganie założenia: Biegłość {requirement}.',desc)
+    desc=re.sub(r'Wymaganie założenia: Biegłość \d+\.',
+                f'Wymaganie założenia: Biegłość {requirement}.',desc)
+    desc=desc.replace('głębokość wzmacnia egzemplarz, ale Biegłość klasy nadal rozwija się do 800.',
+                      'Poziom Biegłości jest konfigurowany przez admin live.')
+    item['desc']=desc
+
+
+def refresh_infinite_equipment_requirements_v5300():
+    """Update only staged eligibility fields for already built Rezonans items."""
+    count=0
+    for item in ITEMS.values():
+        if not isinstance(item,dict) or not item.get('infinite_depth_variant'):
+            continue
+        stage=int(item.get('source_progression_stage') or 600)
+        # Forge variants need their authored proficiency even when limits later
+        # decrease; no downgrade that lets an inexperienced player equip them.
+        req=(stage if item.get('infinite_depth_source')=='forge'
+             else infinite_equipment_requirement(stage))
+        item['required_mastery']=req
+        _v53_refresh_requirement_description(item,req)
+        if 'required_character_level' in item:
+            item['required_character_level']=req
+        count+=1
+    return count
+
+
+def shop_variant_price_v7003(base_item_id, rank):
+    """Deterministic silver price; stays stable on inventory restoration."""
+    from core.bootstrap_economy_professions import V019_SAFE_INT
+    from core.progression_resources import v0190_economy_sink
+    from systems.legacy_value_sweep import shop_money_price_v11325
+    base = ITEMS.get(str(base_item_id))
+    if not isinstance(base, dict):
+        raise ValueError('Nieznany bazowy przedmiot wariantu sklepowego.')
+    rank = max(1, int(rank))
+    full_stage = 600 + rank * 10
+    original = shop_money_price_v11325(base)
+    return min(V019_SAFE_INT//100, max(
+        1000, original * (20 + rank * 10),
+        v0190_economy_sink(min(1000000, full_stage), 'equipment'),
+    ))
+
+
 def register_infinite_equipment_variant(
     base_item_id, source, grade, rank, *, variant_id=None
 ):
@@ -233,9 +297,25 @@ def register_infinite_equipment_variant(
         or infinite_equipment_variant_id(base_item_id, source, grade, rank)
     )
     if vid in ITEMS:
+        old=ITEMS.get(vid)
+        if isinstance(old,dict) and old.get('infinite_depth_variant'):
+            req=(int(old.get('source_progression_stage',600)) if source=='forge'
+                 else infinite_equipment_requirement(old.get('source_progression_stage',600)))
+            old['required_mastery']=req
+            _v53_refresh_requirement_description(old,req)
+            if 'required_character_level' in old:old['required_character_level']=req
+            if source == 'shop':
+                old['currency']='silver'
+                old['price']=shop_variant_price_v7003(base_item_id,rank)
+                old['shop_tier_v7003']=True
         return vid
 
     base = ITEMS.get(base_item_id)
+    if base is None and base_item_id.startswith('craftq_'):
+        # An item may only exist inside a deepq_forge ID in SQLite. Restore
+        # its crafted quality first; keep this lazy to avoid import cycles.
+        from systems.crafting_quality import ensure_crafting_quality_variant_v0332
+        base = ensure_crafting_quality_variant_v0332(base_item_id)
     if not isinstance(base, dict):
         return base_item_id
     if (
@@ -282,8 +362,9 @@ def register_infinite_equipment_variant(
     deep_desc = (
         f"Rezonans Głębi {rank}: źródło {source_label}, "
         f"efektywny etap {effective_stage}. "
-        "Wymaganie założenia wynosi Biegłość 600 (próg wariantu Rezonansu Głębi); "
-        "głębokość wzmacnia egzemplarz, ale Biegłość klasy nadal rozwija się do 800."
+        f"Wymaganie założenia: Biegłość {effective_stage if source=='forge' else infinite_equipment_requirement(effective_stage)}. "
+        + ("Wymaganie tego rzemieślniczego przedmiotu jest trwałe."
+         if source=="forge" else "Wymaganie rośnie przy rozszerzeniu limitu EQ i Biegłości w admin live.")
     )
     data["desc"] = (old_desc + " " + deep_desc).strip()
 
@@ -305,12 +386,21 @@ def register_infinite_equipment_variant(
     data["infinite_depth_power_multiplier"] = round(multiplier, 6)
     data["source_progression_stage"] = effective_stage
 
-    # Never invent mastery 601+, but every genuinely post-600 item is endgame
-    # gear. This also prevents trading a floor-900 reward down to a low-mastery
-    # character merely because its historical base item had a low requirement.
-    data["required_mastery"] = INFINITE_EQUIPMENT_BASE_STAGE
+    # At default 800 retain the historical 600 gate. When the owner raises EQ
+    # cap, stage unlocks real mastery requirements up to attainable class cap.
+    # Do not give low-level characters access via a stale character gate.
+    mastery_requirement=(effective_stage if source=='forge' else infinite_equipment_requirement(effective_stage))
+    data["required_mastery"] = mastery_requirement
+    if 'required_character_level' in data:
+        data['required_character_level'] = mastery_requirement
     data.setdefault("mastery_requirement_scope", "active_class")
     data["price"] = base.get("price")
+    if source == "shop":
+        # Inventory restoration must NOT depend on shop configuration: the
+        # user can keep an acquired item after the admin disables the vendor.
+        data['currency'] = 'silver'
+        data['price'] = shop_variant_price_v7003(base_item_id,rank)
+        data['shop_tier_v7003'] = True
     _catalog_mut.catalog_assign(data, "ITEMS", ITEMS, (vid,))
     return vid
 
@@ -321,7 +411,12 @@ def ensure_infinite_equipment_variant(item_id):
     if item_id in ITEMS:
         return ITEMS[item_id]
     parsed = parse_infinite_equipment_variant(item_id)
-    if not parsed or parsed["base_id"] not in ITEMS:
+    if not parsed:
+        return None
+    if parsed["base_id"] not in ITEMS and parsed["base_id"].startswith('craftq_'):
+        from systems.crafting_quality import ensure_crafting_quality_variant_v0332
+        ensure_crafting_quality_variant_v0332(parsed["base_id"])
+    if parsed["base_id"] not in ITEMS:
         return None
     register_infinite_equipment_variant(
         parsed["base_id"],
@@ -336,6 +431,11 @@ def ensure_infinite_equipment_variant(item_id):
 def infinite_equipment_variant_for_drop(base_item_id, template):
     """Upgrade an equipment drop only when its source is truly post-600."""
     base_item_id = str(base_item_id or "")
+    if base_item_id.startswith('uoss_'):
+        return base_item_id
+    _base = ITEMS.get(base_item_id, {})
+    if isinstance(_base, dict) and (_base.get('fur_shop_token') or _base.get('uoss_unique') or _base.get('uoss_superboss_id')):
+        return base_item_id
     if base_item_id.startswith("deepq_"):
         ensure_infinite_equipment_variant(base_item_id)
         return base_item_id

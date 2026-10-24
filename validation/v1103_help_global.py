@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Global HELP / NPC-independent documentation regression, v11.00.3."""
 from __future__ import annotations
+from validation.release_contracts import release_valid
 import asyncio
 import server  # bootstrap authored world before importing session mixins
 from core.bootstrap_economy_professions import VERSION
@@ -35,7 +36,7 @@ def run_regression():
         checks+=1
         if not condition:
             raise AssertionError(f'HELP v11.00.3: {message}')
-    ck(VERSION in ('11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',) and server.VERSION == VERSION, 'current version')
+    ck(release_valid(VERSION, '11.00.3') and server.VERSION == VERSION, 'current version')
     for cmd in ('help', 'pomoc'):
         ck(resolve_session_command(cmd, 'kupiectwo') == 'help', f'{cmd} dispatch')
     ck(COMMAND_CATALOG.definition('help').handler=='show_help', 'registered command')

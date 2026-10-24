@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """v4.00.0 additive-content audit: actual runtime, SQLite quests, recipes, tactics."""
 from __future__ import annotations
+from validation.release_contracts import release_valid
 
 
 def run_regression(server=None):
@@ -32,7 +33,7 @@ def run_regression(server=None):
     stats=server.V4000_IMPERIUM_STATS
     ck(stats=={'rooms':216,'npcs':49,'mobs':66,'spawns':103,'quests':367,'items':119,
                'common_recipes':55,'profession_recipes':15},f'content totals: {stats}')
-    ck(VERSION in ('4.00.0','4.00.1','4.00.2','4.00.3','4.00.4','4.00.5','4.00.6','4.00.7','4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',),'incorrect active version')
+    ck(release_valid(VERSION, '4.00.0'),'incorrect active version')
     ck(ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10,'lost XP10 multiplier')
     ck(len(SEA_ROUTES)==5 and len(PRADAWNI)==12,'missing systems')
     ck(len(PROF_STAGES)==8 and len(CRAFT_STAGES)==5,'missing stages')

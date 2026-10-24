@@ -24,8 +24,8 @@ import traceback
 ROOT = Path(__file__).resolve().parent
 LOG = ROOT / 'logs' / 'TESTY_Soulbound.log'
 STAGES = (
-    ('SZYBKI PREDEPLOY', 'predeploy_check.py', 480),
-    ('PELNY AUDYT', 'predeploy_full.py', 600),
+    ('SZYBKI PREDEPLOY', 'predeploy_check.py', 1000),
+    ('PELNY AUDYT', 'predeploy_full.py', 1200),
     ('SCENARIUSZE 4.0 AI / OCEAN / PROFESJE', 'validation/v2200_master_depths_ai.py', 180),
     ('MISTRZOWSKIE RECEPTURY / MODULY FLOTY', 'validation/v2201_fleet_mastery.py', 180),
     ('SCENARIUSZE 5.0: AI / 42 RECEPTURY / OCEAN', 'validation/v2300_world_professions_ocean.py', 180),

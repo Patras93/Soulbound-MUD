@@ -693,7 +693,9 @@ def effective_skill_mana_cost(skill, class_name):
                 return skill_mana_cost(max(0, int(row.get(field) or 0)))
             except (TypeError, ValueError):
                 return 0
-    if str(class_name) in PHYSICAL_MANA_FREE_CLASSES:
+    if str(class_name) in PHYSICAL_MANA_FREE_CLASSES or any(
+        row[0] == str(class_name) and row[1] == 'physical' for row in CLASSES
+    ):
         return 0
     try:
         return skill_mana_cost(max(0, int(row.get("mana", 0) or 0)))

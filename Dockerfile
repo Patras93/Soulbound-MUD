@@ -25,7 +25,8 @@ COPY config /app/config
 COPY data /app/data
 COPY events /app/events
 COPY validation /app/validation
-COPY soulbound_world_seed.txt /app/soulbound_world_seed.txt
+# soulbound_world_seed.txt is persistent user data, not a release artifact.
+# It is loaded or created next to SOULBOUND_DB at runtime.
 COPY CHANGELOG_PL.txt /app/CHANGELOG_PL.txt
 COPY predeploy_check.py /app/predeploy_check.py
 COPY predeploy_full.py /app/predeploy_full.py

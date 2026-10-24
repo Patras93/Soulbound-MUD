@@ -80,7 +80,7 @@ def is_craft_material_storage_item(item_id):
 
 def v0926_guild_bonus_percent(level):
     """Persistence copy of guild bonuses; legacy values through 600 preserved."""
-    level = max(1, min(V0926_GUILD_MAX_LEVEL, int(level or 1)))
+    level = max(1, min(800, int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
         return balance_math.guild_bonus_percent(level, V0926_GUILD_LEGACY_MAX_LEVEL)
     if level <= V0926_GUILD_PREVIOUS_CAP:
@@ -92,7 +92,7 @@ def v0926_guild_bonus_percent(level):
                     / (V0926_GUILD_OLD_CAP - V0926_GUILD_PREVIOUS_CAP))
         return min(29, 23 + int(round(6 * (progress ** 0.90))))
     progress = ((level - V0926_GUILD_OLD_CAP)
-                / (V0926_GUILD_MAX_LEVEL - V0926_GUILD_OLD_CAP))
+                / (800 - V0926_GUILD_OLD_CAP))
     return min(35, 29 + int(round(6 * (progress ** 0.90))))
 
 

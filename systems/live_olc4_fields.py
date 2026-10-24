@@ -15,6 +15,7 @@ from data.shops import SHOPS
 def validate_extra(section, key, field, value, data, room_ids, mob_ids):
     # Return True only if the field was explicitly and fully checked.
     from systems.live_content_v1204 import _integer
+    from systems.olc_level_bounds_v7003 import level_bound
     items = set(ITEMS) | set(data['items'])
     if section == 'shop_edits':
         if field != 'inventory' or not isinstance(value, list) or len(value) > 120:
@@ -187,7 +188,7 @@ def validate_extra(section, key, field, value, data, room_ids, mob_ids):
             if field not in item:
                 raise ValueError('Przedmiot nie ma tego parametru w swojej definicji.')
             _integer(value, 0 if field != 'required_level' else 1,
-                     800 if field == 'required_level' else 10**12, field)
+                     level_bound('eq') if field == 'required_level' else 10**12, field)
             return True
     if section == 'npc_edits':
         if field == 'olc_dialogue_after_quests':
@@ -221,7 +222,7 @@ def validate_extra(section, key, field, value, data, room_ids, mob_ids):
         if field in ('min_tool_level', 'tool_xp') and field not in recipe:
             raise ValueError('Receptura: ten parametr nie istnieje w definicji.')
         if field == 'min_tool_level':
-            _integer(value, 1, 800, field)
+            _integer(value, 1, level_bound('narzedzia'), field)
             return True
         if field == 'tool_xp':
             _integer(value, 0, 10**12, field)

@@ -936,35 +936,23 @@ class SessionSkillQueueBuffsMixin:
                 self.cleanup_unlearned_skill_queue_v11356()
                 self.normalize_skill_queue_types_v1125()
                 self._queue_ready_account_v3005 = self.account_id
-            queue_types = ("physical", "magic", "feedback")
-            preferred = self.skill_queue_next_type
-            if preferred not in queue_types:
-                preferred = "physical"
-            preferred_index = queue_types.index(preferred)
-            order = list(queue_types[preferred_index:]) + list(queue_types[:preferred_index])
-            for queue_type in order:
-                rows = self.skill_queue_entries(queue_type, active_only=True)
-                if not rows:
-                    continue
-                count = len(rows)
-                start = self.skill_queue_cursors.get(queue_type, 0) % count
-                for offset in range(count):
-                    index = (start + offset) % count
-                    row = rows[index]
-                    skill = self.skill_by_id(row["skill_id"])
-                    if not self.auto_queue_skill_usable(skill, mob):
-                        continue
-                    self.skill_queue_cursors[queue_type] = (index + 1) % count
-                    used_index = queue_types.index(queue_type)
-                    self.skill_queue_next_type = queue_types[
-                        (used_index + 1) % len(queue_types)
-                    ]
-                    # combat_mob_key jest już ustawiony przez attack(), więc skille
-                    # ofensywne automatycznie trafiają bieżący cel.
-                    self.auto_queue_casting = True
-                    try:
-                        await self.use_class_skill(skill["name"])
-                    finally:
-                        self.auto_queue_casting = False
-                    return True
-            return False
+            from systems.uoss_queue_choice_shared_v8200 import choose_queued_skill, QUEUE_TYPES
+            selected = choose_queued_skill(
+                self.skill_queue_next_type, self.skill_queue_cursors,
+                lambda channel: self.skill_queue_entries(channel, active_only=True),
+                self.skill_by_id,
+                lambda skill: self.auto_queue_skill_usable(skill, mob),
+            )
+            if selected is None:
+                return False
+            queue_type, index, count, skill = selected
+            self.skill_queue_cursors[queue_type] = (index + 1) % count
+            self.skill_queue_next_type = QUEUE_TYPES[(QUEUE_TYPES.index(queue_type) + 1) % len(QUEUE_TYPES)]
+            # The actual cast remains in realtime combat only. It can grant XP,
+            # update cooldowns/quests, change parties and change world targets.
+            self.auto_queue_casting = True
+            try:
+                await self.use_class_skill(skill['name'])
+            finally:
+                self.auto_queue_casting = False
+            return True

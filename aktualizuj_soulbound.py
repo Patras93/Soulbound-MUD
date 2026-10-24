@@ -21,13 +21,14 @@ import tempfile
 import time
 import zipfile
 from windows_launcher_state import wait_gone
+from release_readme_cleanup import cleanup_legacy_readmes
 
 ROOT = Path(__file__).resolve().parent
 VERSION_PATTERN = re.compile(r'^\s*VERSION\s*=\s*[\'"]([0-9]+(?:\.[0-9]+){2})[\'"]', re.M)
 RELEASE_PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 SKIP_PARTS = {'__pycache__', 'logs', '.git'}
 SQLITE_SUFFIXES = ('.db', '.db-wal', '.db-shm', '.sqlite', '.sqlite-wal', '.sqlite-shm', '.sqlite3', '.sqlite3-wal', '.sqlite3-shm')
-PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt'}
+PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt', 'admin_level_caps.json', 'shop_progression_v7003.json', 'heritage_v7100.json', 'custom_races_v7600.json', 'custom_classes_v7700.json'}
 
 
 class UpdateError(Exception):
@@ -216,6 +217,9 @@ def install_stage(root: Path, stage: Path, backup: Path) -> None:
             os.replace(staged, dest)
         # Retired Generator Core must never return from a stale older directory.
         (root / 'core' / 'generator_core.py').unlink(missing_ok=True)
+        retired, _ = cleanup_legacy_readmes(root, backup)
+        if retired:
+            print(f'Usunieto {len(retired)} historycznych README z folderu gry; kopie sa w {backup}', flush=True)
     except Exception as exc:
         print('BLAD PODMIANY: przywracam poprzednie pliki z kopii...', flush=True)
         for dest in reversed(created):

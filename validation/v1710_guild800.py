@@ -36,8 +36,8 @@ def run_regression():
     # Both 600 and 800 milestones must exist and remain achievable.
     source=(ROOT/'player/session_mixins/forge_guilds.py').read_text(encoding='utf8')
     assert '("guild600","Gildia Poziomu 600",level>=600)' in source;checked+=1
-    assert '("guild800","Gildia Poziomu 800",level>=V0926_GUILD_MAX_LEVEL)' in source;checked+=1
-    assert 'maksymalny poziom 800' in source;checked+=1
+    assert '("guild800","Gildia Poziomu 800",level>=800)' in source;checked+=1
+    assert 'Gildia ma limit poziomu {V0926_GUILD_MAX_LEVEL}' in source;checked+=1
     return checked
 
 if __name__=='__main__': print('GUILD 800 v1.70.10:',run_regression(),'checks PASS')

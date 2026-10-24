@@ -139,8 +139,15 @@ from data.world_description_catalog_v405 import make_system_descriptions_v405
 SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
-LATEST_CHANGES_TITLE = "Soulbound v35.00.4 - Dokladne HP UOSS i naprawa PREDEPLOY"
+LATEST_CHANGES_TITLE = "Soulbound v44.00.0 - Admin Guardian 10.0: odizolowane RNG i scenariusze UOSS (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v48.00.0 - Admin Live: 18 typow questow i porownania druzyn (PREDEPLOY)"
 LATEST_CHANGES = [
+    "v39.00.3: poprawiono przestarzaly Dockerfile COPY pliku world_seed, bez dolaczania world_seed do ZIP; v39.00.2: usunieto trzy przyczyny FAIL szybkiego PREDEPLOY bez zmian w nagrodach graczy; v39.00.1: poprawiony PREDEPLOY, integralnosc kodu nagrod 6 statystyk i katalogu 6793 questow; v39.00.0: niezalezny bazowy EXP szesciu statystyk questow (fallback do reward_stat_xp), admin guardian5: katalog i nagrody questow, diagnostyka questow, faz bossow UOSS (odczyt, nie symulacja realnej walki), raport OLC. Bezpieczne DRAFT i PREDEPLOY.",
+    "v37.00.0: admin guardian3 pomoc; arena tury liczbowe, kraina 4-20 pokoi DRAFT + mob/NPC/sklep/quest, quest kontrola/odwracalna korekta licznika offline, balans w turach, fala potworow, role raport, historia; nie ma pelnej walki AI/UOSS ani auto-publikacji.",
+    "v36.00.2: admin blad trop NICK QUEST_ID, blad npc QUEST_ID, blad skan NICK; dowody z aktualnych katalogow i SQLite, bez automatycznych nagrod i fikcyjnych zaliczen.",
+    "v36.00.1: admin blad lista/numer/diagnoza, blad questy NICK, blad napraw NUMER NICK QUEST_ID POTWIERDZAM; tylko ujemny postep offline, zachowana historia i brak automatycznego oznaczenia bledu jako naprawionego.",
+    "v36.00.0: admin guardian - izolowana arena liczbowa, leczenie druzyny, ratunek, limitowany spawn, kreator DRAFT, diagnostyka, role; reczne ograniczone eventy i korekta ujemnego postepu; zaawansowana symulacja i rozszerzone uprawnienia pozostaja niedostepne.",
+    "v35.00.5: admin god on/off/status i admin cios grom/nawalnica/wyrok; pomoc kolegom i zwykle naliczanie zwyciestw druzyny.",
     "v35.00.4: poprawione źródłowe HP superbossów UOSS; pozostałe moby nadal mają globalne HP x2; testy OLC i PREDEPLOY.",
     "v35.00.3: naprawa auto dla pol questow, zgodnosc wersji changelogu i bezpieczne zamykanie serwera testowego TCP.",
     "v35.00.2: poprawki PREDEPLOY, kontrola 6793 questow, wersja changes, jawne content_level testow expowisk.",
@@ -1486,3 +1493,118 @@ HELP_TOPICS['druid'] = [
 ]
 HELP_TOPICS['call'] = list(HELP_TOPICS['druid'])
 HELP_TOPICS['order'] = list(HELP_TOPICS['druid'])
+
+LATEST_CHANGES_TITLE = "Soulbound v58.00.0 - Admin Live: bonusowe EQ skrzyn i kontrola nagrod questow (PREDEPLOY)"
+
+# v59: update only canonical latest version, preserving history.
+LATEST_CHANGES_TITLE = "Soulbound v59.00.0 - Admin Live: EQ swiata ponad 800 i korekty zaleznosci questow (PREDEPLOY)"
+LATEST_CHANGES = ["v59.00.0: realne EQ z potworow swiata ponad 800 (tylko juz wylosowany zwykly loot, bez ruszania UOSS); admin live eq swiat; questy zamien plan/zatwierdz/cofnij, transakcje DRAFT z walidatorem i kontrola cykli."] + [x for x in LATEST_CHANGES if not str(x).startswith("v59.00.0:")]
+
+# v60: author-approved ID corrections only, with OLC DRAFT validation.
+LATEST_CHANGES_TITLE = "Soulbound v60.00.0 - Admin Live: zamiana ID nagrod i celow questow (PREDEPLOY)"
+LATEST_CHANGES = ["v60.00.0: admin live questy id karta/znajdz/plan/zatwierdz/cofnij. Naprawa przedmiotow w nagrodach lub celow kill/collect, 1-8 questow, tylko DRAFT i bez zgadywania ID."] + [x for x in LATEST_CHANGES if not str(x).startswith("v60.00.0:")]
+
+# v61: bounded owner-only repairs of quest references in OLC DRAFT.
+LATEST_CHANGES_TITLE = "Soulbound v61.00.0 - Admin Live: naprawy referencji questow (PREDEPLOY)"
+LATEST_CHANGES = ["v61.00.0: questy ref karta/znajdz/plan/zatwierdz/cofnij. Naprawa NPC, surowcow oraz celow kill/collect/talk w wielocelowych questach, max 8, tylko DRAFT."] + [x for x in LATEST_CHANGES if not str(x).startswith('v61.00.0:')]
+
+# v62 consolidated release title. Production combat engine remains unchanged.
+LATEST_CHANGES_TITLE = "Soulbound v62.00.0 - Admin Live: pakiet questow, nagrody EQ i 22 klasy (PREDEPLOY)"
+LATEST_CHANGES = ["v62.00.0: questy pakiet plan/zatwierdz/cofnij, eq quest ID ID, arena skille poziom; Rezonans Glebi z jawnych questow ponad 800. Wszystkie zmiany questow tylko w DRAFT."] + [x for x in LATEST_CHANGES if not str(x).startswith('v62.00.0:')]
+
+# v63: only a cap-aware admin lab and validated OLC scalar bundles.
+LATEST_CHANGES_TITLE = "Soulbound v63.00.0 - Admin Live: pakiety questow i testy poziomow (PREDEPLOY)"
+LATEST_CHANGES = ["v63.00.0: questy pakiet plan pole ID POLE WARTOSC; arena klasy porownaj TURY STRONA BIEGLOSC; pomoc 18; zadne automatyczne publikowanie."] + [x for x in LATEST_CHANGES if not str(x).startswith('v63.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v64.00.0 - Admin Live: atomowe questy i liczniki (PREDEPLOY)"
+LATEST_CHANGES = ["v64.00.0: pakiet pole objectives/resource_targets JSON ; dopasuj ID. Walidacja dopiero calego DRAFT, bez automatycznej publikacji."] + [x for x in LATEST_CHANGES if not str(x).startswith('v64.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v65.00.0 - Admin Live: EQ i odpornosci UOSS (PREDEPLOY)"
+LATEST_CHANGES = ["v65.00.0: admin live arena uoss status NAZWA; ekwipunek; pasywy. Prawdziwe funkcje statusow na prywatnych kopiach."] + [x for x in LATEST_CHANGES if not str(x).startswith('v65.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v66.00.0 - Admin Live: akcje pomocnikow UOSS (PREDEPLOY)"
+LATEST_CHANGES = ["v66.00.0: admin live arena uoss pomocnik - wybor akcji ze zrodla UOSS na kopii."] + [x for x in LATEST_CHANGES if not str(x).startswith('v66.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v67.00.0 - Admin Live: skutki wsparcia UOSS (PREDEPLOY)"
+LATEST_CHANGES = ["v67.00.0: admin live arena uoss pomocnik skutki [ILE] [HP MANA]."] + [x for x in LATEST_CHANGES if not str(x).startswith('v67.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v68.00.0 - Admin Live: wsparcie druzyny UOSS (PREDEPLOY)"
+LATEST_CHANGES = ["v68.00.0: admin live arena uoss druzyna wsparcie [TURY] [HP MANA]."] + [x for x in LATEST_CHANGES if not str(x).startswith('v68.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v69.00.0 - Admin Live: centrum komend NVDA (PREDEPLOY)"
+LATEST_CHANGES = ["v69.00.0: centrum komend NVDA."] + [x for x in LATEST_CHANGES if not str(x).startswith('v69.00.0:')]
+
+LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - Admin Live: poprawki PREDEPLOY (PREDEPLOY)"
+LATEST_CHANGES = ["v70.00.0: odbior wydania i bramki PREDEPLOY."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.0:')]
+
+# v70.00.1: terminal release note for current distribution.
+LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - Admin Live: poprawki bramek PREDEPLOY (PREDEPLOY)"
+LATEST_CHANGES = ["v70.00.1: naprawiono audyty wydania, EXP, EQ i liczniki questow."] + [x for x in LATEST_CHANGES if not str(x).startswith("v70.00.1:")]
+
+# v70.00.2: cumulative release notes for Admin Live three-area acceptance.
+LATEST_CHANGES_TITLE = "Soulbound v70.00.2 - Admin Live: UOSS, EQ, questy (PREDEPLOY)"
+LATEST_CHANGES = ["v70.00.2: uoss reguly, eq pokrycie, questy automaty z DRAFT/undo."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.2:')]
+
+# v70.00.3: safe editor extensions; no changes to player EXP or SQL schemas.
+LATEST_CHANGES_TITLE = "Soulbound v71.00.0 - Admin Live: Osiem obszarow (PREDEPLOY)"
+LATEST_CHANGES = ["v71.00.0: audyt UOSS, typy i cykle questow, do 8 EQ/sklep, atomowe skille/fazy bossow, rasy i klasy, limity i offline postacie."] + [x for x in LATEST_CHANGES if not str(x).startswith('v71.00.0:')]
+
+# Authoritative player-facing release label for PREDEPLOY and /changes.
+LATEST_CHANGES_TITLE = "Soulbound v96.00.4 - naprawa testu TCP i zgodnosci wersji"
+
+# v97 default release identity, also used by /changes before server warm-up.
+LATEST_CHANGES_TITLE = "Soulbound v97.00.0 - Admin Live: postacie, plecak, superbossy"
+LATEST_CHANGES = [
+    "v97.00.0: admin live pomoc 55 - 8 postaci offline, 24 statystyki, 16 stosow plecaka, SQLite CAS i cofanie.",
+    "v97.00.0: admin live pomoc 56 - pakiet profili faz, leczenia, furii i skalowania UOSS, tylko DRAFT.",
+] + LATEST_CHANGES
+
+# v98: coherent release identity (without replacing old changelog history).
+LATEST_CHANGES_TITLE = "Soulbound v98.00.0 - Superbossowie 2.0, Quest Doctor, Postepy offline"
+LATEST_CHANGES = [
+    "v98.00.0: pomoc 57 - taktyki UOSS 1-5 faz, ataki i wybor celu; plan DRAFT i cofanie.",
+    "v98.00.0: pomoc 58 - Quest Doctor, diagnostyka i tylko jednoznaczne poprawki licznikow.",
+    "v98.00.0: pomoc 59 - profesje, narzedzia i bank EXP offline, SQLite CAS i cofanie.",
+] + LATEST_CHANGES
+
+# v99 release identity and source-backed scope of five new admin live editors.
+LATEST_CHANGES_TITLE = "Soulbound v99.00.0 - Piec rozszerzen Admin Live: skille, questy, arena, postacie online, UOSS"
+LATEST_CHANGES = [
+    "v99.00.0: pomoc 60 - kreator deklaratywnych nowych skilli zgodny z produkcyjnym silnikiem.",
+    "v99.00.0: pomoc 61 - Quest Doctor naprawy edytowalnych pol, pelna walidacja i bezpieczny DRAFT.",
+    "v99.00.0: pomoc 62 - audyt prawdziwej areny, osobny proces i migawka SQLite.",
+    "v99.00.0: pomoc 63 - bezpieczne tymczasowe korekty online HP/mana poza walka.",
+    "v99.00.0: pomoc 64 - deklaratywne fazy regeneracji UOSS raz na akcje bossa.",
+] + LATEST_CHANGES
+
+# Canonical cumulative release identity v100.
+LATEST_CHANGES_TITLE = "Soulbound v100.00.0 - Admin Live Ultimate: 5 bezpiecznych rozszerzen"
+LATEST_CHANGES = [
+    'v100.00.0: pomoc 65 - skill kreator wzorzec, DRAFT i cofanie.',
+    'v100.00.0: pomoc 66 - questy doktor analiza i audyt NPC/zaleznosci.',
+    'v100.00.0: pomoc 67 - online staty CAS (SQLite + sesja) poza walka.',
+    'v100.00.0: pomoc 68 - arena sesja: prywatny LAB, NIE produkcyjna 1:1.',
+    'v100.00.0: pomoc 69 - fazowe AI UOSS w petli walki, tylko po publikacji OLC.',
+] + LATEST_CHANGES
+
+# Cumulative release identity v101.00.0; historical log is retained.
+LATEST_CHANGES_TITLE = "Soulbound v101.00.0 - Admin Live: mechaniki, rozwoj online, arena LAB"
+LATEST_CHANGES = [
+    "v101.00.0: pomoc 70 - wlasne kompozycje efektow bossow, DRAFT i publikacja OLC.",
+    "v101.00.0: pomoc 71 - atomowe korekty levelu+EXP postaci online, SQLite i pamiec.",
+    "v101.00.0: pomoc 73 - korekta odblokowanych klas, skilli, profesji, narzedzi i banku; tylko istniejące wpisy.",
+    "v101.00.0: pomoc 72 - arena sesja seria/porownaj, bez nagrod i ryzyka; LAB nie jest 1:1.",
+] + LATEST_CHANGES
+
+# v102.00.2 - audit-compatible hotfix; non-destructive source scan and OLC audit.
+# v102.00.1 - corrected release metadata and AST ledger after Windows PREDEPLOY failures.
+LATEST_CHANGES_TITLE = "Soulbound v102.00.5 - Admin Live: porzadek przy wdrozeniu"
+LATEST_CHANGES = [
+    "v102.00.5: instalator i pierwsze uruchomienie przenosza stare README do kopii poza gra.",
+    "v102.00.4: jeden poradnik Admin Live zamiast 8 README; zadnej zmiany mechaniki gry.",
+    "v102.00.3: weryfikatory predeploy wymagaja wszystkich 52 kontroli Admin Live v102, bez zmiany logiki gry.",
+    "v102.00.2: bezpieczne rozlaczenie tunelu, zgodny audyt OLC5 oraz regresja.",
+    "v102.00.1: synchronizacja numeru wersji w CHANGELOG, banerze Telnet i /changes.",
+    "v102.00.1: weryfikacja kontrolnego hasha metody walki; bez zmian logiki najemnikow.",
+    "v102.00.0: pomoc 74-76, tunel realnej areny, deklaratywne efekty i audyt Admin Live.",
+] + LATEST_CHANGES

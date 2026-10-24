@@ -20,7 +20,7 @@ FLOAT_FIELDS = {'mult': (0.01, 10**9), 'boost': (0.01, 10**9),
                 'drain_pct': (0.0, 1.0)}
 CHOICE_FIELDS = frozenset(('scale', 'secondary_scale', 'element', 'kind'))
 EDITABLE_FIELDS = (TEXT_FIELDS | frozenset(INTEGER_FIELDS) |
-                   frozenset(FLOAT_FIELDS) | CHOICE_FIELDS | {'aliases', 'olc_status'})
+                   frozenset(FLOAT_FIELDS) | CHOICE_FIELDS | {'aliases', 'olc_status', 'olc_statuses', 'mechanic_cooldown'})
 # The combat engine already implements these elements; arbitrary identifiers
 # are never accepted from the admin console.
 ELEMENTS = frozenset(('fire','water','ice','lightning','earth','wind',
@@ -44,8 +44,36 @@ def parse_existing_skill_field(definition, field, raw):
     """Return strictly validated value; caller stores it in a draft only."""
     if field not in EDITABLE_FIELDS:
         raise ValueError('To pole skilla jest chronione; wpisz admin live pola skill ID.')
-    if field not in definition and field != 'olc_status':
+    if field not in definition and field not in ('olc_status', 'olc_statuses', 'mechanic_cooldown'):
         raise ValueError(f'Skill nie posiada pola {field}; nie tworzę pozornej mechaniki.')
+    if field == 'mechanic_cooldown':
+        if definition.get('kind') not in ('damage', 'aoe_damage') or any(
+            k in definition for k in ('mec_authored','mec_special','special',
+            'active_special','target_mode','v1100_dual_elements')):
+            raise ValueError('Mechaniczny cooldown: tylko zwykly atak bez specjalnych skryptow.')
+        if isinstance(raw, bool):
+            enabled = raw
+        elif isinstance(raw, str) and raw.strip().lower() in ('true','false','on','off','tak','nie'):
+            enabled = raw.strip().lower() in ('true','on','tak')
+        else:
+            raise ValueError('Mechaniczny cooldown: true/false.')
+        if enabled and not 1 <= int(definition.get('cooldown', 0) or 0) <= 86400:
+            raise ValueError('Wlaczajac cooldown ustaw wczesniej cooldown na 1..86400 sekund.')
+        return enabled
+    if field == 'olc_statuses':
+        if definition.get('kind') not in ('damage', 'aoe_damage') or any(
+            k in definition for k in ('mec_authored','mec_special','special','active_special',
+                'aoe','target_mode','v1100_dual_elements')):
+            raise ValueError('Kombinacje tylko dla zwyklych skilli obrazeniowych.')
+        if definition.get('olc_status') is not None:
+            raise ValueError('Skill ma juz olc_status; najpierw usun stary pojedynczy efekt.')
+        from systems.live_olc19_status_skills import parse_statuses
+        result = parse_statuses(raw)
+        if result is None and not isinstance(raw,str):
+            raise ValueError('Pusta lista nie jest konfiguracja; usun pole przez auto.')
+        return result
+    if field == 'olc_status' and definition.get('olc_statuses') is not None:
+        raise ValueError('Usun najpierw liste olc_statuses.')
     if field == 'olc_status':
         if definition.get('kind') not in ('damage','aoe_damage') or any(k in definition for k in ('mec_authored','mec_special','special','active_special','aoe','target_mode','v1100_dual_elements')):
             raise ValueError('Status można dodać tylko zwykłemu atakowi bez skryptowanych mechanik.')
@@ -54,7 +82,9 @@ def parse_existing_skill_field(definition, field, raw):
     if field in TEXT_FIELDS:
         return _text(raw, 100 if field == 'name' else 700, field)
     if field in INTEGER_FIELDS:
-        return _integer(raw, *INTEGER_FIELDS[field], field)
+        from systems.olc_level_bounds_v7003 import level_bound
+        bounds = (1, level_bound('bieglosc')) if field == 'unlock' else INTEGER_FIELDS[field]
+        return _integer(raw, *bounds, field)
     if field in FLOAT_FIELDS:
         return _positive_float(raw, field)
     if field == 'aliases':
@@ -110,7 +140,7 @@ def validate_existing_skill_edits(edits, new_skills=None):
             raise ValueError(f'{sid}: id, klasa, mastery_choice_group oraz pola specjalne są chronione.')
         patched = dict(original, **fields)
         for field, value in fields.items():
-            checked = parse_existing_skill_field(original, field, value)
+            checked = parse_existing_skill_field(patched if field == 'mechanic_cooldown' else original, field, value)
             if checked != value:
                 raise ValueError(f'{sid}.{field}: niewłaściwy typ wartości.')
         # Never drop historical names, IDs, or user commands on a rename.

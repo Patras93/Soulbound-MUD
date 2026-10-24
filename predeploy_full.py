@@ -35,6 +35,10 @@ def main():
         # v11.00.12: named teachers, 24 real quests, class help and mountain chests.
         from validation.v1112_teacher_quests import run_regression as _v1112_teacher_quests
         print(f"NAUCZYCIELE/QUESTY/SKRZYNIE v11.00.12: {_v1112_teacher_quests()} checks PASS")
+        from validation.v10205_readme_cleanup import run as _v10205_cleanup
+        print(f'V102.00.5 README CLEANUP: {_v10205_cleanup()} checks PASS', flush=True)
+        from validation.v9604_release_tcp import run as _v9604_release_tcp
+        print(f"V96.00.4 RELEASE TCP: {_v9604_release_tcp()} checks PASS", flush=True)
         _original_npc_ids_v3103 = frozenset(server.NPCS)
         from validation.v3101_single_npc import run_regression as _single_npc_v3101
         print(f"JEDEN NPC NA POKOJ v3.10.1 FULL: {_single_npc_v3101(server.ROOMS, server.NPCS, server.SINGLE_NPC_ROOMS_V3101, server.SHOP_SELLERS)} checks PASS")
@@ -730,6 +734,22 @@ def main():
         _reward_result_v2103 = _reward_v2103()
         print(f"FAME/EP/QUEST GOLD v2.10.3 FULL: {_reward_result_v2103} PASS")
 
+
+# v72: atomic offline character package, explicit cycle-checked quest prerequisites
+# and custom ordinary boss phase policies. Isolated child; fail CLOSED.
+def _v7200_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v7200_admin_live_advancement'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V72.00.0 ADVANCEMENT: 92 PASS' not in output:
+        raise AssertionError('Admin Live v72 failed: '+output[-4000:])
+    print(result.stdout.strip(),flush=True)
+    return 92
+print(f'ADMIN LIVE v72.00.0: {_v7200_gate()} checks PASS',flush=True)
+
 if __name__ == "__main__":
     main()
 
@@ -1223,3 +1243,652 @@ print(f'V34.00.0 OLC92-99 / 8 INTEGRACJI: {_v3400_integration()} checks PASS')
 # Soulbound v35.00.0 — four integrated endgame systems, transactional SQLite.
 from validation.v3500_four_systems import run as _v3500_four_systems
 print(f'V35.00.0 CZTERY SYSTEMY / OLC100-103: {_v3500_four_systems()} checks PASS')
+
+# v35.00.5 owner-only emergency combat tools.
+from validation.v35005_admin_guardian import run as _v35005_admin_guardian
+print(f'V35.00.5 ADMIN GUARDIAN GOD / CIOSY: {_v35005_admin_guardian()} checks PASS')
+
+# v36 Admin Guardian 2.0: delegated read-only roles, zero-reward arena, cautious quest repair.
+from validation.v3600_admin_guardian2 import run as _v3600_guardian
+print(f'V36.00.0 ADMIN GUARDIAN 2.0: {_v3600_guardian()} checks PASS')
+
+# v36.00.1 - numeric error ID triage and deliberately conservative quest repair.
+from validation.v36001_error_quest_recovery import run as _v36001_quest_error
+print(f'V36.00.1 ADMIN BLAD NUMER / QUESTY: {_v36001_quest_error()} checks PASS')
+
+# v36.00.2: no-write evidence for quest completion, mobs, NPC and inventory.
+from validation.v36002_quest_evidence import run as _v36002_quest_evidence
+print(f'V36.00.2 ADMIN QUEST TROP / NPC / SKAN: {_v36002_quest_evidence()} checks PASS')
+
+# v37 Guardian 3: seven admin areas, guarded writes and no reward leaks.
+from validation.v3700_guardian3 import run as _v3700_guardian3
+print(f'V37.00.0 ADMIN GUARDIAN 3: {_v3700_guardian3()} checks PASS')
+from validation.v3800_guardian4 import run as _v3800_guardian4
+print(f'V38.00.0 ADMIN GUARDIAN 4: {_v3800_guardian4()} checks PASS')
+
+# v39: owner-only Guardian5, six independent quest stat-XP rewards,
+# atomic OLC apply/revert and real payout path with per-stat EXP banking.
+from validation.v3900_admin_guardian5 import run as _v3900_guardian5
+print(f'V39.00.0 ADMIN GUARDIAN 5 / QUEST STAT EXP: {_v3900_guardian5()} checks PASS')
+
+# v40: atomic quest reward batches, owner permissions and read-only OLC/boss diagnostics.
+from validation.v4000_admin_guardian6 import run as _v4000_guardian6
+print(f'V40.00.0 ADMIN GUARDIAN 6 / QUESTY OLC: {_v4000_guardian6()} checks PASS')
+
+# v41 source-driven private LAB, safe preview and undoable quest corrections.
+# v70.00.1: the older Guardian7 suite mutates UOSS catalog fixtures.  Run it
+# in its own clean child interpreter, verify its full result and exit status,
+# then leave the long shared-runtime audit catalogs untouched.
+def _v7001_guardian7_isolated():
+    import os as _os, re as _re, socket as _socket, subprocess as _subprocess
+    import sys as _sys
+    from pathlib import Path as _Path
+    with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _sock:
+        _sock.bind(('127.0.0.1', 0))
+        _free_port = _sock.getsockname()[1]
+    _env = dict(_os.environ)
+    _env.update({'SOULBOUND_HOST': '127.0.0.1', 'SOULBOUND_PORT': str(_free_port),
+                 'PORT': '', 'RAILWAY_TCP_APPLICATION_PORT': ''})
+    _res = _subprocess.run(
+        [_sys.executable, '-u', '-m', 'validation.v4100_admin_guardian7'],
+        cwd=str(_Path(__file__).resolve().parent), env=_env,
+        stdin=_subprocess.DEVNULL, capture_output=True, text=True,
+        encoding='utf-8', errors='replace', timeout=180,
+    )
+    _text = (_res.stdout + '\n' + _res.stderr).strip()
+    _match = _re.search(r'GUARDIAN7 v41:\s*(\d+)\s+checks PASS', _text)
+    if _res.returncode or not _match or int(_match.group(1)) < 90:
+        raise AssertionError('Guardian7 isolated regression FAIL: ' + _text[-3000:])
+    return int(_match.group(1))
+print(f'V41.00.0 ADMIN GUARDIAN 7 / UOSS LAB I QUESTY: {_v7001_guardian7_isolated()} checks PASS')
+
+# v70.00.1: fully execute Guardian/Admin Live v42-v60 in a clean
+# interpreter, avoiding mutations from legacy OLC fixtures earlier in this
+# monolithic historical audit.  Exit and representative markers are mandatory.
+_V7001_MIDDLE_ADMIN_SUITE = '# Guardian 8.0 isolated simulator + atomic mult-quest DRAFT regressions.\nfrom validation.v4200_admin_guardian8 import run as _v4200_admin_guardian8_check\nprint(f"V42.00.0 ADMIN GUARDIAN 8: {_v4200_admin_guardian8_check()} checks PASS")\nfrom validation.v4300_admin_guardian9 import run as _v4300_admin_guardian9_check\nprint(f"V43.00.0 ADMIN GUARDIAN 9: {_v4300_admin_guardian9_check()} checks PASS")\nfrom validation.v4400_admin_guardian10 import run as _v4400_admin_guardian10_check\nprint(f"V44.00.0 ADMIN GUARDIAN 10: {_v4400_admin_guardian10_check()} checks PASS")\nfrom validation.v4500_admin_guardian11 import run as _v4500_admin_guardian11_check\nprint(f"V45.00.0 ADMIN GUARDIAN 11: {_v4500_admin_guardian11_check()} checks PASS")\nfrom validation.v4500_admin_live_bridge import run as _v4500_admin_live_bridge_check\nprint(f"V45.00.0 ADMIN LIVE BRIDGE: {_v4500_admin_live_bridge_check()} checks PASS")\nfrom validation.v4600_admin_live_ultimate import run as _v4600_admin_live_ultimate_check\nprint(f"V46.00.0 ADMIN LIVE ULTIMATE: {_v4600_admin_live_ultimate_check()} checks PASS")\nfrom validation.v4700_admin_live_release import run as _v4700_admin_live_release_check\nprint(f"V47.00.0 ADMIN LIVE SAFETY: {_v4700_admin_live_release_check()} checks PASS")\nfrom validation.v4800_admin_live_expansion import run as _v4800_admin_live_expansion_check\nprint(f"V48.00.0 ADMIN LIVE ROZSZERZENIA: {_v4800_admin_live_expansion_check()} checks PASS")\nfrom validation.v4900_admin_live_integrity import run as _v4900_admin_live_integrity_check\nprint(f"V49.00.0 ADMIN LIVE AUDYT QUESTOW LAB: {_v4900_admin_live_integrity_check()} checks PASS")\n\n# v50 Admin Live complete: safe DRAFT correction, graph SCCs and isolated LAB.\nfrom validation.v5000_admin_live_final import run as _v5000_admin_live_final_check\nprint(f"V50.00.0 ADMIN LIVE KOREKTY QUESTOW: {_v5000_admin_live_final_check()} checks PASS")\n\n# v51 Admin Live: canonical quest transactions, 22-class isolated laboratory.\nfrom validation.v5100_admin_live_complete import run as _v5100_admin_live_complete_check\nprint(f"V51 ADMIN LIVE ULTIMATE: {_v5100_admin_live_complete_check()} checks PASS")\nfrom validation.v5200_admin_live_level_caps import run as _v5200_admin_live_caps_check\n_v5200_admin_live_caps_check()\nfrom validation.v5200_admin_live_eq_caps import run as _v5200_admin_live_eq_caps_check\n_v5200_admin_live_eq_caps_check()\nfrom validation.v5300_eq_growth import run as _v5300_admin_live_eq_growth_check\n_v5300_admin_live_eq_growth_check()\n\n# v54: one read-only Admin Live final audit, NVDA-friendly commands and owner guards.\nfrom validation.v5400_admin_live_finish import run as _v5400_admin_live_finish_check\nprint(f\'V54 ADMIN LIVE FINISH: {_v5400_admin_live_finish_check()} checks PASS\')\n\n# v55: real >800 crafting loop integration, stable nested craftq IDs, owner-only read-only preview.\nfrom validation.v5500_endless_crafting import run as _v5500_endless_crafting\nprint(f\'V55 RZEMIOSLO EQ >800: {_v5500_endless_crafting()} checks PASS\')\n\n# v56: verify actual normal mob equipment drop integration and NVDA preview.\nfrom validation.v5600_endless_loot import run as _v5600_endless_loot\nprint(f\'V56 GLEBINOWY ZWYKLY DROP: {_v5600_endless_loot()} checks PASS\')\n\n# v57 actual post-roll chest rewards and owner-only read-only forecast.\nfrom validation.v5700_boss_chests import run as _v5700_chest_run\nprint(f\'V57 BOSS CHESTS: {_v5700_chest_run()} checks PASS\')\n\n# v58 chest equipment + quest item catalogue, read-only checks.\nfrom validation.v5800_chest_equipment import run as _v5800_run\nprint(f"V58 EQ SKRZYNIE/QUESTY: {_v5800_run()} checks PASS")\n\n# v59: world-level post-800 EQ + owner-approved dependency replacement in OLC DRAFT.\nfrom validation.v5900_world_quest_dependencies import run as _v5900_run\nprint(f"V59 EQ SWIAT/ZAMIAN ZALEZNOSCI: {_v5900_run()} checks PASS")\n\n# v60: typed item / target quest-ID repairs, owner-only transactional OLC DRAFT.\nfrom validation.v6000_quest_id_repairs import run as _v6000_run\nprint(f"V60 QUEST ID DRAFT REPAIRS: {_v6000_run()} checks PASS")\n\n'
+def _v7001_isolated_middle_admin_suites():
+    import os as _os, socket as _socket, subprocess as _subprocess
+    import sys as _sys
+    from pathlib import Path as _Path
+    with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _sock:
+        _sock.bind(('127.0.0.1', 0))
+        _free_port = _sock.getsockname()[1]
+    _env = dict(_os.environ)
+    _env.update({'SOULBOUND_HOST':'127.0.0.1','SOULBOUND_PORT':str(_free_port),
+                 'PORT':'','RAILWAY_TCP_APPLICATION_PORT':''})
+    _result = _subprocess.run(
+        [_sys.executable,'-u','-c',_V7001_MIDDLE_ADMIN_SUITE],
+        cwd=str(_Path(__file__).resolve().parent),env=_env,
+        stdin=_subprocess.DEVNULL,capture_output=True,text=True,
+        encoding='utf-8',errors='replace',timeout=240,
+    )
+    _output = (_result.stdout+'\n'+_result.stderr).strip()
+    _required = ('V42.00.0 ADMIN GUARDIAN 8: 68 checks PASS',
+                 'V45.00.0 ADMIN LIVE BRIDGE: 35 checks PASS',
+                 'V50.00.0 ADMIN LIVE KOREKTY QUESTOW: 104 checks PASS',
+                 'V59 EQ SWIAT/ZAMIAN ZALEZNOSCI: 110 checks PASS',
+                 'V60 QUEST ID DRAFT REPAIRS: 105 checks PASS')
+    if _result.returncode != 0 or not all(x in _output for x in _required):
+        raise AssertionError('Guardian v42-v60 isolated regressions FAIL: '+_output[-4500:])
+    print(_result.stdout.strip(),flush=True)
+    return len(_required)
+print(f'ADMIN LIVE v42-v60: {_v7001_isolated_middle_admin_suites()} wymaganych kontroli PASS',flush=True)
+# v70.00.1: earlier OLC suites mutate global QUESTS/MOBS fixtures in the
+# monolithic historical predeploy interpreter.  The v61-v70 contract is still
+# fully executed; a child process guarantees clean authored catalogs, and both
+# its exit code and final marker are verified fail-closed.
+_V7001_FULL_LATE_SUITE = '# v61: NPC, resource and multi-objective repairs with atomic OLC DRAFT checks.\nfrom validation.v6100_quest_refs import run as _v6100_run\nprint(f"V61 QUEST REFS NPC RESOURCE OBJECTIVES: {_v6100_run()} checks PASS")\n\n# v62: consolidated multi-mode OLC changes, quest EQ and mastery-cap audit.\nfrom validation.v6200_admin_live_bundle import run as _v6200_run\nprint(f"V62 LIVE BUNDLE QUEST EQ SKILLS: {_v6200_run()} checks PASS")\n\n# v63: combined scalar/ID quest OLC transactions and cap-aware lab progression.\nfrom validation.v6300_admin_live_cap_bundle import run as _v6300_run\nprint(f"V63 ADMIN LIVE QUEST BUNDLE CLASS MASTERY: {_v6300_run()} checks PASS")\n\n# v64: atomic linked quest objective/count repairs and admin NVDA commands.\nfrom validation.v6400_admin_live_atomic_quest_goals import run as _v6400_run\nprint(f"V64 ADMIN LIVE ATOMIC QUEST GOALS: {_v6400_run()} checks PASS")\n\n# v65: real UOSS status immunity under private LAB gear and helper passives.\nfrom validation.v6500_admin_live_uoss_source_equipment import run as _v6500_run\nprint(f"V65 ADMIN LIVE UOSS SOURCE EQ: {_v6500_run()} checks PASS")\n\n# v66: real sourced UOSS helper decisions in isolated Admin Live preview.\nfrom validation.v6600_admin_live_uoss_helper_source import run as _v6600_run\nprint(f"V66 ADMIN LIVE UOSS SOURCE HELPERS: {_v6600_run()} checks PASS")\n\n# v67: deterministic source-balanced helper support on detached Admin Live arena.\nfrom validation.v6700_admin_live_uoss_helper_support import run as _v6700_run\nprint(f"V67 ADMIN LIVE UOSS HELPER SUPPORT: {_v6700_run()} checks PASS")\n\n# v68: exact helper party target selection on detached Admin Live arena.\nfrom validation.v6800_admin_live_uoss_party_support import run as _v6800_run\nprint(f"V68 ADMIN LIVE UOSS PARTY SUPPORT: {_v6800_run()} checks PASS")\n\n# v69 Admin Live read-only operator controls.\nfrom validation.v6900_admin_live_centrum import run as _v69_run\nprint(f"V69 ADMIN LIVE: {_v69_run()} checks PASS")\n\n# v70 Admin Live read-only operator controls.\nfrom validation.v7000_admin_live_odbior import run as _v70_run\nprint(f"V70 ADMIN LIVE: {_v70_run()} checks PASS")\n'
+def _v7001_isolated_final_admin_suites():
+    import os as _os, re as _re, socket as _socket, subprocess as _subprocess
+    import sys as _sys
+    from pathlib import Path as _Path
+    with _socket.socket(_socket.AF_INET, _socket.SOCK_STREAM) as _sock:
+        _sock.bind(('127.0.0.1', 0))
+        _free_port = _sock.getsockname()[1]
+    _env = dict(_os.environ)
+    _env.update({'SOULBOUND_HOST': '127.0.0.1', 'SOULBOUND_PORT': str(_free_port),
+                 'PORT': '', 'RAILWAY_TCP_APPLICATION_PORT': ''})
+    _res = _subprocess.run(
+        [_sys.executable, '-u', '-c', _V7001_FULL_LATE_SUITE],
+        cwd=str(_Path(__file__).resolve().parent), env=_env,
+        stdin=_subprocess.DEVNULL, capture_output=True, text=True,
+        encoding='utf-8', errors='replace', timeout=180,
+    )
+    _text = (_res.stdout+'\n'+_res.stderr).strip()
+    _expected = ('V61 QUEST REFS NPC RESOURCE OBJECTIVES: 128 checks PASS',
+                 'V62 LIVE BUNDLE QUEST EQ SKILLS: 103 checks PASS',
+                 'V63 ADMIN LIVE QUEST BUNDLE CLASS MASTERY: 74 checks PASS',
+                 'V64 ADMIN LIVE ATOMIC QUEST GOALS: 82 checks PASS',
+                 'V65 ADMIN LIVE UOSS SOURCE EQ: 69 checks PASS',
+                 'V66 ADMIN LIVE UOSS SOURCE HELPERS: 73 checks PASS',
+                 'V67 ADMIN LIVE UOSS HELPER SUPPORT: 65 checks PASS',
+                 'V68 ADMIN LIVE UOSS PARTY SUPPORT: 86 checks PASS',
+                 'V69 ADMIN LIVE: 43 checks PASS',
+                 'V70 ADMIN LIVE: 38 checks PASS')
+    if _res.returncode != 0 or not all(item in _text for item in _expected):
+        raise AssertionError('Admin Live v61-v70 isolated regressions FAIL: '+_text[-4000:])
+    print(_res.stdout.strip(),flush=True)
+    return len(_expected)
+print(f'ADMIN LIVE v61-v70: {_v7001_isolated_final_admin_suites()} zestawow PASS',flush=True)
+
+# v70.00.2: fail-closed three-gap Admin Live regression on a clean interpreter.
+# Older audit suites may alter global catalog fixtures; keep the new proof isolated.
+def _v7002_three_gap_gate():
+    import subprocess as _sb_subprocess,sys as _sb_sys
+    from pathlib import Path as _sb_Path
+    _result=_sb_subprocess.run(
+        [_sb_sys.executable,'-u','-m','validation.v7002_admin_live_three_gaps'],
+        cwd=str(_sb_Path(__file__).resolve().parent),
+        stdin=_sb_subprocess.DEVNULL,capture_output=True,text=True,
+        encoding='utf-8',errors='replace',timeout=180)
+    _out=(_result.stdout+'\n'+_result.stderr).strip()
+    if _result.returncode!=0 or 'V70.00.2 THREE GAPS: 141 PASS' not in _out:
+        raise AssertionError('Admin Live v70.00.2 failed: '+_out[-3500:])
+    print(_result.stdout.strip(),flush=True)
+    return 141
+print(f'ADMIN LIVE v70.00.2: {_v7002_three_gap_gate()} checks PASS',flush=True)
+
+# v70.00.3: independent, fail-closed regression for shop progression, skill
+# editing and cap-aware validators. Never writes a real player database.
+def _v7003_extension_gate():
+    import subprocess as _sb_subprocess, sys as _sb_sys
+    from pathlib import Path as _sb_Path
+    _result = _sb_subprocess.run(
+        [_sb_sys.executable, '-u', '-m', 'validation.v7003_admin_live_extensions'],
+        cwd=str(_sb_Path(__file__).resolve().parent),
+        stdin=_sb_subprocess.DEVNULL, capture_output=True, text=True,
+        encoding='utf-8', errors='replace', timeout=180)
+    _out = (_result.stdout + '\n' + _result.stderr).strip()
+    if _result.returncode != 0 or 'V70.00.3 ADMIN LIVE: 70 PASS' not in _out:
+        raise AssertionError('Admin Live v70.00.3 failed: ' + _out[-3500:])
+    print(_result.stdout.strip(), flush=True)
+    return 70
+print(f'ADMIN LIVE v70.00.3: {_v7003_extension_gate()} checks PASS', flush=True)
+
+
+
+# v71: eight-area administrative regression, independent of the player database.
+def _v7100_gate():
+    import subprocess as _sb_subprocess,sys as _sb_sys
+    from pathlib import Path as _sb_Path
+    result=_sb_subprocess.run(
+        [_sb_sys.executable,'-u','-m','validation.v7100_admin_live_eight_areas'],
+        cwd=str(_sb_Path(__file__).resolve().parent),
+        stdin=_sb_subprocess.DEVNULL,capture_output=True,text=True,
+        encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V71.00.0 EIGHT AREAS: 75 PASS' not in output:
+        raise AssertionError('Admin Live v71 failed: '+output[-3500:])
+    print(result.stdout.strip(),flush=True)
+    return 75
+print(f'ADMIN LIVE v71.00.0: {_v7100_gate()} checks PASS',flush=True)
+
+
+# v73: final-graph multiquest edits, multistage boss edits and scripted UOSS protection.
+def _v7300_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v7300_admin_live_quest_boss_batches'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V73.00.0 QUEST BOSS BATCHES: 73 PASS' not in output:
+        raise AssertionError('Admin Live v73 failed: '+output[-4000:])
+    print(result.stdout.strip(),flush=True)
+    return 73
+print(f'ADMIN LIVE v73.00.0: {_v7300_gate()} checks PASS',flush=True)
+
+
+# v74: safe legacy quest parent edits and source UOSS inspections; fail closed.
+def _v7400_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v7400_admin_live_legacy_dependencies_uoss'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V74.00.0 LEGACY QUEST AND UOSS: 131 PASS' not in output:
+        raise AssertionError('Admin Live v74 failed: '+output[-4000:])
+    print(result.stdout.strip(),flush=True)
+    return 131
+print(f'ADMIN LIVE v74.00.0: {_v7400_gate()} checks PASS',flush=True)
+
+
+# v75: verified actual UOSS runtime hooks, reversibility and quest null shadow.
+def _v7500_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v7500_admin_live_real_mechanics'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V75.00.0 ADMIN LIVE VERIFIED: 59 PASS' not in output:
+        raise AssertionError('Admin Live v75 failed: '+output[-4000:])
+    print(result.stdout.strip(),flush=True)
+    return 59
+print(f'ADMIN LIVE v75.00.0: {_v7500_gate()} checks PASS',flush=True)
+
+
+# v76: real character creator, saved race, passive and restart SQLite on disposable data.
+def _v7600_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v7600_playable_races'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=(result.stdout+'\n'+result.stderr).strip()
+    if result.returncode!=0 or 'V76.00.0 PLAYABLE RACES: 41 PASS' not in output:
+        raise AssertionError('v76 real playable races failed: '+output[-4000:])
+    print(result.stdout.strip(),flush=True)
+    return 35
+print(f'ADMIN LIVE v76.00.0: {_v7600_gate()} checks PASS',flush=True)
+
+# v77: external isolated SQLite and creator-class validations (after previous gates).
+def _v7700_gate():
+    import subprocess as _sp,sys as _sys
+    r=_sp.run([_sys.executable,'-u','-m','validation.v7700_playable_classes'],
+              capture_output=True,text=True,timeout=180)
+    result=(r.stdout+'\n'+r.stderr)
+    if r.returncode or 'V77.00.0 PLAYABLE CLASSES:' not in result or ' PASS' not in result:
+        raise AssertionError('v77 playable classes failed: '+result[-3500:])
+    return result.strip().split(':')[-1].strip()
+print('ADMIN LIVE v77.00.0: '+_v7700_gate(),flush=True)
+
+# v78: source damage on detached actual actor; isolated LAB state and RNG.
+def _v7800_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v7800_arena_real_basic_damage'],
+              cwd=str(_Path(__file__).resolve().parent),
+              capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    result=(r.stdout+'\n'+r.stderr)
+    if r.returncode or 'V78.00.0 REAL SOURCE BASIC ATTACK: 36 PASS' not in result:
+        raise AssertionError('v78 detached source damage failed: '+result[-3500:])
+    return 36
+print(f'ADMIN LIVE v78.00.0: {_v7800_gate()} checks PASS',flush=True)
+
+# v79: real production boss defense on isolated clones, without DB/game effects.
+def _v7900_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v7900_arena_real_defense'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    result=(r.stdout+'\n'+r.stderr)
+    if r.returncode or 'v79 production boss defense: 26 PASS' not in result:
+        raise AssertionError('v79 real defense gate failed: '+result[-3500:])
+    print(r.stdout.strip(),flush=True)
+    return 26
+print(f'ADMIN LIVE v79.00.0: {_v7900_gate()} checks PASS',flush=True)
+
+
+# v80: same critical/weapon hit formulas used by real realtime combat and LAB.
+def _v8000_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8000_arena_real_weapon'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    result=(r.stdout+'\n'+r.stderr)
+    if r.returncode or 'v80 weapon source parity + isolation: 44 PASS' not in result:
+        raise AssertionError('v80 weapon parity gate failed: '+result[-3500:])
+    return 44
+print(f'ADMIN LIVE v80.00.0: {_v8000_gate()} checks PASS',flush=True)
+
+# v81: production post-hit Echo/lifesteal/mana shared with private arena.
+def _v8100_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8100_arena_soul_weapon_effects'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    result=r.stdout+'\n'+r.stderr
+    if r.returncode or 'V81 SOURCE POST-HIT EFFECTS AND ISOLATION: 42 PASS' not in result:
+        raise AssertionError('v81 source effects failed: '+result[-4000:])
+    return 42
+print(f'ADMIN LIVE v81.00.0: {_v8100_gate()} checks PASS',flush=True)
+
+
+# v82: source queue selection parity (normal fight vs read-only LAB).
+def _v8200_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r = _sp.run([_sys.executable,'-u','-m','validation.v8200_uoss_queue_source_choice'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
+    output = r.stdout+'\n'+r.stderr
+    if r.returncode or 'V82 REAL SKILL QUEUE CHOICE + DB ISOLATION: 99 PASS' not in output:
+        raise AssertionError('v82 queue choice failed: '+output[-4000:])
+    return 99
+print(f'ADMIN LIVE v82.00.0: {_v8200_gate()} checks PASS',flush=True)
+
+
+# v83: isolated actual simple skill casts and safety regression.
+def _v8300_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r = _sp.run([_sys.executable,'-u','-m','validation.v8300_arena_plain_skill_cast'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
+    output = r.stdout+'\n'+r.stderr
+    if r.returncode or 'v83 DETACHED PLAIN SKILL CAST: 37 PASS' not in output:
+        raise AssertionError('v83 isolated skill cast failed: '+output[-4000:])
+    return 37
+print(f'ADMIN LIVE v83.00.0: {_v8300_gate()} checks PASS',flush=True)
+
+# v84: real native runtime clone safety gate; no live gameplay data is modified.
+def _v8400_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8400_native_full_combat_isolation'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=90)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'UOSS NATIVE ISOLATION: 41 PASS' not in output:
+        raise AssertionError('v84 native isolated full server safety gate FAILED: '+output[-4000:])
+    return 41
+print(f'UOSS NATIVE V84.00.0: {_v8400_gate()} checks PASS',flush=True)
+
+# v85: actual playable TCP encounter; never uses user DB, only a synthetic
+# source and a disposable second native runtime. Fails if a kill isn't durable.
+def _v8500_native_tcp_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r = _sp.run([_sys.executable, '-u', '-m', 'validation.v8500_native_tcp_full_journey'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=250)
+    output = r.stdout + '\n' + r.stderr
+    if r.returncode or 'UOSS FULL TCP & ISOLATION: 10 PASS' not in output:
+        raise AssertionError('v85 real TCP/SQLite encounter FAIL: ' + output[-5000:])
+    return 10
+print(f'UOSS NATIVE TCP v85.00.0: {_v8500_native_tcp_gate()} checks PASS', flush=True)
+
+# v86: owner-only native arena lifecycle on real private TCP server.
+# Independent of production DB: uses a temporary synthetic source SQLite.
+def _v8600_native_admin_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r = _sp.run([_sys.executable, '-u', '-m', 'validation.v8600_admin_live_native_arena'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120)
+    output = r.stdout + '\n' + r.stderr
+    if r.returncode or 'ADMIN LIVE NATIVE UOSS v86: 19 PASS' not in output:
+        raise AssertionError('v86 admin live native arena FAIL: ' + output[-4500:])
+    return 19
+print(f'ADMIN LIVE NATIVE v86.00.0: {_v8600_native_admin_gate()} checks PASS', flush=True)
+
+# v87: atomic whole-quest dependency and multi-scripted-boss native OLC.
+def _v8700_big_update_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8700_admin_live_large_update'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=120)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'ADMIN LIVE v87 BIG UPDATE: 71 PASS' not in output:
+        raise AssertionError('v87 Admin Live comprehensive OLC FAIL: '+output[-5000:])
+    return 71
+print(f'ADMIN LIVE BIG v87.00.0: {_v8700_big_update_gate()} checks PASS',flush=True)
+
+# v87: actual fresh isolated native runtime, no access to production DB.
+def _v8700_fresh_tcp_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8700_native_fresh_tcp'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=120)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'ARENA UOSS FRESH TCP: 9 PASS' not in output:
+        raise AssertionError('v87 native fresh real-TCP gate FAILED: '+output[-5000:])
+    return 9
+print(f'UOSS NATIVE FRESH v87.00.0: {_v8700_fresh_tcp_gate()} checks PASS',flush=True)
+
+# v88: one atomic cross-system plan, no player DB mutation on DRAFT stages.
+def _v8800_integrated_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8800_admin_live_integrated_release'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=120)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'ADMIN LIVE v88 INTEGRATED: 117 PASS' not in output:
+        raise AssertionError('v88 Admin Live integrated changeset FAILED: '+output[-4500:])
+    return 117
+print(f'ADMIN LIVE v88 INTEGRATED: {_v8800_integrated_gate()} checks PASS',flush=True)
+
+# v89: exact runtime publication safety preflight with SQLite invariants.
+def _v8900_publication_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v8900_publication_preflight'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=120)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'ADMIN LIVE v89 PREFLIGHT: 46 PASS' not in output:
+        raise AssertionError('v89 safe publication preflight FAILED: '+output[-5000:])
+    return 46
+print(f'ADMIN LIVE v89 PUBLICATION: {_v8900_publication_gate()} checks PASS',flush=True)
+
+# v90: durable revision history, DRAFT-only recovery, conflict-safe publication.
+def _v9000_recovery_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v9000_revision_recovery'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=150)
+    output=result.stdout+'\n'+result.stderr
+    if result.returncode or 'ADMIN LIVE v90 REWIZJE: 74 PASS' not in output:
+        raise AssertionError('v90 safe versioned OLC recovery FAILED: '+output[-5000:])
+    return 74
+print(f'ADMIN LIVE v90 REWIZJE: {_v9000_recovery_gate()} checks PASS',flush=True)
+
+
+# v91: 22 archetype combinations, persistent custom classes and fully validated
+# dependency migration with active-player protection through production OLC.
+def _v9100_finalization_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    for mod,marker in (
+        ('validation.v9100_custom_archetypes','V91 CUSTOM ARCHETYPES: 98 PASS'),
+        ('validation.v9100_quest_id_migration','V91 QUEST ID MIGRATION: 47 PASS'),
+    ):
+        r=_sp.run([_sys.executable,'-u','-m',mod],
+            cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+            capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+        output=r.stdout+'\n'+r.stderr
+        if r.returncode or marker not in output:
+            raise AssertionError('v91 gate failed '+mod+': '+output[-4500:])
+        print(r.stdout.strip(),flush=True)
+    return 145
+print(f'ADMIN LIVE v91.00.0: {_v9100_finalization_gate()} checks PASS',flush=True)
+
+
+# v92: test multi-kind quest target migrations in both Windows PREDEPLOY gates.
+def _v9200_quest_targets_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    pairs=(("validation.v9200_quest_target_bundle","V92 QUEST TARGET BUNDLE: 60 PASS"),
+           ("validation.v9200_structured_targets","V92 STRUCTURED TARGETS: 23 PASS"))
+    for mod,marker in pairs:
+        result=_sp.run([_sys.executable,'-u','-m',mod],
+            cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+            capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+        output=result.stdout+'\n'+result.stderr
+        if result.returncode or marker not in output:
+            raise AssertionError('v92 quest targets failed '+mod+': '+output[-4000:])
+        print(result.stdout.strip(),flush=True)
+    return 83
+print(f'ADMIN LIVE v92.00.0: {_v9200_quest_targets_gate()} checks PASS',flush=True)
+
+
+# v93: fail the PREDEPLOY gate when either real OLC feature regresses.
+def _v9300_multi_domain_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    root=_Path(__file__).resolve().parent
+    cases=(("validation.v9300_skill_effect_combos", "V93 SKILL EFFECTS: 42 PASS"),
+           ("validation.v9300_quest_repair_combined", "V93 COMBINED QUEST REPAIRS: 41 PASS"))
+    for module,marker in cases:
+        result=_sp.run([_sys.executable,"-u","-m",module],cwd=str(root),
+            stdin=_sp.DEVNULL,capture_output=True,text=True,encoding="utf-8",
+            errors="replace",timeout=180)
+        output=result.stdout+"\n"+result.stderr
+        if result.returncode or marker not in output:
+            raise AssertionError("v93: fail "+module+": "+output[-4500:])
+        print(result.stdout.strip(),flush=True)
+    return 83
+print(f'ADMIN LIVE v93.00.0: {_v9300_multi_domain_gate()} checks PASS',flush=True)
+
+
+# v94: run the integrated DRAFT, publishing-guard and real effect regression
+# from the exact candidate copy used by PREDEPLOY.
+def _v9400_integrated_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    root=_Path(__file__).resolve().parent
+    result=_sp.run([_sys.executable,'-u','-m','validation.v9400_final_state_packs'],
+        cwd=str(root),stdin=_sp.DEVNULL,capture_output=True,text=True,
+        encoding='utf-8',errors='replace',timeout=210)
+    report=result.stdout+'\n'+result.stderr
+    if result.returncode or 'V94 FULL QUESTS AND EFFECTS: 73 PASS' not in report:
+        raise AssertionError('v94 integrated regression failed: '+report[-5000:])
+    print(result.stdout.strip(),flush=True)
+    return 73
+print(f'ADMIN LIVE v94.00.0: {_v9400_integrated_gate()} checks PASS',flush=True)
+
+# v95: transactional character progression and real engine passive presets.
+def _v9500_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    root=_Path(__file__).resolve().parent
+    r=_sp.run([_sys.executable,'-u','-m','validation.v9500_progress_and_passives'],
+        cwd=str(root),stdin=_sp.DEVNULL,capture_output=True,text=True,
+        encoding='utf-8',errors='replace',timeout=150)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'V95 PROGRESSION AND CUSTOM PASSIVES: 65 PASS' not in output:
+        raise AssertionError('v95 new features: '+output[-5000:])
+    print(r.stdout.strip(),flush=True)
+    return 65
+print(f'ADMIN LIVE v95.00.0: {_v9500_gate()} checks PASS',flush=True)
+
+
+# v96: check actual transactional changes, offline access, bank and rollback.
+def _v9600_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v9600_mastery_and_expbank'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=150)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'V96 OFFLINE CLASS/SKILL PROGRESSION + BANK AUDIT: 54 PASS' not in output:
+        raise AssertionError('v96 mastery/bank validation failed: '+output[-5000:])
+    print(r.stdout.strip(),flush=True)
+    return 54
+print(f'ADMIN LIVE v96.00.0: {_v9600_gate()} checks PASS',flush=True)
+
+# v97: multi-character offline stat and protected-item repairs, native UOSS profile cloning.
+def _v9700_big_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    proc=_sp.run([_sys.executable,'-u','-m','validation.v9700_large_admin_update'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=proc.stdout+'\n'+proc.stderr
+    if proc.returncode or 'V97 LARGE ADMIN UPDATE: 120 PASS' not in output:
+        raise AssertionError('v97 full Admin Live regression failed: '+output[-5000:])
+    print(proc.stdout.strip(),flush=True)
+    return 120
+print(f'ADMIN LIVE v97.00.0: {_v9700_big_gate()} checks PASS',flush=True)
+
+
+# v96.00.2: guard against collisions between legacy and current Admin Live
+# subcommands.  Run detached from the live game and fail if any route regresses.
+def _v9602_legacy_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v9602_legacy_admin_live_commands'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=150)
+    output=result.stdout+'\n'+result.stderr
+    if result.returncode or 'ADMIN LIVE v96.00.2 HISTORICAL ROUTING: 18 PASS' not in output:
+        raise AssertionError('v96.00.2 historical command routing failed: '+output[-4500:])
+    print(result.stdout.strip(),flush=True)
+    return 18
+print(f'ADMIN LIVE v96.00.2: {_v9602_legacy_gate()} checks PASS',flush=True)
+
+
+# v96.00.3: validate all 60 stage names, current candidate and adequate audit
+# deadlines without removing any gameplay or SQLite regression.
+from validation.v9603_predeploy_runtime import run as _v9603_release_gate
+print(f'WINDOWS PREDEPLOY v96.00.3: {_v9603_release_gate()} checks PASS',flush=True)
+
+
+# v98: 3 integrated changes, online ACL, OLC revision and offline SQLite CAS.
+def _v9800_three_features_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v9800_three_features'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'V98 THREE MAJOR FEATURES: 72 PASS' not in output:
+        raise AssertionError('v98 integrated regression failed: '+output[-5000:])
+    print(r.stdout.strip(),flush=True)
+    return 72
+print(f'ADMIN LIVE v98.00.0: {_v9800_three_features_gate()} checks PASS',flush=True)
+
+# v99: mandatory five-feature Admin Live regression for candidate release.
+def _v9900_five_features_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    r=_sp.run([_sys.executable,'-u','-m','validation.v9900_five_features'],
+        cwd=str(_Path(__file__).resolve().parent), stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=r.stdout+'\n'+r.stderr
+    if r.returncode or 'V99 FIVE FEATURES: 52 PASS' not in output:
+        raise AssertionError('v99 five-feature regression failed: '+output[-5000:])
+    print(r.stdout.strip(),flush=True)
+    return 52
+print(f'ADMIN LIVE v99.00.0: {_v9900_five_features_gate()} checks PASS',flush=True)
+
+# v100: five-domain guarded update; must pass on Windows before deployment.
+def _v10000_admin_live_gate():
+    import subprocess as _sp, sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v10000_admin_live_ultimate'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    message=result.stdout+'\n'+result.stderr
+    if result.returncode or 'ADMIN LIVE v100: 63 checks PASS' not in message:
+        raise AssertionError('Admin Live v100 regression FAILED: '+message[-5000:])
+    print(result.stdout.strip(),flush=True)
+    return 63
+print(f'ADMIN LIVE v100.00.0: {_v10000_admin_live_gate()} checks PASS',flush=True)
+
+# v101: mandatory three-area regression for Windows PREDEPLOY 60/60 PLUS.
+def _v10100_three_gaps_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v10100_three_gaps'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=result.stdout+'\n'+result.stderr
+    if result.returncode or 'ADMIN LIVE v101: 59 checks PASS' not in output:
+        raise AssertionError('Admin Live v101 regression FAILED: '+output[-5000:])
+    print(result.stdout.strip(),flush=True)
+    return 59
+print(f'ADMIN LIVE v101.00.0: {_v10100_three_gaps_gate()} checks PASS',flush=True)
+
+# v102: arena tunnel, OLC conditional effects and read-only Admin Live truth audit.
+def _v10200_admin_live_gate():
+    import subprocess as _sp,sys as _sys
+    from pathlib import Path as _Path
+    result=_sp.run([_sys.executable,'-u','-m','validation.v10200_admin_live_final'],
+        cwd=str(_Path(__file__).resolve().parent),stdin=_sp.DEVNULL,
+        capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=180)
+    output=result.stdout+'\n'+result.stderr
+    if result.returncode or 'ADMIN LIVE v102: 52 checks PASS' not in output:
+        raise AssertionError('Admin Live v102 regression FAILED: '+output[-5000:])
+    print(result.stdout.strip(),flush=True)
+    return 52
+print(f'ADMIN LIVE v102.00.0: {_v10200_admin_live_gate()} checks PASS',flush=True)

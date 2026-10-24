@@ -23,6 +23,11 @@ def run_regression():
         dbname = Path(dirname) / 'live.db'
         conn = sqlite3.connect(dbname)
         conn.row_factory = sqlite3.Row
+        # A real Soulbound database always has the quest-progress table.
+        # Include it in this intentionally minimal OLC fixture: the current
+        # publisher must guard active quests even in legacy OLC scenarios.
+        conn.execute("CREATE TABLE quests (account_id INTEGER, quest_id TEXT, status TEXT, progress INTEGER)")
+        conn.commit()
         db = SimpleNamespace(conn=conn)
         m = LiveContentV1204(db)
         world = SimpleNamespace(mobs={}, _last_refresh_at=123.0)

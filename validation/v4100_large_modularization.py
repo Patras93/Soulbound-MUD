@@ -1,3 +1,4 @@
+from validation.release_contracts import release_valid
 from validation.v1100_release_counts import expected_quest_total_v1100
 # -*- coding: utf-8 -*-
 """v4.10.0 large-scale extraction: AST identity, native globals, callable parity."""
@@ -30,7 +31,7 @@ def run_regression():
     checks+=3
     import server
     from core.bootstrap_economy_professions import VERSION
-    assert VERSION in ('4.10.0','4.20.0','4.21.0','4.21.1','5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0','23.00.0','24.00.0','24.00.1','25.00.0','26.00.0','27.00.0','28.00.0','29.00.0','29.10.0','30.00.0','31.00.0','32.00.0','33.00.0','34.00.0','35.00.0','35.00.1','35.00.2','35.00.3','35.00.4',)
+    assert release_valid(VERSION, '4.10.0')
     assert (len(server.QUESTS)>=6745 if int(VERSION.split('.',1)[0])>=23 else len(server.QUESTS)==(expected_quest_total_v1100() if int(VERSION.split('.',1)[0])>=11 else 6585 if int(VERSION.split('.',1)[0])==10 else 6573 if int(VERSION.split('.',1)[0])==9 else 5605 if int(VERSION.split('.',1)[0])==8 else 3925 if int(VERSION.split('.',1)[0])==7 else 3861 if VERSION=='6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701)) and len(server.CLASS_SKILLS)==22
     from config.balance import ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310
     assert ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10

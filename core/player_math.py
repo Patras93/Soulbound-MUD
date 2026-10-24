@@ -172,7 +172,14 @@ def magic_defense_base(character_level: int, willpower: int) -> int:
 
 
 def skill_level_power(level: int) -> float:
-    level = _clamp(int(level or 1), 1, PLAYER_PROGRESSION_CAP_V1280)
+    level = max(1, int(level or 1))
+    if level > PLAYER_PROGRESSION_CAP_V1280:
+        # Keep all legacy damage values through 800 unchanged. Beyond 800,
+        # progress only if the admin explicitly raised the skill level cap.
+        from core.live_level_caps_v5200 import cap
+        live_max = cap('skille')
+        level = min(level, PLAYER_PROGRESSION_CAP_V1280 if live_max is not None and live_max <= 800
+                    else live_max if live_max is not None else level)
     return round(
         1.0
         + 3.0

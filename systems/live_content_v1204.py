@@ -30,6 +30,13 @@ FIELDS = frozenset(("max_hp", "damage", "class_xp_reward", "soul_reward", "stat_
 MISSING = object()
 
 
+def _live_level_bound_v5900(kind):
+    # v59: the administrator may raise progression ceilings without bypassing
+    # existing OLC validation. Default remains the historical 800.
+    from core.live_level_caps_v5200 import cap, effective_number
+    return effective_number(cap(kind))
+
+
 def blank():
     return {"rooms": {}, "links": [], "mobs": {}, "spawns": [], "balances": {},
             "room_edits": {}, "mob_edits": {}, "items": {}, "item_edits": {},
@@ -54,7 +61,7 @@ def blank():
                 "events": {}, "story": {}, "guilds": {}, "world": {}}, "v34_rules": {
                 "uoss": {}, "professions": {}, "summons": {}, "skills": {},
                 "events": {}, "story": {}, "guilds": {}, "world": {}}, "v35_rules": {
-                "bosses": {}, "activities": {}, "wars": {}, "cities": {}}}
+                "bosses": {}, "activities": {}, "wars": {}, "cities": {}}, "v98_rules": {}, "v99_rules": {}, "v100_rules": {}, "v101_rules": {}}
 
 
 def _text(value, limit, field):
@@ -120,7 +127,7 @@ class LiveContentV1204:
             _text(meta['name'], 100, 'Nazwa lokacji')
             _text(meta['desc'], 1600, 'Opis lokacji')
             _text(meta['zone'], 100, 'Region')
-            _integer(meta['generator_level'], 1, 800, 'Poziom lokacji')
+            _integer(meta['generator_level'], 1, _live_level_bound_v5900('postac'), 'Poziom lokacji')
         for mid, meta in mobs.items():
             if not ID.fullmatch(mid):
                 raise ValueError(f"Id potwora musi zaczynać się od live_: {mid}.")
@@ -129,7 +136,7 @@ class LiveContentV1204:
             if not isinstance(meta, dict) or set(meta) != {'name', 'generator_level', 'max_hp', 'damage', 'class_xp_reward'}:
                 raise ValueError(f"Potwór {mid}: niepoprawne pola.")
             _text(meta['name'], 100, 'Nazwa potwora')
-            _integer(meta['generator_level'], 1, 800, 'Poziom potwora')
+            _integer(meta['generator_level'], 1, _live_level_bound_v5900('postac'), 'Poziom potwora')
             _integer(meta['max_hp'], 1, 10**15, 'HP')
             _integer(meta['damage'], 1, 10**12, 'Obrażenia')
             _integer(meta['class_xp_reward'], 1, 10**15, 'EXP')
@@ -312,6 +319,14 @@ class LiveContentV1204:
         validate_v34(data['v34_rules'], payload=data)
         from systems.live_olc35_finale import validate as validate_v35
         validate_v35(data['v35_rules'], payload=data)
+        from systems.uoss_tactics_v9800 import validate as validate_v98
+        validate_v98(data['v98_rules'])
+        from systems.uoss_regeneration_v9900 import validate as validate_v99
+        validate_v99(data['v99_rules'])
+        from systems.uoss_ai_v10000 import validate as validate_v100
+        validate_v100(data['v100_rules'])
+        from systems.live_mechanics_v10100 import validate as validate_v101
+        validate_v101(data['v101_rules'])
         from systems.live_olc4_new_skills import validate_new_skills
         validate_new_skills(data['skills'], self.active['skills'])
         from systems.live_olc6_skill_editor import validate_existing_skill_edits
@@ -484,7 +499,7 @@ class LiveContentV1204:
                 raise ValueError('Nieznana stacja receptury.')
             self._validate_ingredients(recipe['ingredients'], item_ids)
             _integer(recipe['quantity'], 1, 1000, 'Ilość produktu')
-            _integer(recipe['min_profession_level'], 1, 800, 'Poziom profesji')
+            _integer(recipe['min_profession_level'], 1, _live_level_bound_v5900('profesje'), 'Poziom profesji')
         for npc in data['npcs'].values():
             if npc.get('quest') and npc['quest'] not in (set(QUESTS) | set(data['quests'])):
                 raise ValueError('NPC wskazuje na nieistniejący quest.')
@@ -656,6 +671,14 @@ class LiveContentV1204:
         sync_v34(data['v34_rules'])
         from systems.live_olc35_finale import sync as sync_v35
         sync_v35(data['v35_rules'])
+        from systems.uoss_tactics_v9800 import sync as sync_v98
+        sync_v98(data['v98_rules'])
+        from systems.uoss_regeneration_v9900 import sync as sync_v99
+        sync_v99(data['v99_rules'])
+        from systems.uoss_ai_v10000 import sync as sync_v100
+        sync_v100(data['v100_rules'])
+        from systems.live_mechanics_v10100 import sync as sync_v101
+        sync_v101(data['v101_rules'])
         # Author reversible, unoccupied room exits without mutating original room dictionaries.
         from systems.live_olc33_mechanics import world_portals
         for _origin33, _route33 in world_portals().items():
@@ -774,6 +797,14 @@ class LiveContentV1204:
         sync_v34(blank()['v34_rules'])
         from systems.live_olc35_finale import sync as sync_v35
         sync_v35(blank()['v35_rules'])
+        from systems.uoss_tactics_v9800 import sync as sync_v98
+        sync_v98(blank()['v98_rules'])
+        from systems.uoss_regeneration_v9900 import sync as sync_v99
+        sync_v99(blank()['v99_rules'])
+        from systems.uoss_ai_v10000 import sync as sync_v100
+        sync_v100(blank()['v100_rules'])
+        from systems.live_mechanics_v10100 import sync as sync_v101
+        sync_v101(blank()['v101_rules'])
         install_live_xp({}, {}, {})
         # Avoid reusing a stale stat-scaled derivative when admins replace a
         # live custom mob.  Keep any still-in-combat variant until it ends.
@@ -849,7 +880,7 @@ class LiveContentV1204:
             'name': name, 'desc': description, 'stations': [profile['station']],
             'ingredients': ingredients, 'output': output,
             'quantity': _integer(quantity, 1, 1000, 'Ilość produktu'),
-            'min_profession_level': _integer(level, 1, 800, 'Poziom profesji'),
+            'min_profession_level': _integer(level, 1, _live_level_bound_v5900('profesje'), 'Poziom profesji'),
             'profession': profile['name'], 'tool_type': profile['tool_type'],
             'tool_item_id': profile['tool_item_id'], 'tool_name': profile['tool_name'],
         }
@@ -1137,7 +1168,7 @@ class LiveContentV1204:
         obj = {'name':name, 'desc':description, 'stations':[station],
                'ingredients':ingredients, 'output':output,
                'quantity':_integer(quantity,1,1000,'Ilość produktu'),
-               'min_profession_level':_integer(level,1,800,'Poziom profesji'),
+               'min_profession_level':_integer(level,1,_live_level_bound_v5900('profesje'),'Poziom profesji'),
                'profession':profession, 'tool_type':source['tool_type'],
                'tool_item_id':tool_id, 'tool_name':source['tool_name']}
         staged = copy.deepcopy(self.draft)
@@ -1214,12 +1245,18 @@ class LiveContentV1204:
             raise ValueError('Edycja: pokoj/mob/przedmiot/npc/quest/receptura.')
         if name == 'skill_edits' and key in self.draft['skills']:
             draft = copy.deepcopy(self.draft)
-            editable = {'name', 'desc', 'unlock', 'mana', 'mult', 'scale', 'effect', 'element', 'cooldown', 'olc_status'}
+            editable = {'name', 'desc', 'unlock', 'mana', 'mult', 'scale', 'effect', 'element', 'cooldown', 'olc_status', 'olc_statuses'}
             if field not in editable:
                 raise ValueError('Nowy skill: nazwa, opis, biegłość, mana, mult, scale lub effect.')
-            if field == 'olc_status':
-                from systems.live_olc19_status_skills import parse_status
-                parsed = parse_status(value)
+            if field in ('olc_status','olc_statuses'):
+                from systems.live_olc19_status_skills import parse_status, parse_statuses
+                if draft['skills'][key].get('kind') not in ('damage','aoe_damage'):
+                    raise ValueError('Statusy wymagaja skilla obrazeniowego.')
+                if field == 'olc_statuses' and draft['skills'][key].get('olc_status') is not None:
+                    raise ValueError('Usun najpierw stary olc_status.')
+                if field == 'olc_status' and draft['skills'][key].get('olc_statuses') is not None:
+                    raise ValueError('Usun najpierw liste olc_statuses.')
+                parsed = parse_statuses(value) if field == 'olc_statuses' else parse_status(value)
             elif field in ('unlock', 'mana', 'cooldown'):
                 parsed = _integer(value, 1 if field == 'unlock' else 0,
                                   800 if field == 'unlock' else 3600 if field == 'cooldown' else 1000000, field)
@@ -1228,8 +1265,8 @@ class LiveContentV1204:
                 except (TypeError, ValueError, OverflowError) as exc: raise ValueError('Nieprawidłowy mnożnik.') from exc
             else:
                 parsed = value
-            if field == 'olc_status' and parsed is None:
-                draft['skills'][key].pop('olc_status', None)
+            if field in ('olc_status', 'olc_statuses') and parsed is None:
+                draft['skills'][key].pop(field, None)
             elif field == 'element' and str(value).casefold().strip() in ('auto', 'automatyczny'):
                 draft['skills'][key].pop('element', None)
             else:
@@ -1436,8 +1473,15 @@ class LiveContentV1204:
         """Safe public 1-line NEWS, only after a successful revision commit."""
         return news_summary(previous, self.active, rollback=rollback, revision=self.revision)
 
-    def apply(self, server, login, rollback=False):
-        payload = copy.deepcopy(self.draft)
+    def apply(self, server, login, rollback=False, *, dry_run=False, candidate=None):
+        # Reject stale in-memory OLC before touching a single live registry. An
+        # external process or second server must never silently overwrite its
+        # published revision. This check also applies to read-only preflight.
+        from systems.admin_live_v9000 import _db_current
+        stored_row = _db_current(self)
+        if candidate is not None and (not dry_run or rollback):
+            raise ValueError('Migawka do sprawdzenia jest dozwolona tylko w trybie dry_run.')
+        payload = copy.deepcopy(self.draft if candidate is None else candidate)
         if rollback:
             row = self.conn.execute('SELECT payload FROM live_content_history_v1204 WHERE revision=?', (self.revision,)).fetchone()
             if not row:
@@ -1476,6 +1520,44 @@ class LiveContentV1204:
                 if started:
                     raise ValueError(f'Quest {quest_id} jest aktywny u {started} graczy; '
                                      'nie zmieniam rodzaju/celu. Nagrody i licznik needed można zmienić.')
+        # v91: changing already accepted quest prerequisites mid-progress may
+        # retroactively unlock/lock a quest. Protect *all* OLC publication
+        # routes, including revision restores and old single-field editors.
+        for quest_id in set(self.active['quest_edits']) | set(payload['quest_edits']):
+            previous=self.active['quest_edits'].get(quest_id,{})
+            proposed=payload['quest_edits'].get(quest_id,{})
+            if any(previous.get(k)!=proposed.get(k) for k in ('requires_quest','requires_quests')):
+                started=self.conn.execute(
+                    "SELECT COUNT(*) FROM quests WHERE quest_id=? AND status='active'",(quest_id,)
+                ).fetchone()[0]
+                if started:
+                    raise ValueError(f'Quest {quest_id} jest aktywny u {started} graczy; '
+                                     'nie zmieniam wymaganych poprzednikow w trakcie zadania.')
+        for quest_id in set(self.active['quests']) & set(payload['quests']):
+            previous=self.active['quests'][quest_id]
+            proposed=payload['quests'][quest_id]
+            if any(previous.get(k)!=proposed.get(k) for k in ('requires_quest','requires_quests')):
+                started=self.conn.execute(
+                    "SELECT COUNT(*) FROM quests WHERE quest_id=? AND status='active'",(quest_id,)
+                ).fetchone()[0]
+                if started:
+                    raise ValueError(f'Quest {quest_id} jest aktywny u {started} graczy; '
+                                     'nie zmieniam wymaganych poprzednikow w trakcie zadania.')
+        # v92: never redirect an accepted quest to a different giver in any
+        # publication route, including revisions and old single-field editors.
+        for section in ('quest_edits','quests'):
+            old_entries=self.active[section]
+            new_entries=payload[section]
+            for quest_id in set(old_entries)|set(new_entries):
+                old=(old_entries.get(quest_id) or {}).get('giver')
+                new=(new_entries.get(quest_id) or {}).get('giver')
+                if old==new:continue
+                started=self.conn.execute(
+                    "SELECT COUNT(*) FROM quests WHERE quest_id=? AND status='active'",(quest_id,)
+                ).fetchone()[0]
+                if started:
+                    raise ValueError(f'Quest {quest_id} jest aktywny u {started} graczy; '
+                                     'nie zmieniam zleceniodawcy w trakcie zadania.')
         # v29: do not orphan durable summoned companions by deleting their
         # catalog entry after players have acquired that creature.
         removed_summons = (set(self.active['v29_rules']['summons']) -
@@ -1512,7 +1594,13 @@ class LiveContentV1204:
                             if self.active['mob_edits'].get(mid) != payload['mob_edits'].get(mid))
         changed_mobs.update(mid for mid in set(self.active['balances']) | set(payload['balances'])
                             if self.active['balances'].get(mid) != payload['balances'].get(mid))
-        if (payload['v32_rules']['uoss'] != self.active['v32_rules']['uoss'] or
+        if (payload['v101_rules'] != self.active['v101_rules'] or
+            payload['v100_rules'] != self.active['v100_rules'] or
+            payload['v99_rules'] != self.active['v99_rules'] or
+            payload['v98_rules'] != self.active['v98_rules'] or
+            payload['v32_rules']['uoss'] != self.active['v32_rules']['uoss'] or
+            payload['v33_rules']['uoss'] != self.active['v33_rules']['uoss'] or
+            payload['v34_rules']['uoss'] != self.active['v34_rules']['uoss'] or
             payload['v32_rules']['summons'] != self.active['v32_rules']['summons'] or
             payload['v32_rules']['skills'] != self.active['v32_rules']['skills'] or
             payload['v29_rules']['bosses'] != self.active['v29_rules']['bosses'] or
@@ -1548,14 +1636,30 @@ class LiveContentV1204:
                         state.template_id == mid or str(state.template_id).startswith(mid + '__')
                         for mid in changed_mobs):
                     raise ValueError('Nie zmieniam statystyk potwora live_ podczas trwającej walki.')
+        # v89: exact read-only publication preflight. All validation and runtime
+        # safety guards above are identical to the actual activation path.
+        # Do not call _remove/_install or begin any SQLite writes in this mode.
+        if dry_run:
+            return (f'PRZEDPUBLIKACJA OK: rewizja {self.revision}, '
+                    f'kontrole aktywnych questow, walk i referencji: OK. {result}. '
+                    'BEZ ZAPISU. Stan moze sie zmienic; przy aktywacji '
+                    'wszystkie warunki zostana sprawdzone ponownie.')
         old = copy.deepcopy(self.active)
         previous_revision = self.revision
         self._remove(server.world)
         try:
             self._install(payload, server.world)
             encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-            self.conn.execute('INSERT OR REPLACE INTO live_content_history_v1204 (revision,payload,admin_login) VALUES(?,?,?)', (previous_revision + 1, json.dumps(old, ensure_ascii=False, sort_keys=True), login))
-            self.conn.execute('INSERT INTO live_content_v1204 (id,revision,payload) VALUES(1,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,payload=excluded.payload', (previous_revision + 1, encoded))
+            # Never REPLACE historical revisions. A stale or duplicate write
+            # must fail rather than destroying an audit snapshot.
+            self.conn.execute('INSERT INTO live_content_history_v1204 (revision,payload,admin_login) VALUES(?,?,?)', (previous_revision + 1, json.dumps(old, ensure_ascii=False, sort_keys=True), login))
+            if stored_row is None:
+                self.conn.execute('INSERT INTO live_content_v1204 (id,revision,payload) VALUES(1,?,?)', (previous_revision + 1, encoded))
+            else:
+                update=self.conn.execute('UPDATE live_content_v1204 SET revision=?,payload=? WHERE id=1 AND revision=? AND payload=?',
+                    (previous_revision + 1, encoded, previous_revision, stored_row['payload']))
+                if update.rowcount!=1:
+                    raise ValueError('Konflikt publikacji OLC: inny proces opublikowal nowsza rewizje. Zmiany odrzucone.')
             self.conn.commit()
         except Exception:
             self.conn.rollback()

@@ -174,7 +174,8 @@ def stage(service, category, prefix, field, raw_value):
                 if section in ('recipe_edits', 'item_edits') and field not in catalog[key]:
                     raise ValueError(f'{key}: pole {field} nie istnieje; nie dodaję nowych mechanik.')
                 minimum = 1 if field in ('min_profession_level','min_tool_level','required_level','quantity','heal','defense') else 0
-                maximum = 800 if field in ('min_profession_level','min_tool_level','required_level') else 10000 if field == 'quantity' else 10**15
+                from systems.olc_level_bounds_v7003 import level_bound
+                maximum = level_bound({'min_profession_level':'profesje','min_tool_level':'narzedzia','required_level':'eq'}[field]) if field in ('min_profession_level','min_tool_level','required_level') else 10000 if field == 'quantity' else 10**15
                 amount=_integer(text,minimum,maximum,field)
                 staged[section].setdefault(key,{})[field]=amount
     # Existing validators cover quest cooldown, item types, skill aliases,

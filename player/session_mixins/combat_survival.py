@@ -39,6 +39,11 @@ class SessionCombatSurvivalMixin:
                 )
 
     async def die(self, killer):
+                if getattr(self, "admin_god_v35005", False) and self.is_admin():
+                    self.current_hp = self.max_hp()
+                    self._last_death_cause_v11341 = {}
+                    await self.send("ADMIN GOD: smiertelny atak zatrzymany. Twoja postac zyje.")
+                    return
                 key = self.party_key()
                 if key is not None and self.server.party_protectors.get(key) == self.account_id:
                     self.server.party_protectors.pop(key, None)
