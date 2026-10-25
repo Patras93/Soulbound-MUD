@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Battle-local enemy reactions to a powerful and fast attacking team."""
 def enemy_team_pressure_v1260(mob, template):
+    from systems.adaptive_switch_v102006 import enabled
+    if not enabled():
+        return 1.0
     if not mob or any(template.get(x) for x in
             ('training_dummy','uoss_superboss','world_boss','boss','v1190_secret_guard')):
         return 1.0

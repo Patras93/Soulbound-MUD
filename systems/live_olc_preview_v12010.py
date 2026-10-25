@@ -80,7 +80,7 @@ def _auto_quest_xp(field, definition):
         return v0190_quest_stat_reward(definition)
     if field == 'olc_reward_soul_xp':
         if v0522_is_profession_quest(definition):
-            return 0
+            return 0  # Enemy-loot jobs require a deliberate OLC override.
         return v0190_quest_soul_reward(definition)
     raise ValueError('Nieznany typ automatycznego EXP.')
 

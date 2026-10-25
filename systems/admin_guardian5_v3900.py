@@ -12,6 +12,7 @@ from systems.admin_guardian2_v3600 import resolve_mob
 from systems.admin_guardian4_v3800 import _area_report
 from systems.live_olc4_browse import find_catalog
 from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900, FIELD_TITLES
+from systems.quest_combat_salvage_v102007 import class_xp_at_turnin, soul_xp_at_turnin
 from core.progression_resources import (v0190_quest_stat_reward,
     v0270_quest_character_reward, v0522_combat_quest_class_reward,
     v0190_quest_soul_reward, v0522_is_profession_quest)
@@ -56,8 +57,8 @@ def _quest_rewards(service, qid):
                f'{STAT_LABELS[n]}={v}'+(' [osobny]' if field in active else ' [wspolny]')
                for n,field in STAT_XP_FIELDS_V3900.items() for v in (values[n],)),
            f'EXP postaci: {active.get("olc_reward_xp",base.get("olc_reward_xp",v0270_quest_character_reward(base)))}; '
-           f'Bieglosci: {active.get("olc_reward_class_xp",base.get("olc_reward_class_xp",v0522_combat_quest_class_reward(base)))}; '
-           f'Duszy: {0 if v0522_is_profession_quest(base) else active.get("olc_reward_soul_xp",base.get("olc_reward_soul_xp",v0190_quest_soul_reward(base)))}.',
+           f'Bieglosci: {class_xp_at_turnin(dict(base, **active), v0522_combat_quest_class_reward(base), qid)}; '
+           f'Duszy: {soul_xp_at_turnin(dict(base, **active), v0190_quest_soul_reward(base), qid)}.',
            f'Waluta bazowa: srebro {active.get("reward_silver",base.get("reward_silver",0))}, '
            f'zloto {active.get("reward_gold",base.get("reward_gold",0))}, '
            f'mithril {active.get("reward_mithril",base.get("reward_mithril",0))}.',

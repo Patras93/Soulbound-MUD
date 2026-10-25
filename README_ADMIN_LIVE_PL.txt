@@ -1,6 +1,6 @@
-SOULBOUND MUD v102.00.5 - INSTRUKCJA ADMIN LIVE (POLSKI)
+SOULBOUND MUD v102.00.7 - INSTRUKCJA ADMIN LIVE (POLSKI)
 =======================================================
-Data: 24.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
+Data: 25.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
 Ten plik zastępuje 8 historycznych README. Szczegoly dawnych aktualizacji
 sa w CHANGELOG_PL.txt. Nie oznacza to, ze gra zostala wdrozona.
 
@@ -13,7 +13,7 @@ sa w CHANGELOG_PL.txt. Nie oznacza to, ze gra zostala wdrozona.
 - VERSION - numer paczki i kontroli wydania
 
 2. ADMIN LIVE - GDZIE JEST CO
-W grze: admin live pomoc 57 ... admin live pomoc 76
+W grze: admin live pomoc 57 ... admin live pomoc 77
 Pomoc 57-59: taktyki UOSS 2.0, Quest Doctor, poprawki rozwoju.
 Pomoc 60-64: kreator skilli, naprawy questow, rozszerzenia Admin Live.
 Pomoc 65-69: wzorce skilli, audyt questow, postacie online, arena LAB, AI.
@@ -21,6 +21,7 @@ Pomoc 70-73: mechaniki i rozwój online (level/EXP, wpisy, symulacja).
 Pomoc 74: prawdziwa arena UOSS przez izolowany tunel.
 Pomoc 75: dodatkowe warunki aktywacji mechanik.
 Pomoc 76: przeglad i audyt wszystkich modulow Admin Live.
+Pomoc 77: globalne skalowanie potworow (Adaptive Combat).
 
 3. PRZYKLADOWE KOMENDY
 admin live audyt
@@ -87,3 +88,44 @@ README, CHANGELOG, baza, konfiguracja, logi oraz prywatne dokumenty.
 Nie usuwa sie calych katalogow ani innych README po wzorcu.
 Wymagany nowy PREDEPLOY 60/60 PLUS; kod walki bez zmian.
 Bez GitHuba.
+
+9. WYLACZENIE AUTOMATYCZNEGO SKALOWANIA POTWOROW v102.00.6
+admin live pomoc 77
+admin live skalowanie status
+admin live skalowanie off
+admin live skalowanie on
+Komendy dostepne tylko administratorowi. OFF dotyczy WSZYSTKICH graczy
+od razu, rowniez przeciwnikow w trwajacych starciach. HP potworow wraca
+do wartosci z szablonu, bez przywracania utraconego odsetka zdrowia.
+Brak adaptacyjnego wzrostu obrazen zalezne od HP gracza lub druzyny;
+zwykla potega bossow, poziomy regionow i pietra lochow zostaja.
+Premia do EXP/waluty zwiazana WYLACZNIE z Adaptive Combat wraca do x1.
+Wybor zapisuje sie w LIVE_CONTENT/adaptive_combat_global_v102006.json.
+Nie usuwaj tego pliku po zmianie. Domyslny ON zachowuje historyczny
+balans do chwili, gdy administrator uzyje admin live skalowanie off.
+Po zmianie ZIP wymagane PREDEPLOY 60/60 PLUS.
+
+10. EXP BIEGLOSCI I DUSZY ZA 3 ZLECENIA Z WALKI (v102.00.7)
+
+Dostepne dokladne ID questow (NIE liczba 53 z listy):
+  haldor_steel_recycling           Zlecenie Haldora: Stal do Przetopu
+  haldor_broken_blades_v0929      Zlamane ostrza
+  haldor_armor_recycling_v0929    Pancerz do przetopu
+
+Przyklad ustawienia obu nagrod dla Pancerza do przetopu:
+  admin live edytuj quest haldor_armor_recycling_v0929 xp_bieglosci | KWOTA
+  admin live edytuj quest haldor_armor_recycling_v0929 xp_duszy | KWOTA
+  admin live sprawdz
+  admin live porownaj
+  admin live aktywuj POTWIERDZAM
+
+Przy innych dwoch questach zamien ID na odpowiednie z powyzszej listy.
+KWOTA musi byc liczba calkowita >=0 wybrana przez administratora.
+Sprawdz aktualne wartosci przed i po:
+  admin live quest haldor_armor_recycling_v0929
+
+Nie zmieniaj kind z collect na kill. Cele, loot, pochlanianie przedmiotow,
+czas odnowienia oraz wszystkie istniejace nagrody pieniezne pozostaja bez zmian.
+W trzech powyzszych questach EXP Bieglosci i Duszy sa wyplacane po oddaniu,
+tylko jesli zostaly jawnie ustawione przez admina. W zwyklych questach
+profesyjnych EXP Duszy pozostaje zerowy.

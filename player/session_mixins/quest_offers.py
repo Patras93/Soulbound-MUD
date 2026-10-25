@@ -2,7 +2,7 @@
 """Quest availability, NPC offers, accepting and abandoning."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import re
-from core.progression_resources import v0522_is_profession_quest, v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
+from core.progression_resources import v0522_combat_quest_class_reward, v0522_is_profession_quest, v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
 from player.session_mixins.character_profile import soul_trial_difficulty_band
 from player.session_mixins.exp_terrain import QUESTS
 from player.session_mixins.gathering import profession_for_tool_type
@@ -829,8 +829,11 @@ class SessionQuestOffersMixin:
             # Present the same Soul XP rule used by the actual quest turn-in.
             # Profession contracts (also silver-only profession_action quests)
             # never award Soul XP.
-            generated_soul = (0 if v0522_is_profession_quest(quest) else
-                              quest.get('olc_reward_soul_xp', v0190_quest_soul_reward(quest)))
+            from systems.quest_combat_salvage_v102007 import class_xp_at_turnin, soul_xp_at_turnin
+            generated_class = class_xp_at_turnin(quest, v0522_combat_quest_class_reward(quest), quest_id)
+            if generated_class:
+                reward_parts.append(f"EXP Biegłości {generated_class}")
+            generated_soul = soul_xp_at_turnin(quest, v0190_quest_soul_reward(quest), quest_id)
             if generated_soul:
                 reward_parts.append(f"Soul XP {generated_soul}")
             if quest.get("unlocks_soul_tier"):

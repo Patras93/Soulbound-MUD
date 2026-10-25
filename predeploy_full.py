@@ -1892,3 +1892,11 @@ def _v10200_admin_live_gate():
     print(result.stdout.strip(),flush=True)
     return 52
 print(f'ADMIN LIVE v102.00.0: {_v10200_admin_live_gate()} checks PASS',flush=True)
+
+# v102.00.6: required global combat-scaling ON/OFF safety and persistence gate.
+from validation.v102006_global_scaling import run as _v102006_global_scaling
+print(f'GLOBAL ADAPTIVE v102.00.6: {_v102006_global_scaling()} checks PASS', flush=True)
+
+# v102.00.7: validate collection loot rewards and actual payout hooks.
+from validation.v102007_combat_salvage_quest_xp import run as _v102007_salvage
+print(f'COMBAT SALVAGE v102.00.7: {_v102007_salvage()} checks PASS', flush=True)

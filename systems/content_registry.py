@@ -1598,8 +1598,10 @@ LATEST_CHANGES = [
 
 # v102.00.2 - audit-compatible hotfix; non-destructive source scan and OLC audit.
 # v102.00.1 - corrected release metadata and AST ledger after Windows PREDEPLOY failures.
-LATEST_CHANGES_TITLE = "Soulbound v102.00.5 - Admin Live: porzadek przy wdrozeniu"
+LATEST_CHANGES_TITLE = "Soulbound v102.00.7 - EXP Bieglosci i Duszy za lupy z walki"
 LATEST_CHANGES = [
+    "v102.00.7: trzy zlecenia na lupy z walki - reczny EXP Bieglosci i Duszy przez Admin Live; bez zmian monet i celow.",
+    "v102.00.6: admin live skalowanie off/on/status - globalny, zapisany przelacznik Adaptive Combat.",
     "v102.00.5: instalator i pierwsze uruchomienie przenosza stare README do kopii poza gra.",
     "v102.00.4: jeden poradnik Admin Live zamiast 8 README; zadnej zmiany mechaniki gry.",
     "v102.00.3: weryfikatory predeploy wymagaja wszystkich 52 kontroli Admin Live v102, bez zmiany logiki gry.",

@@ -297,6 +297,11 @@ class SessionAdminToolsMixin:
         parts = raw.split(maxsplit=1)
         cmd = parts[0].lower() if parts else ''
         tail = parts[1].strip() if len(parts) > 1 else ''
+        # v102.00.6: global adaptive combat switch; not an OLC DRAFT change.
+        if cmd == 'skalowanie':
+            from systems.adaptive_switch_v102006 import command as adaptive_switch_command
+            await adaptive_switch_command(self, tail)
+            return
         # v102: local native engine tunnel, guarded mechanic vocabulary and audit.
         if cmd in ('pomoc','arena','audyt'):
             from systems.admin_live_final_v10200 import dispatch_v10200
@@ -893,9 +898,9 @@ class SessionAdminToolsMixin:
                 from core.progression_resources import v0190_quest_stat_reward
                 auto_char = v0270_quest_character_reward(definition)
                 auto_stat = v0190_quest_stat_reward(definition)
-                auto_class = v0522_combat_quest_class_reward(definition)
-                auto_soul = (0 if v0522_is_profession_quest(definition)
-                             else v0190_quest_soul_reward(definition))
+                from systems.quest_combat_salvage_v102007 import class_xp_at_turnin, soul_xp_at_turnin, is_combat_salvage_quest
+                auto_class = class_xp_at_turnin(definition, v0522_combat_quest_class_reward(definition), tail)
+                auto_soul = soul_xp_at_turnin(definition, v0190_quest_soul_reward(definition), tail)
                 def xp_view(field, generated):
                     if field in active:
                         return f'{active[field]} (ręczny)'
@@ -907,7 +912,7 @@ class SessionAdminToolsMixin:
                     f'EXP postaci: {xp_view("olc_reward_xp", auto_char)}; '
                     f'EXP biegłości: {xp_view("olc_reward_class_xp", auto_class)}; '
                     f'EXP statystyk: {xp_view("olc_reward_stat_xp", auto_stat)}; '
-                    f'EXP Duszy: {("0 (quest profesyjny)") if v0522_is_profession_quest(definition) else xp_view("olc_reward_soul_xp", auto_soul)}; '
+                    f'EXP Duszy: {xp_view("olc_reward_soul_xp", auto_soul) if not v0522_is_profession_quest(definition) or is_combat_salvage_quest(definition, tail) else "0 (quest profesyjny)"}; '
                     f'EXP profesji bazowe: {definition.get("reward_profession_xp", 0)}; '
                     f'EXP narzędzia bazowe: {definition.get("reward_tool_xp", 0)}; '
                     f'Odnowienie: {definition.get("repeat_cooldown", "domyślne")} s; '

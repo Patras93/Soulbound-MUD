@@ -1,3 +1,21 @@
+Aktualna paczka: v102.00.7
+Soulbound v102.00.7 (25.10.2026) - NAGRODY EXP BIEGŁOŚCI I DUSZY W ZADANIACH Z ŁUPAMI
+- Zlecenie Haldora: Stal do Przetopu; Złamane ostrza; Pancerz do przetopu.
+- Zadania typu collect zachowują cele, drop, zużywanie łupów i odnowienie bez zmian.
+- Admin Live akceptuje ręczny EXP biegłości dla tych trzech nazw; wypłata faktycznie działa po oddaniu.
+- Soul XP w zwykłych questach profesji nadal zero. W tych trzech wyjątkach wyłącznie po ręcznym ustawieniu pola OLC.
+- Nie ustawiono automatycznych kwot EXP ani nie zmieniono nagród monetarnych; 732 złota i 89 srebra Pancerza do przetopu pozostają bez zmian.
+- Po zmianie ZIP wymagane nowe testy PREDEPLOY 60/60 PLUS.
+
+Soulbound v102.00.6 (25.10.2026) - GLOBALNE WYŁĄCZENIE SKALOWANIA POTWORÓW DO GRACZY
+- Nowe: admin live skalowanie off / on / status, wyłącznie dla administratora, dla wszystkich graczy.
+- OFF: bez adaptacyjnego powiększania HP do DPS/poziomu drużyny, bez adaptacyjnego wyrównywania obrażeń do HP gracza i bez dodatkowej premii Adaptive Combat do nagród.
+- OFF obowiązuje bez restartu; już skalowane moby wracają do bazowego maksimum, zachowując odsetek utraconego HP.
+- Naturalne statystyki zapisane w definicji moba, bossowie, regiony, lochy i niezależne efekty pozostają bez zmian.
+- Stan jest zapisywany atomowo w LIVE_CONTENT/adaptive_combat_global_v102006.json i przywracany po restarcie.
+- Nowe instalacje startują z dotychczasowym trybem ON; administrator wybiera globalnie OFF jednym poleceniem.
+- Wymaga nowego PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
 Aktualna paczka: v102.00.5
 Soulbound v102.00.5 (24.10.2026) - AUTOMATYCZNE SPRZATANIE STARYCH README PRZY WDROZENIU
 - Dokladna biala lista osmiu historycznych README v98-v102; nigdy nie usuwaj dowolnych nazw README ani dokumentacji uzytkownika.

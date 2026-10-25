@@ -165,6 +165,11 @@ class SessionCombatDamageMixin:
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 if not isinstance(template, dict) or template.get("training_dummy"):
                     return None
+                # Global OFF disables both HP and damage scaling for everyone.
+                from systems.adaptive_switch_v102006 import enabled, reset_mob
+                if not enabled():
+                    reset_mob(mob, template)
+                    return None
 
                 members = self.adaptive_party_members_v11330(mob)
                 party_dps = self.adaptive_party_dps_v1261(members)
@@ -228,6 +233,9 @@ class SessionCombatDamageMixin:
 
     def adaptive_enemy_damage_multiplier_v11330(self, mob, template=None):
                 if not mob or not self.character:
+                    return 1.0
+                from systems.adaptive_switch_v102006 import enabled
+                if not enabled():
                     return 1.0
                 template = template or MOB_TEMPLATES.get(mob.template_id, {})
                 if not isinstance(template, dict) or template.get("training_dummy"):
@@ -533,22 +541,24 @@ class SessionCombatDamageMixin:
 
     def consider_adaptive_preview_v11331(self, mob, template):
                 """Preview encounter-local Adaptive Combat without starting or mutating combat."""
+                from systems.adaptive_switch_v102006 import enabled
+                adaptive_active = enabled()
                 members = self.adaptive_party_members_v11330(mob)
                 party_size = max(1, len(members))
-                party_dps = self.adaptive_party_dps_v1261(members)
+                party_dps = self.adaptive_party_dps_v1261(members) if adaptive_active else 0.0
 
                 base_max_hp = max(1, int(template.get("max_hp", 1) or 1))
                 party_level = max(
                     max(1, int(getattr(member.character, "character_level", 1) or 1))
                     for member in members
                 )
-                projected_max_hp = adaptive_target_max_hp_v11330(
+                projected_max_hp = (adaptive_target_max_hp_v11330(
                     base_max_hp, party_dps, template, party_level=party_level,
                     room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
-                )
+                ) if adaptive_active else base_max_hp)
                 active_max_hp = max(
                     0, int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0)
-                )
+                ) if adaptive_active else 0
                 effective_max_hp = max(
                     base_max_hp, projected_max_hp, active_max_hp
                 )
@@ -588,22 +598,25 @@ class SessionCombatDamageMixin:
                 party_action = max(1.0, party_action)
 
                 base_enemy_hit = self.consider_enemy_expected_hit(template)
-                adaptive_floor = max(
-                    1.0,
-                    float(self.max_hp())
-                    * adaptive_target_incoming_fraction_v11330(
-                        template, party_size,
-                        player_level=getattr(self.character, "character_level", 1),
-                        room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
-                    ),
-                )
-                adaptive_floor = adaptive_beginner_incoming_target_v2005(
-                    template,
-                    getattr(self.character, "character_level", 1),
-                    base_enemy_hit,
-                    adaptive_floor,
-                    room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),
-                )
+                if adaptive_active:
+                    adaptive_floor = max(
+                        1.0,
+                        float(self.max_hp())
+                        * adaptive_target_incoming_fraction_v11330(
+                            template, party_size,
+                            player_level=getattr(self.character, "character_level", 1),
+                            room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
+                        ),
+                    )
+                    adaptive_floor = adaptive_beginner_incoming_target_v2005(
+                        template,
+                        getattr(self.character, "character_level", 1),
+                        base_enemy_hit,
+                        adaptive_floor,
+                        room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),
+                    )
+                else:
+                    adaptive_floor = base_enemy_hit
                 enemy_hit = (
                     max(base_enemy_hit, adaptive_floor)
                     * self.v0210_enemy_damage_multiplier()
@@ -615,9 +628,9 @@ class SessionCombatDamageMixin:
                     "max_hp": effective_max_hp,
                     "current_hp": effective_current_hp,
                     "hp_multiplier": effective_max_hp / float(base_max_hp),
-                    "reward_multiplier": adaptive_reward_multiplier_v11330(
+                    "reward_multiplier": (adaptive_reward_multiplier_v11330(
                         base_max_hp, effective_max_hp
-                    ),
+                    ) if adaptive_active else 1.0),
                     "rank": adaptive_combat_rank_v11330(template),
                     "party_size": party_size,
                     "party_dps": max(1.0, float(party_dps)),
@@ -784,7 +797,10 @@ class SessionCombatDamageMixin:
                         "Dalsze obozy, ruiny i wymiary mogą być trudniejsze."
                     )
                 adaptive = rating["adaptive"]
+                from systems.adaptive_switch_v102006 import enabled
                 adaptive_state = (
+                    "SKALOWANIE WYLACZONE GLOBALNIE"
+                    if not enabled() else
                     "aktualna skala aktywnego starcia"
                     if adaptive["already_scaled"]
                     else "prognoza przed rozpoczęciem walki"
@@ -799,7 +815,7 @@ class SessionCombatDamageMixin:
                 await self.send(
                     f"Bazowy atak szablonu: {template['damage']}. "
                     f"Typ obrażeń: {damage_type}. "
-                    f"Szacowane obrażenia odpowiedzi po skalowaniu: około "
+                    f"Szacowane obrażenia odpowiedzi: około "
                     f"{rating['enemy_hit']}."
                 )
                 await self.send(

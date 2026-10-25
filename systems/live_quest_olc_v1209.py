@@ -242,8 +242,11 @@ def validate_quest_edit(quest_id, base, patch, items, mobs, quests, npcs, live_n
                 and not effective.get('required_profession')
                 and not effective.get('reward_profession')):
             raise ValueError('Progi poziomu profesji i narzędzia dotyczą questów profesyjnych.')
-    if 'olc_reward_class_xp' in patch and effective.get('kind') not in ('kill', 'legendary_rare', 'world_boss', 'party_contract'):
-        raise ValueError('EXP biegłości dotyczy wyłącznie questów walki.')
+    from systems.quest_combat_salvage_v102007 import is_combat_salvage_quest
+    if ('olc_reward_class_xp' in patch
+            and effective.get('kind') not in ('kill', 'legendary_rare', 'world_boss', 'party_contract')
+            and not is_combat_salvage_quest(effective, quest_id)):
+        raise ValueError('EXP biegłości dotyczy questów walki lub trzech zleceń z łupami z pokonanych wrogów.')
     if 'repeat_cooldown' in patch and not effective.get('repeatable', False):
         raise ValueError('Najpierw ustaw repeatable na true, aby zmienić czas odnowienia.')
     return effective

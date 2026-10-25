@@ -18,6 +18,7 @@ from world.economy_quests import v0914_combat_quest_soul_reward
 from world.equipment_help import QUEST_REPEAT_COOLDOWN_SECONDS
 
 from events.contracts import QuestCompletedEvent
+from systems.quest_combat_salvage_v102007 import class_xp_at_turnin, soul_xp_at_turnin
 
 class SessionQuestCommandsMixin:
 
@@ -164,10 +165,10 @@ class SessionQuestCommandsMixin:
             # v0.52.2: questy typu kill rozwijają także Biegłość aktywnych klas.
             # grant_class_xp zachowuje istniejące x2 EXP, bonus Gildii, Mentora
             # i podział puli pomiędzy aktywne klasy.
-            reward_class_xp = (q.get("olc_reward_class_xp", v0522_combat_quest_class_reward(q))
-                               if is_combat_quest else 0)
+            reward_class_xp = class_xp_at_turnin(
+                q, v0522_combat_quest_class_reward(q), quest_id)
             if reward_class_xp:
-                await self.send(f"Nagroda questa walki: {reward_class_xp} EXP Biegłości.")
+                await self.send(f"Nagroda questa: {reward_class_xp} EXP Biegłości.")
                 await self.grant_class_xp(
                     reward_class_xp,
                     content_level=quest_content_level,
@@ -177,8 +178,8 @@ class SessionQuestCommandsMixin:
             # v0.52.2: progresja profesji/rzemiosł nie zasila już Broni Duszy.
             # Zwykłe questy nieprofesyjne zachowują dotychczasowy Soul XP.
             is_profession_quest = v0522_is_profession_quest(q)
-            reward_soul_xp = (0 if is_profession_quest else
-                              q.get("olc_reward_soul_xp", v0914_combat_quest_soul_reward(q, self.character)))
+            reward_soul_xp = soul_xp_at_turnin(
+                q, v0914_combat_quest_soul_reward(q, self.character), quest_id)
             if reward_soul_xp:
                 await self.send(f"Nagroda questa: {reward_soul_xp} Soul XP.")
                 await self.grant_soul_xp(

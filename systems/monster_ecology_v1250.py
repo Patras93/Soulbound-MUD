@@ -72,7 +72,8 @@ def ecology_turn_v1250(world, mob, template, now=None):
 
 def adaptive_skills_v1250(mob, template, owner_power, base_damage):
     """Small adaptive cadence bonus; no one-shot escalation for beginners."""
-    if any(template.get(f) for f in PROTECTED_FLAGS) or template.get('training_dummy'):
+    from systems.adaptive_switch_v102006 import enabled
+    if not enabled() or any(template.get(f) for f in PROTECTED_FLAGS) or template.get('training_dummy'):
         return 1.0
     ratio = max(1.0, float(owner_power or 0) / max(1.0, float(base_damage or 1)))
     # At high power monsters grow tougher and diversify attacks, without a low-level spike.

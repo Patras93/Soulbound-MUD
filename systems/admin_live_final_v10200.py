@@ -13,12 +13,13 @@ HELP=(
  'przed efektami. Plan, zatwierdz do DRAFT, sprawdz i aktywuj POTWIERDZAM. '
  'Mechaniki sa deklaratywne i bez dowolnego Pythona. '
  'POMOC 76: audyt raport / audyt komendy / audyt olc / audyt arena. '
- 'Audyt tylko czyta; raport nie oznacza pelnego certyfikatu produkcji.')
+ 'Audyt tylko czyta; raport nie oznacza pelnego certyfikatu produkcji. '
+ 'POMOC 77: admin live skalowanie off/on/status. Globalny przelacznik Adaptive Combat. ')
 
 
 async def dispatch_v10200(session,cmd,tail):
     raw=str(tail or '').strip();parts=raw.split()
-    relevant=(cmd=='pomoc' and raw in ('74','75','76') or
+    relevant=(cmd=='pomoc' and raw in ('74','75','76','77') or
               cmd=='arena' and parts[:2]==['real','tunel'] or
               cmd=='audyt')
     if not relevant:return False
