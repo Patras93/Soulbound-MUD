@@ -566,6 +566,7 @@ class SessionAdminToolsMixin:
             "arena skill ID; arena przedmiot ID; arena sekwencja plan AKCJE; "
             "arena migawka; arena prognoza LICZBA; questy skan; "
             "questy audyt FRAZA; nagrody katalog FRAZA. "
+            "EXPPROGI: expprogi podglad POLE PROG; expprogi ustaw POLE PROG NOWY_EXP. "
             "Zwykle komendy OLC ponizej: "
             "ADMIN LIVE OLC23: status skilla: edytuj skill ID olc_status (JSON: kind poison/burn/freeze/shock, chance 0.01-1.0; dla poison/burn opcjonalne power_percent 1-200, ticks 1-5); auto cofa status. cele QUEST; celezmien QUEST | JSON_CELOW; nowywielocelowy live_ID | NAZWA | NPC | {\"kill\":{\"bandit\":5},\"collect\":{\"iron_ore\":2},\"talk\":[\"npc_id\"]} | SREBRO | OPIS; zaleznosci QUEST; grupapodglad quest/surowiec/skill/mob/receptura/przedmiot PREFIKS POLE; grupazmien KATEGORIA PREFIKS POLE | WARTOSC; quest requires_quests | [\"id1\",\"id2\"]; status; pokoj ID | poziom | nazwa | opis | region; "
             "polacz OD KIERUNEK DO; potwor ID | poziom | nazwa | HP | obrazenia | EXP; "
@@ -980,6 +981,24 @@ class SessionAdminToolsMixin:
             if cmd in ('anuluj', 'cancel'):
                 service.reset_draft()
                 await self.send("HOT RELOAD: anulowano niezatwierdzone zmiany.")
+                return
+            if cmd == 'expprogi':
+                # Bulk action validates a copy of DRAFT before swapping it in.
+                # A rejected parameter must NOT delete the admin's older edits.
+                read_only_preview = True  # Keep pre-existing DRAFT on errors.
+                from systems.admin_live_quest_xp_threshold_v1 import preview as xp_preview, stage as xp_stage
+                bits = tail.split()
+                if len(bits) == 3 and bits[0] == 'podglad':
+                    await self.send(xp_preview(service, bits[1], bits[2]))
+                elif len(bits) == 4 and bits[0] == 'ustaw':
+                    await self.send(xp_stage(service, bits[1], bits[2], bits[3]))
+                else:
+                    await self.send('EXPPROGI: admin live expprogi podglad xp_statystyk 1000; '
+                                    'admin live expprogi ustaw xp_statystyk 1000 25000; '
+                                    'pola: xp_postaci, xp_bieglosci, xp_duszy, xp_statystyk, '
+                                    'xp_profesji, xp_narzedzia, xp_sila, xp_zrecznosc, '
+                                    'xp_kondycja, xp_inteligencja, xp_wola, xp_charyzma, wszystkie. '
+                                    'Zero pomijane, zmiany trafiaja do DRAFT.')
                 return
             if cmd in ('grupapodglad', 'grupazmien'):
                 from systems.live_olc13_batch import preview as batch_preview, stage as batch_stage

@@ -1,3 +1,13 @@
+Aktualna paczka: v102.00.8
+Soulbound v102.00.8 (25.10.2026) - ADMIN LIVE: PROGI EXP ZADAN
+- Scalono dodatek Soulbound_AdminLive_EXP_Progi_v1 z pelnym wydaniem Soulbound v102.00.7.
+- admin live expprogi podglad POLE PROG oraz expprogi ustaw POLE PROG NOWY_EXP.
+- Zakres: EXP postaci, bieglosci, Duszy, statystyk wspolnych i osobnych, profesji i narzedzi.
+- Poprawa dotyczy tylko istniejacych dodatnich bazowych nagrod mniejszych niz wskazany prog; zero lub nagrody >= progu nietkniete.
+- Brak automatycznej publikacji; komendy zapisują tylko walidowany DRAFT; odrzucona zmiana nie usuwa starszego DRAFT.
+- Nie zmieniono monet, celow questow, dropow, skalowania potworow, postaci ani bazy produkcyjnej.
+- Dodano kontrole do szybkiego i pelnego PREDEPLOY; przed wdrozeniem wymagane nowe 60/60 PLUS na Windows.
+
 Aktualna paczka: v102.00.7
 Soulbound v102.00.7 (25.10.2026) - NAGRODY EXP BIEGŁOŚCI I DUSZY W ZADANIACH Z ŁUPAMI
 - Zlecenie Haldora: Stal do Przetopu; Złamane ostrza; Pancerz do przetopu.

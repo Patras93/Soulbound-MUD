@@ -1,4 +1,4 @@
-SOULBOUND MUD v102.00.7 - INSTRUKCJA ADMIN LIVE (POLSKI)
+SOULBOUND MUD v102.00.8 - INSTRUKCJA ADMIN LIVE (POLSKI)
 =======================================================
 Data: 25.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
 Ten plik zastępuje 8 historycznych README. Szczegoly dawnych aktualizacji
@@ -129,3 +129,24 @@ czas odnowienia oraz wszystkie istniejace nagrody pieniezne pozostaja bez zmian.
 W trzech powyzszych questach EXP Bieglosci i Duszy sa wyplacane po oddaniu,
 tylko jesli zostaly jawnie ustawione przez admina. W zwyklych questach
 profesyjnych EXP Duszy pozostaje zerowy.
+
+11. ADMIN LIVE EXPPROGI - HURTOWA KOREKTA DODATNICH NAGROD QUESTOW v102.00.8
+Podglad nie zmienia niczego:
+  admin live expprogi podglad xp_statystyk 1000
+Przyklad przygotowania DRAFT (liczby wybierasz sam):
+  admin live expprogi ustaw xp_statystyk 1000 25000
+  admin live expprogi podglad xp_postaci 1000
+  admin live expprogi ustaw xp_postaci 1000 12000
+  admin live expprogi podglad wszystkie 1000
+Pola: xp_postaci, xp_bieglosci, xp_duszy, xp_statystyk, xp_profesji,
+xp_narzedzia, xp_sila, xp_zrecznosc, xp_kondycja, xp_inteligencja,
+xp_wola, xp_charyzma, wszystkie.
+Zmienia tylko bazowe dodatnie nagrody mniejsze od PROGU, niczego nie
+narzuca z gory. Brak/zero EXP i nagrody >=PROGU pozostaja bez zmian.
+W przypadku zwyklych questow profesji nie dopisuje bojowego EXP Bieglosci.
+Trzy zlecenia Haldora na lupy z walki zachowuja wczesniejszy wyjatek.
+Przyblednej komendzie poprzednie zmiany robocze pozostaja nietkniete.
+Po zmianach: admin live sprawdz; admin live porownaj;
+admin live aktywuj POTWIERDZAM. Przed publikacja mozna wpisac admin live anuluj.
+Po publikacji nowe EXP sa nagrodami BAZOWYMI; dalsze modyfikatory EXP/CAP
+pozostaja zgodne z zasadami silnika. Testuj na wybranych questach.

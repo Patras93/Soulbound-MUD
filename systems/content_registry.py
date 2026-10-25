@@ -1598,8 +1598,9 @@ LATEST_CHANGES = [
 
 # v102.00.2 - audit-compatible hotfix; non-destructive source scan and OLC audit.
 # v102.00.1 - corrected release metadata and AST ledger after Windows PREDEPLOY failures.
-LATEST_CHANGES_TITLE = "Soulbound v102.00.7 - EXP Bieglosci i Duszy za lupy z walki"
+LATEST_CHANGES_TITLE = "Soulbound v102.00.8 - Admin Live EXP Progi dla questow"
 LATEST_CHANGES = [
+    "v102.00.8: Admin Live expprogi - hurtowa zmiana dodatnich nagrod ponizej progu, tylko DRAFT z walidacja.",
     "v102.00.7: trzy zlecenia na lupy z walki - reczny EXP Bieglosci i Duszy przez Admin Live; bez zmian monet i celow.",
     "v102.00.6: admin live skalowanie off/on/status - globalny, zapisany przelacznik Adaptive Combat.",
     "v102.00.5: instalator i pierwsze uruchomienie przenosza stare README do kopii poza gra.",

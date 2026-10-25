@@ -5212,3 +5212,7 @@ print(f'GLOBAL ADAPTIVE v102.00.6: {_v102006_global_scaling()} checks PASS', flu
 # v102.00.7: validate collection loot rewards and actual payout hooks.
 from validation.v102007_combat_salvage_quest_xp import run as _v102007_salvage
 print(f'COMBAT SALVAGE v102.00.7: {_v102007_salvage()} checks PASS', flush=True)
+
+# v102.00.8: mandatory safe bulk quest XP threshold regression.
+from validation.v_exp_progi_admin_live import run as _exp_progi_gate
+print(f"ADMIN LIVE EXPPROGI v102.00.8: {_exp_progi_gate()} checks PASS", flush=True)
