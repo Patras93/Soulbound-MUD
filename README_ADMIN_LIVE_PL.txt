@@ -1,6 +1,6 @@
-SOULBOUND MUD v102.00.8 - INSTRUKCJA ADMIN LIVE (POLSKI)
+SOULBOUND MUD v102.00.11 - INSTRUKCJA ADMIN LIVE (POLSKI)
 =======================================================
-Data: 25.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
+Data: 26.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
 Ten plik zastępuje 8 historycznych README. Szczegoly dawnych aktualizacji
 sa w CHANGELOG_PL.txt. Nie oznacza to, ze gra zostala wdrozona.
 
@@ -150,3 +150,34 @@ Po zmianach: admin live sprawdz; admin live porownaj;
 admin live aktywuj POTWIERDZAM. Przed publikacja mozna wpisac admin live anuluj.
 Po publikacji nowe EXP sa nagrodami BAZOWYMI; dalsze modyfikatory EXP/CAP
 pozostaja zgodne z zasadami silnika. Testuj na wybranych questach.
+
+12. OPTYMALIZACJA DIAGNOSTYKI v102.00.9
+admin komendy wolne - ostatnie 100 zapisanych wolnych pomiarow. Po wdrozeniu nowe wpisy craft i quit pomijaja celowe oczekiwanie na recepture lub menu, historyczne dane nie sa usuwane. Dodatkowy wpis [PERF QUESTACCEPT] pojawi sie w logach gdy przyjmowanie trwa ponad 250 ms. Nie rejestruje surowych argumentow komend.
+
+13. NAPRAWA PRZYJMOWANIA QUESTOW v102.00.10
+Naprawiono blad NameError _accept_db_v102009 w czasie przyjmowania questa, kiedy diagnostyka czasowa przekracza 250 ms.
+Jesli poprzednio pojawil sie blad po komunikacie Quest przyjety, sprawdz aktywne questy: baza mogla juz zapisac zadanie.
+Nie trzeba ponownie przyjmowac aktywnego questa. Nie zmieniono limitow ani wartosci nagrod.
+
+14. CENTRUM NAPRAW ADMIN LIVE 1.0 (v102.00.11)
+admin live bledy lista 20
+admin live bledy pokaz SB-XXXXXXXX
+admin live bledy diagnoza SB-XXXXXXXX
+admin live napraw SB-XXXXXXXX
+admin live napraw sprawdz SB-XXXXXXXX NICK QUEST_ID
+admin live napraw zastosuj SB-XXXXXXXX NICK QUEST_ID POTWIERDZAM
+admin live napraw cofnij NUMER_KOREKTY POTWIERDZAM
+
+Odczyt i diagnoza nigdy nic nie zmieniaja. Automatyczna korekta jest dostepna
+WYŁĄCZNIE dla ujemnego postepu aktywnego zadania gracza OFFLINE, z istniejacym
+zapisem historii i kontrola konfliktow (CAS). Korekta podnosi ujemny postep
+do zera. Numer korekty z odpowiedzi sluzy do cofniecia, jesli od tego czasu
+postep sie nie zmienil i gracz nadal jest offline.
+
+Numer SB NIE okresla, kto ma bledny quest, ani nie dowodzi przyczyny.
+NameError, AttributeError, bledy importu i inne usterki samego kodu wymagaja
+przetestowanej poprawki kodu i (zwykle) wdrozenia; Centrum Napraw nie wykonuje
+arbitralnego Pythona, nie nadpisuje plikow i nie restartuje serwera.
+Komenda naprawy NIE zamyka automatycznie zgloszenia SB. Po przetestowaniu
+przyczyny: admin blad naprawiony SB-XXXXXXXX (osobna swiadoma decyzja).
+Brak zmian EXP, balansu, zawartosci questow, danych innych graczy i DRAFT OLC.

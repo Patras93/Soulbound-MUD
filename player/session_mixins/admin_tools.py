@@ -297,6 +297,11 @@ class SessionAdminToolsMixin:
         parts = raw.split(maxsplit=1)
         cmd = parts[0].lower() if parts else ''
         tail = parts[1].strip() if len(parts) > 1 else ''
+        # v102.00.11: owner-only, bounded error triage; no source-code hotpatch.
+        if cmd in ('bledy', 'błędy', 'napraw'):
+            from systems.admin_live_repair_center_v1020011 import handle_repair_center
+            if await handle_repair_center(self, cmd, tail):
+                return
         # v102.00.6: global adaptive combat switch; not an OLC DRAFT change.
         if cmd == 'skalowanie':
             from systems.adaptive_switch_v102006 import command as adaptive_switch_command
@@ -1613,7 +1618,7 @@ class SessionAdminToolsMixin:
                 await self.send("Użycie: admin komendy wolne.")
                 return True
             rows = conn.execute("SELECT command,COUNT(*) n,MAX(duration_ms) max_ms FROM admin_slow_commands_v1224 GROUP BY command ORDER BY max_ms DESC LIMIT 20").fetchall()
-            await self.send(f"WOLNE KOMENDY: {len(rows)} typów (od startu wersji 1.22.4).")
+            await self.send(f"WOLNE KOMENDY: {len(rows)} typów (ostatnie 100 wolnych pomiarów, także z poprzednich wersji; od v102.00.9 bez celowego oczekiwania craft/menu quit).")
             for row in rows:
                 await self.send(f"{row['command']}: {row['n']} razy; najwolniej {row['max_ms']} ms.")
             return True

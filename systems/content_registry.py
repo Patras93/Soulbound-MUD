@@ -1598,8 +1598,13 @@ LATEST_CHANGES = [
 
 # v102.00.2 - audit-compatible hotfix; non-destructive source scan and OLC audit.
 # v102.00.1 - corrected release metadata and AST ledger after Windows PREDEPLOY failures.
-LATEST_CHANGES_TITLE = "Soulbound v102.00.8 - Admin Live EXP Progi dla questow"
+LATEST_CHANGES_TITLE = "Soulbound v102.00.11 - Centrum Napraw Admin Live"
 LATEST_CHANGES = [
+    "v102.00.11: admin live bledy/napraw - lista SB, diagnoza, bezpieczna korekta ujemnego postepu offline i cofanie.",
+    "v102.00.11: bledy kodu Python tylko diagnozowane; bez automatycznego patchowania i bez restartu w trakcie komend.",
+    "v102.00.10: naprawiono NameError przy przyjmowaniu questow, gdy pomiar trwa ponad 250 ms.",
+    "v102.00.9: wspolne katalogi ID dla kazdej walidacji OLC; mniej alokacji w hurtowych zmianach questow.",
+    "v102.00.9: rozdzielono celowe oczekiwanie craft i quit od wolnych operacji; fazy questaccept w logu.",
     "v102.00.8: Admin Live expprogi - hurtowa zmiana dodatnich nagrod ponizej progu, tylko DRAFT z walidacja.",
     "v102.00.7: trzy zlecenia na lupy z walki - reczny EXP Bieglosci i Duszy przez Admin Live; bez zmian monet i celow.",
     "v102.00.6: admin live skalowanie off/on/status - globalny, zapisany przelacznik Adaptive Combat.",

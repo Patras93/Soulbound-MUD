@@ -1,4 +1,28 @@
-Aktualna paczka: v102.00.8
+Aktualna paczka: v102.00.11
+Soulbound v102.00.11 (26.10.2026) - CENTRUM NAPRAW ADMIN LIVE 1.0
+- admin live bledy lista [ILE], pokaz SB-ID, diagnoza SB-ID: tylko odczyt bazy bledow, bez tresci komend i hasel.
+- admin live napraw SB-ID [NICK QUEST_ID] i sprawdz: plan i test bez zapisu.
+- admin live napraw zastosuj SB-ID NICK QUEST_ID POTWIERDZAM: TYLKO ujemny postep aktywnego questa gracza offline, CAS.
+- admin live napraw cofnij NUMER_KOREKTY POTWIERDZAM: odtworzenie poprzedniego postepu, gdy stan nie ulegl zmianie.
+- NameError, ImportError, SyntaxError i inne usterki Python: tylko diagnoza; zadnego wykonania Python ani hotpatch.
+- Nie oznacza bledu SB automatycznie jako naprawionego; brak migracji danych graczy, zmian EXP i balansu.
+- Dodano regresje do obu PREDEPLOY; wymagany Windows PREDEPLOY 60/60 PLUS przed wdrozeniem.
+
+Aktualna paczka: v102.00.10
+Soulbound v102.00.10 (26.10.2026) - NAPRAWA QUEST ACCEPT / NAMEERROR
+- Naprawiono NameError _accept_db_v102009 i _accept_requirements_v102009 w accept_quest_id.
+- Pomiar czasu bazy i wymagan przeniesiono z quest_offer_state do wlasciwej funkcji.
+- Dodatkowe regresje szybkie/wolne przyjecie, ponowne przyjecie i odrzucenia.
+- Nie zmieniono questow, nagrod EXP, danych graczy, ekonomii, balansu ani czasow craftingu.
+- Wszystkie funkcje v102.00.9 pozostaja. Przed wdrozeniem pelny PREDEPLOY 60/60 PLUS.
+
+Soulbound v102.00.9 (26.10.2026) - OPTYMALIZACJA SERWERA I POMIAROW
+- Admin Live: zamiast budowac 3 wielkie zbiory identyfikatorow dla kazdego edytowanego questa, powstaja raz na cala walidacje.
+- EXP Progi: wspolny odczyt i sortowanie katalogu dla wszystkich rodzajow EXP; zachowane DRAFT i walidacja.
+- Diagnostyka: rozdzielenie celowego czasu oczekiwania w craft i menu quit od czasu pracy silnika (bez zmiany receptur i zachowania menu).
+- Questaccept: bezpieczne logowanie czasow etapow; brak zmian wyplacania nagrod, warunkow questow i SQLite.
+- Bez zmian balansu, EXP, danych graczy, skalowania, najemnikow, UOSS; Windows PREDEPLOY 60/60 PLUS przed wdrozeniem.
+
 Soulbound v102.00.8 (25.10.2026) - ADMIN LIVE: PROGI EXP ZADAN
 - Scalono dodatek Soulbound_AdminLive_EXP_Progi_v1 z pelnym wydaniem Soulbound v102.00.7.
 - admin live expprogi podglad POLE PROG oraz expprogi ustaw POLE PROG NOWY_EXP.

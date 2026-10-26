@@ -2,6 +2,7 @@
 """Quest availability, NPC offers, accepting and abandoning."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import re
+import time
 from core.progression_resources import v0522_combat_quest_class_reward, v0522_is_profession_quest, v0190_quest_currency_reward, v0190_quest_soul_reward, v0190_quest_stat_reward, v0270_quest_character_reward
 from player.session_mixins.character_profile import soul_trial_difficulty_band
 from player.session_mixins.exp_terrain import QUESTS
@@ -478,6 +479,7 @@ class SessionQuestOffersMixin:
             Wewnętrzny ``_party_shared`` zapobiega rekurencyjnemu ponownemu
             rozsyłaniu questa przez członków drużyny.
             """
+            _accept_start_v102009 = time.perf_counter()
             if self.combat_mob_key:
                 if _party_shared and _party_leader_name:
                     await self.send(
@@ -493,6 +495,7 @@ class SessionQuestOffersMixin:
                 return False
 
             row = self.server.db.quest(self.account_id, quest_id)
+            _accept_db_v102009 = time.perf_counter()
             if row and row["status"] == "active":
                 progress, ready = self.quest_progress_for_turnin(quest_id)
                 suffix = " Cel wykonany." if ready else ""
@@ -520,6 +523,7 @@ class SessionQuestOffersMixin:
                     return False
 
             reasons = self.quest_lock_reasons(quest_id)
+            _accept_requirements_v102009 = time.perf_counter()
             if reasons:
                 await self.send(
                     f"Nie możesz jeszcze przyjąć questa {quest['name']}: "
@@ -545,6 +549,13 @@ class SessionQuestOffersMixin:
                 self.server.db.start_quest(self.account_id, quest_id)
                 await self.send(f"Quest przyjęty: {quest['name']}.")
 
+            _accept_persisted_v102009 = time.perf_counter()
+            if (_accept_persisted_v102009 - _accept_start_v102009) >= 0.25:
+                print('[PERF QUESTACCEPT] precheck_ms=%d, requirements_ms=%d, write_reply_ms=%d' % (
+                    round((_accept_db_v102009 - _accept_start_v102009) * 1000),
+                    round((_accept_requirements_v102009 - _accept_db_v102009) * 1000),
+                    round((_accept_persisted_v102009 - _accept_requirements_v102009) * 1000),
+                ), flush=True)
             # v0.8.43: przedmioty potrzebne do jednorazowych dostaw Sola.
             for item_id, qty in (quest.get("accept_items") or {}).items():
                 wanted_qty = max(1, int(qty))

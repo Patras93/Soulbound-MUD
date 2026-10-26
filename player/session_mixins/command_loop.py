@@ -116,6 +116,7 @@ class SessionCommandLoopMixin:
                 continue
 
             _perf_started_v0718 = time.perf_counter()
+            self._perf_intentional_wait_v102009 = 0.0
             # v1.26.2: cache immutable EQ readouts only for the duration of a
             # single read-only STATY request. Never carry these values into
             # combat, crafting, equipping, or another command.
@@ -128,14 +129,21 @@ class SessionCommandLoopMixin:
                 if _read_only_stats_v1262:
                     self.__dict__.pop("_read_only_equipment_cache_v1262", None)
             _perf_elapsed_v0718 = time.perf_counter() - _perf_started_v0718
-            if _perf_elapsed_v0718 >= 0.25:
+            # Deliberate recipe timers and character-menu input are not engine work.
+            _perf_wait_v102009 = min(_perf_elapsed_v0718, max(0.0, float(
+                getattr(self, '_perf_intentional_wait_v102009', 0.0))))
+            _perf_work_v102009 = max(0.0, _perf_elapsed_v0718 - _perf_wait_v102009)
+            self.__dict__.pop('_perf_intentional_wait_v102009', None)
+            if _perf_work_v102009 >= 0.25:
                 print(
-                    f"[PERF SLOW COMMAND] {command or token}: {_perf_elapsed_v0718:.3f}s",
+                    f"[PERF SLOW COMMAND] {command or token}: "
+                    f"praca={_perf_work_v102009:.3f}s, "
+                    f"oczekiwanie={_perf_wait_v102009:.3f}s",
                     flush=True,
                 )
                 # Never record raw arguments: a command may contain a secret.
                 try:
-                    self.server.db.record_slow_command_v1224(command or token, _perf_elapsed_v0718)
+                    self.server.db.record_slow_command_v1224(command or token, _perf_work_v102009)
                 except (OSError, ValueError, RuntimeError, sqlite3.Error) as exc:
                     print(f"[ADMIN DIAGNOSTICS] Slow command not recorded: {type(exc).__name__}", flush=True)
             if dispatched is COMMAND_LOOP_BREAK:

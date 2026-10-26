@@ -6,6 +6,7 @@ Uses the same canonical OLC fields, aliases and full service.validate as single
 edits; cannot create a new XP axis on a quest that did not pay that axis.
 """
 import copy
+import time
 
 from data.quests import QUESTS
 from systems.live_quest_olc_v1209 import parse_quest_edit, QUEST_XP_ALIASES
@@ -117,11 +118,14 @@ def _current(quest, draft_patch, field):
     return _base(quest, field)
 
 
-def _eligible(service, field, threshold):
-    catalog = {**QUESTS, **service.draft.get('quests', {})}
+def _eligible(service, field, threshold, catalog=None, ordered_ids=None):
+    if catalog is None:
+        catalog = {**QUESTS, **service.draft.get('quests', {})}
+    if ordered_ids is None:
+        ordered_ids = sorted(catalog)
     selected = []
     zeros, inapplicable, already_high, protected = 0, 0, 0, 0
-    for qid in sorted(catalog):
+    for qid in ordered_ids:
         quest = catalog[qid]
         if not _available(quest, qid, field):
             inapplicable += 1
@@ -158,8 +162,11 @@ def plan(service, name, threshold_raw):
     rows = []
     examples = []
     totals = [0, 0, 0, 0]
+    # One consistent catalog/order for all axes in the same bulk operation.
+    catalog = {**QUESTS, **service.draft.get('quests', {})}
+    ordered_ids = sorted(catalog)
     for field in fields:
-        matched, skipped = _eligible(service, field, threshold)
+        matched, skipped = _eligible(service, field, threshold, catalog, ordered_ids)
         rows.extend((qid, field, old) for qid, old in matched)
         for i, value in enumerate(skipped):
             totals[i] += value
@@ -186,14 +193,25 @@ def stage(service, name, threshold_raw, target_raw):
     target = _amount(target_raw, 'Docelowy EXP')
     if target < threshold:
         raise ValueError('Nowy EXP musi byc >= progowi, aby podnosic za niskie nagrody.')
+    _started = time.perf_counter()
     rows, info = plan(service, name, threshold)
+    _planned = time.perf_counter()
     if not rows:
         return info + ' Brak zmian; DRAFT pozostaje bez zmian.'
     draft = copy.deepcopy(service.draft)
     for qid, field, old in rows:
         canonical, value = parse_quest_edit(field, target)
         draft['quest_edits'].setdefault(qid, {})[canonical] = value
+    _copied = time.perf_counter()
     validated = service.validate(draft)
+    _validated = time.perf_counter()
+    # Privacy: log only phase duration, never quest IDs or input values.
+    if (_validated - _started) >= 0.25:
+        print('[PERF ADMIN EXPPROGI] plan_ms=%d, draft_ms=%d, validate_ms=%d' % (
+            round((_planned - _started) * 1000),
+            round((_copied - _planned) * 1000),
+            round((_validated - _copied) * 1000),
+        ), flush=True)
     # No partial updates, all changes go into the same validated DRAFT.
     service.draft = draft
     return (info + f' Przygotowano ustawienie na {target}; {validated}. '

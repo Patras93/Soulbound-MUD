@@ -187,7 +187,15 @@ class SessionCommandSpecialHandlersMixin:
         await self.send("Zapisuję postać i wracam do wyboru postaci.")
         await self.leave_current_character_for_selection()
 
-        selected = await self.character_selection_flow()
+        # The selection menu waits for input: do not count it as server CPU work.
+        import time as _perf_time_v102009
+        _menu_started_v102009 = _perf_time_v102009.perf_counter()
+        try:
+            selected = await self.character_selection_flow()
+        finally:
+            self._perf_intentional_wait_v102009 = getattr(
+                self, '_perf_intentional_wait_v102009', 0.0
+            ) + (_perf_time_v102009.perf_counter() - _menu_started_v102009)
         if selected is True:
             await self.enter_world()
             return None

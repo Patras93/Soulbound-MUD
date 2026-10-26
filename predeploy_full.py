@@ -1904,3 +1904,15 @@ print(f'COMBAT SALVAGE v102.00.7: {_v102007_salvage()} checks PASS', flush=True)
 # v102.00.8: mandatory safe bulk quest XP threshold regression.
 from validation.v_exp_progi_admin_live import run as _exp_progi_gate
 print(f"ADMIN LIVE EXPPROGI v102.00.8: {_exp_progi_gate()} checks PASS", flush=True)
+
+# v102.00.9: mandatory safe optimization and slow-command diagnostics.
+from validation.v102009_performance import run as _v102009_perf
+print(f"OPTIMIZATION v102.00.9: {_v102009_perf()} checks PASS", flush=True)
+
+# v102.00.10: regression for real >250 ms questaccept telemetry NameError.
+from validation.v1020010_questaccept_fix import run as _v1020010_questaccept
+print(f"QUEST ACCEPT HOTFIX v102.00.10: {_v1020010_questaccept()} checks PASS", flush=True)
+
+# v102.00.11: bounded Admin Live runtime error triage, offline quest repair and CAS undo.
+from validation.v1020011_repair_center import run as _v1020011_repair
+print(f"ADMIN LIVE REPAIR CENTER v102.00.11: {_v1020011_repair()} checks PASS", flush=True)

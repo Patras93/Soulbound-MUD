@@ -259,6 +259,9 @@ def build_elite_rare_named_loot_expansion():
     # Elite + Rare eligibility. Bosses/minibosses excluded.
     # --------------------------------------------------------
     eligible=[]
+    # v102.00.9: elite eligibility tests a snapshot of spawn template IDs.
+    # Reuse it across templates; the eligibility loop itself adds no spawns.
+    spawned_template_ids_v102009 = {tid for _room, tid in MOB_SPAWNS}
     for mob_id,t in list(MOB_TEMPLATES.items()):
         if (
             t.get("training_dummy") or t.get("world_boss") or t.get("mini_boss")
@@ -273,7 +276,7 @@ def build_elite_rare_named_loot_expansion():
         if (
             "max_hp" in t
             and "damage" in t
-            and any(tid == mob_id for _room,tid in MOB_SPAWNS)
+            and mob_id in spawned_template_ids_v102009
         ):
             t["elite_eligible"]=True
             t["rare_eligible"]=True

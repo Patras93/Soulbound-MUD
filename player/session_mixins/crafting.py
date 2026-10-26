@@ -461,7 +461,14 @@ class SessionCraftingMixin:
             ):
                 await self.smelt_wait_v1124(action_seconds)
             else:
-                await asyncio.sleep(action_seconds)
+                # v102.00.9: distinguish deliberate craft wait from engine work.
+                _wait_start_v102009 = __import__('time').perf_counter()
+                try:
+                    await asyncio.sleep(action_seconds)
+                finally:
+                    self._perf_intentional_wait_v102009 = getattr(
+                        self, '_perf_intentional_wait_v102009', 0.0
+                    ) + (__import__('time').perf_counter() - _wait_start_v102009)
 
             for item_id, quantity in recipe["ingredients"].items():
                 if not self.consume_recipe_item(item_id, quantity):

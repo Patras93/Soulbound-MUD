@@ -201,6 +201,11 @@ class LiveContentV1204:
             'quest_edits': QUESTS, 'recipe_edits': CRAFT_RECIPES,
             'shop_edits': SHOPS,
         }
+        # v102.00.9: same effective IDs for every edit in this validation.
+        # Never persist/cache across hot reloads: staged additions must be visible.
+        effective_items = set(ITEMS) | set(data['items'])
+        effective_mobs = set(MOB_TEMPLATES) | set(data['mobs'])
+        effective_quests = set(QUESTS) | set(data['quests'])
         for section, fields in allowed_fields.items():
             patches = data[section]
             limit = 8000 if section == 'quest_edits' else 400
@@ -218,9 +223,8 @@ class LiveContentV1204:
                         if not quest_base:
                             raise ValueError('Nieznana definicja questa.')
                         # Validate against all staged fields, not a partial update.
-                        validate_quest_edit(key, quest_base, patch, set(ITEMS) | set(data['items']),
-                                            set(MOB_TEMPLATES) | set(data['mobs']),
-                                            set(QUESTS) | set(data['quests']), NPCS, data['npcs'])
+                        validate_quest_edit(key, quest_base, patch, effective_items,
+                                            effective_mobs, effective_quests, NPCS, data['npcs'])
                         break
                     if section == 'npc_edits' and field == 'name' and key in NPCS:
                         old_name = str(NPCS[key]['name']).casefold()
@@ -241,9 +245,9 @@ class LiveContentV1204:
                     elif field == 'auto_aggro':
                         if not isinstance(value, bool): raise ValueError('auto_aggro wymaga true/false.')
                     elif field == 'drops':
-                        self._validate_drops(value, set(ITEMS) | set(data['items']))
+                        self._validate_drops(value, effective_items)
                     elif field == 'ingredients':
-                        self._validate_ingredients(value, set(ITEMS) | set(data['items']))
+                        self._validate_ingredients(value, effective_items)
                     else:
                         _integer(value, 1 if field in ('max_hp','damage','generator_level','min_profession_level') else 0,
                                  800 if field in ('generator_level','min_profession_level') else 10**15, field)
@@ -362,6 +366,7 @@ class LiveContentV1204:
 
     def _validate_catalog_additions(self, data, room_ids, mob_ids):
         item_ids = set(ITEMS) | set(data['items'])
+        quest_ids = set(QUESTS) | set(data['quests'])
         npc_names = {n['name'].casefold() for key, n in NPCS.items() if key not in self.active['npcs']}
         occupied = {n['room'] for key, n in NPCS.items() if key not in self.active['npcs']}
         for section, max_count in (('items', 200), ('npcs', 100), ('quests', 200),
@@ -446,8 +451,8 @@ class LiveContentV1204:
             if not isinstance(quest, dict) or not required <= set(quest) or not set(quest) <= required | {'requires_quest', 'requires_quests', 'resource_targets', 'objectives'}:
                 raise ValueError(f'Quest {qid}: wymagane {sorted(required)}, opcjonalne requires_quest.')
             from systems.live_olc17_quest_dependencies import validate_dependencies
-            validate_dependencies(qid, quest, set(QUESTS) | set(data['quests']))
-            if 'requires_quest' in quest and (quest['requires_quest'] not in set(QUESTS) | set(data['quests']) or quest['requires_quest'] == qid):
+            validate_dependencies(qid, quest, quest_ids)
+            if 'requires_quest' in quest and (quest['requires_quest'] not in quest_ids or quest['requires_quest'] == qid):
                 raise ValueError(f'Quest {qid}: nieznany lub własny poprzednik.')
             _text(quest['name'], 120, 'Quest'); _text(quest['description'], 1600, 'Opis questa')
             _text(quest['giver'], 100, 'Zleceniodawca')
@@ -501,7 +506,7 @@ class LiveContentV1204:
             _integer(recipe['quantity'], 1, 1000, 'Ilość produktu')
             _integer(recipe['min_profession_level'], 1, _live_level_bound_v5900('profesje'), 'Poziom profesji')
         for npc in data['npcs'].values():
-            if npc.get('quest') and npc['quest'] not in (set(QUESTS) | set(data['quests'])):
+            if npc.get('quest') and npc['quest'] not in quest_ids:
                 raise ValueError('NPC wskazuje na nieistniejący quest.')
 
     def _remember(self, registry, key, value):
