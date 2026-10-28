@@ -48,7 +48,7 @@ def run_regression():
 
     db = TestDB()
     baseline = multi_cap_experience_v23215(db.conn, 1)
-    assert baseline == 5500
+    assert baseline == 11000
     assert multi_cap_experience_v23215(db.conn, 2) is None
     checks += 2
 
@@ -76,21 +76,21 @@ def run_regression():
     }
     expected_cap = sum(multi_cap_level_value_v23217(v)
                        for arr in expected_lvls.values() for v in arr)
-    assert cap == expected_cap == multi_cap_experience_v23215(db.conn, 1)
+    assert cap == 2 * expected_cap == multi_cap_experience_v23215(db.conn, 1)
     assert levels == sum(sum(arr) for arr in expected_lvls.values())
     for kind, arr in expected_lvls.items():
         assert levels_by_kind[kind] == sum(arr), kind
-        assert cap_by_kind[kind] == sum(multi_cap_level_value_v23217(v) for v in arr), kind
+        assert cap_by_kind[kind] == 2 * sum(multi_cap_level_value_v23217(v) for v in arr), kind
         checks += 2
     checks += 2
 
     db.conn.execute('UPDATE tools SET level=52 WHERE account_id=1 AND tool_type=?', ('kilof',))
-    assert multi_cap_experience_v23215(db.conn, 1) == cap + 12500
+    assert multi_cap_experience_v23215(db.conn, 1) == cap + 25000
     checks += 1
-    assert banked_experience_v2011(db, 1, 10**30, 'soul', 31) == cap + 12500
-    assert banked_experience_v2011(db, 1, 10**30, 'profession', 41, source_key='gornictwo', overcap=True) == (cap + 12500)*2
+    assert banked_experience_v2011(db, 1, 10**30, 'soul', 31) == cap + 25000
+    assert banked_experience_v2011(db, 1, 10**30, 'profession', 41, source_key='gornictwo', overcap=True) == (cap + 25000)*2
     checks += 2
-    assert level_overview_lines_v23216(db.conn, 1, 'class0')[-1] == f'Your experience cap is {cap+12500} EXP.'
+    assert level_overview_lines_v23216(db.conn, 1, 'class0')[-1] == f'Your experience cap is {cap+25000} EXP.'
     checks += 1
 
     # A locked Soul tier does NOT hide the XP threshold or remaining XP.
@@ -114,13 +114,13 @@ def run_regression():
     asyncio.run(namespace['show_character_level'](session))
     assert 'Soul XP 200 z 1125. Brakuje 925 Soul XP do poziomu 9.' in messages[1]
     assert 'zablokowany' in messages[2].lower()
-    assert messages[-1] == f'Your experience cap is {cap+12500} EXP.'
+    assert messages[-1] == f'Your experience cap is {cap+25000} EXP.'
     checks += 3
     messages.clear()
     char.soul_level = 800
     asyncio.run(namespace['show_character_level'](session))
     assert 'maksimum' in messages[1]
-    assert messages[-1] == f'Your experience cap is {cap+12500} EXP.'
+    assert messages[-1] == f'Your experience cap is {cap+25000} EXP.'
     checks += 2
     db.conn.close()
     return checks

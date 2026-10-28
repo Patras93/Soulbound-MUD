@@ -193,6 +193,15 @@ def find_room_matches(self, query):
                 return ["astral_gate"]
             return []
 
+        # Deep Dungeon levels (including hidden Floor 0) are never automatic
+        # destinations. Route to the elevator, not past progression locks.
+        deep_floor_match = re.fullmatch(
+            r"(?:deep dungeon|uoss deep dungeon|deep)\s+(?:(?:floor|pietro)\s+)?\d+",
+            q,
+        )
+        if deep_floor_match:
+            return ["uoss_deep_dungeon_entry_v11331"]
+
         mine_match = re.fullmatch(
             r"(?:kopalnia|mine|poziom kopalni|kopalnia poziom|mine floor)\s*(\d+)",
             q,

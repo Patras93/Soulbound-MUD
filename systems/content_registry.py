@@ -1598,8 +1598,14 @@ LATEST_CHANGES = [
 
 # v102.00.2 - audit-compatible hotfix; non-destructive source scan and OLC audit.
 # v102.00.1 - corrected release metadata and AST ledger after Windows PREDEPLOY failures.
-LATEST_CHANGES_TITLE = "Soulbound v102.00.11 - Centrum Napraw Admin Live"
+LATEST_CHANGES_TITLE = "Soulbound v102.00.13 - Deep Winda + Multi Cap x2"
 LATEST_CHANGES = [
+    "v102.00.13: walk deep / deep dungeon / floor 0 prowadzi bezpiecznie do windy, a trasa dla pieter Deep Dungeon nie omija eksploracji i blokad bossa.",
+    "v102.00.13: bazowy Multi Cap EXP jest 2x wyzszy dla wszystkich osi, bonusy Admin Live nadal dzialaja, Half CAP / Overcap / bank EXP zachowane.",
+    "v102.00.12: zapisane limity poziomow wczytywane przy kazdym starcie v52+; brak resetu na 800 po aktualizacji.",
+    "v102.00.12: wymagania EXP i fallback CAP rosna rowniez ponad 800; Multi Cap, Half CAP, Overcap i EXP Bank pozostaja aktywne.",
+    "v102.00.12: questy daja co najmniej 200 000 bazowego EXP postaci/statystyk oraz w odpowiednich osiach biegłości, Duszy, profesji i narzędzi; wyzsze nagrody pozostaja.",
+    "v102.00.12: wyzszy EXP w kryptach i wiezach, wzmocniona stala trudnosc swiata bez automatycznego wlaczania skalowania do graczy.",
     "v102.00.11: admin live bledy/napraw - lista SB, diagnoza, bezpieczna korekta ujemnego postepu offline i cofanie.",
     "v102.00.11: bledy kodu Python tylko diagnozowane; bez automatycznego patchowania i bez restartu w trakcie komend.",
     "v102.00.10: naprawiono NameError przy przyjmowaniu questow, gdy pomiar trwa ponad 250 ms.",

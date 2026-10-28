@@ -1,6 +1,6 @@
-SOULBOUND MUD v102.00.11 - INSTRUKCJA ADMIN LIVE (POLSKI)
+SOULBOUND MUD v102.00.12 - INSTRUKCJA ADMIN LIVE (POLSKI)
 =======================================================
-Data: 26.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
+Data: 28.10.2026. Pelna paczka Windows, kandydat do PREDEPLOY 60/60 PLUS.
 Ten plik zastępuje 8 historycznych README. Szczegoly dawnych aktualizacji
 sa w CHANGELOG_PL.txt. Nie oznacza to, ze gra zostala wdrozona.
 
@@ -181,3 +181,37 @@ arbitralnego Pythona, nie nadpisuje plikow i nie restartuje serwera.
 Komenda naprawy NIE zamyka automatycznie zgloszenia SB. Po przetestowaniu
 przyczyny: admin blad naprawiony SB-XXXXXXXX (osobna swiadoma decyzja).
 Brak zmian EXP, balansu, zawartosci questow, danych innych graczy i DRAFT OLC.
+
+
+15. LIMITY PO AKTUALIZACJI (v102.00.12)
+- Zapis administratora: LIVE_CONTENT\admin_level_caps.json (chroniony przez aktualizator ZIP).
+- Od v102.00.12 kazda przyszla wersja >= v52 automatycznie wczytuje zapisane limity przy starcie.
+- admin live limity: sprawdza aktywne limity w RAM.
+- admin live limity wczytaj POTWIERDZAM: odczytuje ponownie plik bez restartu.
+- admin live limity wszystkie bezlimitu POTWIERDZAM: TRWALE ustawia 10 kategorii, jesli taka jest decyzja wlasciciela.
+- Uwaga: ulepszenia_eq domyslnie +10, wiec uzycie 'wszystkie' zmienia rowniez ten limit.
+
+16. EXP PONAD 800 (v102.00.12)
+- Do poziomu 800 wartosci nagrod, wymagan, CAP i Bank EXP bez zmian.
+- Poziom 801+ (gdy admin odblokuje limity) nadal ma rosnace wymagania EXP.
+- Awaryjny per-award EXP CAP w testowych/starych bazach takze rosnie ponad 800.
+- Produkcyjne Multi Cap pozostaje suma postepu postaci, Duszy, biegłości, statystyk, profesji, narzedzi i skilli.
+- Half CAP, Overcap i bankowanie nadwyzek EXP pozostaja aktywne, nie kasujemy banku.
+- SQLite nadal ogranicza pojedyncze wartosci liczbowe (int64); nie jest to limit poziomu 800.
+
+17. NAGRODY EXP QUESTOW BEZ SYMBOLICZNYCH WARTOSCI (v102.00.12)
+- Kazdy zwykly quest daje min. 200 000 bazowego EXP postaci i dla kazdej z szesciu statystyk. Prawdziwe uzyskane punkty podlegaja mechanice CAP, bankowania i premiom.
+- Quest walki daje min. 200 000 bazowego EXP Bieglosci i Duszy; zadania profesji nie dostaja automatycznie EXP Duszy ani Bieglosci.
+- Quest z kontekstem profesji/narzedzia daje min. 200 000 bazowego XP w tych osiach (nie w dowolnej profesji bez odpowiedniego narzedzia).
+- Wyjatkowe trzy zlecenia Haldora z lupami nadal wymagaja osobnego uprawnienia OLC do EXP Bieglosci i Duszy; ustawiona wartosc dodatnia podlega nowemu minimum.
+- Wyplata liczona w chwili oddania, wyswietlana przez quests na ekranie informacji. Zapisane w bazie nagrody OLC nie sa nadpisywane.
+- admin live expprogi nadal edytuje zapisane surowe wartosci w DRAFT; wartosci ponizej minimum maja przy wyplacie podniesiona podstawe.
+
+18. SWIAT, KRYPTY I WIEZE v102.00.12
+- Dodatkowa stala presja: swiat +20% HP, +22% obrazen, +40% EXP walki. Inne instancje sa mocniejsze.
+- Zwykle Krypty: dodatkowy mnoznik EXP x1.9, Mityczne Krypty x2.2.
+- Wieza Astralna: dodatkowy mnoznik EXP x2.0, Mityczna x2.3.
+- Zmiany dzialaja w statycznych i leniwie generowanych pietrach, takze bossach.
+- Przelicznik EXP odbiorcy w kryptach/wiezach rowniez podniesiony; zabezpieczenie wczesnych poziomow (brak przeskakiwania wielu leveli jednym zabiciem) pozostaje.
+- No adaptive: zapisane `admin live skalowanie off` NIE jest w zmienionych plikach ani automatycznie wlaczane.
+- Wylacznie pliki wydania, bez danych graczy. Wymagany Windows PREDEPLOY 60/60 PLUS.

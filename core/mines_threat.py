@@ -101,6 +101,20 @@ WALK_STEP_DELAY = float(os.getenv("SOULBOUND_WALK_STEP_DELAY", "0.70"))
 GUIDE_STEP_DELAY = float(os.getenv("SOULBOUND_GUIDE_STEP_DELAY", "0.35"))
 
 GUIDE_DESTINATION_ALIASES = {
+    # v102.00.13: every ordinary Deep Dungeon route ends at the elevator.
+    # Floor 0 is a boss area reachable only through deepelevator 0 after unlock.
+    'deep': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon': 'uoss_deep_dungeon_entry_v11331',
+    'uoss deep dungeon': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon winda': 'uoss_deep_dungeon_entry_v11331',
+    'winda deep dungeon': 'uoss_deep_dungeon_entry_v11331',
+    'deep winda': 'uoss_deep_dungeon_entry_v11331',
+    'deep 0': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon 0': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon floor 0': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon pietro 0': 'uoss_deep_dungeon_entry_v11331',
+    'floor 0 deep dungeon': 'uoss_deep_dungeon_entry_v11331',
+    'deep dungeon floor zero': 'uoss_deep_dungeon_entry_v11331',
     # MIASTO, NPC I POZOSTALE CELE
     'ira': 'alpine_herbalist_hut',
     'zielarka alpejska': 'alpine_herbalist_hut',

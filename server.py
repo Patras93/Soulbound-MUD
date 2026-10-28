@@ -886,10 +886,12 @@ else:
         )
     RUNTIME_MEMORY_COMPACTION_V0616["post_audit"] = _memory_post
 
-# v52: apply saved per-axis level caps only AFTER the native runtime and
-# authoring audits have finished importing. Earlier would invalidate static
-# baseline-800 boot audits or freeze partial module bindings.
-if VERSION in ('52.00.0','53.00.0','54.00.0','55.00.0','56.00.0','57.00.0','58.00.0','59.00.0','60.00.0','61.00.0','62.00.0','63.00.0','64.00.0','65.00.0','66.00.0','67.00.0','68.00.0','69.00.0','70.00.0','70.00.1','70.00.2','70.00.3','71.00.0','72.00.0','73.00.0','74.00.0','75.00.0','76.00.0','77.00.0','78.00.0','79.00.0','80.00.0','81.00.0','82.00.0','83.00.0','84.00.0','85.00.0','86.00.0','87.00.0','88.00.0','89.00.0','90.00.0','91.00.0','92.00.0','93.00.0','94.00.0','95.00.0','95.00.0','96.00.0','96.00.1','96.00.2','96.00.3','96.00.4','97.00.0'):
+# v102.00.12: reapply persisted Admin Live caps at each startup for all
+# releases from v52 onwards. A hand-maintained VERSION allowlist ended at
+# v97.00.0, inadvertently restoring default 800 for later builds.
+# Keep this AFTER native imports and authoring audits (baseline 800 required).
+# File LIVE_CONTENT/admin_level_caps.json is protected by the ZIP updater.
+if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
     try:
         from core.live_level_caps_v5200 import load as _load_caps_v5200
         _load_caps_v5200()

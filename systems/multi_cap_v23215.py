@@ -157,7 +157,10 @@ def multi_cap_calculation_v23217(conn, account_id):
     cap_parts = {name: sum(multi_cap_level_value_v23217(level) for level in v)
                  for name, v in chunks.items()}
     # Bonuses only. Never decrease baseline contribution, never discard banked XP.
-    cap_parts = {name: (base * category_bonus.get(name,100) * overall_bonus + 9999)//10000
+    # v102.00.13: 2x the baseline Multi Cap for every earned track.
+    # Published Admin Live category/global bonuses remain multiplicative on top,
+    # and setting them to AUTO cannot restore the obsolete lower default.
+    cap_parts = {name: (2 * base * category_bonus.get(name,100) * overall_bonus + 9999)//10000
                  for name, base in cap_parts.items()}
     return sum(cap_parts.values()), sum(level_parts.values()), level_parts, cap_parts
 

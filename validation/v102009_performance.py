@@ -66,7 +66,7 @@ def run():
               'retention still bounded')
         check('admin komendy wolne' in (root/'README_ADMIN_LIVE_PL.txt').read_text(encoding='utf-8'),
               'diagnostic documented')
-        check((root/'VERSION').read_text(encoding='utf-8').strip() == '102.00.11',
+        check((root/'VERSION').read_text(encoding='utf-8').strip() == '102.00.13',
               'release matches')
         return checks
     finally:

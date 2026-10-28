@@ -1,4 +1,34 @@
-Aktualna paczka: v102.00.11
+Aktualna paczka: v102.00.13
+Soulbound v102.00.13 (28.10.2026) - DEEP DUNGEON DO WINDY + MULTI CAP X2
+- walk deep, walk deep dungeon, walk deep dungeon winda i warianty Floor 0 prowadza wylacznie do wejscia Deep Dungeon - Winda.
+- Wszystkie pokoje Deep Dungeon, w tym ukryte Floor 0, sa dla auto-prowadzenia redukowane do windy; trasa takze to respektuje.
+- Reczne deepelevator 0 i odblokowanie Serpentariusa po pietrze 100 pozostaja bez zmian; auto-walk nie omija blokad.
+- Bazowy Multi Cap wszystkich zdobytych osi EXP 2x (postac, dusza, soul tier, bron duszy, statystyki, klasa, profesje, narzedzia, umiejetnosci, wzniesienia).
+- Half CAP nadal polowa NOWEGO CAP; Overcap 2x NOWEGO CAP. EXP Bank i EP/Fame oparte o aktualny Multi Cap zachowane.
+- Bonusy admin live multi_cap_bonus_percent / multi_cap_category_bonus sa nadal stosowane dodatkowo, nie sa resetowane.
+- Fallback CAP takze x2; brak obnizenia juz posiadanych EXP ani zmian wymagan poziomow, balansu potworow i danych SQLite.
+- Nowa regresja PREDEPLOY testuje aliasy, bezpieczne prowadzenie do windy, wzrost CAP i bank nadwyzek.
+
+Aktualna paczka: v102.00.12
+Soulbound v102.00.12 (28.10.2026) - TRWALE NO LIMIT + EXP POWYZEJ 800
+- Naprawiono uruchamianie serwera: saved level caps wczytywane automatycznie po starcie dla wszystkich wersji v52+, bez recznej listy konczacej sie na v97.
+- LIVE_CONTENT/admin_level_caps.json nadal chroniony przez instalator; istniejący zapis 'bezlimitu' pozostaje na dysku.
+- Nagrody z zawartości na poziomach 801+ rosną dalej we wszystkich osiach EXP; brak zatrzymania generatora nagród na 800. Nie zmienia to nagród do 800.
+- EXP po poziomie 800: awaryjny per-award CAP i wymagania EXP rosną dalej, bez plateau na 800; normalny Multi Cap, Half CAP, Overcap i bankowanie EXP bez zmian.
+- Brak edycji SQLite, poziomow postaci, istniejacych EXP i katalogow; poziomy 1..800 zachowuja dotychczasowe wartosci. Brak przywracania limitow po aktualizacji.
+- QUEST EXP: minimum 200 000 bazowego EXP postaci i każdej z 6 statystyk za ukończone zadanie. Nie ma zerowych/symbolicznych wypłat tych osi.
+- Biegłość i Soul: minimum 200 000 tam, gdzie quest je przyznaje. Profesja/narzędzie: 200 000 wartości bazowej, gdy quest rozwija wskazany rodzaj profesji/narzędzia; nie udajemy, że każdy quest jest wędkarski.
+- Wysokie nagrody zachowane. OLC zapisane EXP i postępy graczy bez zmian na dysku; minimum dotyczy obliczonej wypłaty i ekranu informacji. DRAFT/Admin Live niezależne.
+- Wszystkie finalne nagrody podlegają nadal poziomowi, premiom, Multi Cap, Half CAP/Overcap i EXP Bank; bazowe 200 000 nie gwarantuje identycznej końcowej liczby XP profesji/narzędzia.
+- Dwa rzeczywiste punkty odczytu (opis i oddanie) korzystają z jednej polityki nagród, walidowanej również przez PREDEPLOY.
+- SWIAT: stala trudnosc mobow +20% HP / +22% obrazen oraz +40% bazowego EXP walki (nie waluty). Instancje, Magitek, Krypty i Wieze zyskuja osobne mocniejsze premie.
+- KRYPTY: dodatkowe EXP +90% (zwykle) i +120% (mityczne); WIEZE: +100% (zwykla) i +130% (mityczna). Rownoczesny wzrost HP i obrazen w tych lokacjach. Dotyczy kazdego pietra, takze generowanego pozniej i bossow.
+- Realne EXP walki w kryptach/wiezach jest podniesione ROWNIEZ w przeliczniku dla odbiorcy, aby wzrost byl widoczny po normalizacji. Pozostaje ochrona przed wieloma poziomami z jednego zabicia dla niskopoziomowych graczy.
+- Przy poziomie >800 nagrody walki w dungeonach nie zatrzymuja sie na tabeli 800: stosuja rosnaca kotwice autorskiej tabeli, niezalezna od wymagan EXP poziomu.
+- Bez aktywowania Adaptive Combat: wylaczone przez admina `admin live skalowanie off` pozostaje wylaczone. Bez ruszania LIVE_CONTENT, zapisanych OLC, postaci, SQLite i zrodlowych nagrod UOSS.
+
+- Dodano regresje startowej inicjalizacji limitow do FAST i FULL PREDEPLOY. Przed wdrozeniem Windows PREDEPLOY 60/60 PLUS.
+
 Soulbound v102.00.11 (26.10.2026) - CENTRUM NAPRAW ADMIN LIVE 1.0
 - admin live bledy lista [ILE], pokaz SB-ID, diagnoza SB-ID: tylko odczyt bazy bledow, bez tresci komend i hasel.
 - admin live napraw SB-ID [NICK QUEST_ID] i sprawdz: plan i test bez zapisu.

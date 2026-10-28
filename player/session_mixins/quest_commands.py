@@ -72,6 +72,8 @@ class SessionQuestCommandsMixin:
 
     async def complete_quest(self, quest_id):
             q = QUESTS[quest_id]
+            from systems.quest_reward_floor_v1020012 import quest_xp_plan
+            reward_plan = quest_xp_plan(quest_id, q)
             reward_errors = self.validate_quest_rewards_v1106(quest_id, q)
             if reward_errors:
                 await self.send(
@@ -96,13 +98,9 @@ class SessionQuestCommandsMixin:
             await self.send(f"{turnin_npc}: {turnin_reaction}")
 
             quest_content_level=v0190_quest_stage(q)
-            reward_prof_xp = int(
-                q.get("reward_profession_xp", 0)
-            )
-            reward_tool_xp = int(
-                q.get("reward_tool_xp", 0)
-            )
-            reward_tool_type = q.get("reward_tool_type")
+            reward_prof_xp = reward_plan['profession']
+            reward_tool_xp = reward_plan['tool']
+            reward_tool_type = q.get("reward_tool_type") or q.get("specialist_tool_type")
             reward_profession = (
                 q.get("reward_profession")
                 or profession_for_tool_type(reward_tool_type)
@@ -145,13 +143,7 @@ class SessionQuestCommandsMixin:
             # v0.9.14: każdy quest walki daje prawdziwy EXP sześciu statystyk.
             # Korzystamy z istniejącego add_stat_progress, więc rosną bezpośrednio
             # Siła, Zręczność, Kondycja, Inteligencja, Siła Woli i Charyzma.
-            reward_exp = q.get("olc_reward_stat_xp", v0914_combat_quest_stat_reward(q))
-
-            from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900
-            stat_reward_by_name = {
-                name: q.get(field, reward_exp)
-                for name, field in STAT_XP_FIELDS_V3900.items()
-            }
+            stat_reward_by_name = reward_plan['stats']
             quest_stat_applied = []
             if any(stat_reward_by_name.values()):
                 quest_stat_applied = await self.grant_combat_quest_stat_xp(
@@ -165,8 +157,7 @@ class SessionQuestCommandsMixin:
             # v0.52.2: questy typu kill rozwijają także Biegłość aktywnych klas.
             # grant_class_xp zachowuje istniejące x2 EXP, bonus Gildii, Mentora
             # i podział puli pomiędzy aktywne klasy.
-            reward_class_xp = class_xp_at_turnin(
-                q, v0522_combat_quest_class_reward(q), quest_id)
+            reward_class_xp = reward_plan['class_xp']
             if reward_class_xp:
                 await self.send(f"Nagroda questa: {reward_class_xp} EXP Biegłości.")
                 await self.grant_class_xp(
@@ -178,8 +169,7 @@ class SessionQuestCommandsMixin:
             # v0.52.2: progresja profesji/rzemiosł nie zasila już Broni Duszy.
             # Zwykłe questy nieprofesyjne zachowują dotychczasowy Soul XP.
             is_profession_quest = v0522_is_profession_quest(q)
-            reward_soul_xp = soul_xp_at_turnin(
-                q, v0914_combat_quest_soul_reward(q, self.character), quest_id)
+            reward_soul_xp = reward_plan['soul']
             if reward_soul_xp:
                 await self.send(f"Nagroda questa: {reward_soul_xp} Soul XP.")
                 await self.grant_soul_xp(
@@ -201,7 +191,7 @@ class SessionQuestCommandsMixin:
                 q, quest_coins, random.random()
             )
             self.character.silver += quest_coins + quest_bonus_coins_v11324
-            quest_character_xp=q.get("olc_reward_xp", v0270_quest_character_reward(q))
+            quest_character_xp=reward_plan['character']
             from systems.live_olc27_master import quest_character_xp as _quest_xp_v27
             quest_character_xp=_quest_xp_v27(quest_character_xp)
             for _msg in self.add_character_xp_with_event(

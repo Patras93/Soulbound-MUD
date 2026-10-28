@@ -5228,3 +5228,25 @@ print(f"QUEST ACCEPT HOTFIX v102.00.10: {_v1020010_questaccept()} checks PASS", 
 # v102.00.11: bounded Admin Live runtime error triage, offline quest repair and CAS undo.
 from validation.v1020011_repair_center import run as _v1020011_repair
 print(f"ADMIN LIVE REPAIR CENTER v102.00.11: {_v1020011_repair()} checks PASS", flush=True)
+
+# v102.00.12: persistent level-cap startup regression, no production database changes.
+from validation.v1020012_persistent_caps_boot import run as _v1020012_caps_regression
+print(f"PERSISTENT LEVEL CAPS v102.00.12: {_v1020012_caps_regression()} checks PASS", flush=True)
+
+# v102.00.12: growing XP requirements/CAP beyond level 800; bank preserved.
+from validation.v1020012_exp_unlimited import run as _v1020012_exp_regression
+print(f"EXP NO LIMIT v102.00.12: {_v1020012_exp_regression()} checks PASS",flush=True)
+
+# v102.00.12: no zero/symbolic XP on relevant quest tracks; payout/display parity.
+from validation.v1020012_quest_reward_floor import run as _v1020012_reward_floor
+_v1020012_checks, _v1020012_catalog = _v1020012_reward_floor()
+print(f"QUEST XP FLOOR v102.00.12: {_v1020012_checks} checks PASS; {_v1020012_catalog} quests",flush=True)
+
+# v102.00.12: fixed world pressure + real recipient XP boost in all crypts/towers.
+from validation.v1020012_world_crypt_tower_pressure import run as _v1020012_world_pressure
+print(f"WORLD/CRYPT/TOWER PRESSURE v102.00.12: {_v1020012_world_pressure()} checks PASS",flush=True)
+
+
+# v102.00.13: mandatory Deep Dungeon elevator-only route and new Multi Cap x2.
+from validation.v1020013_deep_elevator_cap import run as _deep_entry_gate_v1020013, check_cap as _multi_cap_gate_v1020013
+print(f"DEEP ELEVATOR + MULTI CAP x2 v102.00.13: {_deep_entry_gate_v1020013()+_multi_cap_gate_v1020013()} checks PASS", flush=True)

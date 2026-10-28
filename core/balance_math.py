@@ -117,11 +117,11 @@ def stage_from_index(index: int, maximum: int) -> int:
 
 
 def axis_requirement(axis: str, level: int) -> int:
-    # v0.27.1: statystyki są jedyną osią bez twardego limitu. Pozostałe
-    # osie nadal należą do przestrzeni 1-400. Ta sama krzywa statów jest
-    # bezpiecznie ekstrapolowana ponad 400 aż do SAFE_INT.
-    raw_level = max(1, int(level))
-    level = raw_level if axis == "stat" else clamp(raw_level, 1, MAX_LEVEL)
+    # v102.00.12: preserve every 1..800 threshold exactly, but when Admin
+    # Live unlocks levels above 800, no progression axis may plateau there.
+    # The technical SAFE_INT bound is for SQLite compatibility, not an 800
+    # gameplay cap. Reward curves are separate and unchanged by design.
+    level = max(1, int(level))
     base, growth, power = AXIS_CURVES[axis]
     value = base + growth * (level ** power)
     return min(SAFE_INT, max(1, int(round(value))))
@@ -140,9 +140,9 @@ def uncapped_stat_xp_gain(base_amount: int, stat_level: int) -> int:
 def axis_gain(axis: str, level: int, intensity: float = 1.0) -> int:
     """Authored award by content difficulty, never by next-level EXP."""
     target = AXIS_TARGET_ACTIONS[axis]
+    # Rewards from genuinely higher-level content must not plateau at 800
+    # when level caps are disabled.  Values 1..800 remain byte-for-byte equal.
     level = max(1, int(level))
-    if axis != "stat":
-        level = min(level, MAX_LEVEL)
     base, growth, power = AXIS_REWARD_CURVES_V4211[axis]
     reward_anchor = min(SAFE_INT, max(1, int(round(base + growth * (level ** power)))))
     value = reward_anchor / float(target) * max(0.05, float(intensity))

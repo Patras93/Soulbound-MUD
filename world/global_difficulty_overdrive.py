@@ -173,6 +173,28 @@ def _v0386_instance_kind(template):
     return "world"
 
 
+# v102.00.12: intrinsic difficulty/rewards are part of the world template,
+# NOT player-level or party Adaptive Combat. This applies even with
+# `admin live skalowanie off` and never changes that persisted setting.
+# Multipliers apply after the existing 0.38.6/0.50.3 layers, exactly once.
+V1020012_WORLD_PRESSURE = {
+    # HP, damage, combat XP (all axes); money is deliberately unchanged.
+    "world": (1.20, 1.22, 1.40),
+    "instance": (1.20, 1.18, 1.45),
+    "crypt": (1.25, 1.20, 1.90),
+    "mythic_crypt": (1.32, 1.25, 2.20),
+    "tower": (1.25, 1.20, 2.00),
+    "mythic_tower": (1.32, 1.25, 2.30),
+    "magitek": (1.24, 1.20, 1.50),
+}
+
+
+def pressure_by_content_v1020012(template):
+    if isinstance(template, dict) and (template.get("training_dummy") or template.get("source_xp_exact")):
+        return (1.0, 1.0, 1.0)
+    return V1020012_WORLD_PRESSURE[_v0386_instance_kind(template)]
+
+
 def global_difficulty_multipliers_v0386(template):
     """Return final HP/damage/reward/coin multipliers for every combat mob."""
     template = template or {}
@@ -225,6 +247,12 @@ def global_difficulty_multipliers_v0386(template):
     damage *= 1.0 + (float(pressure["damage"]) - 1.0) * pressure_progress
     reward *= 1.0 + (float(pressure["reward"]) - 1.0) * pressure_progress
     coin *= 1.0 + (float(pressure["coin"]) - 1.0) * pressure_progress
+
+    # Fixed world pressure: player level / party size are NOT inputs.
+    new_hp, new_damage, new_xp = pressure_by_content_v1020012(template)
+    hp *= new_hp
+    damage *= new_damage
+    reward *= new_xp
 
     return {
         "hp": round(hp, 6),
@@ -427,6 +455,20 @@ for _v1202_tid, _v1202_template in list(MOB_TEMPLATES.items()):
 # New dynamic encounters created after startup are already routed through
 # World._register_runtime_spawn / the v0.38.4 rebind hooks. Existing live mobs
 # are refreshed on normal World.refresh/respawn through v0190_apply... .
+
+HELP_TOPICS.setdefault("trudnosc swiata", []).append(
+    "v102.00.12: stala trudnosc swiata +20% HP / +22% obrazen i +40% EXP walki ponad dotychczasowy profil. "
+    "Krypty, Mityczne Krypty, obie Wieze i instancje maja osobne mocniejsze mnozniki. "
+    "NIE przywraca skalowania do graczy; `admin live skalowanie off` pozostaje aktywne."
+)
+HELP_TOPICS.setdefault("krypta", []).append(
+    "v102.00.12: +90% EXP w zwyklych Kryptach, +120% EXP w Mitycznych Kryptach "
+    "ponad poprzedni profil; ich HP i obrazenia rowniez rosna. Obowiazuje od 1 pietra i w nieskonczonych pietrach."
+)
+HELP_TOPICS.setdefault("wieza", []).append(
+    "v102.00.12: +100% EXP w Wiezy Astralnej i +130% EXP w Mitycznej Wiezy "
+    "ponad poprzedni profil; HP/obrazenia rowniez rosna. Mutatory i bossowie zostaja."
+)
 
 HELP_TOPICS.setdefault("trudnosc swiata", []).extend([
     "v0.38.6: Global Difficulty Overdrive II wzmacnia końcowo KAŻDEGO moba po wszystkich wcześniejszych warstwach balansu.",

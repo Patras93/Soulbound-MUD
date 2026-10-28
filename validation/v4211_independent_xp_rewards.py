@@ -32,7 +32,7 @@ def run_regression():
         assert fame == dict.fromkeys(('character','soul','stat','class_total'), fame['character'])
         assert 120 <= ep['character'] <= 220
         assert len(set(ep.values())) == 1
-        assert cap == multi_cap_level_value_v23217(level)
+        assert cap == 2 * multi_cap_level_value_v23217(level)
         assert exploration_point_xp_v2103(session.character) == 120
         checks += 6
     # Generated combat/quest/profession rewards also have isolated curves.

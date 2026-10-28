@@ -84,7 +84,7 @@ def run():
         capdb.conn.execute("INSERT INTO ascension_progress_v021 VALUES(1,'class:Mag',10)")
         capdb.conn.commit()
         original=multi_cap_calculation_v23217(capdb.conn,1)
-        ok(original[0]==5500 and original[2]['klasy']==1, 'default older cap')
+        ok(original[0]==11000 and original[2]['klasy']==1, 'default older cap')
         ok(event_calendar_lines(2,now=0)[0].startswith('HARMONOGRAM'))
         ok(active_city_event_v12812(now=0)['slug']=='basalt')
         ok(plan_for_class('Mag',owner_hp=100,owner_max=100,step=2,marked=False)['action']=='strike')
@@ -113,7 +113,7 @@ def run():
             ('przywolanie','Berserker','execute_threshold_percent','55'),
         ):
             ok(bool(service.stage_edit(section,key,field,val)))
-        ok(multi_cap_experience_v23215(capdb.conn,1)==5500)
+        ok(multi_cap_experience_v23215(capdb.conn,1)==11000)
         ok(not SUMMON_TACTICS and WORLD_OVERRIDES=={})
         reject(lambda:service.stage_edit('swiat','global','multi_cap_bonus_percent','50'),'no nerf')
         reject(lambda:service.stage_edit('swiat','global','multi_cap_category_bonus','{"klasy":50}'),'no category nerf')
@@ -159,7 +159,7 @@ def run():
                           ('Berserker','execute_threshold_percent')]:
             restored.stage_edit('przywolanie',cls,field,'auto')
         ok('Aktywowano' in restored.apply(server,'reset_v23'))
-        ok(multi_cap_experience_v23215(capdb.conn,1)==5500)
+        ok(multi_cap_experience_v23215(capdb.conn,1)==11000)
         ok(not SUMMON_TACTICS and not WORLD_OVERRIDES)
         ok(plan_for_class('Mag',owner_hp=100,owner_max=100,step=2,marked=False)['action']=='strike')
         ok(active_city_event_v12812(now=0)['slug']=='basalt')

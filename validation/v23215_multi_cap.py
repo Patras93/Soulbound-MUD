@@ -49,13 +49,13 @@ def run_regression():
     assert MULTICLASS_MAX_ACTIVE == 1
     checks += 1
     # 4 core tracks + 6 stats + 1 primary-class fallback = 11.
-    assert multi_cap_experience_v23215(db.conn, 1) == 5500
+    assert multi_cap_experience_v23215(db.conn, 1) == 11000
     assert multi_cap_experience_v23215(db.conn, 2) is None
     checks += 2
     classes = ['Test'+str(n) for n in range(14)]
     db.ensure_primary_class(1, classes[0])
     base = multi_cap_experience_v23215(db.conn, 1)
-    assert base == 5500
+    assert base == 11000
     checks += 1
     # Old unlocked secondary classes and previously active slots are archived.
     for i, name in enumerate(classes[1:], start=2):
@@ -74,7 +74,7 @@ def run_regression():
     assert multi_cap_experience_v23215(db.conn, 1) == base
     checks += 1
     db.conn.execute('UPDATE class_progress SET level=2 WHERE account_id=1 AND class_name=?', (classes[0],))
-    assert multi_cap_experience_v23215(db.conn, 1) == base + 500
+    assert multi_cap_experience_v23215(db.conn, 1) == base + 1000
     assert not db.deactivate_secondary_class(1, classes[0], classes[0])[0]
     checks += 2
     db.conn.executescript('''
@@ -86,7 +86,7 @@ def run_regression():
         INSERT INTO ascension_progress_v021 VALUES(1,'class:Test0',7);
     ''')
     bonus = (3 + 4 + 5 + 7) * 500
-    assert multi_cap_experience_v23215(db.conn, 1) == base + 500 + bonus
+    assert multi_cap_experience_v23215(db.conn, 1) == base + 2 * (500 + bonus)
     checks += 1
     # A skill without a learned_skills row must never add fictional cap.
     _, parts = multi_cap_breakdown_v23215(db.conn, 1)
@@ -105,7 +105,7 @@ def run_regression():
     checks += 2
     db.conn.execute("UPDATE tools SET level=5 WHERE account_id=1 AND tool_type='pickaxe'")
     new_cap = multi_cap_experience_v23215(db.conn, 1)
-    assert new_cap == cap + 500
+    assert new_cap == cap + 1000
     assert banked_experience_v2011(db, 1, 1, 'class', 2, source_key=classes[0]) == 2
     checks += 2
     # v11: each new Fame is exactly the live Multi Cap; existing EP helper is historical.

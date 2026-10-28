@@ -818,6 +818,8 @@ class SessionQuestOffersMixin:
                 "nie blokują przyjęcia questa."
             )
 
+            from systems.quest_reward_floor_v1020012 import quest_xp_plan
+            reward_plan = quest_xp_plan(quest_id, quest)
             reward_parts = []
             generated_currency=v0190_quest_currency_reward(quest)
             if generated_currency:
@@ -825,28 +827,33 @@ class SessionQuestOffersMixin:
             for item_id, qty in (quest.get("reward_items") or {}).items():
                 item_name = player_item_display_name_v0335(item_id)
                 reward_parts.append(f"{item_name} x{qty}")
-            if quest.get("reward_profession_xp"):
+            if reward_plan['profession']:
                 reward_parts.append(
-                    f"{quest.get('reward_profession', 'profesja')} XP bazowe {quest['reward_profession_xp']} (rzeczywista wypłata zależy od poziomu i premii)"
+                    f"{quest.get('reward_profession') or 'Profesja'} XP bazowe "
+                    f"{reward_plan['profession']} (rzeczywista wypłata zależy od poziomu i premii)"
                 )
-            if quest.get("reward_tool_xp"):
-                reward_parts.append(f"XP narzędzia bazowe {quest['reward_tool_xp']} (rzeczywista wypłata zależy od poziomu i premii)")
-            generated_character = quest.get('olc_reward_xp', v0270_quest_character_reward(quest))
-            if generated_character:
-                reward_parts.append(f"EXP postaci {generated_character}")
-            generated_stat = quest.get('olc_reward_stat_xp', v0190_quest_stat_reward(quest))
-            if generated_stat:
-                reward_parts.append(f"EXP każdej statystyki {generated_stat}")
-            # Present the same Soul XP rule used by the actual quest turn-in.
-            # Profession contracts (also silver-only profession_action quests)
-            # never award Soul XP.
-            from systems.quest_combat_salvage_v102007 import class_xp_at_turnin, soul_xp_at_turnin
-            generated_class = class_xp_at_turnin(quest, v0522_combat_quest_class_reward(quest), quest_id)
-            if generated_class:
-                reward_parts.append(f"EXP Biegłości {generated_class}")
-            generated_soul = soul_xp_at_turnin(quest, v0190_quest_soul_reward(quest), quest_id)
-            if generated_soul:
-                reward_parts.append(f"Soul XP {generated_soul}")
+            if reward_plan['tool']:
+                reward_parts.append(
+                    f"XP narzędzia bazowe {reward_plan['tool']} "
+                    "(rzeczywista wypłata zależy od poziomu i premii)"
+                )
+            reward_parts.append(f"EXP postaci {reward_plan['character']}")
+            stat_rewards = reward_plan['stats']
+            if len(set(stat_rewards.values())) == 1:
+                reward_parts.append(f"EXP każdej statystyki {next(iter(stat_rewards.values()))}")
+            else:
+                from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900
+                stat_labels = {'strength':'Siła', 'dexterity':'Zręczność',
+                               'constitution':'Kondycja', 'intelligence':'Inteligencja',
+                               'willpower':'Wola', 'charisma':'Charyzma'}
+                reward_parts.extend(
+                    f"EXP {stat_labels[name]} {amount}"
+                    for name, amount in stat_rewards.items()
+                )
+            if reward_plan['class_xp']:
+                reward_parts.append(f"EXP Biegłości {reward_plan['class_xp']}")
+            if reward_plan['soul']:
+                reward_parts.append(f"Soul XP {reward_plan['soul']}")
             if quest.get("unlocks_soul_tier"):
                 reward_parts.append(f"odblokowanie Próby Soul Tier {quest['unlocks_soul_tier']}")
             await self.send(

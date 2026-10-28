@@ -105,10 +105,12 @@ def run():
 
     source=Path(__file__).resolve().parents[1]
     for filename, needle in (
-        ('player/session_mixins/quest_commands.py','reward_class_xp = class_xp_at_turnin('),
-        ('player/session_mixins/quest_commands.py','reward_soul_xp = soul_xp_at_turnin('),
-        ('player/session_mixins/quest_offers.py','generated_class = class_xp_at_turnin('),
-        ('player/session_mixins/quest_offers.py','generated_soul = soul_xp_at_turnin('),
+        # v102.00.12: both UI and payout use the same effective quest plan;
+        # the plan must call the exact Haldor-aware gates, not bypass them.
+        ('player/session_mixins/quest_commands.py','reward_plan = quest_xp_plan(quest_id, q)'),
+        ('player/session_mixins/quest_offers.py','reward_plan = quest_xp_plan(quest_id, quest)'),
+        ('systems/quest_reward_floor_v1020012.py','original_class = class_xp_at_turnin('),
+        ('systems/quest_reward_floor_v1020012.py','original_soul = soul_xp_at_turnin('),
         ('player/session_mixins/admin_tools.py','auto_soul = soul_xp_at_turnin('),
     ):
         ok(needle in (source/filename).read_text('utf-8'), 'actual runtime integration: '+filename)

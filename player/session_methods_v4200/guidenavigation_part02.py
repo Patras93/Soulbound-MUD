@@ -226,6 +226,11 @@ def guide_exploration_safe_target(self, room_id):
             return "mythic_astral_gate"
         if giant_fortress_floor_number(room_id) is not None:
             return "giant_fortress_gate"
+        # v102.00.13: do not route to Floor 0 (Serpentarius) or a generated
+        # Deep Dungeon floor through automatic navigation. Always use the lift.
+        if (room_id == "uoss_deep_dungeon_floor_0_v11331"
+                or uoss_deep_dungeon_floor_number_v11331(room_id) is not None):
+            return "uoss_deep_dungeon_entry_v11331"
         dungeon, floor = profession_dungeon_floor(room_id)
         if dungeon and floor:
             return profession_dungeon_room_id(dungeon, 1)
@@ -239,6 +244,7 @@ def guide_floor_request_label(self, query):
             (r"(?:wieza|wieza astralna|astral|astralna wieza|poziom wiezy|astral floor)\s*\d+", "Wieża Astralna"),
             (r"(?:kopalnia|mine|poziom kopalni|kopalnia poziom|mine floor)\s*\d+", "Kopalnia Głębinowa"),
             (r"(?:mityczna krypta|mythic crypt)\s*\d+", "Mityczna Krypta"),
+            (r"(?:deep dungeon|uoss deep dungeon|deep)\s+(?:(?:floor|pietro)\s+)?\d+", "Deep Dungeon — Winda"),
             (r"(?:mityczna wieza astralna|mythic astral(?: tower)?)\s*\d+", "Mityczna Wieża Astralna"),
             (r"(?:twierdza|twierdza gigantow|giant fortress)\s*\d+", "Twierdza Gigantów"),
             (r"(?:kopalnia krysztalow|crystal mine)\s*\d+", "Kopalnia Głębinowa"),

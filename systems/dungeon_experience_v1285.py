@@ -84,6 +84,39 @@ def dungeon_kill_xp_v1285(template, axis, prior_xp):
     return min(SAFE_XP, int(round(prior_xp * 1.30)))
 
 
+# v102.00.12: effective rewards in the combat payout path. Unlike raw
+# monster-template multipliers, these remain visible after recipient-based
+# normalization. They never use player/party adaptive HP or damage scaling.
+V1020012_DUNGEON_RECIPIENT_BONUS = {
+    "crypt_floor": 1.90,
+    "mythic_crypt_floor": 2.20,
+    "astral_floor": 2.00,
+    "mythic_astral_floor": 2.30,
+}
+
+
+def dungeon_recipient_bonus_v1020012(template):
+    if not isinstance(template, dict) or template.get("source_xp_exact") or template.get("training_dummy"):
+        return 1.0
+    for key in ("mythic_crypt_floor", "crypt_floor", "mythic_astral_floor", "astral_floor"):
+        if template.get(key) is not None:
+            return V1020012_DUNGEON_RECIPIENT_BONUS[key]
+    return 1.0
+
+
+def _authored_level_over_800_v1020012(axis, player_level):
+    """Keep 1..800 authored combat awards identical, grow after 800.
+
+    Avoid using current level-up requirements as kill reward. The authored
+    799-level table is the stable source and extends linearly beyond 800.
+    """
+    base = authored_base_dungeon_xp_v4211(axis, player_level)
+    if player_level <= 800:
+        return base
+    last = authored_base_dungeon_xp_v4211(axis, 800)
+    return min(SAFE_XP, last + ((last * (player_level - 800)) // 65))
+
+
 def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
                                  *, combat_multiplier=1.0, downstream_multiplier=1.0):
     """Normalize generated dungeon kill XP to the ACTUAL recipient level.
@@ -100,10 +133,11 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
     if (axis not in _REWARD_AXES or not authored_dungeon_floor_v1285(template)
             or template.get("training_dummy") or template.get("source_xp_exact")):
         return prior_xp
-    level = max(1, min(800, int(player_level or 1)))
+    level = max(1, int(player_level or 1))
     # A fixed authored payout schedule, unaffected by future changes to the
     # XP needed for any level. Preserve the early stage and 800 fallback.
-    reward_anchor = authored_base_dungeon_xp_v4211(axis, level)
+    reward_anchor = _authored_level_over_800_v1020012(axis, level)
+    premium = dungeon_recipient_bonus_v1020012(template)
     try:
         downstream = max(1.0, min(16.0, float(downstream_multiplier)))
     except (ValueError, TypeError, OverflowError):
@@ -128,7 +162,7 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
             stage = authored_dungeon_floor_v1285(template)
     except (ValueError, TypeError, OverflowError):
         stage = authored_dungeon_floor_v1285(template)
-    stage = max(1, min(800, stage))
+    stage = max(1, stage)
     gap = stage - level
     if gap >= 0:
         challenge = 1.0 + min(150, gap) / 600.0  # risk premium up to +25%
@@ -139,7 +173,7 @@ def dungeon_recipient_xp_v1286(template, axis, prior_xp, player_level,
     except (ValueError, TypeError, OverflowError):
         mult = 1.0
     expected = max(1, math.ceil(
-        reward_anchor * _RANK_BONUS[rank] * challenge * mult
+        reward_anchor * _RANK_BONUS[rank] * challenge * mult * premium
     ))
     # Preserve up to 20% of additional authored/rare reward variance, but
     # never grant the old floor-800 exponential reward to a level-150 player.

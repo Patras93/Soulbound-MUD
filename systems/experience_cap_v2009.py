@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Fallback cap of a single award, never an XP reward or level requirement.
+"""Fallback per-award cap that grows above level 800, never an XP reward or requirement.
 
 In real play, account-wide Multi Cap is authoritative. Legacy isolated
 SQLite fixtures without character progression use this stable level-only
@@ -14,8 +14,11 @@ def experience_cap_v2009(kind, level):
     kind = str(kind).lower()
     if kind not in KINDS:
         raise ValueError('Unknown experience kind: ' + kind)
-    level = min(800, max(1, int(level or 1)))
-    return max(100, multi_cap_level_value_v23217(level))
+    # An unlimited level axis must not freeze the fallback per-award cap at 800.
+    # The authoritative real-player Multi Cap is still calculated from the
+    # player's owned levels; EXP Bank and Half CAP/Overcap are unchanged.
+    level = max(1, int(level or 1))
+    return max(100, 2 * multi_cap_level_value_v23217(level))
 
 
 def capped_experience_v2009(amount, kind, level, overcap=False):
@@ -32,4 +35,6 @@ def combat_overcap_v2009(template, player_level):
             template.get('mythic_crypt_boss') or template.get('mythic_astral_boss') or
             template.get('giant_fortress_boss') or template.get('uoss_superboss')):
         return False
-    return v0190_mob_stage(template) >= min(800, max(1, int(player_level or 1)))
+    # A lvl-950 boss is no longer "hard enough" for an uncapped lvl-1000
+    # character merely because the old eligibility check stopped at 800.
+    return v0190_mob_stage(template) >= max(1, int(player_level or 1))
