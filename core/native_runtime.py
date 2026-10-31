@@ -28,6 +28,7 @@ import ast
 import importlib.util
 import os
 import sys
+import time
 from pathlib import Path
 from types import ModuleType
 from typing import MutableMapping
@@ -206,6 +207,10 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     # separate opt-in lane: stale style/size budgets must not be executed as
     # part of the assembled production runtime used for deploy validation.
     active_modules = FULL_RUNTIME_MODULES if historical_audits_enabled else RUNTIME_MODULES
+    # v104: optional phase diagnostics, off by default. Do not touch catalogs,
+    # launch sockets or persisted data; diagnostics are stderr-only.
+    boot_trace = os.environ.get("SOULBOUND_BOOT_TRACE", "").strip().lower() in ("1", "true", "yes", "on")
+    boot_started = time.monotonic() if boot_trace else None
     missing = [name for name in active_modules if not (root / name).is_file()]
     if missing:
         raise RuntimeError("Soulbound runtime incomplete. Missing: " + ", ".join(missing))
@@ -250,9 +255,15 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
         deferred = {name for name in top_level_functions if name in EXPECTED_OVERRIDE_ORDER and name in runtime}
         explicit_exports = EXPLICIT_RUNTIME_EXPORTS.get(relative)
 
+        if boot_trace:
+            step_started = time.monotonic()
+            print(f"[BOOT V104] START {relative}", file=sys.stderr, flush=True)
         module, changed = _execute_native_module(
             path, module_name, runtime, compatibility_modules, deferred, explicit_exports
         )
+        if boot_trace:
+            print(f"[BOOT V104] GOTOWE {relative} ({time.monotonic()-step_started:.3f}s)",
+                  file=sys.stderr, flush=True)
         modules.append(module)
         if explicit_exports is None:
             compatibility_modules.append(module)
@@ -318,4 +329,7 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str, object]) -> d
     # Publish only after a successful complete import, so the bootstrap cannot
     # observe a half-assembled runtime.
     namespace.update(runtime)
+    if boot_trace:
+        print(f"[BOOT V104] Runtime: {len(modules)} modulow, "
+              f"{time.monotonic()-boot_started:.3f}s", file=sys.stderr, flush=True)
     return state

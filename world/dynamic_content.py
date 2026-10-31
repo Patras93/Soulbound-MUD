@@ -1805,3 +1805,70 @@ EXP_AREAS = EXP_AREAS + _sb3000_install(
 # v31.00.0: dalsze cztery kroniki endgame, prawdziwe questy i unikalni NPC.
 from world.v3100_endgame_chronicles import install as _sb3100_install
 _sb3100_install(ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, EXP_AREAS)
+
+# v103.00.0 DEV: fizyczne regiony oraz zadania 801-5000.
+from world.v10300_era_bez_granic import install as _sb10300_install
+V10300_ERA_BUILD = _sb10300_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+    EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY,
+    GUIDE_DESTINATION_ALIASES,
+    __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+)
+
+EXP_AREAS = EXP_AREAS + V10300_ERA_BUILD['areas']
+
+# v103.00.0 DEV: 11 raidow wielofazowych; bez migracji bazy.
+from world.v10300_era_raids import install as _sb10300_raids_install
+V10300_RAIDS_BUILD = _sb10300_raids_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+)
+
+# v104.00.0 / ETAP 2 ROB. — 10 fizycznych krain 5001–10000.
+# Samo budowanie rejestrow, bez migracji postaci i bez zmiany polityki limitow.
+from world.v10400_krainy_5001_10000 import install as _sb10400_regions_install
+V10400_REGIONS_BUILD = _sb10400_regions_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+    EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY,
+    GUIDE_DESTINATION_ALIASES,
+    __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+)
+EXP_AREAS = EXP_AREAS + V10400_REGIONS_BUILD['areas']
+
+
+
+# v104.00.0 / ETAP 4 ROB. — 14 nowych rajdów (12–25), 42 bossów.
+# Korzysta z istniejącego silnika walki, faz, questów i nagród. Bez migracji baz.
+from world.v10400_raids_12_25 import install as _sb10400_raids_install
+V10400_RAIDS_BUILD = _sb10400_raids_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+)
+
+
+# v104 ETAP 5: 10 czteroczęściowych setów regionowych i 22 klasowe.
+# Wykorzystuje klasyczny system REGIONAL_SET_BONUSES i crafting.
+from world.v10400_equipment_5001 import install as _sb10400_eq_install
+V10400_EQUIPMENT_BUILD = _sb10400_eq_install(ITEMS, CRAFT_RECIPES, REGIONAL_SET_BONUSES)
+
+
+# v104 ETAP 9: unikalny kolekcjonerski dowód ukończenia inwazji.
+# Nagroda przypisywana wyłącznie osobom zaliczonym przez prawdziwe walki.
+if 'v10400_invasion_victory_seal' in ITEMS:
+    raise RuntimeError('Kolizja nagrody inwazji v104')
+ITEMS['v10400_invasion_victory_seal'] = {
+    'name': 'Pieczęć Obrońcy Nieskończonych Królestw',
+    'type': 'quest', 'rarity': 'legendary', 'price': None,
+    'desc': 'Osobista pieczęć za wspólnie ukończoną inwazję v104. '
+            'Jedna sztuka na postać i rotację, bez wymagania poziomu.'
+}
+
+# v104 ETAP 6: 30 kontraktów odnawialnych przez istniejący rejestr questów.
+from world.v10400_endgame_contracts import install as _sb10400_contracts_install
+V10400_CONTRACTS_BUILD = _sb10400_contracts_install(QUESTS, NPCS, MOB_TEMPLATES, ITEMS)
+
+
+# v104 Admin Live: tylko istniejące wpisy v10400 i bezpieczne pola liczbowe.
+from systems.admin_live_era_v10400 import apply as _sb10400_overrides_apply
+V10400_ADMIN_OVERRIDES_APPLIED = _sb10400_overrides_apply({
+    'rooms':ROOMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,'items':ITEMS,
+    'recipes':CRAFT_RECIPES,
+})

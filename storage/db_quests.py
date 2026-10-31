@@ -71,6 +71,12 @@ class DatabaseQuestMixin:
         completed_at = int(row["completed_at"] or 0)
         if completed_at <= 0:
             return 0
+        # v104: only the 30 authored endgame contracts use UTC calendar windows.
+        # All other repeatable quests preserve their historical cooldown.
+        from systems.quest_calendar_v10400 import cadence_for_quest, remaining_seconds
+        cadence = cadence_for_quest(quest_id, QUESTS.get(quest_id, {}))
+        if cadence:
+            return remaining_seconds(completed_at, cadence)
         elapsed = max(0, int(time.time()) - completed_at)
         return max(0, int(cooldown) - elapsed)
 

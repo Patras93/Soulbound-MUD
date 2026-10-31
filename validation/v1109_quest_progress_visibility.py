@@ -68,7 +68,7 @@ def run_regression():
     counts=Counter(str(q.get('kind')) for q in quests.values())
     ck(len(counts)==18, f'18 canonical quest kinds: {counts}')
     from validation.v1100_release_counts import expected_quest_total_v1100
-    ck(len(quests)==(6793 if modern_quest_catalog(server.VERSION) else expected_quest_total_v1100()),'preserved quest catalogue plus authored teacher quests')
+    ck((len(quests) >= 6793 if modern_quest_catalog(server.VERSION) else len(quests) == expected_quest_total_v1100()),'preserved quest catalogue plus authored teacher quests')
     # Validate ALL definitions have a meaningful, numeric denominator and id.
     for qid,q in quests.items():
         ck(int(q.get('needed',0))>=1 and bool(q.get('name')),

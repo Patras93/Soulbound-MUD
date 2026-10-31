@@ -78,9 +78,14 @@ def run():
             # Guard against clamping a pre-existing character when admin lowers cap.
             _handle('ustaw postac 100 POTWIERDZAM')
             dummy=SimpleNamespace(character_level=950,character_xp=9_999)
-            check(Character.add_character_xp(dummy,2500)==[])
+            # v104: gdy admin obniza cap ponizej zdobytego poziomu,
+            # postac nie traci poziomu ANI pozniej otrzymanego EXP.
+            # Stara regresja wymagala odrzucenia 2500 EXP, co jest sprzeczne
+            # z bankowaniem i zasada bezstratnego postepu.
+            notes=Character.add_character_xp(dummy,2500)
+            check(len(notes)==1 and 'odłożone' in notes[0])
             check(dummy.character_level==950)
-            check(dummy.character_xp==9999)
+            check(dummy.character_xp==12499)
             _handle('ustaw bron 100 POTWIERDZAM')
             dummy2=SimpleNamespace(soul_weapon_mastery_level=950,soul_weapon_mastery_xp=125)
             result=Character.add_soul_weapon_mastery_xp(dummy2,1000)

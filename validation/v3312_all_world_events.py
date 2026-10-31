@@ -153,16 +153,30 @@ def run_regression(runtime=None):
     check(callable(v1200_rotating_events),'regional events registered')
 
     # User-facing messages for all categories; isolated session, no DB mutation.
+    # v104: the real world-event atlas now reads invasion status from SQLite.
+    # Supply an actual isolated in-memory schema instead of silently triggering
+    # the generic error fallback with a fake lacking `server`. No real DB touched.
+    import sqlite3
+    from systems.world_invasions_v10400 import create_schema as create_invasion_schema
     class FakeEvents(SessionWorldEventsEndgameMixin):
-        def __init__(self): self.out=[]
+        def __init__(self, conn):
+            self.out=[]
+            self.server=SimpleNamespace(db=SimpleNamespace(conn=conn))
+            self.character=SimpleNamespace(room_id='temple')
+            self.account_id=1
         async def send(self,text): self.out.append(str(text))
         async def show_double_xp_event(self): pass
         async def show_dynamic_events_v029(self): pass
-    fake=FakeEvents()
-    asyncio.run(fake.show_world_events())
+    with sqlite3.connect(':memory:') as copy_conn:
+        create_invasion_schema(copy_conn)
+        fake=FakeEvents(copy_conn)
+        asyncio.run(fake.show_world_events())
     body=' '.join(fake.out)
     for mark in ('Bogata żyła','stanowisko wykopaliskowe','NAJAZD PODZIEMI','KRYZYSY','INWAZJA','KRÓLESTWA'):
         check(mark.casefold() in body.casefold(),f'world events atlas contains {mark}')
+    check('INWAZJA V104: trwa. Fronty:' in body, 'v104 actual SQLite invasion status displayed')
+    check('pieczęcie zwycięstwa 0' in body, 'v104 real personal invasion reward status displayed')
+    check('status tymczasowo niedostępny' not in body, 'no hidden v104 fallback after correct SQLite setup')
     # Check dispatch contract of 'kryzys pomoc': it must reach rescue branch.
     import inspect
     src=inspect.getsource(SessionWorldCrisesV1220Mixin.handle_world_crises_v1220)

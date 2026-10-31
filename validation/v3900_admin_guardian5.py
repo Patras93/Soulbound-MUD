@@ -132,16 +132,33 @@ async def checks():
     try:
         obj=Session()
         raw=dict(strength=100,dexterity=0,constitution=200,intelligence=300,willpower=400,charisma=500)
-        output=await reward_module.grant_combat_quest_stat_xp(obj,raw,False,content_level=50,content_scaled=True)
-        assert output==[600,0,1200,1800,2400,3000];c+=1
-        assert len(rewards)==5 and 'dexterity' not in bank_keys;c+=1
-        assert bank_keys==[key for key in raw if raw[key]];c+=1
-        assert all(target!='dexterity' for target,_ in rewards);c+=1
-        assert 'strength' in obj.messages[-1] and 'charisma' in obj.messages[-1];c+=1
-        rewards.clear();bank_keys.clear()
-        applied=await reward_module.grant_combat_quest_stat_xp(obj,100,False,content_level=50,content_scaled=True)
-        assert applied==[600]*6 and len(bank_keys)==6;c+=1
-        assert await reward_module.grant_combat_quest_stat_xp(obj,0,content_level=50,content_scaled=True)==[];c+=1
+        # v104: testujemy rzeczywisty handler/format nagród i klucze banku,
+        # ale fikcyjny Session nie posiada SQLite ani pełnej postaci.
+        # Bramkę atomową zastępujemy tutaj adapterem o tym samym kontrakcie;
+        # bezstratne COMMIT/rollback badają testy test_v10400_live_multiaxis_atomic.
+        def mock_atomic_stats(db, character, account_id, requested, *, targets, **kwargs):
+            assert db is None and account_id == 123
+            result = []
+            for name in targets:
+                amount = requested[name]
+                paid = bank_module.banked_experience_v2011(
+                    db, account_id, amount, 'stat', character.character_level,
+                    source_key=name) if amount else 0
+                notes = character.add_stat_progress(paid, targets=(name,)) if paid else []
+                result.append((name, paid, notes))
+            return result
+        from unittest.mock import patch
+        with patch('systems.atomic_progression_rewards_v10400.award_stats_xp_atomic_v10400', side_effect=mock_atomic_stats):
+            output=await reward_module.grant_combat_quest_stat_xp(obj,raw,False,content_level=50,content_scaled=True)
+            assert output==[600,0,1200,1800,2400,3000];c+=1
+            assert len(rewards)==5 and 'dexterity' not in bank_keys;c+=1
+            assert bank_keys==[key for key in raw if raw[key]];c+=1
+            assert all(target!='dexterity' for target,_ in rewards);c+=1
+            assert 'strength' in obj.messages[-1] and 'charisma' in obj.messages[-1];c+=1
+            rewards.clear();bank_keys.clear()
+            applied=await reward_module.grant_combat_quest_stat_xp(obj,100,False,content_level=50,content_scaled=True)
+            assert applied==[600]*6 and len(bank_keys)==6;c+=1
+            assert await reward_module.grant_combat_quest_stat_xp(obj,0,content_level=50,content_scaled=True)==[];c+=1
     finally:
         if old_base is None:delattr(reward_module,'v0874_quest_stat_progress_base_grant')
         else:reward_module.v0874_quest_stat_progress_base_grant=old_base

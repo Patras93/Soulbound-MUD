@@ -26,7 +26,8 @@ STORAGE = ('inventory', 'craftbox', 'net', 'bag', 'woodpile', 'herbbag')
 
 def init(conn):
     """Idempotent, additive schema. No modification of old save layout."""
-    conn.executescript('''
+    from storage.sqlite_ddl_safe_v10400 import apply_create_schema_v104
+    apply_create_schema_v104(conn, '''
     CREATE TABLE IF NOT EXISTS empire_armies_v1320 (
        clan_id INTEGER NOT NULL, troop TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0,
        PRIMARY KEY (clan_id,troop));
@@ -52,22 +53,31 @@ def init(conn):
        account_id INTEGER PRIMARY KEY, ship_class INTEGER NOT NULL DEFAULT 0,
        last_build INTEGER NOT NULL DEFAULT 0);
     ''')
-    conn.commit()
 
 
 @contextmanager
 def atomic(conn):
-    """Savepoint protects caller-owned transactions and can undo all escrow updates."""
+    """Commit a standalone escrow operation, never commit the caller's transaction.
+
+    In SQLite a SAVEPOINT nested inside a caller-owned transaction may be
+    released safely, but conn.commit() afterward commits *the caller's entire
+    transaction*. That previously broke rollback for markets, auctions,
+    convoys and fleet actions nested inside combat or quest settlement.
+    """
+    outer_transaction = conn.in_transaction
     conn.execute('SAVEPOINT empire1320')
     try:
         yield
     except BaseException:
-        conn.execute('ROLLBACK TO SAVEPOINT empire1320')
-        conn.execute('RELEASE SAVEPOINT empire1320')
+        try:
+            conn.execute('ROLLBACK TO SAVEPOINT empire1320')
+        finally:
+            conn.execute('RELEASE SAVEPOINT empire1320')
         raise
     else:
         conn.execute('RELEASE SAVEPOINT empire1320')
-        conn.commit()
+        if not outer_transaction:
+            conn.commit()
 
 
 def select_source(conn, account, item, qty, *, allowed=STORAGE):

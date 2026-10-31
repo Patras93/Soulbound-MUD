@@ -1,6 +1,7 @@
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from dataclasses import dataclass
+from core.exact_reward_math_v10400 import scale_multiplier_xp_v10400, scale_percent_xp_v10400
 import json
 from config.balance import (
     SOUL_XP_REQUIREMENT_MULTIPLIER,
@@ -182,7 +183,12 @@ class Character:
     def add_character_xp(self, amount, single_level_cap=False):
         requested_amount=max(0,int(amount or 0))
         if self.character_level >= CHARACTER_MAX_LEVEL:
-            # Existing progress is never downleveled by an admin cap edit.
+            # Direct callers must not silently discard earned EXP either.
+            # The normal EXP gateway banks it at a zero payout cap; preserve
+            # already credited XP in legacy field for callers bypassing bank.
+            if requested_amount:
+                self.character_xp += requested_amount
+                return [f"EXP +{requested_amount} odłożone; osiągnięto limit Level {CHARACTER_MAX_LEVEL}."]
             return []
         # v1.13.60: zdobyty EXP nigdy nie jest obcinany do jednego awansu.
         # Parametr zachowany tylko dla zgodności ze starymi wrapperami.
@@ -198,7 +204,9 @@ class Character:
             self.character_level += 1
             messages.append(f"Level postaci wzrasta do {self.character_level}.")
         if self.character_level >= CHARACTER_MAX_LEVEL:
-            self.character_xp=0
+            # The remainder of an award which crosses the final level is
+            # retained for an eventual higher admin cap (never set to zero).
+            pass
         if amount:
             next_needed=character_xp_to_next(self.character_level) if self.character_level < CHARACTER_MAX_LEVEL else 0
             messages.insert(0, f"EXP postaci +{amount}. Postęp {self.character_xp} z {next_needed}." if next_needed else f"EXP postaci +{amount}. Osiągnięto maksymalny Level {CHARACTER_MAX_LEVEL}.")
@@ -601,7 +609,7 @@ class Character:
             int(round(accelerated_amount * self.racial_stat_progress_multiplier()))
         )
         _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
-        amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
+        amount=max(0,scale_percent_xp_v10400(racial_amount,_guild_pct))
         if targets is None:
             target_names = list(self.STAT_PROGRESS_FIELDS)
         else:
@@ -678,29 +686,40 @@ class Character:
 
     def add_soul_xp(self, amount, single_level_cap=False):
         if self.soul_level >= SOUL_MAX_LEVEL:
+            amount = max(0, int(amount or 0))
+            if amount:
+                self.soul_xp += amount
+                return [f"Soul XP +{amount} odłożone przy limicie Soul Level {SOUL_MAX_LEVEL}."]
             return [f"Broń Duszy ma już Soul Level {SOUL_MAX_LEVEL}."]
 
-        # v0.9.14: Soul Level nie może wyprzedzić odblokowanego Tieru.
-        # Osiągnięcie progu następnego Tieru zatrzymuje cały dalszy Soul XP
-        # do chwili wykonania Próby i użycia komendy unlock. Overflow nie jest
-        # bankowany, dzięki czemu po unlock nie da się przeskoczyć kilku progów.
+        # v103 DEV: Soul XP przy bramce Tieru jest odłożony, nie kasowany.
+        # Każdy kolejny poziom wciąż wymaga osobnego unlock / Próby;
+        # sama nadwyżka nie pozwala przekroczyć bramki.
         cap_level = self.soul_level_cap_for_current_tier()
         if self.soul_progress_is_tier_locked():
             next_tier = min(SOUL_MAX_TIER, int(self.soul_tier) + 1)
-            self.soul_xp = 0
+            base = max(0, int(amount or 0))
+            racial = max(0, scale_multiplier_xp_v10400(base, self.racial_soul_xp_multiplier()))
+            guild_pct = max(0, int(getattr(self, '_guild_bonus_percent', 0) or 0))
+            awarded = max(0, scale_percent_xp_v10400(racial, guild_pct))
+            # SQLite stores signed 64-bit integers; report a technical overflow
+            # instead of silently wrapping the saved XP balance.
+            if int(self.soul_xp) + awarded > 9_223_372_036_854_775_807:
+                raise OverflowError('Soul XP przekracza techniczny zakres zapisu SQLite; nie zmieniono puli.')
+            self.soul_xp += awarded
             return [
-                f"Soul XP zablokowany na Soul Level {cap_level}. "
-                f"Najpierw odblokuj Soul Tier {next_tier}: wykonaj właściwą Próbę "
-                "Broni Duszy i użyj unlock."
+                f"Soul XP +{awarded} odłożone przy Soul Level {cap_level}; "
+                f"w puli {self.soul_xp}. Odblokuj Tier {next_tier} po Probie Broni Duszy "
+                "komenda unlock."
             ]
 
         base_amount = max(0, int(amount))
         racial_amount = max(
             0,
-            int(round(base_amount * self.racial_soul_xp_multiplier()))
+            scale_multiplier_xp_v10400(base_amount, self.racial_soul_xp_multiplier())
         )
         _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
-        amount=max(0,int(round(racial_amount*(1.0+_guild_pct/100.0))))
+        amount=max(0,scale_percent_xp_v10400(racial_amount,_guild_pct))
         requested_amount=amount
         # v1.13.60: nie obcinamy Soul XP do jednego awansu na źródło.
         limited=False
@@ -718,12 +737,12 @@ class Character:
         while self.soul_level < SOUL_MAX_LEVEL:
             cap_level = self.soul_level_cap_for_current_tier()
             if self.soul_level >= cap_level:
-                # Nie zachowujemy nadmiaru ponad bramką Tieru.
-                self.soul_xp = 0
+                # Zachowujemy niewykorzystany Soul XP w istniejącym polu
+                # soul_xp; zapis i backup działają bez migracji bazy.
                 next_tier = min(SOUL_MAX_TIER, int(self.soul_tier) + 1)
                 messages.append(
-                    f"Soul Level zatrzymuje się na {cap_level}. Dalszy Soul XP jest "
-                    f"zablokowany do odblokowania Soul Tier {next_tier}."
+                    f"Soul Level zatrzymuje się na {cap_level}. "
+                    f"Soul XP {self.soul_xp} odlozone do odblokowania Tieru {next_tier}."
                 )
                 break
             needed = self.soul_xp_to_next()
@@ -745,15 +764,14 @@ class Character:
                         "gdy poprzednie Tiery są odblokowane."
                     )
                 if int(self.soul_tier) < tier:
-                    self.soul_xp = 0
                     messages.append(
-                        f"Dalszy Soul XP jest teraz zablokowany do odblokowania Tieru {tier}."
+                        f"Dalszy Soul XP ({self.soul_xp}) czeka na odblokowanie Tieru {tier}."
                     )
                     break
         if self.soul_level >= SOUL_MAX_LEVEL:
-            if self.soul_level == SOUL_MAX_LEVEL:
-                self.soul_xp = 0
-            messages.append(f"Osiągnięto limit Soul Level {SOUL_MAX_LEVEL}.")
+            # Like character XP, Soul XP not consumed on the last level is
+            # deferred for a future cap increase, not destroyed.
+            messages.append(f"Osiągnięto limit Soul Level {SOUL_MAX_LEVEL}; pozostały Soul XP: {self.soul_xp}.")
         return messages
 
 

@@ -182,14 +182,24 @@ def _component_slots(rooms, comp):
     return slots
 
 
-def _candidate_links(rooms, left, right, seed):
+def _candidate_links(rooms, left, right, seed, role_cache=None):
+    """Choose the same deterministic links without recalculating room roles per pair.
+
+    Room roles depend only on room IDs/names, never on regenerated exits.
+    A per-call cache is used when legacy callers do not provide a zone cache.
+    Ordering, scoring, tie-breaking and the returned tuple layout are unchanged.
+    """
     candidates=[]
     right_set=set(right)
+    roles=role_cache if role_cache is not None else {
+        rid: _room_role(rid, rooms[rid]) for rid in set(left) | right_set
+    }
     for a, da in _component_slots(rooms,left):
         db=OPPOSITE[da]
+        a_role=roles[a]
         for b in right_set:
             if _free(rooms[b],db):
-                role_score=_role_compat(_room_role(a,rooms[a]), _room_role(b,rooms[b]))
+                role_score=_role_compat(a_role, roles[b])
                 score=role_score*10.0 + _unit(f"{seed}:link:{a}:{da}:{b}")
                 candidates.append((score,a,da,b,db))
     candidates.sort(reverse=True)

@@ -8,6 +8,7 @@ from player.session_mixins.inventory_equipment import CURRENCY_SQLITE_SAFE_TOTAL
 from player.session_mixins.quest_npc import player_item_display_name_v0335
 from player.session_mixins.shops_teachers import currency_reading_text
 from player.session_mixins.skill_learning import MOB_TEMPLATES, ROOMS, normalize_lookup_text
+from systems.profile_live_v10400 import current_profile_values, current_cap_label
 from systems.combat_profile_records import (
     backfill_combat_profile_records_v11341,
     combat_profile_row_v11341,
@@ -222,7 +223,9 @@ class SessionSocialExpansionMixin:
 
         name=str(row['name'])
         online_session=self.server.find_character_session(name)
-        online=bool(online_session and not online_session.closed and online_session.character)
+        online=bool(online_session and not online_session.closed and
+                    online_session.character and int(online_session.account_id) == int(aid))
+        row=current_profile_values(row, online_session.character if online else None)
         presence=self.server.db.player_presence_v0363(aid)
         if online:
             status="online teraz"
@@ -288,19 +291,25 @@ class SessionSocialExpansionMixin:
             room_id=str(online_session.character.room_id or room_id)
             room_name=str((ROOMS.get(room_id) or {}).get('name') or room_id or 'brak')
 
-        await self.send(f"PROFIL {name}. Status: {status}.")
+        await self.send(f"PROFIL {name}. Status: {status}. "
+                        f"Dane postaci: {'bieżący stan sesji' if online else 'ostatni zapis SQLite'}.")
         await self.send(f"Tożsamość: rasa {row['race']}; główna klasa {row['class_name']}; tytuł {title}; Gildia: {guild}.")
-        await self.send(f"Level postaci: {int(row['character_level'])}/800; Character XP {int(row['character_xp'])}. Klasy/Biegłość: {class_text}.")
+        await self.send(f"Level postaci: {int(row['character_level'])}/{current_cap_label('postac')}; "
+                        f"Character XP {int(row['character_xp'])}. Klasy/Biegłość: {class_text}. "
+                        f"Limit biegłości klas: {current_cap_label('bieglosc')}.")
         _soul_tier=int(row['soul_tier'])
         _soul_title=soul_tier_title_for_class(_soul_tier, str(row['class_name']))
-        await self.send(f"Broń Duszy: {row['soul_weapon']}; Soul Level {int(row['soul_level'])}/{SOUL_MAX_LEVEL}; Soul Tier {_soul_tier}/{SOUL_MAX_TIER} — {_soul_title}; Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
+        await self.send(f"Broń Duszy: {row['soul_weapon']}; "
+                        f"Soul Level {int(row['soul_level'])}/{current_cap_label('dusza')}; "
+                        f"Soul Tier {_soul_tier}/{SOUL_MAX_TIER} — {_soul_title}; "
+                        f"Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/{current_cap_label('bron_duszy')}.")
         await self.send(
             "Statystyki: "
             f"Siła {int(row['strength'])}; Zręczność {int(row['dexterity'])}; Kondycja {int(row['constitution'])}; "
             f"Inteligencja {int(row['intelligence'])}; Siła Woli {int(row['willpower'])}; Charyzma {int(row['charisma'])}."
         )
-        await self.send(f"Profesje: {prof_text}.")
-        await self.send(f"Narzędzia: {tool_text}.")
+        await self.send(f"Profesje (limit {current_cap_label('profesje')}): {prof_text}.")
+        await self.send(f"Narzędzia (limit {current_cap_label('narzedzia')}): {tool_text}.")
         await self.send(f"Endgame: World Tier {world_tier}; Wzniesienie: {asc_text}; najgłębszy boss/loch {deepest}; Kopalnia piętro {mine_floor}; Endless Gauntlet rekord {gaunt_round}.")
         await self.send(f"Postęp: osiągnięcia {ach}; odblokowane tytuły {unlocked_titles}; questy ukończone {q_done}, zapisanych questów {q_total}; Bestiariusz: {species} wpisów i {kills} zabójstw; zgony {int(row['deaths'])}.")
         await self.send(f"Rekordy: największy krytyk {biggest_crit}; najcięższa ryba {biggest_fish} g. Ostatnia/zapisana lokacja: {room_name}.")

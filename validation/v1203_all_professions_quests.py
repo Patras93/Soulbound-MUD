@@ -29,7 +29,11 @@ def run_regression():
         if req:assert req in QUESTS,(qid,req)
         c+=5
     assert set(prof_quests)==set(PROJECTS)
-    assert sum(map(len,prof_quests.values()))==2221,(sum(map(len,prof_quests.values())),)
+    if modern_quest_catalog(server.VERSION):
+        from validation.v10400_profession_quest_baseline import check_baseline
+        check_baseline(QUESTS, prof_quests)
+    else:
+        assert sum(map(len,prof_quests.values()))==2221,(sum(map(len,prof_quests.values())),)
     c+=2
     for prof,p in PROJECTS.items():
         for level in (1,25,100,200,400,600,700,775,799):
@@ -77,7 +81,7 @@ def run_regression():
             assert any(quest_reward_floor_v1203(max(1,int(q.get('reward_profession_xp') or 0)),required,400,q)>max(1,int(q.get('reward_profession_xp') or 0)) for q in high)
             c+=1
     # Quest progress is never altered in this release: no new or removed IDs.
-    assert len(QUESTS)==(6793 if modern_quest_catalog(server.VERSION) else 6769)
+    assert (len(QUESTS) >= 6793 if modern_quest_catalog(server.VERSION) else len(QUESTS) == 6769)
     c+=1
     return c
 

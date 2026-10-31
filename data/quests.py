@@ -741,8 +741,8 @@ QUESTS = {
     "shadow_wolves": {
         "name": "Cienie w gaju",
         "giver": "Zielarka Mira",
-        "kind": "kill", "target": "shadow_wolf", "needed": 2,
-        "description": "Pokonaj 2 Wilki Cienia w Gaju Szeptów.",
+        "kind": "kill", "target": "shadow_wolf", "needed": 12,
+        "description": "Pokonaj 12 Wilków Cienia w Gaju Szeptów lub Lesie Szeptów.",
         "reward_silver": 120, "reward_gold": 0, "reward_mithril": 0,
         "reward_items": {"healing_potion": 1},
     },

@@ -297,6 +297,11 @@ class SessionAdminToolsMixin:
         parts = raw.split(maxsplit=1)
         cmd = parts[0].lower() if parts else ''
         tail = parts[1].strip() if len(parts) > 1 else ''
+        # v103.00.0 DEV: read-only Era Bez Granic status for admin/NVDA.
+        if cmd == 'era':
+            from systems.admin_live_era_v10300 import handle as _v103_era
+            await _v103_era(self, tail)
+            return
         # v102.00.11: owner-only, bounded error triage; no source-code hotpatch.
         if cmd in ('bledy', 'błędy', 'napraw'):
             from systems.admin_live_repair_center_v1020011 import handle_repair_center

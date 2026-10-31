@@ -127,7 +127,17 @@ def run():
     ok(not any('Korona Świata' in msg for msg in session.sent), 'stary region 390-400 nie jest polecany dla 800')
 
     session.character.character_level = 1
-    with patch('systems.experience_bank_v2011.banked_experience_v2011', side_effect=lambda db, account_id, amount, *args, **kwargs: amount):
+    # Ten test weryfikuje powiadomienia o zmianie expowisk, a nie SQLite.
+    # FakeSession ma celowo niepelna postac i obiekt zamiast prawdziwej bazy.
+    # Od v104 rzeczywista bramka EXP wymaga konta i zapisu atomowego, dlatego
+    # izolujemy ja w tym tescie. Jej transakcje bada osobna regresja v104.
+    def fake_atomic_xp(db, character, account_id, amount, **options):
+        assert account_id == session.account_id
+        return amount, character.add_character_xp(
+            amount, single_level_cap=options.get('single_level_cap', False)
+        )
+
+    with patch('systems.atomic_character_experience_v10400.award_character_xp_atomic_v10400', side_effect=fake_atomic_xp):
         result = session.add_character_xp_with_event(12, content_level=session.character.character_level)
         ok(session.character.character_level == 13, 'realne wejscie przyznawania XP')
         ok(sum('Polecane expowiska odświeżone' in msg for msg in result) == 1, 'jeden komunikat po wielokrotnym awansie')
@@ -142,7 +152,13 @@ def run():
     session.character.character_level = 250
     session.character.soul_level = 99
     session.sent.clear()
-    with patch('systems.experience_bank_v2011.banked_experience_v2011', side_effect=lambda db, account_id, amount, *args, **kwargs: amount):
+    def fake_atomic_soul(db, character, account_id, amount, **options):
+        assert account_id == session.account_id
+        return amount, character.add_soul_xp(
+            amount, single_level_cap=options.get('single_level_cap', False)
+        )
+
+    with patch('systems.atomic_progression_rewards_v10400.award_soul_xp_atomic_v10400', side_effect=fake_atomic_soul):
         advanced = asyncio.run(grant_soul_xp(session, 1, content_level=session.character.soul_level))
     ok(advanced and session.character.soul_level == 100, 'realna bramka Soul XP')
     ok(sum('Polecane expowiska odświeżone po awansie Soul Level' in message for message in session.sent) == 1, 'Soul awans generuje jedna wskazowke')

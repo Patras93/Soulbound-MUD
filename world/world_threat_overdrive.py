@@ -84,6 +84,13 @@ _v0384_base_terrain_scaled = World._terrain_scaled_template_v0362
 
 
 def _terrain_scaled_template_v0384(self, room_id, template_id):
+    # v103.00.0: Era 801+ monsters have their OWN authored fixed HP/damage.
+    # The historical terrain runtime_mob_balance would otherwise re-create
+    # these high-level boss templates at trillion-HP values. This is NOT
+    # adaptive player scaling. Preserve all legacy spawns unchanged.
+    if (str(room_id or '').startswith('v10300_')
+            and str(template_id or '').startswith('v10300_')):
+        return str(template_id)
     # Preserve the full v0.36.2 behavior first, including its stage clone.
     resolved_id = _v0384_base_terrain_scaled(self, room_id, template_id)
     resolved = MOB_TEMPLATES.get(resolved_id)

@@ -58,10 +58,14 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
     floor = max(1, int(floor))
     mult = crypt_depth_multiplier(floor)
     econ = _infinite_crypt_economy_floor(floor)
-    # EQ rośnie do progresji 600, potem ma twardy cap mimo nieskończonej Krypty.
-    tier = min(SOUL_MAX_TIER, max(1, (floor - 1) // 10 + 1))
+    # Zestawy crypt_t* sa generowane w build_crypt_200_floors
+    # dla Tierow 1–40 (17 slotow). Soul Tier 41–1000 jest osobną osią;
+    # nie wolno wyplacac nieistniejacego crypt_t41+ po pietrze 400.
+    # Wzmocnienia nieskonczonego EQ sa nakladane pozniej na istniejacy
+    # bazowy item przez mechanizm Rezonansu Głębi.
+    tier = min(40, max(1, (floor - 1) // 10 + 1))
     if mythic:
-        tier = min(SOUL_MAX_TIER, max(20, 20 + (floor - 1) // 10))
+        tier = min(40, max(20, 20 + (floor - 1) // 10))
     gear = [f"crypt_t{tier}_{slot}" for slot in CLASS_EQUIPMENT_SLOT_DEFS]
     if mythic:
         room_id = mythic_crypt_floor_id(floor)

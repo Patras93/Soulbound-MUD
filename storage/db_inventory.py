@@ -9,6 +9,7 @@ from storage.db_shared import DROP_HISTORY_LIMIT, V03042_EQ_UPGRADE_MAX, is_craf
 class DatabaseInventoryMixin:
     def ensure_bank(self, account_id):
         # v0.8.32: waluta Banku Dusz jest również wspólna dla całego konta.
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         currency_account_id = self.master_account_for_character(account_id)
         self.conn.execute(
             "INSERT OR IGNORE INTO bank_balances("
@@ -16,10 +17,15 @@ class DatabaseInventoryMixin:
             ") VALUES(?,0,0,0)",
             (currency_account_id,),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
         return currency_account_id
 
     def bank_balance(self, account_id):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)  # before ensure_bank writes anything
         currency_account_id = self.ensure_bank(account_id)
         row = self.conn.execute(
             "SELECT silver,gold,mithril FROM bank_balances "
@@ -27,11 +33,19 @@ class DatabaseInventoryMixin:
             (currency_account_id,),
         ).fetchone()
 
-        silver, gold, mithril = normalize_currency_values(
-            row["silver"],
-            row["gold"],
-            row["mithril"],
-        )
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import (
+                _ExactProgressRow, read_exact_currency_copy,
+            )
+            exact = read_exact_currency_copy(self, currency_account_id, 'bank')
+            return _ExactProgressRow(row, dict(zip(('silver','gold','mithril'), exact)))
+
+        # v104 etap 13: odczyt banku nie moze zaokraglac REAL / ucinac
+        # przypadkowego TEXT przez int(). Wymagaj dokladnego INTEGER.
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        raw_values = tuple(require_sqlite_int64('bank_balances.' + key, row[key])
+                           for key in ('silver', 'gold', 'mithril'))
+        silver, gold, mithril = normalize_currency_values(*raw_values)
 
         if (
             silver != int(row["silver"])
@@ -44,7 +58,8 @@ class DatabaseInventoryMixin:
                 "WHERE account_id=?",
                 (silver, gold, mithril, currency_account_id),
             )
-            self.conn.commit()
+            if not outer_transaction_v104:
+                self.conn.commit()
             row = self.conn.execute(
                 "SELECT silver,gold,mithril FROM bank_balances "
                 "WHERE account_id=?",
@@ -54,6 +69,7 @@ class DatabaseInventoryMixin:
         return row
 
     def change_bank_currency(self, account_id, currency, amount):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         if currency not in ("silver", "gold", "mithril"):
             raise ValueError("Nieznana waluta bankowa.")
 
@@ -64,7 +80,24 @@ class DatabaseInventoryMixin:
             "gold": int(row["gold"]),
             "mithril": int(row["mithril"]),
         }
-        values[currency] += int(amount)
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import (
+                currency_total_copy, write_exact_currency_copy,
+            )
+            if type(amount) is not int:
+                raise TypeError('Zmienna waluty bankowej musi byc int.')
+            delta = amount
+            values[currency] += delta
+            if values[currency] < 0:
+                return False
+            total = currency_total_copy(values['silver'],values['gold'],values['mithril'])
+            write_exact_currency_copy(self, currency_account_id, 'bank', total, 0, 0)
+            if not outer_transaction_v104:
+                self.conn.commit()
+            return True
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        delta = require_sqlite_int64('bank_balances.delta', amount)
+        values[currency] += delta
 
         if values[currency] < 0:
             return False
@@ -81,7 +114,8 @@ class DatabaseInventoryMixin:
             "WHERE account_id=?",
             (silver, gold, mithril, currency_account_id),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
         return True
 
     def bank_items(self, account_id):
@@ -100,7 +134,13 @@ class DatabaseInventoryMixin:
         return int(row["quantity"]) if row else 0
 
     def add_bank_item(self, account_id, item_id, qty=1):
-        qty = max(1, int(qty))
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        qty = max(1, require_sqlite_int64('bank_items.increment', qty))
+        current = self.conn.execute(
+            'SELECT quantity FROM bank_items WHERE account_id=? AND item_id=?',
+            (account_id, item_id)).fetchone()
+        balance = self._v104_crafting_quantity(current[0]) if current else 0
+        require_sqlite_int64('bank_items.quantity', balance + qty)
         self.conn.execute(
             """
             INSERT INTO bank_items(account_id,item_id,quantity)
@@ -195,13 +235,19 @@ class DatabaseInventoryMixin:
         return int(row["quantity"]) if row else 0
 
     def add_item(self, account_id, item_id, qty=1, commit=True):
-        qty = max(1, int(qty))
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        qty = max(1, require_sqlite_int64('inventory.increment', qty))
         # v0.9.15: materiały rzemieślnicze nigdy nie zapychają zwykłego
         # inventory. Każde źródło używające add_item automatycznie kieruje
         # je do Szkatułki Rzemieślniczej.
         if is_craft_material_storage_item(item_id):
             self.add_storage_item(account_id, "craftbox", item_id, qty, commit=commit)
             return
+        current = self.conn.execute(
+            'SELECT quantity FROM inventory WHERE account_id=? AND item_id=?',
+            (account_id, item_id)).fetchone()
+        balance = self._v104_crafting_quantity(current[0]) if current else 0
+        require_sqlite_int64('inventory.quantity', balance + qty)
         self.conn.execute(
             """
             INSERT INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)
@@ -660,25 +706,65 @@ class DatabaseInventoryMixin:
         return rows
 
     def ensure_profession(self, account_id, profession):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         self.conn.execute(
             "INSERT OR IGNORE INTO professions(account_id,profession,level,xp,actions) VALUES(?,?,1,0,0)",
             (account_id, profession),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def profession(self, account_id, profession):
+        copy_mode = getattr(self, '_v104_big_number_copy_rehearsal', False)
+        if copy_mode:
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)
         self.ensure_profession(account_id, profession)
-        return self.conn.execute(
+        row = self.conn.execute(
             "SELECT * FROM professions WHERE account_id=? AND profession=?",
             (account_id, profession),
         ).fetchone()
+        if copy_mode and row is not None:
+            from storage.big_number_copy_runtime_v10400 import (
+                _ExactProgressRow, read_exact_work_xp_copy,
+            )
+            row = _ExactProgressRow(row, {'xp': read_exact_work_xp_copy(
+                self, account_id, 'profession', profession)})
+        elif row is not None and getattr(self, '_v104_live_exact_keyed_xp', False):
+            from storage.big_number_copy_runtime_v10400 import _ExactProgressRow
+            from storage.big_number_live_keyed_xp_v10400 import read_live_keyed_xp
+            row = _ExactProgressRow(row, {'xp': read_live_keyed_xp(
+                self, account_id, 'profession', profession)})
+        return row
 
     def save_profession(self, account_id, profession, level, xp, actions):
-        self.conn.execute(
-            "UPDATE professions SET level=?,xp=?,actions=? WHERE account_id=? AND profession=?",
-            (level, xp, actions, account_id, profession),
-        )
-        self.conn.commit()
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
+        # v104 etap 13: preflight calej operacji; bez czesciowej utraty EXP.
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import write_exact_work_xp_copy
+            write_exact_work_xp_copy(self, account_id, 'profession', profession,
+                                     level=level, xp=xp, counter=actions)
+        elif getattr(self, '_v104_live_exact_keyed_xp', False):
+            # Zachowaj historyczne tworzenie profilu przy pierwszym zapisie,
+            # lecz najpierw sprawdz wszystkie pola aby zly EXP nie tworzyl wiersza.
+            from core.big_numbers_v10400 import canonical_uint
+            canonical_uint(xp)
+            require_sqlite_int64('professions.level', level)
+            require_sqlite_int64('professions.actions', actions)
+            self.ensure_profession(account_id, profession)
+            from storage.big_number_live_keyed_xp_v10400 import write_live_keyed_xp
+            write_live_keyed_xp(self, account_id, 'profession', profession,
+                                level=level, xp=xp, counter=actions)
+        else:
+            for field, value in (('level', level), ('xp', xp), ('actions', actions)):
+                require_sqlite_int64('professions.' + field, value)
+            self.conn.execute(
+                "UPDATE professions SET level=?,xp=?,actions=? WHERE account_id=? AND profession=?",
+                (level, xp, actions, account_id, profession),
+            )
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def equipment_enchant_v03053(self, account_id, slot):
         return self.conn.execute("SELECT * FROM equipment_enchants_v03053 WHERE account_id=? AND slot=?",(account_id,slot)).fetchone()
@@ -691,25 +777,63 @@ class DatabaseInventoryMixin:
         return self.conn.execute("SELECT * FROM equipment_enchants_v03053 WHERE account_id=? ORDER BY slot",(account_id,)).fetchall()
 
     def ensure_tool(self, account_id, tool_type):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         self.conn.execute(
             "INSERT OR IGNORE INTO tools(account_id,tool_type,level,xp,uses) VALUES(?,?,1,0,0)",
             (account_id, tool_type),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def tool(self, account_id, tool_type):
+        copy_mode = getattr(self, '_v104_big_number_copy_rehearsal', False)
+        if copy_mode:
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)
         self.ensure_tool(account_id, tool_type)
-        return self.conn.execute(
+        row = self.conn.execute(
             "SELECT * FROM tools WHERE account_id=? AND tool_type=?",
             (account_id, tool_type),
         ).fetchone()
+        if copy_mode and row is not None:
+            from storage.big_number_copy_runtime_v10400 import (
+                _ExactProgressRow, read_exact_work_xp_copy,
+            )
+            row = _ExactProgressRow(row, {'xp': read_exact_work_xp_copy(
+                self, account_id, 'tool', tool_type)})
+        elif row is not None and getattr(self, '_v104_live_exact_keyed_xp', False):
+            from storage.big_number_copy_runtime_v10400 import _ExactProgressRow
+            from storage.big_number_live_keyed_xp_v10400 import read_live_keyed_xp
+            row = _ExactProgressRow(row, {'xp': read_live_keyed_xp(
+                self, account_id, 'tool', tool_type)})
+        return row
 
     def save_tool(self, account_id, tool_type, level, xp, uses):
-        self.conn.execute(
-            "UPDATE tools SET level=?,xp=?,uses=? WHERE account_id=? AND tool_type=?",
-            (level, xp, uses, account_id, tool_type),
-        )
-        self.conn.commit()
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
+        # v104 etap 13: nie dopuszczaj cichego przejscia przez REAL/overflow.
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import write_exact_work_xp_copy
+            write_exact_work_xp_copy(self, account_id, 'tool', tool_type,
+                                     level=level, xp=xp, counter=uses)
+        elif getattr(self, '_v104_live_exact_keyed_xp', False):
+            from core.big_numbers_v10400 import canonical_uint
+            canonical_uint(xp)
+            require_sqlite_int64('tools.level', level)
+            require_sqlite_int64('tools.uses', uses)
+            self.ensure_tool(account_id, tool_type)
+            from storage.big_number_live_keyed_xp_v10400 import write_live_keyed_xp
+            write_live_keyed_xp(self, account_id, 'tool', tool_type,
+                                level=level, xp=xp, counter=uses)
+        else:
+            for field, value in (('level', level), ('xp', xp), ('uses', uses)):
+                require_sqlite_int64('tools.' + field, value)
+            self.conn.execute(
+                "UPDATE tools SET level=?,xp=?,uses=? WHERE account_id=? AND tool_type=?",
+                (level, xp, uses, account_id, tool_type),
+            )
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def storage_rows(self, account_id, container):
         return self.conn.execute(
@@ -727,6 +851,13 @@ class DatabaseInventoryMixin:
         return int(row["quantity"]) if row else 0
 
     def add_storage_item(self, account_id, container, item_id, qty=1, commit=True):
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        qty = max(1, require_sqlite_int64('storage.increment', qty))
+        current = self.conn.execute(
+            'SELECT quantity FROM profession_storage WHERE account_id=? '
+            'AND container=? AND item_id=?', (account_id, container, item_id)).fetchone()
+        balance = self._v104_crafting_quantity(current[0]) if current else 0
+        require_sqlite_int64('storage.quantity', balance + qty)
         self.conn.execute(
             """
             INSERT INTO profession_storage(account_id,container,item_id,quantity)
@@ -760,52 +891,112 @@ class DatabaseInventoryMixin:
             self.conn.commit()
         return True
 
+    @staticmethod
+    def _v104_crafting_ids(item_ids):
+        # Preserve string compatibility with the existing quest/crafting IDs,
+        # but prevent aliases repeated in input from doubling available stock.
+        return tuple(dict.fromkeys(str(item_id) for item_id in item_ids if item_id))
+
+    @staticmethod
+    def _v104_crafting_quantity(value):
+        # SQLite SUM() overflows on otherwise valid collections of int64 rows;
+        # int(REAL) / int(TEXT) would silently destroy or forge item quantities.
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        qty = require_sqlite_int64('crafting.quantity', value)
+        if qty < 0:
+            raise ValueError('Ujemna liczba materialow w bazie.')
+        return qty
+
     def total_items_across_storage_and_inventory(self, account_id, item_ids, container=None):
-        # v0.71.8: one aggregate query per storage location instead of 1-2
-        # SELECTs for every ingredient/resource id. This is hot in crafting and
-        # collection checks with large candidate pools.
-        ids = tuple(dict.fromkeys(str(item_id) for item_id in item_ids if item_id))
+        """Lossless count across sources; never SQL SUM(INTEGER) / SUM(TEXT)."""
+        ids = self._v104_crafting_ids(item_ids)
         if not ids:
             return 0
-        placeholders = ",".join("?" for _ in ids)
-        row = self.conn.execute(
-            f"SELECT COALESCE(SUM(quantity),0) AS total FROM inventory "
-            f"WHERE account_id=? AND item_id IN ({placeholders})",
-            (account_id, *ids),
-        ).fetchone()
-        total = int(row["total"] or 0) if row else 0
-        if container:
-            row = self.conn.execute(
-                f"SELECT COALESCE(SUM(quantity),0) AS total FROM profession_storage "
-                f"WHERE account_id=? AND container=? AND item_id IN ({placeholders})",
-                (account_id, container, *ids),
-            ).fetchone()
-            total += int(row["total"] or 0) if row else 0
+        # SQLite parameter limit is platform/version-dependent. Avoid large IN
+        # clauses (and their unintended failures) by batching item IDs.
+        total = 0
+        for start in range(0, len(ids), 450):
+            batch = ids[start:start + 450]
+            ph = ','.join('?' for _ in batch)
+            for row in self.conn.execute(
+                    f'SELECT quantity FROM inventory WHERE account_id=? AND item_id IN ({ph})',
+                    (account_id, *batch)):
+                total += self._v104_crafting_quantity(row[0])
+            if container:
+                for row in self.conn.execute(
+                        f'SELECT quantity FROM profession_storage '
+                        f'WHERE account_id=? AND container=? AND item_id IN ({ph})',
+                        (account_id, container, *batch)):
+                    total += self._v104_crafting_quantity(row[0])
         return total
 
     def consume_items_across_storage_and_inventory(self, account_id, item_ids, needed, container=None):
-        remaining = needed
+        """All-or-nothing consumption for collection quests and crafting orders.
 
-        if container:
-            for item_id in sorted(item_ids):
-                if remaining <= 0:
-                    break
-                qty = self.storage_qty(account_id, container, item_id)
-                take = min(qty, remaining)
-                if take > 0:
-                    self.remove_storage_item(account_id, container, item_id, take)
-                    remaining -= take
-
-        for item_id in sorted(item_ids):
-            if remaining <= 0:
-                break
-            qty = self.item_qty(account_id, item_id)
-            take = min(qty, remaining)
-            if take > 0:
-                self.remove_item(account_id, item_id, take)
-                remaining -= take
-
-        return remaining == 0
+        Plan the entire withdrawal BEFORE mutation. One SQLite SAVEPOINT covers
+        storage, inventory and shop purchase lots, even when a later removal
+        fails. Incomplete stocks return False and do not consume anything.
+        """
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        required = require_sqlite_int64('crafting.needed', needed)
+        if required < 0:
+            raise ValueError('Nie mozna pobierac ujemnej liczby materialow.')
+        if required == 0:
+            return True
+        ids = sorted(self._v104_crafting_ids(item_ids))
+        if not ids:
+            return False
+        # Use the same connection for the preflight and writes to avoid races.
+        conn = self.conn
+        outer_transaction = bool(conn.in_transaction)
+        with conn.deferred_commits():
+            conn.execute('SAVEPOINT v104_craft_consume_atomic')
+            try:
+                plan = []
+                remaining = required
+                for source in ('storage', 'inventory'):
+                    if source == 'storage' and not container:
+                        continue
+                    for item_id in ids:
+                        if source == 'storage':
+                            row = conn.execute(
+                                'SELECT quantity FROM profession_storage '
+                                'WHERE account_id=? AND container=? AND item_id=?',
+                                (account_id, container, item_id)).fetchone()
+                        else:
+                            row = conn.execute(
+                                'SELECT quantity FROM inventory '
+                                'WHERE account_id=? AND item_id=?',
+                                (account_id, item_id)).fetchone()
+                        qty = self._v104_crafting_quantity(row[0]) if row else 0
+                        take = min(qty, remaining)
+                        if take:
+                            plan.append((source, item_id, take))
+                            remaining -= take
+                        if remaining == 0:
+                            break
+                    if remaining == 0:
+                        break
+                if remaining:
+                    conn.execute('ROLLBACK TO SAVEPOINT v104_craft_consume_atomic')
+                    conn.execute('RELEASE SAVEPOINT v104_craft_consume_atomic')
+                    return False
+                for source, item_id, take in plan:
+                    if source == 'storage':
+                        ok = self.remove_storage_item(
+                            account_id, container, item_id, take, commit=False)
+                    else:
+                        ok = self.remove_item(account_id, item_id, take, commit=False)
+                    if not ok:
+                        raise RuntimeError('Stan materialow zmienil sie podczas pobierania.')
+                conn.execute('RELEASE SAVEPOINT v104_craft_consume_atomic')
+                if not outer_transaction:
+                    conn.commit()  # commit only if this function owns the transaction
+                return True
+            except BaseException:
+                conn.execute('ROLLBACK TO SAVEPOINT v104_craft_consume_atomic')
+                conn.execute('RELEASE SAVEPOINT v104_craft_consume_atomic')
+                raise
 
     def equipment_reforge(self, account_id, item_id):
         return self.conn.execute(

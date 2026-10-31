@@ -10,14 +10,17 @@ from core.progression_resources import (
 
 class DatabaseProgressionMixin:
     def ensure_class_progress(self, account_id, class_name):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         self.conn.execute(
             "INSERT OR IGNORE INTO class_progress(account_id,class_name,level,xp,active_slot) "
             "VALUES(?,?,1,0,NULL)",
             (account_id, class_name),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def ensure_primary_class(self, account_id, class_name):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
         self.ensure_class_progress(account_id, class_name)
         # v7.10.1: legacy secondary slots are archived, never deleted.
         # No other class can remain active after login or lazy DB reads.
@@ -31,24 +34,61 @@ class DatabaseProgressionMixin:
             "WHERE account_id=? AND class_name=?",
             (account_id, class_name),
         )
-        self.conn.commit()
+        if not outer_transaction_v104:
+            self.conn.commit()
 
     def class_progress_row(self, account_id, class_name):
+        copy_mode = getattr(self, '_v104_big_number_copy_rehearsal', False)
+        if copy_mode:
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)  # before ensure_class_progress can mutate DB
         self.ensure_class_progress(account_id, class_name)
-        return self.conn.execute(
+        row = self.conn.execute(
             "SELECT class_name,level,xp,active_slot FROM class_progress "
             "WHERE account_id=? AND class_name=?",
             (account_id, class_name),
         ).fetchone()
+        if copy_mode and row is not None:
+            from storage.big_number_copy_runtime_v10400 import (
+                _ExactProgressRow, read_exact_class_xp_copy,
+            )
+            row = _ExactProgressRow(row, {
+                'xp': read_exact_class_xp_copy(self, account_id, class_name)
+            })
+        elif row is not None and getattr(self, '_v104_live_exact_keyed_xp', False):
+            from storage.big_number_copy_runtime_v10400 import _ExactProgressRow
+            from storage.big_number_live_keyed_xp_v10400 import read_live_keyed_xp
+            row = _ExactProgressRow(row, {
+                'xp': read_live_keyed_xp(self, account_id, 'class', class_name)
+            })
+        return row
 
     def active_class_rows(self, account_id, primary_class):
+        copy_mode = getattr(self, '_v104_big_number_copy_rehearsal', False)
+        if copy_mode:
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)
         self.ensure_primary_class(account_id, primary_class)
-        return self.conn.execute(
+        rows = self.conn.execute(
             "SELECT class_name,level,xp,active_slot FROM class_progress "
             "WHERE account_id=? AND active_slot IS NOT NULL "
             "ORDER BY active_slot",
             (account_id,),
         ).fetchall()
+        if copy_mode:
+            from storage.big_number_copy_runtime_v10400 import (
+                _ExactProgressRow, read_exact_class_xp_copy,
+            )
+            return [_ExactProgressRow(row, {
+                'xp': read_exact_class_xp_copy(self, account_id, row['class_name'])
+            }) for row in rows]
+        if getattr(self, '_v104_live_exact_keyed_xp', False):
+            from storage.big_number_copy_runtime_v10400 import _ExactProgressRow
+            from storage.big_number_live_keyed_xp_v10400 import read_live_keyed_xp
+            return [_ExactProgressRow(row, {
+                'xp': read_live_keyed_xp(self, account_id, 'class', row['class_name'])
+            }) for row in rows]
+        return rows
 
     def active_class_names(self, account_id, primary_class):
         return [
@@ -84,6 +124,10 @@ class DatabaseProgressionMixin:
     def add_class_mastery_xp(
         self, account_id, class_name, amount, single_level_cap=False
     ):
+        outer_transaction_v104 = getattr(self.conn, "in_transaction", False)
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import _require_copy_path
+            _require_copy_path(self)  # reject before any INSERT/COMMIT
         self.ensure_class_progress(account_id, class_name)
         row = self.class_progress_row(account_id, class_name)
         level = int(row["level"])
@@ -116,12 +160,24 @@ class DatabaseProgressionMixin:
                 overflow_xp = max(0, int(xp))
                 xp = 0
 
-        self.conn.execute(
-            "UPDATE class_progress SET level=?,xp=? "
-            "WHERE account_id=? AND class_name=?",
-            (level, xp, account_id, class_name),
-        )
-        self.conn.commit()
+        # v104: class shadow writes are gated to an attested disposable DB.
+        from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
+        require_sqlite_int64('class_progress.level', level)
+        if getattr(self, '_v104_big_number_copy_rehearsal', False):
+            from storage.big_number_copy_runtime_v10400 import write_exact_class_xp_copy
+            write_exact_class_xp_copy(self, account_id, class_name, xp, level=level)
+        elif getattr(self, '_v104_live_exact_keyed_xp', False):
+            from storage.big_number_live_keyed_xp_v10400 import write_live_keyed_xp
+            write_live_keyed_xp(self, account_id, 'class', class_name, xp=xp, level=level)
+        else:
+            require_sqlite_int64('class_progress.xp', xp)
+            self.conn.execute(
+                "UPDATE class_progress SET level=?,xp=? "
+                "WHERE account_id=? AND class_name=?",
+                (level, xp, account_id, class_name),
+            )
+        if not outer_transaction_v104:
+            self.conn.commit()
         return {
             "class_name": class_name,
             "level": level,

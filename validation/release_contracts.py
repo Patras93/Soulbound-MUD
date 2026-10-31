@@ -27,5 +27,5 @@ def release_valid(value, minimum):
 
 
 def modern_quest_catalog(value):
-    """v35+ retains precisely 6793 authored quests (not a relaxed >= test)."""
+    """v35+ preserves the historical 6793 quests and may add new ones."""
     return parse_version(value) >= (35, 0, 0)

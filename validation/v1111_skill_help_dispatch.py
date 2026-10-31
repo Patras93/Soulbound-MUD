@@ -52,8 +52,8 @@ def run_regression():
         if not condition: raise AssertionError('HELP SKILLI v11.00.11: '+why)
     ck(release_valid(VERSION, '11.00.11') and server.VERSION==VERSION, 'release version')
     ck(len(CLASS_SKILLS)==22, '22 class catalogues')
-    ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5461, 'global matching index complete')
-    ck(sum(len(v) for v in CLASS_SKILLS.values())==5461, 'all skills retained')
+    ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5527, 'global matching index complete')
+    ck(sum(len(v) for v in CLASS_SKILLS.values())==5527, 'all skills retained')
     for klass, skills in CLASS_SKILLS.items():
         ck(bool(skills), 'class skills '+klass)
         # Real dispatch without the extra "skill" keyword, plus accented

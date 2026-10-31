@@ -1462,7 +1462,10 @@ def party_temple_shard_audit_v0355():
         # v0.35.9 rozszerzyło zasadę z samych Odłamków na wszystkie zwykłe dropy.
         # Historyczny gate v0.35.5 sprawdza więc, czy nadal istnieje aktywny
         # mechanizm wspólnych odbiorców, niezależnie od jego nowszej nazwy.
-        if "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" not in _combat:
+        if not any(marker in _combat for marker in (
+            "drop_recipients = party_drop_recipients_v0359(item_id, recipients)",
+            "drop_recipients = tuple(party_drop_recipients_v0359(item_id, recipients))",
+        )):
             errors.append("wspólne dropy drużyny nie używają aktywnego helpera odbiorców")
         if "party_drop_recipients_v0359" not in globals():
             errors.append("brak aktywnego helpera wspólnych dropów po rozszerzeniu v0.35.9")
@@ -1611,7 +1614,7 @@ def all_party_mob_drops_shared_audit_v0359():
         _drop_loop = 'for item_id, chance in template["drops"].items()'
         _effective_helper = "authored_drop_chance_v11329("
         _effective_roll = "if random.random() <= _effective_drop_chance_v11329:"
-        _recipient_expand = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)"
+        _recipient_expand = "drop_recipients = tuple(party_drop_recipients_v0359(item_id, recipients))"
         _loop_pos = combat_source.find(_drop_loop)
         _helper_pos = combat_source.find(_effective_helper, _loop_pos)
         _roll_pos = combat_source.find(_effective_roll, _helper_pos)
@@ -1623,7 +1626,7 @@ def all_party_mob_drops_shared_audit_v0359():
             and _recipients_pos > _roll_pos
             and combat_source[_helper_pos:_recipients_pos].count("random.random()") == 1
         )
-        metrics["all_drop_types_use_helper"] = "drop_recipients = party_drop_recipients_v0359(item_id, recipients)" in combat_source
+        metrics["all_drop_types_use_helper"] = _recipient_expand in combat_source
         metrics["no_random_winner"] = "random.choice(recipients)" not in helper_source and "winner = drop_recipients[0]" not in combat_source
         metrics["shared_message"] = "każdy obecny członek otrzymuje" in combat_source
         metrics["same_room_reward_set"] = "self.server.party_sessions(" in combat_source and "same_room=self.character.room_id" in combat_source

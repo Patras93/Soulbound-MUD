@@ -64,9 +64,13 @@ def run():
         db_src = (root / 'storage/database.py').read_text(encoding='utf-8')
         check('LIMIT 100' in db_src and 'admin_slow_commands_v1224' in db_src,
               'retention still bounded')
-        check('admin komendy wolne' in (root/'README_ADMIN_LIVE_PL.txt').read_text(encoding='utf-8'),
-              'diagnostic documented')
-        check((root/'VERSION').read_text(encoding='utf-8').strip() == '102.00.13',
+        # v104 wydajemy ZIP bez zbędnych README. Zweryfikuj dostepnosc
+        # diagnostyki w rzeczywistym, polskim helpie administratora i SQL.
+        admin_src=(root/'player/session_mixins/admin_tools.py').read_text(encoding='utf-8')
+        check('Użycie: admin komendy wolne.' in admin_src and
+              'FROM admin_slow_commands_v1224' in admin_src,
+              'diagnostyka dostepna w grze')
+        check((root/'VERSION').read_text(encoding='utf-8').strip() == __import__('core.bootstrap_economy_professions', fromlist=['VERSION']).VERSION,
               'release matches')
         return checks
     finally:

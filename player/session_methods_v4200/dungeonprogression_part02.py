@@ -168,18 +168,14 @@ async def grant_stat_xp_v11342(
             content_scaled=content_scaled,
         )
         amount=self.apply_double_xp(amount)
-        from systems.experience_bank_v2011 import banked_experience_v2011
-        # Per-stat bank: no shared pool that could duplicate XP for six stats.
-        target_names = list(targets) if targets is not None else list(self.character.STAT_PROGRESS_FIELDS)
-        awarded = []
-        for stat_name in target_names:
-            paid = banked_experience_v2011(
-                self.server.db, self.account_id, amount, 'stat',
-                self.character.character_level, source_key=stat_name)
-            awarded.append(paid)
-            for message in self.character.add_stat_progress(paid, targets=(stat_name,)):
+        from systems.atomic_progression_rewards_v10400 import award_stats_xp_atomic_v10400
+        # Wszystkie statystyki z jednej nagrody: jeden zapis i rollback.
+        rewards = award_stats_xp_atomic_v10400(
+            self.server.db, self.character, self.account_id, amount, targets=targets)
+        for _stat_name, _paid, messages in rewards:
+            for message in messages:
                 await self.send(message)
-        return min(awarded) if awarded else 0
+        return min(paid for _, paid, _ in rewards) if rewards else 0
 
 
 async def grant_combat_quest_stat_xp(
@@ -199,24 +195,26 @@ async def grant_combat_quest_stat_xp(
             rewards = {name: one for name in self.character.STAT_PROGRESS_FIELDS}
         if not any(rewards.values()):
             return []
-        applied = []
+        # v104: cala szostka statystyk questu = jeden SAVEPOINT i jeden zapis
+        # postaci; komunikaty NVDA wysylamy dopiero po zatwierdzeniu nagrody.
+        requested = {}
         for stat_name in self.character.STAT_PROGRESS_FIELDS:
             base = rewards[stat_name]
             if not base:
-                applied.append(0)
+                requested[stat_name] = 0
                 continue
             base = self.scale_progression_xp_v11342(
                 base, content_level, content_scaled=content_scaled)
             granted = v0874_quest_stat_progress_base_grant(
-                self.character, stat_name, base, repeatable
-            )
-            granted = self.apply_double_xp(granted)
-            from systems.experience_bank_v2011 import banked_experience_v2011
-            granted=banked_experience_v2011(
-                self.server.db, self.account_id, granted, 'stat',
-                self.character.character_level, source_key=stat_name)
-            applied.append(granted)
-            for msg in self.character.add_stat_progress(granted, targets=(stat_name,)):
+                self.character, stat_name, base, repeatable)
+            requested[stat_name] = self.apply_double_xp(granted)
+        from systems.atomic_progression_rewards_v10400 import award_stats_xp_atomic_v10400
+        settled = award_stats_xp_atomic_v10400(
+            self.server.db, self.character, self.account_id, requested,
+            targets=tuple(self.character.STAT_PROGRESS_FIELDS))
+        applied = [paid for _, paid, _ in settled]
+        for _, _, messages in settled:
+            for msg in messages:
                 await self.send(msg)
         lo = min(applied) if applied else 0
         hi = max(applied) if applied else 0
@@ -247,14 +245,12 @@ async def grant_soul_xp(
             amount = max(0, int(round(amount * (1.0 + _mentor_pct / 100.0))))
             self.mentor_record_activity_v03051()
 
-        from systems.experience_bank_v2011 import banked_experience_v2011
-        amount = banked_experience_v2011(
-            self.server.db, self.account_id, amount, 'soul',
-            self.character.soul_level, overcap=overcap)
+        from systems.atomic_progression_rewards_v10400 import award_soul_xp_atomic_v10400
+        amount, messages = award_soul_xp_atomic_v10400(
+            self.server.db, self.character, self.account_id, amount,
+            overcap=overcap, single_level_cap=single_level_cap)
+        # Liczymy tylko zatwierdzoną wypłatę, a wiadomości wysyłamy po COMMIT.
         self.session_summary_add("soul_xp", amount)
-        messages = self.character.add_soul_xp(
-            amount, single_level_cap=single_level_cap
-        )
         for message in messages:
             await self.send(message)
 

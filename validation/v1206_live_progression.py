@@ -18,7 +18,7 @@ def run_regression():
     count=0
     assert len(PROFESSION_RANK_NAMES)==22 and len(TOOL_PROFESSION_MAP)==22
     count+=2
-    assert len(CLASS_SKILLS)==22 and sum(map(len,CLASS_SKILLS.values()))==5461
+    assert len(CLASS_SKILLS)==22 and sum(map(len,CLASS_SKILLS.values()))==5527
     count+=2
     all_skills={x['id']:x for ls in CLASS_SKILLS.values() for x in ls}
     original=copy.deepcopy(all_skills['warrior_power_slash'])

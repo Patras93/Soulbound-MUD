@@ -24,6 +24,7 @@ from systems.equipment_crafting import (
     GUILD_CLASS_QUESTS, LEGENDARY_CLASS_RELIC_BY_CLASS_TIER,
     LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER,
 )
+from systems.atomic_party_loot_v10400 import grant_party_loot_batch_atomic_v10400
 from systems.drop_excitement import authored_drop_chance_v11329
 from systems.dungeon_experience_v1285 import dungeon_recipient_xp_v1286
 from systems.experience_cap_v2009 import capped_experience_v2009, combat_overcap_v2009
@@ -65,7 +66,9 @@ def _final_combat_reward(*args, **kwargs):
     template=args[0] if args else kwargs.get('template', {})
     if axis in ('class','soul','character','stat') and isinstance(template,dict):
         from systems.live_olc22_empire import ordinary_reward_bonus
-        return ordinary_reward_bonus(result, exact=bool(template.get('source_xp_exact') or template.get('uoss_full_progression_source_xp_exact') or superboss_key_from_template_v11135(template)))
+        result = ordinary_reward_bonus(result, exact=bool(template.get('source_xp_exact') or template.get('uoss_full_progression_source_xp_exact') or superboss_key_from_template_v11135(template)))
+        from systems.era_dungeon_plus_v10300 import reward_xp_v10300
+        return reward_xp_v10300(template, axis, result)
     return result
 
 
@@ -117,9 +120,9 @@ def _v0711_crypt_soul_shard_guaranteed(template_id, template):
     return False
 
 async def _run_with_deferred_kill_commits_v11125(session, callback, *args, **kwargs):
-    """Batch commit-heavy kill progression into one SQLite flush."""
-    with session.server.db.conn.deferred_commits():
-        return await callback(session, *args, **kwargs)
+    """Run combat victory through the v104 per-database SQLite coordinator."""
+    from systems.kill_transaction_coordinator_v10400 import run_serialized_kill_v10400
+    return await run_serialized_kill_v10400(session, callback, *args, **kwargs)
 
 
 async def _announce_cleared_encounter_v1206(session, mob, room_id, was_engaged):
@@ -289,18 +292,14 @@ class SessionCombatRewardsMixin:
                             if _custom_guardian_reward_v1540 is not None else _base_xp_v1281
                         )))
                         _xp_v1281 = session.apply_double_xp(_xp_v1281) if _xp_v1281 else 0
-                        from systems.experience_bank_v2011 import banked_experience_v2011
                         if _xp_v1281 > 0:
-                            for _stat in session.character.STAT_PROGRESS_FIELDS:
-                                _stat_paid = banked_experience_v2011(
-                                    session.server.db, session.account_id, _xp_v1281,
-                                    'stat', session.character.character_level, source_key=_stat,
-                                    overcap=combat_overcap_v2009(
-                                        template, session.character.character_level),
-                                )
-                                for _msg in session.character.add_stat_progress(
-                                    _stat_paid, targets=(_stat,), single_level_cap=False,
-                                ):
+                            from systems.atomic_progression_rewards_v10400 import award_stats_xp_atomic_v10400
+                            _stat_results = award_stats_xp_atomic_v10400(
+                                session.server.db, session.character, session.account_id,
+                                _xp_v1281,
+                                overcap=combat_overcap_v2009(template, session.character.character_level))
+                            for _stat, _stat_paid, _messages in _stat_results:
+                                for _msg in _messages:
                                     await session.send(_msg)
                             await session.grant_combat_soul_xp_v11350(
                                 _xp_v1281, content_level=v0190_mob_stage(template),
@@ -435,6 +434,10 @@ class SessionCombatRewardsMixin:
                                 f"{_deep_apanda_floor}. Zejście niżej jest "
                                 "odblokowane dla tej postaci."
                             )
+                            from systems.era_dungeon_plus_v10300 import checkpoint_title
+                            milestone = checkpoint_title('deep', _deep_apanda_floor)
+                            if milestone:
+                                await session.unlock_title(*milestone)
 
                 # v1.11.35: unique UOSS Super Boss completion/reward runtime.
                 # Party recipients are already filtered to the same room by the canonical
@@ -504,6 +507,29 @@ class SessionCombatRewardsMixin:
                     template=template,
                     fight_duration_ms=fight_duration_ms,
                 ))
+
+                # v104: one shared invasion credit for one genuine mob death.
+                # Normal mob/party XP and quest rewards remain authoritative.
+                try:
+                    from systems.world_invasions_v10400 import record_real_defeat
+                    _v104_invasion_result = record_real_defeat(
+                        self.server.db.conn, mob, template, recipients=recipients)
+                except Exception as exc:
+                    # Auxiliary event failure must NEVER block normal combat,
+                    # rewards or active player quests.
+                    print(f'V104_INVASION_ERROR: {type(exc).__name__}: {exc}', flush=True)
+                    _v104_invasion_result = None
+                if _v104_invasion_result:
+                    _kind,_slug,_progress = _v104_invasion_result
+                    if _kind == 'final':
+                        await self.server.broadcast_all(
+                            'INWAZJA V104 ZAKOŃCZONA: pokonano finałowego bossa. '
+                            'Uczestnicy otrzymali osobiste Pieczęcie Obrońców. Następna rotacja nastąpi automatycznie.',
+                            history_category='system')
+                    elif _progress in (1, 4, 8):
+                        for _recipient in recipients:
+                            await _recipient.send(
+                                f'INWAZJA V104: front {_slug}, {_progress}/8 zwycięstw.')
 
                 # v1.22.5: genuine kills advance the hunter board for each
                 # eligible present player independently (including party members).
@@ -582,6 +608,10 @@ class SessionCombatRewardsMixin:
                                 f"Próg bossa {cleared_floor} został zaliczony na stałe. "
                                 "Po respawnie boss pozostaje opcjonalny i nie blokuje już dalszej drogi."
                             )
+                            from systems.era_dungeon_plus_v10300 import checkpoint_title
+                            milestone = checkpoint_title(boss_kind, cleared_floor)
+                            if milestone:
+                                await session.unlock_title(*milestone)
                         if milestone_boss_tier(cleared_floor):
                             await session.grant_milestone_boss_loot(template, cleared_floor)
 
@@ -701,15 +731,9 @@ class SessionCombatRewardsMixin:
                     silver = min(V019_SAFE_INT, int(round(currency_rewards["silver"][session.account_id] * session.v0210_reward_multiplier())))
                     gold = currency_rewards["gold"][session.account_id]
                     mithril = currency_rewards["mithril"][session.account_id]
-                    session.character.silver += silver
-                    session.character.gold += gold
-                    session.character.mithril += mithril
-
-                    if silver or gold or mithril:
-                        await session.send(
-                            "Nagroda walutowa: "
-                            + currency_reading_text(silver, gold, mithril) + "."
-                        )
+                    # v104: monety wypłacimy RAZEM z EXP statystyk po
+                    # wyliczeniu nagród. Nie wolno potwierdzać monet przed
+                    # udanym zapisem wspólnego portfela oraz EXP Bank.
 
                     # v1.28.6: dungeon XP is normalized per recipient, AFTER
                     # party/adaptive bonuses. Long-term requirements stay intact.
@@ -745,23 +769,10 @@ class SessionCombatRewardsMixin:
                     )
                     raw_stat_reward=session.apply_double_xp(raw_stat_reward)
                     _overcap_v2009 = combat_overcap_v2009(template, session.character.character_level)
-                    from systems.experience_bank_v2011 import banked_experience_v2011
-                    stat_rewards=[]
-                    with session.server.db.conn.deferred_commits():
-                        for stat_name in session.character.STAT_PROGRESS_FIELDS:
-                            stat_paid = banked_experience_v2011(
-                                session.server.db, session.account_id, raw_stat_reward,
-                                'stat', session.character.character_level,
-                                source_key=stat_name, overcap=_overcap_v2009)
-                            stat_rewards.append(stat_paid)
-                    for stat_name, stat_paid in zip(session.character.STAT_PROGRESS_FIELDS, stat_rewards):
-                        for msg in session.character.add_stat_progress(
-                            stat_paid,
-                            targets=(stat_name,),
-                            single_level_cap=False,
-                        ):
-                            await session.send(msg)
-                    stat_reward_text=str(min(stat_rewards)) if stat_rewards else '0' 
+                    # v104: nie zapisuj monet i statystyk przed obliczeniem
+                    # EXP postaci. Trzy nagrody zapiszemy we wspólnym SAVEPOINT
+                    # bez await pomiędzy wypłatami.
+                    stat_reward_text='0'
 
                     soul_xp_reward = min(
                         V019_SAFE_INT,
@@ -774,11 +785,8 @@ class SessionCombatRewardsMixin:
                             )),
                         ),
                     )
-                    await session.grant_combat_soul_xp_v11350(
-                        soul_xp_reward,
-                        content_level=v0190_mob_stage(template),
-                        content_scaled=True, overcap=_overcap_v2009,
-                    )
+                    # Soul XP is awarded only AFTER the final recipient-level
+                    # correction, together with all other kill rewards.
 
                     class_xp_reward = min(
                         V019_SAFE_INT,
@@ -835,37 +843,138 @@ class SessionCombatRewardsMixin:
                         combat_multiplier=xp_mult,
                         downstream_multiplier=_double_factor_v1286,
                     )
+                    # Live v104: compute all multipliers BEFORE the only
+                    # synchronous settlement. The original Soul gateway used
+                    # to award XP prematurely, before dungeon correction.
+                    from world.equipment_help import CLASS_MASTERY_MAX_LEVEL
+                    from systems.combat_kill_settlement_v10400 import settle_combat_full_progression_v10400
+                    _stage_v104 = v0190_mob_stage(template)
+                    _character_payout_v104 = session.apply_double_xp(
+                        session.scale_progression_xp_v11342(
+                            character_xp_reward, _stage_v104,
+                            content_scaled=True))
+                    _soul_scaled_v104 = session.scale_progression_xp_v11342(
+                        soul_xp_reward, _stage_v104, content_scaled=True)
+                    _soul_payout_v104 = session.apply_double_xp(_soul_scaled_v104)
+                    _soul_mentor_pct_v104 = session.mentor_bonus_percent_v03050()
+                    from core.exact_reward_math_v10400 import scale_bonus_percent_v10400
+                    if _soul_mentor_pct_v104:
+                        _soul_payout_v104 = scale_bonus_percent_v10400(
+                            _soul_payout_v104, _soul_mentor_pct_v104)
+                    _class_scaled_v104 = session.scale_progression_xp_v11342(
+                        class_xp_reward, _stage_v104, content_scaled=True)
+                    _class_double_v104 = session.apply_double_xp(_class_scaled_v104)
+                    _guild_pct_v104 = session.guild_bonus_percent_v0926()
+                    _class_payout_v104 = scale_bonus_percent_v10400(
+                        _class_double_v104, _guild_pct_v104)
+                    _class_mentor_pct_v104 = session.mentor_bonus_percent_v03050()
+                    if _class_mentor_pct_v104:
+                        _class_payout_v104 = scale_bonus_percent_v10400(
+                            _class_payout_v104, _class_mentor_pct_v104)
+                    _class_levels_v104 = tuple(
+                        (name, session.class_mastery_level(name))
+                        for name in _active_classes_v1286)
+                    if not _class_levels_v104:
+                        _class_payout_v104 = 0
+                    # No await, network writes or event callbacks while a
+                    # SAVEPOINT is open. An error in CLASS/SOUL restores coins,
+                    # six stats and character EXP, not just that axis.
+                    _settled_v104 = settle_combat_full_progression_v10400(
+                        session.server.db, session.character, session.account_id,
+                        silver=silver, gold=gold, mithril=mithril,
+                        stat_xp=raw_stat_reward,
+                        character_xp=_character_payout_v104,
+                        soul_xp=_soul_payout_v104,
+                        class_xp=_class_payout_v104,
+                        class_levels=_class_levels_v104,
+                        class_max_level=CLASS_MASTERY_MAX_LEVEL,
+                        overcap=_overcap_v2009)
+                    _stat_results = _settled_v104['stats']
+                    _character_paid_v104, _character_messages_v104 = _settled_v104['character']
+                    _soul_paid_v104, _soul_messages_v104 = _settled_v104['soul']
+                    _class_results_v104 = _settled_v104['classes']
+                    session.session_summary_add('character_xp', _character_paid_v104)
+                    session.session_summary_add('soul_xp', _soul_paid_v104)
+                    if _class_results_v104:
+                        session.session_summary_add('class_xp', sum(x[0] for x in _class_results_v104))
+                    # Mentor activity, achievements and screen-reader output
+                    # are emitted only after the complete payment succeeds.
+                    if _soul_payout_v104 and _soul_mentor_pct_v104:
+                        session.mentor_record_activity_v03051()
+                    if _class_payout_v104 and _class_mentor_pct_v104:
+                        session.mentor_record_activity_v03051()
+                    if silver or gold or mithril:
+                        await session.send('Nagroda walutowa: '
+                            + currency_reading_text(silver, gold, mithril) + '.')
+                    _stat_paid_v104 = [paid for _, paid, _ in _stat_results]
+                    for _stat, _paid, messages in _stat_results:
+                        for _note in messages:
+                            await session.send(_note)
+                    stat_reward_text = str(min(_stat_paid_v104)) if _stat_paid_v104 else '0'
+                    for _note in _character_messages_v104:
+                        await session.send(_note)
+                    _old_char_level_v104 = _settled_v104['character_level_before']
+                    if int(session.character.character_level) > _old_char_level_v104:
+                        _hint_fn = getattr(session, 'exp_area_level_up_hint_v2910', None)
+                        _hint = (_hint_fn(_old_char_level_v104, session.character.character_level)
+                                 if callable(_hint_fn) else None)
+                        if _hint:
+                            await session.send(_hint)
+                    for _note in _soul_messages_v104:
+                        await session.send(_note)
+                    await session.set_achievement_progress('soul_level', session.character.soul_level)
+                    _old_soul_level_v104 = _settled_v104['soul_level_before']
+                    if session.character.soul_level > _old_soul_level_v104:
+                        session.current_hp = session.max_hp()
+                        await session.send(f'Awans Soul Level odnawia cale HP. HP: {session.current_hp} z {session.max_hp()}.')
+                        _hint_fn = getattr(session, 'exp_area_soul_level_up_hint_v2910', None)
+                        _hint = (_hint_fn(_old_soul_level_v104, session.character.soul_level)
+                                 if callable(_hint_fn) else None)
+                        if _hint:
+                            await session.send(_hint)
+                    if _class_results_v104:
+                        _class_total_paid_v104 = sum(paid for paid, _ in _class_results_v104)
+                        _guild_note_v104 = f' Bonus Gildii +{_guild_pct_v104}%.' if _guild_pct_v104 else ''
+                        _event_note_v104 = ' Event x2 EXP.' if _class_double_v104 > _class_scaled_v104 else ''
+                        await session.send(
+                            f'EXP klasy {session.character.class_name}: {_class_total_paid_v104}. '
+                            'Nagroda trafia tylko do klasy glownej (do Multi Cap).'
+                            + _event_note_v104 + _guild_note_v104)
+                        for (_name_v104, _), (_paid_v104, _row_v104) in zip(
+                                _class_levels_v104, _class_results_v104):
+                            if _row_v104['level_ups']:
+                                await session.send(f'{_name_v104}: Bieglosc rosnie do {_row_v104["level"]}.')
+                            _asc_v104 = _settled_v104['ascensions'].get(_name_v104)
+                            if _asc_v104 and _asc_v104['rank_ups']:
+                                await session.send(f'{_name_v104}: Wzniesienie rosnie do rangi {_asc_v104["rank"]}.')
+                                for _milestone in (1, 10, 25, 50, 100, 250, 500, 1000):
+                                    if _asc_v104['rank'] >= _milestone > _asc_v104['rank'] - _asc_v104['rank_ups']:
+                                        await session.unlock_title(
+                                            f'v021:ascension:{_name_v104}:{_milestone}',
+                                            f'{_name_v104} — Wzniesienie {_milestone}')
+                            if _row_v104['level'] >= CLASS_MASTERY_MAX_LEVEL:
+                                if _asc_v104:
+                                    _next_v104 = (f' z {_asc_v104["next_xp"]}' if _asc_v104['next_xp'] else ' — maksimum')
+                                    await session.send(f'{_name_v104}: +{_row_v104["gain"]} EXP klasy. Bieglosc {CLASS_MASTERY_MAX_LEVEL}; Wzniesienie {_asc_v104["rank"]}, XP {_asc_v104["xp"]}{_next_v104}.')
+                                else:
+                                    await session.send(f'{_name_v104}: +{_row_v104["gain"]} EXP klasy. Bieglosc {CLASS_MASTERY_MAX_LEVEL}, maksimum.')
+                            else:
+                                await session.send(f'{_name_v104}: +{_row_v104["gain"]} EXP klasy. Bieglosc {_row_v104["level"]}, XP {_row_v104["xp"]} z {_row_v104["next_xp"]}.')
                     reward_model_text = (
-                        f"UOSS source EXP exact na wszystkie osie: {source_xp}"
+                        f'UOSS source EXP exact na wszystkie osie: {source_xp}'
                         if uoss_full_progression_source_xp_exact
-                        else "Balans EXP po walce + korekta poziomu odbiorcy w lochach"
-                    )
+                        else 'Balans EXP po walce + korekta poziomu odbiorcy w lochach')
                     await session.send_combat(
-                        f"{reward_model_text}: etap {v0190_mob_stage(template)}, "
-                        f"ranga {v0190_mob_rank(template)}, siła postaci {xp_profile['power']}/{CHARACTER_MAX_LEVEL}, "
-                        f"siła moba {xp_profile['target']}/{CHARACTER_MAX_LEVEL}, mnożnik x{xp_profile['multiplier']:.2f}; "
-                        f"adaptive reward x{_adaptive_reward_mult_v11330:.2f}; "
-                        f"elite reward x{_elite_reward_mult_v11338:.2f}; "
-                        f"bazowy EXP każdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; "
-                        f"Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; "
-                        "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie. "
-                        "Kwoty wyświetlone przed capem; faktyczna wypłata zależy od poziomu i doublecap bossa. "
-                        "Sprawdź: experience cap.",
-                        detail="full",
-                    )
-                    await session.grant_class_xp(
-                        class_xp_reward,
-                        single_level_cap=False,
-                        content_level=v0190_mob_stage(template),
-                        content_scaled=True, overcap=_overcap_v2009,
-                    )
-                    for _msg in session.add_character_xp_with_event(
-                        character_xp_reward,
-                        single_level_cap=False,
-                        content_level=v0190_mob_stage(template),
-                        content_scaled=True, overcap=_overcap_v2009,
-                    ):
-                        await session.send(_msg)
+                        f'{reward_model_text}: etap {v0190_mob_stage(template)}, '
+                        f'ranga {v0190_mob_rank(template)}, sila postaci {xp_profile["power"]}/{CHARACTER_MAX_LEVEL}, '
+                        f'sila moba {xp_profile["target"]}/{CHARACTER_MAX_LEVEL}, mnoznik x{xp_profile["multiplier"]:.2f}; '
+                        f'adaptive reward x{_adaptive_reward_mult_v11330:.2f}; '
+                        f'elite reward x{_elite_reward_mult_v11338:.2f}; '
+                        f'bazowy EXP kazdego statu {stat_reward_text}; Soul XP {soul_xp_reward}; '
+                        f'Class XP {class_xp_reward}; EXP postaci {character_xp_reward}; '
+                        'EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomow za jedno zabicie. '
+                        'Kwoty wyswietlone przed capem; faktyczna wyplata zalezy od poziomu i doublecap bossa. '
+                        'Sprawdz: experience cap.', detail='full')
                     await self.server.events.publish(
                         PlayerMobKillQuestEvent(session=session, mob=mob)
                     )
@@ -978,67 +1087,45 @@ class SessionCombatRewardsMixin:
                     # rodziny mobów (np. wszystkie odmiany goblinów).
                     quest_targets = quest_kill_targets_v0389(mob.template_id, template)
 
-                    for target in quest_targets:
-                        changed = self.server.db.increment_quest(
-                            session.account_id, target
-                        )
-                        for quest_id, _progress in changed:
-                            await session.announce_active_quest_progress(
-                                quest_id,
-                                template.get("name", mob.template_id),
-                            )
-
-                    # OLC15: exactly one event for one killed mob, even if it
-                    # has several quest aliases. Existing kill rewards untouched.
-                    for _qid, _kind, _target, _done, _max in self.server.db.increment_multi_objective_v1800(
-                        session.account_id, 'kill', mob.template_id, aliases=quest_targets
-                    ):
-                        await session.announce_active_quest_progress(_qid)
-
-                    # v8.00.0: only this real rewarded victory advances the
-                    # class's saga; no alias double-count, no foreign-class XP.
+                    # v104: resolve every local-recipient quest credit from this
+                    # same real kill (ordinary, OLC, class saga, party contract)
+                    # under ONE SAVEPOINT and without a network await.
+                    from systems.atomic_kill_quest_progress_v10400 import settle_all_kill_quests_v10400
                     _v800_active_classes = tuple(dict.fromkeys(session.active_class_names()))
                     _v800_rank_boss = bool(v0866_is_boss_template(template))
                     _v800_rank_elite = bool(template.get('elite_affix') or
-                                             str(template.get('rank') or '') == 'elite')
-                    # MobState has no `level` field. Use the same canonical level as
-                    # combat XP and threat calculations; otherwise every valid
-                    # Paladin/other-class stage 2 kill wrongly looks level 1.
+                                           str(template.get('rank') or '') == 'elite')
                     _v800_mob_level = v0190_mob_stage(template)
-                    for _v800_class in _v800_active_classes:
-                        for _v800_quest_id, _v800_progress in self.server.db.increment_class_legend_kill_v800(
-                            session.account_id, _v800_class, _v800_mob_level,
-                            elite=_v800_rank_elite, boss=_v800_rank_boss
-                        ):
-                            await session.announce_active_quest_progress(
-                                _v800_quest_id, template.get('name',mob.template_id)
-                            )
-
+                    _party_contract_categories_v11339 = []
                     if count >= 2:
-                        _party_contract_categories_v11339 = []
-                        if template.get("elite_affix") or str(template.get("rank") or "") == "elite":
-                            _party_contract_categories_v11339.append("elite")
-                        if v0866_is_boss_template(template):
-                            _party_contract_categories_v11339.append("boss")
+                        if _v800_rank_elite:
+                            _party_contract_categories_v11339.append('elite')
+                        if _v800_rank_boss:
+                            _party_contract_categories_v11339.append('boss')
                         if mob_element_affinities_v11339(template):
-                            _party_contract_categories_v11339.append("elemental")
-                        if template.get("v11339_named_rare"):
-                            _party_contract_categories_v11339.append("named_rare")
-                        for _contract_category_v11339 in dict.fromkeys(
-                            _party_contract_categories_v11339
-                        ):
-                            _contract_changes_v11339 = (
-                                self.server.db.increment_party_contract_v11339(
-                                    session.account_id,
-                                    _contract_category_v11339,
-                                    1,
-                                )
-                            )
-                            for _qid_v11339, _progress_v11339, _needed_v11339 in _contract_changes_v11339:
-                                await session.announce_active_quest_progress(
-                                    _qid_v11339,
-                                    template.get("name", mob.template_id),
-                                )
+                            _party_contract_categories_v11339.append('elemental')
+                        if template.get('v11339_named_rare'):
+                            _party_contract_categories_v11339.append('named_rare')
+                    (_quests_v104, _multi_v104,
+                     _saga_v104, _party_v104) = settle_all_kill_quests_v10400(
+                        self.server.db, session.account_id, mob.template_id,
+                        aliases=quest_targets,
+                        active_classes=_v800_active_classes,
+                        mob_level=_v800_mob_level,
+                        elite=_v800_rank_elite, boss=_v800_rank_boss,
+                        party_categories=_party_contract_categories_v11339)
+                    # Announce only after ALL four credit systems are committed.
+                    for quest_id, _progress in _quests_v104:
+                        await session.announce_active_quest_progress(
+                            quest_id, template.get('name', mob.template_id))
+                    for _qid, _kind, _target, _done, _max in _multi_v104:
+                        await session.announce_active_quest_progress(_qid)
+                    for _qid, _progress in _saga_v104:
+                        await session.announce_active_quest_progress(
+                            _qid, template.get('name',mob.template_id))
+                    for _qid, _progress, _needed in _party_v104:
+                        await session.announce_active_quest_progress(
+                            _qid, template.get('name', mob.template_id))
 
                     await session.grant_hourly_quest_kill_drop_v0929(
                         mob.template_id, template
@@ -1066,6 +1153,11 @@ class SessionCombatRewardsMixin:
                 if _v0711_crypt_soul_shard_guaranteed(mob.template_id, template):
                     template.setdefault("drops", {})["soul_shard"] = 1.0
 
+                # v104: one inventory/craftbox transaction for ALL successful
+                # rolls of this kill. RNG runs in the authored order, with no
+                # SQLite writes or awaits before all rolls are decided.
+                _kill_loot_rolls_v104 = []
+                _kill_loot_announcements_v104 = []
                 for item_id, chance in template["drops"].items():
                     _effective_drop_chance_v11329 = authored_drop_chance_v11329(
                         template, item_id, chance
@@ -1079,112 +1171,95 @@ class SessionCombatRewardsMixin:
                         float(_effective_drop_chance_v11329) * _elite_drop_mult_v11338,
                     )
                     if random.random() <= _effective_drop_chance_v11329:
-                        # v0.35.9: every normal mob drop is shared locally with the
-                        # whole eligible party. Roll the configured chance exactly once
-                        # per defeated mob; on success each present reward recipient gets
-                        # one copy of the same item.
-                        # v56: same single successful roll for the entire party;
-                        # scale only ordinary EQ from real infinite-depth sources.
-                        # Never change the source template/drop chance or boss codex identity.
                         _awarded_item_v5600 = convert_normal_equipment_drop_v5600(item_id, template)
-                        drop_recipients = party_drop_recipients_v0359(item_id, recipients)
-                        for winner in drop_recipients:
-                            if item_id in globals().get("TECH_COMPONENT_IDS", set()) or ITEMS.get(item_id, {}).get("craftbox_category") == "technology":
-                                self.server.db.add_storage_item(winner.account_id, "craftbox", item_id, 1)
-                            else:
-                                self.server.db.add_item(winner.account_id, _awarded_item_v5600, 1)
-                            await winner.record_item_collection(
-                                _awarded_item_v5600, source=template["name"], announce=True
-                            )
+                        drop_recipients = tuple(party_drop_recipients_v0359(item_id, recipients))
+                        _technology_v104 = (item_id in globals().get("TECH_COMPONENT_IDS", set())
+                            or ITEMS.get(item_id, {}).get("craftbox_category") == "technology")
+                        _kill_loot_rolls_v104.append((drop_recipients, _awarded_item_v5600,
+                            _technology_v104, item_id if _technology_v104 else None))
+                        _kill_loot_announcements_v104.append(
+                            ('normal', drop_recipients, _awarded_item_v5600, item_id))
 
-                        boss_id_for_drop = canonical_bestiary_template_id(mob.template_id)
-                        if boss_id_for_drop in BOSS_COLLECTION_CATALOG:
-                            for party_session in recipients:
-                                new_drop = self.server.db.add_boss_codex_drop(
-                                    party_session.account_id, boss_id_for_drop, item_id
-                                )
-                                if new_drop:
-                                    await party_session.send(
-                                        f"Boss Codex: odkryty drop {ITEMS[item_id]['name']} z "
-                                        f"{BOSS_COLLECTION_CATALOG[boss_id_for_drop]}."
-                                    )
-
-                        for party_session in drop_recipients:
-                            if party_session.loot_message_allowed(_awarded_item_v5600):
-                                if count > 1:
-                                    await party_session.send(
-                                        f"Drop drużynowy: każdy obecny członek otrzymuje "
-                                        f"{ITEMS[_awarded_item_v5600]['name']}."
-                                    )
-                                else:
-                                    await party_session.send(
-                                        f"Drop: otrzymujesz {ITEMS[_awarded_item_v5600]['name']}."
-                                    )
-
-                # v1.15.0: independent and rare boss-relic/catalyst roll.
-                # One random result per killed boss, then identical for the local party.
+                # Same independent boss/trophy/legacy rolls as before; only
+                # their inventory writes are batched before notifications.
                 if v0866_is_boss_template(template) or template.get("uoss_unique_superboss_key"):
                     _legendary_id_v1150 = boss_legendary_roll_v1150(template)
                     if _legendary_id_v1150:
                         _legendary_id_v1150 = infinite_equipment_variant_for_drop(
-                            _legendary_id_v1150, template
-                        )
-                        for _winner in recipients:
-                            self.server.db.add_item(_winner.account_id, _legendary_id_v1150, 1)
-                            await _winner.record_item_collection(
-                                _legendary_id_v1150, source=template.get("name","Boss"), announce=True
-                            )
-                            await _winner.send(
-                                f"LEGENDARNY ŁUP: {ITEMS[_legendary_id_v1150]['name']}. "
-                                "Nagroda z bossa, niezależna od normalnego dropu."
-                            )
+                            _legendary_id_v1150, template)
+                        _kill_loot_rolls_v104.append((tuple(recipients), _legendary_id_v1150, False, None))
+                        _kill_loot_announcements_v104.append(
+                            ('legendary', tuple(recipients), _legendary_id_v1150, None))
 
-                # v1.13.23: one independent, stage-scaled "o kurde" trophy roll.
-                # It never replaces authored drops and follows the same full-party
-                # reward rule as normal loot.
                 _trophy_spec = _v11323_mob_trophy_spec(template)
                 if _trophy_spec:
                     _trophy_item_id, _trophy_chance = _trophy_spec
                     if random.random() <= float(_trophy_chance):
-                        _trophy_recipients = party_drop_recipients_v0359(
-                            _trophy_item_id, recipients
-                        )
-                        for _winner in _trophy_recipients:
-                            self.server.db.add_item(
-                                _winner.account_id, _trophy_item_id, 1
-                            )
-                            await _winner.record_item_collection(
-                                _trophy_item_id,
-                                source=template.get("name", "Walka"),
-                                announce=True,
-                            )
-                            await _winner.send(
-                                f"Rzadki łup bojowy: otrzymujesz "
-                                f"{ITEMS[_trophy_item_id]['name']}. "
-                                "To trofeum ma wysoką wartość sprzedaży."
-                            )
+                        _trophy_recipients = tuple(party_drop_recipients_v0359(
+                            _trophy_item_id, recipients))
+                        _kill_loot_rolls_v104.append(
+                            (_trophy_recipients, _trophy_item_id, False, None))
+                        _kill_loot_announcements_v104.append(
+                            ('trophy', _trophy_recipients, _trophy_item_id, None))
 
-                # v1.13.25: weak legacy families get a characteristic material,
-                # but this is deliberately NOT another global trophy system.
                 _legacy_drop_v11325 = _v11325_legacy_identity_drop_spec(template)
                 if _legacy_drop_v11325:
                     _legacy_item_id_v11325, _legacy_chance_v11325 = _legacy_drop_v11325
-                    _legacy_recipients_v11325 = party_drop_recipients_v0359(
-                        _legacy_item_id_v11325, recipients
-                    )
-                    for _winner in _legacy_recipients_v11325:
-                        self.server.db.add_item(
-                            _winner.account_id, _legacy_item_id_v11325, 1
-                        )
-                        await _winner.record_item_collection(
-                            _legacy_item_id_v11325,
-                            source=template.get("name", "Walka"),
-                            announce=True,
-                        )
-                        await _winner.send(
-                            f"Łup charakterystyczny: "
-                            f"{ITEMS[_legacy_item_id_v11325]['name']}."
-                        )
+                    _legacy_recipients_v11325 = tuple(party_drop_recipients_v0359(
+                        _legacy_item_id_v11325, recipients))
+                    _kill_loot_rolls_v104.append(
+                        (_legacy_recipients_v11325, _legacy_item_id_v11325, False, None))
+                    _kill_loot_announcements_v104.append(
+                        ('legacy', _legacy_recipients_v11325, _legacy_item_id_v11325, None))
+
+                # All four types commit together; an error in the final item
+                # rolls back the earlier rolls for every eligible party member.
+                # Network/collection/codex side effects happen ONLY afterward.
+                grant_party_loot_batch_atomic_v10400(
+                    self.server.db, _kill_loot_rolls_v104)
+                for _kind_v104, _loot_recipients_v104, _loot_item_v104, _source_id_v104 in _kill_loot_announcements_v104:
+                    if _kind_v104 == 'normal':
+                        for winner in _loot_recipients_v104:
+                            await winner.record_item_collection(
+                                _loot_item_v104, source=template["name"], announce=True)
+                        boss_id_for_drop = canonical_bestiary_template_id(mob.template_id)
+                        if boss_id_for_drop in BOSS_COLLECTION_CATALOG:
+                            for party_session in recipients:
+                                new_drop = self.server.db.add_boss_codex_drop(
+                                    party_session.account_id, boss_id_for_drop, _source_id_v104)
+                                if new_drop:
+                                    await party_session.send(
+                                        f"Boss Codex: odkryty drop {ITEMS[_source_id_v104]['name']} z "
+                                        f"{BOSS_COLLECTION_CATALOG[boss_id_for_drop]}.")
+                        for party_session in _loot_recipients_v104:
+                            if party_session.loot_message_allowed(_loot_item_v104):
+                                if count > 1:
+                                    await party_session.send(
+                                        "Drop drużynowy: każdy obecny członek otrzymuje "
+                                        f"{ITEMS[_loot_item_v104]['name']}.")
+                                else:
+                                    await party_session.send(
+                                        f"Drop: otrzymujesz {ITEMS[_loot_item_v104]['name']}.")
+                    elif _kind_v104 == 'legendary':
+                        for _winner in _loot_recipients_v104:
+                            await _winner.record_item_collection(
+                                _loot_item_v104, source=template.get("name", "Boss"), announce=True)
+                            await _winner.send(
+                                f"LEGENDARNY ŁUP: {ITEMS[_loot_item_v104]['name']}. "
+                                "Nagroda z bossa, niezależna od normalnego dropu.")
+                    elif _kind_v104 == 'trophy':
+                        for _winner in _loot_recipients_v104:
+                            await _winner.record_item_collection(
+                                _loot_item_v104, source=template.get("name", "Walka"), announce=True)
+                            await _winner.send(
+                                f"Rzadki łup bojowy: otrzymujesz {ITEMS[_loot_item_v104]['name']}. "
+                                "To trofeum ma wysoką wartość sprzedaży.")
+                    else:  # legacy
+                        for _winner in _loot_recipients_v104:
+                            await _winner.record_item_collection(
+                                _loot_item_v104, source=template.get("name", "Walka"), announce=True)
+                            await _winner.send(
+                                f"Łup charakterystyczny: {ITEMS[_loot_item_v104]['name']}.")
 
                 await self.server.broadcast_room(
                     self.character.room_id,

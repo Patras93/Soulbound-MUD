@@ -556,11 +556,12 @@ class SessionEquipmentStatsMixin:
                 if count <= 0:
                     continue
                 active=[]
-                if count >= 2: active.append(f"2/6 HP i Mana +{int(round((config['hp']-1)*100))}%")
-                if count >= 4: active.append(f"4/6 obrażenia +{int(round((config['damage']-1)*100))}%")
-                if count >= 6: active.append(f"6/8 obrona +{int(round((config['defense']-1)*100))}%")
+                v104_four = bool(config.get('v104_four_piece'))
+                if count >= 2: active.append(f"2/{4 if v104_four else 6} HP i Mana +{int(round((config['hp']-1)*100))}%")
+                if count >= 4: active.append(f"4/{4 if v104_four else 6} obrażenia +{int(round((config['damage']-1)*100))}%")
+                if count >= 6 and not v104_four: active.append(f"6/8 obrona +{int(round((config['defense']-1)*100))}%")
                 if count >= 8 and float(config.get('complete',1.0))>1.0: active.append(f"8/8 pełna synchronizacja +{int(round((config['complete']-1)*100))}%")
-                max_pieces = 8 if 'complete' in config else 6
+                max_pieces = 4 if v104_four else 8 if 'complete' in config else 6
                 lines.append(f"{config['name']}: {count}/{max_pieces} części. " + ("; ".join(active) if active else "brak aktywnego progu" ) + ".")
             return lines or ["Brak aktywnego regionalnego zestawu."]
 

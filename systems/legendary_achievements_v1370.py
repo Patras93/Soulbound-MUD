@@ -106,13 +106,17 @@ def sync_v1370(db, account_id):
     reached = [milestone for milestone in CATALOG_V1370
                if snapshot.get((milestone.source, milestone.key), 0) >= milestone.threshold]
     if not reached:
-        return 0
+        # New milestones are kept separate so historical legend:v1370 IDs
+        # and previously awarded titles remain untouched.
+        from systems.achievements_era_v10300 import sync_v10300
+        return sync_v10300(db, account_id, snapshot)
     old_ids = {row['achievement_id'] for row in db.conn.execute(
         'SELECT achievement_id FROM achievements WHERE account_id=? AND achievement_id LIKE ?',
         (account_id, 'legend:v1370:%'))}
     new = [a for a in reached if a.identifier not in old_ids]
     if not new:
-        return 0
+        from systems.achievements_era_v10300 import sync_v10300
+        return sync_v10300(db, account_id, snapshot)
     # One transaction: no per-achievement commits and no partial title awards.
     with db.conn:
         db.conn.executemany(
@@ -125,7 +129,8 @@ def sync_v1370(db, account_id):
                 'INSERT OR IGNORE INTO unlocked_titles(account_id,title_id,title_name) VALUES(?,?,?)', titles
             )
         # Persistent history is owned by the existing achievements table itself.
-    return len(new)
+    from systems.achievements_era_v10300 import sync_v10300
+    return len(new) + sync_v10300(db, account_id, snapshot)
 
 
 def records_v1370(db, limit=10):

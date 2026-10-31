@@ -1622,3 +1622,14 @@ LATEST_CHANGES = [
     "v102.00.1: weryfikacja kontrolnego hasha metody walki; bez zmian logiki najemnikow.",
     "v102.00.0: pomoc 74-76, tunel realnej areny, deklaratywne efekty i audyt Admin Live.",
 ] + LATEST_CHANGES
+
+# Final v103.00.0 release identity. Historical notes remain available.
+LATEST_CHANGES_TITLE = "Soulbound v104.00.0 - Era Bez Granic / BigNumber"
+LATEST_CHANGES = [
+    "v103.00.0: 11 krain 801-5000, 165 nowych pokojow, 33 NPC i 385 nowych zadan.",
+    "v103.00.0: 11 rajdow z 33 bossami i czterema fazami HP; questy klasowe, fabularne i profesyjne.",
+    "v103.00.0: Soul Tiery 81-500, nowe proby, rangi profesji i narzedzi ponad 800, tytuly i osiagniecia.",
+    "v103.00.0: EXP wysokich pieter Deep Dungeon, krypt i wiez, checkpointy i Admin Live Era z DRAFT, sprawdzaniem, publikacja i cofnieciem.",
+    "v103.00.0: poprawiona dostepnosc questow NPC, krotsze komunikaty NVDA, izolowane testy realnych rajdow TCP i ochrony bazy.",
+    "v103.00.0: Multi Cap x2, EXP Bank, no level cap i zachowanie ustawien skalowania pozostaja bez zmian.",
+] + LATEST_CHANGES

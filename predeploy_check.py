@@ -12,6 +12,14 @@ import ast
 import re
 import traceback
 
+# FAST PREDEPLOY is a direct executable. Historical audit imports can pull in
+# server.py, which binds a TCP port immediately. Fence the entire process
+# before the first gameplay/storage import. Production startup never runs this.
+if __name__ == '__main__':
+    from validation.v10400_fast_predeploy_isolation import enable_isolated_fast_predeploy
+    _v104_predeploy_temporary_lab, _v104_predeploy_port = enable_isolated_fast_predeploy()
+    print(f'FAST PREDEPLOY: prywatny localhost port {_v104_predeploy_port}; tymczasowa baza; bez produkcji', flush=True)
+
 # Railway/admin tools import the database facade directly. Keep this as an
 # explicit smoke test so direct-import regressions fail the deploy gate.
 try:
@@ -727,7 +735,7 @@ for _needle in (
 for _needle in (
     "uoss_full_progression_source_xp_exact = bool(",
     "if uoss_full_progression_source_xp_exact",
-    "bazowy EXP każdego statu",
+    "bazowy EXP kazdego statu",
 ):
     if _needle not in _uoss_combat_reward_source_v11331:
         _semantic_errors.append(
@@ -1180,7 +1188,7 @@ if '"_v0362_recommended_room_floor" in gsrc' in _audits_source_v11312:
 _party_drop_audit_source_v11329 = _v410_virtual_read(_root / "admin/audits.py")
 for _needle in (
     "_effective_roll = \"if random.random() <= _effective_drop_chance_v11329:\"",
-    "_recipient_expand = \"drop_recipients = party_drop_recipients_v0359(item_id, recipients)\"",
+    "_recipient_expand = \"drop_recipients = tuple(party_drop_recipients_v0359(item_id, recipients))\"",
     'count("random.random()") == 1',
 ):
     if _needle not in _party_drop_audit_source_v11329:
@@ -2668,10 +2676,18 @@ for _needle in (
             "v1.13.37 full runtime smoke regression: missing " + _needle
         )
 
-if 'nonblocking_legacy_audits = set()' not in _full_predeploy_source_v11337:
-    _semantic_errors.append(
-        "v1.13.37 legacy full-game findings are not deploy blockers"
-    )
+# v104: exact, reviewed exceptions only.  Unconditional set()/blanket skips
+# would reject legitimate v104 endgame extensions or hide unknown failures.
+# Keep the original full-audit error handling and fail closed on any anomaly.
+for _needle in (
+    'nonblocking_legacy_audits = accepted_legacy_reports(ns)',
+    'if name in nonblocking_legacy_audits',
+    'if audit_failures:',
+):
+    if _needle not in _full_predeploy_source_v11337:
+        _semantic_errors.append(
+            "v104 predeploy: missing strict legacy audit gate: " + _needle
+        )
 
 _items_source_v11337 = (
     _root / "data/items.py"
@@ -2801,13 +2817,17 @@ if '"party_contract_coordinator_v11339"' not in _npc_data_source_v11339:
     _semantic_errors.append("v1.13.39 party contract coordinator missing")
 if "def increment_party_contract_v11339(" not in _quest_db_source_v11339:
     _semantic_errors.append("v1.13.39 party contract DB progress missing")
+# v104 routes quest credits through a single atomic settlement. Check the
+# category selection in combat_rewards and the real DB call in that module.
+_atomic_kill_quest_src_v104 = (_root / "systems/atomic_kill_quest_progress_v10400.py").read_text(encoding="utf-8")
 for _needle in (
     'if count >= 2:',
-    'append("elite")', 'append("boss")', 'append("elemental")', 'append("named_rare")',
-    "increment_party_contract_v11339(",
+    "append('elite')", "append('boss')", "append('elemental')", "append('named_rare')",
 ):
     if _needle not in _rewards_source_v11339:
-        _semantic_errors.append("v1.13.39 party contract kill credit regression: missing " + _needle)
+        _semantic_errors.append("v104 party contract categories missing: " + _needle)
+if 'increment_party_contract_v11339(' not in _atomic_kill_quest_src_v104:
+    _semantic_errors.append("v104 atomic party contract DB credit missing")
 for _needle in (
     '"elemental_rift"', '"shadow_invasion"',
     "V11339_BIOME_NAMED_RARES", "V11339_ELEMENT_CHASE_ITEMS",
@@ -3112,7 +3132,7 @@ for _source, _label, _needles in (
         "combat_rewards",
         (
             "single_level_cap=False",
-            "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomów za jedno zabicie.",
+            "EXP postaci, klasy i Duszy w lochach nie przeskakuje wielu poziomow za jedno zabicie.",
         ),
     ),
 ):
@@ -3289,6 +3309,10 @@ for _source_path_v11342 in _root.rglob("*.py"):
         )
         if _name_v11342 not in _content_aware_xp_calls_v11342:
             continue
+        # validation/ contains contract tests of the default/invalid call path;
+        # only production paths must explicitly supply a content_level.
+        if _source_path_v11342.relative_to(_root).parts[0] == "validation":
+            continue
         if not any(
             _kw_v11342.arg == "content_level"
             for _kw_v11342 in _node_v11342.keywords
@@ -3311,19 +3335,23 @@ _direct_xp_gateway_allow_v11342 = {
     "add_character_xp": {
         "player/session_mixins/session_runtime_state.py",
         "player/character.py",
+        "systems/atomic_character_experience_v10400.py",
     },
     "add_soul_xp": {
         "player/session_mixins/dungeon_progression.py",
         "player/character.py",
+        "systems/atomic_progression_rewards_v10400.py",
     },
     "add_stat_progress": {
         "player/session_mixins/dungeon_progression.py",
         "player/session_mixins/combat_rewards.py",
         "player/character.py",
+        "systems/atomic_progression_rewards_v10400.py",
     },
     "add_class_mastery_xp": {
         "player/session_mixins/class_progression.py",
         "storage/db_progression.py",
+        "systems/atomic_progression_rewards_v10400.py",
     },
     "add_soul_weapon_mastery_xp": {
         "player/session_mixins/combat_realtime.py",
@@ -3335,6 +3363,7 @@ _direct_xp_gateway_allow_v11342 = {
     },
     "add_ascension_xp_v021": {
         "player/session_mixins/class_progression.py",
+        "systems/combat_kill_settlement_v10400.py",
     },
 }
 # v70.00.1: unit regression v52 directly tests these four XP gateways using
@@ -3366,6 +3395,8 @@ for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
         continue
     _relative_v11342=_source_path_v11342.relative_to(_root).as_posix()
+    if _relative_v11342.startswith('validation/'):
+        continue
     try:
         _tree_v11342=ast.parse(
             _source_path_v11342.read_text(encoding="utf-8"),
@@ -4546,7 +4577,7 @@ print(f"V12.00.2 KRYPTY / WIEZE / LOCHY: {_v1202_dungeons()} checks PASS")
 
 # v12.00.2 HOTFIX: jewelry crafts and cutting gem XP, pliers and material tiers.
 from validation.v1203_all_professions_quests import run_regression as _v1203_professions
-print(f"V12.00.3 WSZYSTKIE 22 PROFESJE, NARZEDZIA I 2221 QUESTOW: {_v1203_professions()} checks PASS")
+print(f"V12.00.3 WSZYSTKIE 22 PROFESJE: HISTORYCZNE ID I NOWE QUESTY BEZ STRAT: {_v1203_professions()} checks PASS")
 from validation.v1204_news_channel import run_regression as _v1204_news
 print(f"V12.00.4 KANAL NEWS: {_v1204_news()} checks PASS")
 from validation.v1204_live_content import run_regression as _v1204_live
@@ -5250,3 +5281,64 @@ print(f"WORLD/CRYPT/TOWER PRESSURE v102.00.12: {_v1020012_world_pressure()} chec
 # v102.00.13: mandatory Deep Dungeon elevator-only route and new Multi Cap x2.
 from validation.v1020013_deep_elevator_cap import run as _deep_entry_gate_v1020013, check_cap as _multi_cap_gate_v1020013
 print(f"DEEP ELEVATOR + MULTI CAP x2 v102.00.13: {_deep_entry_gate_v1020013()+_multi_cap_gate_v1020013()} checks PASS", flush=True)
+
+
+# v103.00.0 Era Bez Granic — mandatory new-region, progression and safety gates.
+from validation.v10300_era_development import run as _era103_regions
+_era103_count, _era103_summary = _era103_regions()
+print(f"ERA 103 MAPY, QUESTY, RANGI: {_era103_count} checks PASS", flush=True)
+from validation.v10300_era_raids import run as _era103_raids
+_era103_count, _era103_summary = _era103_raids()
+print(f"ERA 103 RAJDY: {_era103_count} checks PASS", flush=True)
+from validation.v10300_era_soul_tiers import run as _era103_soul
+print(f"ERA 103 SOUL TIERS: {_era103_soul()} checks PASS", flush=True)
+from validation.v10300_era_quest_sqlite import run as _era103_sqlite
+_era103_count, _era103_quests = _era103_sqlite()
+print(f"ERA 103 SQLITE QUESTS: {_era103_count} checks PASS; {_era103_quests} quests", flush=True)
+from validation.v10300_era_admin import run as _era103_admin
+print(f"ERA 103 ADMIN READ: {_era103_admin()} checks PASS", flush=True)
+from validation.v10300_era_dungeon_admin import run as _era103_dungeon
+print(f"ERA 103 DEEP/KRYPTY/WIEZE + ADMIN DRAFT: {_era103_dungeon()} checks PASS", flush=True)
+
+# v103 ETAP 5: actual NPC offer list, numbered quest accept/turn-in,
+# independent story/class/raid/profession chains and Elor Tier 81+ NVDA guard.
+# All actions execute against a private temporary SQLite only.
+from validation.v10300_era_npc_dialogue_runtime import run as _era103_npc_real
+print(f"ERA 103 NPC/QUEST LIST/ACCEPT/ODDAJ: {_era103_npc_real()} checks PASS", flush=True)
+
+# v103 ETAP 4: real SQLite craft/reward/crypt and all boss phase events.
+# Runs only on isolated temporary SQLite, never on production data.
+from validation.v10300_era_crafting_runtime import run as _era103_craft_real
+print(f"ERA 103 REAL CRAFT: {_era103_craft_real()} checks PASS",flush=True)
+from validation.v10300_era_quest_rewards_runtime import run as _era103_rewards_real
+_era103_checks,_era103_quests=_era103_rewards_real()
+print(f"ERA 103 REAL QUEST REWARDS: {_era103_checks} checks PASS; {_era103_quests} quests",flush=True)
+from validation.v10300_era_crypt_unlock_runtime import run as _era103_crypt_real
+print(f"ERA 103 REAL CRYPT + SOUL UNLOCK: {_era103_crypt_real()} checks PASS",flush=True)
+from validation.v10300_era_raid_phases_runtime import run as _era103_phases_real
+print(f"ERA 103 REAL RAID PHASE AI: {_era103_phases_real()} checks PASS",flush=True)
+
+
+# v103 ETAP 6: private two-account SQLite raid credit, no double rewards.
+# NOTE: this verifies the per-recipient quest DB operation. Live party combat
+# over TCP is covered only by separate, still-pending server integration.
+from validation.v10300_era_raid_party_sqlite import run as _era103_party_sqlite
+print(f"ERA 103 RAID PARTY 2 KONTA SQLITE: {_era103_party_sqlite()} checks PASS", flush=True)
+
+# v103 ETAP 7: mandatory safety regression for real TCP test accounts.
+# The actual two-player TCP smoke is optional (separate private-server start).
+from validation.v10300_era_tcp_fixture_gate import run as _era103_tcp_fixture
+print(f"ERA 103 TCP POSTACIE TESTOWE: {_era103_tcp_fixture()} checks PASS", flush=True)
+
+# v103 ETAP 9: bounded admin raid listing and full three-stage raid diagnostics.
+# Real TCP across other regions remains an OPTIONAL separate test.
+from validation.v10300_era_raid_nvda_audit import run as _era103_raid_nvda
+print(f"ERA 103 RAJDY ADMIN/NVDA: {_era103_raid_nvda()} checks PASS",flush=True)
+
+# v103.00.0 final shipment gate: release identity, data protection, full Era integration.
+from validation.v10300_final_release import run as _v103_final_gate
+print(f"ERA BEZ GRANIC v103.00.0 FINAL: {_v103_final_gate()} checks PASS",flush=True)
+
+# v103: authored Era enemies must not become trillion-HP terrain variants.
+from validation.v10300_era_authored_hp import run as _v103_authored_hp
+print(f"ERA v103 AUTHORED HP: {_v103_authored_hp()} checks PASS", flush=True)

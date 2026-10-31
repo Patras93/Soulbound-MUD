@@ -1674,6 +1674,7 @@ for _master_class, _master_kind, *_ in CLASSES:
 from core.class_mastery_v5000 import install as _install_class_mastery_v5000
 V5000_MASTER_ARTS = _install_class_mastery_v5000(CLASS_SKILLS, CLASSES)
 
+
 # Czytelna kolejność dla skills, nauczycieli i Kodeksu Klasowego.
 for _class_name in CLASS_SKILLS:
     CLASS_SKILLS[_class_name].sort(
@@ -1973,3 +1974,10 @@ V1100_CLASS_TECHNIQUES = _install_class_mastery_v1100(CLASS_SKILLS, CLASSES)
 # authored, class/skill-kind appropriate names. IDs, aliases and stats stable.
 from core.unique_skill_names_v1110 import install as _install_unique_skill_names_v1110
 V1110_UNIQUE_SKILL_NAMES = _install_unique_skill_names_v1110(CLASS_SKILLS)
+
+
+# v104: after all 22 classes are registered; trainer catalogue shared with game.
+from core.class_skills_v10400 import install as _install_skills_v10400
+V10400_CLASS_SKILLS_ADDED = _install_skills_v10400(CLASS_SKILLS, CLASSES)
+for _skills in CLASS_SKILLS.values():
+    _skills.sort(key=lambda skill:(int(skill.get('unlock',1)), skill.get('name','')))

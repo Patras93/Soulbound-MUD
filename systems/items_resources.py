@@ -8,6 +8,7 @@ from data.items import ITEMS
 from core.progression_600 import PROGRESSION_400_LEVELS, CLASS_MASTERY_MAX_LEVEL
 from core.progression_resources import (_register_world_resource_items, FISH_RESOURCE_IDS, ORE_RESOURCE_IDS, WOOD_RESOURCE_IDS, HERB_RESOURCE_IDS)
 import math
+from functools import lru_cache
 from core.profession_drop_rates_v1149 import resource_variant_chances_v1149, mining_vein_chances_v1149
 import random
 ENDGAME_PROFESSION_ITEMS = {
@@ -199,6 +200,7 @@ def class_equipment_shop_price_v11314(level, slot_base_price):
 # v1.13.8: wspólna skala jakości EQ dla sklepu, craftingu i dropów.
 # Źródła mają różne profile, ale sprzęt z tego samego etapu nie może dzielić
 # przepaść typu "sklep 30 statów, drop 3 staty".
+@lru_cache(maxsize=2048)  # v104: czysta tabela wartosci 1-800; bez zmiany algorytmu
 def equipment_progression_budget_v1138(level):
     level = max(1, min(800, int(level or 1)))
     anchors = (
@@ -218,6 +220,7 @@ def equipment_progression_budget_v1138(level):
     return anchors[-1][1]
 
 
+@lru_cache(maxsize=2048)  # v104: czysta tabela wartosci 1-800
 def equipment_defense_step_v1138(level):
     level = max(1, min(800, int(level or 1)))
     anchors = (

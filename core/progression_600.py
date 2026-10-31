@@ -64,13 +64,20 @@ SOUL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 
 # Broń Duszy: stare Tiery 1-40 zostają w tych samych miejscach, 41-60
 # kontynuują co 10 poziomów od 410 do 600.
-SOUL_TIER_THRESHOLDS = tuple(SOUL_TIER_THRESHOLDS[:40]) + tuple(range(410, 801, 10))
+# Era Bez Granic: zachowane tablice i identyfikatory 1-80; kolejne Tiery
+# maja prawdziwy próg Soul Level co 10 punktów, do zakresu v104: 10000.
+# Rozbudowa 501–1000 bez zmian 1–500; domyślny cap Soul Level 800
+# nadal zależy od ustawień Admin Live (dusza bezlimitu lub >=10000).
+# Nie nadpisuj ustawień administratora przy starcie serwera.
+SOUL_TIER_THRESHOLDS = tuple(SOUL_TIER_THRESHOLDS[:40]) + tuple(range(410, 10001, 10))
 SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
-SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142 + i * 2 for i in range(40))
-SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i // 2 for i in range(40))
-SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,) * 40
-SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29 + i // 2 for i in range(40))
-SOUL_TRIAL_QUEST_IDS.update({tier: f"soul_tier_{tier:02d}_trial" for tier in range(41, 81)})
+SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142 + i*2 for i in range(40)) + tuple(222+i*2 for i in range(920))
+SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i//2 for i in range(40)) + tuple(61 + i//5 for i in range(920))
+SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,)*960
+# Redukcji fizycznej nie wolno zwiększać ponad 65% kosztem odporności
+# bossow/klas; zachowujemy dawne 80 wartości bez zmian.
+SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29+i//2 for i in range(40)) + tuple(min(65, 49+i//20) for i in range(920))
+SOUL_TRIAL_QUEST_IDS.update({tier: f'soul_tier_{tier:02d}_trial' for tier in range(41, SOUL_MAX_TIER+1)})
 
 # Weapon Traits 41-60: unikalne nazwy, ten sam klasowy cykl efektów.
 _SOUL_TRAIT_BASE_NAMES_41_60 = (
@@ -88,6 +95,9 @@ _SOUL_TRAIT_BASE_NAMES = tuple(_SOUL_TRAIT_BASE_NAMES[:40]) + _SOUL_TRAIT_BASE_N
     "Przebudzenie Świata", "Brama Wiecznego Świtu", "Kres Ciemności",
     "Serce Nieba", "Tron Nieskończonej Duszy",
 )
+# Unikalne nazwy dla Tierów 81–1000; każda ma realny bonus i wpis
+# w istniejacym klasowym cyklu efektow (bez dodatkowych tabel SQLite).
+_SOUL_TRAIT_BASE_NAMES += tuple(f"Przekroczenie Duszy {tier}" for tier in range(81, SOUL_MAX_TIER+1))
 from systems.new_heroes_v900 import SOUL_TRAITS as _V900_SOUL_TRAITS
 _SOUL_TRAIT_CLASS_PROFILES.update(_V900_SOUL_TRAITS)
 SOUL_TIER_TRAITS_BY_CLASS = {}
@@ -105,7 +115,7 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
     SOUL_TIER_TRAITS_BY_CLASS[_class_name] = _rows
 
 def soul_weapon_trait_for_tier_v11193(tier, class_name=None):
-    """Canonical Soul Weapon trait lookup for the full 1-60 progression."""
+    """Cechy Broni Duszy 1–1000, włącznie z klasami Admin Live."""
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
     # Additional Admin Live classes inherit the real soul trait table of their
@@ -117,7 +127,7 @@ def soul_weapon_trait_for_tier_v11193(tier, class_name=None):
     return rows.get(tier)
 
 def soul_weapon_trait_totals_v11193(tier, class_name=None):
-    """Accumulate all class-specific Soul Weapon traits through the selected Tier."""
+    """Wszystkie efekty Broni Duszy do bieżącego Tieru 1–1000."""
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
     # Additional Admin Live classes inherit the real soul trait table of their
@@ -137,7 +147,7 @@ def soul_weapon_trait_totals_v11193(tier, class_name=None):
     return totals
 
 def soul_tier_title_for_class(tier, class_name=None):
-    """Unique class-specific title for every Soul Tier 1-60."""
+    """Unikalny tytuł klasowy Soul Tier 1–1000."""
     row = soul_weapon_trait_for_tier_v11193(tier, class_name)
     return row["name"] if row else f"Tier Duszy {int(tier)}"
 

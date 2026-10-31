@@ -205,10 +205,11 @@ class SessionGatheringMixin:
 
     def tool_xp_remaining_to_next_tier(self, level, xp, tool_type=None):
             tier = tool_tier(level)
-            if tier >= TOOL_MAX_TIER:
+            # Tier 81+ ma kolejny próg wyliczany, nie kończy się na 800.
+            if level >= tool_max_level(tool_type):
                 return 0, 0
-
-            target_level = TOOL_TIER_THRESHOLDS[tier]
+            target_level = (TOOL_TIER_THRESHOLDS[tier] if tier < len(TOOL_TIER_THRESHOLDS)
+                            else 800 + (tier - len(TOOL_TIER_THRESHOLDS) + 1) * 10)
             levels_remaining = max(0, target_level - level)
 
             total_xp = self.tool_xp_remaining_to_level(level, xp, tool_type)

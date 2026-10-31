@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Runtime fake-server and static safeguards; no real Windows processes killed."""
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -30,8 +31,13 @@ def run_regression():
         shutil.copy2(ROOT/'windows_runtime_state.py',base/'windows_runtime_state.py')
         (base/'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n",encoding='utf-8')
         (base/'server.py').write_text('print("TEST LAUNCH",flush=True)\n',encoding='utf-8')
+        # Run the fake launcher with private paths even when FAST PREDEPLOY
+        # itself uses its own SOULBOUND_LOG_DIR / backup directory.
+        child_env = dict(os.environ)
+        child_env['SOULBOUND_LOG_DIR'] = str(base/'logs')
+        child_env['SOULBOUND_BACKUP_DIR'] = str(base/'backup')
         proc = subprocess.run([sys.executable,str(base/'host_windows.py')], cwd=base,
-             stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=25)
+             env=child_env, stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=25)
         assert proc.returncode==0,proc.stderr
         checks+=1
         assert not (base/'logs'/'soulbound_launcher.json').exists()

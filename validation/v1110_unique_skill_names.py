@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from collections import Counter
+from validation.v10400_skill_catalog_contract import old_and_new_skills, TOTAL_SKILLS
 from core.classes_skills import CLASS_SKILLS, V1110_UNIQUE_SKILL_NAMES
 from core.unique_skill_names_v1110 import _canonical, _generated, _KIND_GROUP
 from core.bootstrap_economy_professions import VERSION
@@ -22,17 +23,19 @@ def run_regression():
             raise AssertionError('NAZWY SKILLI v11.00.10: ' + message)
     ck(release_valid(VERSION, '11.00.10'), 'candidate version')
     ck(len(CLASS_SKILLS) == 22, 'all playable classes')
-    ck(sum(len(rows) for rows in CLASS_SKILLS.values()) == 5461,'all skill IDs retained')
+    legacy_skills, v104_skills = old_and_new_skills(CLASS_SKILLS)
+    ck(sum(map(len, legacy_skills.values())) == 5461 and sum(map(len, v104_skills.values())) == 66, 'legacy plus new skill IDs retained')
     ck(V1110_UNIQUE_SKILL_NAMES['renamed'] == 4659,'all generic mastery names replaced')
     ck(set(CLASS_SKILLS) == set(_EXPECTED_MECHANIC_SHA256),'22 unchanged class identities')
     seen_names = set()
     seen_ids = set()
     remapped = 0
     for class_name, rows in sorted(CLASS_SKILLS.items()):
-        baseline = {str(s['id']):{k:v for k,v in s.items() if k not in _NON_MECHANICAL} for s in rows}
+        baseline_rows = legacy_skills[class_name]
+        baseline = {str(s['id']):{k:v for k,v in s.items() if k not in _NON_MECHANICAL} for s in baseline_rows}
         digest = hashlib.sha256(json.dumps(baseline,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
         ck(digest == _EXPECTED_MECHANIC_SHA256[class_name], class_name+' mechanics/IDs/XP/unlocks changed')
-        ck(len(baseline) == len(rows), class_name+' repeated ID')
+        ck(len(baseline) == len(baseline_rows), class_name+' repeated ID')
         ck(len(rows) >= 245, class_name+' lost learned skills')
         for skill in rows:
             sid = str(skill['id'])
@@ -61,7 +64,7 @@ def run_regression():
                         ck(not name.startswith(('Salwa','Strzał','Wir','Uderzenie')), sid+' defence mislabelled as attack')
                     if kind=='aoe_damage':
                         ck(not name.startswith(('Tarcza','Opatrunek','Medytacja')), sid+' AoE mislabelled as guard/heal')
-    ck(len(seen_ids)==5461 and len(seen_names)==5461, 'full catalogue integrity')
+    ck(len(seen_ids)==TOTAL_SKILLS and len(seen_names)==TOTAL_SKILLS, 'full catalogue integrity')
     ck(remapped==4659,'renamed skill coverage')
     # Special Mec/UOSS authored tech IDs and IDs for early 22-class skills persist.
     for class_name, ids in (
@@ -73,7 +76,7 @@ def run_regression():
         real_ids = {s['id'] for s in CLASS_SKILLS[class_name]}
         for sid in ids:
             ck(sid in real_ids, class_name+' canonical authored skill '+sid)
-    print(f'UNIKALNE NAZWY SKILLI v11.00.10: {checks} checks PASS; 22 klasy, 5461 skilli, 4659 nowych nazw, zachowane ID i parametry')
+    print(f'UNIKALNE NAZWY SKILLI v11.00.10: {checks} checks PASS; 22 klasy, 5461 starych + 66 nowych skilli, 4659 historycznych nazw, zachowane ID i parametry')
     return checks
 
 if __name__ == '__main__':

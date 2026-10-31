@@ -99,13 +99,20 @@ async def suite():
         root=Path(__file__).resolve().parents[1]
         combat=(root/'player/session_mixins/combat_rewards.py').read_text('utf8')
         anchor=combat.index('_awarded_item_v5600 = convert_normal_equipment_drop_v5600')
-        section=combat[anchor:combat.index('# v1.15.0:',anchor)]
-        check('random.random()' not in section,'unexpected reroll')
+        # v104: udane losowania sa zbierane i zapisywane jako JEDNA
+        # transakcja, a powiadomienia oraz Boss Codex wystepuja po COMMIT.
+        # Nie szukamy usunietej granicy komentarza v1.15.0 ani dawnego
+        # pojedynczego add_item (ktory mogl zostawic czesciowy loot).
+        batch=combat.index('grant_party_loot_batch_atomic_v10400(', anchor)
+        first_roll=combat.index('_kill_loot_rolls_v104.append(', anchor)
+        section=combat[anchor:first_roll]
+        check('random.random()' not in section,'brak ponownego losowania po udanym rzucie')
         check('party_drop_recipients_v0359(item_id, recipients)' in section)
-        check('add_item(winner.account_id, _awarded_item_v5600, 1)' in section)
-        check('_awarded_item_v5600, source=template["name"], announce=True' in section)
-        check('add_boss_codex_drop(\n                                    party_session.account_id, boss_id_for_drop, item_id' in section)
-        check('loot_message_allowed(_awarded_item_v5600)' in section)
+        check(first_roll<batch and '_awarded_item_v5600' in combat[first_roll:batch], 'normalny drop zapisany do paczki')
+        check('db.add_item(' not in combat[anchor:batch] and 'self.server.db.add_item(' not in combat[anchor:batch], 'bez czesciowych zapisow przed batch')
+        check(combat.index('record_item_collection(',batch)>batch, 'powiadomienie dopiero po COMMIT')
+        check(combat.index('add_boss_codex_drop(',batch)>batch, 'Boss Codex dopiero po COMMIT')
+        check('loot_message_allowed(_loot_item_v104)' in combat[batch:], 'komunikaty NVDA na przyznanym przedmiocie')
         check('for item_id, chance in template["drops"].items():' in combat)
         check(combat.index('if random.random() <= _effective_drop_chance_v11329:')<anchor)
         return checks

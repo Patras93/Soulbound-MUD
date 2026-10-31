@@ -14,6 +14,10 @@ from validation.v23215_multi_cap import TestDB
 def run_regression():
     checks = 0
     db = TestDB()
+    # The v104 class reward gateway requires the real deferred-commit wrapper.
+    # Keep the tiny in-memory fixture while exercising the shipped transaction API.
+    from storage.database import _DeferredCommitConnection
+    db.conn = _DeferredCommitConnection(db.conn)
     classes = ['K'+str(i) for i in range(14)]
     db.ensure_primary_class(1, classes[0])
     for name in classes[1:]:
@@ -36,7 +40,8 @@ def run_regression():
                and n.name == 'SessionClassProgressionMixin')
     method = next(n for n in cls.body if isinstance(n, ast.AsyncFunctionDef)
                   and n.name == 'grant_class_xp')
-    scope = {'CLASS_MASTERY_MAX_LEVEL': 600}
+    from core.exact_reward_math_v10400 import scale_percent_xp_v10400
+    scope = {'CLASS_MASTERY_MAX_LEVEL': 600, 'scale_percent_xp_v10400': scale_percent_xp_v10400}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])),
                  str(source), 'exec'), scope)
 

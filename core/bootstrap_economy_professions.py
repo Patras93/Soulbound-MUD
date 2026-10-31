@@ -38,7 +38,7 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "102.00.13"
+VERSION = "104.00.0"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -483,7 +483,11 @@ def soul_trial_difficulty_band(tier):
         return "Mistrzowska"
     if tier <= 30:
         return "Endgame"
-    return "Ekstremalna"
+    if tier <= 500:
+        return "Ekstremalna"
+    if tier <= 750:
+        return "Kosmiczna"
+    return "Transcendentna"
 REGULAR_MOB_RESPAWN_SECONDS = 120
 BOSS_RESPAWN_SECONDS = 300
 TRAINING_DUMMY_RESPAWN_SECONDS = 60
@@ -521,8 +525,16 @@ def normalize_currency_values(silver, gold, mithril):
     total = legacy_currency_to_coins(silver, gold, mithril)
     # SQLite INTEGER jest 64-bitowy. Pozwalamy na gospodarkę w bilionach i
     # wyżej, ale chronimy zapis przed przepełnieniem przy ekstremalnym endgame.
-    total = min(CURRENCY_SQLITE_SAFE_TOTAL, max(0, int(total)))
-    return total, 0, 0
+    # v104 stage 10: never discard money silently when a reward exceeds the
+    # present legacy INTEGER safety budget. BigNumber TEXT integration remains
+    # separate; until then reject instead of capping a player's coins.
+    if total > CURRENCY_SQLITE_SAFE_TOTAL:
+        from core.sqlite_numeric_guard_v10400 import SQLiteNumericLimitV104
+        raise SQLiteNumericLimitV104(
+            'account_wallet.silver: kwota ponad obecny zakres bezpieczny; '
+            'zapis wstrzymany bez utraty nadwyzki.'
+        )
+    return max(0, int(total)), 0, 0
 
 def currency_denominations(total_silver):
     """Rozkłada wspólne saldo na mithril, złoto i srebro tylko do prezentacji."""
@@ -740,6 +752,10 @@ def profession_rank(level, profession=None):
             rank = index
         else:
             break
+    # v103: historyczne wartości 1..800 bez zmian; kolejne rangi co 20.
+    if level > 800:
+        from core.endless_tiers_v10300 import profession_rank_v10300
+        return profession_rank_v10300(level, PROFESSION_MAX_RANK)
     return min(rank, profession_max_rank(profession))
 
 def profession_rank_name(profession, level):
@@ -748,6 +764,9 @@ def profession_rank_name(profession, level):
     if not names:
         return f"Ranga {profession_rank(level, profession)}"
     rank = profession_rank(level, profession)
+    if rank > len(names):
+        from core.endless_tiers_v10300 import profession_rank_name_v10300
+        return profession_rank_name_v10300(profession, rank, PROFESSION_MAX_RANK)
     return names[min(rank - 1, len(names) - 1)]
 
 # v0.9.7: NPC profesyjni reagują na realną rangę danej profesji.
@@ -1267,6 +1286,9 @@ for _tool_type, _stem in _V11343_TOOL_STEMS.items():
 
 def tool_tier(level):
     level = max(1, min(TOOL_MAX_LEVEL, int(level)))
+    if level > 800:
+        from core.endless_tiers_v10300 import tool_tier_v10300
+        return tool_tier_v10300(level, TOOL_MAX_TIER)
     tier = 1
     for number, minimum in enumerate(TOOL_TIER_THRESHOLDS, 1):
         if level >= minimum:
@@ -1282,6 +1304,9 @@ def tool_tier_access_level(level):
     a nie przy każdym pojedynczym levelu narzędzia.
     """
     tier = tool_tier(level)
+    if tier > len(TOOL_TIER_THRESHOLDS):
+        from core.endless_tiers_v10300 import tool_tier_level_v10300
+        return tool_tier_level_v10300(tier, len(TOOL_TIER_THRESHOLDS))
     return int(TOOL_TIER_THRESHOLDS[tier - 1])
 
 
@@ -1298,6 +1323,9 @@ def tool_tier_name(tool_type, level):
     # obejmowała tylko osiem bazowych typów. Nie wolno przedstawiać Zestawu
     # Krawieckiego czy Fokusu Runicznego jako "Kilof".
     display = {
+        "fishing": "Wędka", "mining": "Kilof", "woodcutting": "Piła",
+        "crafting": "Młot", "cooking": "Nóż", "herbalism": "Sierp",
+        "alchemy": "Moździerz", "jewelcrafting": "Szczypce",
         "tailoring": "Zestaw Krawiecki",
         "leatherworking": "Nóż Garbarski",
         "carpentry": "Narzędzia Ciesielskie",
@@ -1308,7 +1336,11 @@ def tool_tier_name(tool_type, level):
     return f"{display} Tier {tier}"
 
 def tool_tier_bonus_chance(level):
-    return TOOL_TIER_BONUS_CHANCES[tool_tier(level) - 1]
+    tier = tool_tier(level)
+    if tier <= len(TOOL_TIER_BONUS_CHANCES):
+        return TOOL_TIER_BONUS_CHANCES[tier-1]
+    from core.endless_tiers_v10300 import tool_tier_bonus_v10300
+    return tool_tier_bonus_v10300(tier,len(TOOL_TIER_BONUS_CHANCES),TOOL_TIER_BONUS_CHANCES)
 
 # ============================================================
 # v0.19.0 - GLOBAL PROGRESSION & REWARD GENERATOR

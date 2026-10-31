@@ -5,6 +5,7 @@ Uses disposable fake server processes, never starts the real MUD or opens port 4
 """
 from __future__ import annotations
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -20,11 +21,18 @@ def run_regression():
         shutil.copy2(ROOT / 'host_windows.py', root / 'host_windows.py')
         shutil.copy2(ROOT / 'windows_runtime_state.py', root / 'windows_runtime_state.py')
         (root / 'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n", encoding='utf-8')
+        # Isolate host logs from inherited PREDEPLOY/production settings.
+        # A direct FAST gate sets a private SOULBOUND_LOG_DIR of its own;
+        # without this override, assertions read a different directory.
+        child_env = dict(os.environ)
+        child_env['SOULBOUND_LOG_DIR'] = str(root / 'logs')
+        child_env['SOULBOUND_BACKUP_DIR'] = str(root / 'backup')
         for code in (0, 7):
             (root / 'server.py').write_text(f'import sys\nprint("FAKE SERVER: exit {code}", flush=True)\nsys.exit({code})\n', encoding='utf-8')
             outcome = subprocess.run(
                 [sys.executable, '-u', str(root / 'host_windows.py')],
                 cwd=root,
+                env=child_env,
                 capture_output=True,
                 text=True,
                 encoding='utf-8',

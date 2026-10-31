@@ -29,6 +29,7 @@ from core.progression_600 import (
 from core.progression_resources import character_xp_to_next, class_mastery_xp_to_next
 from systems.content_registry import QUESTS
 from systems.experience_cap_v2009 import experience_cap_v2009
+from systems.profile_live_v10400 import current_cap_label
 
 
 class SessionCharacterProfileMixin:
@@ -104,21 +105,21 @@ class SessionCharacterProfileMixin:
             from systems.level_overview_v23216 import level_overview_lines_v23216
             c = self.character
             if c.character_level >= CHARACTER_MAX_LEVEL:
-                await self.send(f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. Maksymalny poziom.")
+                await self.send(f"Poziom postaci: {c.character_level}/{current_cap_label('postac')}. Maksymalny poziom.")
             else:
                 needed = character_xp_to_next(c.character_level)
                 missing = max(0, int(needed) - int(c.character_xp))
                 await self.send(
-                    f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. "
+                    f"Poziom postaci: {c.character_level}/{current_cap_label('postac')}. "
                     f"EXP {c.character_xp} z {needed}. Brakuje {missing} EXP do Levelu {c.character_level + 1}."
                 )
             if c.soul_level >= SOUL_MAX_LEVEL:
-                await self.send(f'Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. Soul XP: maksimum.')
+                await self.send(f'Dusza: Soul Level {c.soul_level}/{current_cap_label("dusza")}. Soul XP: maksimum.')
             else:
                 soul_need = max(0, int(c.soul_xp_to_next()))
                 soul_xp = max(0, int(c.soul_xp))
                 await self.send(
-                    f'Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}. '
+                    f'Dusza: Soul Level {c.soul_level}/{current_cap_label("dusza")}. '
                     f'Soul XP {soul_xp} z {soul_need}. '
                     f'Brakuje {max(0, soul_need - soul_xp)} Soul XP do poziomu {c.soul_level + 1}.'
                 )
@@ -136,7 +137,7 @@ class SessionCharacterProfileMixin:
             if multi:
                 cap = int(multi[0]); await self.send(f"Cel EXP: {cap // 2}. Multi Cap EXP: {cap}.")
             if c.character_level >= CHARACTER_MAX_LEVEL:
-                await self.send(f"EXP postaci: maksimum. Poziom {CHARACTER_MAX_LEVEL}/{CHARACTER_MAX_LEVEL}.")
+                await self.send(f"EXP postaci: maksimum. Poziom {c.character_level}/{current_cap_label('postac')}.")
                 return
             needed = character_xp_to_next(c.character_level)
             missing = max(0, int(needed) - int(c.character_xp))
@@ -212,26 +213,26 @@ class SessionCharacterProfileMixin:
             await self.send(f"Postać: {c.name}.")
             await self.send(f"Rasa: {c.race}.")
             await self.send(f"Klasa główna: {c.class_name}.")
-            await self.send(f"Poziom postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < CHARACTER_MAX_LEVEL else 0}.")
+            await self.send(f"Poziom postaci: {c.character_level}/{current_cap_label('postac')}. EXP: {c.character_xp} z {character_xp_to_next(c.character_level) if c.character_level < CHARACTER_MAX_LEVEL else 0}.")
             for class_name in active_classes:
                 row = self.server.db.class_progress_row(self.account_id, class_name)
                 level = int(row["level"] or 1)
                 xp = int(row["xp"] or 0)
                 if level >= CLASS_MASTERY_MAX_LEVEL:
                     await self.send(
-                        f"Biegłość {class_name}: {CLASS_MASTERY_MAX_LEVEL}/{CLASS_MASTERY_MAX_LEVEL}. Maksimum."
+                        f"Biegłość {class_name}: {level}/{current_cap_label('bieglosc')}. Maksimum."
                     )
                 else:
                     needed = class_mastery_xp_to_next(level)
                     missing = max(0, int(needed) - xp)
                     await self.send(
-                        f"Biegłość {class_name}: {level}/{CLASS_MASTERY_MAX_LEVEL}. "
+                        f"Biegłość {class_name}: {level}/{current_cap_label('bieglosc')}. "
                         f"EXP: {xp} z {needed}. Brakuje {missing} EXP do Biegłości {level + 1}."
                     )
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
-            await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+            await self.send(f"Soul Level: {c.soul_level}/{current_cap_label('dusza')}.")
             if c.soul_level >= SOUL_MAX_LEVEL:
-                await self.send(f"Soul XP: maksimum. Soul Level {SOUL_MAX_LEVEL}/{SOUL_MAX_LEVEL}.")
+                await self.send(f"Soul XP: maksimum. Soul Level {c.soul_level}/{current_cap_label('dusza')}.")
             else:
                 soul_required = max(0, int(c.soul_xp_to_next()))
                 soul_current = max(0, int(c.soul_xp))
@@ -246,7 +247,7 @@ class SessionCharacterProfileMixin:
                         f"{min(SOUL_MAX_TIER, int(c.soul_tier) + 1)}."
                     )
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
-            await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
+            await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{current_cap_label('bron_duszy')}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
             await self.send(await self.active_effects_status_text_v11331())
@@ -278,7 +279,14 @@ class SessionCharacterProfileMixin:
                 await self.send(
                     self.combat_power_explanation_v110016()
                 )
-            await self.send(f"Główne poziomy postaci, Biegłości i Duszy rozwijają się do {CHARACTER_MAX_LEVEL}. Statystyki bazowe pozostają bez limitu. Generator Core został usunięty.")
+            await self.send(
+                f"Limity Admin Live: postać {current_cap_label('postac')}; "
+                f"biegłość klas {current_cap_label('bieglosc')}; "
+                f"Dusza {current_cap_label('dusza')}; "
+                f"Broń Duszy {current_cap_label('bron_duszy')}. "
+                "Statystyki bazowe bez limitu. Generator Core usunięty. "
+                "Ograniczenia techniczne SQLite nadal obowiązują."
+            )
 
     async def show_stats(self, mode=""):
             mode = self.normalize_description_query(mode)
@@ -429,7 +437,7 @@ class SessionCharacterProfileMixin:
             if not detailed:
                 await self.send("DUSZA")
                 await self.send(f"Broń Duszy: {c.soul_weapon}.")
-                await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+                await self.send(f"Soul Level: {c.soul_level}/{current_cap_label('dusza')}.")
                 await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
                 await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
                 if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
@@ -458,7 +466,7 @@ class SessionCharacterProfileMixin:
             await self.send("Soul Level zatrzymuje się na progu następnego Tieru. Dalszy Soul XP rusza dopiero po ukończeniu Próby i użyciu unlock.")
             await self.send(f"Skille klasowe odblokowuje Biegłość właściwej klasy, rozwijająca się do {CLASS_MASTERY_MAX_LEVEL}. Soul Level rozwija Broń Duszy osobno.")
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
-            await self.send(f"Soul Level: {c.soul_level}/{SOUL_MAX_LEVEL}.")
+            await self.send(f"Soul Level: {c.soul_level}/{current_cap_label('dusza')}.")
             await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
             if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
@@ -503,10 +511,18 @@ class SessionCharacterProfileMixin:
                 "Progi Tierów 11-20: T11 Soul 100; T12 110; T13 120; T14 130; "
                 "T15 140; T16 150; T17 160; T18 170; T19 180; T20 200."
             )
-            await self.send("Każdy Tier od 2 do 60 wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora.")
+            await self.send(
+                f"Każdy Tier od 2 do {SOUL_MAX_TIER} wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora."
+            )
             await self.send("Po ukończeniu Próby wpisz unlock, aby odblokować przygotowany Tier.")
-
-            for tier in range(2, SOUL_MAX_TIER + 1):
+            # v103: nie wypowiadaj 499 szczegółowych wierszy przez NVDA.
+            # Pokaz tylko najbliższe proby wokół obecnego Tieru; pozostałe
+            # poziomy nie są ukryte, a admin live era soul NUMER je pokazuje.
+            first_tier = max(2, int(c.soul_tier) - 2)
+            last_tier = min(SOUL_MAX_TIER, int(c.soul_tier) + 8)
+            await self.send(f"Najbliższe Próby: Tiery {first_tier}–{last_tier}."
+                            f" Łącznie dostępnych Tierów: {SOUL_MAX_TIER}.")
+            for tier in range(first_tier, last_tier + 1):
                 quest_id = SOUL_TRIAL_QUEST_IDS.get(tier)
                 quest = QUESTS.get(quest_id, {}) if quest_id else {}
                 required_soul = SOUL_TIER_THRESHOLDS[tier - 1]

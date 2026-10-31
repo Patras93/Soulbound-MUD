@@ -24,18 +24,69 @@ from storage.db_titans_v2100 import DatabaseTitansV2100Mixin
 
 
 class _DeferredCommitConnection:
-    """Transparent sqlite3 proxy with nestable deferred commits."""
+    """SQLite proxy: defer COMMIT and isolate failed scopes with SAVEPOINTs.
+
+    A deferred operation must not commit a partial kill, nor may it roll back
+    unrelated writes already staged by another component on the connection.
+    This is still *not* an async concurrency lock: whole-kill isolation needs
+    its own later validation when other asyncio tasks use the same connection.
+    """
     def __init__(self, connection):
         object.__setattr__(self, "_connection", connection)
         object.__setattr__(self, "_defer_depth", 0)
         object.__setattr__(self, "_commit_pending", False)
+        object.__setattr__(self, "_savepoint_counter", 0)
+        object.__setattr__(self, "_context_savepoints", [])
+
+    def _new_savepoint(self):
+        self._savepoint_counter += 1
+        # Generated locally from a counter, never from SQL/user input.
+        name = f"sb104_deferred_{self._savepoint_counter}"
+        self._connection.execute("SAVEPOINT " + name)
+        return name
 
     def __enter__(self):
-        self._connection.__enter__()
+        # sqlite3.Connection.__exit__ COMMITs the entire connection.  A nested
+        # `with conn` must not silently commit the caller's existing SAVEPOINT.
+        if self._defer_depth or self._connection.in_transaction:
+            self._context_savepoints.append((self._new_savepoint(), self._commit_pending))
+        else:
+            self._context_savepoints.append(None)
+            self._connection.__enter__()
         return self
 
     def __exit__(self, exc_type, exc, tb):
+        marker = self._context_savepoints.pop()
+        if marker is not None:
+            name, pending_before = marker
+            if exc_type is not None:
+                try:
+                    self._connection.execute("ROLLBACK TO SAVEPOINT " + name)
+                finally:
+                    self._connection.execute("RELEASE SAVEPOINT " + name)
+                    self._commit_pending = pending_before
+            else:
+                self._connection.execute("RELEASE SAVEPOINT " + name)
+                # Inside deferred_commits the surrounding owner may commit
+                # later.  With an external transaction, leave commit to caller.
+                self._commit_pending = True if self._defer_depth else pending_before
+            return False
         return self._connection.__exit__(exc_type, exc, tb)
+
+    def executescript(self, script):
+        # Python sqlite3.executescript silently COMMITs any open transaction.
+        # Run complete SQL statements with execute instead, preserving caller
+        # transactions and SAVEPOINTs across schema migrations and combat.
+        statement = ''
+        for char in script:
+            statement += char
+            if char == ';' and sqlite3.complete_statement(statement):
+                if statement.strip():
+                    self._connection.execute(statement)
+                statement = ''
+        if statement.strip():
+            self._connection.execute(statement)
+        return None
 
     def __getattr__(self, name):
         return getattr(self._connection, name)
@@ -53,20 +104,44 @@ class _DeferredCommitConnection:
         self._connection.commit()
 
     def flush_deferred_commit(self):
+        if self._defer_depth:
+            return
         if self._commit_pending:
-            self._commit_pending = False
             self._connection.commit()
+            self._commit_pending = False
 
     @contextmanager
     def deferred_commits(self):
+        # Each nested scope owns its changes. A caught inner exception must
+        # not leave a partial payout behind or erase unrelated prior SQL.
+        # A SAVEPOINT can be nested in a transaction owned by a caller.
+        # Never flush COMMIT across that ownership boundary: doing so removes
+        # the caller's savepoint and makes its rollback impossible.
+        outermost = self._defer_depth == 0
+        caller_owns_transaction = outermost and self._connection.in_transaction
+        marker = self._new_savepoint()
+        prior_pending = self._commit_pending
         self._defer_depth += 1
         try:
             yield self
-        finally:
+        except BaseException:
+            try:
+                self._connection.execute("ROLLBACK TO SAVEPOINT " + marker)
+            finally:
+                self._connection.execute("RELEASE SAVEPOINT " + marker)
+                self._commit_pending = prior_pending
+                self._defer_depth -= 1
+            raise
+        else:
+            self._connection.execute("RELEASE SAVEPOINT " + marker)
             self._defer_depth -= 1
-            if self._defer_depth <= 0:
-                self._defer_depth = 0
-                self.flush_deferred_commit()
+            if self._defer_depth == 0:
+                if caller_owns_transaction:
+                    # All changes stay inside the still-open caller transaction.
+                    # A legacy method's commit request cannot escape it.
+                    self._commit_pending = prior_pending
+                else:
+                    self.flush_deferred_commit()
 
 
 def ensure_admin_error_status_v1371(conn):
@@ -114,6 +189,9 @@ class Database(
         self.create_experience_bank_schema_v2011()
         self.create_titans_schema_v2100()
         self.create_city_services_schema_v1225()
+        # New, isolated v104 world-event tables; never touches player balances.
+        from systems.world_invasions_v10400 import create_schema as _v104_invasions_schema
+        _v104_invasions_schema(self.conn)
         # v1.22.4: persistent but minimal admin diagnostics; no passwords or tokens.
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS admin_actions_v1224 (
@@ -141,6 +219,19 @@ class Database(
                 PRIMARY KEY (account_id, item_id)
             )
         """)
+        # v104: all normal SQLite writers (also raw SQL outside mixins) must
+        # refuse precision-losing REAL/TEXT values on progression/currencies.
+        # No BigNumber live migration is activated here.
+        from storage.sqlite_numeric_integrity_v10400 import install_numeric_write_barriers
+        install_numeric_write_barriers(self.conn)
+        # v104: production TEXT authority for keyed XP only. All other axes
+        # retain int64 guards until their full gameplay routes are migrated.
+        from storage.big_number_live_keyed_xp_v10400 import install_live_keyed_xp
+        install_live_keyed_xp(self.conn)
+        from storage.big_number_live_character_v10400 import install_live_character_progress
+        install_live_character_progress(self.conn)
+        self._v104_live_exact_character = True
+        self._v104_live_exact_keyed_xp = True
         self.conn.commit()
 
     def create_city_services_schema_v1225(self):

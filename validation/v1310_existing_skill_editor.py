@@ -15,7 +15,7 @@ def run():
     n = 0
     original = next(row.copy() for row in CLASS_SKILLS['Wojownik'] if row['id']=='warrior_power_slash')
     amount = sum(len(group) for group in CLASS_SKILLS.values())
-    assert amount == 5461;n+=1
+    assert amount == 5527;n+=1
     conn = sqlite3.connect(':memory:');conn.row_factory = sqlite3.Row
     conn.execute('CREATE TABLE quests (quest_id TEXT,status TEXT)')
     world=SimpleNamespace(mobs={},_last_refresh_at=0.0,_register_runtime_spawn=lambda *_:None)

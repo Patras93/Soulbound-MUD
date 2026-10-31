@@ -220,8 +220,11 @@ def build_forest_wolves_and_quest_balance():
     if "shadow_wolves" in QUESTS:
         _catalog_mut.catalog_assign(True, 'QUESTS', QUESTS, ("shadow_wolves", "repeatable"))
         _catalog_mut.catalog_assign(QUEST_REPEAT_COOLDOWN_SECONDS, 'QUESTS', QUESTS, ("shadow_wolves", "repeat_cooldown"))
-        _catalog_mut.catalog_assign("Pokonaj 2 Wilki Cienia w Gaju Szeptów lub Lesie Szeptów. "
-            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach.", 'QUESTS', QUESTS, ("shadow_wolves", "description"))
+        _mira_wolves_needed = int(QUESTS["shadow_wolves"]["needed"])
+        _catalog_mut.catalog_assign(
+            f"Pokonaj {_mira_wolves_needed} Wilków Cienia w Gaju Szeptów lub Lesie Szeptów. "
+            "Po ukończeniu zadanie można ponownie przyjąć po 60 minutach.",
+            'QUESTS', QUESTS, ("shadow_wolves", "description"))
         if "mira" in NPCS:
             _catalog_mut.catalog_assign("Wilki Cienia zakłócają równowagę gaju. Ich obecność jest coraz silniejsza. "
                 "Zlecenie Cienie w Gaju mogę ponownie wystawić co godzinę.", 'NPCS', NPCS, ("mira", "dialogue"))

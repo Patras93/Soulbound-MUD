@@ -63,7 +63,7 @@ def run_regression():
                  and n.name == 'SessionCharacterProfileMixin')
     method = next(n for n in mixin.body if isinstance(n, ast.AsyncFunctionDef)
                   and n.name == 'show_character_level')
-    namespace = {'CHARACTER_MAX_LEVEL': 800, 'SOUL_MAX_LEVEL': 800, 'character_xp_to_next': lambda level: 776}
+    namespace = {'CHARACTER_MAX_LEVEL': 800, 'SOUL_MAX_LEVEL': 800, 'character_xp_to_next': lambda level: 776, 'current_cap_label': lambda kind: '800'}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])),
                  str(source), 'exec'), namespace)
     outputs = []

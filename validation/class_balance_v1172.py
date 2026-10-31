@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import Counter
 
 from core.classes_skills import CLASSES, CLASS_SKILLS, effective_skill_mana_cost
+from validation.v10400_skill_catalog_contract import old_and_new_skills
 
 OFFENSIVE = frozenset({'damage', 'aoe_damage', 'execute', 'drain'})
 STAT_KEYS = frozenset({'strength', 'dexterity', 'constitution', 'intelligence', 'willpower'})
@@ -19,6 +20,7 @@ def audit_class_skill_balance_v1172():
     roster = {row[0] for row in CLASSES}
     if len(roster) != 22 or set(CLASS_SKILLS) != roster:
         errors.append('class roster mismatch')
+    legacy, modern = old_and_new_skills(CLASS_SKILLS)
     for class_name in sorted(roster):
         rows = CLASS_SKILLS.get(class_name, ())
         counter = Counter(str(s.get('kind') or '') for s in rows)
@@ -30,8 +32,12 @@ def audit_class_skill_balance_v1172():
             errors.append(f'{class_name}: incomplete active/endgame skills')
         if len(ids) != len(set(ids)):
             errors.append(f'{class_name}: duplicate skill IDs')
-        if any(int(s.get('unlock', 0) or 0) > 800 for s in rows):
-            errors.append(f'{class_name}: skill unlock exceeds mastery 800')
+        # v104 adds exactly three reviewed 5000+ abilities per class.
+        # Keep the historical <=800 invariant on *every legacy skill*.
+        if any(int(s.get('unlock', 0) or 0) > 800 for s in legacy[class_name]):
+            errors.append(f'{class_name}: historic skill unlock exceeds mastery 800')
+        if sorted(int(s.get('unlock', 0) or 0) for s in modern[class_name]) != [5200, 7600, 9800]:
+            errors.append(f'{class_name}: invalid 5000+ v104 skill unlock thresholds')
         if any(int(effective_skill_mana_cost(s, class_name)) < 0 for s in rows):
             errors.append(f'{class_name}: negative mana cost')
         report[class_name] = {

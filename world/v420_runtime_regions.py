@@ -153,6 +153,8 @@ def _generate_zone_semantic_v03013(rooms, zone, ids):
         return {"rooms":len(ids), "links":0, "loops":0, "semantic_backbone_links":0, "root":ids[0] if ids else None}
 
     seed = f"{mod.WORLD_TOPOLOGY_SEED}:{zone}"
+    # v104: roles are invariant while the zone topology is generated.
+    role_cache = {rid: mod._room_role(rid, rooms[rid]) for rid in ids}
     # Zachowujemy tylko pion, lazy/runtime i granice stref. Poziome krawędzie
     # wewnętrzne odbudujemy: najpierw semantic backbone, potem filler.
     for rid in ids:
@@ -236,7 +238,7 @@ def _generate_zone_semantic_v03013(rooms, zone, ids):
             for da in mod.GENERATED_DIRS:
                 db = mod.OPPOSITE[da]
                 if mod._free(rooms[a], da) and mod._free(rooms[b], db):
-                    compat = mod._role_compat(mod._room_role(a, rooms[a]), mod._room_role(b, rooms[b]))
+                    compat = mod._role_compat(role_cache[a], role_cache[b])
                     pair_candidates.append((compat*10.0 + mod._unit(f"{seed}:loop:{a}:{da}:{b}"), a, da, b, db))
     pair_candidates.sort(reverse=True)
     for _, a, da, b, db in pair_candidates:

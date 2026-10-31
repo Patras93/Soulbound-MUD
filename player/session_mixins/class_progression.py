@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Class state, mastery, training and multiclass progression."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
+from core.exact_reward_math_v10400 import scale_percent_xp_v10400
 from core.bootstrap_economy_professions import currency_reading_text
 from core.classes_skills import CLASS_SKILLS
 from core.progression_resources import class_mastery_xp_to_next, v0190_economy_sink
@@ -196,20 +197,19 @@ class SessionClassProgressionMixin:
             )
             base_total_xp = self.apply_double_xp(original_total_xp)
             _guild_pct=self.guild_bonus_percent_v0926()
-            total_xp=max(0,int(round(base_total_xp*(1.0+_guild_pct/100.0))))
+            total_xp=max(0,scale_percent_xp_v10400(base_total_xp,_guild_pct))
             _mentor_pct = self.mentor_bonus_percent_v03050()
             if _mentor_pct:
-                total_xp=max(0,int(round(total_xp*(1.0+_mentor_pct/100.0))))
+                total_xp=max(0,scale_percent_xp_v10400(total_xp,_mentor_pct))
                 self.mentor_record_activity_v03051()
 
             # v7.10.1: class XP is granted only to the character's primary class.
-            from systems.experience_bank_v2011 import banked_experience_v2011
-            allocated = [banked_experience_v2011(
+            from systems.atomic_progression_rewards_v10400 import award_class_xp_batch_atomic_v10400
+            awards = award_class_xp_batch_atomic_v10400(
                 self.server.db, self.account_id,
-                total_xp, 'class',
-                self.class_mastery_level(class_name),
-                source_key=class_name, overcap=overcap)
-                for class_name in active]
+                tuple((name, self.class_mastery_level(name)) for name in active),
+                total_xp, overcap=overcap, single_level_cap=single_level_cap)
+            allocated = [award for award, _result in awards]
             overall_awarded = sum(allocated)
             self.session_summary_add("class_xp", overall_awarded)
             _guild_note=f" Bonus Gildii +{_guild_pct}%." if _guild_pct else ""
@@ -222,12 +222,7 @@ class SessionClassProgressionMixin:
 
             for index, class_name in enumerate(active):
                 share = allocated[index]
-                result = self.server.db.add_class_mastery_xp(
-                    self.account_id,
-                    class_name,
-                    share,
-                    single_level_cap=single_level_cap,
-                )
+                result = awards[index][1]
                 if result["level_ups"]:
                     await self.send(
                         f"{class_name}: Biegłość rośnie do {result['level']}."

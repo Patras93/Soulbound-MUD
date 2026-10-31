@@ -40,7 +40,8 @@ BUILDINGS = {
 
 def init(conn):
     """Create only new tables; never migrate or truncate old character data."""
-    conn.executescript('''
+    from storage.sqlite_ddl_safe_v10400 import apply_create_schema_v104
+    apply_create_schema_v104(conn, '''
     CREATE TABLE IF NOT EXISTS trade_convoys_v1360 (
       account_id INTEGER PRIMARY KEY, code TEXT NOT NULL, item_id TEXT NOT NULL,
       quantity INTEGER NOT NULL, reward INTEGER NOT NULL, transport TEXT NOT NULL,
@@ -59,7 +60,6 @@ def init(conn):
       clan_id INTEGER NOT NULL, building TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 0,
       last_collection INTEGER NOT NULL, PRIMARY KEY(clan_id, building));
     ''')
-    conn.commit()
 
 
 def _coins(conn, account):

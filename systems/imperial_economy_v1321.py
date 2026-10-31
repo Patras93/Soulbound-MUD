@@ -24,7 +24,8 @@ CLASSES = ('kuter', 'bryg', 'fregata', 'galeon')
 
 def init(conn):
     base.init(conn)
-    conn.executescript('''
+    from storage.sqlite_ddl_safe_v10400 import apply_create_schema_v104
+    apply_create_schema_v104(conn, '''
     CREATE TABLE IF NOT EXISTS siege_battles_v1321 (
       fort TEXT PRIMARY KEY, clan_id INTEGER NOT NULL, phase INTEGER NOT NULL DEFAULT 1,
       remaining INTEGER NOT NULL, turns INTEGER NOT NULL DEFAULT 0,
@@ -43,7 +44,6 @@ def init(conn):
     CREATE UNIQUE INDEX IF NOT EXISTS idx_fleet_active_v1321
       ON shipyard_ships_v1321(account_id) WHERE active=1;
     ''')
-    conn.commit()
 
 
 def _wallet(conn, account):

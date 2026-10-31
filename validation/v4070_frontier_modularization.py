@@ -9,7 +9,7 @@ from pathlib import Path
 ORIGINAL = {
     'build_world_expansion_i': ('world/expansion_frontier_north_v407.py','3969090cfcd8dbaf358c88877459f65945f1e1cb36639e7b46650c324c77b265'),
     'build_world_expansion_ii': ('world/expansion_frontier_fields_v407.py','6ca419e3501bcd98f486587cda10a7d711a117bb96edf4488edab3c25bb164d6'),
-    'build_forest_wolves_and_quest_balance': ('world/expansion_frontier_forest_v407.py','00ae64f05a48fc9186f842f923f29280e64e2ccf7f8f37b3ed901707b8fa328e'),
+    'build_forest_wolves_and_quest_balance': ('world/expansion_frontier_forest_v407.py','83c48fda0cd143f4ab2911a3dd126a74cfe5cfbad16776f4090e9a9d97231d9f'),
 }
 
 def run_regression():

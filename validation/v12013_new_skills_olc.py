@@ -40,7 +40,7 @@ def run():
     server = SimpleNamespace(world=world, sessions=[])
     svc = LiveContentV1204(db)
     assert len(CLASS_SKILLS) == 22;count+=1
-    assert sum(map(len, CLASS_SKILLS.values())) == 5461;count+=1
+    assert sum(map(len, CLASS_SKILLS.values())) == 5527;count+=1
     assert svc.validate(svc.active);count+=1
     skill='live_soulbound_ostrze'
     base = svc.stage_new_skill(skill,'Wojownik','Ostrze Zorzy','damage',40,0,1.5,'strength','Pierwszy testowy atak.')

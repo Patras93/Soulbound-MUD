@@ -106,8 +106,11 @@ PROFESSION_QUEST_EXPANSION_METRICS_V0700 = {
 }
 
 
-# v0.70.1 - beginner coverage for professions that historically had no level 1-10 quest.
-# The runtime is checked first, so existing beginner quests are never duplicated.
+# v0.70.1 - stable, historical beginner quests.
+# v104 adds low-level endgame-era quests before this module loads. Do not use
+# a generic "has any beginner quest" check: it would silently remove these
+# six shipped IDs and invalidate players' saved quest progress.
+# Existing IDs must remain a hard error rather than being silently overwritten.
 BEGINNER_PROFESSION_QUEST_SPECS_V0701 = (
     ("Krawiectwo", "tailoring", "tailor_lysa", "wykonaj 3 prace krawieckie"),
     ("Garbarstwo", "leatherworking", "leatherworker_soren", "wykonaj 3 prace garbarskie"),
@@ -131,9 +134,8 @@ def _has_beginner_profession_quest_v0701(profession):
 
 
 for profession, tool_type, npc_id, action_text in BEGINNER_PROFESSION_QUEST_SPECS_V0701:
-    if _has_beginner_profession_quest_v0701(profession):
-        BEGINNER_PROFESSION_QUEST_SKIPPED_V0701.append(profession)
-        continue
+    # Always preserve the v0.70.1 quest ID. v103 shipped all six.
+    # Different low-level quests are additional content, not replacements.
     if npc_id not in NPCS:
         raise RuntimeError(f"v0.70.1 missing beginner profession NPC: {npc_id}")
     npc = NPCS[npc_id]

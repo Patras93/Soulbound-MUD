@@ -101,7 +101,8 @@ def run_regression():
     method = next(node for node in mixin.body if isinstance(node, ast.AsyncFunctionDef)
                   and node.name == 'show_character_level')
     namespace = {'CHARACTER_MAX_LEVEL': 800, 'SOUL_MAX_LEVEL': 800,
-                 'character_xp_to_next': lambda level: 778}
+                 'character_xp_to_next': lambda level: 778,
+                 'current_cap_label': lambda kind: '800'}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])),
                  str(source), 'exec'), namespace)
     messages = []

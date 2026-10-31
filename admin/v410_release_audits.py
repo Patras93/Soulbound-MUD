@@ -823,7 +823,9 @@ def full_game_predeploy_audit_v0336():
             if isinstance(target,str) and target.startswith('crypt_boss_'):
                 try:
                     floor=int(target.rsplit('_',1)[1])
-                    dynamic_ok=210<=floor<=SOUL_MAX_LEVEL and floor%10==0
+                    dynamic_ok=(floor >= 210 and floor % 10 == 0 and
+                                q.get('unlocks_soul_tier') == floor // 10 and
+                                qid == f'soul_tier_{floor // 10}_trial')
                 except Exception:
                     dynamic_ok=False
             if not dynamic_ok: err('quest_bad_kill_target',qid,target)
@@ -1030,7 +1032,10 @@ def full_game_predeploy_audit_v0336():
             if re.search(r'\d',name): err('skill_numeric_name',cname,skill.get('id'),name)
             try:
                 unlock=int(skill.get('unlock',0) or 0)
-                if not 1<=unlock<=CLASS_MASTERY_MAX_LEVEL: err('skill_bad_unlock',cname,skill.get('id'),unlock)
+                if not 1<=unlock<=CLASS_MASTERY_MAX_LEVEL:
+                    from core.class_skills_v10400 import is_authored_endgame_unlock_v104
+                    if not is_authored_endgame_unlock_v104(skill,cname):
+                        err('skill_bad_unlock',cname,skill.get('id'),unlock)
             except Exception: err('skill_bad_unlock',cname,skill.get('id'),skill.get('unlock'))
     for key,rows in seen_skill_names.items():
         if len(rows)>1: err('duplicate_skill_name',key,rows)

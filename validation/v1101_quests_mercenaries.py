@@ -161,7 +161,19 @@ def run_regression(runtime=None):
     ck(db.conn.execute('PRAGMA integrity_check').fetchone()[0]=='ok','SQLite integrity')
     db.conn.close()
     source=(Path(__file__).resolve().parents[1]/'player/session_mixins/combat_rewards.py').read_text(encoding='utf8')
-    ck('for _v800_class in _v800_active_classes:' in source, 'actual combat awards every active class')
+    # v104 routes every active class through a transactional quest coordinator.
+    # Keep accepting the historical direct loop for old snapshots, but the new
+    # route must prove BOTH forwarding of all class names and iteration inside
+    # the real settlement function. A mere import/name is not sufficient.
+    coordinator = (Path(__file__).resolve().parents[1]/'systems/atomic_kill_quest_progress_v10400.py')
+    modern = ('_v800_active_classes = tuple(dict.fromkeys(session.active_class_names()))' in source
+              and 'active_classes=_v800_active_classes' in source
+              and coordinator.is_file()
+              and 'classes = tuple(dict.fromkeys(active_classes))' in coordinator.read_text(encoding='utf8')
+              and 'for name in classes:' in coordinator.read_text(encoding='utf8')
+              and 'db.increment_class_legend_kill_v800(' in coordinator.read_text(encoding='utf8'))
+    ck('for _v800_class in _v800_active_classes:' in source or modern,
+       'actual combat awards every active class')
     return count
 
 

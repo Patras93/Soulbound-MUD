@@ -146,25 +146,20 @@ class SessionLivingEmpireV7000Mixin:
         before=(self.character.silver,self.character.gold,self.character.mithril)
         try:
             with db.conn.deferred_commits():
-                try:
-                    for item,qty in inputs:
-                        if not _remove_all(db,aid,item,qty):
-                            raise RuntimeError('Niepowodzenie pobrania materiału — transakcja anulowana.')
-                    for item,qty in outputs:
-                        db.add_item(aid,item,qty,commit=False)
-                    if update: update()
-                    if coin_reward:
-                        balance=_coins(db,aid,coin_reward)
-                        if balance is False: raise RuntimeError('Nie można przyznać zapłaty bez utraty danych.')
-                        self._prof6_apply_wallet(balance)
-                    messages,xp,t_xp=self._v7_grant(profession,tier)
-                    db.conn.commit()
-                except Exception:
-                    db.conn.rollback()
-                    self._prof6_apply_wallet(before)
-                    raise
+                for item,qty in inputs:
+                    if not _remove_all(db,aid,item,qty):
+                        raise RuntimeError('Niepowodzenie pobrania materiału — transakcja anulowana.')
+                for item,qty in outputs:
+                    db.add_item(aid,item,qty,commit=False)
+                if update: update()
+                if coin_reward:
+                    balance=_coins(db,aid,coin_reward)
+                    if balance is False: raise RuntimeError('Nie można przyznać zapłaty bez utraty danych.')
+                    self._prof6_apply_wallet(balance)
+                messages,xp,t_xp=self._v7_grant(profession,tier)
+                db.conn.commit()
         except Exception:
-            db.conn.rollback()
+            # Rollback SQL nalezy do SAVEPOINT; nie niszcz cudzych transakcji.
             self._prof6_apply_wallet(before)
             raise
         return (messages,xp,t_xp),None

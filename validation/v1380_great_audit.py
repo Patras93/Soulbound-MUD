@@ -36,7 +36,7 @@ def run_great_audit_v1380():
         ('tool', TOOL_MAX_LEVEL),
     ):
         check(limit == 800, f'{axis} cap 800')
-    check(SOUL_MAX_TIER == 80, 'Soul Tiers 80')
+    check(SOUL_MAX_TIER >= 500, 'Soul Tiers 1-500 remain available')
     check(TOOL_MAX_TIER == 80, 'tool tiers 80')
 
     from core.progression_resources import (

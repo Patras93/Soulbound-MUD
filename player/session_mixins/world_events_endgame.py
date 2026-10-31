@@ -1160,6 +1160,15 @@ class SessionWorldEventsEndgameMixin:
             from systems.era_legends_v1600 import active_invasion_v1600
             invasion = active_invasion_v1600(now)
             await self.send(f"INWAZJA: {invasion['title']}. Szczegóły: era60 inwazje.")
+            try:
+                from systems.world_invasions_v10400 import status_text as _invasion_status_v104
+                await self.send(_invasion_status_v104(self.server.db.conn, now))
+                from systems.world_invasions_v10400 import reward_status as _invasion_reward_v104
+                if self.character:
+                    await self.send(_invasion_reward_v104(self.server.db.conn, self.account_id, now))
+            except Exception as exc:
+                print(f'V104_INVASION_STATUS_ERROR: {type(exc).__name__}: {exc}', flush=True)
+                await self.send('INWAZJA V104: status tymczasowo niedostępny.')
             await self.send("KRYZYSY CZTERECH KRAIN: kryzys lista, kryzys start, kryzys status, kryzys ratuj, kryzys odbierz.")
             await self.send("ARCHEOLOGIA: wykop w ruinach lub przy aktywnym stanowisku wykopaliskowym.")
             await self.show_dynamic_events_v029()

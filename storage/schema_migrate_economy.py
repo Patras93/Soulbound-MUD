@@ -11,105 +11,96 @@ def migrate_accounts_and_economy(
     # ze slotem 1. Dalsze postacie są przechowywane w osobnych, ukrytych
     # profilach danych, dzięki czemu wszystkie dotychczasowe tabele
     # pozostają w 100% odseparowane między postaciami.
-    self.conn.execute(
-        """
-        INSERT OR IGNORE INTO account_characters(
-            master_account_id, character_account_id, slot
-        )
-        SELECT c.account_id, c.account_id, 1
-        FROM characters c
-        WHERE NOT EXISTS(
-            SELECT 1 FROM account_characters ac
-            WHERE ac.character_account_id=c.account_id
-        )
-        """
-    )
-
-    # v0.8.32: jeden wspólny portfel dla wszystkich postaci na koncie.
-    # Pierwsza migracja SUMUJE walutę wszystkich istniejących slotów,
-    # dzięki czemu aktualizacja nie kasuje pieniędzy żadnej postaci.
-    wallet_migrated = self.conn.execute(
-        "SELECT 1 FROM migration_flags WHERE flag=?",
-        ("shared_account_wallet_v0832",),
-    ).fetchone()
-    if not wallet_migrated:
-        masters = self.conn.execute(
-            "SELECT DISTINCT master_account_id FROM account_characters "
-            "ORDER BY master_account_id"
-        ).fetchall()
-        for master_row in masters:
-            master_id = int(master_row["master_account_id"])
-            sums = self.conn.execute(
-                """
-                SELECT COALESCE(SUM(c.silver),0) AS silver,
-                       COALESCE(SUM(c.gold),0) AS gold,
-                       COALESCE(SUM(c.mithril),0) AS mithril
-                FROM account_characters ac
-                JOIN characters c ON c.account_id=ac.character_account_id
-                WHERE ac.master_account_id=?
-                """,
-                (master_id,),
-            ).fetchone()
-            silver, gold, mithril = normalize_currency_values(
-                int(sums["silver"] or 0),
-                int(sums["gold"] or 0),
-                int(sums["mithril"] or 0),
-            )
-            self.conn.execute(
-                "INSERT OR REPLACE INTO account_wallet("
-                "master_account_id,silver,gold,mithril,updated_at"
-                ") VALUES(?,?,?,?,CURRENT_TIMESTAMP)",
-                (master_id, silver, gold, mithril),
-            )
-            self.conn.execute(
-                """
-                UPDATE characters SET silver=?,gold=?,mithril=?
-                WHERE account_id IN (
-                    SELECT character_account_id FROM account_characters
-                    WHERE master_account_id=?
-                )
-                """,
-                (silver, gold, mithril, master_id),
-            )
-
-            # Waluta zdeponowana w Banku Dusz również jest wspólna.
-            bank_sums = self.conn.execute(
-                """
-                SELECT COALESCE(SUM(b.silver),0) AS silver,
-                       COALESCE(SUM(b.gold),0) AS gold,
-                       COALESCE(SUM(b.mithril),0) AS mithril
-                FROM account_characters ac
-                LEFT JOIN bank_balances b ON b.account_id=ac.character_account_id
-                WHERE ac.master_account_id=?
-                """,
-                (master_id,),
-            ).fetchone()
-            bank_silver, bank_gold, bank_mithril = normalize_currency_values(
-                int(bank_sums["silver"] or 0),
-                int(bank_sums["gold"] or 0),
-                int(bank_sums["mithril"] or 0),
-            )
-            self.conn.execute(
-                "INSERT INTO bank_balances(account_id,silver,gold,mithril) "
-                "VALUES(?,?,?,?) "
-                "ON CONFLICT(account_id) DO UPDATE SET "
-                "silver=excluded.silver,gold=excluded.gold,mithril=excluded.mithril",
-                (master_id, bank_silver, bank_gold, bank_mithril),
-            )
-            self.conn.execute(
-                """
-                DELETE FROM bank_balances
-                WHERE account_id<>? AND account_id IN (
-                    SELECT character_account_id FROM account_characters
-                    WHERE master_account_id=?
-                )
-                """,
-                (master_id, master_id),
-            )
+    # Indeks slotu również jest częścią tej samej migracji. Jeśli scalenie
+    # pieniędzy się nie uda, nie zostawiaj częściowo migrowanych slotów.
+    self.conn.execute('SAVEPOINT v104_wallet_slots_and_balances')
+    try:
         self.conn.execute(
-            "INSERT INTO migration_flags(flag) VALUES(?)",
-            ("shared_account_wallet_v0832",),
+            """
+            INSERT OR IGNORE INTO account_characters(
+                master_account_id, character_account_id, slot
+            )
+            SELECT c.account_id, c.account_id, 1
+            FROM characters c
+            WHERE NOT EXISTS(
+                SELECT 1 FROM account_characters ac
+                WHERE ac.character_account_id=c.account_id
+            )
+            """
         )
+
+        from storage.migration_currency_v10400 import (
+            sum_slot_currency_v104, strict_legacy_coins_v104,
+        )
+
+        # v0.8.32: jeden wspólny portfel dla wszystkich postaci na koncie.
+        # Pierwsza migracja SUMUJE walutę wszystkich istniejących slotów,
+        # dzięki czemu aktualizacja nie kasuje pieniędzy żadnej postaci.
+        wallet_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("shared_account_wallet_v0832",),
+        ).fetchone()
+        if not wallet_migrated:
+            # Jeden SAVEPOINT na wszystkie konta: błąd na drugim koncie musi
+            # cofnąć również aktualizację pierwszego, bez zatwierdzania rodzica.
+            masters = self.conn.execute(
+                "SELECT DISTINCT master_account_id FROM account_characters "
+                "ORDER BY master_account_id"
+            ).fetchall()
+            for master_row in masters:
+                master_id = int(master_row["master_account_id"])
+                sums = sum_slot_currency_v104(self.conn, master_id, 'characters')
+                silver, gold, mithril = normalize_currency_values(*sums)
+                self.conn.execute(
+                    "INSERT OR REPLACE INTO account_wallet("
+                    "master_account_id,silver,gold,mithril,updated_at"
+                    ") VALUES(?,?,?,?,CURRENT_TIMESTAMP)",
+                    (master_id, silver, gold, mithril),
+                )
+                self.conn.execute(
+                    """
+                    UPDATE characters SET silver=?,gold=?,mithril=?
+                    WHERE account_id IN (
+                        SELECT character_account_id FROM account_characters
+                        WHERE master_account_id=?
+                    )
+                    """,
+                    (silver, gold, mithril, master_id),
+                )
+
+                # Waluta zdeponowana w Banku Dusz również jest wspólna.
+                bank_sums = sum_slot_currency_v104(self.conn, master_id, 'bank_balances')
+                bank_silver, bank_gold, bank_mithril = normalize_currency_values(*bank_sums)
+                self.conn.execute(
+                    "INSERT INTO bank_balances(account_id,silver,gold,mithril) "
+                    "VALUES(?,?,?,?) "
+                    "ON CONFLICT(account_id) DO UPDATE SET "
+                    "silver=excluded.silver,gold=excluded.gold,mithril=excluded.mithril",
+                    (master_id, bank_silver, bank_gold, bank_mithril),
+                )
+                self.conn.execute(
+                    """
+                    DELETE FROM bank_balances
+                    WHERE account_id<>? AND account_id IN (
+                        SELECT character_account_id FROM account_characters
+                        WHERE master_account_id=?
+                    )
+                    """,
+                    (master_id, master_id),
+                )
+            self.conn.execute(
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("shared_account_wallet_v0832",),
+            )
+
+
+        self.conn.execute('RELEASE SAVEPOINT v104_wallet_slots_and_balances')
+    except BaseException:
+        try:
+            self.conn.execute('ROLLBACK TO SAVEPOINT v104_wallet_slots_and_balances')
+        finally:
+            self.conn.execute('RELEASE SAVEPOINT v104_wallet_slots_and_balances')
+        raise
 
     # v0.8.51: nadaj istniejącym postaciom taki sam bazowy profil klasy,
     # jaki od tej wersji dostają nowe postacie. Jednorazowa flaga zapobiega
@@ -211,56 +202,69 @@ def migrate_accounts_and_economy(
         ("unified_currency_v0859",),
     ).fetchone()
     if not unified_currency_migrated:
-        wallet_rows = self.conn.execute(
-            "SELECT master_account_id,silver,gold,mithril FROM account_wallet"
-        ).fetchall()
-        for row in wallet_rows:
-            coins = legacy_currency_to_coins(
-                row["silver"], row["gold"], row["mithril"]
-            )
-            master_id = int(row["master_account_id"])
+        self.conn.execute('SAVEPOINT v104_legacy_currency_conversion')
+        try:
+            wallet_rows = self.conn.execute(
+                "SELECT master_account_id,silver,gold,mithril FROM account_wallet"
+            ).fetchall()
+            for row in wallet_rows:
+                coins = strict_legacy_coins_v104(
+                    row["silver"], row["gold"], row["mithril"],
+                    legacy_currency_to_coins,
+                )
+                master_id = int(row["master_account_id"])
+                self.conn.execute(
+                    "UPDATE account_wallet SET silver=?,gold=0,mithril=0,"
+                    "updated_at=CURRENT_TIMESTAMP WHERE master_account_id=?",
+                    (coins, master_id),
+                )
+                self.conn.execute(
+                    "UPDATE characters SET silver=?,gold=0,mithril=0 "
+                    "WHERE account_id IN (SELECT character_account_id "
+                    "FROM account_characters WHERE master_account_id=?)",
+                    (coins, master_id),
+                )
+
+            # Nietypowe stare save'y bez account_wallet też nie tracą środków.
+            orphan_rows = self.conn.execute(
+                "SELECT account_id,silver,gold,mithril FROM characters "
+                "WHERE account_id NOT IN (SELECT character_account_id FROM account_characters)"
+            ).fetchall()
+            for row in orphan_rows:
+                coins = strict_legacy_coins_v104(
+                    row["silver"], row["gold"], row["mithril"],
+                    legacy_currency_to_coins,
+                )
+                self.conn.execute(
+                    "UPDATE characters SET silver=?,gold=0,mithril=0 WHERE account_id=?",
+                    (coins, int(row["account_id"])),
+                )
+
+            bank_rows = self.conn.execute(
+                "SELECT account_id,silver,gold,mithril FROM bank_balances"
+            ).fetchall()
+            for row in bank_rows:
+                coins = strict_legacy_coins_v104(
+                    row["silver"], row["gold"], row["mithril"],
+                    legacy_currency_to_coins,
+                )
+                self.conn.execute(
+                    "UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?",
+                    (coins, int(row["account_id"])),
+                )
+
             self.conn.execute(
-                "UPDATE account_wallet SET silver=?,gold=0,mithril=0,"
-                "updated_at=CURRENT_TIMESTAMP WHERE master_account_id=?",
-                (coins, master_id),
-            )
-            self.conn.execute(
-                "UPDATE characters SET silver=?,gold=0,mithril=0 "
-                "WHERE account_id IN (SELECT character_account_id "
-                "FROM account_characters WHERE master_account_id=?)",
-                (coins, master_id),
+                "INSERT INTO migration_flags(flag) VALUES(?)",
+                ("unified_currency_v0859",),
             )
 
-        # Nietypowe stare save'y bez account_wallet też nie tracą środków.
-        orphan_rows = self.conn.execute(
-            "SELECT account_id,silver,gold,mithril FROM characters "
-            "WHERE account_id NOT IN (SELECT character_account_id FROM account_characters)"
-        ).fetchall()
-        for row in orphan_rows:
-            coins = legacy_currency_to_coins(
-                row["silver"], row["gold"], row["mithril"]
-            )
-            self.conn.execute(
-                "UPDATE characters SET silver=?,gold=0,mithril=0 WHERE account_id=?",
-                (coins, int(row["account_id"])),
-            )
-
-        bank_rows = self.conn.execute(
-            "SELECT account_id,silver,gold,mithril FROM bank_balances"
-        ).fetchall()
-        for row in bank_rows:
-            coins = legacy_currency_to_coins(
-                row["silver"], row["gold"], row["mithril"]
-            )
-            self.conn.execute(
-                "UPDATE bank_balances SET silver=?,gold=0,mithril=0 WHERE account_id=?",
-                (coins, int(row["account_id"])),
-            )
-
-        self.conn.execute(
-            "INSERT INTO migration_flags(flag) VALUES(?)",
-            ("unified_currency_v0859",),
-        )
+            self.conn.execute('RELEASE SAVEPOINT v104_legacy_currency_conversion')
+        except BaseException:
+            try:
+                self.conn.execute('ROLLBACK TO SAVEPOINT v104_legacy_currency_conversion')
+            finally:
+                self.conn.execute('RELEASE SAVEPOINT v104_legacy_currency_conversion')
+            raise
 
     # v0.34.4: krótkotrwała v0.34.3 błędnie wprowadziła mithril_ore jako
     # zwykłą rudę. Mithril w Soulbound jest walutą. Stare sztuki nie mogą

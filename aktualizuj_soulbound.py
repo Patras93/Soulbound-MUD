@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -28,7 +29,7 @@ VERSION_PATTERN = re.compile(r'^\s*VERSION\s*=\s*[\'"]([0-9]+(?:\.[0-9]+){2})[\'
 RELEASE_PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 SKIP_PARTS = {'__pycache__', 'logs', '.git'}
 SQLITE_SUFFIXES = ('.db', '.db-wal', '.db-shm', '.sqlite', '.sqlite-wal', '.sqlite-shm', '.sqlite3', '.sqlite3-wal', '.sqlite3-shm')
-PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt', 'admin_level_caps.json', 'shop_progression_v7003.json', 'heritage_v7100.json', 'custom_races_v7600.json', 'custom_classes_v7700.json'}
+PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt', 'admin_level_caps.json', 'shop_progression_v7003.json', 'heritage_v7100.json', 'custom_races_v7600.json', 'custom_classes_v7700.json', 'era_v10300.json'}
 
 
 class UpdateError(Exception):
@@ -112,6 +113,10 @@ def find_release(root: Path, selected: Path | None, current_version: str) -> tup
             with zipfile.ZipFile(choice) as z:
                 mapping = archive_mapping(z)
                 ver = read_archive_version(z, mapping)
+                if version_tuple(ver) >= (104, 0, 0):
+                    version_entry = mapping.get(Path('VERSION'))
+                    if version_entry is None or z.read(version_entry).decode('utf-8-sig').strip() != ver:
+                        raise UpdateError('v104: VERSION, kod gry i nazwa ZIP musza byc zgodne.')
                 if z.testzip():
                     raise UpdateError('ZIP jest uszkodzony.')
             if not RELEASE_PATTERN.match(choice.name):
@@ -131,6 +136,54 @@ def find_release(root: Path, selected: Path | None, current_version: str) -> tup
     if version_tuple(new_ver) <= version_tuple(current_version):
         raise UpdateError(f'Brak nowszej paczki. Masz v{current_version}, znaleziono v{new_ver}. Niczego nie zmieniono.')
     return path, new_ver
+
+
+
+def require_v104_official_predeploy(root: Path, archive_path: Path, new_version: str) -> None:
+    """Never stop the live server for a v104+ ZIP without a matching 60/60 PASS.
+
+    Guard even --yes and direct run_update() callers. The official PREDEPLOY
+    writes its result outside the installation, so the candidate ZIP cannot
+    fabricate an approval by bundling a JSON file. Earlier releases retain
+    their historic updater behavior.
+    """
+    if version_tuple(new_version) < (104, 0, 0):
+        return
+    state_file = root.parent / 'Soulbound_PREDEPLOY' / 'last_result.json'
+    try:
+        state = json.loads(state_file.read_text(encoding='utf-8'))
+        if not isinstance(state, dict):
+            raise ValueError('niepoprawny wynik')
+    except (OSError, ValueError, UnicodeError) as exc:
+        raise UpdateError('v104: brak zaliczonego oficjalnego PREDEPLOY 60/60 PLUS. '
+                          'Uruchom PREDEPLOY_NOWEJ_WERSJI.bat; niczego nie zatrzymano.') from exc
+    needed = (state.get('status') == 'PASS'
+              and state.get('quality_gate') == 'ULTIMATE-60-PLUS'
+              and type(state.get('completed_stages')) is int
+              and state['completed_stages'] == 60
+              and type(state.get('required_stages')) is int
+              and state['required_stages'] == 60
+              and type(state.get('returncode')) is int
+              and state['returncode'] == 0
+              and state.get('version') == new_version
+              and state.get('installed_at_test') == file_version(
+                  root / 'core/bootstrap_economy_professions.py'))
+    if not needed:
+        raise UpdateError('v104: brak zgodnego 60/60 PLUS dla tej wersji i aktualnie '
+                          'zainstalowanej gry. Niczego nie zatrzymano.')
+    try:
+        approved = Path(state['zip']).resolve(strict=True)
+        candidate = Path(archive_path).resolve(strict=True)
+        if approved != candidate:
+            raise UpdateError('v104: zatwierdzony PREDEPLOY dotyczy innej paczki ZIP.')
+        digest = hashlib.sha256()
+        with candidate.open('rb') as stream:
+            for part in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(part)
+        if digest.hexdigest() != state.get('sha256'):
+            raise UpdateError('v104: zmieniono ZIP po PREDEPLOY. Wykonaj test ponownie.')
+    except (OSError, TypeError, ValueError, KeyError) as exc:
+        raise UpdateError('v104: nie mozna zweryfikowac zatwierdzonej paczki ZIP.') from exc
 
 
 def port_open(port: int) -> bool:
@@ -236,11 +289,22 @@ def install_stage(root: Path, stage: Path, backup: Path) -> None:
 
 
 def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True) -> Path:
+    # Critical: protect direct callers and --yes alike, before shutdown/backup.
+    require_v104_official_predeploy(root, archive_path, new_version)
     # Pre-validate ZIP *before* touching running server.
     with zipfile.ZipFile(archive_path) as z:
         mapping = archive_mapping(z)
         if read_archive_version(z, mapping) != new_version or z.testzip():
             raise UpdateError('Niepoprawna paczka, instalacja zostala przerwana.')
+        if version_tuple(new_version) >= (104, 0, 0):
+            # Direct run_update() calls must obey exactly the same version
+            # contract as find_release(), including the version-file entry.
+            label = RELEASE_PATTERN.match(archive_path.name)
+            entry = mapping.get(Path('VERSION'))
+            if (label is None or label.group(1) != new_version
+                or entry is None
+                or z.read(entry).decode('utf-8-sig').strip() != new_version):
+                raise UpdateError('v104: nazwa ZIP, VERSION i kod gry sa niespojne.')
     parent = root.parent
     name = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup = parent / f'Soulbound_BACKUP_{name}'
@@ -251,6 +315,11 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
     stage = Path(tempfile.mkdtemp(prefix='.Soulbound_stage_', dir=parent))
     try:
         stage_release(archive_path, stage, mapping)
+        # The ZIP was approved BEFORE staging. The source might change during
+        # extraction (download, antivirus or another process). Verify the
+        # approved SHA again BEFORE stopping the running server. This is a
+        # separate fail-closed check; do not trust the earlier approval alone.
+        require_v104_official_predeploy(root, archive_path, new_version)
         stop_local_server(root)
         backup_existing(root, backup)
         install_stage(root, stage, backup)
@@ -287,6 +356,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Obecna wersja: v{installed}', flush=True)
         print(f'Nowa wersja: v{new_ver}', flush=True)
         print(f'Paczka: {new_zip}', flush=True)
+        require_v104_official_predeploy(root, new_zip, new_ver)
         print('Zachowam bazy postaci, logi i ustawienia prywatne. Przed podmiana utworze kopie starej gry.', flush=True)
         if not args.yes:
             if input('Wpisz TAK, aby zaktualizowac: ').strip().upper() != 'TAK':

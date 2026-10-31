@@ -165,15 +165,15 @@ class SessionRuntimeStateMixin:
                 amount,content_level,content_scaled=content_scaled
             )
             actual = self.apply_double_xp(amount)
-            from systems.experience_bank_v2011 import banked_experience_v2011
-            actual = banked_experience_v2011(
-                self.server.db, self.account_id, actual, 'character',
-                self.character.character_level, overcap=overcap)
-            self.session_summary_add("character_xp", actual)
+            from systems.atomic_character_experience_v10400 import award_character_xp_atomic_v10400
             previous_level = int(self.character.character_level)
-            messages = self.character.add_character_xp(
-                actual, single_level_cap=single_level_cap
+            actual, messages = award_character_xp_atomic_v10400(
+                self.server.db, self.character, self.account_id, actual,
+                overcap=overcap, single_level_cap=single_level_cap,
             )
+            # Count only committed EXP. If SQLite raises an error, the bank,
+            # character row, and in-memory progress are all restored.
+            self.session_summary_add("character_xp", actual)
             if int(self.character.character_level) > previous_level:
                 # Brak trwałego cache; powiadom tylko, gdy zmieniła się lista.
                 # Awans o wiele leveli na raz = jedno powiadomienie, nie spam.

@@ -337,19 +337,10 @@ class SessionProfesje6Mixin:
         if shortage:
             await self.send('Brak materiałów: '+_format_resources(shortage)+'.')
             return
-        # Materials, timed state AND canonical XP rewards must be atomic.
-        try:
-            with db.conn.deferred_commits():
-                try:
-                    messages,changed_quests=self._prof6_do_work(db,aid,work,prof,tool_type,tier,now)
-                except Exception:
-                    # Roll back BEFORE leaving deferred_commits: its exit may
-                    # otherwise flush a pending commit after an XP exception.
-                    db.conn.rollback()
-                    raise
-        except Exception:
-            db.conn.rollback()
-            raise
+        # Jedna transakcja SAVEPOINT: kontekst sam wycofuje wszystkie zmiany
+        # przy wyjatku, bez ruszania zmian innych funkcji na tym polaczeniu.
+        with db.conn.deferred_commits():
+            messages,changed_quests=self._prof6_do_work(db,aid,work,prof,tool_type,tier,now)
         await self.send(f'{prof} — {work.title} (próg {tier}). Zużyto: {_format_resources(work.ingredients)}. Otrzymano: {_format_resources(work.outputs)}.')
         if work.pending in READY_SECONDS:
             await self.send(f'Zadanie rozpoczęte. Zakończenie za {READY_SECONDS[work.pending]} sekund.')
@@ -470,26 +461,21 @@ class SessionProfesje6Mixin:
             return
         try:
             with db.conn.deferred_commits():
-                try:
-                    if not _remove_all(db,aid,good,quantity): raise RuntimeError('Dostawa bez towarów.')
-                    db.conn.execute('INSERT INTO prof6_order_claims(account_id,profession,day_number) VALUES(?,?,?)',(aid,prof,day))
-                    balance=_coins(db,aid,coins)
-                    if balance is False: raise RuntimeError('Nie można naliczyć zapłaty.')
-                    db.add_item(aid,reward,reward_amount,commit=False)
-                    if rare_reward:
-                        db.add_item(aid,rare_reward,rare_amount,commit=False)
-                    # save_character() writes the wallet from this live object.
-                    oldbalance=(self.character.silver,self.character.gold,self.character.mithril)
-                    self._prof6_apply_wallet(balance)
-                    tool_type=PROFESSIONS[prof][0]
-                    msgs,_,_=self.grant_profession_progress(prof,75+tier*8,tool_type,40+tier*5,content_level=tier,content_key=good)
-                    db.conn.commit()
-                except Exception:
-                    db.conn.rollback()
-                    if 'oldbalance' in locals(): self._prof6_apply_wallet(oldbalance)
-                    raise
+                if not _remove_all(db,aid,good,quantity): raise RuntimeError('Dostawa bez towarów.')
+                db.conn.execute('INSERT INTO prof6_order_claims(account_id,profession,day_number) VALUES(?,?,?)',(aid,prof,day))
+                balance=_coins(db,aid,coins)
+                if balance is False: raise RuntimeError('Nie można naliczyć zapłaty.')
+                db.add_item(aid,reward,reward_amount,commit=False)
+                if rare_reward:
+                    db.add_item(aid,rare_reward,rare_amount,commit=False)
+                # save_character() writes the wallet from this live object.
+                oldbalance=(self.character.silver,self.character.gold,self.character.mithril)
+                self._prof6_apply_wallet(balance)
+                tool_type=PROFESSIONS[prof][0]
+                msgs,_,_=self.grant_profession_progress(prof,75+tier*8,tool_type,40+tier*5,content_level=tier,content_key=good)
+                db.conn.commit()
         except Exception:
-            db.conn.rollback()
+            # SAVEPOINT juz wycofal zapisy SQL; przywroc tylko obiekt w pamieci.
             if 'oldbalance' in locals(): self._prof6_apply_wallet(oldbalance)
             raise
 
@@ -550,22 +536,16 @@ class SessionProfesje6Mixin:
             missing=[(item,qty-_sum(db,aid,item)) for item,qty in ingredients if _sum(db,aid,item)<qty]
             if missing:
                 await self.send('Brak materiałów: '+_format_resources(missing)+'.');return
-            try:
-                with db.conn.deferred_commits():
-                    try:
-                        for item,qty in ingredients:
-                            if not _remove_all(db,aid,item,qty):
-                                raise RuntimeError('Materiał zniknął podczas projektu; transakcja wycofana.')
-                        db.add_item(aid,item_id,1,commit=False)
-                        db.conn.execute('INSERT INTO prof12_masterworks(account_id,profession,made) VALUES(?,?,1) '
-                                        'ON CONFLICT(account_id,profession) DO UPDATE SET made=made+1',(aid,profession))
-                        messages,_,_=self.grant_profession_progress(
-                            profession,650+tier*14,tool,450+tier*10,content_level=tier,content_key=project_item_id(profession)+':'+str(tier))
-                        db.conn.commit()
-                    except Exception:
-                        db.conn.rollback();raise
-            except Exception:
-                db.conn.rollback();raise
+            with db.conn.deferred_commits():
+                for item,qty in ingredients:
+                    if not _remove_all(db,aid,item,qty):
+                        raise RuntimeError('Materiał zniknął podczas projektu; transakcja wycofana.')
+                db.add_item(aid,item_id,1,commit=False)
+                db.conn.execute('INSERT INTO prof12_masterworks(account_id,profession,made) VALUES(?,?,1) '
+                                'ON CONFLICT(account_id,profession) DO UPDATE SET made=made+1',(aid,profession))
+                messages,_,_=self.grant_profession_progress(
+                    profession,650+tier*14,tool,450+tier*10,content_level=tier,content_key=project_item_id(profession)+':'+str(tier))
+                db.conn.commit()
             await self.send(f'Wykonano {proj.title} (poziom {tier}). Zużyto: {_format_resources(ingredients)}. Gotowy wyrób możesz zachować dla AI przywołań lub dostarczyć w kontrakcie.')
             for msg in messages: await self.send(str(msg))
             return
@@ -582,21 +562,18 @@ class SessionProfesje6Mixin:
         from player.session_mixins.profesje6 import _coins
         try:
             with db.conn.deferred_commits():
-                try:
-                    if not _remove_all(db,aid,item_id,count):
-                        raise RuntimeError('Nie można pobrać gotowych wyrobów.')
-                    db.conn.execute('INSERT INTO prof12_contract_claims(account_id,profession,day) VALUES(?,?,?)',(aid,profession,day))
-                    db.conn.execute('UPDATE prof12_masterworks SET turned_in=turned_in+? WHERE account_id=? AND profession=?',(count,aid,profession))
-                    balance=_coins(db,aid,coins)
-                    if balance is False: raise RuntimeError('Przekroczony limit waluty podczas kontraktu.')
-                    messages,_,_=self.grant_profession_progress(
-                        profession,900+tier*16,tool,600+tier*12,content_level=tier,content_key=project_item_id(profession)+':contract:'+str(tier))
-                    db.conn.commit()
-                except Exception:
-                    db.conn.rollback();raise
+                if not _remove_all(db,aid,item_id,count):
+                    raise RuntimeError('Nie można pobrać gotowych wyrobów.')
+                db.conn.execute('INSERT INTO prof12_contract_claims(account_id,profession,day) VALUES(?,?,?)',(aid,profession,day))
+                db.conn.execute('UPDATE prof12_masterworks SET turned_in=turned_in+? WHERE account_id=? AND profession=?',(count,aid,profession))
+                balance=_coins(db,aid,coins)
+                if balance is False: raise RuntimeError('Przekroczony limit waluty podczas kontraktu.')
+                messages,_,_=self.grant_profession_progress(
+                    profession,900+tier*16,tool,600+tier*12,content_level=tier,content_key=project_item_id(profession)+':contract:'+str(tier))
+                db.conn.commit()
             self._prof6_apply_wallet(balance)
         except Exception:
-            db.conn.rollback()
+            # Cofniecie SQL nastapilo w bloku deferred_commits.
             self._prof6_apply_wallet(old_balance)
             raise
         await self.send(f'Kontrakt mistrzowski {profession} ukończony. Oddano {count} × {proj.title}. Nagroda: {coins} srebra i EXP profesji oraz narzędzia. Następny kontrakt jutro.')

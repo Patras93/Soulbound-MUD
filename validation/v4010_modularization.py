@@ -16,7 +16,7 @@ ORIGINAL_V4000_AST = {
     "configure_v0800_help_info": ("world/expansion_services.py", "cfd823a3160aacbfdabe5c9c0683b2d6cbda9fa73a17d95e40bdc04bdc25b056"),
     "configure_v081_help_info": ("world/expansion_services.py", "2c534e56c62141cfdb00b561b7dcc5cbc3f83effb344b62e0665098d46f99b12"),
     "build_paid_training_guild_expansion": ("world/expansion_services.py", "f8fbf965a3f6120d75eda68cf7dd38e69e64e57d4bb9d55824bbd4f1bf6fed80"),
-    "build_forest_wolves_and_quest_balance": ("world/expansion_frontier_forest_v407.py", "00ae64f05a48fc9186f842f923f29280e64e2ccf7f8f37b3ed901707b8fa328e"),
+    "build_forest_wolves_and_quest_balance": ("world/expansion_frontier_forest_v407.py", "83c48fda0cd143f4ab2911a3dd126a74cfe5cfbad16776f4090e9a9d97231d9f"),
     "CLASS_SKILLS": ("core/class_skill_catalog.py", "4de60ce5016b15e826a9d231652bf7f19a90deebb1a84825644917472e8a7f6b"),
     "ENDGAME_CLASS_SKILLS": ("core/class_skill_catalog.py", "9b9e37a2fb0482d5bba9f5caf9b7997033d5cd28d82aeb60ff547fc7e9273e24"),
 }
@@ -73,7 +73,7 @@ def run_regression():
             first_replay = copy.deepcopy(isolated)
         else:
             assert isolated == first_replay, ('fresh facade not deterministic', iteration)
-        assert sum(len(rows) for rows in isolated.values()) == (5461 if int(VERSION.split('.',1)[0]) >= 11 else 5417 if int(VERSION.split('.',1)[0]) in (9,10) else 3473 if int(VERSION.split('.',1)[0]) in (5,6,7,8) else 3445), iteration
+        assert sum(len(rows) for rows in isolated.values()) == (5527 if int(VERSION.split('.',1)[0]) >= 11 else 5417 if int(VERSION.split('.',1)[0]) in (9,10) else 3473 if int(VERSION.split('.',1)[0]) in (5,6,7,8) else 3445), iteration
         assert CLASS_SKILLS == original_runtime, ('replay corrupted live catalog', iteration)
         assert authored_skills == original_authored, ('replay polluted authored data', iteration)
         from world.legends_v3100 import CLASS_NAMES as _legacy_classes_v3100

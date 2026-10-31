@@ -266,10 +266,21 @@ class SessionQuestCommandsMixin:
                 cooldown = int(
                     q.get("repeat_cooldown", QUEST_REPEAT_COOLDOWN_SECONDS)
                 )
-                await self.send(
-                    "To zadanie jest powtarzalne. Będzie ponownie dostępne "
-                    f"za {max(1, cooldown // 60)} minut."
-                )
+                from systems.quest_calendar_v10400 import cadence_for_quest
+                calendar_v104 = cadence_for_quest(quest_id, q)
+                if calendar_v104:
+                    remaining = self.server.db.repeat_quest_seconds_remaining(
+                        self.account_id, quest_id, cooldown)
+                    await self.send(
+                        "Kontrakt odnawia się o północy UTC "
+                        + ("następnego dnia" if calendar_v104 == "day_utc" else "w poniedziałek")
+                        + f"; pozostało około {max(1, (remaining + 59) // 60)} minut."
+                    )
+                else:
+                    await self.send(
+                        "To zadanie jest powtarzalne. Będzie ponownie dostępne "
+                        f"za {max(1, cooldown // 60)} minut."
+                    )
             if any(stat_reward_by_name.values()):
                 from player.character import Character
                 applied_text = ', '.join(

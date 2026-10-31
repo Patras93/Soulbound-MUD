@@ -6,6 +6,7 @@ working Soulbound server can stay online; all test databases are temporary.
 """
 from __future__ import annotations
 import argparse
+import signal
 from datetime import datetime
 import hashlib
 import json
@@ -114,6 +115,14 @@ def inspect_zip(zippath):
         ver=version_match.group(1) if version_match else None
         if ver != m.group(1):
             raise ValueError(f'Numer wersji pliku gry {ver} nie zgadza sie z ZIP v{m.group(1)}')
+        # Both version markers must agree. Historically an RC archive could
+        # advertise v104 while leaving its actual game at v103.
+        root_version = mapping.get('version')
+        if root_version is None:
+            raise ValueError('Brak pliku VERSION w kandydacie.')
+        root_text = z.read(root_version[1]).decode('utf-8-sig').strip()
+        if root_text != ver:
+            raise ValueError(f'Plik VERSION ({root_text}) nie zgadza sie z kodem ({ver}).')
         invalid = z.testzip()
         if invalid:
             raise ValueError('Uszkodzony plik w ZIP: '+invalid)
@@ -159,41 +168,82 @@ def stage(zip_path, target, mapping):
                 shutil.copyfileobj(src,dst)
 
 
-def run_tests(stage_root, logpath):
-    env=os.environ.copy()
+def _terminate_test_tree(proc):
+    """Kill timed-out Windows tests and their children; Unix process group."""
+    if proc.poll() is not None:
+        return
+    if os.name == 'nt':
+        # The test may have created several local TCP children. Killing only
+        # the parent leaves them running and can disrupt later test attempts.
+        try:
+            subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'],
+                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL, timeout=15, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            print('OSTRZEZENIE: taskkill nie potwierdzil zamkniecia drzewa: '+str(exc), file=sys.stderr)
+    else:
+        try:
+            os.killpg(proc.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            # Group already ended; still verify the direct child below.
+            proc.poll()
+    if proc.poll() is None:
+        proc.kill()
+    try:
+        proc.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        raise TimeoutError('Nie mozna zakonczyc odizolowanego procesu PREDEPLOY.')
+
+
+def run_tests(stage_root, logpath, *, timeout_seconds=5400):
+    """Bounded PREDEPLOY. A child keeping stdout open cannot hang the parent.
+
+    Do not use stdout=PIPE or iterate until EOF: a background watchdog may
+    inherit that pipe and keep it open after the actual test has exited.
+    Redirect stdout straight to disk and wait on *the test PID* instead.
+    """
+    if not isinstance(timeout_seconds, int) or timeout_seconds < 1:
+        raise ValueError('Niepoprawny limit czasu PREDEPLOY.')
+    env = os.environ.copy()
     for key in list(env):
         if key.upper().startswith(('SOULBOUND_', 'RAILWAY_')) or key.upper() in ('DATABASE_URL', 'PYTHONPATH'):
             env.pop(key, None)
-    env.update(PYTHONUTF8='1',PYTHONIOENCODING='utf-8',PYTHONUNBUFFERED='1',
+    env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1',
                PYTHONDONTWRITEBYTECODE='1')
-    # Test a read-only *snapshot* of current player SQLite. The candidate
-    # opens the real source only using sqlite3 mode=ro and writes to tmp.
     live = Path(os.environ.get('SOULBOUND_DB') or str(ROOT / 'soulbound.db'))
     if not live.is_absolute():
         live = ROOT / live
     env['SOULBOUND_ULTRA_SOURCE_DB'] = str(live.resolve())
-    flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) if os.name=='nt' else 0
-    proc = subprocess.Popen([sys.executable, '-u', str(stage_root/'testuj_soulbound_windows.py')],
-                            cwd=stage_root, env=env, creationflags=flags,
-                            start_new_session=(os.name!='nt'), stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            encoding='utf-8',errors='replace',bufsize=1)
-    with logpath.open('a', encoding='utf-8',errors='replace') as out:
+    flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) if os.name == 'nt' else 0
+    with logpath.open('a', encoding='utf-8', errors='replace') as output:
+        output.write(f'\nTESTY WINDOWS: limit {timeout_seconds} sekund; izolowane logowanie do pliku.\n')
+        output.flush()
+        proc = subprocess.Popen([sys.executable, '-u', str(stage_root / 'testuj_soulbound_windows.py')],
+                                cwd=stage_root, env=env, creationflags=flags,
+                                start_new_session=(os.name != 'nt'),
+                                stdin=subprocess.DEVNULL, stdout=output,
+                                stderr=subprocess.STDOUT)
         try:
-            assert proc.stdout is not None
-            for line in proc.stdout:
-                print(line,end='',flush=True)
-                out.write(line)
-            return proc.wait()
+            code = proc.wait(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired as error:
+            _terminate_test_tree(proc)
+            output.write('\nTIMEOUT: Windows PREDEPLOY nie zakonczyl sie; FAIL.\n')
+            output.flush()
+            raise TimeoutError('Windows PREDEPLOY przekroczyl limit i zostal zakonczony.') from error
         except BaseException:
-            if proc.poll() is None:
-                if os.name=='nt':
-                    subprocess.run(['taskkill','/PID',str(proc.pid),'/T','/F'],
-                                   stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-                else:
-                    proc.kill()
-                proc.wait()
+            _terminate_test_tree(proc)
             raise
+        # Isolated Unix process groups can have orphaned TCP children even
+        # after their test parent exited; clean only this private group.
+        if os.name != 'nt':
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                # No remaining group. The main process already has an exit code.
+                proc.poll()
+        output.write(f'\nTESTY WINDOWS: kod wyjscia {code}.\n')
+        output.flush()
+        return code
 
 
 def main(argv=None):

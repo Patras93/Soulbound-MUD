@@ -15,14 +15,20 @@ _original_npc_ids_v3103 = None  # Immutable baseline captured by main().
 
 def main():
     global _original_npc_ids_v3103
-    with tempfile.TemporaryDirectory(prefix="soulbound-full-audit-") as directory:
-        os.environ["SOULBOUND_DB"] = os.path.join(directory, "audit.db")
-        os.environ["SOULBOUND_FULL_AUDIT"] = "1"
-        os.environ["SOULBOUND_HOST"] = "127.0.0.1"  # Always private during audits.
-        os.environ.pop("SOULBOUND_HISTORICAL_AUDITS", None)
+    # Clean *all* inherited port/database/secret variables, including PORT and
+    # RAILWAY_TCP_APPLICATION_PORT which take precedence over SOULBOUND_PORT.
+    # Never open the production listener or use production player data from
+    # this directly executed historical audit.
+    from validation.v10400_fast_predeploy_isolation import isolated_predeploy_env
+    with tempfile.TemporaryDirectory(prefix="sb104_tcp_lab_") as directory:
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
-            os.environ["SOULBOUND_PORT"] = str(probe.getsockname()[1])
+            _private_port = probe.getsockname()[1]
+        _safe = isolated_predeploy_env(dict(os.environ), directory, _private_port)
+        os.environ.clear()
+        os.environ.update(_safe)
+        os.environ["SOULBOUND_FULL_AUDIT"] = "1"
+        print(f"PELNY PREDEPLOY: izolowany 127.0.0.1:{_private_port}, baza TEMP", flush=True)
         # Skill catalogue's immutable release identity must be audited BEFORE
         # runtime bootstrap. Some historical server initializers and scenario
         # tests add temporary learned-skill context to the shared Bard catalog.
@@ -370,7 +376,16 @@ def main():
             # v1.13.37 cleanup baseline: the historical full-game audit is
             # clean again, so new findings are deploy blockers rather than a
             # permanently ignored advisory backlog.
-            nonblocking_legacy_audits = set()
+            # Legacy 800/80 caps are incompatible with the validated v104
+            # 5200-9800 skill expansion and Soul Tier 1000.  Historical
+            # audits are NOT rewritten: an exact, independently verified
+            # compatibility proof permits only their known findings.
+            from validation.v10400_legacy_audit_compat import accepted_legacy_reports
+            try:
+                nonblocking_legacy_audits = accepted_legacy_reports(ns)
+            except (AssertionError, KeyError, ValueError, TypeError) as exc:
+                print(f'BLOKADA ZGODNOSCI V104: {exc}', flush=True)
+                raise SystemExit(1) from exc
             for name, value in sorted(ns.items()):
                 if "AUDIT" not in str(name).upper() or not isinstance(value, dict):
                     continue
@@ -845,7 +860,27 @@ _command_quest_coverage_v2102()
 
 # v2.30.2: exhaustive registry and per-quest cross-account persistence tests.
 from validation.v2302_exhaustive_game_coverage import run_exhaustive as _v2302_exhaustive
-_v2302_exhaustive()
+# The coverage gate must never use an inherited production SQLite path.
+# Use its own disposable database under the approved system TEMP prefix.
+import os as _sb_cov_os_v104
+import tempfile as _sb_cov_tempfile_v104
+from pathlib import Path as _sb_cov_Path_v104
+with _sb_cov_tempfile_v104.TemporaryDirectory(prefix="soulbound-full-audit-") as _sb_cov_dir_v104:
+    _sb_cov_old_db_v104 = _sb_cov_os_v104.environ.get("SOULBOUND_DB")
+    _sb_cov_old_host_v104 = _sb_cov_os_v104.environ.get("SOULBOUND_HOST")
+    try:
+        _sb_cov_os_v104.environ["SOULBOUND_DB"] = str(_sb_cov_Path_v104(_sb_cov_dir_v104) / "coverage.sqlite")
+        _sb_cov_os_v104.environ["SOULBOUND_HOST"] = "127.0.0.1"
+        _v2302_exhaustive()
+    finally:
+        if _sb_cov_old_db_v104 is None:
+            _sb_cov_os_v104.environ.pop("SOULBOUND_DB", None)
+        else:
+            _sb_cov_os_v104.environ["SOULBOUND_DB"] = _sb_cov_old_db_v104
+        if _sb_cov_old_host_v104 is None:
+            _sb_cov_os_v104.environ.pop("SOULBOUND_HOST", None)
+        else:
+            _sb_cov_os_v104.environ["SOULBOUND_HOST"] = _sb_cov_old_host_v104
 
 # v2.31.0: do not synthesize quest progress. Replay real database-event methods
 # for every compatible quest and report other kinds as NOT TESTED.
@@ -1100,7 +1135,7 @@ print(f"V12.00.2 KRYPTY / WIEZE / LOCHY: {_v1202_dungeons()} checks PASS")
 
 # v12.00.2 HOTFIX: jewelry crafts and cutting gem XP, pliers and material tiers.
 from validation.v1203_all_professions_quests import run_regression as _v1203_professions
-print(f"V12.00.3 WSZYSTKIE 22 PROFESJE, NARZEDZIA I 2221 QUESTOW: {_v1203_professions()} checks PASS")
+print(f"V12.00.3 WSZYSTKIE 22 PROFESJE: HISTORYCZNE ID I NOWE QUESTY BEZ STRAT: {_v1203_professions()} checks PASS")
 from validation.v1204_news_channel import run_regression as _v1204_news
 print(f"V12.00.4 KANAL NEWS: {_v1204_news()} checks PASS")
 from validation.v1204_live_content import run_regression as _v1204_live
@@ -1938,3 +1973,64 @@ print(f"WORLD/CRYPT/TOWER PRESSURE v102.00.12: {_v1020012_world_pressure()} chec
 # v102.00.13: mandatory Deep Dungeon elevator-only route and new Multi Cap x2.
 from validation.v1020013_deep_elevator_cap import run as _deep_entry_gate_v1020013, check_cap as _multi_cap_gate_v1020013
 print(f"DEEP ELEVATOR + MULTI CAP x2 v102.00.13: {_deep_entry_gate_v1020013()+_multi_cap_gate_v1020013()} checks PASS", flush=True)
+
+
+# v103.00.0 Era Bez Granic — mandatory new-region, progression and safety gates.
+from validation.v10300_era_development import run as _era103_regions
+_era103_count, _era103_summary = _era103_regions()
+print(f"ERA 103 MAPY, QUESTY, RANGI: {_era103_count} checks PASS", flush=True)
+from validation.v10300_era_raids import run as _era103_raids
+_era103_count, _era103_summary = _era103_raids()
+print(f"ERA 103 RAJDY: {_era103_count} checks PASS", flush=True)
+from validation.v10300_era_soul_tiers import run as _era103_soul
+print(f"ERA 103 SOUL TIERS: {_era103_soul()} checks PASS", flush=True)
+from validation.v10300_era_quest_sqlite import run as _era103_sqlite
+_era103_count, _era103_quests = _era103_sqlite()
+print(f"ERA 103 SQLITE QUESTS: {_era103_count} checks PASS; {_era103_quests} quests", flush=True)
+from validation.v10300_era_admin import run as _era103_admin
+print(f"ERA 103 ADMIN READ: {_era103_admin()} checks PASS", flush=True)
+from validation.v10300_era_dungeon_admin import run as _era103_dungeon
+print(f"ERA 103 DEEP/KRYPTY/WIEZE + ADMIN DRAFT: {_era103_dungeon()} checks PASS", flush=True)
+
+# v103 ETAP 5: actual NPC offer list, numbered quest accept/turn-in,
+# independent story/class/raid/profession chains and Elor Tier 81+ NVDA guard.
+# All actions execute against a private temporary SQLite only.
+from validation.v10300_era_npc_dialogue_runtime import run as _era103_npc_real
+print(f"ERA 103 NPC/QUEST LIST/ACCEPT/ODDAJ: {_era103_npc_real()} checks PASS", flush=True)
+
+# v103 ETAP 4: real SQLite craft/reward/crypt and all boss phase events.
+# Runs only on isolated temporary SQLite, never on production data.
+from validation.v10300_era_crafting_runtime import run as _era103_craft_real
+print(f"ERA 103 REAL CRAFT: {_era103_craft_real()} checks PASS",flush=True)
+from validation.v10300_era_quest_rewards_runtime import run as _era103_rewards_real
+_era103_checks,_era103_quests=_era103_rewards_real()
+print(f"ERA 103 REAL QUEST REWARDS: {_era103_checks} checks PASS; {_era103_quests} quests",flush=True)
+from validation.v10300_era_crypt_unlock_runtime import run as _era103_crypt_real
+print(f"ERA 103 REAL CRYPT + SOUL UNLOCK: {_era103_crypt_real()} checks PASS",flush=True)
+from validation.v10300_era_raid_phases_runtime import run as _era103_phases_real
+print(f"ERA 103 REAL RAID PHASE AI: {_era103_phases_real()} checks PASS",flush=True)
+
+
+# v103 ETAP 6: private two-account SQLite raid credit, no double rewards.
+# NOTE: this verifies the per-recipient quest DB operation. Live party combat
+# over TCP is covered only by separate, still-pending server integration.
+from validation.v10300_era_raid_party_sqlite import run as _era103_party_sqlite
+print(f"ERA 103 RAID PARTY 2 KONTA SQLITE: {_era103_party_sqlite()} checks PASS", flush=True)
+
+# v103 ETAP 7: mandatory safety regression for real TCP test accounts.
+# The actual two-player TCP smoke is optional (separate private-server start).
+from validation.v10300_era_tcp_fixture_gate import run as _era103_tcp_fixture
+print(f"ERA 103 TCP POSTACIE TESTOWE: {_era103_tcp_fixture()} checks PASS", flush=True)
+
+# v103 ETAP 9: bounded admin raid listing and full three-stage raid diagnostics.
+# Real TCP across other regions remains an OPTIONAL separate test.
+from validation.v10300_era_raid_nvda_audit import run as _era103_raid_nvda
+print(f"ERA 103 RAJDY ADMIN/NVDA: {_era103_raid_nvda()} checks PASS",flush=True)
+
+# v103.00.0 final shipment gate: release identity, data protection, full Era integration.
+from validation.v10300_final_release import run as _v103_final_gate
+print(f"ERA BEZ GRANIC v103.00.0 FINAL: {_v103_final_gate()} checks PASS",flush=True)
+
+# v103: authored Era enemies must not become trillion-HP terrain variants.
+from validation.v10300_era_authored_hp import run as _v103_authored_hp
+print(f"ERA v103 AUTHORED HP: {_v103_authored_hp()} checks PASS", flush=True)

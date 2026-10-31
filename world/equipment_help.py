@@ -501,6 +501,12 @@ for _tier in range(21, SOUL_MAX_TIER + 1):
         "reward_silver": 2_000 + (_level - 200) * 120,
         "reward_gold": 10 + (_level - 200) // 10,
         "reward_mithril": 0, "reward_items": {},
+        # v104: realne nagrody dla 501–1000 przez istniejącą politykę
+        # Multi Cap i bank EXP; dawnych prób 1–500 NIE modyfikujemy.
+        **({"olc_reward_xp": 2_000_000 + (_tier-500)*40_000,
+            "olc_reward_class_xp": 1_500_000 + (_tier-500)*30_000,
+            "olc_reward_soul_xp": 2_000_000 + (_tier-500)*35_000,
+            "olc_reward_stat_xp": 1_000_000 + (_tier-500)*20_000} if _tier>=501 else {}),
     }, 'QUESTS', QUESTS, (_qid,))
 
 # v0.26.1/v0.38.8 — Soul Trial Balance Pass.
@@ -569,13 +575,13 @@ def configure_soul_trials_v0261():
     if q19:
         q19["description"] = (
             "Pokonaj Cesarza Upiorów na piętrze 180 Krypty, a następnie wróć do Kapłana Elora. "
-            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 80."
+            "To końcówka mistrzowskiej części 1-200, ale dalsze Próby trwają do Tieru 1000."
         )
     q20 = QUESTS.get(SOUL_TRIAL_QUEST_IDS.get(20), {})
     if q20:
         q20["description"] = (
             "Pokonaj Władcę Dwustu Pięter na kamieniu milowym piętra 200 Krypty i wróć do Kapłana Elora. "
-            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-80 prowadzą przez progresję 201-800."
+            "Tier 20 zamyka część 1-200; kolejne Próby Tierów 21-1000 prowadzą dalej przez Kryptę."
         )
 
 configure_soul_trials_v0261()

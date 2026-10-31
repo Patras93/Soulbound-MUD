@@ -630,6 +630,16 @@ class SessionQuestProgressMixin:
 
     def quest_ids_for_npc(self, npc_id, npc):
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
+            # v103 Era Bez Granic: równoległe szeregi fabularne, klasowe,
+            # profesyjne i rajdowe. Nie używaj starego v700 "jedna długa
+            # lista liniowa", bo blokuje rajd za questami cudzej klasy.
+            if npc.get('v10300_era_npc'):
+                from systems.era_npc_offers_v10300 import visible_era_quests
+                return visible_era_quests(
+                    npc.get('specialist_quests') or (), QUESTS,
+                    lambda qid: self.server.db.quest(self.account_id, qid),
+                    self.active_class_names(),
+                )
             # NVDA: a new mentor offers only the current unfinished stage, not
             # 120 long lines. "przyjmij 1" always selects this stage.
             if npc.get('v601_profession_master') or npc.get('v700_story_npc') or npc.get('v800_class_mentor') or npc.get('v1112_teacher_quests'):
@@ -702,5 +712,17 @@ class SessionQuestProgressMixin:
                     (qid for qid in result if qid in trial_ids),
                     key=lambda qid: int(QUESTS[qid].get("unlocks_soul_tier", 999)),
                 )
+                # v103: 420 nowych Prób nie może generować 420 linii NVDA.
+                # Historyczne Tiery 1–80 pozostają widoczne bez zmian.
+                # Po osiągnięciu Tieru 80 pokazuj tylko najbliższą Próbę,
+                # bez omijania starszych wymagań i bez zmiany zapisu postępu.
+                tier_now = max(1, int(getattr(self.character, 'soul_tier', 1) or 1))
+                if tier_now >= 80:
+                    next_tier = tier_now + 1
+                    trials = [qid for qid in trials if
+                              int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) == next_tier]
+                else:
+                    trials = [qid for qid in trials if
+                              int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) <= 80]
                 result = regular + trials
             return result
