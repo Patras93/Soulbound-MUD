@@ -36,7 +36,7 @@ EXTRA = (
 
 def candidate_status():
     version = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
-    if version != '104.00.0':
+    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3'):
         raise ValueError('Nieznany numer VERSION; przerwano kontrole RC.')
     return version
 
@@ -102,7 +102,7 @@ def run(full=False, output=None):
     lines = [f'SOULBOUND V104: RAPORT JEDNEJ PACZKI {datetime.now().isoformat(timespec="seconds")}',
              'STATUS WYDANIA: RC, NIE WDRAZAC',
              'Nie uruchomiono produkcyjnego serwera ani zapisu do prawdziwej bazy.',
-             'VERSION: 103.00.0; nie wolno zmieniac samej etykiety na 104.',
+             f'Weryfikowany VERSION: {candidate_status()}; nie wdrazaj bez Windows 60/60 PLUS.',
              'NIEPOTWIERDZONE: produkcyjna migracja BigNumber i Windows ULTIMATE 60/60 PLUS.', '']
     failed = 0
     with tempfile.TemporaryDirectory(prefix='sb104_one_archive_') as tmp:

@@ -1042,4 +1042,3 @@ HELP_TOPICS['zywiolaki'] = [
     'Przywołania Maga nie wymagają materiałów Nekromanty i nie wykorzystują jego Kamieni Duszy.',
 ]
 HELP_TOPIC_ALIASES.update({'elementale':'zywiolaki','elemental':'zywiolaki','zywiol':'zywiolaki'})
-

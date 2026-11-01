@@ -507,6 +507,35 @@ def refresh_help_truth_current_v11328():
 
 HELP_TRUTH_REFRESH_V11328 = refresh_help_truth_current_v11328()
 
+# v104.00.3: ostatnia warstwa help po historycznych i audytowych nadpisaniach.
+# v104.00.3 — aktualny help Duszy, po wszystkich starszych nadpisaniach.
+# Zachowaj krótkie, osobne komunikaty dla NVDA; stare historyczne tematy
+# pomocy kieruj do współczesnych zasad, bez podawania limitu Tier 40/80.
+_SOUL_HELP_CURRENT_V10403 = [
+    'Katalog Broni Duszy sięga Soul Tier 1000 z wymaganiami Soul Level do 10000. Domyślny limit Soul Level wynosi 800; administrator może go podnieść. Soul Level to nie poziom postaci.',
+    'Próby Soul Tier 2–1000 prowadzi Kapłan Elor w Świątyni Odrodzenia. Zobacz: quest list Kapłan Elor.',
+    'Po Tierze 80 Elor pokazuje dziesięć kolejnych Prób. Dalsze: quest list Elor 81, quest list Elor 501, quest list Elor 801. Każda strona ma 10 zadań.',
+    'Przyjmij <numer> i quest info <numer> dotyczą ostatniej pokazanej listy Elora. Po wykonaniu zadania oddaj quest u Elora i wpisz unlock.',
+    'Każdy Tier wymaga odpowiedniego Soul Levelu, ukończenia własnej Próby i odblokowania kolejno poprzednich Tierów. Przeglądanie stron niczego nie odblokowuje.',
+    'Administrator: admin live limity dusza sprawdza aktualny limit; admin live limity ustaw dusza 10000 POTWIERDZAM podnosi go. Nie zmienia to limitu Soul Tier.',
+    'dusza pokazuje krótki stan; dusza info wyświetla progi oraz najbliższe Próby wokół aktualnego Tieru, bez czytania tysiąca pozycji.',
+    'Krypta: prowadz krypta. Cel wysokich prób to boss odpowiedniego piętra Krypty; portal pokazuje zdobyte checkpointy.',
+]
+for _topic in ('dusza', 'soul200', 'soul_tier45_krypta200', 'proby_duszy'):
+    HELP_TOPICS[_topic] = list(_SOUL_HELP_CURRENT_V10403)
+HELP_TOPIC_ALIASES.update({
+    'soul': 'dusza', 'soul tier': 'dusza', 'soul level': 'dusza',
+    'proby duszy': 'proby_duszy', 'próby duszy': 'proby_duszy',
+    'proby broni duszy': 'proby_duszy', 'próby broni duszy': 'proby_duszy',
+})
+HELP_TOPICS['questy'] = list(HELP_TOPICS.get('questy', ())) + [
+    'Próby Broni Duszy T2–T1000: quest list Kapłan Elor; dalsza strona: quest list Elor 801. Numery z ostatniej listy: przyjmij <numer>, quest info <numer>.',
+]
+HELP_TOPICS['quest'] = list(HELP_TOPICS.get('quest', ())) + [
+    'Próby Broni Duszy u Elora: quest list Kapłan Elor, strona od Tieru 801: quest list Elor 801.',
+]
+
+
 
 def help_freshness_audit_v11328():
     errors = []

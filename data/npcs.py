@@ -187,11 +187,11 @@ NPCS = {
     "priest_elor": {
         "name": "Kapłan Elor", "room": "temple",
         "dialogue": (
-            "Świątynia prowadzi Próby Broni Duszy dla każdego odblokowania Soul Tieru 2-40. "
-            "Próby są rozdzielone na pasma: Początkująca T2-4, Poszukiwacza T5-7, "
-            "Weterana T8-12, Mistrzowska T13-20 oraz endgame T21-40. "
-            "Po osiągnięciu wymaganego Soul Levelu sprawdź quest list Kapłan Elor, "
-            "przyjmij właściwą Próbę i wykonaj jej cel. Po ukończeniu użyj unlock."
+            "Prowadzę Próby Broni Duszy od Soul Tieru 2 aż do Tieru 1000. "
+            "Po Tierze 80 pokazuję dziesięć kolejnych prób, aby NVDA czytał krótką listę. "
+            "Wpisz quest list Kapłan Elor. Aby przejrzeć dalsze progi, wpisz "
+            "quest list Elor 81, quest list Elor 501 lub quest list Elor 801. "
+            "Przyjmij próbę, wykonaj cel w Krypcie i oddaj ją u mnie; potem wpisz unlock."
         ),
         "quest": "temple_rats",
     },

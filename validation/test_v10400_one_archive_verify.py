@@ -47,7 +47,22 @@ class OneArchiveSafety(unittest.TestCase):
             self.assertEqual(rc,0)
             self.assertIn('TEST OK', output)
 
+    def test_release_identity_matches_runtime_and_changelog(self):
+        import re
+        root = Path(__file__).resolve().parents[1]
+        source = (root / 'core/bootstrap_economy_professions.py').read_text(encoding='utf-8')
+        match = re.search(r'^\s*VERSION\s*=\s*[\"\'](\d+\.\d+\.\d+)[\"\']', source, re.M)
+        self.assertIsNotNone(match)
+        runtime_version = match.group(1)
+        root_version = (root / 'VERSION').read_text(encoding='utf-8').strip()
+        changelog = (root / 'CHANGELOG_PL.txt').read_text(encoding='utf-8')
+        registry = (root / 'systems/content_registry.py').read_text(encoding='utf-8')
+        labels = re.findall(r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)', registry, re.M)
+        self.assertEqual(runtime_version, root_version)
+        self.assertTrue(changelog.startswith('Aktualna paczka: v' + runtime_version + '\n'))
+        self.assertTrue(labels and labels[-1] == runtime_version)
+
     def test_expected_release_label_is_still_blocked(self):
-        self.assertEqual(candidate_status(), '104.00.0')
+        self.assertEqual(candidate_status(), '104.00.3')
 
 if __name__=='__main__': unittest.main()

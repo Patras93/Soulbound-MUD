@@ -10,9 +10,9 @@ from pathlib import Path
 EXPECTED = {'HELP_TOPICS': 'f3a849fa4acd34c131f9ef5fe7e7c5c229accbcd3b94c8b9f2f6050f471b3b70',
  'HELP_TOPIC_ALIASES': '9d8bba640c600b740f7d72ae3633752b2068b2c454e724012446adfd0a50e066',
  'MOB_DESCRIPTIONS': '5350de94ecfdee76cf92107c45929caa7299c3a789e1584cd009c061b45c4483',
- 'NPC_DESCRIPTIONS': '0dc7c760a65d4987396e7fc677bd3e93cd8c987da5be7b1d12621f6364a9c24d',
+ 'NPC_DESCRIPTIONS': '298e36a628f90b4649b8b1941b0bc4ef800faa7964a0e949ef3c0fa03300877a',
  'STAT_DESCRIPTIONS': '7bdb95931b321fa88904eee0514c68ae3463f79ddb4433218968404fe4a8fe9d',
- 'SYSTEM_DESCRIPTIONS': '9a1d8c88a213811ce9503dbd264d99a79556eee2e6b33987b3d082bea613f566'}
+ 'SYSTEM_DESCRIPTIONS': '9c92e2d7f3fd3ead40efa15b6b1425266cfc5d726f8b0cba9b657a22fa178f60'}
 EXPECTED_COUNTS = {'HELP_TOPICS': 118,
  'HELP_TOPIC_ALIASES': 202,
  'MOB_DESCRIPTIONS': 34,
@@ -45,6 +45,18 @@ def run_regression():
         assert name in server.__dict__ and isinstance(server.__dict__[name],dict),name
         assert set(a).issubset(server.__dict__[name]) or name in ('HELP_TOPICS','HELP_TOPIC_ALIASES'),name
         counts+=7
+    # v104.00.3 — katalog jest nadal kompletny, a jedynymi świadomymi
+    # zmianami opisu NPC/systemu są teksty dotyczące Broni Duszy i Elora.
+    # Weryfikuj wszystkie NIEZMIENIONE wpisy względem historycznego v4.00.5,
+    # aby aktualizacja dawnego hasha nie ukryła przypadkowej utraty treści.
+    npcs=descriptions.make_npc_descriptions_v405()
+    sys_descriptions=descriptions.make_system_descriptions_v405()
+    assert _hash({k:v for k,v in npcs.items() if k!='priest_elor'}) == '6ccf86c65ac7d30bd860d0fea30d65a275fd817747193506f0066e1a5da13e79'
+    soul_keys=('bron duszy','broń duszy','proby duszy','próby duszy','soul weapon','soul trials')
+    assert _hash({k:v for k,v in sys_descriptions.items() if k not in soul_keys}) == '425873beda1c450d9196fd39af58a844635dfa62c2bb05411a80cf5b564f3099'
+    assert '2–1000' in npcs['priest_elor'] and 'quest list Elor 81' in npcs['priest_elor']
+    assert '1000' in sys_descriptions['broń duszy'] and 'Elora' in sys_descriptions['próby duszy']
+    counts+=4
     assert len(server.CLASS_SKILLS)==(22 if int(VERSION.split('.',1)[0]) >= 9 else 14)
     counts+=1
     assert (len(server.QUESTS) >= 6745 if int(VERSION.split('.',1)[0]) >= 23 else len(server.QUESTS) == (expected_quest_total_v1100() if int(VERSION.split('.',1)[0]) >= 11 else 6585 if int(VERSION.split('.',1)[0]) == 10 else 6573 if int(VERSION.split('.',1)[0]) == 9 else 5605 if int(VERSION.split('.',1)[0]) == 8 else 3925 if int(VERSION.split('.',1)[0]) == 7 else 3861 if VERSION == '6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))

@@ -1,4 +1,86 @@
-Aktualna paczka: v104.00.0
+Aktualna paczka: v104.00.3
+
+KOREKTA PREDEPLOY KATALOGOW OPISOW - 01.11.2026
+- Zaktualizowano historyczna kontrole v4.00.5 katalogow NPC_DESCRIPTIONS
+  i SYSTEM_DESCRIPTIONS dla nowych, celowo poprawionych opisow Elora
+  i Broni Duszy do Tieru 1000.
+- Kontrola nadal sprawdza liczebnosc obu katalogow, pelne hashe oraz
+  niezmiennosc wszystkich pozostalych historycznych wpisow.
+- Bez zmian w mechanice gry, zadaniach, dzwiekach, zapisach i bazach postaci.
+- Wymagany nowy Windows PREDEPLOY 60/60 PLUS PASS przed wdrozeniem.
+
+NAPRAWA PRÓB BRONI DUSZY I POMOCY NVDA (01.11.2026)
+- Kapłan Elor po Tierze 80 pokazuje w quest list dziesięć kolejnych Prób
+  zamiast tylko jednej; wszystkie próby po poziomie Duszy 800 pozostają
+  dostępne do przeglądania bez czytania tysiąca komunikatów.
+- Nowe strony: quest list Elor 81, quest list Elor 501, quest list Elor 801.
+  Po każdej stronie przyjmij NUMER i quest info NUMER korzystają z poprawnych ID.
+  Stronicowanie działa tylko obok Elora w Świątyni Odrodzenia.
+- Naprawiono dialog Kapłana Elora, opis NPC i tematy pomocy help dusza,
+  help próby duszy, help questy oraz historyczne aliasy Soul.
+- Rzeczywiste limity to Soul Tier 1000; progresję i progi odblokowania
+  pozostawiono bez zmian. Istniejące konta, postacie i SQLite bez zmian.
+- Wersja, /changes, changelog i testy wydania wskazują 104.00.3.
+- Wdrożyć wyłącznie po nowym PREDEPLOY Windows 60/60 PLUS PASS.
+
+ARCHIWUM ZMIAN v104.00.2
+Aktualna paczka: v104.00.2
+
+DOMKNIĘCIE ADMIN LIVE ERA 2.0 — ROTACJA INWAZJI I SOUL LEVEL (01.11.2026)
+- Zachowano historyczny tytuł „Era Bez Granic” w widocznym opisie wersji
+  /changes, wymagany przez sprawdzony test zgodności v103.
+  Nie zmieniono przy tym wersji v104.00.2 ani mechaniki gry.
+- Naprawa tożsamości wydania: ZIP, core VERSION, /changes i polski changelog
+  jednoznacznie wskazują v104.00.2. Bez zmian w mechanice i bazie graczy.
+- Potwierdzono i udostępniono istniejącą wspólną rotację trzech frontów
+  inwazji co 6 godzin UTC (8 rzeczywistych zabójstw na front, finałowy boss).
+  Komenda admin live era v104 wydarzenia pokazuje prawdziwy stan SQLite,
+  pozostały czas i nazwę bossa; bez fikcyjnych informacji o braku rotacji.
+- Dodano edycję wymaganego EXP kolejnego Soul Level w pasmach 501–1000,
+  1001–5000 i 5001–10000. Bezpieczne mnożniki 25–400% bazowej krzywej,
+  standard 100%; DRAFT, sprawdzanie, atomowa publikacja, CAS i cofanie
+  w istniejącym systemie Admin Live. Zmiany obowiązują bez restartu.
+- Przykłady: admin live era v104 ustaw soul_xp_band
+  v10400_soul_501_1000 required_pct 120
+  admin live era v104 sprawdz
+  admin live era v104 aktywuj POTWIERDZAM
+  admin live era v104 wydarzenia
+- Zachowano historyczne Tiery 1–500, zasady odblokowania Tierów 501–1000,
+  umiejętności, rajdy, nagrody inwazji i wszystkie istniejące konta.
+- Produkcyjna wersja pozostaje 104.00.0 do czasu nowego PREDEPLOY
+  Windows 60/60 PLUS PASS i zatwierdzonego WDROZ_PO_PREDEPLOY.bat.
+
+ARCHIWUM POPRZEDNIEJ PACZKI v104.00.1
+
+ADMIN LIVE ERA 2.0 — RAJDY I PRÓBY SOUL TIER (01.11.2026)
+- Dodano edycję faz 42 bossów w rajdach 12–25 przez istniejące admin live era v104.
+  Parametry 4 faz: próg HP (p1_hp_percent ... p4_hp_percent), procent siły
+  ataku (p1_attack_pct ... p4_attack_pct: 118–300) oraz czas fazy
+  (p1_duration_seconds ... p4_duration_seconds: 1–120).
+- Dodano edycję wyłącznie prób Soul Tier 501–1000: needed (1–25),
+  reward_silver, reward_gold i reward_mithril. Progi Soul Level,
+  odblokowania i cele bossów pozostają chronione, bez zmian w postaciach.
+- Wspólny DRAFT/CAS, odrzucanie błędnych konfiguracji faz, atomowy zapis
+  ustawień do LIVE_CONTENT/era_v10400_overrides.json, cofanie oraz
+  odtwarzanie zmian po restarcie. Edycje wpływają na następne zdarzenia
+  silnika. Żadnych edycji danych graczy ani bezpośredniego SQL.
+- Przykładowe komendy z gry (tylko konto admin):
+  admin live era v104 ustaw raid_phase v10400_raid_12_boss_1 p1_hp_percent 75
+  admin live era v104 ustaw raid_phase v10400_raid_12_boss_1 p1_attack_pct 150
+  admin live era v104 ustaw soul_trial soul_tier_501_trial needed 2
+  admin live era v104 sprawdz
+  admin live era v104 aktywuj POTWIERDZAM
+  admin live era v104 cofnij POTWIERDZAM
+- Testy izolowane: 7/7 PASS; Soul Tier 501–1000: 30570 PASS;
+  rajdy 12–25: 2281 PASS; integracja v104: 778 PASS.
+- Zgodność z v104.00.0: zachowano starsze nadpisania LIVE_CONTENT,
+  całą fabułę, quest Miry, klasy, rajdy, bazy danych i mechanikę EXP.
+- Stan: KANDYDAT DO PREDEPLOY. Przed wdrożeniem wymagane nowe
+  Windows ULTIMATE 60/60 PLUS PASS dla dokładnie tej paczki.
+- Wspólna rotacja inwazji i bezpieczna edycja progów Soul Level
+  nie są częścią tego rozszerzenia; nie deklarujemy ich jako ukończonych.
+
+ARCHIWUM POPRZEDNIEGO WDROŻENIA v104.00.0 (31.10.2026)
 
 KOREKTA PELNEGO AUDYTU HP RAJDOW — 31.10.2026
 - Naprawiono test v10300_era_authored_hp: poprawnie akceptuje jednorazowe globalne

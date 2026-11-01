@@ -712,15 +712,15 @@ class SessionQuestProgressMixin:
                     (qid for qid in result if qid in trial_ids),
                     key=lambda qid: int(QUESTS[qid].get("unlocks_soul_tier", 999)),
                 )
-                # v103: 420 nowych Prób nie może generować 420 linii NVDA.
-                # Historyczne Tiery 1–80 pozostają widoczne bez zmian.
-                # Po osiągnięciu Tieru 80 pokazuj tylko najbliższą Próbę,
-                # bez omijania starszych wymagań i bez zmiany zapisu postępu.
+                # v104.00.3: po Tierze 80 lista pokazuje dziesięć kolejnych
+                # Prób (zamiast jednej), bez czytania 920 pozycji przez NVDA.
+                # quest list Elor NUMER umożliwia przegląd dowolnego zakresu.
+                # Nie zmieniamy przyjmowania questów ani zasad odblokowania Tierów.
                 tier_now = max(1, int(getattr(self.character, 'soul_tier', 1) or 1))
                 if tier_now >= 80:
-                    next_tier = tier_now + 1
+                    first = tier_now + 1
                     trials = [qid for qid in trials if
-                              int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) == next_tier]
+                              first <= int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) < first + 10]
                 else:
                     trials = [qid for qid in trials if
                               int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) <= 80]

@@ -43,7 +43,7 @@ def inspect():
             raise AssertionError('Nieznany format pliku w kontroli wydania: ' + name)
     version=(ROOT/'VERSION').read_text('utf-8').strip()
     # Never override actual production's VERSION during an experimental release.
-    if version != '104.00.0':
+    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3'):
         raise AssertionError('Nieoczekiwany VERSION; przegladaj status wydania!')
     return len(MUST_EXIST)
 

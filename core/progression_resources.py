@@ -415,9 +415,11 @@ def soul_xp_to_next(level):
     level = max(1, min(runtime_max, int(level)))
     if level >= runtime_max:
         return 0
-    return _late_game_axis_requirement(
+    authored = _late_game_axis_requirement(
         "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
     )
+    from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
+    return _v10402_soul_requirement(level, authored)
 
 def class_type_for_name(class_name):
     from core.classes_skills import CLASSES

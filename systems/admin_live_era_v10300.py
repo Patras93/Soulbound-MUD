@@ -141,7 +141,7 @@ async def handle(session, tail):
         rest=str(tail or '').strip().split(maxsplit=1)
         await session.send(command_v104(rest[1] if len(rest)>1 else '',{
             'rooms':ROOMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,'items':ITEMS,
-            'recipes':CRAFT_RECIPES}))
+            'recipes':CRAFT_RECIPES}, connection=session.server.db.conn))
         return True
     # Scoped DRAFT: only the five high-floor XP multipliers, never arbitrary code.
     if str(tail or '').strip().casefold().startswith('premie'):

@@ -148,8 +148,9 @@ class SessionQuestOffersMixin:
                     result[npc_id] = npc
             return result
 
-    async def show_npc_quest_offers(self, npc_id, npc, remember=True):
-            quest_ids = self.quest_ids_for_npc(npc_id, npc)
+    async def show_npc_quest_offers(self, npc_id, npc, remember=True, quest_ids_override=None):
+            quest_ids = (list(quest_ids_override) if quest_ids_override is not None
+                         else self.quest_ids_for_npc(npc_id, npc))
             if not quest_ids:
                 await self.send(f"{npc['name']} nie ma teraz żadnych questów.")
                 return []
@@ -166,6 +167,9 @@ class SessionQuestOffersMixin:
             for number, quest_id in enumerate(quest_ids, 1):
                 quest = QUESTS[quest_id]
                 state = self.quest_offer_state(quest_id)
+                if npc_id == 'priest_elor' and quest.get('unlocks_soul_tier'):
+                    state += (f". Próg: Soul Level {quest.get('required_soul_level', '?')}; "
+                              f"poprzedni Soul Tier {quest.get('required_soul_tier', '?')}")
                 reward_coins = v0190_quest_currency_reward(quest)
                 await self.send(
                     f"{number}. {quest['name']}. {state}. "
@@ -176,6 +180,13 @@ class SessionQuestOffersMixin:
                 "Nie trzeba wpisywać quest ani podawać nazwy zadania. "
                 "Szczegóły: quest info <numer>."
             )
+            if npc_id == 'priest_elor':
+                await self.send(
+                    'Próby Soul Tier 2–1000. Dalsze strony: quest list Elor 81, '
+                    'quest list Elor 501 lub quest list Elor 801. '
+                    'Każda strona pokazuje 10 Prób; numery przyjmij i quest info '
+                    'dotyczą ostatnio wyświetlonej listy.'
+                )
             return quest_ids
 
     async def show_quest_npc_list(self, npc_query=""):
@@ -187,6 +198,31 @@ class SessionQuestOffersMixin:
 
             query = str(npc_query or "").strip()
             normalized = self.normalize_description_query(query)
+            # Stronicowany katalog Prób Elora: działa wyłącznie w jego lokacji.
+            # Pojedyncza strona zawsze tworzy kontekst dla przyjmij / quest info.
+            page = re.fullmatch(
+                r'(?:kapłan\s+elor|kaplan\s+elor|elor|próby(?:\s+duszy)?|proby(?:\s+duszy)?)'
+                r'\s+(?:tier\s+)?(\d+)', query, flags=re.IGNORECASE,
+            )
+            if page:
+                if 'priest_elor' not in candidates:
+                    await self.send('Próby Broni Duszy są u Kapłana Elora w Świątyni Odrodzenia.')
+                    return
+                from core.progression_600 import SOUL_MAX_TIER, SOUL_TRIAL_QUEST_IDS
+                first = int(page.group(1))
+                if not 2 <= first <= SOUL_MAX_TIER:
+                    await self.send(f'Podaj Tier od 2 do {SOUL_MAX_TIER}, np. quest list Elor 801.')
+                    return
+                trial_ids = [SOUL_TRIAL_QUEST_IDS.get(tier)
+                             for tier in range(first, min(SOUL_MAX_TIER + 1, first + 10))]
+                trial_ids = [qid for qid in trial_ids if qid in QUESTS]
+                if not trial_ids:
+                    await self.send(f'Brak Prób dla Tierów od {first}.')
+                    return
+                await self.send(f'Próby Duszy — Tiery {first}–{first + len(trial_ids)-1}.')
+                await self.show_npc_quest_offers('priest_elor', candidates['priest_elor'],
+                                                 quest_ids_override=trial_ids)
+                return
             for prefix in ("u ", "od ", "npc "):
                 if normalized.startswith(prefix):
                     query = query.split(None, 1)[1].strip() if " " in query else ""

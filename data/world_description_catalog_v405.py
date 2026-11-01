@@ -63,8 +63,8 @@ def make_npc_descriptions_v405():
             "złoto, mithril i zwykłe przedmioty z inventory."
         ),
         "priest_elor": (
-            "Kapłan Świątyni Odrodzenia. Prowadzi wszystkie Próby Broni Duszy dla Tierów 2-40. "
-            "Pierwsze próby są początkujące, później przechodzą przez bossów regionalnych, Kryptę i endgame 201-400."
+            "Kapłan Świątyni Odrodzenia. Prowadzi Próby Broni Duszy dla Tierów 2–1000. "
+            "Po Tierze 80 pokazuje kolejne 10 prób. Dalsze strony: quest list Elor 81, 501 albo 801."
         ),
         "captain_arven": (
             "Dowódca miejskiej straży. Zleca zadania związane z bezpieczeństwem dróg, "
@@ -225,23 +225,23 @@ def make_system_descriptions_v405():
             "Receptury tworzą pierścienie i naszyjniki."
         ),
         "broń duszy": (
-            "Broń Duszy jest na stałe związana z klasą. Ma osobny Soul Level 1-400, Soul XP i 40 Tierów. "
+            "Broń Duszy jest na stałe związana z klasą. Ma Soul XP, katalog 1000 Tierów i progi Soul Level do 10000 (domyślny limit Soul Level to 800). "
             "Od v0.9.0 bazowa Moc startowa klas mieści się w zakresie 7-8, a dalsza przewaga wynika z Soul Levelu, Tieru i specjalizacji klasy. "
             "Łotrzyk otrzymuje z Broni Duszy mieszany bonus: umiarkowany unik oraz obrażenia fizyczne, żeby progres nie był marnowany na limicie 35 procent uniku. "
-            "Każdy awans Soul Tieru 2-40 wymaga jednorazowej Próby Broni Duszy u Kapłana Elora. "
+            "Każdy awans Soul Tieru 2–1000 wymaga jednorazowej Próby Broni Duszy u Kapłana Elora. "
             "Trudność rośnie pasmami: T2-4 Początkująca, T5-7 Poszukiwacza, T8-12 Weterana, T13-20 Mistrzowska, T21-40 endgame."
         ),
-        "bron duszy": "Broń Duszy ma Soul Level 1-400, 40 Tierów i zbalansowaną bazową Moc startową 7-8.",
-        "soul weapon": "Broń Duszy ma Soul Level 1-400, 40 Tierów i zbalansowaną bazową Moc startową 7-8.",
+        "bron duszy": "Broń Duszy ma 1000 Tierów, progi Soul Level do 10000 i domyślny limit Soul Level 800 (podnoszony przez Admin Live).",
+        "soul weapon": "Broń Duszy ma 1000 Tierów, progi Soul Level do 10000 i domyślny limit Soul Level 800 (podnoszony przez Admin Live).",
         "próby duszy": (
-            "Próby Broni Duszy odblokowują Tiery 2-40 u Kapłana Elora. "
+            "Próby Broni Duszy odblokowują Tiery 2–1000 u Kapłana Elora. "
             "Pasma trudności: T2-4 Początkująca, T5-7 Poszukiwacza, T8-12 Weterana, "
             "T13-20 Mistrzowska, T21-30 Endgame, T31-40 Ekstremalna. "
             "Pierwsze siedem Tierów nie wymagają bossów Krypty; od T8 pojawiają się bossowie regionalni, "
             "a ciężkie Próby Krypty zaczynają się od T13. Użyj dusza info, aby sprawdzić stan każdej Próby."
         ),
-        "proby duszy": "Próby Broni Duszy mają pasma trudności od początkujących T2-4 do ekstremalnych T31-40. Użyj dusza info.",
-        "soul trials": "Próby Broni Duszy mają pasma trudności od początkujących T2-4 do ekstremalnych T31-40. Użyj dusza info.",
+        "proby duszy": "Próby Broni Duszy: Tiery 2–1000 u Elora. Dalsze strony: quest list Elor 801. Użyj dusza info.",
+        "soul trials": "Próby Broni Duszy: Tiery 2–1000 u Elora. Dalsze strony: quest list Elor 801. Użyj dusza info.",
         "srebro": "Srebro jest najmniejszym nominałem wspólnej waluty. 100 srebra = 1 złoto.",
         "silver": "Srebro jest najmniejszym nominałem wspólnej waluty. 100 srebra = 1 złoto.",
         "złoto": "Złoto jest wyższym nominałem tego samego salda. 1 złoto = 100 srebra.",
