@@ -95,6 +95,10 @@ def select_source(conn, account, item, qty, *, allowed=STORAGE):
 
 def take(conn, account, item, qty, box):
     if box=='inventory':
+        from systems.equipment_evolution_v10500 import is_evolved
+        if is_evolved(conn, account, item):
+            raise ValueError('Ewoluowany przedmiot jest przypisany do postaci i nie może trafić na rynek.')
+    if box=='inventory':
         cur=conn.execute('UPDATE inventory SET quantity=quantity-? WHERE account_id=? AND item_id=? AND quantity>=?',
                          (qty,account,item,qty))
         conn.execute('DELETE FROM inventory WHERE account_id=? AND item_id=? AND quantity=0',(account,item))

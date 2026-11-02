@@ -1,118 +1,147 @@
-Aktualna paczka: v104.00.3
+Aktualna paczka: v105.00.0
 
-KOREKTA PREDEPLOY KATALOGOW OPISOW - 01.11.2026
-- Zaktualizowano historyczna kontrole v4.00.5 katalogow NPC_DESCRIPTIONS
-  i SYSTEM_DESCRIPTIONS dla nowych, celowo poprawionych opisow Elora
-  i Broni Duszy do Tieru 1000.
-- Kontrola nadal sprawdza liczebnosc obu katalogow, pelne hashe oraz
-  niezmiennosc wszystkich pozostalych historycznych wpisow.
-- Bez zmian w mechanice gry, zadaniach, dzwiekach, zapisach i bazach postaci.
-- Wymagany nowy Windows PREDEPLOY 60/60 PLUS PASS przed wdrozeniem.
+POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 18:56 (FIX7):
+- Przywrocono wymagany pierwszy wiersz changelogu. Bramka kontrolna
+  v9604_release_tcp porownuje ten wiersz doslownie z VERSION.
+- Zmiana dotyczy tylko CHANGELOG_PL.txt; kod serwera i testow niezmieniony.
+- FIX6: Windows 58/60 etapow PASS; 2 audyty zatrzymaly sie na naglowku.
+- Przed wdrozeniem wymagany nowy Windows PREDEPLOY: 60/60 PLUS i 3/3 v105 PASS.
 
-NAPRAWA PRÓB BRONI DUSZY I POMOCY NVDA (01.11.2026)
-- Kapłan Elor po Tierze 80 pokazuje w quest list dziesięć kolejnych Prób
-  zamiast tylko jednej; wszystkie próby po poziomie Duszy 800 pozostają
-  dostępne do przeglądania bez czytania tysiąca komunikatów.
-- Nowe strony: quest list Elor 81, quest list Elor 501, quest list Elor 801.
-  Po każdej stronie przyjmij NUMER i quest info NUMER korzystają z poprawnych ID.
-  Stronicowanie działa tylko obok Elora w Świątyni Odrodzenia.
-- Naprawiono dialog Kapłana Elora, opis NPC i tematy pomocy help dusza,
-  help próby duszy, help questy oraz historyczne aliasy Soul.
-- Rzeczywiste limity to Soul Tier 1000; progresję i progi odblokowania
-  pozostawiono bez zmian. Istniejące konta, postacie i SQLite bez zmian.
-- Wersja, /changes, changelog i testy wydania wskazują 104.00.3.
-- Wdrożyć wyłącznie po nowym PREDEPLOY Windows 60/60 PLUS PASS.
+POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 17:41 (FIX6):
+- FIX5: pelne 60/60 etapow PLUS i 2/3 dodatkowych bramek v105 PASS.
+- W trzeciej bramce 5 klientow TCP zalogowalo sie; dwie walki z bossami
+  byly poprawne. Po pierwszej nagrodzie test dostal tylko naglowek strony 2
+  kolejnej listy 16 questow i omylkowo zakonczyl odczyt jako pelna liste.
+- Naprawiono wylacznie klienta TESTOWEGO: zbiera surowe bajty TCP do
+  koncowego znacznika listy, wymaga wlasciwego NPC, strony 2 i prawdziwej
+  numerowanej pozycji. Limit 65 s, brak pozycji lub przerwane dane to FAIL.
+- Test jednostkowy fragmentow TCP i negatywny brak questa: 2/2 PASS.
+- Lokalna rzeczywista bramka 5 klientow TCP z 2 bossami, questami i
+  faktycznym odbiorem nagrod SQLite: 37/37 PASS (testowe HP bossow=1,
+  wiec nie jest to pomiar normalnego balansu gry).
+- Bez zmian w rozgrywce, bossach, questach, graczach i danych produkcyjnych.
+- Nadal wymagany nowy Windows PREDEPLOY: 60/60 PLUS i 3/3 bramek PASS.
 
-ARCHIWUM ZMIAN v104.00.2
-Aktualna paczka: v104.00.2
+Soulbound MUD — Era Wiecznych Krain (kontynuacja Era Bez Granic)
+STATUS: JEDNA KOMPLETNA PACZKA KANDYDATA DO PREDEPLOY — NIE WDRAŻAĆ BEZ 60/60 PLUS I BRAMEK V105.
+Data: 02.11.2026
 
-DOMKNIĘCIE ADMIN LIVE ERA 2.0 — ROTACJA INWAZJI I SOUL LEVEL (01.11.2026)
-- Zachowano historyczny tytuł „Era Bez Granic” w widocznym opisie wersji
-  /changes, wymagany przez sprawdzony test zgodności v103.
-  Nie zmieniono przy tym wersji v104.00.2 ani mechaniki gry.
-- Naprawa tożsamości wydania: ZIP, core VERSION, /changes i polski changelog
-  jednoznacznie wskazują v104.00.2. Bez zmian w mechanice i bazie graczy.
-- Potwierdzono i udostępniono istniejącą wspólną rotację trzech frontów
-  inwazji co 6 godzin UTC (8 rzeczywistych zabójstw na front, finałowy boss).
-  Komenda admin live era v104 wydarzenia pokazuje prawdziwy stan SQLite,
-  pozostały czas i nazwę bossa; bez fikcyjnych informacji o braku rotacji.
-- Dodano edycję wymaganego EXP kolejnego Soul Level w pasmach 501–1000,
-  1001–5000 i 5001–10000. Bezpieczne mnożniki 25–400% bazowej krzywej,
-  standard 100%; DRAFT, sprawdzanie, atomowa publikacja, CAS i cofanie
-  w istniejącym systemie Admin Live. Zmiany obowiązują bez restartu.
-- Przykłady: admin live era v104 ustaw soul_xp_band
-  v10400_soul_501_1000 required_pct 120
-  admin live era v104 sprawdz
-  admin live era v104 aktywuj POTWIERDZAM
-  admin live era v104 wydarzenia
-- Zachowano historyczne Tiery 1–500, zasady odblokowania Tierów 501–1000,
-  umiejętności, rajdy, nagrody inwazji i wszystkie istniejące konta.
-- Produkcyjna wersja pozostaje 104.00.0 do czasu nowego PREDEPLOY
-  Windows 60/60 PLUS PASS i zatwierdzonego WDROZ_PO_PREDEPLOY.bat.
+POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 16:47 (FIX5):
+- FIX4 ukonczyl wszystkie 60/60 bazowych etapow PLUS oraz 2 z 3 bramek v105.
+- Trzecia bramka (bossowie, 5 klientow TCP, questy i nagrody) nie ruszyla:
+  ModuleNotFoundError: No module named 'validation' podczas startu skryptu.
+- Naprawiono sciezke importu pakietu validation przy bezposrednim uruchomieniu
+  pliku validation/v10500_tcp_boss_rewards.py przez testuj_soulbound_windows.py.
+- Lokalny test pelnej bramki na prywatnym serwerze TCP: 37 kontroli PASS,
+  5 klientow, 2 przyjete questy, 2 walki i 2 zapisane odbiory nagrod SQLite.
+  Uzyto testowego HP=1 po skalowaniu bossow; nie jest to test balansu walki.
+- Poniewaz test startuje swiat trzy razy, limit samej bramki przedluzono
+  z 360 do 900 sekund. Jest nadal TWARDY: zawieszenie lub blad konczy FAIL.
+- Zmiany dotycza TYLKO bramki testowej TCP i jej limitu czasu, nie mechaniki
+  walki, obslugi questow, nagrod, bazy produkcyjnej ani interfejsu NVDA.
+- Do zatwierdzenia do wdrozenia nadal potrzebny pelny test Windows
+  60/60 PLUS i 3/3 bramek v105 PASS.
 
-ARCHIWUM POPRZEDNIEJ PACZKI v104.00.1
+POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 16:01 (FIX4):
+- Ostatni FIX3: 58/60 PASS, szybki i pelny PREDEPLOY FAIL w tej samej
+  historycznej regresji v103: test nieslusznie wymagal Proby dla Tieru 81.
+- Poprawiono wylacznie regresje integracyjna: Tier 81 wymaga Soul Level 810,
+  ale NIE Proby; Tier 90 wymaga Soul Level 900 I ukonczonej Proby u Elora.
+- Test sprawdza realne zapisy SQLite, zabicie bossa Krypty 900,
+  blokade przed Proba, bank Soul XP, komunikaty NVDA i broadcast.
+- SQLite jest zamykane w finally przed sprzataniem katalogu TEMP Windows,
+  rowniez gdy kontrola nie przejdzie.
+- NIE zmieniano gameplay, oryginalnych questow ani produkcyjnych danych.
+- Kandydat nadal wymaga nowego 60/60 PLUS i wszystkich 3 bramek v105
+  na Windows i na KOPII prawdziwej bazy przed wdrozeniem.
 
-ADMIN LIVE ERA 2.0 — RAJDY I PRÓBY SOUL TIER (01.11.2026)
-- Dodano edycję faz 42 bossów w rajdach 12–25 przez istniejące admin live era v104.
-  Parametry 4 faz: próg HP (p1_hp_percent ... p4_hp_percent), procent siły
-  ataku (p1_attack_pct ... p4_attack_pct: 118–300) oraz czas fazy
-  (p1_duration_seconds ... p4_duration_seconds: 1–120).
-- Dodano edycję wyłącznie prób Soul Tier 501–1000: needed (1–25),
-  reward_silver, reward_gold i reward_mithril. Progi Soul Level,
-  odblokowania i cele bossów pozostają chronione, bez zmian w postaciach.
-- Wspólny DRAFT/CAS, odrzucanie błędnych konfiguracji faz, atomowy zapis
-  ustawień do LIVE_CONTENT/era_v10400_overrides.json, cofanie oraz
-  odtwarzanie zmian po restarcie. Edycje wpływają na następne zdarzenia
-  silnika. Żadnych edycji danych graczy ani bezpośredniego SQL.
-- Przykładowe komendy z gry (tylko konto admin):
-  admin live era v104 ustaw raid_phase v10400_raid_12_boss_1 p1_hp_percent 75
-  admin live era v104 ustaw raid_phase v10400_raid_12_boss_1 p1_attack_pct 150
-  admin live era v104 ustaw soul_trial soul_tier_501_trial needed 2
-  admin live era v104 sprawdz
-  admin live era v104 aktywuj POTWIERDZAM
-  admin live era v104 cofnij POTWIERDZAM
-- Testy izolowane: 7/7 PASS; Soul Tier 501–1000: 30570 PASS;
-  rajdy 12–25: 2281 PASS; integracja v104: 778 PASS.
-- Zgodność z v104.00.0: zachowano starsze nadpisania LIVE_CONTENT,
-  całą fabułę, quest Miry, klasy, rajdy, bazy danych i mechanikę EXP.
-- Stan: KANDYDAT DO PREDEPLOY. Przed wdrożeniem wymagane nowe
-  Windows ULTIMATE 60/60 PLUS PASS dla dokładnie tej paczki.
-- Wspólna rotacja inwazji i bezpieczna edycja progów Soul Level
-  nie są częścią tego rozszerzenia; nie deklarujemy ich jako ukończonych.
+POPRAWKA PO TRZECIM WINDOWS PREDEPLOY (LOG 2026-11-02 15:03):
+- W poprzednim archiwum 58/60 etapow PASS. PELNY AUDYT, migracja SQLite i TCP PASS.
+- SZYBKI PREDEPLOY nieslusznie odrzucal nowy, poprawny zapis kontroli
+  accepted_legacy_reports(ns, version=server.VERSION) jako zmiane bezpieczenstwa.
+- Weryfikator wymaga teraz wlasnie jawnego parametru VERSION oraz zachowania
+  sprawdzania kazdego nieznanego bledu (fail closed), bez zadnego pomijania.
+- Historyczny test v104 respektuje oba odrebne kontrakty wersji.
+- Dodano test AST rzeczywistego wywolania i zrodla szybkiej bramki.
+- Dalszy FAST PREDEPLOY znalazl stary test banku EXP Duszy, ktory ustawial
+  Soul Level 10, mimo ze w v105 pierwszy prog Tieru 2 jest na Soul Level 20.
+  Test sprawdza teraz prawdziwy prog aktualnej wersji; saldo Soul XP jest
+  zachowane po odblokowaniu Tieru. Dodano test dla T1, T9, T10, T1000 i T2999.
+- Ponowny WINDOWS PREDEPLOY 60/60 PLUS + 3 bramki v105 nadal OBOWIAZKOWY.
 
-ARCHIWUM POPRZEDNIEGO WDROŻENIA v104.00.0 (31.10.2026)
+POPRAWKI PO DRUGIM WINDOWS PREDEPLOY (LOG 2026-11-02 14:25):
+- Wynik poprzedniego ZIP: 58/60 PASS, dwa etapy FAIL. Produkcji nie zmieniono.
+- Profesje: historyczne 2375 questów v103 + 140 v104 + dokładnie 300 nowych v105;
+  nowy kontrakt sprawdza identyfikatory 20 regionów, brak usuniętych questów i fabułę.
+- Ekonomia: audyt sprzedaży działa na prawdziwej schemie SQLite w pamięci.
+  Nie wyłączono blokady sprzedaży ewoluowanego wyposażenia; audyt ją testuje.
+- 22 zestawy klasowe v105: uzupełniono brakującą drugą statystykę ofensywną
+  w każdym z 88 elementów; zachowano Konstytucję, runy i pozostałe premie.
+- Zgodność starych audytów z dynamicznymi Próbami Astralnymi v105:
+  dokładnie 67 prawidłowych celów bossów z Wieży, z wymaganymi poziomami.
+  Losowe lub nieistniejące identyfikatory nadal blokują wydanie.
+- Dodano testy negatywne kontraktu profesji, poziomu bossów oraz EQ.
+- Obowiązuje NOWY pełny Windows PREDEPLOY 60/60 PLUS i 3 bramki v105,
+  z migracją prawdziwej bazy na KOPII. Nie wdrażać przed pełnym PASS.
 
-KOREKTA PELNEGO AUDYTU HP RAJDOW — 31.10.2026
-- Naprawiono test v10300_era_authored_hp: poprawnie akceptuje jednorazowe globalne
-  wzmocnienie HP bossow, bez tolerowania wielokrotnego skalowania do bilionow.
-- Weryfikowany jest bazowy HP kazdego etapu rajdu z autorskiego wzoru.
-  Ochrona przed niekontrolowanym mnozeniem HP pozostaje aktywna.
-- Bez zmian w statystykach bossow, mechanice gry, danych kont i bazie SQLite.
-- Wynik wczesniejszej paczki Windows: 59/60 PASS; poprawiona paczka wymaga
-  osobnego PREDEPLOY 60/60 PLUS przed aktualizacja serwera.
+POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 13:55 (3 BLOKADY):
+- SZYBKI PREDEPLOY i PELNY AUDYT: odtworzenie historycznego kodu metody
+  SessionSkillLearningMixin.unlock respektuje teraz odrębny, dokładny fingerprint AST
+  v105 (Próba co 10 Tierów). Nie zmieniono ani nie usunięto fingerprintu v104.
+- Starożytne Królestwa: w Dworze Zarodnikowych Królów jest 18 celów Fame,
+  ponieważ 3 nowe elitarne cele doszły do 15 historycznych. Test zachowuje
+  wymóg WSZYSTKICH 15 historycznych celów oraz sprawdza autentyczność dodatków.
+- Dodano regresję źródeł dla obu typów PREDEPLOY; nie zmieniano gry, baz ani
+  rozgrywki. Poprzednia paczka z logu 13:55 ma wynik FAIL i nie wolno jej wdrożyć.
+- Lokalnie: 964 kontroli modułów v4.20 PASS, 25 kontroli auto-skill PASS,
+  539 kontroli Starożytnych Królestw PASS, 2 nowe testy PASS,
+  541 testów v104 PASS, 43 testy v105 PASS, integralność v104 778 PASS.
+- NOWY ZIP wymaga od początku ponownego pełnego WINDOWS PREDEPLOY 60/60 PLUS
+  i wszystkich 3 bramek v105 na kopii prawdziwej bazy; nie jest jeszcze wdrożony.
 
-WERYFIKACJA WSTECZNEJ ZGODNOSCI — 31.10.2026
-- Era Bez Granic v103: zachowane 11 regionow, 352 zadania, rajdy, NPC i kompletna fabula.
-- Testy v29 i v39: dostosowane do atomowych bramek EXP postaci, duszy i statystyk w v104, bez zmiany silnika rozliczen.
-- Test limitow v52: EXP otrzymany ponad nowo obnizony limit zostaje zachowany.
-- Test lupow v56: kontrola zbiorczego COMMIT wszystkich przedmiotow przed powiadomieniami i Boss Codex.
-- Kontrola v102.00.9: polska komenda admin komendy wolne sprawdzana w runtime zamiast usunietego README.
-- Testy Ery v103: receptury korzystaja z prawdziwego wspolnego katalogu, Soul Tier 500 nie konczy progresji.
-- Ochrona SQLite: test wycofania wszystkich instrukcji po bledzie w wieloinstrukcyjnym skrypcie.
-- Wymagany Windows PREDEPLOY 60/60 PLUS na TEJ paczce przed wdrozeniem.
 
-KOREKTA KONTROLI INTEGRALNOSCI v4.00.7 — 31.10.2026
-- Zsynchronizowano zapisany hash AST funkcji build_forest_wolves_and_quest_balance z obecnym, sprawdzonym kodem (quest Miry: 12 wilkow).
-- Nie zmieniono logiki gry ani baz danych.
-- Test v4.00.7: 33 PASS; test v4.00.2: 87 PASS; quest Miry: 3 PASS.
-- Pelny Windows PREDEPLOY 60/60 PLUS wymaga ponownego wykonania na tej dokladnej paczce.
+ZAWARTOŚĆ V105:
+- 20 nowych krain poziomów 10001–30000 (280 pokojów, 60 NPC, 160 zwykłych potworów, 40 bossów).
+- 1000 questów regionalnych: 400 fabularnych, 300 profesyjnych, 200 polowań, 100 eksploracyjnych.
+- Pełne listy ofert u nowych NPC, po maksymalnie 10 pozycji na stronę; poprawne "przyjmij N" i "quest info N".
+- Soul Tier do 3000. Od początku obowiązkowa Próba TYLKO na Tierach podzielnych przez 10.
+- 200 nowych Prób T1010–T3000 w Krypcie, Wieży i regionach. Elor wyświetla właściwe strony.
+- "unlock max" zatrzymuje się przed obowiązkową Próbą; historyczne ukończenia questów pozostają w bazie.
+- Broń Duszy: nowe formy co 100 Tierów, 6 żywiołów, aktywny Impuls i Osłona, trwałe cooldowny per postać.
+- 12 nowych setów regionalnych i 22 klasowe; 136 elementów oraz receptury.
+- Ewolucja posiadanego EQ u Haldora (10 etapów), materiały regionalne, zachowanie run i przekuć.
+- Ochrona ewoluowanego EQ przy handlu, skrzyniach, aukcjach, poczcie i rzemiośle; atomowy SQLite.
+- Admin Live v105: edycja zawartości i parametrów Duszy/EQ przez istniejący system DRAFT/CAS/cofnij.
+- Polskie helpy i krótkie komunikaty NVDA.
 
-Soulbound MUD v104.00.0 — poprawka kontroli PREDEPLOY (31.10.2026)
+NAPRAWY W TEJ PACZCE ZBIORCZEJ:
+- Poprawiono techniczny poziom nowych mobów i bossów podczas spawn i respawn, bez zmian starego świata.
+- Przywrócono oryginalne HP/obrażenia 160 zwykłych mobów v105: stary 800-cap spłaszczał je do jednej wartości.
+- Potwierdzono rzeczywiste ataki TCP i postęp dwóch bossowych questów z pierwszej/ostatniej krainy.
+- Test nagród bossów używa wyłącznie odizolowanych postaci, lokalnego TCP i skróconego HP w LAB;
+  nie jest testem normalnego czasu walki, wydajności ani pełnego balansu 30 000.
+- Dodatkowe, obowiązkowe bramki v105 po historycznych 60 etapach PREDEPLOY:
+  (1) katalogi/questy/numeryczny balans, (2) migracja prawdziwej bazy tylko na kopii,
+  (3) rzeczywisty TCP 5 graczy: 2 bossy, zadania i nagrody po restarcie.
+- Każdy brak wyniku PASS w tych bramkach uniemożliwia dopuszczenie paczki do wdrożenia.
 
-1. Zaktualizowano odcisk AST funkcji build_forest_wolves_and_quest_balance
-   do aktualnego, sprawdzonego kodu uwzględniającego licznik questu Miry.
-2. Pełny audyt uruchamia test pokrycia v2302 z osobną bazą w katalogu
-   tymczasowym soulbound-full-audit- i przywraca zmienne środowiskowe.
-3. Nie wyłączono kontroli izolacji SQLite, kontroli AST ani bramki 60/60.
-4. Bez baz graczy i bez zmian w plikach produkcyjnych poza wskazanymi.
-5. Wynik lokalny nie jest równoznaczny z Windows 60/60 PLUS PASS.
+POTWIERDZONE TESTY LOKALNE (NIE ZASTĘPUJĄ WINDOWS PREDEPLOY):
+- Testy v105 unittest: 43/43 PASS. Testy v104: 541/541 PASS.
+- Pierwsza integralność v105: 8304 PASS; osiągalność 1000 questów: 6861 PASS.
+- SQLite 600 questów bojowych: 5402 PASS; audyt 40 bossów: 365 PASS.
+- Audyt 160 zwykłych mobów i 40 bossów: 1678 PASS (porównanie liczb, nie test czasu walki).
+- TCP pięciu klientów: dwa bossy, ukończenie questów, wypłata waluty i materiałów (SQLite): 37 PASS.
+  Skrócone HP TYLKO w odizolowanym teście; nie jest to pomiar normalnej trudności.
+- Test migracji na syntetycznej bazie ze starego kodu v104.00.3: PASS.
+- Przed wydaniem: obowiązkowe testy na KOPII prawdziwej bazy Windows oraz 60/60 PLUS.
+
+ISTOTNE OGRANICZENIA I BEZPIECZEŃSTWO:
+- Domyślne dawne limity nie są po cichu zmieniane: gdy administrator pozostawił limit
+  Soul Level 800, do dalszych Prób potrzebna jest jawna zmiana limitu w Admin Live.
+- Przygotowane krainy kończą się na poziomie 30000. Nie oznacza to dodania ręcznie
+  zaprojektowanych krain powyżej tego zakresu.
+- Pełny balans rzeczywistej walki na poziomach 10001–30000 wymaga testów graczy;
+  audyt liczb i skrócony test TCP nie dowodzą odpowiedniego czasu zabicia bossów.
+- Paczka nie zawiera baz produkcyjnych, kont ani zapisów graczy.
+- Produkcja pozostaje na ostatniej potwierdzonej v104.00.3 do osobnego potwierdzenia wdrożenia.
+- Nie uruchamiaj WDROZ_PO_PREDEPLOY.bat przed wynikiem PASS na dokładnie tym ZIP.

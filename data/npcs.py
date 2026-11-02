@@ -187,10 +187,10 @@ NPCS = {
     "priest_elor": {
         "name": "Kapłan Elor", "room": "temple",
         "dialogue": (
-            "Prowadzę Próby Broni Duszy od Soul Tieru 2 aż do Tieru 1000. "
-            "Po Tierze 80 pokazuję dziesięć kolejnych prób, aby NVDA czytał krótką listę. "
+            "Próby Broni Duszy są od T10 do T3000, zawsze co 10 Tierów. "
+            "Pokazuję najwyżej dziesięć kolejnych Prób, aby NVDA czytał krótką listę. "
             "Wpisz quest list Kapłan Elor. Aby przejrzeć dalsze progi, wpisz "
-            "quest list Elor 81, quest list Elor 501 lub quest list Elor 801. "
+            "quest list Elor 81, quest list Elor 1001 lub quest list Elor 2001. "
             "Przyjmij próbę, wykonaj cel w Krypcie i oddaj ją u mnie; potem wpisz unlock."
         ),
         "quest": "temple_rats",

@@ -63,6 +63,6 @@ class OneArchiveSafety(unittest.TestCase):
         self.assertTrue(labels and labels[-1] == runtime_version)
 
     def test_expected_release_label_is_still_blocked(self):
-        self.assertEqual(candidate_status(), '104.00.3')
+        self.assertEqual(candidate_status(), '105.00.0')
 
 if __name__=='__main__': unittest.main()

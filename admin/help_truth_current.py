@@ -537,6 +537,42 @@ HELP_TOPICS['quest'] = list(HELP_TOPICS.get('quest', ())) + [
 
 
 
+# v105: milestone requirements take precedence over historical help.
+_SOUL_HELP_V105 = [
+    'Soul Tier do 3000. Od Tieru 2 Soul Level = Tier razy 10. Tier 1 to start.',
+    'Obowiązkowa Próba Duszy jest WYŁĄCZNIE co 10 Tierów: 10, 20, 30, aż do 3000.',
+    'Kapłan Elor w Świątyni Odrodzenia: quest list Kapłan Elor; quest list Elor 1001.',
+    'Każda strona pokazuje najwyżej dziesięć kolejnych wymaganych Prób. Numeracja przyjmij i quest info dotyczy ostatniej listy.',
+    'T11–T19 nie wymagają osobnego questa. unlock odblokowuje jeden Tier; unlock max kilka Tierów do następnej Próby.',
+    'Domyślny limit Soul Level 800 można zwiększyć komendą admin live limity ustaw dusza 30000 POTWIERDZAM.',
+    'Nie zmieniaj limitów innych graczy bez kontroli ich obecnych ustawień. Historyczne Próby pozostają w bazie.',
+    'v105: od Soul Tier 1100 możesz wybrać żywioł komendą bronduszy zywiol piorun, potem bronduszy impuls.',
+]
+for _topic in ('dusza','soul200','soul_tier45_krypta200','proby_duszy'):
+    HELP_TOPICS[_topic]=list(_SOUL_HELP_V105)
+HELP_TOPICS['questy']=list(HELP_TOPICS.get('questy',()))+["v105 Próby co 10 Tierów: quest list Elor 1001; do T3000."]
+HELP_TOPICS['bronduszy'] = [
+    'Broń Duszy v105: wybór żywiołu od Soul Tier 1100; nie usuwa form reliktowych.',
+    'Dostępne: ogień, lód, piorun, mrok, światło, woda.',
+    'bronduszy status; bronduszy zywiol piorun; bronduszy impuls.',
+    'Żywioł daje niewielką premię do trafień Bronią Duszy, większą przy słabości celu.',
+    'Impuls wzmacnia następne trafienie Bronią Duszy; domyślny czas odnowienia 90 sekund. Admin Live może zmieniać ten parametr.',
+    'Od Tieru 1200: bronduszy oslona — domyślnie +15% Obrony i Obrony Magicznej na 30 sekund, odnowienie 180 s. Admin Live może zmieniać te wartości.',
+]
+HELP_TOPIC_ALIASES['bronzywiol'] = 'bronduszy'
+
+HELP_TOPICS['ewolucja'] = [
+    'v105: trwała ewolucja POSIADANEGO EQ, nie zastępuje starego ulepszania +1–+10 ani run.',
+    'Wpisz ewolucja lista, ewolucja lista 2 lub ewolucja <numer albo nazwa EQ>.',
+    'Ulepszenia wykonuje Haldor w Kuźni. Na etap potrzeba stopu i pieczęci z nowej krainy.',
+    'Do ewolucji trzeba posiadać dokładnie jedną kopię danego typu EQ. Maksymalnie 10 etapów.',
+    'Po założeniu przedmiotu każdy etap zwiększa Konstytucję i Obronę. Runy, przekucie i ID nie zmieniają się.',
+    'Ewolucja zapisywana jest trwale w SQLite. Jeśli brak materiałów, nie są pobierane częściowo.',
+    'Stan jest przypisany do konta i ID przedmiotu, tak jak istniejące ulepszenia EQ. Nie przenosi się przy handlu.',
+]
+HELP_TOPIC_ALIASES['evolveeq'] = 'ewolucja'
+
+
 def help_freshness_audit_v11328():
     errors = []
     slot_count = int(HELP_TRUTH_REFRESH_V11328["slot_count"])
@@ -646,3 +682,18 @@ HELP_FRESHNESS_AUDIT_V11328 = help_freshness_audit_v11328()
 HELP_FRESHNESS_RUNTIME_WARNING_V11330 = tuple(
     HELP_FRESHNESS_AUDIT_V11328.get("errors", ())
 )
+
+HELP_TOPICS['admin live era v105'] = [
+    'Administrator: admin live era v105 regiony; admin live era v105 region przesmyk.',
+    'Edytor: admin live era v105 podglad mob v10500_przesmyk_boss_1 max_hp.',
+    'Zapis: admin live era v105 ustaw mob v10500_przesmyk_boss_1 max_hp 500000000;',
+    'następnie sprawdz i aktywuj POTWIERDZAM. Wspólny DRAFT i cofanie z v104.',
+    'Broń Duszy: admin live era v105 ustaw soul_power v10500_bron_duszy shield_pct 20.',
+    'EQ: admin live era v105 ustaw eq_evolution v10500_ewolucja_eq stat_pct 120.',
+    'Dostępne także passive_pct, weakness_pct, impulse_pct, impulse_cooldown, shield_seconds, shield_cooldown i defense_pct.',
+]
+
+HELP_TOPICS['ewolucja'].extend([
+    'Ewoluowane EQ przypisane do postaci: nie sprzedasz, nie oddasz, nie wyślesz ani nie wystawisz na aukcję.',
+    'Aby zrezygnować z etapów i umożliwić handel: ewolucja wyzeruj <numer> POTWIERDZAM u Haldora. Bez zwrotu materiałów.',
+])

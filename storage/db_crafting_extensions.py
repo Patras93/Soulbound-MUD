@@ -142,6 +142,9 @@ class DatabaseCraftingExtensionsMixin:
         self.conn.commit()
 
     def transfer_equipment_crafting_v0925(self, from_account_id, to_account_id, item_id):
+        from systems.equipment_evolution_v10500 import is_evolved
+        if is_evolved(self.conn, from_account_id, item_id):
+            raise ValueError('Ewoluowany przedmiot jest przypisany do postaci; nie można przenieść ulepszeń.')
         bonus=self.equipment_socket_bonus_v03114(from_account_id,item_id)
         mark=self.tech_set_mark_v0320(from_account_id,item_id)
         hardening=self.equipment_hardening_v11342(from_account_id,item_id)

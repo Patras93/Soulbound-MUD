@@ -130,49 +130,69 @@ def run():
                 ck(not any('_story_' in q for q in offers), f'locked story leaked {slug}')
                 ck(len(offers)<=14, f'NVDA profession list too long {slug}')
 
-            # Elor shows a compact ten-trial page above historical Tier 80.
-            # Tiers 1–79 still retain their historical offer catalogue.
-            elor=NPCS['priest_elor']
-            session.character.room_id=elor['room']
-            # v104 rozszerza katalog Elora ponad historyczny Tier 500.
-            # Weryfikuj realny następny etap, nie dawny sztywny koniec 500.
-            for tier in (1, 79, 80, 81, 250, 499, 500, 10000):
-                session.character.soul_tier=tier
-                offered=session.quest_ids_for_npc('priest_elor', elor)
-                new_trials=[q for q in offered if
-                    QUESTS[q].get('unlocks_soul_tier', 0)>=81]
-                expected=[f'soul_tier_{n:02d}_trial'
-                          for n in range(tier+1, min(1001, tier+11))
-                          if f'soul_tier_{n:02d}_trial' in QUESTS]
-                if tier < 80 or not expected:
-                    ck(not new_trials, f'future soul trials leaked Tier {tier}')
-                else:
-                    ck(new_trials==expected,
-                        f'wrong Elor trial page Tier {tier}: {new_trials[:5]}')
-                ck(len(offered)<90, f'Elor overwhelming NVDA Tier {tier}: {len(offered)}')
-            # v104.00.3 — prawdziwy handler quest list + indeksowanie stron.
-            session.character.soul_tier = 80
-            for first in (81, 501, 801, 991, 1000):
+            # v105 replaces all individual Soul quests with mandatory milestones.
+            # Keep the v104 checks intact when this historical test runs on v104.
+            from core.progression_600 import SOUL_MAX_TIER
+            is_v105 = SOUL_MAX_TIER >= 3000
+            elor = NPCS['priest_elor']
+            session.character.room_id = elor['room']
+            if is_v105:
+                for tier in (1, 9, 10, 79, 80, 81, 250, 499, 500, 1000, 2990, 2999, 3000, 10000):
+                    session.character.soul_tier=tier
+                    offered=session.quest_ids_for_npc('priest_elor',elor)
+                    got=[QUESTS[q]['unlocks_soul_tier'] for q in offered if 'unlocks_soul_tier' in QUESTS[q]]
+                    start=((tier//10)+1)*10
+                    expected=list(range(start, min(3001,start+100),10))
+                    ck(got==expected, f'Elor v105 Tier {tier}: expected {expected}, got {got}')
+                    ck(len(offered)<=11, f'Elor NVDA too many quests Tier {tier}: {len(offered)}')
+                session.character.soul_tier=9
+                for requested in (10,81,501,801,991,1000,1001,1501,2991,3000):
+                    texts.clear()
+                    await session.show_quest_npc_list(f'Elor {requested}')
+                    got=[QUESTS[q]['unlocks_soul_tier'] for q in session.quest_list_context['quest_ids']]
+                    first=((requested+9)//10)*10
+                    expected=list(range(first,min(3001,first+100),10))
+                    ck(got==expected,f'Elor page v105 {requested}: {got} vs {expected}')
+                    ck(any(f'Tiery {first}–{expected[-1]}' in line for line in texts),
+                       f'Elor page {requested} range incorrect: {texts[:2]}')
+                    ck(len(texts)<=14,f'Elor page {requested} too long for NVDA')
                 texts.clear()
-                await session.show_quest_npc_list(f'Elor {first}')
-                shown = session.quest_list_context['quest_ids']
-                expected_page = [f'soul_tier_{n:02d}_trial'
-                                 for n in range(first, min(1001, first+10))]
-                ck(shown == expected_page,
-                   f'Elor page {first} wrong context: {shown[:3]}')
-                ck(any(f'Tiery {first}' in line for line in texts),
-                   f'Elor page {first} invisible: {texts[:3]}')
-                ck(len(texts) <= 14, f'Elor page {first} too long for NVDA')
-            texts.clear()
-            await session.show_quest_npc_list('Elor 1001')
-            ck(any('Podaj Tier' in line for line in texts), 'invalid tier accepted')
-            from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES
-            ck('Tier 1000' in ' '.join(HELP_TOPICS['dusza']), 'runtime help dusza overwritten')
-            ck(HELP_TOPIC_ALIASES.get('proby duszy') == 'proby_duszy',
-               'help proby duszy missing alias')
-            ck('quest list Elor 801' in ' '.join(HELP_TOPICS['proby_duszy']),
-               'help Elor page missing')
-            ck('1000' in str(elor.get('dialogue')), 'Elor old dialog')
+                await session.show_quest_npc_list('Elor 3001')
+                ck(any('Podaj Tier' in line for line in texts),'v105 invalid tier accepted')
+                from systems.content_registry import HELP_TOPICS,HELP_TOPIC_ALIASES
+                ck('3000' in ' '.join(HELP_TOPICS['dusza']) and 'co 10 Tierów' in ' '.join(HELP_TOPICS['dusza']), 'v105 help dusza stale')
+                ck(HELP_TOPIC_ALIASES.get('proby duszy')=='proby_duszy','help missing alias')
+                ck('quest list Elor 1001' in ' '.join(HELP_TOPICS['proby_duszy']), 'help Elor page missing')
+            else:
+                # Original v104 assertions, including first 80 historical trials.
+                for tier in (1, 79, 80, 81, 250, 499, 500, 10000):
+                    session.character.soul_tier=tier
+                    offered=session.quest_ids_for_npc('priest_elor', elor)
+                    new_trials=[q for q in offered if QUESTS[q].get('unlocks_soul_tier',0)>=81]
+                    expected=[f'soul_tier_{n:02d}_trial' for n in range(tier+1,min(1001,tier+11))
+                              if f'soul_tier_{n:02d}_trial' in QUESTS]
+                    if tier<80 or not expected:
+                        ck(not new_trials,f'future soul trials leaked Tier {tier}')
+                    else:
+                        ck(new_trials==expected,f'wrong Elor trial page Tier {tier}: {new_trials[:5]}')
+                    ck(len(offered)<90, f'Elor overwhelming NVDA Tier {tier}: {len(offered)}')
+                session.character.soul_tier=80
+                for first in (81,501,801,991,1000):
+                    texts.clear()
+                    await session.show_quest_npc_list(f'Elor {first}')
+                    shown=session.quest_list_context['quest_ids']
+                    expected_page=[f'soul_tier_{n:02d}_trial' for n in range(first,min(1001,first+10))]
+                    ck(shown==expected_page, f'Elor page {first} wrong context: {shown[:3]}')
+                    ck(any(f'Tiery {first}' in line for line in texts),f'Elor page {first} invisible')
+                    ck(len(texts)<=14,f'Elor page {first} too long for NVDA')
+                texts.clear()
+                await session.show_quest_npc_list('Elor 1001')
+                ck(any('Podaj Tier' in line for line in texts),'v104 invalid tier accepted')
+                from systems.content_registry import HELP_TOPICS,HELP_TOPIC_ALIASES
+                ck('Tier 1000' in ' '.join(HELP_TOPICS['dusza']), 'runtime help dusza overwritten')
+                ck(HELP_TOPIC_ALIASES.get('proby duszy')=='proby_duszy','help missing alias')
+                ck('quest list Elor 801' in ' '.join(HELP_TOPICS['proby_duszy']),'help page missing')
+                ck('1000' in str(elor.get('dialogue')),'Elor old dialog')
             # Existing NPCs without v103 marker keep their old result path.
             old = [x for x in NPCS.items() if x[1].get('v700_story_npc') and
                    not x[1].get('v10300_era_npc')]

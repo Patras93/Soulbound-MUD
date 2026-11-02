@@ -8,7 +8,7 @@ from world.v10400_raids_12_25 import RAIDS
 from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
 from core.bootstrap_economy_professions import SOUL_TRIAL_QUEST_IDS
 
-HELP = ('ADMIN LIVE ERA: krainy / krainy104 / region NAZWA / rajdy / rajdy104 / rajd NAZWA / soul TIER / audyt / lochy / exp RODZAJ PIETRO / premie / v104 pomoc. '
+HELP = ('ADMIN LIVE ERA: krainy / krainy104 / region NAZWA / rajdy / rajdy104 / rajd NAZWA / soul TIER / audyt / lochy / exp RODZAJ PIETRO / premie / v104 pomoc / v105 pomoc. '
         'Odczyt bez zmian w grze. Próby Soul Tier u Kapłana Elora; rajdy u Mistrza krainy.')
 
 
@@ -89,7 +89,7 @@ def report(command, quests, rooms, npcs, mobs):
         try:tier=int(words[1])
         except ValueError:return f'Soul: podaj numer Tieru od 1 do {SOUL_MAX_TIER}.'
         if tier<1 or tier>SOUL_MAX_TIER:return f'Soul: dopuszczalne Tiery 1–{SOUL_MAX_TIER}. To zakres Prób, nie limit Soul Level.'
-        qid=SOUL_TRIAL_QUEST_IDS.get(tier)
+        qid=SOUL_TRIAL_QUEST_IDS.get(tier) if tier % 10 == 0 else None
         return (f'Soul Tier {tier}/{SOUL_MAX_TIER}: wymagany Soul Level '
             f'{SOUL_TIER_THRESHOLDS[tier-1]}. '
             + (f'Próba {qid}; Kapłan Elor.' if qid else 'Bez Próby.'))
@@ -132,8 +132,12 @@ async def handle(session, tail):
     if not session.is_admin():
         await session.send('Nieznana komenda. Wpisz help.')
         return True
-    if str(tail or '').strip().casefold().startswith('v104'):
-        from systems.admin_live_era_v10400 import command as command_v104
+    if str(tail or '').strip().casefold().split(maxsplit=1)[0:1] in (['v104'], ['v105']):
+        use_v105 = str(tail or '').strip().casefold().split(maxsplit=1)[0] == 'v105'
+        if use_v105:
+            from systems.admin_live_era_v10500 import command as command_v104
+        else:
+            from systems.admin_live_era_v10400 import command as command_v104
         from core.classes_skills import ROOMS
         from systems.content_registry import QUESTS, NPCS, MOB_TEMPLATES
         from data.items import ITEMS

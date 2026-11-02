@@ -416,7 +416,7 @@ class SessionCharacterProfileMixin:
                 return f"Następny cel: Soul {needed} dla Tieru {next_tier} — {next_title}."
 
             quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
-            if quest_id:
+            if quest_id and next_tier % 10 == 0:
                 if self.soul_tier_quest_completed(next_tier):
                     return f"Próba Tieru {next_tier} — {next_title} ukończona. Wpisz unlock."
                 band = soul_trial_difficulty_band(next_tier)
@@ -503,17 +503,8 @@ class SessionCharacterProfileMixin:
                 f"{totals['lifesteal_percent']:.1f}% wysysania życia; +{totals['execute_damage_percent']:.1f}% obrażeń przy celu do 35% HP; "
                 f"+{totals['boss_damage_percent']:.1f}% obrażeń przeciw bossom; {totals['mana_restore_percent']:.1f}% obrażeń zwracane jako Mana."
             )
-            await self.send(
-                "Progi Tierów 1-10: T1 Soul 1; T2 10; T3 20; T4 25; T5 35; "
-                "T6 45; T7 60; T8 70; T9 80; T10 90."
-            )
-            await self.send(
-                "Progi Tierów 11-20: T11 Soul 100; T12 110; T13 120; T14 130; "
-                "T15 140; T16 150; T17 160; T18 170; T19 180; T20 200."
-            )
-            await self.send(
-                f"Każdy Tier od 2 do {SOUL_MAX_TIER} wymaga własnej jednorazowej Próby Broni Duszy u Kapłana Elora."
-            )
+            await self.send("Progi Soul: wymagany Soul Level = docelowy Tier razy 10, od T2. T1 jest startowy.")
+            await self.send(f"Próby u Kapłana Elora tylko co 10 Tierów: T10, T20, T30 aż do T{SOUL_MAX_TIER}.")
             await self.send("Po ukończeniu Próby wpisz unlock, aby odblokować przygotowany Tier.")
             # v103: nie wypowiadaj 499 szczegółowych wierszy przez NVDA.
             # Pokaz tylko najbliższe proby wokół obecnego Tieru; pozostałe
@@ -523,7 +514,7 @@ class SessionCharacterProfileMixin:
             await self.send(f"Najbliższe Próby: Tiery {first_tier}–{last_tier}."
                             f" Łącznie dostępnych Tierów: {SOUL_MAX_TIER}.")
             for tier in range(first_tier, last_tier + 1):
-                quest_id = SOUL_TRIAL_QUEST_IDS.get(tier)
+                quest_id = SOUL_TRIAL_QUEST_IDS.get(tier) if tier % 10 == 0 else None
                 quest = QUESTS.get(quest_id, {}) if quest_id else {}
                 required_soul = SOUL_TIER_THRESHOLDS[tier - 1]
                 row = self.server.db.quest(self.account_id, quest_id) if quest_id else None
@@ -541,7 +532,7 @@ class SessionCharacterProfileMixin:
                     state = f"najpierw odblokuj Tier {tier - 1}"
                 else:
                     state = "dostępna u Kapłana Elora"
-                band = quest.get("trial_band", soul_trial_difficulty_band(tier))
+                band = quest.get("trial_band", soul_trial_difficulty_band(tier)) if quest_id else "bez Próby"
                 trait = soul_weapon_trait_for_tier_v11193(tier, c.class_name)
                 trait_text = f" Właściwość: {trait['name']} - {trait['description']}." if trait else ""
                 tier_title = soul_tier_title_for_class(tier, c.class_name)

@@ -148,12 +148,29 @@ class SessionQuestOffersMixin:
                     result[npc_id] = npc
             return result
 
-    async def show_npc_quest_offers(self, npc_id, npc, remember=True, quest_ids_override=None):
+    async def show_npc_quest_offers(self, npc_id, npc, remember=True, quest_ids_override=None, page_number=1):
             quest_ids = (list(quest_ids_override) if quest_ids_override is not None
                          else self.quest_ids_for_npc(npc_id, npc))
             if not quest_ids:
                 await self.send(f"{npc['name']} nie ma teraz żadnych questów.")
                 return []
+
+            # v105: regional NPCs may offer 15-21 quests. NVDA reads only
+            # 10 per page, and the last page is the authoritative numeric
+            # context for `przyjmij N` / `quest info N`.
+            regional_page_info = None
+            if str(npc_id).startswith('v10500_'):
+                total = len(quest_ids)
+                pages = (total + 9) // 10
+                if not isinstance(page_number, int) or page_number < 1 or page_number > pages:
+                    await self.send(
+                        f"{npc['name']}: strona od 1 do {pages}. "
+                        f"Przykład: quest list {npc['name']} strona 1."
+                    )
+                    return []
+                if pages > 1:
+                    regional_page_info = (page_number,pages,total)
+                    quest_ids = quest_ids[(page_number-1)*10:page_number*10]
 
             if remember:
                 self.quest_list_context = {
@@ -163,7 +180,14 @@ class SessionQuestOffersMixin:
                     "quest_ids": list(quest_ids),
                 }
 
-            await self.send(f"LISTA ZADAŃ: {npc['name']}. {len(quest_ids)} zadań.")
+            if regional_page_info:
+                current,pages,total = regional_page_info
+                await self.send(
+                    f"LISTA ZADAŃ: {npc['name']}. Strona {current} z {pages}, "
+                    f"{len(quest_ids)} z {total} zadań."
+                )
+            else:
+                await self.send(f"LISTA ZADAŃ: {npc['name']}. {len(quest_ids)} zadań.")
             for number, quest_id in enumerate(quest_ids, 1):
                 quest = QUESTS[quest_id]
                 state = self.quest_offer_state(quest_id)
@@ -180,10 +204,26 @@ class SessionQuestOffersMixin:
                 "Nie trzeba wpisywać quest ani podawać nazwy zadania. "
                 "Szczegóły: quest info <numer>."
             )
+            if regional_page_info:
+                current,pages,_ = regional_page_info
+                if current < pages:
+                    await self.send(
+                        f"Następna strona: quest list {npc['name']} "
+                        f"strona {current+1}."
+                    )
+                if current > 1:
+                    await self.send(
+                        f"Poprzednia strona: quest list {npc['name']} "
+                        f"strona {current-1}."
+                    )
+                await self.send(
+                    'Numery przyjmij i quest info dotyczą tylko ostatnio '
+                    'wyświetlonej strony.'
+                )
             if npc_id == 'priest_elor':
                 await self.send(
-                    'Próby Soul Tier 2–1000. Dalsze strony: quest list Elor 81, '
-                    'quest list Elor 501 lub quest list Elor 801. '
+                    'Próby co 10 Soul Tierów do T3000. Dalsze strony: quest list Elor 81, '
+                    'quest list Elor 1001 lub quest list Elor 2001. '
                     'Każda strona pokazuje 10 Prób; numery przyjmij i quest info '
                     'dotyczą ostatnio wyświetlonej listy.'
                 )
@@ -213,13 +253,14 @@ class SessionQuestOffersMixin:
                 if not 2 <= first <= SOUL_MAX_TIER:
                     await self.send(f'Podaj Tier od 2 do {SOUL_MAX_TIER}, np. quest list Elor 801.')
                     return
+                first = ((first + 9) // 10) * 10
                 trial_ids = [SOUL_TRIAL_QUEST_IDS.get(tier)
-                             for tier in range(first, min(SOUL_MAX_TIER + 1, first + 10))]
+                             for tier in range(first, min(SOUL_MAX_TIER + 1, first + 100), 10)]
                 trial_ids = [qid for qid in trial_ids if qid in QUESTS]
                 if not trial_ids:
                     await self.send(f'Brak Prób dla Tierów od {first}.')
                     return
-                await self.send(f'Próby Duszy — Tiery {first}–{first + len(trial_ids)-1}.')
+                await self.send(f'Próby Duszy — Tiery {first}–{first + 10 * (len(trial_ids) - 1)} (co 10 Tierów).')
                 await self.show_npc_quest_offers('priest_elor', candidates['priest_elor'],
                                                  quest_ids_override=trial_ids)
                 return
@@ -229,6 +270,16 @@ class SessionQuestOffersMixin:
                     break
 
             if query:
+                # v105 authored regional quest pagination; the suffix is
+                # explicit so numerals inside NPC names remain unambiguous.
+                regional_page_number = 1
+                regional_match = re.fullmatch(
+                    r'(.+?)\s+(?:strona|page)\s+([1-9]\d*)', query,
+                    flags=re.IGNORECASE,
+                )
+                if regional_match:
+                    query = regional_match.group(1).strip()
+                    regional_page_number = int(regional_match.group(2))
                 found = find_by_name(candidates, query)
                 if not found:
                     await self.send(
@@ -238,7 +289,11 @@ class SessionQuestOffersMixin:
                     )
                     return
                 npc_id, npc = found
-                await self.show_npc_quest_offers(npc_id, npc)
+                if regional_match and not str(npc_id).startswith('v10500_'):
+                    await self.send('Strony questów są dostępne dla nowych krain v105.')
+                    return
+                await self.show_npc_quest_offers(
+                    npc_id, npc, page_number=regional_page_number)
                 return
 
             if len(candidates) == 1:
@@ -734,6 +789,24 @@ class SessionQuestOffersMixin:
 
     async def accept_quest_from_context(self, args):
             text = str(args or "").strip()
+
+            # v105: after an explicit 10-quest page, numeric `przyjmij N`
+            # MUST resolve against that exact visible page, not the original
+            # full NPC catalogue. The older shortcut without a displayed page
+            # remains unchanged for all v104 and legacy NPCs.
+            if text.isdigit():
+                context = self.quest_list_context or {}
+                npc_id = context.get('npc_id')
+                if (context.get('source') == 'npc'
+                    and str(npc_id or '').startswith('v10500_')
+                    and context.get('room_id') == self.character.room_id
+                    and context.get('quest_ids')):
+                    quest_id, error = self.quest_from_context(text)
+                    if error:
+                        await self.send(error)
+                    else:
+                        await self.accept_quest_id(quest_id, npc_id=npc_id)
+                    return
 
             # Najkrótsza ścieżka: po samym wejściu do pokoju `przyjmij 1`.
             # Nie wymaga rozmowy ani wcześniejszego `quest list`.

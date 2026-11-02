@@ -43,6 +43,7 @@ import player.session_methods_v4200.inventoryequipment_part05 as _sb420_src_05
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import random
+from systems.equipment_evolution_v10500 import is_evolved as _evolved_bound_v105
 from core.bootstrap_economy_professions import CURRENCY_SQLITE_SAFE_TOTAL, currency_reading_text, currency_unit_multiplier
 from core.mines_threat import EQUIPMENT_SLOT_ALIASES, EQUIPMENT_SLOT_NAMES, ITEMS, is_character_bound_item
 from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL, SOUL_MAX_LEVEL, SOUL_MAX_TIER, soul_tier_title_for_class
@@ -124,6 +125,8 @@ class SessionInventoryEquipmentMixin:
                     and item_id in ITEMS
                     and ITEMS[item_id].get("type") == "armor"
                     and not is_character_bound_item(item_id)
+                    and not _evolved_bound_v105(
+                        self.server.db.conn, self.account_id, item_id)
                 )
             }
             return find_by_name(transferable, query)
@@ -144,6 +147,8 @@ class SessionInventoryEquipmentMixin:
                     qty > 0
                     and item_id in ITEMS
                     and not is_character_bound_item(item_id)
+                    and not _evolved_bound_v105(
+                        self.server.db.conn, self.account_id, item_id)
                     and ITEMS[item_id].get("type") != "quest"
                 )
             }

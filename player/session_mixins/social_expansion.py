@@ -487,17 +487,63 @@ class SessionSocialExpansionMixin:
                 if not candidates: await self.send("Nie masz takiego przedmiotu w inventory."); return
                 iid,name,have=candidates[0]; qty=min(qty,have)
                 if qty<=0: await self.send("Brak przedmiotu."); return
-                self.server.db.remove_item(self.account_id,iid,qty); box[iid]=int(box.get(iid,0))+qty
-                conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",(_json.dumps(box,ensure_ascii=False),self.account_id)); conn.commit(); await self.send(f"Do skrzyni: {name} x{qty}."); return
+                # v105: NEVER credit the house chest unless the matching
+                # inventory removal succeeded. Evolved EQ is character-bound.
+                from systems.equipment_evolution_v10500 import is_evolved
+                if is_evolved(conn, self.account_id, iid):
+                    await self.send("Ewoluowane EQ jest przypisane do postaci. Nie można schować go w skrzyni domu.")
+                    return
+                outer = conn.in_transaction
+                conn.execute('SAVEPOINT sb105_house_inventory')
+                try:
+                    if not self.server.db.remove_item(self.account_id, iid, qty, commit=False):
+                        conn.execute('ROLLBACK TO SAVEPOINT sb105_house_inventory')
+                        conn.execute('RELEASE SAVEPOINT sb105_house_inventory')
+                        await self.send("Nie udało się przenieść przedmiotu. Skrzynia pozostała bez zmian.")
+                        return
+                    box[iid] = int(box.get(iid, 0)) + qty
+                    conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",
+                                 (_json.dumps(box, ensure_ascii=False), self.account_id))
+                    conn.execute('RELEASE SAVEPOINT sb105_house_inventory')
+                    if not outer:
+                        conn.commit()
+                except BaseException:
+                    conn.execute('ROLLBACK TO SAVEPOINT sb105_house_inventory')
+                    conn.execute('RELEASE SAVEPOINT sb105_house_inventory')
+                    raise
+                await self.send(f"Do skrzyni: {name} x{qty}.")
+                return
             # take: match storage by id or visible name
             found=None
             for iid,have in box.items():
                 if normalize_lookup_text(iid)==norm or normalize_lookup_text(player_item_display_name_v0335(iid))==norm: found=(iid,int(have)); break
             if not found: await self.send("Nie ma tego w skrzyni."); return
-            iid,have=found; qty=min(qty,have); self.server.db.add_item(self.account_id,iid,qty); left=have-qty
-            if left>0: box[iid]=left
-            else: box.pop(iid,None)
-            conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",(_json.dumps(box,ensure_ascii=False),self.account_id)); conn.commit(); await self.send(f"Ze skrzyni: {player_item_display_name_v0335(iid)} x{qty}."); return
+            iid, have = found
+            qty = min(qty, have)
+            from systems.equipment_evolution_v10500 import is_evolved
+            if is_evolved(conn, self.account_id, iid):
+                await self.send("Ten typ EQ ma aktywną ewolucję. Nie można utworzyć dodatkowej kopii ze skrzyni.")
+                return
+            outer = conn.in_transaction
+            conn.execute('SAVEPOINT sb105_house_inventory')
+            try:
+                self.server.db.add_item(self.account_id, iid, qty, commit=False)
+                left = have - qty
+                if left > 0:
+                    box[iid] = left
+                else:
+                    box.pop(iid, None)
+                conn.execute("UPDATE player_housing_v03051 SET storage_json=? WHERE account_id=?",
+                             (_json.dumps(box, ensure_ascii=False), self.account_id))
+                conn.execute('RELEASE SAVEPOINT sb105_house_inventory')
+                if not outer:
+                    conn.commit()
+            except BaseException:
+                conn.execute('ROLLBACK TO SAVEPOINT sb105_house_inventory')
+                conn.execute('RELEASE SAVEPOINT sb105_house_inventory')
+                raise
+            await self.send(f"Ze skrzyni: {player_item_display_name_v0335(iid)} x{qty}.")
+            return
         await self.send("Dom: status, name <tekst>, decor <tekst>, upgrade, chest, store, take, trophies.")
 
     def record_social_record_v03051(self,key,value,text=''):

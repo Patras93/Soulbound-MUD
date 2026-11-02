@@ -36,7 +36,7 @@ EXTRA = (
 
 def candidate_status():
     version = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
-    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3'):
+    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3', '105.00.0'):
         raise ValueError('Nieznany numer VERSION; przerwano kontrole RC.')
     return version
 

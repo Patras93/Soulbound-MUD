@@ -97,10 +97,12 @@ def run():
     finally:
         b.TOOL_MAX_LEVEL=old
     obj=object.__new__(Character)
-    obj.soul_level=10;obj.soul_tier=1;obj.soul_xp=12345
+    obj.soul_tier=1;obj.soul_xp=12345
+    obj.soul_level=obj.soul_level_cap_for_current_tier()
     obj.race='Człowiek';obj._guild_bonus_percent=0
     output=obj.add_soul_xp(1000)
     ok(obj.soul_xp==13345,'soul bank preserved at gate')
+    ok(obj.soul_progress_is_tier_locked(),'soul bank gate is really reached')
     ok('odłożone' in output[0],'soul bank NVDA announcement')
     obj.soul_tier=2
     obj.add_soul_xp(0)

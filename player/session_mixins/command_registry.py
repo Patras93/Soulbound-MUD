@@ -15,6 +15,8 @@ COMMAND_TEXT = object()
 COMMAND_NAME = object()
 
 COMMAND_REGISTRY = {
+    'bronduszy': ('soul_weapon_command_v10500', (COMMAND_TEXT,), {}),
+    'bronzywiol': ('soul_weapon_command_v10500', (COMMAND_TEXT,), {}),
     'imperium7': ('imperium7_command', (COMMAND_TEXT,), {}),
     'profesje6': ('profesje6_command', (COMMAND_TEXT,), {}),
     # v11.00.6: readable player commands; numeric historical names remain valid.
@@ -269,6 +271,8 @@ COMMAND_REGISTRY = {
     'salvage': ('salvage_equipment_v0925', (COMMAND_TEXT,), {}),
     'reforge': ('reforge_equipment_v0925', (COMMAND_TEXT,), {}),
     'equpgrade': ('upgrade_equipment_v03042', (COMMAND_TEXT,), {}),
+    'ewolucja': ('evolve_equipment_v10500', (COMMAND_TEXT,), {}),
+    'evolveeq': ('evolve_equipment_v10500', (COMMAND_TEXT,), {}),
     'runes': ('handle_runes_v03114', (COMMAND_TEXT,), {}),
     'socketrune': ('socket_rune_v0925', (COMMAND_TEXT,), {}),
     'playerguild': ('handle_guild_v0926', (COMMAND_TEXT,), {}),

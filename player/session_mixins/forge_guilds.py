@@ -4,6 +4,83 @@ from core.bootstrap_economy_professions import currency_price_text
 from data import catalog_mutations as _catalog_mut
 
 class SessionForgeGuildsMixin:
+    async def evolve_equipment_v10500(self, args=''):
+        """Ewolucja EQ u Haldora, strony i krótkie komunikaty NVDA."""
+        from systems.equipment_evolution_v10500 import (
+            MAX_STAGE, current_stage, required_materials, evolve,
+            stage_stat_bonus, stage_defense_bonus,
+        )
+        raw = str(args or '').strip()
+        rows = self.owned_equipment_upgrade_rows_v03042()
+        # Deliberate, irreversible unbind with explicit Polish confirmation.
+        # Never changes old forging/runes, just the v105 evolution ledger.
+        if raw.casefold().startswith('wyzeruj '):
+            parts = raw.split()
+            if len(parts) < 3 or parts[-1] != 'POTWIERDZAM':
+                await self.send('Użycie: ewolucja wyzeruj <numer lub nazwa> POTWIERDZAM. Tracisz wszystkie etapy bez zwrotu materiałów.')
+                return
+            if not self.at_haldor_forge_v0925() or self.combat_mob_key:
+                await self.send('Wyzerowanie ewolucji tylko u Haldora, poza walką.')
+                return
+            query = ' '.join(parts[1:-1])
+            if query.isdigit():
+                index = int(query)
+                found = rows[index - 1][:2] if 1 <= index <= len(rows) else None
+            else:
+                found = self.resolve_owned_equipment_v0925(query, free_only=False)
+            if not found:
+                await self.send('Nie rozpoznaję EQ. Wpisz ewolucja lista.')
+                return
+            from systems.equipment_evolution_v10500 import reset_evolution
+            item_id, item = found
+            ok, message = reset_evolution(self.server.db.conn, self.account_id, item_id)
+            await self.send(f'{item["name"]}: {message}')
+            if ok:
+                self._read_only_equipment_cache_v1262 = None
+            return
+        if not raw or raw.casefold() in ('lista', 'list', 'help', 'pomoc') or raw.casefold().startswith('lista '):
+            parts = raw.split()
+            page = int(parts[1]) if len(parts) == 2 and parts[1].isdigit() else 1
+            pages = max(1, (len(rows) + 9) // 10)
+            if page < 1 or page > pages:
+                await self.send(f'Ewolucja EQ: strona od 1 do {pages}.')
+                return
+            await self.send(f'Ewolucja EQ — strona {page}/{pages}. U Haldora: ewolucja <numer lub nazwa>.')
+            for index in range((page - 1) * 10, min(page * 10, len(rows))):
+                iid, item, qty, _ = rows[index]
+                stage = current_stage(self.server.db.conn, self.account_id, iid)
+                await self.send(f'{index + 1}. {item["name"]}. Ewolucja {stage}/{MAX_STAGE}. Kopie: {qty}.')
+            if not rows:
+                await self.send('Nie masz EQ nadającego się do ewolucji.')
+            return
+        if not self.at_haldor_forge_v0925():
+            await self.send('Ewolucję wykonuje Haldor w Kuźni lub Warsztacie Rzemieślniczym.')
+            return
+        if self.combat_mob_key:
+            await self.send('Nie można ewoluować EQ w trakcie walki.')
+            return
+        found = None
+        if raw.isdigit():
+            position = int(raw)
+            if 1 <= position <= len(rows):
+                found = rows[position - 1][:2]
+        else:
+            found = self.resolve_owned_equipment_v0925(raw, free_only=False)
+        if not found:
+            await self.send('Nie rozpoznaję przedmiotu. Wpisz ewolucja lista [strona].')
+            return
+        iid, item = found
+        try:
+            success, message, stage = evolve(self.server.db.conn, self.account_id, iid, item)
+        except Exception:
+            await self.send('Ewolucja przerwana: błąd zapisu SQLite. Żadne materiały nie zostały zużyte.')
+            raise
+        await self.send(f'{item["name"]}: {message}')
+        if success:
+            await self.send(f'Bonus po założeniu: Konstytucja +{stage_stat_bonus(stage,item)}, '
+                            f'Obrona +{stage_defense_bonus(stage,item)}. Kolejne etapy wymagają materiałów nowych krain.')
+            self._read_only_equipment_cache_v1262 = None
+
     def at_haldor_forge_v0925(self):
             room_id=str(self.character.room_id or "")
             if room_id in ("forge", "crafting_workshop"):

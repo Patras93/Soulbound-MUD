@@ -340,6 +340,9 @@ class SessionSalesMixin:
                 return False
             if is_character_bound_item(item_id):
                 return False
+            from systems.equipment_evolution_v10500 import is_evolved
+            if is_evolved(self.server.db.conn, self.account_id, item_id):
+                return False
             values = self.generic_item_sale_value(item_id, item)
             return any(values.values())
 
@@ -741,6 +744,10 @@ class SessionSalesMixin:
                     skipped += qty
                     continue
                 if is_character_bound_item(item_id):
+                    skipped += qty
+                    continue
+                from systems.equipment_evolution_v10500 import is_evolved
+                if is_evolved(self.server.db.conn, self.account_id, item_id):
                     skipped += qty
                     continue
                 if not self.generic_item_sale_allowed_here():

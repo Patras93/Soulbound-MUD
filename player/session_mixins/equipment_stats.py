@@ -16,6 +16,7 @@ from core.player_math import (
     speed_from_dexterity,
 )
 from core.mines_threat import ITEMS
+from systems.soul_weapon_elements_v10500 import shield_multiplier
 from systems.equipment_multiclass_v3001 import crossover_bonus_v3001
 from core.progression_600 import CHARACTER_MAX_LEVEL, CLASS_MASTERY_MAX_LEVEL
 from core.progression_resources import class_type_for_name
@@ -41,6 +42,44 @@ def moogle_board_current_bonus_v10010(character_level):
     return moogle_board_stat_bonus_v0313(character_level)
 
 class SessionEquipmentStatsMixin:
+    async def soul_weapon_command_v10500(self, raw=""):
+        """Krótki i NVDA-czytelny wybór żywiołu i aktywny Impuls."""
+        from systems.soul_weapon_elements_v10500 import (
+            MIN_TIER, PREFERRED, normalize_element, selected_element,
+            choose_element, activate_impulse,
+        )
+        parts = str(raw or '').strip().split(maxsplit=1)
+        action = parts[0].casefold() if parts else 'status'
+        argument = parts[1].strip() if len(parts) > 1 else ''
+        if action in ('status', 'lista', 'list', 'pomoc', 'help'):
+            element = selected_element(self)
+            from systems.soul_weapon_elements_v10500 import ELEMENTS
+            label = next((v[1] for v in ELEMENTS.values() if v[0] == element), 'nie wybrano')
+            from systems.soul_weapon_elements_v10500 import tuning
+            await self.send(f'Broń Duszy: Tier {self.character.soul_tier}; żywioł: {label}. '
+                            f'Od Tieru {MIN_TIER}: bronduszy zywiol <nazwa>; bronduszy impuls. '
+                            'Żywioły: ' + ', '.join(PREFERRED) + '. '
+                            f'Impuls +{tuning("impulse_pct")}%, odnowienie {tuning("impulse_cooldown")} s. '
+                            f'Od Tieru 1200: bronduszy oslona (+{tuning("shield_pct")}% obrony '
+                            f'przez {tuning("shield_seconds")} s, odnowienie {tuning("shield_cooldown")} s).')
+            return
+        if action in ('zywiol', 'żywioł', 'element'):
+            if not argument:
+                await self.send('Wybierz żywioł: ' + ', '.join(PREFERRED) + '.')
+                return
+            _, message = choose_element(self, argument)
+            await self.send(message)
+            return
+        if action in ('oslona', 'osłona', 'tarcza'):
+            from systems.soul_weapon_elements_v10500 import activate_shield
+            _, message = activate_shield(self)
+            await self.send(message)
+            return
+        if action in ('impuls', 'moc'):
+            _, message = activate_impulse(self)
+            await self.send(message)
+            return
+        await self.send('Użycie: bronduszy status; bronduszy zywiol piorun; bronduszy impuls; bronduszy oslona.')
     def equipped_item_rows(self):
             cache = getattr(self, "_read_only_equipment_cache_v1262", None)
             if cache is not None and "equipped_rows" in cache:
@@ -193,6 +232,12 @@ class SessionEquipmentStatsMixin:
                     for _stat,_amount in (_rune.get("rune_stats") or {}).items():
                         if _stat in totals:
                             totals[_stat] += int(_amount)
+
+                # v105: stały bonus EWOLUCJI tej posiadanej, założonej sztuki.
+                from systems.equipment_evolution_v10500 import current_stage, stage_stat_bonus
+                _evo = current_stage(self.server.db.conn, self.account_id, row["item_id"])
+                if _evo:
+                    totals["constitution"] += stage_stat_bonus(_evo, item)
 
                 for stat, amount in item.get("stats", {}).items():
                     if stat in totals:
@@ -910,6 +955,7 @@ class SessionEquipmentStatsMixin:
                     * self.character.racial_magic_defense_multiplier()
                     * self.total_set_defense_multiplier()
                     * (1.0 + self.equipment_property_totals()["magic_defense_pct"] / 100.0)
+                    * shield_multiplier(self)
                 )
             )
             return max(0, value)
@@ -935,6 +981,8 @@ class SessionEquipmentStatsMixin:
                             _tech_mark_bonus=5 if _m==2 else 10 if _m>=3 else 0
                     except Exception:
                         _tech_mark_bonus=0
+                    from systems.equipment_evolution_v10500 import current_stage, stage_defense_bonus
+                    total += stage_defense_bonus(current_stage(self.server.db.conn, self.account_id, row["item_id"]), item)
                     total += int(item.get("defense", 0)) + v03042_upgrade_defense_bonus(
                         item, upgrade_level
                     ) + _tech_mark_bonus
@@ -944,5 +992,6 @@ class SessionEquipmentStatsMixin:
                     total
                     * self.total_set_defense_multiplier()
                     * (1.0 + self.equipment_property_totals()["physical_defense_pct"] / 100.0)
+                    * shield_multiplier(self)
                 ))
             )

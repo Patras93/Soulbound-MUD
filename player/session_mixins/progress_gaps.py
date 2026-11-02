@@ -50,7 +50,7 @@ class SessionProgressGapsV0590Mixin:
                 f"{xp_missing} Soul XP ({xp_now}/{xp_need})."
             )
 
-        quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
+        quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier) if next_tier % 10 == 0 else None
         quest = QUESTS.get(quest_id) if quest_id else None
         if not quest:
             return f"Soul Tier {next_tier} — {next_title}: próg Soul Level {required_level} osiągnięty; użyj unlock, jeśli Tier jest gotowy."

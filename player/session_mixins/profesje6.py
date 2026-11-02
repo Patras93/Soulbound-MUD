@@ -82,6 +82,12 @@ def _remove_all(db, account, item, qty):
     Caller owns the SQLite transaction. All guarded writes are reversible on
     failure, including professional XP and quest progress.
     """
+    # Guard BEFORE any resource is consumed. Returning False after a partial
+    # craftbox withdrawal could otherwise leak materials if a caller did not
+    # roll back the surrounding transaction.
+    from systems.equipment_evolution_v10500 import is_evolved
+    if is_evolved(db.conn, account, item):
+        return False
     if _sum(db, account, item) < qty:
         return False
     remaining = qty

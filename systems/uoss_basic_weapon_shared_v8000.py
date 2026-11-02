@@ -28,6 +28,11 @@ def weapon_attack_boost(actor, mob, template, damage, *, zantetsuken=False):
         bonus=float(traits["boss_damage_percent"])+float(mastery["boss_damage_percent"])
         if bonus>0 and not zantetsuken:
             damage=max(1,int(round(damage*(1.0+bonus/100.0))))
+    # v105: rzeczywisty, wybrany żywioł i następne aktywowane trafienie.
+    # Brak wybranego żywiołu = dokładnie historyczne obrażenia.
+    from systems.soul_weapon_elements_v10500 import weapon_multiplier, consume_impulse
+    damage=max(0,int(round(damage*weapon_multiplier(actor,template))))
+    damage=max(0,int(round(damage*consume_impulse(actor))))
     chance=min(0.60,actor.critical_chance()+traits["crit_chance"]+mastery["crit_chance"])
     crit=random.random()<chance
     if crit:

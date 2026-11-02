@@ -1491,6 +1491,9 @@ class SessionAdminToolsMixin:
 
     async def unlock_context(self, args=""):
             q = self.normalize_description_query(args)
+            if q in ("max", "dusza max", "soul max", "bron duszy max", "broń duszy max"):
+                await self.unlock(multi=True)
+                return
             if q in ("soul", "dusza", "bron duszy", "broń duszy"):
                 await self.unlock()
                 return

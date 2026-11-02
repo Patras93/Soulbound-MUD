@@ -28,9 +28,15 @@ class HistoricalPredeployRecovery(unittest.TestCase):
     def test_legacy_compat_fail_closed(self):
         gate = (ROOT / 'predeploy_check.py').read_text(encoding='utf-8')
         full = (ROOT / 'predeploy_full.py').read_text(encoding='utf-8')
-        self.assertIn('nonblocking_legacy_audits = accepted_legacy_reports(ns)', full)
+        # In v105 the source contract MUST pass server.VERSION so the proof
+        # cannot quietly fall back to the v104-only whitelist.
+        version = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
+        required = ('nonblocking_legacy_audits = accepted_legacy_reports(ns, version=server.VERSION)'
+                    if version.startswith('105.') else
+                    'nonblocking_legacy_audits = accepted_legacy_reports(ns)')
+        self.assertIn(required, full)
         self.assertIn('if audit_failures:', full)
-        self.assertIn('accepted_legacy_reports(ns)', gate)
+        self.assertIn(required, gate)
         self.assertNotIn('nonblocking_legacy_audits = set()', full)
 
     def test_known_quest_growth_contract(self):

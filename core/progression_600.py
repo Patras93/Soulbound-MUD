@@ -69,14 +69,14 @@ SOUL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 # Rozbudowa 501–1000 bez zmian 1–500; domyślny cap Soul Level 800
 # nadal zależy od ustawień Admin Live (dusza bezlimitu lub >=10000).
 # Nie nadpisuj ustawień administratora przy starcie serwera.
-SOUL_TIER_THRESHOLDS = tuple(SOUL_TIER_THRESHOLDS[:40]) + tuple(range(410, 10001, 10))
+SOUL_TIER_THRESHOLDS = tuple([1] + [tier*10 for tier in range(2, 3001)])
 SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
-SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142 + i*2 for i in range(40)) + tuple(222+i*2 for i in range(920))
-SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i//2 for i in range(40)) + tuple(61 + i//5 for i in range(920))
-SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,)*960
+SOUL_TIER_POWER_BONUSES = tuple(SOUL_TIER_POWER_BONUSES[:40]) + tuple(142+i*2 for i in range(40)) + tuple(222+i*2 for i in range(2920))
+SOUL_TIER_CLASS_BONUS_PERCENT = tuple(SOUL_TIER_CLASS_BONUS_PERCENT[:40]) + tuple(41 + i//2 for i in range(40)) + tuple(61 + i//5 for i in range(2920))
+SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,)*2960
 # Redukcji fizycznej nie wolno zwiększać ponad 65% kosztem odporności
 # bossow/klas; zachowujemy dawne 80 wartości bez zmian.
-SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29+i//2 for i in range(40)) + tuple(min(65, 49+i//20) for i in range(920))
+SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29+i//2 for i in range(40)) + tuple(min(65, 49+i//20) for i in range(2920))
 SOUL_TRIAL_QUEST_IDS.update({tier: f'soul_tier_{tier:02d}_trial' for tier in range(41, SOUL_MAX_TIER+1)})
 
 # Weapon Traits 41-60: unikalne nazwy, ten sam klasowy cykl efektów.
@@ -97,7 +97,7 @@ _SOUL_TRAIT_BASE_NAMES = tuple(_SOUL_TRAIT_BASE_NAMES[:40]) + _SOUL_TRAIT_BASE_N
 )
 # Unikalne nazwy dla Tierów 81–1000; każda ma realny bonus i wpis
 # w istniejacym klasowym cyklu efektow (bez dodatkowych tabel SQLite).
-_SOUL_TRAIT_BASE_NAMES += tuple(f"Przekroczenie Duszy {tier}" for tier in range(81, SOUL_MAX_TIER+1))
+_SOUL_TRAIT_BASE_NAMES += tuple((f"Forma Wiecznej Duszy {tier//100}" if tier>=1100 and tier%100==0 else f"Przekroczenie Duszy {tier}") for tier in range(81, SOUL_MAX_TIER+1))
 from systems.new_heroes_v900 import SOUL_TRAITS as _V900_SOUL_TRAITS
 _SOUL_TRAIT_CLASS_PROFILES.update(_V900_SOUL_TRAITS)
 SOUL_TIER_TRAITS_BY_CLASS = {}

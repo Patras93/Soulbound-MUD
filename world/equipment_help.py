@@ -487,21 +487,34 @@ DENSE_DUNGEON_ADDED_SPAWNS = densify_static_dungeon_spawns()
 # v0.9.12 - CONTENT 201-600: Soul Trials + questy profesyjne
 # ============================================================
 for _tier in range(21, SOUL_MAX_TIER + 1):
+    if _tier>1000 and _tier%10:
+        continue  # v105: nowe Próby wyłącznie co 10 Tierów, stare wpisy 1–1000 zachowane w historii
     _level = SOUL_TIER_THRESHOLDS[_tier - 1]
     _qid = SOUL_TRIAL_QUEST_IDS[_tier]
+    # v105: trzy istniejące silniki walki, wybór stały dla danego Tieru.
+    # Historia Prób do Tieru 1000 zachowuje oryginalny cel.
+    _trial_target = f"crypt_boss_{_level}"
+    _trial_location = f"bossa piętra {_level} nieskończonej Krypty"
+    if _tier > 1000:
+        if (_tier // 10) % 3 == 1:
+            from world.v10500_region_index import REGIONS as _V105_REGIONS
+            _r = _V105_REGIONS[((_tier//10)//3) % len(_V105_REGIONS)]
+            _trial_target = f"v10500_{_r[0]}_boss_2"
+            _trial_location = f"bossa {_r[1]} ({_r[0]})"
+        elif (_tier // 10) % 3 == 2:
+            _trial_target = f"astral_boss_{_level}"
+            _trial_location = f"bossa piętra {_level} Wieży Astralnej"
     _catalog_mut.catalog_assign({
         "name": f"Próba Broni Duszy: Tier {_tier}",
         "giver": "Kapłan Elor", "kind": "kill",
-        "target": f"crypt_boss_{_level}", "needed": 1,
-        "description": (
-            f"Pokonaj bossa piętra {_level} nieskończonej Krypty i wróć do Kapłana Elora."
-        ),
+        "target": _trial_target, "needed": 1,
+        "description": f"Pokonaj {_trial_location} i wróć do Kapłana Elora.",
         "required_soul_level": _level, "required_soul_tier": _tier - 1,
         "unlocks_soul_tier": _tier,
         "reward_silver": 2_000 + (_level - 200) * 120,
         "reward_gold": 10 + (_level - 200) // 10,
         "reward_mithril": 0, "reward_items": {},
-        # v104: realne nagrody dla 501–1000 przez istniejącą politykę
+        # v105: nagrody dla 501+ przez istniejącą politykę
         # Multi Cap i bank EXP; dawnych prób 1–500 NIE modyfikujemy.
         **({"olc_reward_xp": 2_000_000 + (_tier-500)*40_000,
             "olc_reward_class_xp": 1_500_000 + (_tier-500)*30_000,
@@ -585,6 +598,16 @@ def configure_soul_trials_v0261():
         )
 
 configure_soul_trials_v0261()
+
+# v105: legacy completed quest rows remain valid; only milestone requirements
+# are updated. No quests are deleted from the player's historical SQLite.
+for _milestone in range(10, SOUL_MAX_TIER + 1, 10):
+    _quest = QUESTS.get(SOUL_TRIAL_QUEST_IDS.get(_milestone))
+    if not _quest:
+        raise RuntimeError(f'Brak Próby na obowiązkowym Tierze {_milestone}')
+    _quest['required_soul_level'] = SOUL_TIER_THRESHOLDS[_milestone - 1]
+    _quest['required_soul_tier'] = _milestone - 1
+
 
 def _add_profession_400_quest(npc_id, qid, *, level, profession, tool_type, kind, target=None, needed=2, targets=None):
     npc = NPCS.get(npc_id)

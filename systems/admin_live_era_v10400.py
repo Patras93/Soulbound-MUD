@@ -42,10 +42,17 @@ FIELDS = {
     'soul_trial': {'needed': (1, 25), 'reward_silver': (0, MAX_SQLITE),
                    'reward_gold': (0, MAX_SQLITE), 'reward_mithril': (0, MAX_SQLITE)},
     'soul_xp_band': {'required_pct': (25, 400)},
+    # v105 scoped runtime coefficients; do not edit unlock requirements or player records.
+    'soul_power': {'passive_pct': (0, 30), 'weakness_pct': (0, 50),
+                   'impulse_pct': (0, 100), 'impulse_cooldown': (30, 600),
+                   'shield_pct': (0, 50), 'shield_seconds': (5, 120),
+                   'shield_cooldown': (30, 600)},
+    'eq_evolution': {'stat_pct': (25, 400), 'defense_pct': (25, 400)},
 }
 _REGISTRY_NAMES = {'mob': 'mobs', 'quest': 'quests', 'item': 'items',
                    'recipe': 'recipes', 'room': 'rooms',
-                   'raid_phase': 'mobs', 'soul_trial': 'quests'}
+                   'raid_phase': 'mobs', 'soul_trial': 'quests',
+    'soul_power': 'soul_power', 'eq_evolution': 'eq_evolution'}
 _RAID_ID = re.compile(r'v10400_raid_(1[2-9]|2[0-5])_boss_([123])\Z')
 _TRIAL_ID = re.compile(r'soul_tier_([0-9]+)_trial\Z')
 _PHASE_FIELD = re.compile(r'p([1-4])_(hp_percent|attack_pct|duration_seconds)\Z')
@@ -73,12 +80,16 @@ def _parse_key(key):
     elif kind == 'raid_phase':
         if not _RAID_ID.fullmatch(identifier):
             raise ValueError('Edytowalne są tylko fazy rajdów 12–25')
+    elif kind in ('soul_power', 'eq_evolution'):
+        if identifier != {'soul_power': 'v10500_bron_duszy',
+                          'eq_evolution': 'v10500_ewolucja_eq'}[kind]:
+            raise ValueError('Nieznany moduł ustawień v105')
     elif kind == 'soul_trial':
         match = _TRIAL_ID.fullmatch(identifier)
-        if not match or not 501 <= int(match.group(1)) <= 1000:
-            raise ValueError('Edytowalne są tylko Próby Soul Tier 501–1000')
-    elif not identifier.startswith('v10400_') or len(identifier) > 100:
-        raise ValueError('Pole spoza katalogu v104')
+        if not match or not 501 <= int(match.group(1)) <= 3000 or (int(match.group(1)) > 1000 and int(match.group(1)) % 10 != 0):
+            raise ValueError('Próby do T1000 lub obowiązkowe Próby co 10 Tierów T1010–3000')
+    elif not identifier.startswith(('v10400_', 'v10500_')) or len(identifier) > 100:
+        raise ValueError('Pole spoza katalogów v104/v105')
     return kind, identifier, field
 
 
@@ -91,7 +102,7 @@ def _validate(data):
     for rows in (data['active'], data['previous'], data['base']):
         if rows is None:
             continue
-        if type(rows) is not dict or len(rows) > 1000:
+        if type(rows) is not dict or len(rows) > 3000:
             raise ValueError('Niepoprawny lub za duży zestaw zmian')
         for key, val in rows.items():
             kind, _, field = _parse_key(key)
@@ -128,6 +139,14 @@ def _save(state):
 
 
 def _registry(kind, registries):
+    # Read/write the actual live coefficients using the same DRAFT/CAS/revert
+    # journal as every v104/v105 content edit. Never mirror values in a separate file.
+    if kind == 'soul_power':
+        from systems.soul_weapon_elements_v10500 import LIVE_TUNING
+        return LIVE_TUNING
+    if kind == 'eq_evolution':
+        from systems.equipment_evolution_v10500 import LIVE_TUNING
+        return LIVE_TUNING
     return registries[_REGISTRY_NAMES[kind]]
 
 
@@ -192,6 +211,8 @@ def _preflight(registries, base, active):
                 staged[kind, ident] = deepcopy(_target(key, registries))
             _set_value(staged[kind, ident], kind, field, value)
     for (kind, ident), obj in staged.items():
+        if kind == 'soul_power' and obj['shield_seconds'] > obj['shield_cooldown']:
+            raise ValueError('Czas działania Osłony nie może przekraczać odnowienia.')
         if kind == 'raid_phase':
             validate_boss_phases(obj, obj['olc_boss_phases'])
     return staged

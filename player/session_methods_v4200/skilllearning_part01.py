@@ -2,7 +2,35 @@
 """Original Soulbound session/DB method bodies, source-preserving extraction.
 Globals are bound to the historical host module at class initialization.
 """
-async def unlock(self):
+async def unlock(self, multi=False):
+        if multi:
+            # v105: no mass-spam; one persistent save and one NVDA message.
+            start = int(self.character.soul_tier)
+            limit = start
+            stop_reason = ''
+            while limit < SOUL_MAX_TIER:
+                trial_tier = limit + 1
+                needed = SOUL_TIER_THRESHOLDS[trial_tier-1]
+                if int(self.character.soul_level) < needed:
+                    stop_reason = f'wymaga Soul Level {needed}'
+                    break
+                quest_id = SOUL_TRIAL_QUEST_IDS.get(trial_tier) if trial_tier % 10 == 0 else None
+                if quest_id and not self.soul_tier_quest_completed(trial_tier):
+                    stop_reason = f'Próba Tieru {trial_tier} u Kapłana Elora'
+                    break
+                limit = trial_tier
+            if limit == start:
+                await self.send(f'Nie można odblokować Tieru {start+1}: {stop_reason or "maksymalny Tier"}.')
+                return
+            self.character.soul_tier = limit
+            self.server.db.save_character(self.character)
+            await self.send(f'Odblokowano Soul Tier {start+1}–{limit}. '
+                            f'Moc Broni Duszy: {self.character.soul_power()}. '
+                            f'Następny cel: {stop_reason or "maksymalny Tier"}.')
+            await self.server.broadcast_room(self.character.room_id,
+                f'{self.character.name} rozwinął Soul Tier do {limit}.',
+                exclude=self, history_category='system')
+            return
         if self.character.soul_tier >= SOUL_MAX_TIER:
             await self.send(
                 f"Broń Duszy ma już maksymalny Tier {SOUL_MAX_TIER}."
@@ -19,7 +47,7 @@ async def unlock(self):
             return
 
         required_quest = SOUL_TRIAL_QUEST_IDS.get(next_tier)
-        if required_quest and not self.soul_tier_quest_completed(next_tier):
+        if next_tier % 10 == 0 and required_quest and not self.soul_tier_quest_completed(next_tier):
             await self.send(
                 f"Masz wymagany Soul Level, ale Tier {next_tier} wymaga jeszcze "
                 f"zadania {QUESTS[required_quest]['name']}. "

@@ -8,7 +8,7 @@ import ast
 from hashlib import sha256
 from functools import lru_cache
 from pathlib import Path
-from validation.v4200_modularization import LEDGER
+from validation.v4200_modularization import LEDGER, expected_moved_ast_digest_v4200
 from validation.v4100_virtual_source import read_factored_legacy_source_v410
 
 @lru_cache(maxsize=96)
@@ -25,7 +25,10 @@ def read_actual_refactored_source_v4200(file):
         origin=file.parents[len(oldrel.split('/'))-1]
         moved=(origin/newrel).read_text(encoding='utf8')
         node=next((n for n in ast.parse(moved).body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==symbol.rsplit('.',1)[-1]),None)
-        if node is None or sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()!=digest:
+        if node is None:
+            raise AssertionError(('module body missing',symbol))
+        expected=expected_moved_ast_digest_v4200(origin, symbol, digest, node)
+        if sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()!=expected:
             raise AssertionError(('module body not identical',symbol))
         frag='\n'.join(moved.splitlines()[node.lineno-1:node.end_lineno])+'\n'
         if '.' in symbol:

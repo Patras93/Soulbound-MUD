@@ -1850,6 +1850,19 @@ from world.v10400_equipment_5001 import install as _sb10400_eq_install
 V10400_EQUIPMENT_BUILD = _sb10400_eq_install(ITEMS, CRAFT_RECIPES, REGIONAL_SET_BONUSES)
 
 
+# v105: nowe krainy do poziomu 30000 i 1000 regionalnych questów.
+from world.v10500_krainy_10001_30000 import install as _sb10500_regions_install
+V10500_REGIONS_BUILD = _sb10500_regions_install(
+    ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+    EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY,
+    GUIDE_DESTINATION_ALIASES,
+    __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+)
+EXP_AREAS = EXP_AREAS + V10500_REGIONS_BUILD['areas']
+
+from world.v10500_equipment import install as _sb10500_equipment_install
+V10500_EQUIPMENT_BUILD = _sb10500_equipment_install(ITEMS, CRAFT_RECIPES, REGIONAL_SET_BONUSES)
+
 # v104 ETAP 9: unikalny kolekcjonerski dowód ukończenia inwazji.
 # Nagroda przypisywana wyłącznie osobom zaliczonym przez prawdziwe walki.
 if 'v10400_invasion_victory_seal' in ITEMS:

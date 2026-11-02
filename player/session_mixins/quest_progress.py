@@ -403,11 +403,11 @@ class SessionQuestProgressMixin:
             next_tier = self.character.can_unlock()
             if not next_tier:
                 return None
-            return SOUL_TRIAL_QUEST_IDS.get(next_tier)
+            return SOUL_TRIAL_QUEST_IDS.get(next_tier) if next_tier % 10 == 0 else None
 
     def soul_tier_quest_completed(self, tier):
             quest_id = SOUL_TRIAL_QUEST_IDS.get(int(tier))
-            if not quest_id:
+            if int(tier) % 10 != 0 or not quest_id:
                 return True
             row = self.server.db.quest(self.account_id, quest_id)
             return bool(row and row["status"] == "completed")
@@ -630,6 +630,17 @@ class SessionQuestProgressMixin:
 
     def quest_ids_for_npc(self, npc_id, npc):
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
+            # v105: the 50 authored quests per region must all be browseable.
+            # Do not let the legacy v103 "one next stage per chain" filter
+            # hide late hunts / boss contracts / profession chapters. The
+            # regular quest_offer_state and quest_lock_reasons still enforce
+            # prerequisites at acceptance. NPC pagination is handled by
+            # show_npc_quest_offers (10 entries per NVDA page).
+            if str(npc_id).startswith('v10500_'):
+                return list(dict.fromkeys(
+                    qid for qid in tuple(npc.get('specialist_quests') or ())
+                    if qid in QUESTS
+                ))
             # v103 Era Bez Granic: równoległe szeregi fabularne, klasowe,
             # profesyjne i rajdowe. Nie używaj starego v700 "jedna długa
             # lista liniowa", bo blokuje rajd za questami cudzej klasy.
@@ -706,23 +717,15 @@ class SessionQuestProgressMixin:
             # Tier 2 -> Tier 20, niezależnie od historycznej kolejności definicji
             # quest_id w pliku. Zwykły quest Szczury pod świątynią zostaje pierwszy.
             if npc_id == "priest_elor":
-                trial_ids = set(SOUL_TRIAL_QUEST_IDS.values())
+                trial_ids = {qid for qid, q in QUESTS.items() if q.get('unlocks_soul_tier') is not None}
                 regular = [qid for qid in result if qid not in trial_ids]
                 trials = sorted(
                     (qid for qid in result if qid in trial_ids),
                     key=lambda qid: int(QUESTS[qid].get("unlocks_soul_tier", 999)),
                 )
-                # v104.00.3: po Tierze 80 lista pokazuje dziesięć kolejnych
-                # Prób (zamiast jednej), bez czytania 920 pozycji przez NVDA.
-                # quest list Elor NUMER umożliwia przegląd dowolnego zakresu.
-                # Nie zmieniamy przyjmowania questów ani zasad odblokowania Tierów.
-                tier_now = max(1, int(getattr(self.character, 'soul_tier', 1) or 1))
-                if tier_now >= 80:
-                    first = tier_now + 1
-                    trials = [qid for qid in trials if
-                              first <= int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) < first + 10]
-                else:
-                    trials = [qid for qid in trials if
-                              int(QUESTS[qid].get('unlocks_soul_tier', 0) or 0) <= 80]
-                result = regular + trials
+                # v105: wyłącznie obowiązkowe Próby co 10 Tierów; 10 pozycji.
+                tier_now=max(1,int(getattr(self.character,'soul_tier',1) or 1))
+                trials=[qid for qid in trials if int(QUESTS[qid].get('unlocks_soul_tier',0) or 0)%10==0
+                        and int(QUESTS[qid].get('unlocks_soul_tier',0) or 0)>tier_now][:10]
+                result=regular+trials
             return result

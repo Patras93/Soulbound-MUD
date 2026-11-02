@@ -1624,7 +1624,7 @@ LATEST_CHANGES = [
 ] + LATEST_CHANGES
 
 # Final v103.00.0 release identity. Historical notes remain available.
-LATEST_CHANGES_TITLE = "Soulbound v104.00.3 - Próby Broni Duszy u Elora i poprawiony help (Era Bez Granic)"
+LATEST_CHANGES_TITLE = "Soulbound v105.00.0 - Era Wiecznych Krain (Era Bez Granic): 20 regionów, Soul Tier 3000, Próby co 10"
 LATEST_CHANGES = [
     "v103.00.0: 11 krain 801-5000, 165 nowych pokojow, 33 NPC i 385 nowych zadan.",
     "v103.00.0: 11 rajdow z 33 bossami i czterema fazami HP; questy klasowe, fabularne i profesyjne.",

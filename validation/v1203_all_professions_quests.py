@@ -31,7 +31,7 @@ def run_regression():
     assert set(prof_quests)==set(PROJECTS)
     if modern_quest_catalog(server.VERSION):
         from validation.v10400_profession_quest_baseline import check_baseline
-        check_baseline(QUESTS, prof_quests)
+        check_baseline(QUESTS, prof_quests, version=server.VERSION)
     else:
         assert sum(map(len,prof_quests.values()))==2221,(sum(map(len,prof_quests.values())),)
     c+=2

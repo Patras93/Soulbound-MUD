@@ -39,6 +39,12 @@ def audit_economy_final_v1175():
     check((SILVER_PER_GOLD, SILVER_PER_MITHRIL) == (100, 100_000_000),
           "currency denomination drift")
     sale = SessionSalesMixin()
+    # A detached mixin is not a valid player session after the v105 guard:
+    # check sellability against the genuine schema and an isolated account.
+    # Never bypass is_evolved just to make an old pricing audit pass.
+    pricing_db = Database(':memory:')
+    sale.server = SimpleNamespace(db=pricing_db)
+    sale.account_id = 71
     sampled = set()
     for room, ids in SHOPS.items():
         for iid in ids:
@@ -65,6 +71,21 @@ def audit_economy_final_v1175():
             check(resale >= 0, f"{room}/{iid}: negative sale")
             if resale > price - price*75//100:
                 stats["at_risk_before"] += 1
+
+    # Verify the v105 character-bound restriction inside the historical audit.
+    if sampled:
+        probe_id = sorted(sampled)[0]
+        probe_item = ITEMS[probe_id]
+        from systems.equipment_evolution_v10500 import record_key
+        check(sale.generic_item_is_sellable(probe_id, probe_item),
+              'baseline sellable equipment must remain sellable')
+        pricing_db.conn.execute(
+            'INSERT INTO player_records_v03051(account_id,record_key,value) VALUES (?,?,?)',
+            (71, record_key(probe_id), 1),
+        )
+        check(not sale.generic_item_is_sellable(probe_id, probe_item),
+              'evolved equipment must remain blocked from sale')
+    pricing_db.conn.close()
 
     # The final class-shop catalog includes dynamic tiers not shown in SHOPS.
     for class_name, stages in CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER.items():

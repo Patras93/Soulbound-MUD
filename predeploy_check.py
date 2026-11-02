@@ -2676,11 +2676,12 @@ for _needle in (
             "v1.13.37 full runtime smoke regression: missing " + _needle
         )
 
+# v105: exact, version-aware compatibility proof; no unconditional skips.
 # v104: exact, reviewed exceptions only.  Unconditional set()/blanket skips
 # would reject legitimate v104 endgame extensions or hide unknown failures.
 # Keep the original full-audit error handling and fail closed on any anomaly.
 for _needle in (
-    'nonblocking_legacy_audits = accepted_legacy_reports(ns)',
+    'nonblocking_legacy_audits = accepted_legacy_reports(ns, version=server.VERSION)',
     'if name in nonblocking_legacy_audits',
     'if audit_failures:',
 ):

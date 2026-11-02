@@ -20,7 +20,7 @@ NAMES = (
 )
 
 
-def accepted_legacy_reports(ns):
+def accepted_legacy_reports(ns, *, version="104.00.3"):
     """Return narrow eligible advisories or raise on even one mismatch."""
     from core.classes_skills import CLASSES
     from core.class_skills_v10400 import NAMES as authored_names, is_authored_endgame_unlock_v104
@@ -29,10 +29,14 @@ def accepted_legacy_reports(ns):
     class_names = [entry[0] for entry in CLASSES]
     if len(class_names) != 22 or len(set(class_names)) != 22 or set(class_names) != set(authored_names):
         raise AssertionError('v104 audit: invalid 22-class identity')
-    if SOUL_MAX_TIER != 1000 or len(SOUL_TIER_THRESHOLDS) != 1000 or (
-        SOUL_TIER_THRESHOLDS[499], SOUL_TIER_THRESHOLDS[500], SOUL_TIER_THRESHOLDS[-1]
-    ) != (5000, 5010, 10000):
-        raise AssertionError('v104 audit: 1000 Soul Tiers incomplete')
+    # v105 extends the catalogue. Keep auditing the immutable v104 prefix
+    # rather than rejecting newer, fully backward-compatible Tier entries.
+    if (SOUL_MAX_TIER not in (1000, 3000) or
+        len(SOUL_TIER_THRESHOLDS) != SOUL_MAX_TIER or
+        (SOUL_TIER_THRESHOLDS[499], SOUL_TIER_THRESHOLDS[500], SOUL_TIER_THRESHOLDS[999])
+        != (5000, 5010, 10000) or
+        (SOUL_MAX_TIER == 3000 and SOUL_TIER_THRESHOLDS[-1] != 30000)):
+        raise AssertionError('v104 audit: historical 501-1000 tiers changed or v105 invalid')
     all_skills = ns['CLASS_SKILLS']
     if set(all_skills) != set(class_names):
         raise AssertionError('v104 audit: missing or added class')
@@ -62,6 +66,37 @@ def accepted_legacy_reports(ns):
 
     expected = {}
     expected['FULL_GAME_AUDIT_V03014'] = ['skill unlock '+r['id'] for _, r in high]
+    # The frozen v0.30.14 validator only sees static MOB_TEMPLATES, while
+    # the v105 Astral Tower creates 10k+ bosses lazily on first floor entry.
+    # Admit precisely the real milestone/target pairs, not arbitrary unknown
+    # quest targets; validate them against the genuine infinite-floor rule.
+    from validation.release_contracts import parse_version
+    if parse_version(version) >= (105, 0, 0):
+        from core.progression_600 import SOUL_TRIAL_QUEST_IDS, SOUL_TIER_THRESHOLDS
+        from world.dynamic_content import QUESTS
+        from systems.dungeons_regions import is_astral_boss_floor
+        astral_advisories = []
+        for tier in range(1010, 3001, 10):
+            qid = SOUL_TRIAL_QUEST_IDS[tier]
+            quest = QUESTS.get(qid)
+            if not isinstance(quest, dict):
+                raise AssertionError('v105 trial missing: '+str(qid))
+            target = str(quest.get('target') or '')
+            if target.startswith('astral_boss_'):
+                floor = SOUL_TIER_THRESHOLDS[tier - 1]
+                if (target != f'astral_boss_{floor}' or
+                    not is_astral_boss_floor(floor) or
+                    quest.get('kind') != 'kill' or
+                    quest.get('unlocks_soul_tier') != tier or
+                    quest.get('required_soul_level') != floor):
+                    raise AssertionError('v105 invalid dynamic Astral Trial '+qid)
+                astral_advisories.append(('quest_bad_kill_target', qid, target))
+        if len(astral_advisories) != 67:
+            raise AssertionError('v105 Astral Trials changed: '+str(len(astral_advisories)))
+        expected['FULL_GAME_AUDIT_V03014'].extend(
+            f'quest mob target missing {qid}:{target}' for _, qid, target in astral_advisories
+        )
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'] = astral_advisories
     expected['V03014_SKILL_NAME_AUDIT'] = [
         f'{c}/{r["name"]}: unlock poza zakresem: {r["unlock"]}' for c,r in high
     ]
@@ -90,7 +125,8 @@ def accepted_legacy_reports(ns):
     ]
     expected['FULL_RELEASE_INTEGRITY_AUDIT_V03025'] = ['v0.30.22 release gate regressed']
     allowed = set()
-    for name in NAMES:
+    required_names = NAMES + (('FULL_GAME_PREDEPLOY_AUDIT_V0336',) if parse_version(version) >= (105, 0, 0) else ())
+    for name in required_names:
         report = ns.get(name)
         if not isinstance(report,dict):
             raise AssertionError(f'v104 audit: missing historical report {name}')

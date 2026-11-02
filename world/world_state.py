@@ -129,6 +129,41 @@ from core.performance_v2002 import measure_sync
 
 
 class World:
+    @staticmethod
+    def _restore_v105_authored_stage(room_id, template_id):
+        """Preserve authored v105 stage metadata after legacy 800-cap normalizer.
+
+        Scoped strictly to v105 source/variant IDs in v105 rooms: older NPCs,
+        encounters and all combat HP/damage remain under their original rules.
+        """
+        if not (str(room_id).startswith("v10500_")
+                and str(template_id).startswith("v10500_")):
+            return
+        stage = int(ROOMS.get(room_id, {}).get("generator_level", 0) or 0)
+        if stage <= 800:
+            return
+        tpl = MOB_TEMPLATES.get(template_id)
+        if isinstance(tpl, dict):
+            stage = max(stage, int(tpl.get("generator_level", 0) or 0))
+            tpl["generator_level"] = stage
+            tpl["v019_stage"] = stage
+            # Legacy 800-cap world/terrain clone makes all new ordinary mobs
+            # share identical HP and damage, despite authored 10001-30000
+            # progression. Restore authored values only for v105 non-elite
+            # ordinary mobs. Do not make room-specific changes to one shared
+            # variant template: it may spawn in two neighbouring rooms.
+            source_id = str(tpl.get("base_template") or "")
+            if (source_id.startswith("v10500_")
+                    and "_mob_" in source_id
+                    and source_id != str(template_id)
+                    and not tpl.get("elite_affix")):
+                authored = MOB_TEMPLATES.get(source_id)
+                if isinstance(authored, dict):
+                    tpl["generator_level"] = max(1, int(authored.get("generator_level",1) or 1))
+                    tpl["v019_stage"] = tpl["generator_level"]
+                    tpl["max_hp"] = max(1, int(authored.get("max_hp", 1) or 1))
+                    tpl["damage"] = max(1, int(authored.get("damage", 1) or 1))
+
     def __init__(self):
         self.mobs = {}
         self.corpses = {}
@@ -155,6 +190,7 @@ class World:
             key = f"{room_id}:{spawn_template_id}:{n}"
             template_id = self._elite_spawn_template_v11338(spawn_template_id)
             v0190_apply_combat_template(MOB_TEMPLATES[template_id])
+            self._restore_v105_authored_stage(room_id, template_id)
             self.mobs[key] = MobState(
                 key=key, room_id=room_id, template_id=template_id,
                 hp=MOB_TEMPLATES[template_id]["max_hp"],
@@ -283,6 +319,7 @@ class World:
         key = f"{room_id}:{spawn_template_id}:{n}"
         template_id = self._elite_spawn_template_v11338(spawn_template_id)
         v0190_apply_combat_template(MOB_TEMPLATES[template_id])
+        self._restore_v105_authored_stage(room_id, template_id)
         mob = MobState(
             key=key, room_id=room_id, template_id=template_id,
             hp=MOB_TEMPLATES[template_id]["max_hp"],
@@ -1059,6 +1096,7 @@ class World:
                         source_template_id
                     )
                     v0190_apply_combat_template(MOB_TEMPLATES[mob.template_id])
+                    self._restore_v105_authored_stage(mob.room_id, mob.template_id)
                     mob.alive = True
                     mob.hp = MOB_TEMPLATES[mob.template_id]["max_hp"]
                     mob.engaged_by = None

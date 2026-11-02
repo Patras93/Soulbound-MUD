@@ -78,7 +78,15 @@ def run_regression(server=None):
     check(all(_is_fame_target(mobs[tid]) for members in catalogue.values() for tid in members),
           'no ordinary monsters in Fame catalog')
     for slug,zone,_,_,_,_,_ in KINGDOMS:
-        check(len(catalogue[zone])==15,f'{zone} natural Fame targets')
+        # The kingdom's original 12 enemies and 3 gods must remain Fame targets.
+        # Later eras can add authored elite/boss opponents to the same zone.
+        historic={f'v1900_{slug}_mob_{i}' for i in range(12)} | {
+            f'v1900_{slug}_god_{i}' for i in range(3)}
+        actual=set(catalogue.get(zone, ()))
+        check(historic <= actual and len(actual) >= 15,
+              f'{zone} retains all 15 historical Fame targets')
+        check(all(_is_fame_target(mobs[tid]) for tid in (actual - historic)),
+              f'{zone} extra Fame targets are real authored elite/boss enemies')
     for _,zone,_,_ in DIMENSIONS:
         check(len(catalogue[zone])>=7,f'{zone} Fame targets retained alongside new targets')
     con=sqlite3.connect(':memory:')

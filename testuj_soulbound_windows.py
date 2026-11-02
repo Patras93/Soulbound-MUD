@@ -266,7 +266,7 @@ def main():
         say('Folder gry: '+str(ROOT))
         say('Baza prawdziwych graczy: tylko odczyt przez backup SQLite w etapach 25/49/60; zapisy wylacznie w TEMP')
         say('TCP: tylko 127.0.0.1, 5 zalogowanych graczy, 5 TCP i 3 fale po 5 TCP localhost')
-        say('PASS wymaga wszystkich 60 etapow (w tym izolowanej kopii realnej bazy).')
+        say('PASS wymaga wszystkich 60 etapow PLUS oraz 3 dodatkowych bramek v105, w tym migracji realnej bazy na KOPII.')
         say('-' * 72)
         try:
             source = source_db_for_gate()
@@ -303,6 +303,25 @@ def main():
             say('BLAD TESTERA: '+type(exc).__name__+': '+str(exc))
             say(traceback.format_exc().strip())
             status.append(('BLAD TESTERA', 99))
+        # v105: additional mandatory checks are run on this exact staged
+        # candidate, after historical 60 stages, but BEFORE final PASS.
+        # They do not change the 60-stage historical count. Real player DB is
+        # only opened by mode=ro; mutation rehearsal runs on a TEMP backup.
+        v105_extra=[]
+        if len(status)==60 and all(code==0 for _,code in status):
+            for title,script,deadline in (
+                ('V105 KATALOGI I BALANS', 'validation/v10500_release_predeploy.py', 420),
+                ('V105 MIGRACJA PRAWDZIWEJ BAZY TYLKO KOPIA', 'validation/v10500_windows_migration_gate.py', 240),
+                ('V105 BOSSOWIE TCP 5 KLIENTOW / QUEST I NAGRODY', 'validation/v10500_tcp_boss_rewards.py', 900),
+            ):
+                say('\nV105 START: '+title)
+                with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-v105-') as temp:
+                    env=stage_env(temp)
+                    code=run_stage(script,env,deadline,say)
+                v105_extra.append((title,code))
+                say('V105 KONIEC: '+title+' | '+('PASS' if code==0 else 'FAIL'))
+                if code!=0:
+                    break
         say('\n' + '=' * 72)
         say('PODSUMOWANIE ETAPOW:')
         for title, ret in status:
@@ -310,7 +329,13 @@ def main():
         # Check the PLUS sub-suite was *actually executed*, not merely skipped.
         logfile.flush()
         plus_proof = 'PLUS CHECKS PASS' in LOG.read_text(encoding='utf-8',errors='replace')
-        good = len(status) == len(STAGES) and all(ret == 0 for _,ret in status) and plus_proof
+        if len(status)==len(STAGES) and all(ret == 0 for _,ret in status):
+            for title,ret in v105_extra:
+                say(('PASS' if ret == 0 else 'FAIL') + ' - '+title+' (kod '+str(ret)+')')
+        extra_proof = (len(v105_extra)==3 and all(ret==0 for _,ret in v105_extra))
+        if not extra_proof: say('FAIL: Nie przeszly wszystkie trzy dodatkowe bramki v105')
+        good = (len(status) == len(STAGES) and all(ret == 0 for _,ret in status)
+                and plus_proof and extra_proof)
         if not plus_proof: say('FAIL: Brak dowodu wykonania regresji PLUS')
         say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 60 ETAPOW PLUS' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))

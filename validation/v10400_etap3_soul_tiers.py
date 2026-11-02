@@ -26,12 +26,12 @@ def run():
         if not check: raise AssertionError(description)
         n+=1
 
-    ck(p.SOUL_MAX_TIER == 1000, 'max tier')
+    ck(p.SOUL_MAX_TIER == 3000, 'v105 extends Tiers to 3000')
     arrays=('SOUL_TIER_THRESHOLDS','SOUL_TIER_POWER_BONUSES',
             'SOUL_TIER_CLASS_BONUS_PERCENT','SOUL_TIER_DODGE_BONUS',
             'SOUL_TIER_GUARDIAN_REDUCTION')
     for name in arrays:
-        ck(len(getattr(p,name))==1000,'len '+name)
+        ck(len(getattr(p,name))==3000,'len '+name)
     ck(p.SOUL_TIER_THRESHOLDS[499]==5000,'legacy Tier 500 threshold')
     ck(p.SOUL_TIER_THRESHOLDS[500]==5010,'new Tier 501 threshold')
     ck(p.SOUL_TIER_THRESHOLDS[999]==10000,'Tier 1000 threshold')
@@ -76,12 +76,12 @@ def run():
         ck(world.MOB_TEMPLATES[boss_id]['quest_target']==boss_id,f'quest kill credit {floor}')
         ck((room,boss_id) in spawns,f'boss spawn {floor}')
         ck(world.MOB_TEMPLATES[boss_id]['max_hp']>0,f'boss HP {floor}')
-    ck('Soul Tier 1000/1000:' in report('soul 1000',QUESTS,world.ROOMS,world.NPCS,world.MOB_TEMPLATES),'admin live inspect tier1000')
-    ck('Soul: dopuszczalne Tiery' in report('soul 1001',QUESTS,world.ROOMS,world.NPCS,world.MOB_TEMPLATES),'admin live out of range')
+    ck('Soul Tier 1000/3000:' in report('soul 1000',QUESTS,world.ROOMS,world.NPCS,world.MOB_TEMPLATES),'admin live inspect tier1000')
+    ck('Soul: dopuszczalne Tiery' in report('soul 3001',QUESTS,world.ROOMS,world.NPCS,world.MOB_TEMPLATES),'admin live out of range')
 
     # Test actual native Character unlock threshold, using object with only
     # the attributes needed for can_unlock (no DB initialization).
-    for tier,level,expected in ((500,5000,None),(500,5010,501),(999,9999,None),(999,10000,1000),(1000,20000,None)):
+    for tier,level,expected in ((500,5000,None),(500,5010,501),(999,9999,None),(999,10000,1000),(1000,20000,1001),(3000,30000,None)):
         c=types.SimpleNamespace(soul_tier=tier,soul_level=level)
         ck(Character.can_unlock(c)==expected,f'character can_unlock {tier}/{level}')
 
@@ -112,11 +112,15 @@ def run():
         def soul_tier_quest_completed(self,tier):return self.passed
         def soul_next_goal_text(self):return 'Następna Próba'
     async def validate_unlock():
-        for old,level,passed,should_advance in ((500,5010,False,False),
+        # Ordinary tiers do not require quest; T1000 does. Historical
+        # quest rows still exist and must not be needed for T501.
+        for old,level,passed,should_advance in ((500,5010,False,True),
                 (500,5000,True,False),(500,5010,True,True),
-                (999,10000,True,True),(1000,20000,True,False)):
+                (999,10000,False,False),(999,10000,True,True),
+                (1000,20000,False,True),(2999,30000,False,False),
+                (2999,30000,True,True)):
             s=DummySession(old,level,passed)
-            await method(s)
+            await method(s,False)
             ck((s.character.soul_tier==old+1)==should_advance,
                f'advance check {old}/{level}/{passed}')
             ck(s.server.db.saved==([old+1] if should_advance else []),

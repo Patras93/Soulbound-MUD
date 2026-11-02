@@ -390,6 +390,9 @@ class DatabaseInventoryMixin:
         self.conn.commit()
 
     def remove_item(self, account_id, item_id, qty=1, commit=True):
+        from systems.equipment_evolution_v10500 import is_evolved
+        if is_evolved(self.conn, account_id, item_id):
+            return False  # evolved EQ cannot disappear while its stage is bound
         qty = max(1, int(qty))
         current = self.item_qty(account_id, item_id)
         if current < qty:
@@ -412,6 +415,9 @@ class DatabaseInventoryMixin:
 
     def transfer_inventory_item(self, from_account_id, to_account_id, item_id, qty=1):
         """Atomowo przenosi zwykły item inventory między dwiema postaciami."""
+        from systems.equipment_evolution_v10500 import is_evolved
+        if is_evolved(self.conn, from_account_id, item_id):
+            return False  # evolved EQ is character-bound
         qty = max(1, int(qty))
         if from_account_id == to_account_id:
             return False
@@ -488,6 +494,9 @@ class DatabaseInventoryMixin:
         current=0
         if kind=="item":
             item_id=str(item_id or "")
+            from systems.equipment_evolution_v10500 import is_evolved
+            if is_evolved(self.conn, from_account_id, item_id):
+                return None  # no evolved equipment in mail escrow
             row=self.conn.execute(
                 "SELECT quantity FROM inventory WHERE account_id=? AND item_id=?",
                 (from_account_id,item_id),
@@ -1069,6 +1078,9 @@ class DatabaseInventoryMixin:
         self.conn.commit()
 
     def transfer_equipment_crafting_v0925(self, from_account_id, to_account_id, item_id):
+        from systems.equipment_evolution_v10500 import is_evolved
+        if is_evolved(self.conn, from_account_id, item_id):
+            raise ValueError('Ewoluowany przedmiot jest przypisany do postaci; najpierw wyzeruj ewolucję u Haldora.')
         ref=self.equipment_reforge(from_account_id,item_id)
         runes=list(self.equipment_runes_v0925(from_account_id,item_id))
         upgrade=self.equipment_upgrade_level_v03042(from_account_id,item_id)

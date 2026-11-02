@@ -382,7 +382,7 @@ def main():
             # compatibility proof permits only their known findings.
             from validation.v10400_legacy_audit_compat import accepted_legacy_reports
             try:
-                nonblocking_legacy_audits = accepted_legacy_reports(ns)
+                nonblocking_legacy_audits = accepted_legacy_reports(ns, version=server.VERSION)
             except (AssertionError, KeyError, ValueError, TypeError) as exc:
                 print(f'BLOKADA ZGODNOSCI V104: {exc}', flush=True)
                 raise SystemExit(1) from exc
