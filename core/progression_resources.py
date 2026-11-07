@@ -415,6 +415,24 @@ def soul_xp_to_next(level):
     level = max(1, min(runtime_max, int(level)))
     if level >= runtime_max:
         return 0
+    # v106 STAGING: Soul XP 1..799 liczone względem istniejących nagród
+    # potworów; pomost 800..29999 i nowa era 30000..59999. Żadna ze
+    # zmian nie dotyczy produkcyjnej krzywej bez flagi staging.
+    import os as _v106_os
+    if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+        if 1 <= level < 800:
+            from systems.soul_xp_early_v10600 import requirement as _v106_early
+            from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
+            authored = _v106_early(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
+            return _v10402_soul_requirement(level, authored)
+        if 800 <= level < 30000:
+            from systems.soul_xp_bridge_v10600 import requirement as _v106_bridge
+            from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
+            authored = _v106_bridge(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
+            return _v10402_soul_requirement(level, authored)
+        if 30000 <= level < 60000:
+            from systems.soul_xp_curve_v10600 import requirement as _v106_requirement
+            return _v106_requirement(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
     authored = _late_game_axis_requirement(
         "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
     )

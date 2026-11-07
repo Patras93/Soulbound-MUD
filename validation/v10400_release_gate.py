@@ -68,7 +68,7 @@ def run(*, loopback=False, timeout=120):
     py, files = check_files()
     modules, outcome = run_tests(loopback=loopback, timeout=timeout)
     version = (ROOT/'VERSION').read_text(encoding='utf-8').strip()
-    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3', '105.00.0'):
+    if version not in ('104.00.0', '104.00.1', '104.00.2', '104.00.3', '105.00.0', '106.00.0', '107.00.0'):
         raise AssertionError('Nieoczekiwany VERSION. Nie zmieniaj wersji bez PREDEPLOY.')
     print(f'AST: {py} plikow Python PASS')
     print(f'Paczka: {files} plikow, brak baz, cache, logow i sekretow PASS')

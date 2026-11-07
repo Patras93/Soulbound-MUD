@@ -191,13 +191,20 @@ def _npc_explicit_quest_ids(npc):
     return tuple(qid for qid in ids if qid in QUESTS)
 
 
-def _npc_has_any_quest(npc):
+def _npc_has_any_quest(npc, quest_giver_names=None):
+    """O(1) giver lookup during bulk NPC reconciliation; unchanged fallback."""
     if _npc_explicit_quest_ids(npc):
         return True
     giver = str(npc.get("name") or "").strip().casefold()
     if not giver:
         return False
+    if quest_giver_names is not None:
+        return giver in quest_giver_names
     return any(str(q.get("giver") or "").strip().casefold() == giver for q in QUESTS.values())
+
+
+def _quest_giver_names_v107():
+    return {str(q.get("giver") or "").strip().casefold() for q in QUESTS.values()}
 
 
 def _stable_index_v0712(identity, count):
@@ -244,17 +251,12 @@ def _choose_hourly_partner(source_id, source):
     return None, None
 
 
-def _choose_hourly_kill_target_v0712(source_id, source):
-    """Pick the nearest sensible ordinary mob reachable from the NPC.
+def _hourly_mob_spawn_index_v107():
+    """Build the exact original ordinary-mob index once per reconciliation.
 
-    v0.71.2 deliberately ignores training dummies, bosses and instance-only
-    scripted targets.  A short BFS keeps patrols local without forcing every
-    town to have a spawn in the exact same zone.
+    No persistent cache: the second bootstrap pass can add spawns and must see
+    the updated registry, including after Admin Live catalog changes.
     """
-    source_room = str(source.get("room") or "")
-    if source_room not in ROOMS:
-        return None
-
     mobs_by_room = {}
     for room_id, mob_id in tuple(getattr(content_registry, "MOB_SPAWNS", ()) or ()):
         mob = MOB_TEMPLATES.get(str(mob_id)) or {}
@@ -268,6 +270,16 @@ def _choose_hourly_kill_target_v0712(source_id, source):
         if "dummy" in mob_key or "manekin" in mob_name:
             continue
         mobs_by_room.setdefault(str(room_id), set()).add(str(mob_id))
+    return mobs_by_room
+
+
+def _choose_hourly_kill_target_v0712(source_id, source, mobs_by_room=None):
+    """Choose the original nearest ordinary mob using a per-pass spawn index."""
+    source_room = str(source.get("room") or "")
+    if source_room not in ROOMS:
+        return None
+    if mobs_by_room is None:
+        mobs_by_room = _hourly_mob_spawn_index_v107()
 
     seen = {source_room}
     frontier = [source_room]
@@ -304,8 +316,12 @@ def _hourly_collect_category_v0712(source_id):
 def _add_hourly_quests_for_idle_npcs():
     created = []
     covered = []
+    # v107: avoid rescanning every quest and every monster spawn for EACH NPC.
+    # A new index is built for each bootstrap pass, so late-added content is seen.
+    quest_giver_names = _quest_giver_names_v107()
+    mobs_by_room = _hourly_mob_spawn_index_v107()
     for npc_id, npc in list(NPCS.items()):
-        if _npc_has_any_quest(npc):
+        if _npc_has_any_quest(npc, quest_giver_names):
             continue
 
         room = ROOMS.get(str(npc.get("room") or ""), {})
@@ -315,7 +331,7 @@ def _add_hourly_quests_for_idle_npcs():
         giver = str(npc.get("name") or npc_id)
         target_id, target = _choose_hourly_partner(npc_id, npc)
         variant = ("talk", "deliver", "collect", "kill")[_stable_index_v0712(f"hourly-kind:{npc_id}", 4)]
-        kill_target = _choose_hourly_kill_target_v0712(npc_id, npc) if variant == "kill" else None
+        kill_target = _choose_hourly_kill_target_v0712(npc_id, npc, mobs_by_room) if variant == "kill" else None
 
         # If a locality cannot support the initially selected objective, fall
         # back to gathering rather than creating a cross-world nonsensical kill.
@@ -414,6 +430,7 @@ def _add_hourly_quests_for_idle_npcs():
 
         catalog_assign(quest, "QUESTS", QUESTS, (qid,))
         catalog_assign(qid, "NPCS", NPCS, (npc_id, "quest"))
+        quest_giver_names.add(giver.strip().casefold())
         created.append(qid)
         covered.append(npc_id)
     return tuple(created), tuple(covered)
@@ -431,13 +448,14 @@ def _refresh_living_npcs_state():
     V0560_ALL_HOURLY_IDS = tuple(dict.fromkeys(V0560_TAVERN_QUEST_IDS + V0560_GENERATED_HOURLY_IDS))
     old_hourlies = tuple(getattr(content_registry, "HOURLY_QUEST_IDS", ()) or ())
     content_registry.HOURLY_QUEST_IDS = tuple(dict.fromkeys(old_hourlies + V0560_ALL_HOURLY_IDS))
+    quest_giver_names = _quest_giver_names_v107()
     V0560_LIVING_NPCS_STATE = {
         "tavern_count": len(V0560_TAVERN_NPC_IDS),
         "tavern_hourly_count": len(V0560_TAVERN_QUEST_IDS),
         "generated_hourly_count": len(V0560_GENERATED_HOURLY_IDS),
         "generated_npc_count": len(V0560_GENERATED_NPC_IDS),
         "npc_count": len(NPCS),
-        "npc_without_quest_count": sum(1 for npc in NPCS.values() if not _npc_has_any_quest(npc)),
+        "npc_without_quest_count": sum(1 for npc in NPCS.values() if not _npc_has_any_quest(npc, quest_giver_names)),
     }
     return dict(V0560_LIVING_NPCS_STATE)
 

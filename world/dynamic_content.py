@@ -1,3 +1,4 @@
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 from systems.items_resources import CLASS_EQUIPMENT_SETS  # required by bound historical collection builder
 from systems.dungeons_regions import ASTRAL_MAX_FLOOR  # restored source dependency
 from systems.items_resources import CORPSE_MATERIAL_TIERS  # restored source dependency
@@ -1879,9 +1880,69 @@ from world.v10400_endgame_contracts import install as _sb10400_contracts_install
 V10400_CONTRACTS_BUILD = _sb10400_contracts_install(QUESTS, NPCS, MOB_TEMPLATES, ITEMS)
 
 
+# v106: katalogi świata dostępne w izolowanym stagingu v106 i w nowym
+# stagingu v107. Dzięki temu v107 nie gubi krain 30001–60000.
+# Bez obu flag produkcyjny bootstrap nadal nie zmienia zachowania.
+import os as _sb106_os
+V10600_STAGING_BUILD = None
+if (_sb106_os.environ.get('SOULBOUND_V106_STAGING') == '1' or
+        _sb107_runtime_enabled()):
+    from world.v10600_staging_bridge import install as _sb106_staging_install
+    V10600_STAGING_BUILD = _sb106_staging_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY,
+        GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+    )
+    EXP_AREAS = EXP_AREAS + V10600_STAGING_BUILD['areas']
+
+
 # v104 Admin Live: tylko istniejące wpisy v10400 i bezpieczne pola liczbowe.
 from systems.admin_live_era_v10400 import apply as _sb10400_overrides_apply
 V10400_ADMIN_OVERRIDES_APPLIED = _sb10400_overrides_apply({
     'rooms':ROOMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,'items':ITEMS,
     'recipes':CRAFT_RECIPES,
 })
+
+# v107: w *izolowanym* procesie roboczym usuń rajdy 1–35 z aktywnej
+# rozgrywki, zachowując ID zadań, przedmioty i historię postaci.
+import os as _sb_v107_no_raids_env
+V10700_RAIDS_RETIRED = None
+if _sb107_runtime_enabled():
+    from world.v10700_no_raids import retire_all_raids_v107
+    V10700_RAIDS_RETIRED = retire_all_raids_v107(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES)
+
+# v107, etap 8: pierwszy rozdział 30 planowanych krain (5 gotowych).
+# Wszystkie historyczne etapy i bezrajdu zachowane. Osobny katalog świata,
+# żaden zapis do bazy postaci. Tylko izolowany roboczy proces v107.
+V10700_CHAOS_CHAPTER_ONE_BUILD = None
+if _sb107_runtime_enabled():
+    from world.v10700_chaos_chapter_one import install as _sb_v107_chaos_chapter_install
+    V10700_CHAOS_CHAPTER_ONE_BUILD = _sb_v107_chaos_chapter_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+    )
+    EXP_AREAS = EXP_AREAS + V10700_CHAOS_CHAPTER_ONE_BUILD['areas']
+
+# v107 WIELKA PACZKA / ROZDZIAŁY II–VI: 25 krain naraz, razem 30/30.
+# Staging only: 500 lokacji, 300 rodzajów potworów, 1000 questów.
+# Wciąż zero rajdów, pełna izolacja od produkcyjnej bazy v106.
+V10700_CHAOS_CHAPTERS_2_6_BUILD = None
+if _sb107_runtime_enabled():
+    from world.v10700_chaos_chapters_2_6 import install as _sb_v107_all_chaos_install
+    V10700_CHAOS_CHAPTERS_2_6_BUILD = _sb_v107_all_chaos_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+    )
+    EXP_AREAS = EXP_AREAS + V10700_CHAOS_CHAPTERS_2_6_BUILD['areas']
+
+
+# v107: końcowe 760 grywalnych zadań podłączonych do realnych NPC i mobów.
+V10700_SAGA_760_BUILD = None
+if _sb107_runtime_enabled():
+    from world.v10700_saga_760_quests import install as _sb_v107_saga_install
+    V10700_SAGA_760_BUILD = _sb_v107_saga_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS)

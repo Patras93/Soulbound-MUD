@@ -79,6 +79,8 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
         if k in seen:
             raise UpdateError(f'Powtarzajaca sie nazwa w ZIP: {relative}')
         seen.add(k)
+        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json'):
+            raise UpdateError('Znaczniki zatwierdzenia v107/v108 moze utworzyc tylko instalator.')
         if protected(relative):
             if relative.name.lower().endswith(SQLITE_SUFFIXES):
                 raise UpdateError(f'ZIP zawiera baze danych: {relative}. Przerwano, by chronic postacie.')
@@ -147,13 +149,28 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
     fabricate an approval by bundling a JSON file. Earlier releases retain
     their historic updater behavior.
     """
+    if version_tuple(new_version) >= (108, 0, 0):
+        if new_version != '108.00.0':
+            raise UpdateError('v108: nieznany numer wydania, brak zweryfikowanej sciezki migracji.')
+        from validation.v10800_release_readiness import unmet_requirements
+        if unmet_requirements(ROOT):
+            raise UpdateError('v108: niekompletna sciezka aktywacji i EQ; STOP zabroniony.')
+        # v108 only upgrades certified v107 installations. Older transitions
+        # need a separately validated migration; never infer it from VERSION.
+        if file_version(root/'core/bootstrap_economy_professions.py')!='107.00.0':
+            raise UpdateError('v108: aktualizacja wymaga wgranej produkcyjnej v107.00.0.')
     if version_tuple(new_version) < (104, 0, 0):
         return
-    state_file = root.parent / 'Soulbound_PREDEPLOY' / 'last_result.json'
+    # Never replace the live v107 approval while testing a v108 ZIP.
+    state_name = 'last_result_v108.json' if new_version == '108.00.0' else 'last_result.json'
+    state_file = root.parent / 'Soulbound_PREDEPLOY' / state_name
     try:
         state = json.loads(state_file.read_text(encoding='utf-8'))
         if not isinstance(state, dict):
             raise ValueError('niepoprawny wynik')
+        if new_version == '108.00.0' and (state.get('v108_release_gates_pass') is not True
+                                                 or state.get('v108_eq_rebuild_trial_pass') is not True):
+            raise UpdateError('v108: brak zaliczonej dodatkowej bramki wydania, niczego nie zatrzymano.')
     except (OSError, ValueError, UnicodeError) as exc:
         raise UpdateError('v104: brak zaliczonego oficjalnego PREDEPLOY 60/60 PLUS. '
                           'Uruchom PREDEPLOY_NOWEJ_WERSJI.bat; niczego nie zatrzymano.') from exc
@@ -167,7 +184,9 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
               and state['returncode'] == 0
               and state.get('version') == new_version
               and state.get('installed_at_test') == file_version(
-                  root / 'core/bootstrap_economy_professions.py'))
+                  root / 'core/bootstrap_economy_professions.py')
+              and (new_version != '108.00.0' or (state.get('v108_release_gates_pass') is True
+                         and state.get('v108_eq_rebuild_trial_pass') is True)))
     if not needed:
         raise UpdateError('v104: brak zgodnego 60/60 PLUS dla tej wersji i aktualnie '
                           'zainstalowanej gry. Niczego nie zatrzymano.')
@@ -288,6 +307,32 @@ def install_stage(root: Path, stage: Path, backup: Path) -> None:
         raise UpdateError(f'Aktualizacja nie powiodla sie; odtworzono poprzedni kod: {exc}') from exc
 
 
+
+def _restore_prior_code_after_v108_cutover_failure(root: Path, backup: Path, staged_files: set[Path]):
+    """Rollback all previous release files, leaving live player files alone."""
+    for relative in sorted(staged_files, reverse=True):
+        if protected(relative):
+            continue
+        if not (backup/relative).is_file():
+            destination=root/relative
+            if destination.is_file():
+                destination.unlink()
+    for previous in backup.rglob('*'):
+        if previous.is_file():
+            relative=previous.relative_to(backup)
+            if protected(relative):
+                continue
+            destination=root/relative
+            destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(previous,destination)
+
+    # Generated v108 manifest is installer-created rather than a ZIP member.
+    # Do not leave it behind when reverting to the previous release.
+    generated = Path('LIVE_CONTENT/v108_release_activation.json')
+    if not (backup/generated).exists():
+        (root/generated).unlink(missing_ok=True)
+
+
 def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True) -> Path:
     # Critical: protect direct callers and --yes alike, before shutdown/backup.
     require_v104_official_predeploy(root, archive_path, new_version)
@@ -315,6 +360,40 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
     stage = Path(tempfile.mkdtemp(prefix='.Soulbound_stage_', dir=parent))
     try:
         stage_release(archive_path, stage, mapping)
+        if new_version == '107.00.0':
+            # Stage the release activation marker BEFORE stopping the server.
+            # install_stage() installs it with the same rollback semantics as
+            # source files; an unapproved ZIP cannot package its own marker.
+            result_path = root.parent/'Soulbound_PREDEPLOY'/'last_result.json'
+            result = json.loads(result_path.read_text(encoding='utf-8'))
+            if (result.get('status') != 'PASS' or result.get('version') != new_version
+                or result.get('sha256') != hashlib.sha256(archive_path.read_bytes()).hexdigest()
+                or result.get('completed_stages') != 60
+                or result.get('required_stages') != 60):
+                raise UpdateError('Nie utworzono znacznika v107: brak zgodnego PREDEPLOY.')
+            activation = stage/'LIVE_CONTENT'/'v107_release_activation.json'
+            activation.parent.mkdir(parents=True, exist_ok=True)
+            activation.write_text(json.dumps({
+                'schema':1, 'version':new_version, 'sha256':result['sha256']},
+                sort_keys=True)+'\n',encoding='utf-8')
+        if new_version == '108.00.0':
+            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result_v108.json').read_text(encoding='utf-8'))
+            if (state.get('status')!='PASS' or state.get('version')!=new_version
+                or state.get('v108_release_gates_pass') is not True
+                or state.get('v108_eq_rebuild_trial_pass') is not True
+                or state.get('installed_at_test')!='107.00.0'
+                or state.get('sha256')!=hashlib.sha256(archive_path.read_bytes()).hexdigest()):
+                raise UpdateError('v108: brak zgodnego wyniku testow; brak STOP.')
+            # Persist only verified release attestation INSIDE the install.
+            # PREDEPLOY and the candidate ZIP are needed before STOP, not for
+            # every restart after a successful install. No new DB marker/table.
+            from systems.v10800_activation import activation_manifest, verify_root_for_test
+            marker = stage/'LIVE_CONTENT'/'v108_release_activation.json'
+            marker.parent.mkdir(parents=True,exist_ok=True)
+            marker.write_text(json.dumps(activation_manifest(state, archive_path, stage),
+                                         sort_keys=True, indent=2)+'\n',encoding='utf-8')
+            if not verify_root_for_test(stage):
+                raise UpdateError('v108: znacznik instalacji nie zweryfikowal plikow przed STOP.')
         # The ZIP was approved BEFORE staging. The source might change during
         # extraction (download, antivirus or another process). Verify the
         # approved SHA again BEFORE stopping the running server. This is a
@@ -322,19 +401,70 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
         require_v104_official_predeploy(root, archive_path, new_version)
         stop_local_server(root)
         backup_existing(root, backup)
-        install_stage(root, stage, backup)
+        if new_version == '108.00.0':
+            # We MUST NOT install code v108 on the unrepaired v107 ledger. The
+            # earlier Windows PREDEPLOY was executed on a freshly rebuilt
+            # detached image. Now rebuild AGAIN on the *stopped* actual source,
+            # verify source/backup preservation, then commit only after the
+            # versioned code and install manifest have been installed.
+            from validation.v10800_eq107_readonly_reconcile import take_snapshot
+            from systems.v10800_eq_cutover_bridge import (prepare_from_snapshot,
+                 commit_verified_copy, restore_sqlite_from_backup)
+            live_db = root / 'soulbound.db'
+            rollback_db = backup / 'V108_EQ_BEFORE_REBUILD_ROLLBACK.sqlite'
+            take_snapshot(live_db,rollback_db)
+            with tempfile.TemporaryDirectory(prefix='Soulbound_v108_EQ_COMMIT_',dir=parent) as working:
+                scratch = Path(working)
+                source_copy = scratch/'STOPPED_PRODUCTION_SNAPSHOT.sqlite'
+                take_snapshot(live_db,source_copy)
+                rebuilt,report = prepare_from_snapshot(source_copy,root,scratch)
+                print('V108: nowy rebuild na ZATRZYMANEJ bazie:',
+                      ', '.join(f'{k}={v}' for k,v in sorted(report.items())),flush=True)
+                installed = False
+                commit_started = False
+                try:
+                    install_stage(root, stage, backup)
+                    installed = True
+                    if file_version(root / 'core/bootstrap_economy_professions.py') != new_version:
+                        raise UpdateError('V108: zly numer kodu przed przebudowa SQLite.')
+                    commit_started = True
+                    commit_verified_copy(rebuilt,live_db)
+                    from systems.v10800_activation import verify_root_for_test
+                    if not verify_root_for_test(root):
+                        raise UpdateError('V108: manifest instalacji nie zgadza sie po przebudowie.')
+                    print('V108: odtworzono zgodnosc fizycznego EQ bez utraty oryginalnych kopii.',flush=True)
+                except BaseException:
+                    # Fail closed even after partial write/DB backup. Restore
+                    # v107 SQLite and v107 code to a stopped server. The
+                    # permanent backup directory remains available for manual
+                    # recovery if e.g. hardware fails during restoration.
+                    errors=[]
+                    if commit_started:
+                        try: restore_sqlite_from_backup(rollback_db,live_db)
+                        except BaseException as exc: errors.append('SQLITE:'+type(exc).__name__)
+                    if installed:
+                        try: _restore_prior_code_after_v108_cutover_failure(
+                            root,backup,set(mapping))
+                        except BaseException as exc: errors.append('KOD:'+type(exc).__name__)
+                    if errors:
+                        raise UpdateError('V108: przerwano, automatyczne cofniecie NIEPELNE: '
+                                          +', '.join(errors)+'. Nie uruchamiaj bez kontroli.')
+                    raise
+        else:
+            install_stage(root, stage, backup)
         if file_version(root / 'core/bootstrap_economy_professions.py') != new_version:
             raise UpdateError('Zmieniono pliki, ale numer wersji w katalogu gry jest niepoprawny. Sprawdz recznie backup.')
         print(f'AKTUALIZACJA ZAKONCZONA: Soulbound v{new_version}', flush=True)
         print('Zachowano bazy SQLite i logi. Kopia poprzedniej wersji pozostaje w folderze BACKUP.', flush=True)
         if restart and os.name == 'nt':
-            launcher = root / 'START_Soulbound_UKRYTY.vbs'
+            # Transparent Windows start: no Windows Script Host and no hidden VBS.
+            launcher = root / 'START_Soulbound.bat'
             if launcher.is_file():
-                subprocess.Popen(['wscript.exe', '//nologo', str(launcher)], cwd=root,
-                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-                print('Wyslano polecenie uruchomienia serwera w tle. Sprawdz logs\\serwer.log.', flush=True)
+                subprocess.Popen([os.environ.get('COMSPEC', 'cmd.exe'), '/d', '/c', str(launcher)],
+                                 cwd=str(root))
+                print('Uruchomiono standardowy BAT. Sprawdz logs\\serwer.log.', flush=True)
             else:
-                print('Brak launchera VBS, uruchom serwer recznie przez START_Soulbound.bat.', flush=True)
+                print('Brak START_Soulbound.bat. Uruchom serwer recznie.', flush=True)
         elif restart:
             print('Po aktualizacji na Windows uruchom START_Soulbound.bat.', flush=True)
         return backup
@@ -343,6 +473,10 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
 
 
 def main(argv: list[str] | None = None) -> int:
+    # v107: do not use the existence of a v106 regression module as an
+    # unconditional release block. Historical test files remain in every full
+    # ZIP. The exact official 60/60 approval + SHA256 is the authority,
+    # checked below and again inside run_update BEFORE any server STOP.
     parser = argparse.ArgumentParser(description='Soulbound: bezpieczna aktualizacja z lokalnej paczki ZIP.')
     parser.add_argument('zip_path', nargs='?', help='Opcjonalna pelna sciezka do nowego ZIP.')
     parser.add_argument('--yes', action='store_true', help='Potwierdz aktualizacje bez pytania (dla testow).')

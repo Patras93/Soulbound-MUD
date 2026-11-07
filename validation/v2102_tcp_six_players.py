@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from contextlib import closing, suppress
 import os
 from pathlib import Path
@@ -130,6 +131,98 @@ class TcpPlayer:
                 await asyncio.wait_for(self.writer.wait_closed(), 2)
 
 
+async def read_complete_party_roster(client, initial, expected_names, *, timeout=20.0):
+    """Read a line-streamed status until each numbered member line arrives.
+
+    A short network quiet interval after the header is not proof that the
+    following await self.send(...) lines have finished.  An actual missing
+    player must STILL fail; never accept the header's count as proof.
+    """
+    def listed_names(data):
+        clean = data.replace("\r", "")
+        return {name for name in expected_names if re.search(
+            rf"(?im)^\s*\d+\.\s*{re.escape(name)}\.\s+Lokacja:", clean
+        )}
+
+    data = initial
+    deadline = time.monotonic() + timeout
+    while len(listed_names(data)) != len(expected_names):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        try:
+            chunk = await asyncio.wait_for(client.reader.read(16384), remaining)
+        except asyncio.TimeoutError:
+            break
+        if not chunk:
+            break
+        data += chunk.decode('utf-8', 'replace')
+        if len(data) > 65536:
+            raise AssertionError('Party status emitted excessive data without a complete roster')
+        if ('Wystąpił błąd komendy' in data or 'Wystąpił błąd sesji' in data
+                or 'Traceback (most recent call last)' in data):
+            raise AssertionError('Runtime failure while reading party roster: ' + data[-500:])
+    missing = [name for name in expected_names if name not in listed_names(data)]
+    return data, missing
+
+
+def run_party_stream_regression():
+    """Check split TCP responses, unrelated notices, and genuinely missing members."""
+    class FakeReader:
+        def __init__(self, chunks):
+            self.chunks = iter(chunks)
+        async def read(self, _):
+            await asyncio.sleep(0)
+            return next(self.chunks, b'')
+    class FakeClient:
+        def __init__(self, chunks):
+            self.reader = FakeReader(chunks)
+    names = [f'Testtcp{i}' for i in range(1, 6)]
+    header = 'DRUŻYNA. Lider: Testtcp1. Członkowie: 5 z 8.\n'
+    roster = ''.join(f'{i}. {name}. Lokacja: Plac.\r\n' for i, name in enumerate(names, 1))
+
+    async def check():
+        checks = 0
+        full, missing = await read_complete_party_roster(FakeClient([]), header + roster, names, timeout=.1)
+        assert not missing and len(full) > len(header); checks += 1
+        # Force header to arrive separately and split one numbered member line.
+        bits = [roster[:12].encode('utf-8'), roster[12:29].encode('utf-8'), roster[29:].encode('utf-8')]
+        full, missing = await read_complete_party_roster(FakeClient(bits), header, names, timeout=.1)
+        assert not missing and 'Testtcp5. Lokacja:' in full; checks += 1
+        # A notification mentioning player names must not masquerade as roster entries.
+        notice = ''.join(f'{name} dolaczyl do druzyny.\n' for name in names)
+        full, missing = await read_complete_party_roster(FakeClient([]), header + notice, names, timeout=.1)
+        assert missing == names; checks += 1
+        # A truthful five-person header with only four roster lines still fails.
+        full, missing = await read_complete_party_roster(FakeClient([]), header + ''.join(
+            f'{i}. {name}. Lokacja: Plac.\n' for i, name in enumerate(names[:4], 1)
+        ), names, timeout=.1)
+        assert missing == ['Testtcp5']; checks += 1
+        # An unrelated runtime error must not be swallowed while awaiting the roster.
+        try:
+            await read_complete_party_roster(FakeClient([b'Wystapil blad'.replace(b'Wystapil blad',
+                'Wystąpił błąd komendy'.encode('utf-8'))]), header, names, timeout=.1)
+        except AssertionError as exc:
+            assert 'Runtime failure' in str(exc); checks += 1
+        else:
+            raise AssertionError('Runtime error during roster collection not detected')
+        return checks
+    return asyncio.run(check())
+
+
+def _money_snapshot(response: str) -> tuple[int, int, int]:
+    """Extract actual displayed currency amounts from a complete money reply.
+
+    Additional notices, formatting, and other async messages can differ
+    between two TCP reads. Missing/ambiguous currency responses must FAIL.
+    """
+    pattern = r'(?m)^Masz\s+([0-9]+) mithril,\s+([0-9]+) złota,\s+([0-9]+) srebra\.'
+    matches = re.findall(pattern, response.replace('\r', ''))
+    if len(matches) != 1:
+        raise AssertionError('Brak jednoznacznej odpowiedzi salda money, matches=' + str(len(matches)))
+    return tuple(int(n) for n in matches[0])
+
+
 async def exercise(names, port, *, after_restart=False, routes=None):
     clients = [TcpPlayer(account, name, port) for account, name in names]
     checks = 0
@@ -173,15 +266,16 @@ async def exercise(names, port, *, after_restart=False, routes=None):
                 ADDITIONAL_TCP_CASES, NEGATIVE_TCP_CASES,
             )
             lead = clients[0]
-            balance_before = await lead.command('money')
+            balance_before = _money_snapshot(await lead.command('money'))
             for extra in ADDITIONAL_TCP_CASES:
                 response = await lead.command(extra)
                 if not response.strip():
                     raise AssertionError('Brak odpowiedzi komendy: ' + extra)
                 checks += 1
-            balance_after = await lead.command('money')
+            balance_after = _money_snapshot(await lead.command('money'))
             if balance_before != balance_after:
-                raise AssertionError('Bledne argumenty zmienily stan waluty w tescie TCP')
+                raise AssertionError('Komendy testowe zmienily saldo: '
+                                     + repr(balance_before) + ' -> ' + repr(balance_after))
             checks += 1
             print('TCP SCENARIUSZE 2.30.2: '
                   f'{len(ADDITIONAL_TCP_CASES)} dodatkowych polecen, '
@@ -209,9 +303,11 @@ async def exercise(names, port, *, after_restart=False, routes=None):
                 raise AssertionError(member.name + ': party invitation not accepted: ' + result[-300:])
             checks += 1
         party = await lead.command('druzyna status')
-        missing = [c.name for c in clients if c.name.lower() not in party.lower()]
+        party, missing = await read_complete_party_roster(
+            lead, party, [client.name for client in clients], timeout=20.0)
         if missing:
-            raise AssertionError('Party missing players: ' + ', '.join(missing) + '; ' + party[-700:])
+            raise AssertionError('Party missing roster entries: ' + ', '.join(missing)
+                                 + '; ' + party[-1200:])
         checks += PLAYERS
         results = await asyncio.gather(*(c.command('druzyna status') for c in clients))
         if any('drużyn' not in item.lower() and 'druzyn' not in item.lower() for item in results):
@@ -443,6 +539,8 @@ def run_sqlite_cleanup_regression():
 def main():
     start = time.monotonic()
     print('TCP 5 GRACZY v3.31.5: dwa starty, 5 logowan, party i zapis SQLite', flush=True)
+    stream_checks = run_party_stream_regression()
+    print(f'TCP PARTY STREAM: {stream_checks} segment/roster checks PASS', flush=True)
     try:
         with tempfile.TemporaryDirectory(prefix='soulbound-tcp5-') as temp:
             db_path = Path(temp).resolve() / 'five_players.sqlite'

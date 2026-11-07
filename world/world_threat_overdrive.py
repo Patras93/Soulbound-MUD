@@ -6,6 +6,7 @@ bespoke Crypt/Tower/Magitek/instance balance layers.
 """
 from data import catalog_mutations as _catalog_mut
 import copy as _copy_v0384
+import os as _v106_os
 
 V0384_WORLD_THREAT_VERSION = "0.38.4"
 
@@ -90,6 +91,16 @@ def _terrain_scaled_template_v0384(self, room_id, template_id):
     # adaptive player scaling. Preserve all legacy spawns unchanged.
     if (str(room_id or '').startswith('v10300_')
             and str(template_id or '').startswith('v10300_')):
+        return str(template_id)
+    # v106 staging: these authored 30k–60k enemies use real HP and damage
+    # from world/v10600_*.py. The old terrain v0.36.2 first recomputed
+    # enormous high-stage values (10^16+ HP) before v0.38.4 doubled them.
+    # Never apply either historical generator a second time to v106 content;
+    # this follows the existing v103 authored-encounter precedent. Normal
+    # v105 and production (without staging flag) remain untouched.
+    if (_v106_os.environ.get('SOULBOUND_V106_STAGING') == '1'
+            and str(room_id or '').startswith('v10600_')
+            and str(template_id or '').startswith('v10600_')):
         return str(template_id)
     # Preserve the full v0.36.2 behavior first, including its stage clone.
     resolved_id = _v0384_base_terrain_scaled(self, room_id, template_id)

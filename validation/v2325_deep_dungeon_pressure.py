@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+from systems.v106_combat_encounter_level import effective_encounter_level_v106
 from systems.adaptive_combat import (
     adaptive_dungeon_floor_v2325, adaptive_dungeon_pressure_v2325,
     adaptive_encounter_stage_v2325,
@@ -31,6 +32,7 @@ def _production_hp_method():
     cls = ast.ClassDef(name='Combat', bases=[], keywords=[], body=[method], decorator_list=[])
     namespace = {
         'sys': sys, 'MOB_TEMPLATES': {},
+        'effective_encounter_level_v106': effective_encounter_level_v106,
         'ROOMS': {},
         'adaptive_target_max_hp_v11330': adaptive_target_max_hp_v11330,
         'adaptive_reward_multiplier_v11330': adaptive_reward_multiplier_v11330,

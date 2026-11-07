@@ -23,10 +23,54 @@ LEDGER = {'SessionCombatSkillsMixin.combat_skill_mana_cost_v11191': ['player/ses
 # altered Soul unlock implementation against a separate exact v105 fingerprint.
 V105_UNLOCK_AST_SHA256 = '80745099978a7ea9f75d17eb50370ccbb1ec59f751d677681d4b70935b12d18a'
 V104_UNLOCK_AST_SHA256 = '2f5f91c5f263654fb766bb5069f8bcaa3d5bc515141c76c069dea47ab21cf79f'
+V106_COUNTERATTACK_AST_SHA256 = '9ae2bb6e52b010ef75f9d5fb8ff1dba7938ed275755ce3b467769aeecc487e7f'
 
 def expected_moved_ast_digest_v4200(root, symbol, legacy_digest, function_node):
     version=(Path(root)/'VERSION').read_text(encoding='utf-8').strip()
-    if version != '105.00.0' or symbol != 'SessionSkillLearningMixin.unlock':
+    # v106 and v107 retain the exact audited v105 Soul trial implementation;
+    # the v106 raid-counterattack safeguard also remains byte-for-byte audited.
+    # A new release number must not silently reinstate the v104 hash.
+    if version in ('106.00.0', '107.00.0', '108.00.0') and symbol == 'SessionSkillLearningMixin.enemy_counterattack':
+        if legacy_digest != 'd87b3547c382fc27bc675b4e1bba6efe2f2aa17302aec76cf1fa80279fead176':
+            raise AssertionError('Historyczny kontrakt kontry bossa ulegl zmianie.')
+        body=ast.unparse(function_node)
+        if 'cap_raid_incoming_v106' not in body or 'self.current_hp -= incoming' not in body:
+            raise AssertionError('Brak ochrony realnej druzyny v106 w kontrataku.')
+        return V106_COUNTERATTACK_AST_SHA256
+    if version in ('107.00.0', '108.00.0') and symbol == 'SessionIOAuthCharacterMixin.choose_existing_character':
+        # The v107 rescue code deliberately differs from the v104 refactoring
+        # baseline. Pin its full AST; do not disable the legacy audit.
+        if legacy_digest != '83ac11323fe3aa427837c71c59098d896ba01932f8574d2aa998a9858bd7d570':
+            raise AssertionError('Wymagana historyczna metoda wyboru postaci ulegla zmianie.')
+        body=ast.unparse(function_node)
+        if not all(token in body for token in (
+            '_sb107_runtime_enabled()', 'raid_return_room_v107',
+            'self.server.db.save_character(self.character)',
+            'self.character.room_id = _old_room',
+            'await self.send(',
+        )):
+            raise AssertionError('Brak bezpiecznego ratowania postaci v107 po wycofaniu rajdow.')
+        return 'caf26d4221ff6ccac28c27563fd6c77f2523f1a0afca64d126923a742119eb58'
+    # v108 modifies two extracted methods on purpose: the creator's route
+    # back to races and the Giant Fortress portal dispatch. Preserve a strict
+    # exact AST pin for both; never silently waive the refactoring ledger.
+    if version == '108.00.0' and symbol == 'SessionIOAuthCharacterMixin.character_creator':
+        if legacy_digest != '38585cde3f8bf660db1f0bb46de9d66e2dbae0b9dd345fa0c4116fe794962767':
+            raise AssertionError('Kreator: nieoczekiwany historyczny wzorzec AST.')
+        body=ast.unparse(function_node)
+        if not all(token in body for token in ('wroc', 'wróć', 'rasy', 'Wybierz rasę', 'Wybierz klasę')):
+            raise AssertionError('Kreator v108: brak powrotu do ras i wyboru klasy.')
+        return '5bb2cffd976ef4f5564a57893e190a5c1ea23765953d64ba24cc50dcfea98116'
+    if version == '108.00.0' and symbol == 'SessionDungeonProgressionMixin.use_crypt_portal':
+        if legacy_digest != '373549c583e8c9fc998f1dda2a84d07abca3b48d44da0f1bbb7ef8a656b26551':
+            raise AssertionError('Portale: nieoczekiwany historyczny wzorzec AST.')
+        body=ast.unparse(function_node)
+        if not all(token in body for token in ('giant_fortress_floor_number',
+                'use_giant_fortress_portal_v10800', 'is_downed_v0371',
+                'portal_requires_local_leader_v12811')):
+            raise AssertionError('Portale v108: brak ochrony i routingu Twierdzy.')
+        return '8a7c5c1672c3df266f7e908ce2ce3c585960392a5d3106eeea2f9a313ee3cbf0'
+    if version not in ('105.00.0', '106.00.0', '107.00.0', '108.00.0') or symbol != 'SessionSkillLearningMixin.unlock':
         return legacy_digest
     if legacy_digest != V104_UNLOCK_AST_SHA256:
         raise AssertionError('Historyczny fingerprint metody unlock z v104 zostal zmieniony.')

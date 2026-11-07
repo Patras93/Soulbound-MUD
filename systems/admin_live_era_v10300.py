@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Owner-only, read-only era audit for NVDA. Does not mutate SQLite/DRAFT."""
 from __future__ import annotations
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
+import os as _v107_era_env
 
 from world.v10300_era_bez_granic import ERAS
 from world.v10400_krainy_5001_10000 import REGIONS
@@ -8,16 +10,18 @@ from world.v10400_raids_12_25 import RAIDS
 from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
 from core.bootstrap_economy_professions import SOUL_TRIAL_QUEST_IDS
 
-HELP = ('ADMIN LIVE ERA: krainy / krainy104 / region NAZWA / rajdy / rajdy104 / rajd NAZWA / soul TIER / audyt / lochy / exp RODZAJ PIETRO / premie / v104 pomoc / v105 pomoc. '
+HELP = ('ADMIN LIVE ERA: krainy / krainy104 / region NAZWA / rajdy / rajdy104 / rajd NAZWA / soul TIER / audyt / lochy / exp RODZAJ PIETRO / premie / v104 pomoc / v105 pomoc / v106 pomoc. '
         'Odczyt bez zmian w grze. Próby Soul Tier u Kapłana Elora; rajdy u Mistrza krainy.')
 
 
 def report(command, quests, rooms, npcs, mobs):
     """Pure dispatcher. Bounded output avoids screen-reader overload."""
     words=str(command or '').strip().split()
-    if not words:return HELP
+    if not words:return ('ADMIN LIVE ERA: krainy / region / soul / audyt / lochy / premie.' if _sb107_runtime_enabled() else HELP)
     action=words[0].casefold()
-    if action in ('pomoc','help') and len(words)==1:return HELP
+    if _sb107_runtime_enabled() and action in ('rajdy','rajdy104','rajd'):
+        return 'V107: wszystkie dawne rajdy są wycofane. Ich zadania zastąpiły polowania solo.'
+    if action in ('pomoc','help') and len(words)==1:return ('ADMIN LIVE ERA: krainy / region / soul / audyt / lochy / premie.' if _sb107_runtime_enabled() else HELP)
     if action=='v104' and len(words)==2 and words[1]=='wydarzenia':
         return 'V104: 10 odnawialnych kontraktów inwazji z siedmiodniowym czasem od ukończenia. ' \
                'Nie są jeszcze podłączone do wspólnego licznika i rotacji wydarzeń.'
@@ -83,8 +87,8 @@ def report(command, quests, rooms, npcs, mobs):
         return (f'ERA: {name}, poziomy {low}–{high}. Wejście {prefix}_01. '
             f'Lokacje: {sum(rid.startswith(prefix+"_") for rid in rooms)}. '
             f'Bossowie: {boss_here}; zadania: {quests_here}. '
-            f'Rajd od {prefix}_09 na wschód, trzy etapy. '
-            'Bez blokady poziomem; questy rajdu wymagają poprzedniego etapu.')
+            + ('' if _sb107_runtime_enabled() else f'Rajd od {prefix}_09 na wschód, trzy etapy. ')
+            + ('Dostępne zwykłe polowania i bossowie.' if _sb107_runtime_enabled() else 'Bez blokady poziomem; questy rajdu wymagają poprzedniego etapu.'))
     if action=='soul' and len(words)==2:
         try:tier=int(words[1])
         except ValueError:return f'Soul: podaj numer Tieru od 1 do {SOUL_MAX_TIER}.'
@@ -131,6 +135,18 @@ def report(command, quests, rooms, npcs, mobs):
 async def handle(session, tail):
     if not session.is_admin():
         await session.send('Nieznana komenda. Wpisz help.')
+        return True
+    # v106: ten sam dziennik DRAFT/CAS v104/v105; tylko izolowany staging.
+    if str(tail or '').strip().casefold().split(maxsplit=1)[0:1] == ['v106']:
+        from systems.admin_live_era_v10600 import command as command_v106
+        from core.classes_skills import ROOMS
+        from systems.content_registry import QUESTS, NPCS, MOB_TEMPLATES
+        from data.items import ITEMS
+        from data.crafting_recipes import CRAFT_RECIPES
+        rest=str(tail or '').strip().split(maxsplit=1)
+        await session.send(command_v106(rest[1] if len(rest)>1 else '', {
+            'rooms':ROOMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,'items':ITEMS,
+            'recipes':CRAFT_RECIPES}, connection=session.server.db.conn))
         return True
     if str(tail or '').strip().casefold().split(maxsplit=1)[0:1] in (['v104'], ['v105']):
         use_v105 = str(tail or '').strip().casefold().split(maxsplit=1)[0] == 'v105'

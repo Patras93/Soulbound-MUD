@@ -36,6 +36,7 @@ import asyncio
 import re
 import sys
 import unicodedata
+from functools import lru_cache
 from core.classes_skills import ROOMS
 from config.postal import GUIDE_CITY_HUBS_V0522
 from core.mines_threat import GUIDE_DESTINATION_ALIASES
@@ -66,6 +67,23 @@ from world.uoss_superboss_world import (
 )
 
 
+@lru_cache(maxsize=8192)
+def _normalized_room_search_text_v107(value: str) -> str:
+    """Pure spelling normalization cached by *text*, never by Session/user.
+
+    Region guides repeatedly normalize the same thousands of zone names during
+    XP updates; this cache cannot become stale when an Admin Live name changes,
+    because a changed input string yields its own fresh result.
+    """
+    text = value.strip().lower()
+    text = text.replace("ł", "l").replace("Ł", "l")
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.replace("_", " ").replace("-", " ")
+    text = re.sub(r"[^a-z0-9 ]+", " ", text)
+    return " ".join(text.split())
+
+
 class SessionGuideNavigationMixin:
 
     async def show_location(self):
@@ -80,16 +98,7 @@ class SessionGuideNavigationMixin:
         raise RuntimeError("Unbound Soulbound method show_current_city_walk_destinations")
 
     def normalize_room_query(self, value):
-            text = str(value or "").strip().lower()
-            text = text.replace("ł", "l").replace("Ł", "l")
-            text = unicodedata.normalize("NFKD", text)
-            text = "".join(
-                ch for ch in text
-                if not unicodedata.combining(ch)
-            )
-            text = text.replace("_", " ").replace("-", " ")
-            text = re.sub(r"[^a-z0-9 ]+", " ", text)
-            return " ".join(text.split())
+            return _normalized_room_search_text_v107(str(value or ""))
 
     def room_search_aliases(self, *args, **kwargs):
         """Compatibility method; rebound to the original implementation."""

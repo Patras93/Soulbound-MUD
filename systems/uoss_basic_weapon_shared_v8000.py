@@ -32,6 +32,12 @@ def weapon_attack_boost(actor, mob, template, damage, *, zantetsuken=False):
     # Brak wybranego żywiołu = dokładnie historyczne obrażenia.
     from systems.soul_weapon_elements_v10500 import weapon_multiplier, consume_impulse
     damage=max(0,int(round(damage*weapon_multiplier(actor,template))))
+    # v106: additional resonance on the same actual Soul Weapon attack path;
+    # v105 has exactly the same factors when staging is disabled.
+    import os as _sb106_attack_os
+    if _sb106_attack_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+        from systems.soul_weapon_astral_v10600 import secondary_damage_multiplier
+        damage=max(0,int(round(damage*secondary_damage_multiplier(actor,template))))
     damage=max(0,int(round(damage*consume_impulse(actor))))
     chance=min(0.60,actor.critical_chance()+traits["crit_chance"]+mastery["crit_chance"])
     crit=random.random()<chance
@@ -74,6 +80,16 @@ def weapon_after_hit(actor, mob, damage, traits, mastery, *, disabled=False):
 
     props=actor.equipment_property_totals() if callable(getattr(actor,'equipment_property_totals',None)) else {}
     life=float(traits.get('lifesteal_percent',0.0) or 0.0)+min(8.0,float(props.get('lifesteal_percent',0.0) or 0.0))
+    # v106: the extra affinity modifies ONLY the existing, genuine
+    # Soul Weapon hit-based HP/MP recovery, not independent spells or shields.
+    # v105 without staging remains byte-for-byte equivalent in arithmetic.
+    import os as _sb106_recovery_os
+    if _sb106_recovery_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+        from systems.soul_weapon_astral_v10600 import secondary_regeneration_multiplier
+        recovery=secondary_regeneration_multiplier(actor)
+        life*=recovery
+    else:
+        recovery=1.0
     maxhp=actor.max_hp() if callable(getattr(actor,'max_hp',None)) else 0
     hp=int(getattr(actor,'current_hp',0) or 0)
     heal=0
@@ -84,6 +100,7 @@ def weapon_after_hit(actor, mob, damage, traits, mastery, *, disabled=False):
             actor._recap52_heal=int(getattr(actor,'_recap52_heal',0) or 0)+heal
 
     mp_pct=float(traits.get('mana_restore_percent',0.0) or 0.0)+min(6.0,float(props.get('mana_restore_percent',0.0) or 0.0))
+    mp_pct*=recovery
     maxmp=actor.max_mana() if callable(getattr(actor,'max_mana',None)) else 0
     mana=int(getattr(actor,'current_mana',0) or 0)
     mp=0

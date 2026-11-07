@@ -133,6 +133,12 @@ def _private_env(folder, port):
         'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8',
         'PYTHONUNBUFFERED': '1',
     })
+    # The normal credential sanitization above strips every SOULBOUND_ key.
+    # Restore only this narrow test marker if the *parent audit* was actually
+    # authorized. Runtime still independently checks path/DB/port/loopback.
+    # Never propagate this marker for an ordinary manual private-game launch.
+    if os.environ.get('SOULBOUND_V108_PREDEPLOY') == '1':
+        env['SOULBOUND_V108_PREDEPLOY'] = '1'
     if admin_accounts.strip():
         env['SOULBOUND_ADMIN_ACCOUNTS'] = admin_accounts
     return env

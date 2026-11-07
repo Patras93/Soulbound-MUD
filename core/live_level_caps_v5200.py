@@ -240,3 +240,33 @@ def reset_all(*,path=None):
     _state.update(new_values)
     _apply_to_runtime()
     return previous,new_values,True
+
+
+def activate_v107_uncapped_defaults(*,path=None):
+    """One-time v107 migration only for unmodified legacy 800-default caps.
+
+    Called after all historical authoring/bootstrap audits, never from import,
+    and only on a certified production installation. Custom saved settings,
+    including users who intentionally chose other limits, are preserved.
+    Upgrades (+10) remain a separate item mechanic, not an infinite axis.
+    """
+    from systems.v10700_activation import production_approved
+    if not production_approved():
+        return False
+    if not _loaded:
+        raise RuntimeError('v107: najpierw wczytaj istniejace limity Admin Live')
+    source=Path(CAP_FILE if path is None else path)
+    disk=read_file(source)
+    if disk!=current():
+        raise RuntimeError('v107: zapis limitow zmienil sie po zaladowaniu gry')
+    if disk!=DEFAULTS:
+        # Never override a player's/admin's customized v106 cap file.
+        return False
+    next_values=dict(disk)
+    for key in OLD_KEYS_V52:
+        next_values[key]=None
+    next_values['eq']=None
+    _atomic_write(next_values,source)
+    _state.update(next_values)
+    _apply_to_runtime()
+    return True

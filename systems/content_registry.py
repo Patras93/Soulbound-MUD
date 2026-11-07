@@ -1623,8 +1623,8 @@ LATEST_CHANGES = [
     "v102.00.0: pomoc 74-76, tunel realnej areny, deklaratywne efekty i audyt Admin Live.",
 ] + LATEST_CHANGES
 
-# Final v103.00.0 release identity. Historical notes remain available.
-LATEST_CHANGES_TITLE = "Soulbound v105.00.0 - Era Wiecznych Krain (Era Bez Granic): 20 regionów, Soul Tier 3000, Próby co 10"
+# Final v103.00.0 release identity: Era Bez Granic. Historical notes remain available.
+LATEST_CHANGES_TITLE = "Soulbound v106.00.0 - Era Astralnego Przebudzenia (kandydat do PREDEPLOY)"
 LATEST_CHANGES = [
     "v103.00.0: 11 krain 801-5000, 165 nowych pokojow, 33 NPC i 385 nowych zadan.",
     "v103.00.0: 11 rajdow z 33 bossami i czterema fazami HP; questy klasowe, fabularne i profesyjne.",
@@ -1632,4 +1632,21 @@ LATEST_CHANGES = [
     "v103.00.0: EXP wysokich pieter Deep Dungeon, krypt i wiez, checkpointy i Admin Live Era z DRAFT, sprawdzaniem, publikacja i cofnieciem.",
     "v103.00.0: poprawiona dostepnosc questow NPC, krotsze komunikaty NVDA, izolowane testy realnych rajdow TCP i ochrony bazy.",
     "v103.00.0: Multi Cap x2, EXP Bank, no level cap i zachowanie ustawien skalowania pozostaja bez zmian.",
+] + LATEST_CHANGES
+
+# v107: aktualna etykieta /changes i historia bez usuwania starych wpisów.
+LATEST_CHANGES_TITLE = "Soulbound v107.00.0 - Era Wiecznego Chaosu (do PREDEPLOY)"
+LATEST_CHANGES = [
+    "v107.00.0: 30 krain, 2000 zadan i Magitek; dostepne dopiero po zatwierdzonym wdrozeniu.",
+    "v107.00.0: migracja fizycznego EQ 2.0 z kopia wycofania, ochrona transakcji i ewolucja pojedynczych kopii.",
+    "v107.00.0: poprawiono zgodnosc testow wersji, logowanie postaci i bezpieczny test aktualizatora.",
+] + LATEST_CHANGES
+
+# v108: aktualna tozsamosc wydania oraz komunikat changes, bez usuwania historii.
+LATEST_CHANGES_TITLE = "Soulbound v108.00.0 - poprawki portali, kopalni i zadan"
+LATEST_CHANGES = [
+    "v108.00.0: wybór ras i klas z powrotem 0 / wroc / wróć / rasy.",
+    "v108.00.0: poprawki portali, kopalni, questów i ochrony fizycznych kopii EQ.",
+    "v108.00.0: bez nowej migracji EQ; zachowana ochrona istniejacego wyposazenia v107.",
+    "v108.00.0: odizolowane scenariusze TCP PREDEPLOY i poprawiona spójność numeru wersji.",
 ] + LATEST_CHANGES

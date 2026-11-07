@@ -430,6 +430,92 @@ class SessionSocialExpansionMixin:
         if req>=lvl+25: return f"Newbie Protection blokuje ten teren: zalecany Level {req}, masz {lvl}. Użyj newbieprotect off, jeśli świadomie chcesz wejść."
         return ''
 
+    async def tempo_exp_v108(self, args=''):
+        """Real EXP/h since login; read-only, concise Polish for NVDA."""
+        from systems.v10800_pacing_metrics import xp_per_hour, level_eta_seconds
+        from core.progression_resources import character_xp_to_next
+        state = getattr(self, '_session_summary', None)
+        if not state or not self.character:
+            await self.send('TEMPO EXP: brak rozpoczętej sesji postaci.')
+            return
+        elapsed = max(1.0, time.time() - float(state.get('started_at', time.time())))
+        char_gained = int(state.get('character_xp', 0) or 0)
+        char_level = int(self.character.character_level)
+        requirement = int(character_xp_to_next(char_level))
+        progress = int(getattr(self.character, 'character_xp', 0) or 0)
+        remaining = max(0, requirement - progress)
+        eta = level_eta_seconds(remaining, char_gained, elapsed) if requirement else 0
+        # These session totals are confirmed payouts, not theoretical awards.
+        fields = (('postać', 'character_xp'), ('klasy', 'class_xp'),
+                  ('Dusza', 'soul_xp'), ('statystyki z walk', 'stat_xp'),
+                  ('Broń Duszy', 'soul_weapon_mastery_xp'))
+        sections = [f'{label}: {xp_per_hour(state.get(key,0), elapsed)} EXP/h'
+                    for label,key in fields]
+        for label,key in (('profesje', 'profession_xp'), ('narzędzia', 'tool_xp')):
+            amount = sum(int(v or 0) for v in (state.get(key) or {}).values())
+            sections.append(f'{label}: {xp_per_hour(amount,elapsed)} EXP/h')
+        if requirement <= 0:
+            estimate = 'brak kolejnego poziomu przy obecnym limicie.'
+        elif eta is None:
+            estimate = 'brak wiarygodnego czasu do kolejnego poziomu; graj co najmniej 5 minut z nagrodami EXP.'
+        else:
+            estimate = 'szacowany czas do kolejnego poziomu postaci: ' + self.format_duration_short(eta) + '.'
+        await self.send('TEMPO EXP od zalogowania, na podstawie rzeczywiście wypłaconych nagród. '
+                        + 'Czas sesji: ' + self.format_duration_short(int(elapsed)) + '. '
+                        + '; '.join(sections) + '. '
+                        + f'Postać poziom {char_level}; do następnego poziomu {remaining} EXP; '
+                        + estimate + ' Wynik obejmuje aktywne eventy i bonusy; tempo może się zmieniać.')
+
+    async def advent_v108(self, args='', *, _today=None):
+        """December 1 through January 1, exactly one gift per master account per local day."""
+        from datetime import datetime
+        from systems.v10800_seasonal_events import advent_day, advent_reward_silver
+        local_day = datetime.now().astimezone().date() if _today is None else _today
+        gift_day = advent_day(local_day)
+        if gift_day == 0:
+            await self.send('PREZENTY ADWENTOWE: aktywne od 1 grudnia do 1 stycznia włącznie.')
+            return
+        master = int(self.server.db.master_account_for_character(self.account_id))
+        db = self.server.db
+        conn = db.conn
+        if conn.in_transaction:
+            # Do not commit an unrelated gameplay transaction.
+            await self.send('PREZENT ADWENTOWY: zapis zajęty. Spróbuj ponownie.')
+            return
+        key = local_day.isoformat()
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            conn.execute('CREATE TABLE IF NOT EXISTS v108_advent_claims ('
+                         'master_account_id INTEGER NOT NULL, gift_date TEXT NOT NULL, '
+                         'reward_silver INTEGER NOT NULL, '
+                         'PRIMARY KEY(master_account_id, gift_date))')
+            used = conn.execute('SELECT 1 FROM v108_advent_claims '
+                                'WHERE master_account_id=? AND gift_date=?',
+                                (master, key)).fetchone()
+            if used:
+                conn.rollback()
+                await self.send('PREZENT ADWENTOWY: odebrany już dzisiaj. Wróć jutro.')
+                return
+            reward = advent_reward_silver(gift_day)
+            previous = int(db.shared_wallet_for_master(master)[0])
+            if previous > CURRENCY_SQLITE_SAFE_TOTAL - reward:
+                conn.rollback()
+                await self.send('PREZENT ADWENTOWY: brak miejsca w portfelu. Zmniejsz saldo.')
+                return
+            db.set_shared_wallet_for_master(master, previous + reward, 0, 0, commit=False)
+            conn.execute('INSERT INTO v108_advent_claims('
+                         'master_account_id,gift_date,reward_silver) VALUES(?,?,?)',
+                         (master, key, reward))
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        db.apply_shared_wallet_to_character(self.character)
+        await self.send('PREZENT ADWENTOWY odebrany! Dzień '
+                        + str(gift_day) + '/32. Nagroda: '
+                        + currency_reading_text(reward, 0, 0)
+                        + '. Następny prezent jutro.')
+
     async def daily_login_v03051(self):
         import datetime as _dt
         conn=self.server.db.conn; today=_dt.date.today(); row=conn.execute("SELECT last_day,streak,best_streak FROM daily_login_v03051 WHERE account_id=?",(self.account_id,)).fetchone()
@@ -487,6 +573,12 @@ class SessionSocialExpansionMixin:
                 if not candidates: await self.send("Nie masz takiego przedmiotu w inventory."); return
                 iid,name,have=candidates[0]; qty=min(qty,have)
                 if qty<=0: await self.send("Brak przedmiotu."); return
+                # Home storage is JSON without a physical-instance escrow.
+                # It must never destroy or remint a specific physical copy.
+                from systems.equipment_inventory_flow_v10600 import tracked as _sb106_phys
+                if _sb106_phys(self.server.db, iid):
+                    await self.send("Fizyczne EQ nie może trafić do starej skrzyni domu. Niczego nie zmieniono.")
+                    return
                 # v105: NEVER credit the house chest unless the matching
                 # inventory removal succeeded. Evolved EQ is character-bound.
                 from systems.equipment_evolution_v10500 import is_evolved
@@ -520,6 +612,10 @@ class SessionSocialExpansionMixin:
             if not found: await self.send("Nie ma tego w skrzyni."); return
             iid, have = found
             qty = min(qty, have)
+            from systems.equipment_inventory_flow_v10600 import tracked as _sb106_phys
+            if _sb106_phys(self.server.db, iid):
+                await self.send("Fizyczne EQ w starej skrzyni domu wymaga uzgodnienia. Niczego nie zmieniono.")
+                return
             from systems.equipment_evolution_v10500 import is_evolved
             if is_evolved(conn, self.account_id, iid):
                 await self.send("Ten typ EQ ma aktywną ewolucję. Nie można utworzyć dodatkowej kopii ze skrzyni.")

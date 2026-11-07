@@ -12,9 +12,29 @@ from player.session_mixins.shops_teachers import ITEMS, NPCS, currency_reading_t
 from systems.content_registry import HOURLY_QUEST_IDS
 from systems.professions import normalize_profession_name
 from world.equipment_help import QUEST_REPEAT_COOLDOWN_SECONDS
+from systems.quest_visibility_v10600 import filter_quest_offers_v10600
 
 
 class SessionQuestOffersMixin:
+
+    async def show_v107_chaos_events(self):
+            """NVDA-friendly live rotation, including next hourly change."""
+            from world.v10700_saga_events_calendar import (
+                active_quest_ids,until_next_window,
+            )
+            now=time.time()
+            ids=tuple(qid for qid in active_quest_ids(now) if qid in QUESTS)
+            if not ids:
+                await self.send('Wydarzenia Chaosu v107 są niedostępne.')
+                return
+            minutes=(until_next_window(now)+59)//60
+            await self.send(f'WYDARZENIA CHAOSU v107: {len(ids)} aktywnych z 60. '
+                            f'Zmiana za {minutes} min. Wszystkie wracają co 6 godzin.')
+            for number,qid in enumerate(ids,1):
+                q=QUESTS[qid]
+                await self.send(f'{number}. {q["name"]}. {self.quest_offer_state(qid)}. '
+                                f'{q["description"]}')
+            await self.send('Właściwe zadanie przyjmij u miejscowego NPC: quest list <NPC>.')
 
     def hourly_quest_ids(self, at_time=None):
             """Pełna lista godzinnych zleceń + klasowe dla aktywnej klasy."""
@@ -58,6 +78,16 @@ class SessionQuestOffersMixin:
                 return ["brak definicji zadania"]
 
             reasons = []
+            # v107: hourly rotating threats have real, UTC-deterministic
+            # availability; an already accepted quest is not cancelled at rollover.
+            if quest.get('v10700_event_rotation'):
+                from world.v10700_saga_events_calendar import is_active,is_event,until_active
+                if not is_event(quest_id):
+                    reasons.append('nieprawidłowy identyfikator wydarzenia Chaosu')
+                elif not is_active(quest_id):
+                    remaining=until_active(quest_id)
+                    minutes=(remaining+59)//60
+                    reasons.append(f'wydarzenie Chaosu nieaktywne, kolejna rotacja za {minutes} min')
             from systems.live_olc29_creation import quest_choice_text
             from systems.live_olc26_world import conflicting_quests
             for alternative in conflicting_quests(quest_id):
@@ -90,6 +120,11 @@ class SessionQuestOffersMixin:
             required_class = str(quest.get("required_class") or "").strip()
             if required_class and required_class not in self.active_class_names():
                 reasons.append(f"wymaga aktywnej klasy {required_class}")
+
+            # v107: osobista rasa, bez przepisania historii starszych postaci.
+            required_race = str(quest.get('required_race') or '').strip()
+            if required_race and required_race != getattr(self.character,'race',''):
+                reasons.append(f'wymaga rasy {required_race}')
 
             required_npc_id = str(quest.get("required_npc_id") or "").strip()
             if required_npc_id:
@@ -151,18 +186,30 @@ class SessionQuestOffersMixin:
     async def show_npc_quest_offers(self, npc_id, npc, remember=True, quest_ids_override=None, page_number=1):
             quest_ids = (list(quest_ids_override) if quest_ids_override is not None
                          else self.quest_ids_for_npc(npc_id, npc))
+            # Explicit Elor pages use quest_ids_override and bypass
+            # quest_ids_for_npc; the same rule must apply before pagination.
+            quest_ids = filter_quest_offers_v10600(
+                quest_ids, QUESTS, self.server.db, self.account_id
+            )
             if not quest_ids:
-                await self.send(f"{npc['name']} nie ma teraz żadnych questów.")
+                if remember:
+                    self.quest_list_context = None
+                await self.send(
+                    f"{npc['name']} nie ma nowych zadań. "
+                    "Ukończone jednorazowe zadania znajdziesz przez quest ukończone."
+                )
                 return []
 
             # v105: regional NPCs may offer 15-21 quests. NVDA reads only
             # 10 per page, and the last page is the authoritative numeric
             # context for `przyjmij N` / `quest info N`.
             regional_page_info = None
-            if str(npc_id).startswith('v10500_'):
+            if str(npc_id).startswith(('v10500_', 'v10600_', 'v10700_', 'teacher_v107_', 'artisan_v107_')):
                 total = len(quest_ids)
                 pages = (total + 9) // 10
                 if not isinstance(page_number, int) or page_number < 1 or page_number > pages:
+                    if remember:
+                        self.quest_list_context = None
                     await self.send(
                         f"{npc['name']}: strona od 1 do {pages}. "
                         f"Przykład: quest list {npc['name']} strona 1."
@@ -232,7 +279,10 @@ class SessionQuestOffersMixin:
     async def show_quest_npc_list(self, npc_query=""):
             candidates = self.local_quest_npcs()
             if not candidates:
-                await self.send("W tej lokacji żaden NPC nie oferuje questów.")
+                await self.send(
+                    "Brak nowych zadań u NPC w tej lokacji. "
+                    "Historię jednorazowych zadań sprawdzisz przez quest ukończone."
+                )
                 self.quest_list_context = None
                 return
 
@@ -289,8 +339,8 @@ class SessionQuestOffersMixin:
                     )
                     return
                 npc_id, npc = found
-                if regional_match and not str(npc_id).startswith('v10500_'):
-                    await self.send('Strony questów są dostępne dla nowych krain v105.')
+                if regional_match and not str(npc_id).startswith(('v10500_', 'v10600_')):
+                    await self.send('Strony questów są dostępne dla nowych krain v105/v106.')
                     return
                 await self.show_npc_quest_offers(
                     npc_id, npc, page_number=regional_page_number)
@@ -798,7 +848,7 @@ class SessionQuestOffersMixin:
                 context = self.quest_list_context or {}
                 npc_id = context.get('npc_id')
                 if (context.get('source') == 'npc'
-                    and str(npc_id or '').startswith('v10500_')
+                    and str(npc_id or '').startswith(('v10500_', 'v10600_'))
                     and context.get('room_id') == self.character.room_id
                     and context.get('quest_ids')):
                     quest_id, error = self.quest_from_context(text)

@@ -486,11 +486,24 @@ DENSE_DUNGEON_ADDED_SPAWNS = densify_static_dungeon_spawns()
 # ============================================================
 # v0.9.12 - CONTENT 201-600: Soul Trials + questy profesyjne
 # ============================================================
+_V106_TRIAL_DEFS = {}
+if SOUL_MAX_TIER > 3000:
+    from world.v10600_soul_trials import quest_definitions as _v106_definitions
+    _V106_TRIAL_DEFS = _v106_definitions()
 for _tier in range(21, SOUL_MAX_TIER + 1):
     if _tier>1000 and _tier%10:
         continue  # v105: nowe Próby wyłącznie co 10 Tierów, stare wpisy 1–1000 zachowane w historii
     _level = SOUL_TIER_THRESHOLDS[_tier - 1]
     _qid = SOUL_TRIAL_QUEST_IDS[_tier]
+    # v106: podczas tego importu regiony fizyczne nie są jeszcze zbudowane.
+    # Opublikuj definicję Próby ze wskazaniem przyszłego prawdziwego bossa
+    # w tej samej tabeli QUESTS. World bootstrap potem weryfikuje cel.
+    if _tier > 3000:
+        _authored_trial = _V106_TRIAL_DEFS.get(_qid)
+        if not _authored_trial or _authored_trial['required_soul_level'] != _level:
+            raise RuntimeError(f'v106: brak definicji Próby Tieru {_tier}')
+        _catalog_mut.catalog_assign(_authored_trial, 'QUESTS', QUESTS, (_qid,))
+        continue
     # v105: trzy istniejące silniki walki, wybór stały dla danego Tieru.
     # Historia Prób do Tieru 1000 zachowuje oryginalny cel.
     _trial_target = f"crypt_boss_{_level}"

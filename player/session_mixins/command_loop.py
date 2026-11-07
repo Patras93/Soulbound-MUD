@@ -88,6 +88,41 @@ class SessionCommandLoopMixin:
                 continue
 
             command = resolve_session_command(token, args)
+            # v108: mine exit and back are real commands, including on dug tunnels.
+            # Only intercept while inside the mine; do not alter generic back commands.
+            if token in ("wyjscie", "wyjście", "cofnij", "back"):
+                from core.progression_resources import mine_floor_number
+                from core.mine_tunnels import mine_tunnel_coords
+                _mine_room = self.character.room_id
+                if (mine_floor_number(_mine_room) is not None or
+                        mine_tunnel_coords(_mine_room, self.account_id) is not None):
+                    if (self.is_downed_v0371() or getattr(self, 'current_hp', 0) <= 0):
+                        await self.send('Jesteś powalony lub martwy. Najpierw się odrodź.')
+                        continue
+                    if self.combat_mob_key or self.moving or self.guiding:
+                        await self.send('Nie możesz opuścić kopalni ani wrócić w trakcie walki lub ruchu.')
+                        continue
+                    if token in ("cofnij", "back"):
+                        previous = getattr(self, "previous_room_id", None)
+                        from core.classes_skills import ROOMS
+                        directions = list((ROOMS.get(_mine_room, {}).get('exits') or {}).items())
+                        from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS
+                        from core.mine_tunnels import mine_tunnel_coords as _coords
+                        position = _coords(_mine_room, self.account_id)
+                        if position:
+                            floor, x, y = position
+                            for d in HORIZONTAL_MINE_DIRECTIONS:
+                                target = self.server.db.mine_tunnel_target_v1251(self.account_id, floor, x, y, d)
+                                if target is not None:
+                                    directions.append((d, target))
+                        back_direction = next((d for d, dest in directions if dest == previous), None)
+                        if back_direction:
+                            await self.move(back_direction)
+                        else:
+                            await self.send("Brak poprzedniego sąsiedniego chodnika. Wpisz wyjscie, aby opuścić kopalnię.")
+                    else:
+                        await self.dungeon_exit()
+                    continue
             direction = DIRECTION_ALIASES.get(command)
             self._last_command_for_diagnostics = command
 
@@ -177,7 +212,6 @@ class SessionCommandLoopMixin:
                 await self.stop_auto_herbalism(announce=False)
 
             await self.leave_party(announce=False)
-            old_room = self.character.room_id
             old_name = self.character.name
 
             await self.stop_realtime_combat()
@@ -187,8 +221,9 @@ class SessionCommandLoopMixin:
             await self.show_session_summary()
             self.server.db.save_character(self.character)
             self.server.db.mark_player_logout_v0363(self.account_id)
-            await self.server.broadcast_room(
-                old_room, f"{old_name} opuszcza grę.", exclude=self
+            # Krótki komunikat dla wszystkich postaci online, także poza pokojem.
+            await self.server.broadcast_all(
+                f"Gracz {old_name} wylogował się.", history_category="system", exclude=self
             )
 
             # Wyczyść tylko stan sesyjny postaci. Konto główne zostaje zalogowane.
@@ -240,8 +275,10 @@ class SessionCommandLoopMixin:
             if self.character:
                 self.server.db.save_character(self.character)
                 self.server.db.mark_player_logout_v0363(self.account_id)
-                await self.server.broadcast_room(
-                    self.character.room_id, f"{self.character.name} opuszcza grę.", exclude=self
+                # Rozłączenie TCP / zamknięcie okna także oznacza wylogowanie.
+                await self.server.broadcast_all(
+                    f"Gracz {self.character.name} wylogował się.",
+                    history_category="system", exclude=self,
                 )
             try:
                 self.writer.close()

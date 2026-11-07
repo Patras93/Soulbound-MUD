@@ -1,3 +1,4 @@
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 # v4.20.0: bound, AST-identical method implementations (MRO unchanged)
 from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
 import player.session_methods_v4200.skilllearning_part01 as _sb420_src_01
@@ -282,3 +283,9 @@ SessionSkillLearningMixin.enemy_counterattack = _sb420_bind(_sb420_src_04.enemy_
 SessionSkillLearningMixin.natural_learn_skill_from_input = _sb420_bind(_sb420_src_04.natural_learn_skill_from_input, globals(), "SessionSkillLearningMixin")
 SessionSkillLearningMixin.learn_class_skill = _sb420_bind(_sb420_src_04.learn_class_skill, globals(), "SessionSkillLearningMixin")
 
+
+# v107 experimental Magitek effects. No effect on production v106.
+import os as _v107_magitek_env
+if _sb107_runtime_enabled():
+    from systems.magitek_support_v107 import install_runic_adapter as _v107_install_magitek
+    _v107_install_magitek(SessionSkillLearningMixin)

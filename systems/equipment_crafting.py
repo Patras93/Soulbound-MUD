@@ -638,6 +638,21 @@ GUILD_CLASS_QUEST_FLAVOUR_V11342.update({
     "Szaman": "łącz walkę z wyprawami śladami duchów",
 })
 
+# v107 staging: install Magitek guild content AFTER all legacy 22-class
+# boot audits. A 23-class guild pool at import time would fail historical guards.
+def install_magitek_guild_v107():
+    if 'Magitek' in GUILD_CLASS_QUEST_POOLS:
+        return len(GUILD_CLASS_QUEST_POOLS['Magitek'])
+    _GUILD_CLASS_QUEST_LEGACY_V11132['Magitek'] = (
+        'Próba Magiteka', 'Pokonaj 12 przeciwników jako Magitek.',
+        32, 800, 12, 'kill')
+    _GUILD_CLASS_QUEST_IDENTITIES_V1120['Magitek'] = 'Technomagiczna Przysięga'
+    GUILD_CLASS_QUEST_POOLS['Magitek'] = _guild_class_quest_pool_v1120('Magitek', 22)
+    GUILD_CLASS_QUESTS['Magitek'] = GUILD_CLASS_QUEST_POOLS['Magitek'][0]
+    GUILD_CLASS_QUEST_FOCUS_V11342['Magitek'] = {'kill', 'craft'}
+    GUILD_CLASS_QUEST_FLAVOUR_V11342['Magitek'] = 'łącz magię i technologię podczas wypraw i prac warsztatowych'
+    return len(GUILD_CLASS_QUEST_POOLS['Magitek'])
+
 # Nie zostawiaj klasy bez kontraktów po dodaniu nowego bohatera.
 from core.classes_skills import CLASSES as _GUILD_PLAYABLE_CLASSES_V1101
 assert set(GUILD_CLASS_QUEST_POOLS) == {row[0] for row in _GUILD_PLAYABLE_CLASSES_V1101}, (

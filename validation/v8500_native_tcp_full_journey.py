@@ -59,13 +59,26 @@ async def _journey(port, logpath):
         assert 'Szczury pod świątynią' in offer, 'Quest offer missing'
         await player.command('przyjmij 1')
         # Don't trust asynchronous single recv from game; verify with DB later.
-        await player.command('down')
+        down_result = await player.command('down')
         room = await player.command('look')
-        assert 'Piwnic' in room and 'Szczur' in room, 'Real rats not present'
-        start = await player.command('attack Szczur')
-        assert 'Walka' in start or 'Szczur' in start, 'Attack did not start'
+        # TCP look is a streamed response. Seeing the mob name in the FIRST
+        # response chunk is not proof of a spawn; not seeing it is not proof
+        # of an absent rat either. Assert the actual room and require a real
+        # kill persisted to SQLite, which is stronger than a look substring.
+        # On a slow Windows host, allow a few new look responses to establish
+        # the location, but NEVER invent a monster or quest progress.
+        for _ in range(3):
+            if 'Piwnic' in room or 'Piwnic' in down_result:
+                break
+            await asyncio.sleep(1.0)
+            room = await player.command('look')
+        assert 'Piwnic' in room or 'Piwnic' in down_result, (
+            'TCP not in temple basement: down='+repr(down_result[-1200:])+
+            ' look='+repr(room[-1600:]))
+        attack_output = await player.command('attack Szczur')
         deadline = time.monotonic() + 100
-        progress = 0
+        retry_at = time.monotonic() + 12
+        retries = 0
         while time.monotonic() < deadline:
             await asyncio.sleep(1.4)
             await player.command('quests')
@@ -78,7 +91,16 @@ async def _journey(port, logpath):
                     if any(status == 'active' and qty > 0 for status, qty in entries):
                         progress = max(qty for status, qty in entries)
                         return clone_db, progress
-        raise AssertionError('Real TCP combat did not commit a rat kill to isolated SQLite in 100 seconds')
+            # If no rat was ready on the first tick, try the REAL game
+            # command again. This does not count as PASS without a committed
+            # quest kill; a permanently missing mob still fails the gate.
+            if time.monotonic() >= retry_at and retries < 3:
+                retries += 1
+                retry_at = time.monotonic() + 12
+                attack_output = await player.command('attack Szczur')
+        raise AssertionError('Real TCP combat did not commit a rat kill to isolated SQLite in 100 seconds; '
+                             'last attack='+repr(attack_output[-600:])+
+                             ' last look='+repr(room[-900:]))
     finally:
         await player.close()
 

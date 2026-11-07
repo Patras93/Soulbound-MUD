@@ -907,6 +907,7 @@ class SessionCombatRewardsMixin:
                         await session.send('Nagroda walutowa: '
                             + currency_reading_text(silver, gold, mithril) + '.')
                     _stat_paid_v104 = [paid for _, paid, _ in _stat_results]
+                    session.session_summary_add('stat_xp', sum(_stat_paid_v104))
                     for _stat, _paid, messages in _stat_results:
                         for _note in messages:
                             await session.send(_note)

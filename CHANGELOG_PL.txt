@@ -1,147 +1,267 @@
-Aktualna paczka: v105.00.0
+Aktualna paczka: v108.00.0
+Soulbound MUD v108.00.0 — jedna zbiorcza paczka do WINDOWS PREDEPLOY
+7 listopada 2026
 
-POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 18:56 (FIX7):
-- Przywrocono wymagany pierwszy wiersz changelogu. Bramka kontrolna
-  v9604_release_tcp porownuje ten wiersz doslownie z VERSION.
-- Zmiana dotyczy tylko CHANGELOG_PL.txt; kod serwera i testow niezmieniony.
-- FIX6: Windows 58/60 etapow PASS; 2 audyty zatrzymaly sie na naglowku.
-- Przed wdrozeniem wymagany nowy Windows PREDEPLOY: 60/60 PLUS i 3/3 v105 PASS.
+POPRAWKA 7.11.2026: START WINDOWS, TCP I EVENTY
+- Usunieto stary, ukryty launcher START_Soulbound_UKRYTY.vbs. Zwykly
+  START_Soulbound.bat zachowuje kod zakonczenia i wywoluje jawny start BAT.
+- Autostart Windows tworzy skrot CMD zamiast ukrytego VBS; rozpoznaje
+  wlasny stary autostart i nie usuwa obcych wpisow.
+- Test TCP porownuje rzeczywiste wartosci salda w komendzie money, a nie
+  dodatkowe powiadomienia z sesji. Zmiana waluty nadal blokuje PREDEPLOY.
+- Over Cap dziala z zegarem tylko w aktywnym serwerze v108; historyczne
+  testy EXP Bank pozostaja deterministyczne nawet w czasie eventu.
+- Zachowano przebudowe EQ v107, Adwent, eventy EXP i pomiar tempoexp.
+- Zmiana wymaga ponownego Windows PREDEPLOY 60/60 PLUS z nowym SHA256.
 
-POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 17:41 (FIX6):
-- FIX5: pelne 60/60 etapow PLUS i 2/3 dodatkowych bramek v105 PASS.
-- W trzeciej bramce 5 klientow TCP zalogowalo sie; dwie walki z bossami
-  byly poprawne. Po pierwszej nagrodzie test dostal tylko naglowek strony 2
-  kolejnej listy 16 questow i omylkowo zakonczyl odczyt jako pelna liste.
-- Naprawiono wylacznie klienta TESTOWEGO: zbiera surowe bajty TCP do
-  koncowego znacznika listy, wymaga wlasciwego NPC, strony 2 i prawdziwej
-  numerowanej pozycji. Limit 65 s, brak pozycji lub przerwane dane to FAIL.
-- Test jednostkowy fragmentow TCP i negatywny brak questa: 2/2 PASS.
-- Lokalna rzeczywista bramka 5 klientow TCP z 2 bossami, questami i
-  faktycznym odbiorem nagrod SQLite: 37/37 PASS (testowe HP bossow=1,
-  wiec nie jest to pomiar normalnego balansu gry).
-- Bez zmian w rozgrywce, bossach, questach, graczach i danych produkcyjnych.
-- Nadal wymagany nowy Windows PREDEPLOY: 60/60 PLUS i 3/3 bramek PASS.
+POPRAWKA PREDEPLOY WINDOWS 7.11.2026 (na bazie wyniku 58/60):
+- Przywrócono niezmieniony historyczny kod start_session_summary wymagany przez
+  audyt modułów v4.20; licznik EXP statystyk jest nadal liczony poprawnie przez
+  session_summary_add z domyślnym zerem.
+- Trzy testy oczekiwanych wyjątków nie używają już except: pass, lecz
+  jawnie potwierdzają odrzucenie błędnej operacji i rollback.
+- Nie zmieniono reguł produkcyjnej przebudowy EQ, kalendarza adwentowego,
+  Over Cap, tempa EXP ani danych postaci.
+- Wymagany NOWY Windows PREDEPLOY 60/60 PLUS dla poprawionego SHA256.
+- Standardowe BAT-y PREDEPLOY/WDROŻENIA nadal działają; osobny bezpieczny
+  pomost aktualizuje powiązanie SHA256 do nowego ZIP-a przed testami.
+STATUS: NIE WDRAŻAĆ BEZ PREDEPLOY 60/60 PLUS I DODATKOWYCH BRAMEK v108.
 
-Soulbound MUD — Era Wiecznych Krain (kontynuacja Era Bez Granic)
-STATUS: JEDNA KOMPLETNA PACZKA KANDYDATA DO PREDEPLOY — NIE WDRAŻAĆ BEZ 60/60 PLUS I BRAMEK V105.
-Data: 02.11.2026
+NAJWAŻNIEJSZE ZMIANY:
+- Rebuild fizycznego EQ v107 pozostawia nietknięte przedmioty założone,
+  statystyki, właścicieli, oryginalne UUID, ewolucję, bank i inne postępy.
+  Na rzeczywistej, ODLĄCZONEJ kopii użytkownika: 20 slotów przebudowanych,
+  38 nowych kopii etapu 0, 257 starych kopii zachowanych, 2 stare
+  warianty żelaznego pierścienia bezpiecznie odizolowane, integrity_check PASS.
+- Nowy PREDEPLOY v108 obowiązkowo testuje świeżą, odbudowaną kopię SQLite
+  wraz z aktualnymi zapisami WAL. Nie zmienia baz i pozwala dalej grać.
+- Instalator v108 po zgodnym PREDEPLOY i ręcznym potwierdzeniu najpierw
+  zatrzymuje v107 i zapisuje nowy, trwały backup SQLite oraz poprzedni kod,
+  następnie ponownie wykonuje rebuild na NOWYM stanie produkcji. Dopiero
+  po kontroli kopii instaluje v108 i zapisuje odbudowaną bazę. W przypadku
+  błędu po podmianie kodu wykonuje próbę przywrócenia kodu i SQLite z backupu.
+  Nie ma domyślnego obejścia bramek ani automatycznego resetu ekwipunku.
+- Manifest aktywacji v108 działa po usunięciu wyników PREDEPLOY; nie
+  trzeba pozostawiać katalogu Soulbound_PREDEPLOY po udanej instalacji.
+- Adwent: komendy adwent/prezent; odbiór od 1 grudnia do 1 stycznia
+  włącznie, jeden dziennie na konto, bez automatycznego dodawania EQ.
+- Over Cap: :30–:45 co godzinę, czyli 15 minut po Double EXP (:00–:15).
+  Zwiększa tylko limit jednorazowego przyznania EXP; status: eventxp.
+- Tempo EXP: komenda tempoexp mierzy rzeczywisty EXP na godzinę w klasach,
+  postaci, Duszy, statystykach, profesjach i narzędziach.
 
-POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 16:47 (FIX5):
-- FIX4 ukonczyl wszystkie 60/60 bazowych etapow PLUS oraz 2 z 3 bramek v105.
-- Trzecia bramka (bossowie, 5 klientow TCP, questy i nagrody) nie ruszyla:
-  ModuleNotFoundError: No module named 'validation' podczas startu skryptu.
-- Naprawiono sciezke importu pakietu validation przy bezposrednim uruchomieniu
-  pliku validation/v10500_tcp_boss_rewards.py przez testuj_soulbound_windows.py.
-- Lokalny test pelnej bramki na prywatnym serwerze TCP: 37 kontroli PASS,
-  5 klientow, 2 przyjete questy, 2 walki i 2 zapisane odbiory nagrod SQLite.
-  Uzyto testowego HP=1 po skalowaniu bossow; nie jest to test balansu walki.
-- Poniewaz test startuje swiat trzy razy, limit samej bramki przedluzono
-  z 360 do 900 sekund. Jest nadal TWARDY: zawieszenie lub blad konczy FAIL.
-- Zmiany dotycza TYLKO bramki testowej TCP i jej limitu czasu, nie mechaniki
-  walki, obslugi questow, nagrod, bazy produkcyjnej ani interfejsu NVDA.
-- Do zatwierdzenia do wdrozenia nadal potrzebny pelny test Windows
-  60/60 PLUS i 3/3 bramek v105 PASS.
+TESTY NA SZTUCZNYCH DANYCH (NIE ZASTĘPUJĄ WINDOWS PREDEPLOY):
+- Scenariusz v107 -> v108 z instalatorem i symulacją nieudanego zapisu
+  SQLite oraz przywróceniem starego kodu/danych: 47 kontroli PASS.
+- Osobny proces kontrolny kompatybilności po rebuilt: PASS.
+- Test end-to-end odłączona migawka -> rebuild -> zapis -> rollback: PASS.
+- Testy dynamicznego EQ: 36/36 PASS. Kalendarz i tempo EXP: 355 PASS.
+- Wymagane niezależne potwierdzenie na Windows: PREDEPLOY 60/60 PLUS PASS.
 
-POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 16:01 (FIX4):
-- Ostatni FIX3: 58/60 PASS, szybki i pelny PREDEPLOY FAIL w tej samej
-  historycznej regresji v103: test nieslusznie wymagal Proby dla Tieru 81.
-- Poprawiono wylacznie regresje integracyjna: Tier 81 wymaga Soul Level 810,
-  ale NIE Proby; Tier 90 wymaga Soul Level 900 I ukonczonej Proby u Elora.
-- Test sprawdza realne zapisy SQLite, zabicie bossa Krypty 900,
-  blokade przed Proba, bank Soul XP, komunikaty NVDA i broadcast.
-- SQLite jest zamykane w finally przed sprzataniem katalogu TEMP Windows,
-  rowniez gdy kontrola nie przejdzie.
-- NIE zmieniano gameplay, oryginalnych questow ani produkcyjnych danych.
-- Kandydat nadal wymaga nowego 60/60 PLUS i wszystkich 3 bramek v105
-  na Windows i na KOPII prawdziwej bazy przed wdrozeniem.
+BEZPIECZEŃSTWO:
+- Poprzednią paczkę v108 wykrył Defender jako Trojan:Script/Wacatac.H!ml.
+  Przyczyna nie została dowiedziona. Jeśli Defender ponownie zablokuje
+  archiwum, NIE przywracaj go i nie dodawaj wyjątków. Nie wyłączaj ochrony.
+- Nie przesyłaj do czatu soulbound.db ani REBUILT_TEST_ONLY.sqlite; tylko logi.
+- Nie uruchamiaj ręcznie żadnej podmiany bazy, dopóki PREDEPLOY nie przejdzie.
 
-POPRAWKA PO TRZECIM WINDOWS PREDEPLOY (LOG 2026-11-02 15:03):
-- W poprzednim archiwum 58/60 etapow PASS. PELNY AUDYT, migracja SQLite i TCP PASS.
-- SZYBKI PREDEPLOY nieslusznie odrzucal nowy, poprawny zapis kontroli
-  accepted_legacy_reports(ns, version=server.VERSION) jako zmiane bezpieczenstwa.
-- Weryfikator wymaga teraz wlasnie jawnego parametru VERSION oraz zachowania
-  sprawdzania kazdego nieznanego bledu (fail closed), bez zadnego pomijania.
-- Historyczny test v104 respektuje oba odrebne kontrakty wersji.
-- Dodano test AST rzeczywistego wywolania i zrodla szybkiej bramki.
-- Dalszy FAST PREDEPLOY znalazl stary test banku EXP Duszy, ktory ustawial
-  Soul Level 10, mimo ze w v105 pierwszy prog Tieru 2 jest na Soul Level 20.
-  Test sprawdza teraz prawdziwy prog aktualnej wersji; saldo Soul XP jest
-  zachowane po odblokowaniu Tieru. Dodano test dla T1, T9, T10, T1000 i T2999.
-- Ponowny WINDOWS PREDEPLOY 60/60 PLUS + 3 bramki v105 nadal OBOWIAZKOWY.
+---
+HISTORIA WCZEŚNIEJSZYCH ETAPÓW (poniżej są dawne opisy stanu roboczego;
+nie stanowią aktualnego potwierdzenia wdrożenia):
 
-POPRAWKI PO DRUGIM WINDOWS PREDEPLOY (LOG 2026-11-02 14:25):
-- Wynik poprzedniego ZIP: 58/60 PASS, dwa etapy FAIL. Produkcji nie zmieniono.
-- Profesje: historyczne 2375 questów v103 + 140 v104 + dokładnie 300 nowych v105;
-  nowy kontrakt sprawdza identyfikatory 20 regionów, brak usuniętych questów i fabułę.
-- Ekonomia: audyt sprzedaży działa na prawdziwej schemie SQLite w pamięci.
-  Nie wyłączono blokady sprzedaży ewoluowanego wyposażenia; audyt ją testuje.
-- 22 zestawy klasowe v105: uzupełniono brakującą drugą statystykę ofensywną
-  w każdym z 88 elementów; zachowano Konstytucję, runy i pozostałe premie.
-- Zgodność starych audytów z dynamicznymi Próbami Astralnymi v105:
-  dokładnie 67 prawidłowych celów bossów z Wieży, z wymaganymi poziomami.
-  Losowe lub nieistniejące identyfikatory nadal blokują wydanie.
-- Dodano testy negatywne kontraktu profesji, poziomu bossów oraz EQ.
-- Obowiązuje NOWY pełny Windows PREDEPLOY 60/60 PLUS i 3 bramki v105,
-  z migracją prawdziwej bazy na KOPII. Nie wdrażać przed pełnym PASS.
+SOULBOUND MUD — v108.00.0, ZAMROŻONY ZAKRES, BEZ EQ 2.0
+6 listopada 2026
+STATUS: KANDYDAT DO TESTÓW — NIE WDRAŻAĆ BEZ PEŁNEGO WINDOWS PREDEPLOY.
 
-POPRAWKA PO WINDOWS PREDEPLOY 2026-11-02 13:55 (3 BLOKADY):
-- SZYBKI PREDEPLOY i PELNY AUDYT: odtworzenie historycznego kodu metody
-  SessionSkillLearningMixin.unlock respektuje teraz odrębny, dokładny fingerprint AST
-  v105 (Próba co 10 Tierów). Nie zmieniono ani nie usunięto fingerprintu v104.
-- Starożytne Królestwa: w Dworze Zarodnikowych Królów jest 18 celów Fame,
-  ponieważ 3 nowe elitarne cele doszły do 15 historycznych. Test zachowuje
-  wymóg WSZYSTKICH 15 historycznych celów oraz sprawdza autentyczność dodatków.
-- Dodano regresję źródeł dla obu typów PREDEPLOY; nie zmieniano gry, baz ani
-  rozgrywki. Poprzednia paczka z logu 13:55 ma wynik FAIL i nie wolno jej wdrożyć.
-- Lokalnie: 964 kontroli modułów v4.20 PASS, 25 kontroli auto-skill PASS,
-  539 kontroli Starożytnych Królestw PASS, 2 nowe testy PASS,
-  541 testów v104 PASS, 43 testy v105 PASS, integralność v104 778 PASS.
-- NOWY ZIP wymaga od początku ponownego pełnego WINDOWS PREDEPLOY 60/60 PLUS
-  i wszystkich 3 bramek v105 na kopii prawdziwej bazy; nie jest jeszcze wdrożony.
+ANALIZA NIEZGODNYCH SLOTOW EQ V107 (7.11.2026) — TYLKO ODCZYT:
+- W prawdziwym anonimowym raporcie: 94 sloty, 20 slotow z innym
+  przedmiotem w cieniu (40 jednostek symetrycznego porownania),
+  36 brakujacych kopii w 31 grupach. Nie ma zgody na wdrozenie.
+- Kontrola SPRAWDZ_11_EQ_V107_BEZ_ZMIAN.bat porownuje teraz dodatkowo
+  ODŁĄCZONE migawki z aktualnego stanu i oryginalnego backupu sprzed v107.
+  Wypisuje anonimowo, czy stara wartosc slotu zgadza sie z aktualnym
+  equipment, cieniem, zadnym z nich, lub czy slotu nie bylo w backupie.
+- Wylicza, ile niezgodnych slotow ma 0, 1 lub wiele wolnych fizycznych
+  kopii pasujacego szablonu i czy jedyna kopia byla ewoluowana.
+  To wyłącznie trop diagnostyczny; NIE podejmuje decyzji o przepieciu.
+- Pokazuje, ile z brakujacych kopii mozna liczbowo porownac ze wzrostem
+  inventory od backupu oraz iloma grupami trzeba zajac sie indywidualnie.
+  Wzrost inventory NIE dowodzi prawa do odtworzenia fizycznej kopii.
+- Produkcyjna baza i backup sa tylko odczytywane, raport zawiera wylacznie
+  liczniki bez identyfikatorow kont, slotow, itemow i UUID.
+- Testy sztucznych baz: nowe porownanie 7/7 PASS; pelna regresja
+  diagnostyczna nadal nie dopuszcza tworzenia kopii na produkcji.
+- NOWY ZIP wciaz jest diagnostyczny: NIE WDRAZAC. Potrzebny jest nowy
+  anonimowy wynik oraz pozytywny Windows PREDEPLOY przed instalacja.
+
+ANONIMOWA WERYFIKACJA 11 HISTORYCZNYCH ROZBIEZNOSCI EQ V107 (7.11.2026):
+- Dodano validation/v10800_eq107_readonly_reconcile.py: narzedzie
+  TYLKO DO ODCZYTU, uruchamiane recznie i poza startem serwera.
+- Po rozpakowaniu calego ZIP poza katalogiem dzialajacej gry uruchom
+  SPRAWDZ_11_EQ_V107_BEZ_ZMIAN.bat. Wynik jest tylko w konsoli,
+  nie tworzy kolejnych raportow ani plikow w katalogu gry.
+- Uzywa spójnych migawek SQLite utworzonych w katalogu TEMP, porownuje
+  aktualna baze z oryginalnym backupem sprzed migracji v107 oraz probuje
+  uzgodnienia 11 brakujacych fizycznych kopii w TRZECIEJ odlaczonej kopii.
+- Odmawia wyniku PASS, gdy liczba brakow nie jest dokladnie 11, wystepuja
+  dodatkowe niezgodnosci, zmiana stanu od backupu jest niewystarczajaca
+  lub istnieja slady ulepszen, magazynowania albo zalozenia tej kopii.
+- Po probie sprawdza cale konto, sloty, pozostale tabele, stare ID,
+  integralnosc SQLite i klucze obce. Kopia probna jest USUWANA; zaden
+  zapis nie trafia do aktualnej bazy ani backupu, nie powstaje raport z ID.
+- Dodano regresje 5/5: prawidlowe 11, brak zmian oryginalu, odmowa 12,
+  odmowa po ulepszeniu, odmowa bez backupu v107.
+- TO NIE JEST NAPRAWA PRODUKCJI ANI ZGODA NA WDROZENIE. Wymagane sa
+  aktualny odczyt prawdziwej bazy oraz Windows PREDEPLOY tej paczki.
 
 
-ZAWARTOŚĆ V105:
-- 20 nowych krain poziomów 10001–30000 (280 pokojów, 60 NPC, 160 zwykłych potworów, 40 bossów).
-- 1000 questów regionalnych: 400 fabularnych, 300 profesyjnych, 200 polowań, 100 eksploracyjnych.
-- Pełne listy ofert u nowych NPC, po maksymalnie 10 pozycji na stronę; poprawne "przyjmij N" i "quest info N".
-- Soul Tier do 3000. Od początku obowiązkowa Próba TYLKO na Tierach podzielnych przez 10.
-- 200 nowych Prób T1010–T3000 w Krypcie, Wieży i regionach. Elor wyświetla właściwe strony.
-- "unlock max" zatrzymuje się przed obowiązkową Próbą; historyczne ukończenia questów pozostają w bazie.
-- Broń Duszy: nowe formy co 100 Tierów, 6 żywiołów, aktywny Impuls i Osłona, trwałe cooldowny per postać.
-- 12 nowych setów regionalnych i 22 klasowe; 136 elementów oraz receptury.
-- Ewolucja posiadanego EQ u Haldora (10 etapów), materiały regionalne, zachowanie run i przekuć.
-- Ochrona ewoluowanego EQ przy handlu, skrzyniach, aukcjach, poczcie i rzemiośle; atomowy SQLite.
-- Admin Live v105: edycja zawartości i parametrów Duszy/EQ przez istniejący system DRAFT/CAS/cofnij.
-- Polskie helpy i krótkie komunikaty NVDA.
+DOPRACOWANIE TESTOW I BEZPIECZENSTWA INSTALACJI (7.11.2026):
+- Przed zatrzymaniem serwera instalator porownuje KAZDY wypakowany plik
+  z rzeczywista zawartoscia zatwierdzonego ZIP (nie tylko numer wersji).
+  Odrzuca podmienione lub dodatkowe pliki stagingu.
+- Dodano test regresji starego v107: po usunieciu tymczasowej autoryzacji
+  i restarcie zdobyte EQ moglo trafic do plecaka bez fizycznej kopii.
+  Test odtwarza 11 niedoborow na SZTUCZNEJ bazie; probny powrot do
+  zgodnosci odbywa sie TYLKO na osobnej kopii w TEMP.
+- To potwierdza mechanizm bledu, ale NIE jest dowodem przyczyny
+  konkretnych danych graczy. Nie ma automatycznego dopisywania EQ
+  ani nowego EQ 2.0, baza uzytkownika pozostaje nietknieta.
+- Bramka prawdziwej bazy v107 i Windows PREDEPLOY 60/60 PLUS sa nadal
+  obowiazkowe; pakiet nadal oznaczony NIE WDRAZAC.
 
-NAPRAWY W TEJ PACZCE ZBIORCZEJ:
-- Poprawiono techniczny poziom nowych mobów i bossów podczas spawn i respawn, bez zmian starego świata.
-- Przywrócono oryginalne HP/obrażenia 160 zwykłych mobów v105: stary 800-cap spłaszczał je do jednej wartości.
-- Potwierdzono rzeczywiste ataki TCP i postęp dwóch bossowych questów z pierwszej/ostatniej krainy.
-- Test nagród bossów używa wyłącznie odizolowanych postaci, lokalnego TCP i skróconego HP w LAB;
-  nie jest testem normalnego czasu walki, wydajności ani pełnego balansu 30 000.
-- Dodatkowe, obowiązkowe bramki v105 po historycznych 60 etapach PREDEPLOY:
-  (1) katalogi/questy/numeryczny balans, (2) migracja prawdziwej bazy tylko na kopii,
-  (3) rzeczywisty TCP 5 graczy: 2 bossy, zadania i nagrody po restarcie.
-- Każdy brak wyniku PASS w tych bramkach uniemożliwia dopuszczenie paczki do wdrożenia.
 
-POTWIERDZONE TESTY LOKALNE (NIE ZASTĘPUJĄ WINDOWS PREDEPLOY):
-- Testy v105 unittest: 43/43 PASS. Testy v104: 541/541 PASS.
-- Pierwsza integralność v105: 8304 PASS; osiągalność 1000 questów: 6861 PASS.
-- SQLite 600 questów bojowych: 5402 PASS; audyt 40 bossów: 365 PASS.
-- Audyt 160 zwykłych mobów i 40 bossów: 1678 PASS (porównanie liczb, nie test czasu walki).
-- TCP pięciu klientów: dwa bossy, ukończenie questów, wypłata waluty i materiałów (SQLite): 37 PASS.
-  Skrócone HP TYLKO w odizolowanym teście; nie jest to pomiar normalnej trudności.
-- Test migracji na syntetycznej bazie ze starego kodu v104.00.3: PASS.
-- Przed wydaniem: obowiązkowe testy na KOPII prawdziwej bazy Windows oraz 60/60 PLUS.
+POPRAWKA: PORZADEK PO WDROZENIU (6.11.2026):
+- Po zaliczonym oficjalnym PREDEPLOY 60/60 PLUS instalator v108 zapisuje
+  wewnatrz gry trwaly znacznik ze sprawdzonymi sumami SHA256 waznych plikow.
+- Przy nastepnych startach v108 NIE wymaga katalogu Soulbound_PREDEPLOY,
+  pliku last_result_v108.json ani pobranej paczki ZIP.
+- Przed instalacja wszystkie dotychczasowe bramki, porownanie ZIP i backup
+  pozostaja OBOWIAZKOWE. Bez nich instalator nadal nie wykona STOP.
+- Zmieniony lub usuniety plik gry albo usuniety znacznik powoduje odmowe
+  aktywacji. Zaden zapis w bazie SQLite nie jest zmieniany przez ta poprawke.
+- Test na oddzielnej sztucznej instalacji sprawdza restart bez PREDEPLOY i ZIP,
+  zachowanie danych, wykrycie uszkodzonego kodu i zgodnosc EQ v107.
+- Produkcyjna v107 pozostaje bez zmian; przed wdrozeniem v108 nadal trzeba
+  uzgodnic 11 historycznych rozbieznosci EQ i zaliczyc Windows PREDEPLOY.
 
-ISTOTNE OGRANICZENIA I BEZPIECZEŃSTWO:
-- Domyślne dawne limity nie są po cichu zmieniane: gdy administrator pozostawił limit
-  Soul Level 800, do dalszych Prób potrzebna jest jawna zmiana limitu w Admin Live.
-- Przygotowane krainy kończą się na poziomie 30000. Nie oznacza to dodania ręcznie
-  zaprojektowanych krain powyżej tego zakresu.
-- Pełny balans rzeczywistej walki na poziomach 10001–30000 wymaga testów graczy;
-  audyt liczb i skrócony test TCP nie dowodzą odpowiedniego czasu zabicia bossów.
-- Paczka nie zawiera baz produkcyjnych, kont ani zapisów graczy.
-- Produkcja pozostaje na ostatniej potwierdzonej v104.00.3 do osobnego potwierdzenia wdrożenia.
-- Nie uruchamiaj WDROZ_PO_PREDEPLOY.bat przed wynikiem PASS na dokładnie tym ZIP.
+ZMIANA DECYZJI: NA ŻYCZENIE WŁAŚCICIELA NOWE EQ 2.0 NIE BĘDZIE WDRAŻANE.
+Z projektu v108 usunięto nową migrację EQ, narzędzie uzupełniania kopii,
+nowe znaczniki odcięcia oraz testy nowej przebudowy wyposażenia.
+Nie ma automatycznego tworzenia 11 kopii ani przypisywania ich właścicielom.
+
+ZACHOWANA HISTORIA GRY:
+- Era Bez Granic (v103.00.0): dotychczasowe krainy, rajdy, questy i systemy
+  pozostają w grze. Usunięcie nowego EQ 2.0 z v108 nie cofa Ery v103.
+
+ISTNIEJĄCE EQ v107 ZACHOWANE:
+Nie kasujemy tabel v106/v107, istniejących fizycznych kopii, ulepszeń,
+banku, ekwipunku ani kopii cofania. Uruchomienie v108 korzysta wyłącznie
+z dotychczasowej aktywacji i ochrony v107; wymaga jej już istniejącego
+znacznika migracji. Nie przeprowadza nowej migracji i NIE tworzy tabeli
+v108_eq_production_cutover. Jeżeli istniejący stan v107 nie przechodzi
+własnej kontroli integralności, PREDEPLOY nadal musi odmówić wdrożenia.
+Nie osłabiamy tej ochrony, aby ukryć dotychczasowe rozbieżności.
+
+POZOSTAŁE ZMIANY v108 (BEZ ROZSZERZANIA ZAKRESU):
+- Kreator postaci: powrót z wyboru klasy do rasy przez 0, wroc, wróć, rasy,
+  zachowanie imienia i płci.
+- Twierdza Gigantów: checkpointy co 10 pięter, bezpieczne portale drużyny.
+- Kopalnia Głębinowa: cofnij/wyjście, zakończenie auto-kopania.
+- Questy: ochrona już założonego wyposażenia i atomowe oddawanie materiałów.
+- Krótkie polskie komunikaty dostępne dla NVDA.
+- Porządki BAT: historyczne skrypty przeniesione do narzedzia/bat_historyczne,
+  zachowane historyczne zależności i narzędzia START/STOP/PREDEPLOY.
+- Instalator: obowiązkowe 60/60 PLUS, bramki v105, v107 i własne regresje v108,
+  podpisane zgodnością SHA256 z dokładnie testowanym plikiem ZIP.
+
+AUDYT KODU BEZ ZMIANY MECHANIKI:
+- Dwa testowe połączenia SQLite v108 są teraz jawnie zamykane przed
+  usunięciem katalogu TEMP na Windows (poprawka WinError 32).
+- Audyt całej gry: naprawiono również jawne zamykanie SQLite w komendzie
+  administratora `admin backup` i przy tworzeniu kopii testowej progresji v104.
+  Pozwala to zwolnić uchwyty bazy przed kontrolą, usunięciem lub rotacją
+  plików backupu, bez zmiany danych gry i zasad migracji.
+- Poprawiono wyświetlaną historię v108: brak zapowiedzi anulowanego EQ 2.0.
+- Nie zmieniono rozgrywki ani danych graczy; v107 nadal wymaga zgodnego rejestru.
+- Kolejny audyt v107: po niezgodnosci rejestru bramka v108 podaje wylacznie
+  anonimowe LICZNIKI niedoborow/nadwyzek fizycznych kopii, niezgodnych slotow
+  i nieznanych szablonow. Nie wyswietla kont, UID ani nazw przedmiotow.
+  Test odczytu 20/20 PASS na sztucznej migawce. Ochrona nie jest luzowana,
+  nie tworzymy kopii ani nie uruchamiamy nowej migracji.
+- Test odrebnego polaczenia SQLite wykazal ograniczenie blokad TEMP v107.
+  Trwaly trigger zależny od funkcji tego polaczenia blokowalby tez zwykle
+  materialy — NIE dodano go, by nie popsuc zapisow gry i magazynow.
+
+
+
+KONTROLA ZGODNOSCI v106–v107–v108 (BEZ COFANIA POSTEPU):
+- Porownano pelna v107 z aktualna v108: kluczowe pliki klas, ras, poziomow,
+  krain i questow v107 pozostaly bez zmian (7 zgodnych sum SHA256).
+- Zachowano wszystkie 7 nowych klas, 8 ras i 8 profesji z v107, wraz
+  z dotychczasowymi zasadami poziomow. Nie usuwamy zmian v107.
+- Dodano regresje 21 kontroli pilnujaca ich obecnosci oraz poprawek v108:
+  kreatora, portalu Twierdzy Gigantow, kopalni i oddawania questow.
+- Poprawiono tylko kontrole startowa dotychczasowego EQ v107: sprawdza
+  rowniez osierocone fizyczne przypisania slotow na kontach, ktore nie
+  wystepuja juz w plecaku ani rejestrze egzemplarzy. Nie dokonuje zapisow.
+- Wczesniejsze 11 rozbieznosci na rzeczywistej bazie pozostaje nierozwiazane;
+  brak automatycznego generowania kopii, resetowania rozwoju lub wylaczania
+  zabezpieczen. Nowe EQ 2.0 nadal calkowicie wycofane.
+
+BEZPIECZEŃSTWO:
+- Żadnych baz SQLite, plików kont ani logów w ZIP.
+- Żadnych automatycznych działań na produkcji.
+- Zmiana ZIP unieważnia poprzedni PASS; potrzebny ponowny Windows PREDEPLOY.
+- Testy i ochrona v107 nie są usuwane ani obchodzone.
+- Jeśli źródłowa v107 ma rozbieżność inventory/ledger, aktualizacja
+  może wymagać osobnej decyzji o zachowaniu starego EQ; nie zakładamy PASS.
+
+PRZYGOTOWANIE:
+1. Umieść JEDEN ZIP v108 w C:\Soulbound-MUD\NOWE_WERSJE.
+2. Rozpakuj go poza katalog gry i uruchom PREDEPLOY_V108_Z_ZEWNATRZ.bat.
+3. Jeśli pojawi się FAIL — NIE WDRAŻAJ. Nie wykonuj automatycznych napraw EQ.
+4. Wdrożenie dopiero po wszystkich PASS i świadomym potwierdzeniu.
+
+Zmiany wyłącznie w jednej pełnej paczce. Jeden polski CHANGELOG_PL.txt.
+
+WAZNA NAPRAWA BEZPIECZENSTWA PREDEPLOY 108 (2026-11-06):
+- Oddzielono wynik testow v108 (Soulbound_PREDEPLOY/last_result_v108.json) od aktywnej
+  autoryzacji v107 (Soulbound_PREDEPLOY/last_result.json).
+- Zapobiega to utracie ochrony fizycznego EQ przy restarcie v107 po testach v108.
+- Instalator/aktywacja v108 sprawdzaja tylko wlasny, oddzielny wynik 60/60 PLUS.
+- Nie zmieniono danych, rejestru EQ, rozwoju, klas, ras, poziomow ani questow.
+- Istniejacy stan 11 rozbieznosci w bazie nie jest automatycznie naprawiany.
+- Paczka nadal NIE DO WDROZENIA bez pozytywnego testu Windows i zgodnej bazy.
+
+DIAGNOZA BLOKADY SLOTÓW EQ V107 (7.11.2026):
+- Dotychczasowa kontrola SPRAWDZ_11_EQ_V107_BEZ_ZMIAN.bat po komunikacie
+  BLOKADA_NIEZGODNE_SLOTY_EQ podaje teraz ANONIMOWE LICZNIKI przyczyn:
+  brak powiązania, osierocone powiązanie, błędna kopia, inny właściciel,
+  inny przedmiot, magazyn i osobno niedobory kopii.
+- Czyta tylko odłączoną migawkę SQLite w TEMP. Niczego nie naprawia, nie
+  ujawnia danych kont, UID, nazw przedmiotów ani slotów, nie modyfikuje gry.
+- Kategoriom wolno się pokrywać. Zero w danej kategorii nie oznacza PASS.
+- To nadal PEŁNA PACZKA TESTOWA, NIE WDRAŻAĆ; do aktualizacji wymagane jest
+  wyjaśnienie zgodności danych v107 i ponowny Windows PREDEPLOY.
+
+DIAGNOSTYKA REBUILD EQ v107 NA KOPII – DYNAMICZNE PIERŚCIENIE (7.11.2026):
+- Odtwarzanie oryginalnej definicji craftq_normal_none_jewel_iron_ring przez silnik rzemiosła.
+- Wyjątek jest ograniczony dokładnie do dwóch wskazanych pierścieni; pozostałe nadmiarowe kopie nadal blokują rebuild. Nie usuwa UID ani statystyk.
+- Dodatkowa blokada dla przedmiotów nadal obecnych w banku, magazynie profesji, poczcie albo skrzyniach mieszkania.
+- Anonimowy raport zbiorczy dla kilku blokad jednocześnie (przyrost, historia ulepszeń, sloty z ewolucją), bez kolejnych prób po jednym błędzie.
+- Regresja pamięciowa i pełna ścieżka na plikach SQLite: 20 niezgodnych slotów, 36 braków i 2 pierścienie; zachowane stare rekordy, produkcja i backup.
+- Brak testu na prawdziwej bazie graczy. Wymagany Windows PREDEPLOY 60/60 PLUS. NIE WDRAŻAĆ.
+
+Soulbound v108 - dodatki kalendarzowe (KOD ROBOCZY, NIE WDRAZAC):
+- Double EXP bez zmian: co godzine przez :00-:15.
+- Over Cap: limit pojedynczej nagrody EXP x2 przez :30-:45, czyli start 15 minut PO KONCU Double EXP. Nie mnozy samego zdobywanego EXP ani nie kumuluje x4 z Over Cap bossa. Status: eventxp.
+- Prezenty adwentowe: 1 grudnia-1 stycznia WLACZNIE, komenda adwent / prezent, odbior raz dziennie na jedno konto glowne (nie osobno na kazda postac). Nagrody w walucie: 1250-8750 srebra 1-31 grudnia i 10000 srebra 1 stycznia; zadnych nowych fizycznych przedmiotow do czasu bezpiecznej przebudowy EQ. Trwaly rejestr w SQLite, transakcyjny odbior bez duplikacji.
+- Tempo poziomow: komenda tempoexp pokazuje rzeczywiscie wyplacony EXP na godzine od zalogowania (postac, klasy, Dusza, Bron Duszy, statystyki z walk, profesje, narzedzia). Szacunek czasu do kolejnego poziomu dopiero po 5 minutach sesji; bez zmiany nagrod/progow.
+- Rebuild EQ wylacznie na odlaczonej kopii; v107 produkcja i GitHub bez zmian. Brak pozytywnego Windows PREDEPLOY 60/60 PLUS.
+
+AUDYT TEMPA EXP (7.11.2026; bez zmian balansu):
+- Zrodlo: istniejace progi character_xp_to_next / class_mastery_xp_to_next / soul_xp_to_next oraz bazowe krzywe nagrod, NIE pomiar prawdziwej gry.
+- Dla postaci prog poziom 100 wynosi ok. 113 mln EXP, a poziom 200 ok. 166 mld EXP. Krzywa wymagan rosnie znacznie szybciej niz surowa nagroda generatora.
+- Tych liczb NIE wolno interpretowac jako prognozy liczby zabitych mobow: finalne nagrody zalezy od lokacji, bossow, questow, skalowania, Multi Cap, banku i bonusow.
+- Komenda tempoexp jest miernikiem rzeczywistych wyplat w sesji. Korekty balansu dopiero na podstawie wynikow testu gry, aby nie utracic postepow i nie przyspieszyc bez kontroli.
+- Kazda modyfikacja serwera wymaga osobnego Windows PREDEPLOY 60/60 PLUS i testu na kopii rzeczywistej bazy. Ten ZIP jest kodem roboczym: NIE WDRAZAC przed PASS.

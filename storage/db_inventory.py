@@ -133,7 +133,14 @@ class DatabaseInventoryMixin:
         ).fetchone()
         return int(row["quantity"]) if row else 0
 
+    def move_bank_equipment_v106(self, account_id, item_id, qty=1, *, withdraw=False, commit=True):
+        """Staging-only atomic move, never used by legacy banking methods."""
+        from systems.equipment_inventory_flow_v10600 import bank_move
+        return bank_move(self, account_id, item_id, qty, withdraw=withdraw, commit=commit)
+
     def add_bank_item(self, account_id, item_id, qty=1):
+        from systems.equipment_inventory_flow_v10600 import forbid_unintegrated
+        forbid_unintegrated(self, item_id, 'bank.deposit')
         from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
         qty = max(1, require_sqlite_int64('bank_items.increment', qty))
         current = self.conn.execute(
@@ -153,6 +160,8 @@ class DatabaseInventoryMixin:
         self.conn.commit()
 
     def remove_bank_item(self, account_id, item_id, qty=1):
+        from systems.equipment_inventory_flow_v10600 import forbid_unintegrated
+        forbid_unintegrated(self, item_id, 'bank.withdraw')
         qty = max(1, int(qty))
         current = self.bank_item_qty(account_id, item_id)
         if current < qty:
@@ -235,6 +244,9 @@ class DatabaseInventoryMixin:
         return int(row["quantity"]) if row else 0
 
     def add_item(self, account_id, item_id, qty=1, commit=True):
+        from systems.equipment_inventory_flow_v10600 import tracked, add
+        if tracked(self, item_id):
+            return add(self, account_id, item_id, qty, commit=commit)
         from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
         qty = max(1, require_sqlite_int64('inventory.increment', qty))
         # v0.9.15: materiały rzemieślnicze nigdy nie zapychają zwykłego
@@ -390,6 +402,9 @@ class DatabaseInventoryMixin:
         self.conn.commit()
 
     def remove_item(self, account_id, item_id, qty=1, commit=True):
+        from systems.equipment_inventory_flow_v10600 import tracked, remove
+        if tracked(self, item_id):
+            return remove(self, account_id, item_id, qty, commit=commit)
         from systems.equipment_evolution_v10500 import is_evolved
         if is_evolved(self.conn, account_id, item_id):
             return False  # evolved EQ cannot disappear while its stage is bound
@@ -415,6 +430,9 @@ class DatabaseInventoryMixin:
 
     def transfer_inventory_item(self, from_account_id, to_account_id, item_id, qty=1):
         """Atomowo przenosi zwykły item inventory między dwiema postaciami."""
+        from systems.equipment_inventory_flow_v10600 import tracked, transfer
+        if tracked(self, item_id):
+            return transfer(self, from_account_id, to_account_id, item_id, qty)
         from systems.equipment_evolution_v10500 import is_evolved
         if is_evolved(self.conn, from_account_id, item_id):
             return False  # evolved EQ is character-bound
@@ -494,6 +512,11 @@ class DatabaseInventoryMixin:
         current=0
         if kind=="item":
             item_id=str(item_id or "")
+            from systems.equipment_inventory_flow_v10600 import tracked
+            if tracked(self, item_id):
+                from systems.equipment_mail_v10600 import send
+                return send(self, from_account_id, to_account_id, sender_name, item_id, item_name)
+
             from systems.equipment_evolution_v10500 import is_evolved
             if is_evolved(self.conn, from_account_id, item_id):
                 return None  # no evolved equipment in mail escrow
@@ -585,7 +608,26 @@ class DatabaseInventoryMixin:
         ).fetchone()
         if not row or int(row["attachment_claimed"] or 0):
             return None
+        # A staging physical escrow must never fall through the v105 generic
+        # item/currency path after its mail row was edited or corrupted.
+        if (getattr(self, '_v106_shadow_slots_disposable_copy', False) and
+                getattr(self, '_v106_mail_shadow_disposable_copy', False)):
+            from systems.equipment_inventory_flow_v10600 import tracked as _v106_tracked_mail
+            from systems.v10700_eq_runtime_gate import is_enabled as _v107_eq_is_enabled
+            if _v107_eq_is_enabled(self):
+                linked_table=self.conn.execute("SELECT 1 FROM sqlite_master "
+                    "WHERE type='table' AND name='v106_mail_equipment_escrow'").fetchone()
+                if linked_table and self.conn.execute(
+                    'SELECT 1 FROM v106_mail_equipment_escrow WHERE mail_id=?',
+                    (mail_id,)).fetchone():
+                    from systems.equipment_mail_v10600 import claim
+                    return claim(self, account_id, mail_id)
         kind=str(row["attachment_kind"] or "")
+        if kind=="item":
+            from systems.equipment_inventory_flow_v10600 import tracked
+            if tracked(self, row["attachment_item_id"]):
+                from systems.equipment_mail_v10600 import claim
+                return claim(self, account_id, mail_id)
         if kind not in ("item","currency"):
             return None
         if kind=="currency":
@@ -649,6 +691,18 @@ class DatabaseInventoryMixin:
         return row["item_id"] if row else None
 
     def equip(self, account_id, slot, item_id, commit=True):
+        # v106: opt-in SHADOW EQUIPMENT on an explicitly marked disposable DB.
+        # On production/v105 this branch never runs; old storage stays intact.
+        if getattr(self, '_v106_shadow_slots_disposable_copy', False):
+            from systems.v10700_eq_runtime_gate import is_enabled
+            if not is_enabled(self):
+                raise PermissionError('v107 EQ: aktywacja fizycznych slotów niezatwierdzona')
+            from systems.equipment_shadow_slots_v10600 import attach_by_item
+            from systems.v10700_equipment_write_barrier import approved_instance_operation
+            with approved_instance_operation(self.conn):
+                return attach_by_item(self.conn, account_id, slot, item_id,
+                     self._v106_shadow_item_catalog, commit=commit,
+                     confirm_disposable_copy=True)
         self.conn.execute(
             """
             INSERT INTO equipment(account_id,slot,item_id) VALUES(?,?,?)
@@ -660,6 +714,15 @@ class DatabaseInventoryMixin:
             self.conn.commit()
 
     def unequip(self, account_id, slot):
+        if getattr(self, '_v106_shadow_slots_disposable_copy', False):
+            from systems.v10700_eq_runtime_gate import is_enabled
+            if not is_enabled(self):
+                raise PermissionError('v107 EQ: aktywacja fizycznych slotów niezatwierdzona')
+            from systems.equipment_shadow_slots_v10600 import detach
+            from systems.v10700_equipment_write_barrier import approved_instance_operation
+            with approved_instance_operation(self.conn):
+                return detach(self.conn, account_id, slot, self._v106_shadow_item_catalog,
+                              confirm_disposable_copy=True)
         self.conn.execute(
             "DELETE FROM equipment WHERE account_id=? AND slot=?",
             (account_id, slot),
@@ -859,7 +922,16 @@ class DatabaseInventoryMixin:
         ).fetchone()
         return int(row["quantity"]) if row else 0
 
+    def move_storage_equipment_v106(self, account_id, container, item_id, qty=1,
+                                     *, withdraw=False, commit=True):
+        """Opt-in physical gear move, disposable staging copy only."""
+        from systems.equipment_inventory_flow_v10600 import storage_move
+        return storage_move(self, account_id, container, item_id, qty,
+                            withdraw=withdraw, commit=commit)
+
     def add_storage_item(self, account_id, container, item_id, qty=1, commit=True):
+        from systems.equipment_inventory_flow_v10600 import forbid_unintegrated
+        forbid_unintegrated(self, item_id, 'storage.deposit')
         from core.sqlite_numeric_guard_v10400 import require_sqlite_int64
         qty = max(1, require_sqlite_int64('storage.increment', qty))
         current = self.conn.execute(
@@ -880,6 +952,8 @@ class DatabaseInventoryMixin:
             self.conn.commit()
 
     def remove_storage_item(self, account_id, container, item_id, qty=1, commit=True):
+        from systems.equipment_inventory_flow_v10600 import forbid_unintegrated
+        forbid_unintegrated(self, item_id, 'storage.withdraw')
         current = self.storage_qty(account_id, container, item_id)
         if current < qty:
             return False
@@ -916,6 +990,19 @@ class DatabaseInventoryMixin:
             raise ValueError('Ujemna liczba materialow w bazie.')
         return qty
 
+    def craft_item_atomic_v106(self, account_id, ingredients, output_id, output_qty=1,
+                               *, containers=None, extra_outputs=(), success_accounting=None,
+                               reward_journal=None):
+        """Experimental v106 equipment craft; real DB methods, disposable copy only.
+
+        Staged v106 perform_recipe uses this after quality/yield selection;
+        other crafting routes and live production remain out of scope.
+        """
+        from systems.equipment_crafting_guard_v10600 import craft_output_atomic
+        return craft_output_atomic(self, account_id, ingredients, output_id,
+                                   output_qty, containers=containers, extra_outputs=extra_outputs,
+                                   success_accounting=success_accounting, reward_journal=reward_journal)
+
     def total_items_across_storage_and_inventory(self, account_id, item_ids, container=None):
         """Lossless count across sources; never SQL SUM(INTEGER) / SUM(TEXT)."""
         ids = self._v104_crafting_ids(item_ids)
@@ -939,7 +1026,7 @@ class DatabaseInventoryMixin:
                     total += self._v104_crafting_quantity(row[0])
         return total
 
-    def consume_items_across_storage_and_inventory(self, account_id, item_ids, needed, container=None):
+    def consume_items_across_storage_and_inventory(self, account_id, item_ids, needed, container=None, *, purpose='craft'):
         """All-or-nothing consumption for collection quests and crafting orders.
 
         Plan the entire withdrawal BEFORE mutation. One SQLite SAVEPOINT covers
@@ -955,6 +1042,22 @@ class DatabaseInventoryMixin:
         ids = sorted(self._v104_crafting_ids(item_ids))
         if not ids:
             return False
+        # v108: quest turn-in is not legacy crafting. The ordinary `remove_item`
+        # adapter already atomically selects only unmodified, unworn physical
+        # copies and rejects evolved / runic / forged / equipped gear. Keep
+        # the crafting ban unchanged. No other caller may bypass it.
+        if purpose not in ('craft', 'quest_turnin'):
+            raise ValueError('Niedozwolony cel pobierania przedmiotu')
+        from systems.equipment_crafting_guard_v10600 import guard_ingredient
+        from systems.equipment_inventory_flow_v10600 import tracked
+        for item_id in ids:
+            if purpose == 'craft':
+                guard_ingredient(self, item_id)
+            elif tracked(self, item_id) and container:
+                # Stored per-copy equipment needs an explicit storage adapter.
+                # Prevent accidental fallback to legacy storage SQL.
+                if self.storage_qty(account_id, container, item_id):
+                    return False
         # Use the same connection for the preflight and writes to avoid races.
         conn = self.conn
         outer_transaction = bool(conn.in_transaction)
@@ -997,6 +1100,13 @@ class DatabaseInventoryMixin:
                     else:
                         ok = self.remove_item(account_id, item_id, take, commit=False)
                     if not ok:
+                        if purpose == 'quest_turnin':
+                            # This is normal when the visible quantity includes
+                            # equipped/modified gear but no eligible plain copy.
+                            # A failed item must cancel the whole withdrawal.
+                            conn.execute('ROLLBACK TO SAVEPOINT v104_craft_consume_atomic')
+                            conn.execute('RELEASE SAVEPOINT v104_craft_consume_atomic')
+                            return False
                         raise RuntimeError('Stan materialow zmienil sie podczas pobierania.')
                 conn.execute('RELEASE SAVEPOINT v104_craft_consume_atomic')
                 if not outer_transaction:
@@ -1152,6 +1262,12 @@ class DatabaseInventoryMixin:
         if sender_master == receiver_master:
             return 'self'
         is_item = item_id is not None
+        # A bank-to-bank transfer uses raw SQL and has no physical-instance
+        # escrow. Never change legacy quantities behind an armed EQ ledger.
+        if is_item:
+            from systems.equipment_inventory_flow_v10600 import tracked
+            if tracked(self, str(item_id)):
+                return 'invalid'
         amount, units = int(silver), int(quantity)
         if not is_item and (amount <= 0 or amount > CURRENCY_SQLITE_SAFE_TOTAL):
             return 'invalid'

@@ -4,6 +4,7 @@
 Simple commands are data here; only commands with custom branching remain in
 command_loop.py. This keeps aliases and direct handler calls easy to audit.
 """
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 
 import asyncio
 
@@ -89,6 +90,8 @@ COMMAND_REGISTRY = {
     'help': ('show_help', (COMMAND_TEXT,), {}),
     'wimpy': ('handle_wimpy', (COMMAND_TEXT,), {}),
     'eventxp': ('show_double_xp_event', (), {}),
+    'adwent': ('advent_v108', (COMMAND_TEXT,), {}),
+    'tempoexp': ('tempo_exp_v108', (COMMAND_TEXT,), {}),
     'encoding': ('set_encoding', (COMMAND_TEXT,), {}),
     'describe': ('describe_target', (COMMAND_TEXT,), {}),
     'changes': ('show_latest_changes', (COMMAND_TEXT,), {}),
@@ -140,6 +143,7 @@ COMMAND_REGISTRY = {
     'astralinfo': ('show_astral_info', (), {}),
     'astralportal': ('use_astral_portal', (COMMAND_TEXT,), {}),
     'portal': ('use_crypt_portal', (COMMAND_TEXT,), {}),
+    'gigantportal': ('use_giant_fortress_portal_v10800', (COMMAND_TEXT,), {}),
     'exits': ('show_exits', (COMMAND_TEXT,), {}),
     'map': ('show_map', (COMMAND_TEXT,), {}),
     'cartography': ('show_cartography_profession_v1100', (COMMAND_TEXT,), {}),
@@ -147,6 +151,7 @@ COMMAND_REGISTRY = {
     'archaeology': ('show_archaeology_v1100', (COMMAND_TEXT,), {}),
     'excavate': ('excavate_v1100', (COMMAND_TEXT,), {}),
     'survey': ('survey_v1100', (COMMAND_TEXT,), {}),
+    'wydarzenia107': ('show_v107_chaos_events', (), {}),
     'worldevents': ('show_world_events', (), {}),
     'dynamicevents': ('show_dynamic_events_v029', (), {}),
     'nemesis': ('show_nemesis_v029', (), {}),
@@ -480,11 +485,19 @@ COMMAND_CATALOG.add_alias('deski', 'obrabiaj', source='player/session_mixins/com
 for _alias,_target in (('forgotten','kontynent'),('continent','kontynent'),('saga50','kontynent'),('echodungeon','lochy50')):
     COMMAND_CATALOG.add_alias(_alias,_target,source='player/session_mixins/command_registry.py')
 
+# v107 staging: UOSS-style `mtek firebeam` through canonical skill command.
+import os as _v107_command_env
+if _sb107_runtime_enabled():
+    COMMAND_REGISTRY['mtek'] = ('command_magitek_v107', (COMMAND_TEXT,), {})
+    COMMAND_REGISTRY['profesja107'] = ('command_profesja107', (COMMAND_TEXT,), {})
+
 for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     COMMAND_CATALOG.register_handler(
         _canonical, _handler, source="player/session_mixins/command_registry.py",
         help_topic=_canonical, kind="session",
     )
+
+COMMAND_CATALOG.add_alias('prezent', 'adwent', source='player/session_mixins/command_registry.py')
 
 for _alias in ("lowcy", "łowcy", "tablicalowcow", "hunterboard"):
     COMMAND_CATALOG.add_alias(_alias, "hunters1225", source="player/session_mixins/command_registry.py")

@@ -21,55 +21,69 @@ async def character_creator(self):
             return False
         await self.send(f"Wybrana płeć: {gender}.")
 
-        await self.send("Wybierz rasę:")
-        await self.send(
-            "Driada jest rasą wyłącznie kobiecą. "
-            "Znaczenie statystyk: Siła zwiększa atak fizyczny; "
-            "Zręczność zwiększa szybkość i unik; Kondycja zwiększa HP; "
-            "Inteligencja zwiększa Manę i moc czarów; "
-            "Siła Woli zwiększa obronę magiczną; "
-            "Charyzma zwiększa rabat sklepowy i limit drużyny."
-        )
-        for i, race in enumerate(RACES, 1):
-            rname, desc, s, d, c, inte, w = race
-            advice = race_class_recommendation_text(rname)
-            restriction = " Tylko kobieta." if rname == "Driada" else ""
-            await self.send(
-                f"{i}. {rname}.{restriction} {desc} Siła {s}, Zręczność {d}, Kondycja {c}, "
-                f"Inteligencja {inte}, Siła Woli {w}, Charyzma 10. {advice}"
-            )
+        # v108: kasa imienia i płci zostaje; z klas można wrócić do listy ras,
+        # bez zakładania postaci i bez utraty możliwości ponownego czytania opisów.
         while True:
-            race = await self.choose_number(RACES, "Numer rasy: ")
-            if race is None:
-                return False
-            selected_race_name = race[0]
-            if selected_race_name == "Driada" and gender != "kobieta":
+            await self.send("Wybierz rasę:")
+            await self.send(
+                "Driada jest rasą wyłącznie kobiecą. "
+                "Znaczenie statystyk: Siła zwiększa atak fizyczny; "
+                "Zręczność zwiększa szybkość i unik; Kondycja zwiększa HP; "
+                "Inteligencja zwiększa Manę i moc czarów; "
+                "Siła Woli zwiększa obronę magiczną; "
+                "Charyzma zwiększa rabat sklepowy i limit drużyny."
+            )
+            for i, option in enumerate(RACES, 1):
+                rname, desc, strength, dexterity, constitution, intelligence, will = option
+                advice = race_class_recommendation_text(rname)
+                restriction = " Tylko kobieta." if rname == "Driada" else ""
                 await self.send(
-                    "Driadą może być wyłącznie kobieta. Wybierz inną rasę albo wróć do kreatora i wybierz płeć kobieta."
+                    f"{i}. {rname}.{restriction} {desc} Siła {strength}, Zręczność {dexterity}, "
+                    f"Kondycja {constitution}, Inteligencja {intelligence}, "
+                    f"Siła Woli {will}, Charyzma 10. {advice}"
                 )
+            while True:
+                race = await self.choose_number(RACES, "Numer rasy: ")
+                if race is None:
+                    return False
+                selected_race_name = race[0]
+                if selected_race_name == "Driada" and gender != "kobieta":
+                    await self.send(
+                        "Driadą może być wyłącznie kobieta. Wybierz inną rasę "
+                        "albo wróć do kreatora i wybierz płeć kobieta."
+                    )
+                    continue
+                break
+            await self.send(
+                f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
+                f"To tylko rekomendacja. Możesz wybrać dowolną z {len(CLASSES)} klas."
+            )
+            await self.send("Wybierz klasę. Aby wrócić do ras: 0, wroc, wróć albo rasy.")
+            for i, option in enumerate(CLASSES, 1):
+                cname, ctype, weapon, _ = option
+                kind = "fizyczna" if ctype == "physical" else "magiczna"
+                desc = CLASS_DESCRIPTIONS.get(cname, "")
+                growth = (
+                    "Rozwój: wszystkie statystyki automatycznie: Siła, Zręczność, "
+                    "Kondycja, Inteligencja, Siła Woli i Charyzma. Każda klasa ma HP i Manę; "
+                    "Inteligencja zwiększa Manę także klasom fizycznym."
+                )
+                await self.send(f"{i}. {cname}. Typ {kind}. {desc} {growth} Broń Duszy: {weapon}.")
+            while True:
+                raw_choice = await self.ask("Numer klasy (0 = wróć do ras): ")
+                if raw_choice is None:
+                    return False
+                choice = str(raw_choice).strip().casefold()
+                if choice in ("0", "wroc", "wróć", "rasy"):
+                    await self.send("Powrót do listy ras. Imię i płeć zostają zachowane.")
+                    break
+                if choice.isdecimal() and 1 <= int(choice) <= len(CLASSES):
+                    cls = CLASSES[int(choice)-1]
+                    break
+                await self.send("Nieprawidłowa klasa. Wpisz numer klasy albo 0, aby wrócić do ras.")
+            if choice in ("0", "wroc", "wróć", "rasy"):
                 continue
             break
-        await self.send(
-            f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
-            "To tylko rekomendacja. Możesz wybrać dowolną z 14 klas."
-        )
-        await self.send("Wybierz klasę:")
-        for i, cls in enumerate(CLASSES, 1):
-            cname, ctype, weapon, _ = cls
-            kind = "fizyczna" if ctype == "physical" else "magiczna"
-            desc = CLASS_DESCRIPTIONS.get(cname, "")
-            growth = (
-                "Rozwój: wszystkie statystyki automatycznie: Siła, Zręczność, "
-                "Kondycja, Inteligencja, Siła Woli i Charyzma. Każda klasa ma HP i Manę; "
-                "Inteligencja zwiększa Manę także klasom fizycznym."
-            )
-            await self.send(
-                f"{i}. {cname}. Typ {kind}. {desc} "
-                f"{growth} Broń Duszy: {weapon}."
-            )
-        cls = await self.choose_number(CLASSES, "Numer klasy: ")
-        if cls is None:
-            return False
 
         preview_stats = class_starting_stats_for(race, cls)
         preview_hp, preview_mana = starting_hp_mana_for(race, cls)

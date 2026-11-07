@@ -1,4 +1,8 @@
 @echo off
+if exist "%~dp0validation\v10600_tcp_world_smoke.py" (
+  echo WERSJA ROBOCZA v106. WDROZENIE ZABLOKOWANE.
+  exit /b 2
+)
 setlocal EnableExtensions DisableDelayedExpansion
 if exist "%TEMP%\" cd /d "%TEMP%" >nul 2>&1
 set "PYTHONUTF8=1"

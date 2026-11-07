@@ -48,8 +48,13 @@ class SessionMovementMixin:
             ):
                 return UOSS_DEEP_DUNGEON_ENTRY_V11331, "UOSS Deep Dungeon"
 
-            # Kopalnia Głębinowa 1-200.
-            if mine_floor_number(room_id) is not None:
+            # W obcych prywatnych chodnikach nie wykonuj automatycznej teleportacji.
+            _tunnel_owner = mine_tunnel_identity(room_id)
+            if _tunnel_owner is not None and _tunnel_owner[1] != self.account_id:
+                return None
+            # Kopalnia Głębinowa, również osobiste wykopane chodniki.
+            if (mine_floor_number(room_id) is not None or
+                    mine_tunnel_coords(room_id, self.account_id) is not None):
                 return "crystal_chamber", "Kopalnia Głębinowa"
 
             # Zwykła Krypta 1-200.
@@ -108,6 +113,22 @@ class SessionMovementMixin:
                     "Najpierw użyj flee albo pokonaj przeciwnika."
                 )
                 return False
+            # v108: do not teleport a player while their movement coroutine is
+            # still walking, or while downed / dead. Teammates were already
+            # screened below, but the leader / solo player was not.
+            if (getattr(self, 'moving', False) or getattr(self, 'guiding', False)):
+                await self.send(
+                    "Wyjście awaryjne jest niedostępne podczas ruchu lub prowadzenia. "
+                    "Zatrzymaj przemieszczanie i spróbuj ponownie."
+                )
+                return False
+            if (getattr(self, 'current_hp', 1) <= 0 or
+                    self.is_downed_v0371()):
+                await self.send(
+                    "Nie możesz skorzystać z wyjścia awaryjnego jako postać powalona. "
+                    "Najpierw wróć do życia."
+                )
+                return False
 
             result = self.dungeon_exit_destination()
             if not result:
@@ -118,6 +139,14 @@ class SessionMovementMixin:
                 return False
 
             target, dungeon_name = result
+            mine_followers = []
+            if dungeon_name == "Kopalnia Głębinowa" and self.party_key() == self.account_id:
+                mine_followers = [member for member in
+                    self.server.party_sessions(self.account_id, same_room=self.character.room_id)
+                    if member is not self and getattr(member, "character", None)]
+            if dungeon_name == "Kopalnia Głębinowa" and (self.auto_mining or self.auto_mining_task):
+                await self.stop_auto_mining(announce=False)
+                await self.send("Auto-kopanie wyłączone przed wyjściem z kopalni.")
             old = self.character.room_id
             if old == target:
                 await self.send(f"Jesteś już przy wyjściu: {ROOMS[target]['name']}.")
@@ -137,6 +166,20 @@ class SessionMovementMixin:
                 f"Wracasz do: {ROOMS[target]['name']}."
             )
             await self.look()
+            for member in mine_followers:
+                # Each player is validated separately; never forcibly move a
+                # player in combat, during a guide, or from another room.
+                if (member.character.room_id != old or member.combat_mob_key or
+                        member.moving or member.guiding or
+                        getattr(member, 'current_hp', 0) <= 0 or member.is_downed_v0371()):
+                    continue
+                if member.auto_mining or member.auto_mining_task:
+                    await member.stop_auto_mining(announce=False)
+                member.previous_room_id = old
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                await member.send("Drużyna opuszcza Kopalnię Głębinową. Auto-kopanie wyłączone.")
+                await member.look()
             return True
 
     async def change_dungeon_floor_v2009(self, raw=""):

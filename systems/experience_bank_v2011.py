@@ -10,7 +10,14 @@ def banked_experience_v2011(db, account_id, amount, kind, level, *,
     # isolated test databases without characters/progression schema.
     resolver = getattr(db, 'multi_cap_v23215', None)
     total_cap = resolver(account_id) if callable(resolver) else None
-    cap = (total_cap if total_cap is not None else experience_cap_v2009(kind, level)) * (2 if overcap else 1)
+    from systems.v10800_seasonal_events import overcap_event_state
+    # The scheduled v108 multiplier belongs to an active, authorized game
+    # server, NOT offline historical fixtures or standalone database repairs.
+    # Explicit boss overcap remains available to both real and test databases.
+    effective_overcap = bool(overcap) or (
+        getattr(db, '_v108_live_event_caps', False) is True
+        and overcap_event_state()['active'])
+    cap = (total_cap if total_cap is not None else experience_cap_v2009(kind, level)) * (2 if effective_overcap else 1)
     # Only real character rows have authoritative live level caps.  Minimal
     # historical EXP-bank fixtures have no characters table and must retain
     # their documented standalone-cap behavior.

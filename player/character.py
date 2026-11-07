@@ -58,6 +58,10 @@ from core.progression_resources import (
 from systems.equipment_crafting import GUILD_REPUTATION_MAX, GUILD_REPUTATION_RANKS
 from world.economy_quests import v0865_dodge_chance_from_dexterity
 
+# Równoważność starej tabeli, bez skanowania 6000 progów przy każdym poziomie.
+_SOUL_TIER_AT_EXACT_LEVEL = {
+    int(level): tier for tier, level in enumerate(SOUL_TIER_THRESHOLDS, 1)
+}
 
 
 @dataclass
@@ -751,8 +755,8 @@ class Character:
             self.soul_xp -= needed
             self.soul_level += 1
             messages.append(f"Broń Duszy osiąga Soul Level {self.soul_level}.")
-            if self.soul_level in SOUL_TIER_THRESHOLDS[1:]:
-                tier = SOUL_TIER_THRESHOLDS.index(self.soul_level) + 1
+            tier = _SOUL_TIER_AT_EXACT_LEVEL.get(int(self.soul_level))
+            if tier is not None and tier > 1:
                 if tier in SOUL_TRIAL_QUEST_IDS:
                     messages.append(
                         f"Osiągnięto próg Tieru {tier}. "

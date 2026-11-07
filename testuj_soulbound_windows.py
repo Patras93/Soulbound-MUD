@@ -7,6 +7,8 @@ workspaces. Stage processes have hard deadlines so the batch never hangs forever
 from __future__ import annotations
 
 import datetime as dt
+from concurrent.futures import ThreadPoolExecutor
+import shutil
 from contextlib import closing
 import sqlite3
 import os
@@ -24,8 +26,8 @@ import traceback
 ROOT = Path(__file__).resolve().parent
 LOG = ROOT / 'logs' / 'TESTY_Soulbound.log'
 STAGES = (
-    ('SZYBKI PREDEPLOY', 'predeploy_check.py', 1000),
-    ('PELNY AUDYT', 'predeploy_full.py', 1200),
+    ('SZYBKI PREDEPLOY', 'predeploy_check.py', 1800),
+    ('PELNY AUDYT', 'predeploy_full.py', 2100),
     ('SCENARIUSZE 4.0 AI / OCEAN / PROFESJE', 'validation/v2200_master_depths_ai.py', 180),
     ('MISTRZOWSKIE RECEPTURY / MODULY FLOTY', 'validation/v2201_fleet_mastery.py', 180),
     ('SCENARIUSZE 5.0: AI / 42 RECEPTURY / OCEAN', 'validation/v2300_world_professions_ocean.py', 180),
@@ -186,6 +188,7 @@ def stage_env(temp):
         env.pop(key, None)
     env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1',
                PYTHONDONTWRITEBYTECODE='1', SOULBOUND_HOST='127.0.0.1',
+               SOULBOUND_V108_PREDEPLOY='1',
                SOULBOUND_DB=str(Path(temp) / 'audit.sqlite'),
                SOULBOUND_WORLD_SEED_FILE=str(Path(temp) / 'audit_seed.txt'))
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -194,56 +197,125 @@ def stage_env(temp):
     return env
 
 
-def run_stage(path, env, deadline, say):
+def run_stage(path, env, deadline, say, *, root=None):
+    """Run one gate with a hard deadline and a spool file, never stdout PIPE.
+
+    Some historical tests launch subprocesses that inherit stdout.  A reader
+    waiting for pipe EOF can hang after the actual gate process has exited,
+    which used to report a false timeout (124).  Only the gate PID determines
+    success; a timeout still kills its own process tree and reports FAIL.
+    """
+    root = root or ROOT
     proc = None
     try:
         parts = path.split(' ')
-        cmd = [sys.executable, '-u', str(ROOT / parts[0]), *parts[1:]]
+        cmd = [sys.executable, '-u', str(root / parts[0]), *parts[1:]]
         flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
-        proc = subprocess.Popen(cmd, cwd=str(ROOT), env=env,
-                                creationflags=flags,
-                                start_new_session=(os.name != 'nt'),
-                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, bufsize=1,
-                                encoding='utf-8', errors='replace')
-        output = queue.Queue()
-
-        def reader():
+        # TemporaryFile is seekable and does not rely on pipe EOF.  The file
+        # also safely handles large verbose audits without PIPE deadlocks.
+        with tempfile.TemporaryFile(mode='w+b') as output:
+            proc = subprocess.Popen(
+                cmd, cwd=str(root), env=env, creationflags=flags,
+                start_new_session=(os.name != 'nt'), stdin=subprocess.DEVNULL,
+                stdout=output, stderr=subprocess.STDOUT,
+            )
+            timed_out = False
             try:
-                for line in proc.stdout:
-                    output.put(line.rstrip('\r\n'))
-            except (OSError, ValueError) as exc:
-                output.put('BLAD ODCZYTU: '+str(exc))
-            finally:
-                output.put(None)
-
-        threading.Thread(target=reader, daemon=True).start()
-        limit = time.monotonic() + deadline
-        eof = False
-        while not eof:
-            try:
-                line = output.get(timeout=.2)
-            except queue.Empty:
-                if time.monotonic() > limit:
-                    say(f'FAIL: Przekroczony limit czasu {deadline} sekund. Proces zakonczony.')
-                    kill_owned_process(proc)
-                    return 124
-                if proc.poll() is not None:
-                    # Let the reader consume remaining buffered output.
-                    continue
-                continue
-            if line is None:
-                eof = True
-            else:
-                say(line)
-            if time.monotonic() > limit:
-                say(f'FAIL: Przekroczony limit czasu {deadline} sekund. Proces zakonczony.')
+                code = proc.wait(timeout=deadline)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+                code = 124
                 kill_owned_process(proc)
-                return 124
-        return proc.wait(timeout=10)
+            # Read *after* the direct PID ends; descendants cannot keep the
+            # audit blocked merely by holding their inherited stdout open.
+            output.seek(0)
+            for line in output:
+                say(line.decode('utf-8', errors='replace').rstrip('\r\n'))
+            if timed_out:
+                say(f'FAIL: Przekroczony limit czasu {deadline} sekund. Proces zakonczony.')
+            return code
     finally:
         if proc is not None and proc.poll() is None:
             kill_owned_process(proc)
+
+
+# Separate disposable source trees prevent concurrent tests from sharing file
+# output, ports, generated seeds or game-state artifacts. Release checks and
+# their numeric count are unchanged; only their schedule is shortened.
+PARALLEL_WORKERS = 3
+
+
+def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
+                        max_workers=PARALLEL_WORKERS):
+    """Run every mandatory gate exactly once, fail closed, with isolated roots.
+
+    Return results in the original stage order. Each worker owns its private
+    copy of the *exact* staged candidate; every stage still gets a fresh
+    temporary SQLite DB and a separate localhost port via stage_env().
+    """
+    stages = tuple(stages)
+    if not stages:
+        return []
+    workers = min(max(1, max_workers), len(stages))
+    pending = queue.Queue()
+    for index in range(len(stages)):
+        pending.put(index)
+    results = [None] * len(stages)
+    report_lock = threading.Lock()
+
+    with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-workers-') as root_temp:
+        roots = []
+        # Read-only candidate source is cloned only once per worker, rather
+        # than once per one of the 60 legacy stages.
+        for worker_id in range(workers):
+            worker_root = Path(root_temp) / f'candidate-{worker_id}'
+            shutil.copytree(ROOT, worker_root, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'logs'))
+            (worker_root / 'logs').mkdir(exist_ok=True)
+            roots.append(worker_root)
+
+        def worker(worker_id):
+            root = roots[worker_id]
+            while True:
+                try:
+                    index = pending.get_nowait()
+                except queue.Empty:
+                    return
+                title, script, deadline = stages[index]
+                began = time.monotonic()
+                output_lines = []
+                try:
+                    with report_lock:
+                        say(f'\nSTART: {phase} {index + 1}/{len(stages)}: {title} [{script}]')
+                    if not (root / script.split()[0]).is_file():
+                        output_lines.append('FAIL: Brak wymaganego pliku: ' + script)
+                        code = 2
+                    else:
+                        with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-stage-') as scratch:
+                            env = stage_env(scratch)
+                            if staging_v106 and 'KOPII' not in title:
+                                env['SOULBOUND_V106_STAGING'] = '1'
+                            code = run_stage(script, env, deadline, output_lines.append, root=root)
+                except BaseException as exc:
+                    code = 99
+                    output_lines.append('BLAD TESTERA: ' + type(exc).__name__ + ': ' + str(exc))
+                    output_lines.append(traceback.format_exc().strip())
+                elapsed = time.monotonic() - began
+                # Keep each stage's messages together for human/NVDA readability.
+                with report_lock:
+                    for line in output_lines:
+                        say(line)
+                    say(f'KONIEC: {title} | {"PASS" if code == 0 else "FAIL"} | '
+                        f'kod {code} | czas {elapsed:.1f} s')
+                results[index] = (title, code)
+                pending.task_done()
+
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix='sb-predeploy') as executor:
+            jobs = [executor.submit(worker, i) for i in range(workers)]
+            for job in jobs:
+                job.result()
+    if any(result is None for result in results):
+        raise RuntimeError('PREDEPLOY: zabraklo wyniku jednego z etapow.')
+    return results
 
 
 def main():
@@ -266,8 +338,69 @@ def main():
         say('Folder gry: '+str(ROOT))
         say('Baza prawdziwych graczy: tylko odczyt przez backup SQLite w etapach 25/49/60; zapisy wylacznie w TEMP')
         say('TCP: tylko 127.0.0.1, 5 zalogowanych graczy, 5 TCP i 3 fale po 5 TCP localhost')
-        say('PASS wymaga wszystkich 60 etapow PLUS oraz 3 dodatkowych bramek v105, w tym migracji realnej bazy na KOPII.')
+        say('PASS: 60 etapow PLUS + 3 bramki v105; dla v106 osobne 2 bramki; dla v107 dodatkowo 33 regresje v107.')
         say('-' * 72)
+        candidate_version = (ROOT/'VERSION').read_text(encoding='utf-8').strip()
+        from validation.v10800_release_readiness import (release_at_least_108,
+                                                          unmet_requirements as v108_missing)
+        if release_at_least_108(candidate_version):
+            missing_v108 = v108_missing(ROOT)
+            if missing_v108:
+                say('V108 PREDEPLOY: FAIL PRZED 60 ETAPAMI; stare 60/60 nie zatwierdza wersji v108.')
+                for number, reason in enumerate(missing_v108, 1):
+                    say(f'BLOKADA V108 {number}: {reason}')
+                say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ; produkcja i baza bez zmian.')
+                return 3
+        # v107: stop immediately if the staged release has known production
+        # blockers. Historical 60/60 tests mostly inspect pre-v107 gameplay;
+        # a green result without this gate would be dangerously misleading.
+        if (ROOT/'VERSION').read_text(encoding='utf-8').strip() == '107.00.0':
+            from validation.v10700_release_readiness import unmet_requirements, eq_readiness_diagnostics
+            missing = unmet_requirements()
+            if missing:
+                say('V107 PREDEPLOY: FAIL PRZED STARTEM; nie tracimy godziny na 60 historycznych etapów.')
+                for index,reason in enumerate(missing,1):
+                    say(f'BLOKADA {index}: {reason}')
+                for detail in eq_readiness_diagnostics():
+                    say('V107 DIAGNOSTYKA TESTU EQ: '+detail)
+                # The past Windows logs repeated only the known blockers;
+                # collect the actionable physical-EQ counts on a read-only
+                # snapshot so the owner needn't guess which BAT to launch.
+                # Never turn that diagnostic into a release PASS.
+                if any('EQ' in reason or 'ekwipunku' in reason for reason in missing):
+                    say('V107 EQ: dodatkowy AUDYT KOPII PRAWDZIWEJ BAZY - bez STOP i bez zapisu do oryginalu.')
+                    try:
+                        real_db=source_db_for_gate()
+                        test_env=os.environ.copy()
+                        test_env['PYTHONDONTWRITEBYTECODE']='1'
+                        test_env['SOULBOUND_HOST']='127.0.0.1'
+                        report=subprocess.run(
+                            [sys.executable,'-B','-m','validation.v10700_eq_ledger_live_clone',
+                             '--db',str(real_db)], cwd=ROOT,env=test_env,
+                            stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,timeout=180,check=False)
+                        for detail in report.stdout.decode('utf-8',errors='replace').splitlines():
+                            say('  EQ: '+detail)
+                        say('  EQ AUDYT KOD: '+str(report.returncode)+' (to NIE jest zgoda na wdrozenie).')
+                        # The existing count-only audit cannot prove that
+                        # trade/banking/evolution adapters actually work on
+                        # a backup of the user's data. Rehearse transactions
+                        # only on a SECOND disposable SQLite clone and roll
+                        # back all hypothetical player changes.
+                        if report.returncode == 4:
+                            routes=subprocess.run(
+                                [sys.executable,'-B','-m','validation.v10700_eq_routes_on_real_backup',
+                                 '--db',str(real_db)],cwd=ROOT,env=test_env,
+                                stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT,timeout=300,check=False)
+                            for detail in routes.stdout.decode('utf-8',errors='replace').splitlines():
+                                say('  EQ TRANSAKCJE: '+detail)
+                            say('  EQ TRANSAKCJE KOD: '+str(routes.returncode)+
+                                ' (bez zgody na wdrozenie).')
+                    except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as diagnostic_error:
+                        say('  EQ AUDYT NIEPELNY: '+type(diagnostic_error).__name__+': '+str(diagnostic_error))
+                say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ; gra i baza bez zmian.')
+                return 3
         try:
             source = source_db_for_gate()
             # Keep this setting when a stage overrides SOULBOUND_DB with its
@@ -280,22 +413,9 @@ def main():
             say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ, brak wymaganej bazy SQLite')
             say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
             return 2
+        say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; wszystkie 60 testow bez pomijania.')
         try:
-            for title, filename, timeout in STAGES:
-                started = time.monotonic()
-                say('\n' + '=' * 72)
-                say('START: '+title+' ['+filename+']')
-                if not (ROOT / filename.split()[0]).is_file():
-                    ret = 2
-                    say('FAIL: Brak wymaganego pliku: '+filename)
-                else:
-                    with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-') as temp:
-                        env = stage_env(temp)
-                        ret = run_stage(filename, env, timeout, say)
-                elapsed = time.monotonic() - started
-                outcome = 'PASS' if ret == 0 else 'FAIL'
-                say(f'KONIEC: {title} | {outcome} | kod {ret} | czas {elapsed:.1f} s')
-                status.append((title, ret))
+            status = run_parallel_stages(STAGES, say)
         except KeyboardInterrupt:
             say('PRZERWANO: CTRL+C, nie wydawaj tej wersji jako PASS')
             status.append(('RECZNIE PRZERWANE', 130))
@@ -309,19 +429,39 @@ def main():
         # only opened by mode=ro; mutation rehearsal runs on a TEMP backup.
         v105_extra=[]
         if len(status)==60 and all(code==0 for _,code in status):
-            for title,script,deadline in (
+            v105_extra=run_parallel_stages((
                 ('V105 KATALOGI I BALANS', 'validation/v10500_release_predeploy.py', 420),
                 ('V105 MIGRACJA PRAWDZIWEJ BAZY TYLKO KOPIA', 'validation/v10500_windows_migration_gate.py', 240),
                 ('V105 BOSSOWIE TCP 5 KLIENTOW / QUEST I NAGRODY', 'validation/v10500_tcp_boss_rewards.py', 900),
-            ):
-                say('\nV105 START: '+title)
-                with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-v105-') as temp:
-                    env=stage_env(temp)
-                    code=run_stage(script,env,deadline,say)
-                v105_extra.append((title,code))
-                say('V105 KONIEC: '+title+' | '+('PASS' if code==0 else 'FAIL'))
-                if code!=0:
-                    break
+            ), say, phase='V105')
+        # v106: Mandatory release-candidate checks. The 60 legacy stages run
+        # with the historical defaults and cannot validate new staging-only v106.
+        # Never advertise 60/60 PASS without exercising real v106 gameplay.
+        v106_extra=[]
+        actual_version=(ROOT/'VERSION').read_text(encoding='utf-8').strip()
+        if actual_version == '106.00.0':
+            if len(status)==60 and all(code==0 for _,code in status) and len(v105_extra)==3 and all(code==0 for _,code in v105_extra):
+                v106_extra=run_parallel_stages((
+                    ('V106 AKTYWNE NOWE RAJDY / TCP / NAGRODY 1-6',
+                     'validation/v10600_kompletny_audyt_jedna_paczka.py --szybko', 2400),
+                    ('V106 HISTORYCZNE EQ NA KOPII Z PRAWDZIWEJ BAZY',
+                     'validation/v10600_kopia_realnego_eq_audyt.py', 420),
+                ), say, phase='V106', staging_v106=True)
+            else:
+                say('V106: historyczne bramki nie zaliczone; dodatkowe testy nie mogą dać PASS.')
+        # v107: all 33 dedicated gameplay/SQLite regressions are mandatory,
+        # in addition to 60 legacy tests and 3 v105 checks. Unlike the old
+        # predeploy, a green historical suite alone cannot approve v107.
+        v107_extra=[]
+        if actual_version in ('107.00.0', '108.00.0'):
+            if (len(status)==60 and all(code==0 for _,code in status)
+                    and len(v105_extra)==3 and all(code==0 for _,code in v105_extra)):
+                v107_extra=run_parallel_stages((
+                    ('V107 33 REGRESJE KODU I BLOKADY PRODUKCYJNE',
+                     'audyt_v107_windows_przed_predeploy.py', 2400),
+                ), say, phase='V107')
+            else:
+                say('V107: stare bramki nie przeszly; dodatkowy audyt nie daje PASS.')
         say('\n' + '=' * 72)
         say('PODSUMOWANIE ETAPOW:')
         for title, ret in status:
@@ -334,8 +474,46 @@ def main():
                 say(('PASS' if ret == 0 else 'FAIL') + ' - '+title+' (kod '+str(ret)+')')
         extra_proof = (len(v105_extra)==3 and all(ret==0 for _,ret in v105_extra))
         if not extra_proof: say('FAIL: Nie przeszly wszystkie trzy dodatkowe bramki v105')
+        if actual_version == '106.00.0':
+            for title,ret in v106_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+            if len(v106_extra)!=2:
+                say('FAIL: Nie wykonano dwoch dodatkowych bramek v106.')
+        v106_proof = (actual_version!='106.00.0' or
+                      (len(v106_extra)==2 and all(ret==0 for _,ret in v106_extra)))
+        if actual_version in ('107.00.0', '108.00.0'):
+            for title,ret in v107_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+            if len(v107_extra)!=1:
+                say('FAIL: Nie wykonano obowiazkowego audytu regresji v107.')
+        v107_proof = (actual_version not in ('107.00.0','108.00.0') or
+                      (len(v107_extra)==1 and all(ret==0 for _,ret in v107_extra)))
+        # v108 executes its own mandatory suite on an isolated candidate and
+        # the FULL REAL snapshot (already detached by predeploy_nowej_wersji).
+        v108_extra = []
+        if actual_version == '108.00.0':
+            if (len(status) == 60 and all(code == 0 for _,code in status)
+                    and extra_proof and v107_proof and plus_proof):
+                v108_extra = run_parallel_stages((
+                    ('V108 27+ TESTOW BEZ REGRESJI',
+                     'validation/v10800_offline_suite.py', 2400),
+                    ('V108 ZGODNOSC ISTNIEJACEGO EQ V107 / BEZ MIGRACJI',
+                     'validation/v10800_v107_equipment_compat_gate.py', 1200),
+                ), say, phase='V108', max_workers=1)
+            else:
+                say('FAIL: V108 nie uruchamia bramek przed zaliczeniem 60 + v105 + v107.')
+            for title,ret in v108_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+        v108_additional_proof = (not release_at_least_108(actual_version) or
+                                 (actual_version=='108.00.0' and len(v108_extra)==2
+                                  and all(ret==0 for _,ret in v108_extra)))
+        if not v108_additional_proof:
+            say('FAIL: V108 zgodnosc danych v107 i osobne regresje nie zaliczone.')
         good = (len(status) == len(STAGES) and all(ret == 0 for _,ret in status)
-                and plus_proof and extra_proof)
+                and plus_proof and extra_proof and v106_proof and v107_proof
+                and v108_additional_proof)
+        if good and actual_version == '108.00.0':
+            say('V108 RELEASE GATES PASS')
         if not plus_proof: say('FAIL: Brak dowodu wykonania regresji PLUS')
         say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 60 ETAPOW PLUS' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))

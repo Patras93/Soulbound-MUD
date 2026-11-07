@@ -162,6 +162,11 @@ def archive_security():
 
 def deployment_fail_closed():
     import wdroz_po_predeploy as deployment
+    # V107 upgrades are certified by 60/60 PLUS + SHA256 + approval, not by
+    # a retired v106 staging-only function. A missing lock is intentional;
+    # validate real fail-closed conditions below instead.
+    assert not hasattr(deployment, 'v106_work_in_progress_deploy_blocked'), (
+        'The retired v106 staging-only lock must not authorize/block v107')
     with tempfile.TemporaryDirectory(prefix='sb-ultimate-gate-') as td:
         root=Path(td)
         state=root/'last_result.json'
@@ -187,7 +192,13 @@ def deployment_fail_closed():
             state.write_text(json.dumps(good),encoding='utf-8')
             fake.write_bytes(b'changed AFTER predeploy')
             assert deployment.main()!=0, 'Changed ZIP authorized'
-    print('Broken PASS, old gate, incomplete stages, bad hash and modified ZIP all BLOCKED',flush=True)
+            # A valid, *unchanged* candidate still requires an explicit user
+            # confirmation. Without it, updating the live server is forbidden.
+            fake.write_bytes(b'test version data')
+            state.write_text(json.dumps(good),encoding='utf-8')
+            with mock.patch('builtins.input',return_value='ANULUJ'):
+                assert deployment.main()==2, 'Missing confirmation did not cancel'
+    print('Broken PASS, old gate, incomplete stages, bad hash, modified ZIP and missing consent BLOCKED',flush=True)
 
 
 def production_data_preserved():
@@ -250,6 +261,7 @@ def repeated_tcp_waves():
                 env.pop(k,None)
         env.update(SOULBOUND_DB=str(tmp/'wave.sqlite'),SOULBOUND_HOST='127.0.0.1',
             SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='5',
+            SOULBOUND_V108_PREDEPLOY=os.environ.get('SOULBOUND_V108_PREDEPLOY',''),
             SOULBOUND_WORLD_SEED_FILE=str(tmp/'world.seed'),
             PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1',PYTHONUTF8='1')
         flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=='nt' else 0

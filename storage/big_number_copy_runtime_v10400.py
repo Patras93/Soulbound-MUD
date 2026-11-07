@@ -8,6 +8,7 @@ feature flag. Production still uses guarded INTEGER columns.
 from __future__ import annotations
 
 from pathlib import Path
+from contextlib import closing
 from core.big_numbers_v10400 import canonical_uint, number, SQLITE_INT64_MAX
 from storage.big_number_shadow_v10400 import (
     install_shadow_schema, stage_shadow, fetch_shadow, EXTRA_COPY_PROGRESS_AXES,
@@ -318,8 +319,8 @@ def make_offline_copy_for_rehearsal(source_database, empty_directory):
     try:
         # Read-only URI handles concurrent WAL readers without source writes.
         uri = source.as_uri() + '?mode=ro'
-        with sqlite3.connect(uri, uri=True) as read_only:
-            with sqlite3.connect(output) as destination:
+        with closing(sqlite3.connect(uri, uri=True)) as read_only, read_only:
+            with closing(sqlite3.connect(output)) as destination, destination:
                 read_only.backup(destination)
                 check = destination.execute('PRAGMA quick_check').fetchone()[0]
                 if check != 'ok':

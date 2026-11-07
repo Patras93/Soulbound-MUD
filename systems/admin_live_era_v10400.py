@@ -6,6 +6,7 @@ are validated against their native runtime shape before an atomic file publish.
 Never edits user SQLite, soul-level thresholds, scripts or historical content.
 """
 from __future__ import annotations
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 
 from copy import deepcopy
 import json
@@ -54,6 +55,13 @@ _REGISTRY_NAMES = {'mob': 'mobs', 'quest': 'quests', 'item': 'items',
                    'raid_phase': 'mobs', 'soul_trial': 'quests',
     'soul_power': 'soul_power', 'eq_evolution': 'eq_evolution'}
 _RAID_ID = re.compile(r'v10400_raid_(1[2-9]|2[0-5])_boss_([123])\Z')
+_RAID_V106_ID = re.compile(r'v10600_raid_(2[6-9]|3[0-5])_boss_([123])\Z')
+
+
+def _v106_staging():
+    return (os.environ.get('SOULBOUND_V106_STAGING') == '1' or
+            _sb107_runtime_enabled())
+
 _TRIAL_ID = re.compile(r'soul_tier_([0-9]+)_trial\Z')
 _PHASE_FIELD = re.compile(r'p([1-4])_(hp_percent|attack_pct|duration_seconds)\Z')
 Draft = None
@@ -78,18 +86,25 @@ def _parse_key(key):
         if identifier not in soul_bands.BANDS:
             raise ValueError('Nieznane pasmo Soul Level')
     elif kind == 'raid_phase':
-        if not _RAID_ID.fullmatch(identifier):
-            raise ValueError('Edytowalne są tylko fazy rajdów 12–25')
+        if _sb107_runtime_enabled():
+            raise ValueError('V107: nie można edytować faz wycofanych rajdów')
+        if not (_RAID_ID.fullmatch(identifier) or
+                _v106_staging() and _RAID_V106_ID.fullmatch(identifier)):
+            raise ValueError('Edytowalne fazy rajdów 12–25; w testowym v106 także 26–35')
     elif kind in ('soul_power', 'eq_evolution'):
         if identifier != {'soul_power': 'v10500_bron_duszy',
                           'eq_evolution': 'v10500_ewolucja_eq'}[kind]:
             raise ValueError('Nieznany moduł ustawień v105')
     elif kind == 'soul_trial':
         match = _TRIAL_ID.fullmatch(identifier)
-        if not match or not 501 <= int(match.group(1)) <= 3000 or (int(match.group(1)) > 1000 and int(match.group(1)) % 10 != 0):
-            raise ValueError('Próby do T1000 lub obowiązkowe Próby co 10 Tierów T1010–3000')
-    elif not identifier.startswith(('v10400_', 'v10500_')) or len(identifier) > 100:
-        raise ValueError('Pole spoza katalogów v104/v105')
+        tier = int(match.group(1)) if match else 0
+        old = 501 <= tier <= 3000 and (tier <= 1000 or tier % 10 == 0)
+        new = _v106_staging() and 3010 <= tier <= 6000 and tier % 10 == 0
+        if not (old or new):
+            raise ValueError('Próby: T501–3000; testowe v106 T3010–6000 co 10 Tierów')
+    elif not (identifier.startswith(('v10400_', 'v10500_')) or
+              _v106_staging() and identifier.startswith('v10600_')) or len(identifier) > 100:
+        raise ValueError('Pole spoza katalogów v104/v105 lub testowego v106')
     return kind, identifier, field
 
 
@@ -264,6 +279,11 @@ def command(tail, registries, *, connection=None):
                '(25–400 procent bazowego EXP). Historyczne odblokowania Tierów są chronione. '
                'wydarzenia pokazuje prawdziwą wspólną rotację inwazji.')
     if action in ('', 'pomoc', 'help'):
+        if _sb107_runtime_enabled():
+            return ('V107 ADMIN: podglad TYP ID POLE / ustaw TYP ID POLE LICZBA / '
+                    'sprawdz / porownaj / aktywuj POTWIERDZAM / anuluj / '
+                    'cofnij POTWIERDZAM. Typy: mob, quest, item, recipe, '
+                    'room, soul_trial. Dawne fazy rajdowe są wyłączone.')
         return helpmsg
     try:
         state = _load()

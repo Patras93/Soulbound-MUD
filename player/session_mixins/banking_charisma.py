@@ -280,6 +280,28 @@ class SessionBankingCharismaMixin:
 
             item_id, item = found
 
+            # v106 staging: fail BEFORE move_shop_purchase_basis_v1175,
+            # which commits its cost ledger, and BEFORE inventory removal.
+            from systems.equipment_inventory_flow_v10600 import tracked
+            if tracked(self.server.db, item_id):
+                db=self.server.db
+                if is_character_bound_item(item_id):
+                    await self.send('Przedmiot przypisany do postaci nie może trafić do banku.')
+                    return False
+                if not getattr(db,'_v106_bank_shadow_disposable_copy',False):
+                    await self.send('v106: bank fizycznego EQ nie jest jeszcze aktywny. Bez zmian.')
+                    return False
+                try:
+                    ok=db.move_bank_equipment_v106(self.account_id,item_id,quantity)
+                except (RuntimeError,ValueError,PermissionError) as exc:
+                    await self.send(str(exc))
+                    return False
+                if ok:
+                    await self.send(f'Do skrytki trafia {item["name"]} x{quantity}.')
+                else:
+                    await self.send('v106: brak dostępnych, niezałożonych sztuk EQ.')
+                return bool(ok)
+
             if is_character_bound_item(item_id):
                 await self.send(
                     f"{item['name']} jest przypisany do tej postaci. "
@@ -357,6 +379,25 @@ class SessionBankingCharismaMixin:
                 return False
 
             item_id, item = found
+
+            # v106 staging: reject BEFORE removing bank stock or moving
+            # shop cost basis, otherwise a partial withdrawal would persist.
+            from systems.equipment_inventory_flow_v10600 import tracked
+            if tracked(self.server.db, item_id):
+                db=self.server.db
+                if not getattr(db,'_v106_bank_shadow_disposable_copy',False):
+                    await self.send('v106: bank fizycznego EQ nie jest jeszcze aktywny. Bez zmian.')
+                    return False
+                try:
+                    ok=db.move_bank_equipment_v106(self.account_id,item_id,quantity,withdraw=True)
+                except (RuntimeError,ValueError,PermissionError) as exc:
+                    await self.send(str(exc))
+                    return False
+                if ok:
+                    await self.send(f'Wyjmujesz ze skrytki {item["name"]} x{quantity}.')
+                else:
+                    await self.send('v106: w skrytce brak żądanej liczby sztuk EQ.')
+                return bool(ok)
             current = self.server.db.bank_item_qty(
                 self.account_id, item_id
             )

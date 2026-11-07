@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 import re
 import shutil
+import sqlite3
+from contextlib import closing
 import stat
 import subprocess
 import sys
@@ -123,6 +125,14 @@ def inspect_zip(zippath):
         root_text = z.read(root_version[1]).decode('utf-8-sig').strip()
         if root_text != ver:
             raise ValueError(f'Plik VERSION ({root_text}) nie zgadza sie z kodem ({ver}).')
+        if version_tuple(ver) >= (108, 0, 0):
+            for required_v108 in ('validation/v10800_release_readiness.py',
+                                  'validation/v10800_offline_suite.py',
+                                  'systems/v10800_activation.py',
+                                  'validation/v10800_v107_equipment_compat_gate.py'):
+                if required_v108.casefold() not in mapping:
+                    raise ValueError('v108: brak produkcyjnej bramki '+required_v108+
+                                     '; stare 60/60 nie wystarcza')
         invalid = z.testzip()
         if invalid:
             raise ValueError('Uszkodzony plik w ZIP: '+invalid)
@@ -148,7 +158,7 @@ def source_review(stage_root):
 
 def save_state(state):
     WORK.mkdir(parents=True,exist_ok=True)
-    temp=STATE.with_name('.last_result.json.tmp')
+    temp=STATE.with_name('.'+STATE.name+'.tmp')
     try:
         temp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
         os.replace(temp, STATE)
@@ -195,55 +205,124 @@ def _terminate_test_tree(proc):
         raise TimeoutError('Nie mozna zakonczyc odizolowanego procesu PREDEPLOY.')
 
 
-def run_tests(stage_root, logpath, *, timeout_seconds=5400):
-    """Bounded PREDEPLOY. A child keeping stdout open cannot hang the parent.
+def create_detached_source_snapshot(source_db, destination, *, timeout_seconds=180):
+    """Capture committed source DB + WAL using SQLite backup, not file copying.
 
-    Do not use stdout=PIPE or iterate until EOF: a background watchdog may
-    inherit that pipe and keep it open after the actual test has exited.
-    Redirect stdout straight to disk and wait on *the test PID* instead.
+    The production DB is opened with mode=ro and never given to candidate code.
+    SQLite backup preserves the committed WAL image without uncommitted rows.
+    Nothing in this function upgrades, migrates or modifies source contents.
+    The caller owns the destination and must remove it after testing.
+    """
+    source = Path(source_db).expanduser().resolve()
+    destination = Path(destination).expanduser().resolve()
+    if source == destination or not source.is_file():
+        raise RuntimeError('Brak oddzielnej, istniejacej bazy SQLite do audytu')
+    if destination.exists():
+        raise RuntimeError('Odmowa nadpisania istniejacej migawki SQLite')
+    if not isinstance(timeout_seconds, (int, float)) or not 0 < timeout_seconds <= 3600:
+        raise ValueError('Nieprawidlowy limit przygotowania kopii SQLite')
+    began = time.monotonic()
+    uri = source.as_uri() + '?mode=ro'
+    try:
+        with closing(sqlite3.connect(uri, uri=True, timeout=4)) as origin:
+            origin.execute('PRAGMA query_only=ON')
+            tables = {str(row[0]) for row in origin.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+            if not {'accounts', 'characters'}.issubset(tables):
+                raise RuntimeError('SQLite nie ma tabel kont i postaci')
+            with closing(sqlite3.connect(destination, timeout=4)) as frozen:
+                def progress(_status, _remaining, _total):
+                    if time.monotonic() - began > timeout_seconds:
+                        raise TimeoutError('Kopia SQLite przekroczyla limit czasu')
+                origin.backup(frozen, pages=128, progress=progress, sleep=0.05)
+        with closing(sqlite3.connect(destination.as_uri() + '?mode=ro', uri=True,
+                                     timeout=4)) as check:
+            if check.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                raise RuntimeError('Odlaczona kopia SQLite nie przeszla integrity_check')
+            if not {'accounts', 'characters'}.issubset({str(row[0]) for row in
+                check.execute("SELECT name FROM sqlite_master WHERE type='table'")}):
+                raise RuntimeError('Odlaczona kopia SQLite jest niekompletna')
+    except (sqlite3.Error, RuntimeError, TimeoutError):
+        # Failure is never a PASS; partially copied file is not reusable.
+        destination.unlink(missing_ok=True)
+        raise
+    return destination
+
+
+def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
+    """Run the staged Windows gate against a frozen, disposable SQLite backup.
+
+    Candidate scripts receive only a *detached* snapshot path. The actual live
+    path must never enter a child process' SOULBOUND_ULTRA_SOURCE_DB variable.
+    A predeploy run cannot silently substitute a synthetic empty database.
     """
     if not isinstance(timeout_seconds, int) or timeout_seconds < 1:
         raise ValueError('Niepoprawny limit czasu PREDEPLOY.')
     env = os.environ.copy()
     for key in list(env):
-        if key.upper().startswith(('SOULBOUND_', 'RAILWAY_')) or key.upper() in ('DATABASE_URL', 'PYTHONPATH'):
+        if key.upper().startswith(('SOULBOUND_', 'RAILWAY_')) or key.upper() in (
+                'DATABASE_URL', 'PYTHONPATH', 'SMTP_PASSWORD', 'PGPASSWORD',
+                'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'OPENAI_API_KEY'):
             env.pop(key, None)
     env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1',
                PYTHONDONTWRITEBYTECODE='1')
-    live = Path(os.environ.get('SOULBOUND_DB') or str(ROOT / 'soulbound.db'))
+    live = Path(source_db or os.environ.get('SOULBOUND_DB') or str(ROOT / 'soulbound.db'))
     if not live.is_absolute():
         live = ROOT / live
-    env['SOULBOUND_ULTRA_SOURCE_DB'] = str(live.resolve())
-    flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) if os.name == 'nt' else 0
-    with logpath.open('a', encoding='utf-8', errors='replace') as output:
-        output.write(f'\nTESTY WINDOWS: limit {timeout_seconds} sekund; izolowane logowanie do pliku.\n')
-        output.flush()
-        proc = subprocess.Popen([sys.executable, '-u', str(stage_root / 'testuj_soulbound_windows.py')],
-                                cwd=stage_root, env=env, creationflags=flags,
-                                start_new_session=(os.name != 'nt'),
-                                stdin=subprocess.DEVNULL, stdout=output,
-                                stderr=subprocess.STDOUT)
-        try:
-            code = proc.wait(timeout=timeout_seconds)
-        except subprocess.TimeoutExpired as error:
-            _terminate_test_tree(proc)
-            output.write('\nTIMEOUT: Windows PREDEPLOY nie zakonczyl sie; FAIL.\n')
+    with tempfile.TemporaryDirectory(prefix='Soulbound_PREDEPLOY_SQLITE_FROZEN_') as frozen_dir:
+        snapshot = create_detached_source_snapshot(
+            live, Path(frozen_dir)/'SOURCE_COMMITTED_SNAPSHOT.sqlite')
+        # v108 needs the result of a conservative EQ rebuild during PREDEPLOY.
+        # The original source and old pre-v107 backup remain read-only. The
+        # live installer MUST repeat this rehearsal after STOP, on fresh data.
+        if (Path(stage_root)/'VERSION').read_text(encoding='utf-8-sig').strip() == '108.00.0':
+            from systems.v10800_eq_cutover_bridge import prepare_from_snapshot
+            prepared,counts = prepare_from_snapshot(snapshot,live.parent,Path(frozen_dir))
+            snapshot = prepared
+            with logpath.open('a',encoding='utf-8') as report:
+                report.write('V108 PREDEPLOY REBUILD SNAPSHOT PASS: '
+                    +', '.join(f'{k}={v}' for k,v in sorted(counts.items()))+'\n')
+        env['SOULBOUND_ULTRA_SOURCE_DB'] = str(snapshot)
+        env['SOULBOUND_DB'] = str(snapshot)  # no fallthrough to production
+        env['SOULBOUND_HOST'] = '127.0.0.1'
+        flags = getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) if os.name == 'nt' else 0
+        with logpath.open('a', encoding='utf-8', errors='replace') as output:
+            output.write(f'\nTESTY WINDOWS: limit {timeout_seconds} sekund; '
+                         'baza odlaczona przez SQLite backup + WAL.\n')
             output.flush()
-            raise TimeoutError('Windows PREDEPLOY przekroczyl limit i zostal zakonczony.') from error
-        except BaseException:
-            _terminate_test_tree(proc)
-            raise
-        # Isolated Unix process groups can have orphaned TCP children even
-        # after their test parent exited; clean only this private group.
-        if os.name != 'nt':
+            proc = subprocess.Popen(
+                [sys.executable, '-u', str(stage_root / 'testuj_soulbound_windows.py')],
+                cwd=stage_root, env=env, creationflags=flags,
+                start_new_session=(os.name != 'nt'),
+                stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT)
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                # No remaining group. The main process already has an exit code.
-                proc.poll()
-        output.write(f'\nTESTY WINDOWS: kod wyjscia {code}.\n')
-        output.flush()
-        return code
+                code = proc.wait(timeout=timeout_seconds)
+            except subprocess.TimeoutExpired as error:
+                _terminate_test_tree(proc)
+                output.write('\nTIMEOUT: Windows PREDEPLOY nie zakonczyl sie; FAIL.\n')
+                output.flush()
+                raise TimeoutError('Windows PREDEPLOY przekroczyl limit i zostal zakonczony.') from error
+            except BaseException:
+                _terminate_test_tree(proc)
+                raise
+            if os.name != 'nt':
+                try: os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError: proc.poll()
+            output.write(f'\nTESTY WINDOWS: kod wyjscia {code}.\n')
+            output.flush()
+            return code
+
+
+def verified_staged_pass(code, staged_log, version):
+    """Consume the staged test log BEFORE its TemporaryDirectory is removed."""
+    if code != 0 or not Path(staged_log).is_file():
+        return False
+    log = Path(staged_log).read_text(encoding='utf-8', errors='replace')
+    basic = ('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS' in log and
+             'PLUS CHECKS PASS' in log)
+    if version_tuple(version) >= (108, 0, 0):
+        basic = basic and 'V108 RELEASE GATES PASS' in log
+    return basic
 
 
 def main(argv=None):
@@ -269,7 +348,7 @@ def main(argv=None):
         save_state(state)
         print(f'PREDEPLOY: testowana paczka: {zip_path}',flush=True)
         print(f'Wersja produkcyjna: v{active}; kandydat: v{version}',flush=True)
-        print('Serwer nie jest zatrzymywany; z prawdziwej bazy powstaje kopia TYLKO DO ODCZYTU.',flush=True)
+        print('Serwer pozostaje uruchomiony; testy otrzymaja odlaczona migawke SQLite (WAL).',flush=True)
         print('Testy ULTIMATE PLUS: 60 etapow, >5000 asercji PLUS, migracja LIVE na kopii SQLite.',flush=True)
         print(f'Log: {log}',flush=True)
         with log.open('w',encoding='utf-8') as report:
@@ -291,16 +370,21 @@ def main(argv=None):
             result=run_tests(target,log)
             # Do not treat a last line from stdout as proof; trust exit status AND log summary.
             staged_log=target/'logs'/'TESTY_Soulbound.log'
-            verified=(result==0 and staged_log.is_file() and
-                      'WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS' in
-                      staged_log.read_text(encoding='utf-8',errors='replace') and
-                      'PLUS CHECKS PASS' in staged_log.read_text(encoding='utf-8',errors='replace'))
-        # Verify archive was not modified during test execution.
+            # The staged folder disappears at the end of this with-block.
+            # Capture its proof while it still exists, including the v108 gate.
+            verified = verified_staged_pass(result, staged_log, version)
+        # Verify the exact tested archive has not changed meanwhile.
+        if version == '108.00.0':
+            state['v108_eq_rebuild_trial_pass'] = ('V108 PREDEPLOY REBUILD SNAPSHOT PASS:'
+                                                  in log.read_text(encoding='utf-8',errors='replace'))
+            verified = verified and state['v108_eq_rebuild_trial_pass']
         verified=verified and sha256(zip_path)==checksum
         state['finished_at']=datetime.now().astimezone().isoformat(timespec='seconds')
         state['status']='PASS' if verified else 'FAIL'
         state['completed_stages']=60 if verified else 0
         state['returncode']=result
+        if version_tuple(version) >= (108, 0, 0):
+            state['v108_release_gates_pass'] = bool(verified)
         save_state(state)
         print('\nWYNIK PREDEPLOY: '+state['status'],flush=True)
         print('Produkcja nietknieta. '+('Mozna rozwazyc WDROZ_PO_PREDEPLOY.bat.' if verified

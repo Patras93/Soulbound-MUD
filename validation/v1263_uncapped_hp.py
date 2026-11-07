@@ -50,7 +50,11 @@ def audit_v1263():
     # Test the real SessionCombatDamageMixin method in isolation as in v1.26.1.
     source = ast.parse((ROOT / "player/session_mixins/combat_damage.py").read_text(encoding="utf8"))
     node = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == "SessionCombatDamageMixin")
-    namespace = {"math": math, "MOB_TEMPLATES": {"test": {"max_hp": 1000, "rank": "normal"}},
+    from data.rooms import ROOMS
+    from systems.v106_combat_encounter_level import effective_encounter_level_v106
+    namespace = {"math": math, "ROOMS": ROOMS,
+                 "effective_encounter_level_v106": effective_encounter_level_v106,
+                 "MOB_TEMPLATES": {"test": {"max_hp": 1000, "rank": "normal"}},
                  "adaptive_target_max_hp_v11330": adaptive_target_max_hp_v11330,
                  "adaptive_reward_multiplier_v11330": adaptive_reward_multiplier_v11330,
                  "adaptive_combat_rank_v11330": adaptive_combat_rank_v11330,

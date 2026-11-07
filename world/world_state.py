@@ -136,6 +136,28 @@ class World:
         Scoped strictly to v105 source/variant IDs in v105 rooms: older NPCs,
         encounters and all combat HP/damage remain under their original rules.
         """
+        # v106 staging: historyczny normalizator poprawnie zachowuje HP
+        # bossa, ale redukuje jego generator_level do 800. Przywracamy
+        # WYŁĄCZNIE specjalnie oznaczony, autorski poziom unikatowego
+        # bossa v106 po każdym pierwszym spawnie i respawnie. Bez zmiany
+        # logiki v105, obrażeń, HP, nagród, drużyn ani limitów Admin Live.
+        if (str(room_id).startswith("v10600_")
+                and str(template_id).startswith("v10600_")):
+            import os as _v106_world_os
+            if _v106_world_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+                tpl = MOB_TEMPLATES.get(template_id)
+                if isinstance(tpl, dict):
+                    stage = tpl.get('v106_authored_boss_stage')
+                    if stage is None:
+                        # Ordinary mobs may be terrain/elite runtime clones.
+                        # Their authored 30k–60k stage is stored before the
+                        # historical 800-cap normalizer; preserve clone HP,
+                        # damage and affixes without rebalancing any stats.
+                        stage = tpl.get('v106_authored_mob_stage')
+                    if type(stage) is int and 800 < stage <= 100000:
+                        tpl['generator_level'] = stage
+                        tpl['v019_stage'] = stage
+            return
         if not (str(room_id).startswith("v10500_")
                 and str(template_id).startswith("v10500_")):
             return
@@ -1119,6 +1141,10 @@ class World:
                             delattr(mob, field)
                     mob.player_hits = 0
                     mob.phase_stage = 0
+                    # v106: po respawnie rajdowy boss nie może pamiętać faz
+                    # ani mnożnika ataku z poprzedniej walki.
+                    from systems.v106_raid_phase_runtime import reset_raid_phase_v106
+                    reset_raid_phase_v106(mob, MOB_TEMPLATES[mob.template_id])
                     mob.engaged_at = 0.0
                     mob.adaptive_max_hp_v11330 = 0
                     mob.adaptive_hp_multiplier_v11330 = 1.0

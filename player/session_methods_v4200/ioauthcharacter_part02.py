@@ -2,6 +2,7 @@
 """Original Soulbound session/DB method bodies, source-preserving extraction.
 Globals are bound to the historical host module at class initialization.
 """
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 async def choose_existing_character(self):
         rows = await self.send_character_list()
         if not rows:
@@ -59,6 +60,23 @@ async def choose_existing_character(self):
                     "Automatyczne przypisanie tej postaci zostało pominięte."
                 )
             self.server.db.apply_shared_wallet_to_character(self.character)
+            # v107: bez utraty EQ i postępu przenieś postać, która wylogowała
+            # się w wycofanej komnacie rajdu, do jej dawnej normalnej bramy.
+            import os as _v107_char_os
+            if _sb107_runtime_enabled():
+                from world.v10700_no_raids import raid_return_room_v107
+                _safe_room = raid_return_room_v107(self.character.room_id, ROOMS)
+                if _safe_room is not None and _safe_room != self.character.room_id:
+                    _old_room = self.character.room_id
+                    self.character.room_id = _safe_room
+                    try:
+                        self.server.db.save_character(self.character)
+                    except Exception:
+                        self.character.room_id = _old_room
+                        raise
+                    await self.send('Dawna lokacja została wycofana. '
+                                    'Przeniesiono cię do bezpiecznej krainy. '
+                                    'Ekwipunek i postępy pozostają bez zmian.')
             if self.character.room_id not in ROOMS:
                 self.server.world.ensure_runtime_room(self.character.room_id)
             if self.character.room_id not in ROOMS:

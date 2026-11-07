@@ -192,6 +192,12 @@ async def use_crypt_portal(self, raw):
         if getattr(self, "current_hp", 1) <= 0 or getattr(self, "is_downed_v0371", lambda: False)():
             await self.send("Martwa lub powalona postać nie może korzystać z portali. Najpierw się odrodź.")
             return
+        from systems.dungeons_regions import giant_fortress_floor_number
+        _fortress_room = str(self.character.room_id)
+        if (_fortress_room == 'giant_fortress_gate'
+                or giant_fortress_floor_number(_fortress_room) is not None):
+            await self.use_giant_fortress_portal_v10800(raw)
+            return
         party_key = self.party_key()
         if self.portal_requires_local_leader_v12811():
             leader = self.server.session_by_account(party_key)

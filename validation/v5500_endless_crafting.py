@@ -111,7 +111,17 @@ async def suite():
         check(before_db==list(owner.server.db.conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")))
         # Gameplay crafting really calls the function BEFORE handing over EQ.
         crafting_file=(Path(__file__).resolve().parents[1]/'player/session_mixins/crafting.py').read_text('utf8')
-        check(crafting_file.index('endless_crafted_equipment_v5500(')<crafting_file.index('self.server.db.add_item(\n                self.account_id, crafted_output_id, total_quantity'))
+        # v106: the physical-EQ staging path uses an atomic grant, while
+        # ordinary gameplay retains add_item.  The historical craft must
+        # strengthen EQ BEFORE *either* durable grant, not just match an
+        # obsolete exact indentation of the pre-v106 source.
+        resonance_at = crafting_file.index('crafted_output_id = endless_crafted_equipment_v5500(')
+        atomic_at = crafting_file.index('self.server.db.craft_item_atomic_v106(', resonance_at)
+        legacy_at = crafting_file.index('self.server.db.add_item(', resonance_at)
+        check(resonance_at < atomic_at < legacy_at
+              and 'crafted_output_id, total_quantity' in crafting_file[atomic_at:atomic_at+250]
+              and 'self.account_id, crafted_output_id, total_quantity' in crafting_file[legacy_at:legacy_at+140],
+              'resonance must precede v106 atomic and legacy crafted EQ payouts')
         check('REZONANS RZEMIOSLA:' in crafting_file)
         return n
     finally:

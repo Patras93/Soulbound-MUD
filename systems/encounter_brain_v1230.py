@@ -41,6 +41,10 @@ def boss_tactics_phase_v1230(mob, template, now=None):
     stage = max(0, int(getattr(mob, 'v1230_boss_phase', 0) or 0))
     if target_stage <= stage:
         return None
+    # v106 test-only: szybkie obrażenia nie pomijają wcześniejszych faz
+    # rajdów 26–35. Żaden historyczny boss nie zmienia zachowania.
+    from systems.v106_raid_phase_runtime import next_raid_phase_v106
+    target_stage = next_raid_phase_v106(mob, template, stage, target_stage)
     mob.v1230_boss_phase = target_stage
     now = time.monotonic() if now is None else now
     labels = ('', 'mobilizuje się i zmienia rytm ataku',

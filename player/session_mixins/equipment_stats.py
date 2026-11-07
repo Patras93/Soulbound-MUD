@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: equipment_stats."""
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import random
@@ -50,6 +51,8 @@ class SessionEquipmentStatsMixin:
         )
         parts = str(raw or '').strip().split(maxsplit=1)
         action = parts[0].casefold() if parts else 'status'
+        import os as _sb106_weapon_os
+        _sb106_active = _sb106_weapon_os.environ.get('SOULBOUND_V106_STAGING') == '1'
         argument = parts[1].strip() if len(parts) > 1 else ''
         if action in ('status', 'lista', 'list', 'pomoc', 'help'):
             element = selected_element(self)
@@ -62,6 +65,20 @@ class SessionEquipmentStatsMixin:
                             f'Impuls +{tuning("impulse_pct")}%, odnowienie {tuning("impulse_cooldown")} s. '
                             f'Od Tieru 1200: bronduszy oslona (+{tuning("shield_pct")}% obrony '
                             f'przez {tuning("shield_seconds")} s, odnowienie {tuning("shield_cooldown")} s).')
+            if _sb106_active:
+                from systems.soul_weapon_astral_v10600 import get_secondary, MIN_SECONDARY_TIER
+                second = get_secondary(self.server.db.conn, self.account_id)
+                await self.send(f'Żywioł pomocniczy: {second or "brak"}. '
+                                f'Od Tieru {MIN_SECONDARY_TIER}: bronduszy drugi astral, natura lub próżnia.')
+            return
+        if _sb106_active and action in ('drugi', 'pomocniczy', 'wtorny', 'wtórny'):
+            from systems.soul_weapon_astral_v10600 import select_secondary
+            if not argument:
+                await self.send('Wybierz drugi żywioł: astral, natura, próżnia.')
+                return
+            _, message = select_secondary(self.server.db.conn, self.account_id,
+                                          self.character.soul_tier, argument)
+            await self.send(message)
             return
         if action in ('zywiol', 'żywioł', 'element'):
             if not argument:
@@ -95,7 +112,16 @@ class SessionEquipmentStatsMixin:
                 return list(cache["relic_rows"])
             level=int(getattr(self.character,"character_level",1) or 1)
             rows=[]
-            for item_id,item in ITEMS.items():
+            # This full ITEMS scan was executed up to seven times per DPS
+            # forecast/member and several more times per real Soul Weapon hit.
+            # The 1-second catalog index is enabled ONLY in staging v106.
+            import os as _v106_relic_os
+            if _v106_relic_os.environ.get('SOULBOUND_V106_STAGING')=='1':
+                from systems.v106_relic_catalog_index import soul_weapon_relic_catalog_v106
+                candidates=soul_weapon_relic_catalog_v106(ITEMS)
+            else:
+                candidates=ITEMS.items()
+            for item_id,item in candidates:
                 if item.get("type")!="soul_weapon_relic":
                     continue
                 if self.server.db.item_qty(self.account_id,item_id)<=0:
@@ -234,8 +260,11 @@ class SessionEquipmentStatsMixin:
                             totals[_stat] += int(_amount)
 
                 # v105: stały bonus EWOLUCJI tej posiadanej, założonej sztuki.
-                from systems.equipment_evolution_v10500 import current_stage, stage_stat_bonus
-                _evo = current_stage(self.server.db.conn, self.account_id, row["item_id"])
+                from systems.equipment_evolution_v10500 import stage_stat_bonus
+                from systems.equipment_evolution_stats_v10600 import equipped_evolution_stage
+                _evo = equipped_evolution_stage(
+                    self.server.db, self.account_id, row["slot"], row["item_id"]
+                )
                 if _evo:
                     totals["constitution"] += stage_stat_bonus(_evo, item)
 
@@ -981,8 +1010,13 @@ class SessionEquipmentStatsMixin:
                             _tech_mark_bonus=5 if _m==2 else 10 if _m>=3 else 0
                     except Exception:
                         _tech_mark_bonus=0
-                    from systems.equipment_evolution_v10500 import current_stage, stage_defense_bonus
-                    total += stage_defense_bonus(current_stage(self.server.db.conn, self.account_id, row["item_id"]), item)
+                    from systems.equipment_evolution_v10500 import stage_defense_bonus
+                    from systems.equipment_evolution_stats_v10600 import equipped_evolution_stage
+                    total += stage_defense_bonus(
+                        equipped_evolution_stage(
+                            self.server.db, self.account_id, row["slot"], row["item_id"]
+                        ), item
+                    )
                     total += int(item.get("defense", 0)) + v03042_upgrade_defense_bonus(
                         item, upgrade_level
                     ) + _tech_mark_bonus
@@ -995,3 +1029,9 @@ class SessionEquipmentStatsMixin:
                     * shield_multiplier(self)
                 ))
             )
+
+# v107 experimental Magitek effects. No effect on production v106.
+import os as _v107_magitek_env
+if _sb107_runtime_enabled():
+    from systems.magitek_support_v107 import install_defense_adapter as _v107_install_magitek
+    _v107_install_magitek(SessionEquipmentStatsMixin)

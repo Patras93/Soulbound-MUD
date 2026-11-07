@@ -1,52 +1,70 @@
 # -*- coding: utf-8 -*-
-"""Autostart Soulbound bez administratora: per-user folder Autostart Windows.
+"""Autostart per-user: standard CMD, no WScript or hidden VBS.
 
-Działa po zalogowaniu danego użytkownika. Nie obiecuje uruchomienia przed
-zalogowaniem, ani automatycznego włączenia fizycznie wyłączonego komputera.
+No admin privileges or task scheduler. Legacy autostart is migrated only when
+its contents prove that it belongs to this same Soulbound root.
 """
 from __future__ import annotations
-
 import os
 from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parent
-LINK_FILENAME = 'Soulbound_Autostart.vbs'
+LINK_FILENAME = 'Soulbound_Autostart.cmd'
+LEGACY_FILENAME = 'Soulbound_Autostart.vbs'
 
 
 def startup_file() -> Path:
     appdata = os.environ.get('APPDATA')
     if not appdata:
         raise RuntimeError('Nie znaleziono APPDATA. Zaloguj sie jako uzytkownik Windows.')
-    folder = Path(appdata) / 'Microsoft' / 'Windows' / 'Start Menu' / 'Programs' / 'Startup'
-    return folder / LINK_FILENAME
+    return (Path(appdata) / 'Microsoft' / 'Windows' / 'Start Menu'
+            / 'Programs' / 'Startup' / LINK_FILENAME)
+
+
+def legacy_startup_file() -> Path:
+    return startup_file().with_name(LEGACY_FILENAME)
+
+
+def _legacy_owned(path: Path) -> bool:
+    # The previous version wrote UTF-16 WScript that ran this exact VBS file.
+    return str(ROOT / 'START_Soulbound_UKRYTY.vbs') in path.read_text(encoding='utf-16')
+
+
+def _cmd_owned(path: Path) -> bool:
+    return ('call "' + str(ROOT / 'START_Soulbound.bat') + '"') in path.read_text(
+        encoding='utf-8-sig')
 
 
 def install() -> Path:
-    target = ROOT / 'START_Soulbound_UKRYTY.vbs'
+    target = ROOT / 'START_Soulbound.bat'
     if not target.is_file():
         raise FileNotFoundError(str(target))
     path = startup_file()
+    old = legacy_startup_file()
+    # Refuse to touch another application's or another install's startup file.
+    if path.exists() and not _cmd_owned(path):
+        raise RuntimeError('Autostart CMD nalezy do innego folderu. Nie nadpisuje.')
+    if old.exists() and not _legacy_owned(old):
+        raise RuntimeError('Autostart VBS nalezy do innego folderu. Nie usuwa.')
     path.parent.mkdir(parents=True, exist_ok=True)
-    escaped = str(target).replace('"', '""')
-    body = ('Option Explicit\r\n'
-            'Dim sh, fs, path\r\n'
-            'Set sh = CreateObject("WScript.Shell")\r\n'
-            'Set fs = CreateObject("Scripting.FileSystemObject")\r\n'
-            'path = "' + escaped + '"\r\n'
-            'If fs.FileExists(path) Then sh.Run Chr(34) & path & Chr(34), 0, False\r\n')
-    # WSH odczytuje UTF-16 BOM; obsługa ścieżek zawierających polskie znaki.
-    path.write_text(body, encoding='utf-16')
+    path.write_text('@echo off\ncall "' + str(target) + '"\n', encoding='utf-8')
+    if old.exists():
+        old.unlink()
     return path
 
 
 def uninstall() -> Path:
     path = startup_file()
+    old = legacy_startup_file()
+    if path.exists() and not _cmd_owned(path):
+        raise RuntimeError('Autostart CMD wskazuje inny folder Soulbound. Nie kasuje.')
+    if old.exists() and not _legacy_owned(old):
+        raise RuntimeError('Autostart VBS wskazuje inny folder Soulbound. Nie kasuje.')
     if path.exists():
-        raw = path.read_text(encoding='utf-16')
-        if str(ROOT / 'START_Soulbound_UKRYTY.vbs') not in raw:
-            raise RuntimeError('Autostart wskazuje inny folder Soulbound. Nie kasuje obcego skrotu.')
         path.unlink()
+    if old.exists():
+        old.unlink()
     return path
 
 

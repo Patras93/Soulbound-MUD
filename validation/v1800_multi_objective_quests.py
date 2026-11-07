@@ -63,7 +63,9 @@ def run():
         class DB(db_quests.DatabaseQuestMixin):
             pass
         db=DB()
-        db.conn=sqlite3.connect(':memory:')
+        from storage.database import _DeferredCommitConnection
+        # Test the same transactional SQLite adapter used by the running game.
+        db.conn=_DeferredCommitConnection(sqlite3.connect(':memory:'))
         db.conn.row_factory=sqlite3.Row
         db.conn.executescript('''
            CREATE TABLE quests(account_id INTEGER,quest_id TEXT,status TEXT,

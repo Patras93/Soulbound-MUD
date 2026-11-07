@@ -1979,5 +1979,18 @@ V1110_UNIQUE_SKILL_NAMES = _install_unique_skill_names_v1110(CLASS_SKILLS)
 # v104: after all 22 classes are registered; trainer catalogue shared with game.
 from core.class_skills_v10400 import install as _install_skills_v10400
 V10400_CLASS_SKILLS_ADDED = _install_skills_v10400(CLASS_SKILLS, CLASSES)
+# v106: one optional set of 44 genuine skills in the existing trainer catalogue.
+# Default v105 imports remain byte-for-byte equivalent without staging mode.
+import os as _sb106_class_os
+V10600_CLASS_SKILLS_ADDED = 0
+if _sb106_class_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+    from core.class_skills_v10600 import install as _install_skills_v10600
+    V10600_CLASS_SKILLS_ADDED = _install_skills_v10600(CLASS_SKILLS, CLASSES)
 for _skills in CLASS_SKILLS.values():
     _skills.sort(key=lambda skill:(int(skill.get('unlock',1)), skill.get('name','')))
+
+
+# v107 staging is installed AFTER all legacy 22-class bootstrap checks
+# in server.py. Direct catalogue-only regression can opt in explicitly.
+# Never increase the class count while old release installers are executing.
+V107_MAGITEK_ADDED = 0

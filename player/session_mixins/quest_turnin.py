@@ -2,6 +2,46 @@
 """Quest lists, matching, turn-in and interaction flow."""
 
 class SessionQuestTurninMixin:
+    def consume_quest_items_batch_v10800(self, requirements):
+            """One SAVEPOINT for the entire quest set, including physical EQ."""
+            db = self.server.db
+            conn = db.conn
+            outside = bool(conn.in_transaction)
+            with conn.deferred_commits():
+                conn.execute('SAVEPOINT v108_quest_turnin_batch')
+                try:
+                    for requirement in requirements:
+                        if len(requirement) == 3:
+                            item_id, amount, mode = requirement
+                            explicit_container = None
+                        elif len(requirement) == 4:
+                            item_id, amount, mode, explicit_container = requirement
+                        else:
+                            raise ValueError('Nieprawidłowa pozycja oddania questa')
+                        if mode == 'crafted':
+                            ok = self.consume_quest_crafted_items_v0333(item_id, amount)
+                        elif mode in ('resource', 'resource_ids'):
+                            item_ids = (self.resource_quest_equivalent_ids(item_id)
+                                        if mode == 'resource' else item_id)
+                            container = (self.resource_quest_container(item_id)
+                                         if len(requirement) == 3 else explicit_container)
+                            ok = db.consume_items_across_storage_and_inventory(
+                                self.account_id, item_ids, int(amount), container,
+                                purpose='quest_turnin')
+                        else:
+                            raise ValueError('Nieznany typ przedmiotu questa')
+                        if not ok:
+                            conn.execute('ROLLBACK TO SAVEPOINT v108_quest_turnin_batch')
+                            conn.execute('RELEASE SAVEPOINT v108_quest_turnin_batch')
+                            return False
+                    conn.execute('RELEASE SAVEPOINT v108_quest_turnin_batch')
+                    if not outside:
+                        conn.commit()
+                    return True
+                except BaseException:
+                    conn.execute('ROLLBACK TO SAVEPOINT v108_quest_turnin_batch')
+                    conn.execute('RELEASE SAVEPOINT v108_quest_turnin_batch')
+                    raise
 
     async def show_active_quests(self):
             rows = [
@@ -365,10 +405,12 @@ class SessionQuestTurninMixin:
                     if self.quest_crafted_item_have_v0333(item_id) < int(quantity):
                         await self.send('Brakuje przedmiotów do oddania questa.')
                         return
-                for item_id, quantity in q['objectives'].get('collect', {}).items():
-                    if not self.consume_quest_crafted_items_v0333(item_id, quantity):
-                        await self.send('Nie udało się pobrać przedmiotów questa.')
-                        return
+                if not self.consume_quest_items_batch_v10800([
+                    (item_id, amount, 'crafted')
+                    for item_id, amount in q['objectives'].get('collect', {}).items()
+                ]):
+                    await self.send('Nie udało się pobrać przedmiotów questa.')
+                    return
 
             elif q["kind"] in ("kill", "party_contract"):
                 progress = int(row["progress"])
@@ -443,6 +485,7 @@ class SessionQuestTurninMixin:
                         self.resource_quest_equivalent_ids(q["target"]),
                         int(q["needed"]),
                         container,
+                        purpose='quest_turnin',
                     )
                 )
                 if not ok:
@@ -471,16 +514,12 @@ class SessionQuestTurninMixin:
                 if missing_items:
                     await self.send("Brakuje surowców do fizycznego oddania: " + ", ".join(missing_items) + ".")
                     return
-                for target_id, needed_each in requirements.items():
-                    ok = self.server.db.consume_items_across_storage_and_inventory(
-                        self.account_id,
-                        self.resource_quest_equivalent_ids(target_id),
-                        int(needed_each),
-                        self.resource_quest_container(target_id),
-                    )
-                    if not ok:
-                        await self.send("Nie udało się pobrać wymaganych próbek rudy.")
-                        return
+                if not self.consume_quest_items_batch_v10800([
+                    (target_id, needed_each, 'resource')
+                    for target_id, needed_each in requirements.items()
+                ]):
+                    await self.send("Nie udało się pobrać wymaganych próbek rudy.")
+                    return
 
             elif q["kind"] == "profession_action":
                 progress = min(int(row["progress"]), int(q.get("needed", 1)))
@@ -520,12 +559,11 @@ class SessionQuestTurninMixin:
                     )
                     return
 
-                for item_id in targets:
-                    if not self.consume_quest_crafted_items_v0333(item_id, 1):
-                        await self.send(
-                            "Nie udało się pobrać elementu zestawu do oddania questa."
-                        )
-                        return
+                if not self.consume_quest_items_batch_v10800([
+                    (item_id, 1, 'crafted') for item_id in targets
+                ]):
+                    await self.send("Nie udało się pobrać elementu zestawu do oddania questa.")
+                    return
 
             elif q["kind"] in ("deliver_npc", "talk_npc", "talk_class_teacher"):
                 progress = int(row["progress"])
@@ -567,13 +605,11 @@ class SessionQuestTurninMixin:
                         + "."
                     )
                     return
-                for iid in distinct_ids:
-                    ok = self.server.db.consume_items_across_storage_and_inventory(
-                        self.account_id, self.resource_quest_equivalent_ids(iid), 1, container
-                    )
-                    if not ok:
-                        await self.send("Nie udało się pobrać wymaganych ryb.")
-                        return
+                if not self.consume_quest_items_batch_v10800([
+                    (iid, 1, 'resource', container) for iid in distinct_ids
+                ]):
+                    await self.send("Nie udało się pobrać wymaganych ryb.")
+                    return
 
             elif q["kind"] == "collect_category":
                 category = self.quest_collect_category_info(q["target"])
@@ -600,11 +636,9 @@ class SessionQuestTurninMixin:
                     )
                     return
 
-                ok = (
-                    self.server.db.consume_items_across_storage_and_inventory(
-                        self.account_id, ids, q["needed"], container
-                    )
-                )
+                ok = self.consume_quest_items_batch_v10800([
+                    (ids, q["needed"], 'resource_ids', container)
+                ])
                 if not ok:
                     await self.send(
                         "Nie udało się pobrać wymaganych surowców."

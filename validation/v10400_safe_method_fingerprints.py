@@ -3,6 +3,7 @@
 import ast
 import hashlib
 from pathlib import Path
+from validation.v4200_modularization import expected_moved_ast_digest_v4200
 
 
 def run():
@@ -19,14 +20,10 @@ def run():
         if len(found)!=1:
             raise AssertionError('Brak metody: '+name)
         sha=hashlib.sha256(ast.dump(found[0],include_attributes=False).encode()).hexdigest()
-        expected_hash=old_hash
-        if version=='105.00.0' and name=='SessionSkillLearningMixin.unlock':
-            if old_hash!='2f5f91c5f263654fb766bb5069f8bcaa3d5bc515141c76c069dea47ab21cf79f':
-                raise AssertionError('Historyczny fingerprint v104 został zmieniony.')
-            expected_hash='80745099978a7ea9f75d17eb50370ccbb1ec59f751d677681d4b70935b12d18a'
-            body=ast.unparse(found[0])
-            if not all(t in body for t in ('multi', 'SOUL_TRIAL_QUEST_IDS', '% 10 == 0', 'save_character')):
-                raise AssertionError('Brak weryfikacji Prób i zapisu Soul Tier v105.')
+        # Same audited version-aware AST fingerprints as the v4.20 runtime
+        # binder. v105/v106/v107 make specific, explicitly pinned changes;
+        # new code must never be blessed by simply ignoring the fingerprint.
+        expected_hash=expected_moved_ast_digest_v4200(root,name,old_hash,found[0])
         if sha!=expected_hash:
             raise AssertionError('Zmiana metody bez aktualizacji audytu: '+name)
         hosttext=(root/host).read_text('utf-8')

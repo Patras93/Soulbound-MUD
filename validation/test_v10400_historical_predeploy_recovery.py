@@ -32,7 +32,7 @@ class HistoricalPredeployRecovery(unittest.TestCase):
         # cannot quietly fall back to the v104-only whitelist.
         version = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
         required = ('nonblocking_legacy_audits = accepted_legacy_reports(ns, version=server.VERSION)'
-                    if version.startswith('105.') else
+                    if tuple(int(x) for x in version.split('.')) >= (105,0,0) else
                     'nonblocking_legacy_audits = accepted_legacy_reports(ns)')
         self.assertIn(required, full)
         self.assertIn('if audit_failures:', full)

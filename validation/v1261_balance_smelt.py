@@ -5,6 +5,8 @@ import asyncio
 import math
 from pathlib import Path
 from types import SimpleNamespace
+from data.rooms import ROOMS
+from systems.v106_combat_encounter_level import effective_encounter_level_v106
 from systems.adaptive_combat import adaptive_target_max_hp_v11330, adaptive_reward_multiplier_v11330, adaptive_combat_rank_v11330
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +31,7 @@ def audit_v1261():
     templates = {'v1261_goblin': {'max_hp': 1000, 'rank': 'normal'}, 'v1261_boss': {'max_hp': 10000, 'rank': 'boss'}}
     Combat = _mixin('player/session_mixins/combat_damage.py', 'SessionCombatDamageMixin', {
         'math': math, 'MOB_TEMPLATES': templates,
+        'ROOMS': ROOMS, 'effective_encounter_level_v106': effective_encounter_level_v106,
         'adaptive_target_max_hp_v11330': adaptive_target_max_hp_v11330,
         'adaptive_reward_multiplier_v11330': adaptive_reward_multiplier_v11330,
         'adaptive_combat_rank_v11330': adaptive_combat_rank_v11330,

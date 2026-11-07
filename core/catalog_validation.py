@@ -1,8 +1,10 @@
 """Read-only catalogue validation; runtime content is never generated here."""
 from __future__ import annotations
 from collections import Counter
+import os
 from core.balance_math import MAX_LEVEL, BALANCE_MATH_VERSION
 from core.class_skills_v10400 import is_authored_endgame_unlock_v104
+from core.class_skills_v10600 import is_authored_unlock_v106
 
 
 def validate_catalog(ns: dict) -> dict:
@@ -25,7 +27,9 @@ def validate_catalog(ns: dict) -> dict:
                 unlock = int(row.get("unlock", 0) or 0)
             except (TypeError, ValueError, OverflowError):
                 unlock = 0
-            if not (1 <= unlock <= MAX_LEVEL or is_authored_endgame_unlock_v104(row, class_name)):
+            if not (1 <= unlock <= MAX_LEVEL or is_authored_endgame_unlock_v104(row, class_name)
+                    or (os.environ.get('SOULBOUND_V106_STAGING') == '1'
+                        and is_authored_unlock_v106(row, class_name))):
                 errors.append(f"Skill level outside 1-{MAX_LEVEL}: {ident}")
     report = {
         "mobs": len(mobs), "items": len(items), "quests": len(quests),

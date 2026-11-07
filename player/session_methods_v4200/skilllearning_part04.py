@@ -140,6 +140,13 @@ async def enemy_counterattack(self, mob):
                 "full",
             )
 
+        # Raid v106 (staging): 1–6 rzeczywistych graczy. Jedno AoE bossa
+        # trafia kazdego czlonka druzyny, dlatego pojedynczy cios podlega
+        # kontrolowanemu budzetowi max HP. Tylko dobrze wyszkolone postaci:
+        # slabsze nadal odczuwaja historyczna presje poziomu.
+        from systems.v106_raid_six_survival import cap_raid_incoming_v106
+        incoming = cap_raid_incoming_v106(self, mob, template, incoming)
+
         # V-MAX package effects are source-backed statuses. Do not apply
         # invented Protect/Shell percentages or Regen amounts here.
         self._last_death_cause_v11341 = {

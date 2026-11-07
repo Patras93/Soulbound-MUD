@@ -11,6 +11,9 @@ from predeploy_nowej_wersji import (ROOT,STATE,sha256,inspect_zip,
 
 
 def main():
+    # Old unconditional block on a bundled v106 test module prevented even a
+    # verified, newer release from upgrading. Keep all checks below: 60/60,
+    # exact ZIP SHA256, target newer than installed and manual confirmation.
     try:
         if not STATE.is_file():
             raise ValueError('Nie ma zatwierdzonego PREDEPLOY. Najpierw uruchom PREDEPLOY_NOWEJ_WERSJI.bat.')
@@ -22,6 +25,9 @@ def main():
         if not z.is_file() or sha256(z)!=s.get('sha256'):
             raise ValueError('ZIP zostal zmieniony po predeploy. Wykonaj test ponownie.')
         ver,_=inspect_zip(z)
+        if version_tuple(ver) >= (108, 0, 0):
+            raise ValueError('v108: nie ma autoryzowanej migracji LIVE ani '
+                             'dodatkowych bramek PREDEPLOY. Nie zatrzymano serwera.')
         current=installed_version()
         if ver!=s.get('version') or version_tuple(ver)<=version_tuple(current):
             raise ValueError(f'Wersja kandydata v{ver} nie jest nowsza niz produkcyjna v{current}.')

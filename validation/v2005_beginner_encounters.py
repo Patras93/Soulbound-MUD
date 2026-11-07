@@ -5,6 +5,7 @@ from pathlib import Path
 import ast
 
 from data.mobs import MOB_TEMPLATES
+from systems.v106_combat_encounter_level import effective_encounter_level_v106
 from systems.adaptive_combat import (
     adaptive_beginner_incoming_target_v2005,
     adaptive_target_incoming_fraction_v11330,
@@ -35,6 +36,7 @@ def _combat_damage_methods():
     context = {
         "MOB_TEMPLATES": MOB_TEMPLATES,
         "ROOMS": {},
+        "effective_encounter_level_v106": effective_encounter_level_v106,
         "adaptive_beginner_incoming_target_v2005": adaptive_beginner_incoming_target_v2005,
         "adaptive_target_incoming_fraction_v11330": adaptive_target_incoming_fraction_v11330,
         "adaptive_target_max_hp_v11330": adaptive_target_max_hp_v11330,

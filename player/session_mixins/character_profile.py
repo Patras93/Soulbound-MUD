@@ -413,7 +413,14 @@ class SessionCharacterProfileMixin:
             next_title = soul_tier_title_for_class(next_tier, c.class_name)
             needed = SOUL_TIER_THRESHOLDS[next_tier - 1]
             if c.soul_level < needed:
-                return f"Następny cel: Soul {needed} dla Tieru {next_tier} — {next_title}."
+                goal = f"Następny cel: Soul {needed} dla Tieru {next_tier} — {next_title}."
+                import os as _v106_os
+                if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+                    from systems.soul_tier_goal_v10600 import current_warning
+                    warning = current_warning(c, SOUL_TIER_THRESHOLDS)
+                    if warning:
+                        return goal + ' ' + warning
+                return goal
 
             quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
             if quest_id and next_tier % 10 == 0:

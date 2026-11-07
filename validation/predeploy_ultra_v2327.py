@@ -213,6 +213,7 @@ def case_twenty_tcp():
                 env.pop(key,None)
         env.update(SOULBOUND_DB=str(root/'stress.db'), SOULBOUND_HOST='127.0.0.1',
             SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='5',
+            SOULBOUND_V108_PREDEPLOY=os.environ.get('SOULBOUND_V108_PREDEPLOY',''),
             SOULBOUND_WORLD_SEED_FILE=str(root/'stress.seed'),
             PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1',PYTHONUTF8='1')
         flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=='nt' else 0

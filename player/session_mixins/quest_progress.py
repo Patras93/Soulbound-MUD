@@ -513,7 +513,8 @@ class SessionQuestProgressMixin:
             ids = self.quest_crafted_equivalent_ids_v0333(base_id)
             container = self.quest_collect_storage_container_v03310(base_id)
             return bool(self.server.db.consume_items_across_storage_and_inventory(
-                self.account_id, ids, max(0, int(quantity)), container
+                self.account_id, ids, max(0, int(quantity)), container,
+                purpose='quest_turnin'
             ))
 
     def recover_broken_collect_progress_v03310(self, quest_id):
@@ -630,27 +631,35 @@ class SessionQuestProgressMixin:
 
     def quest_ids_for_npc(self, npc_id, npc):
             """Zwraca stabilną, numerowaną ofertę questów jednego NPC."""
+            # v106: jedna zasada dla v105, starszych NPC, Elora i skrótów
+            # `przyjmij N`: ukończone questy jednorazowe nie dostają numeru.
+            from systems.quest_visibility_v10600 import filter_quest_offers_v10600
+
+            def visible(ids):
+                return filter_quest_offers_v10600(
+                    ids, QUESTS, self.server.db, self.account_id
+                )
             # v105: the 50 authored quests per region must all be browseable.
             # Do not let the legacy v103 "one next stage per chain" filter
             # hide late hunts / boss contracts / profession chapters. The
             # regular quest_offer_state and quest_lock_reasons still enforce
             # prerequisites at acceptance. NPC pagination is handled by
             # show_npc_quest_offers (10 entries per NVDA page).
-            if str(npc_id).startswith('v10500_'):
-                return list(dict.fromkeys(
+            if str(npc_id).startswith(('v10500_', 'v10600_')):
+                return visible(list(dict.fromkeys(
                     qid for qid in tuple(npc.get('specialist_quests') or ())
                     if qid in QUESTS
-                ))
+                )))
             # v103 Era Bez Granic: równoległe szeregi fabularne, klasowe,
             # profesyjne i rajdowe. Nie używaj starego v700 "jedna długa
             # lista liniowa", bo blokuje rajd za questami cudzej klasy.
             if npc.get('v10300_era_npc'):
                 from systems.era_npc_offers_v10300 import visible_era_quests
-                return visible_era_quests(
+                return visible(visible_era_quests(
                     npc.get('specialist_quests') or (), QUESTS,
                     lambda qid: self.server.db.quest(self.account_id, qid),
                     self.active_class_names(),
-                )
+                ))
             # NVDA: a new mentor offers only the current unfinished stage, not
             # 120 long lines. "przyjmij 1" always selects this stage.
             if npc.get('v601_profession_master') or npc.get('v700_story_npc') or npc.get('v800_class_mentor') or npc.get('v1112_teacher_quests'):
@@ -662,7 +671,7 @@ class SessionQuestProgressMixin:
                 for qid in chain:
                     row=self.server.db.quest(self.account_id,qid)
                     if row and row['status']=='active':
-                        return [qid]
+                        return visible([qid])
                     if not row or row['status']!='completed':
                         # v7.10: the next chronicle mentor must not display a
                         # locked chapter before the previous chapter is done.
@@ -673,7 +682,7 @@ class SessionQuestProgressMixin:
                                 previous=self.server.db.quest(self.account_id,requires)
                                 if not previous or previous['status']!='completed':
                                     return []
-                        return [qid]
+                        return visible([qid])
                 return []
             result = []
 
@@ -728,4 +737,4 @@ class SessionQuestProgressMixin:
                 trials=[qid for qid in trials if int(QUESTS[qid].get('unlocks_soul_tier',0) or 0)%10==0
                         and int(QUESTS[qid].get('unlocks_soul_tier',0) or 0)>tier_now][:10]
                 result=regular+trials
-            return result
+            return visible(result)

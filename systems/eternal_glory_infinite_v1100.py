@@ -148,6 +148,10 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
 
     async def portal(self,raw,key):
         title,anchor,_,_=ENDLESS[key]
+        if (getattr(self, 'current_hp', 1) <= 0 or
+                getattr(self, 'is_downed_v0371', lambda: False)()):
+            await self.send('Martwa lub powalona postać nie może korzystać z portalu.')
+            return
         origin=str(self.character.room_id)
         current=identity(origin)
         current_n=current[1] if current and current[0]==key else None
@@ -164,8 +168,9 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
             await self.send('Nie możesz użyć portalu podczas walki.')
             return
         if value in ('wyjdz','wyjdź','exit','out','wyjscie','wyjście'):
-            if current_n is None or current_n%10:
-                await self.send('Wyjście przez portal jest dostępne na checkpointcie co dziesięć pięter.')
+            if (current_n != 1 and (current_n is None or current_n%10 or
+                    str(current_n) not in allowed)):
+                await self.send('Wyjście przez portal działa z pierwszego piętra lub odblokowanego checkpointu co dziesięć pięter.')
                 return
             goal=gate_id(key);label='bramy'
         else:
@@ -177,8 +182,8 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
             if target%10 or target<10 or str(target) not in allowed:
                 await self.send(f'Checkpoint {target} nie jest odblokowany. Każde dziesiąte piętro.')
                 return
-            if origin!=gate_id(key) and (current_n is None or current_n%10):
-                await self.send('Przejście działa z bramy lub odblokowanego checkpointu.')
+            if origin!=gate_id(key) and (current_n is None or (current_n != 1 and current_n%10)):
+                await self.send('Przejście działa z bramy, pierwszego piętra lub odblokowanego checkpointu.')
                 return
             goal=floor_id(key,target);label=f'piętra {target}'
             self.server.world.ensure_infinite_dungeon_floor(goal)
@@ -205,13 +210,50 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
 
     old_crypt=Session.use_crypt_portal
     old_astral=Session.use_astral_portal
+    old_origin=Session.checkpoint_portal_origin_v2010
+    from systems.dungeons_regions import (
+        ASTRAL_MIN_FLOOR, astral_floor_number, mythic_astral_floor_number,
+    )
+
+    def tower_first_floor(origin):
+        # Normal Astral Tower starts at floor 100; Mythic Tower starts at 1.
+        # Subrooms on their first floor are covered by the floor parsers.
+        return (astral_floor_number(origin) == ASTRAL_MIN_FLOOR or
+                mythic_astral_floor_number(origin) == 1)
+
+    def tower_checkpoint_origin(self, *, room_id, gate_rooms, kind,
+                                current_floor, is_checkpoint):
+        if kind == 'astral' and (current_floor == ASTRAL_MIN_FLOOR and
+                                 astral_floor_number(room_id) == ASTRAL_MIN_FLOOR):
+            return True
+        if kind == 'mythic_astral' and (current_floor == 1 and
+                                        mythic_astral_floor_number(room_id) == 1):
+            return True
+        return old_origin(self, room_id=room_id, gate_rooms=gate_rooms,
+                          kind=kind, current_floor=current_floor,
+                          is_checkpoint=is_checkpoint)
+    Session.checkpoint_portal_origin_v2010=tower_checkpoint_origin
+
     async def crypt(self,raw):
+        # 'portal' is the user's universal portal command. Keep crypts,
+        # catacombs and Chaos unchanged, but also support both Astral Towers
+        # and the newer Endless Tower of Falling Stars.
         origin=str(self.character.room_id)
         key=rooms.get(origin,{}).get('v1100_infinite_gate')
         pair=identity(origin)
         if pair:key=pair[0]
-        if key in ('krypta','chaos'):
+        if key in ('krypta','chaos','wieza'):
             return await portal(self,raw,key)
+        # The universal 'portal' must show the tower's own checkpoint list
+        # on floor one, even if that floor is also a cleared boss checkpoint.
+        # The old 'astralportal' command retains its original semantics.
+        if origin in ('astral_gate','mythic_astral_gate') or (
+                astral_floor_number(origin) is not None or
+                mythic_astral_floor_number(origin) is not None):
+            value=self.normalize_room_query(raw)
+            if not value and tower_first_floor(origin):
+                return await old_astral(self,'lista')
+            return await old_astral(self,raw)
         return await old_crypt(self,raw)
     async def astral(self,raw):
         origin=str(self.character.room_id)
@@ -235,7 +277,7 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
         'Nowe nieskończone lochy: Krypta Wiecznych Przysiąg, Wieża Spadających Gwiazd i Wymiar Chaosu.',
         'Wejścia odnajdziesz na końcu podziemi Bogów, Meteorów i Mroku.',
         'Piętra generowane są bez końcowego limitu. Boss co 10 pięter. Zero pułapek i automatycznych EP za zwykłe piętra.',
-        'Checkpoint zapisuje się osobno dla postaci co 10 pięter. Z bramy i checkpointu: portal 10/20/30 lub astralportal w wieży.',
+        'Checkpoint zapisuje się osobno dla postaci co 10 pięter. Z bramy, pierwszego piętra i checkpointu: portal 10/20/30; w Wieży Spadających Gwiazd działa też astralportal.',
         'Lider może przenieść tylko członków drużyny, którzy mają własny checkpoint odblokowany.',
     ]
     aliases['nieskonczone11']='nieskonczone11'

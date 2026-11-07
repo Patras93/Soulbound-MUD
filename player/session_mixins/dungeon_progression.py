@@ -305,6 +305,97 @@ class SessionDungeonProgressionMixin:
         """Compatibility method; rebound to the original implementation."""
         raise RuntimeError("Unbound Soulbound method use_catacomb_portal_v2010")
 
+    async def use_giant_fortress_portal_v10800(self, raw=""):
+            """v108: Fortress checkpoints after personal boss kills; leader and party safe."""
+            from systems.dungeons_regions import (giant_fortress_floor_id,
+                is_giant_fortress_boss_floor)
+            from core.classes_skills import ROOMS
+            room = str(self.character.room_id)
+            level = giant_fortress_floor_number(room)
+            value = self.normalize_room_query(raw).strip()
+            if room != "giant_fortress_gate" and level is None:
+                await self.send("Portal Twierdzy działa przy bramie lub zaliczonym bossie co 10 pięter.")
+                return
+            if self.combat_mob_key or self.moving or self.guiding or getattr(self, 'current_hp', 0) <= 0 or self.is_downed_v0371():
+                await self.send("Portal Twierdzy: najpierw zakończ walkę, ruch lub odrodź postać.")
+                return
+            if self.portal_requires_local_leader_v12811():
+                await self.send("Portal Twierdzy: w drużynie przejście uruchamia obecny lider.")
+                return
+            floors = self.checkpoint_portal_floors_v11331('giant')
+            if value in ('', 'lista', 'list', 'status'):
+                await self.show_checkpoint_portal_status_v11331(kind='giant', label='Portal Twierdzy Gigantów', start_floor=10)
+                await self.send("Komendy: portal 10, portal 20 lub gigantportal 10; portal wyjdz.")
+                return
+            returning = value in ('wyjdz', 'wyjdź', 'wyjscie', 'wyjście', 'out', 'exit')
+            if returning:
+                if level is None:
+                    await self.send("Stoisz już przed Twierdzą Gigantów.")
+                    return
+                if not is_giant_fortress_boss_floor(level) or level not in floors:
+                    await self.send("Portal wyjścia działa tylko przy osobiście zaliczonym bossie co 10 pięter.")
+                    return
+                target_floor = int(level)
+            else:
+                if not value.isdecimal():
+                    await self.send("Użycie: portal 10, portal 20 albo portal wyjdz.")
+                    return
+                target_floor = int(value)
+                if not is_giant_fortress_boss_floor(target_floor):
+                    await self.send("Portal Twierdzy: checkpointy są co 10 pięter.")
+                    return
+                if target_floor not in floors:
+                    await self.send(f"Portal {target_floor} jest zablokowany; najpierw osobiście pokonaj bossa tego piętra.")
+                    return
+                if level is not None and (not is_giant_fortress_boss_floor(level) or level not in floors):
+                    await self.send("Przejście działa przy bramie lub zaliczonym checkpointcie.")
+                    return
+            party_key = self.party_key()
+            candidates = (list(self.server.party_sessions(self.account_id, same_room=room))
+                          if party_key == self.account_id else [self])
+            if self not in candidates:
+                candidates.append(self)
+            target = 'giant_fortress_gate' if returning else giant_fortress_floor_id(target_floor)
+            self.server.world.ensure_runtime_room(target)
+            moved = []
+            skipped = []
+            for member in candidates:
+                if not member or not getattr(member, 'character', None):
+                    continue
+                # Recheck after the async status/stop operations: a party
+                # snapshot must never teleport somebody from another room.
+                if member.character.room_id != room:
+                    skipped.append(f"{member.character.name}: nie jest przy portalu")
+                    continue
+                if (getattr(member, 'current_hp', 0) <= 0 or member.is_downed_v0371()
+                        or member.combat_mob_key or member.moving or member.guiding):
+                    skipped.append(f"{member.character.name}: zajęty, martwy lub powalony")
+                    continue
+                if not member.checkpoint_portal_unlocked_v11331('giant', target_floor):
+                    skipped.append(f"{member.character.name}: nie zaliczono bossa {target_floor}")
+                    continue
+                if member.resting or member.rest_task:
+                    await member.stop_rest(announce=False)
+                for flag, task, action in (
+                    ('auto_fishing', 'auto_fishing_task', member.stop_auto_fishing),
+                    ('auto_mining', 'auto_mining_task', member.stop_auto_mining),
+                    ('auto_woodcutting', 'auto_woodcutting_task', member.stop_auto_woodcutting),
+                    ('auto_herbalism', 'auto_herbalism_task', member.stop_auto_herbalism),
+                ):
+                    if getattr(member, flag, False) or getattr(member, task, None):
+                        await action(announce=False)
+                member.previous_room_id = member.character.room_id
+                member.character.room_id = target
+                member.server.db.save_character(member.character)
+                moved.append(member)
+            for member in moved:
+                await member.send(
+                    f"Portal Twierdzy Gigantów: {'powrót do bramy' if returning else 'checkpoint ' + str(target_floor)}."
+                )
+                await member.look()
+            if skipped:
+                await self.send("Portal: nie przeniesiono: " + "; ".join(skipped) + ".")
+
     def checkpoint_portal_floors_v11331(self, kind):
             floors = self.server.db.instance_checkpoint_floors(
                 self.account_id, kind

@@ -184,7 +184,9 @@ class SessionRuntimeStateMixin:
             return messages
 
     async def show_double_xp_event(self):
+            from systems.v10800_seasonal_events import overcap_event_state
             state = self.double_xp_state()
+            overcap_v108 = overcap_event_state()
             if state["active"]:
                 await self.send(
                     "EVENT x2 EXP AKTYWNY. Pozostało "
@@ -197,6 +199,14 @@ class SessionRuntimeStateMixin:
                     + self.format_duration_short(state["next_start_seconds"])
                     + ". Event trwa 15 minut i uruchamia się na początku każdej godziny."
                 )
+            if overcap_v108['active']:
+                await self.send('EVENT OVER CAP AKTYWNY. Pozostało '
+                                + self.format_duration_short(overcap_v108['remaining_seconds'])
+                                + '. Limit pojedynczej nagrody EXP x2; bez podwajania samego EXP.')
+            else:
+                await self.send('EVENT OVER CAP: następny start za '
+                                + self.format_duration_short(overcap_v108['next_start_seconds'])
+                                + '. Godziny :30–:45, po Double EXP.')
 
     async def handle_wimpy(self, raw=""):
             value = self.normalize_description_query(str(raw or "").strip())

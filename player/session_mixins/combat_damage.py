@@ -13,6 +13,7 @@ from core.player_math import (
     character_offensive_build_multiplier,
 )
 from systems.equipment_crafting import class_equipment_base_stat_pair
+from systems.v106_combat_encounter_level import effective_encounter_level_v106
 from systems.adaptive_combat import (
     adaptive_combat_rank_v11330,
     adaptive_reward_multiplier_v11330,
@@ -172,10 +173,21 @@ class SessionCombatDamageMixin:
                     return None
 
                 members = self.adaptive_party_members_v11330(mob)
-                party_dps = self.adaptive_party_dps_v1261(members)
+                from systems.v106_raid_combat_dps import (
+                    is_v106_raid_boss, raid_party_dps_cached_v106,
+                )
+                # One estimator per encounter. Previously the expensive legacy
+                # estimator ran for *every* party member before its answer was
+                # discarded for an Astral raid, every combat round.
+                if is_v106_raid_boss(mob, template, ROOMS.get(str(getattr(mob, "room_id", "")), {})):
+                    party_dps = raid_party_dps_cached_v106(mob, members, template)
+                else:
+                    party_dps = self.adaptive_party_dps_v1261(members)
                 base_max = max(1, int(template.get("max_hp", 1) or 1))
                 party_level = max(
-                    max(1, int(getattr(member.character, "character_level", 1) or 1))
+                    effective_encounter_level_v106(member.character, mob,
+                        MOB_TEMPLATES.get(mob.template_id, {}),
+                        ROOMS.get(str(getattr(mob, "room_id", "")), {}))
                     for member in members
                 )
                 target_max = adaptive_target_max_hp_v11330(
@@ -249,7 +261,8 @@ class SessionCombatDamageMixin:
                     float(self.max_hp())
                     * adaptive_target_incoming_fraction_v11330(
                         template, party_size,
-                        player_level=getattr(self.character, "character_level", 1),
+                        player_level=effective_encounter_level_v106(self.character, mob, template,
+                            ROOMS.get(str(getattr(mob, "room_id", "")), {})),
                         room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                     ),
                 )
@@ -259,7 +272,8 @@ class SessionCombatDamageMixin:
                 )
                 desired = adaptive_beginner_incoming_target_v2005(
                     template,
-                    getattr(self.character, "character_level", 1),
+                    effective_encounter_level_v106(self.character, mob, template,
+                            ROOMS.get(str(getattr(mob, "room_id", "")), {})),
                     base_expected,
                     desired,
                     room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),
@@ -546,10 +560,18 @@ class SessionCombatDamageMixin:
                 members = self.adaptive_party_members_v11330(mob)
                 party_size = max(1, len(members))
                 party_dps = self.adaptive_party_dps_v1261(members) if adaptive_active else 0.0
+                if adaptive_active:
+                    from systems.v106_raid_combat_dps import (
+                        is_v106_raid_boss, raid_party_dps_cached_v106,
+                    )
+                    if is_v106_raid_boss(mob, template, ROOMS.get(str(getattr(mob, "room_id", "")), {})):
+                        party_dps = raid_party_dps_cached_v106(mob, members, template)
 
                 base_max_hp = max(1, int(template.get("max_hp", 1) or 1))
                 party_level = max(
-                    max(1, int(getattr(member.character, "character_level", 1) or 1))
+                    effective_encounter_level_v106(member.character, mob,
+                        MOB_TEMPLATES.get(mob.template_id, {}),
+                        ROOMS.get(str(getattr(mob, "room_id", "")), {}))
                     for member in members
                 )
                 projected_max_hp = (adaptive_target_max_hp_v11330(
@@ -604,13 +626,15 @@ class SessionCombatDamageMixin:
                         float(self.max_hp())
                         * adaptive_target_incoming_fraction_v11330(
                             template, party_size,
-                            player_level=getattr(self.character, "character_level", 1),
+                            player_level=effective_encounter_level_v106(self.character, mob, template,
+                            ROOMS.get(str(getattr(mob, "room_id", "")), {})),
                             room=globals().get("ROOMS", {}).get(str(getattr(mob, "room_id", "")), {}),
                         ),
                     )
                     adaptive_floor = adaptive_beginner_incoming_target_v2005(
                         template,
-                        getattr(self.character, "character_level", 1),
+                        effective_encounter_level_v106(self.character, mob, template,
+                            ROOMS.get(str(getattr(mob, "room_id", "")), {})),
                         base_enemy_hit,
                         adaptive_floor,
                         room=ROOMS.get(str(getattr(mob, "room_id", "")), {}),

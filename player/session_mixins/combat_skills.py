@@ -1,3 +1,4 @@
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 # v4.20.0: bound, AST-identical method implementations (MRO unchanged)
 from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
 import player.session_methods_v4200.combatskills_part01 as _sb420_src_01
@@ -164,3 +165,9 @@ from functools import wraps as _olc19_wraps
 async def _olc19_status_cast(self, raw):
     return await _olc19_cast(self, raw, _OLC19_HISTORICAL_CAST)
 SessionCombatSkillsMixin.use_class_skill = _olc19_status_cast
+
+# v107 staging: a narrow adapter after the historical OLC cast wrapper.
+import os as _v107_magitek_env
+if _sb107_runtime_enabled():
+    from systems.magitek_runtime_v107 import install as _v107_magitek_install
+    _v107_magitek_install(SessionCombatSkillsMixin)

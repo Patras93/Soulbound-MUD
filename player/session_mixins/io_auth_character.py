@@ -1,5 +1,7 @@
 # v4.20.0: bound, AST-identical method implementations (MRO unchanged)
 from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
+# Metody v4.20 są rebindowane do globals() tego modułu, nie źródłowego.
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 import player.session_methods_v4200.ioauthcharacter_part01 as _sb420_src_01
 # SessionIOAuthCharacterMixin.set_encoding -> player/session_methods_v4200/ioauthcharacter_part01.py
 # SessionIOAuthCharacterMixin.history_buffer_category -> player/session_methods_v4200/ioauthcharacter_part01.py

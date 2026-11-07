@@ -14,8 +14,23 @@ from core.performance_v2002 import measure_async
 
 class MudServer:
     def __init__(self):
+        from pathlib import Path as _SBPath108
+        _ver108 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip() == '108.00.0'
+        # Runtime tests may use multiple *named* private SQLite fixtures. An
+        # arbitrary SOULBOUND_V108_PREDEPLOY flag can never start production.
+        from systems.v10800_predeploy_isolation import authorized_predeploy_test
+        _v108_predeploy = (_ver108 and authorized_predeploy_test(
+            _SBPath108(__file__).resolve().parents[1], DB_PATH))
+        if _ver108:
+            from systems.v10800_activation import production_approved as _v108_approved
+            if not _v108_approved() and not _v108_predeploy:
+                raise PermissionError('Soulbound v108: brak autoryzowanego PREDEPLOY, serwer nie uruchamia bazy')
         self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
+        # A real v108 server explicitly activates clock-driven Over Cap.
+        # Legacy test databases do not accidentally inherit today's event.
+        if _ver108:
+            self.db._v108_live_event_caps = True
         # v71: restore conservative character-creator profiles in place.
         from systems.admin_live_heritage_v7100 import restore as _restore_heritage_v7100
         _restore_heritage_v7100()
@@ -34,6 +49,28 @@ class MudServer:
         for _item_id in self.db.persisted_infinite_equipment_item_ids_v11330():
             if ensure_infinite_equipment_variant(_item_id):
                 self.infinite_equipment_restored_v11330 += 1
+        # v107 EQ: load/verify physical instances only AFTER all persisted
+        # dynamic equipment templates have been restored. Always before any
+        # TCP client or World() can read or change a player's equipment.
+        from pathlib import Path as _SBPath108
+        _running_version = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip()
+        # v108 scope freeze: NO EQ 2.0 migration, repair or v108 cutover.
+        # The already-active v107 equipment ledger is retained exactly as-is.
+        # For v108 production require the existing, verified v107 marker so
+        # that a missing physical ledger can NEVER silently trigger a migration.
+        if _running_version == '108.00.0' and not _v108_predeploy:
+            existing = self.db.conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='v107_eq_production_cutover'").fetchone()
+            if not existing:
+                raise PermissionError('v108: brak istniejącej migracji EQ v107; nie uruchamiam nowej')
+            from systems.v10700_live_equipment import activate_production_ledger
+            activate_production_ledger(self.db, ITEMS)
+        else:
+            from systems.v10700_activation import production_approved as _v107_production_approved
+            if _v107_production_approved():
+                from systems.v10700_live_equipment import activate_production_ledger
+                activate_production_ledger(self.db, ITEMS)
         # v1.25.0: deploy/restart must NOT collapse the mine or teleport miners.
         self.mine_startup_state = self.db.mine_startup_status()
         # v12.00.4: restore additive live rooms/mobs/exits BEFORE World() spawns.
@@ -526,12 +563,16 @@ class MudServer:
         if targets:
             await asyncio.gather(*(s.send(text, history_category=history_category) for s in targets))
 
-    async def broadcast_all(self, text, history_category=None):
-        targets = [s for s in tuple(self.sessions) if s.character and not s.closed]
+    async def broadcast_all(self, text, history_category=None, *, exclude=None):
+        # Pozwala pominąć nadawcę ogłoszenia (np. postać podczas wylogowania).
+        targets = [s for s in tuple(self.sessions)
+                   if s is not exclude and s.character and not s.closed]
         if targets:
             await asyncio.gather(*(s.send(text, history_category=history_category) for s in targets))
 
     async def double_xp_event_loop(self):
+        from systems.v10800_seasonal_events import overcap_event_state
+        last_active_overcap_v108 = overcap_event_state()['active']
         last_active = double_xp_event_state()["active"]
         last_world_slot_v12812 = None
         while True:
@@ -561,6 +602,15 @@ class MudServer:
                             f'WYDARZENIE ŚWIATA: {label}. Miejsce: {room.get("name",event.get("room_id","nieznane"))}. '
                             'Wydarzenie jest prawdziwą walką; solo i drużyny mogą wziąć udział.',
                             history_category='system')
+                # Independent Over Cap schedule, even while double EXP state is stable.
+                overcap_now = bool(overcap_event_state()['active'])
+                if overcap_now != last_active_overcap_v108:
+                    last_active_overcap_v108 = overcap_now
+                    await self.broadcast_all(
+                        'EVENT OVER CAP START. Przez 15 minut limit nagrody EXP x2; '
+                        'sam EXP nie jest podwajany.' if overcap_now else
+                        'EVENT OVER CAP ZAKOŃCZONY. Limity EXP wróciły do normy.',
+                        history_category='system')
                 active = bool(state["active"])
                 if active == last_active:
                     continue

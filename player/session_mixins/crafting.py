@@ -46,6 +46,15 @@ class SessionCraftingMixin:
             return storage + self.server.db.item_qty(self.account_id, item_id)
 
     def consume_recipe_item(self, item_id, quantity):
+            # v106: on a disposable staging database, the original v105 two-step
+            # withdrawal could commit storage before inventory failed. Keep all
+            # ordinary ingredients in one existing v104 SAVEPOINT instead.
+            from systems.equipment_crafting_guard_v10600 import active, take_one_kind
+            if active(self.server.db):
+                return take_one_kind(
+                    self.server.db, self.account_id, item_id, quantity,
+                    self.recipe_container_for_item(item_id),
+                )
             remaining = max(0, int(quantity))
             container = self.recipe_container_for_item(item_id)
 
@@ -447,6 +456,18 @@ class SessionCraftingMixin:
                     )
                 return False
 
+            # v106: a recipe referencing physical EQ needs its own per-copy
+            # selection and result transaction; do not use legacy consumption.
+            from systems.equipment_crafting_guard_v10600 import guard_recipe, active as _v106_active_check
+            try:
+                guard_recipe(self.server.db, recipe)
+                if _v106_active_check(self.server.db):
+                    from systems.equipment_craft_reward_journal_v10600 import assert_ready
+                    assert_ready(self.server.db,self.account_id)
+            except RuntimeError as exc:
+                await self.send(str(exc))
+                return False
+
             action_seconds = self.recipe_action_seconds(
                 tool_type, profession_level, recipe
             )
@@ -470,40 +491,60 @@ class SessionCraftingMixin:
                         self, '_perf_intentional_wait_v102009', 0.0
                     ) + (__import__('time').perf_counter() - _wait_start_v102009)
 
-            for item_id, quantity in recipe["ingredients"].items():
-                if not self.consume_recipe_item(item_id, quantity):
-                    await self.send(
-                        "Nie udało się pobrać składników. Receptura przerwana."
+            # v106: reserve the COMPLETE recipe before mutation, including
+            # direct, distinct and pooled ingredients which may share IDs.
+            # The final quality output and all materials commit in one SAVEPOINT.
+            from systems.equipment_crafting_guard_v10600 import active as _v106_craft_active
+            _v106_recipe_staging = _v106_craft_active(self.server.db)
+            _v106_ingredient_plan = None
+            if _v106_recipe_staging:
+                from systems.equipment_crafting_recipe_v10600 import plan_recipe_ingredients
+                try:
+                    _v106_ingredient_plan = plan_recipe_ingredients(
+                        self.server.db, self.account_id, recipe,
+                        self.recipe_container_for_item,
                     )
+                except (RuntimeError, ValueError, OverflowError) as exc:
+                    await self.send(str(exc))
                     return False
-
-            if distinct_pool and distinct_needed:
-                distinct_choices = self.recipe_distinct_ingredient_choices(recipe)
-                if len(distinct_choices) < distinct_needed:
-                    await self.send(
-                        "Nie masz już wymaganych różnych składników. Receptura przerwana."
-                    )
+                if _v106_ingredient_plan is None:
+                    await self.send("Stan składników zmienił się. Receptura przerwana; nic nie pobrano.")
                     return False
-                for item_id in distinct_choices[:distinct_needed]:
-                    if not self.consume_recipe_item(item_id, 1):
+            else:
+                for item_id, quantity in recipe["ingredients"].items():
+                    if not self.consume_recipe_item(item_id, quantity):
                         await self.send(
-                            "Nie udało się pobrać różnych składników. Receptura przerwana."
+                            "Nie udało się pobrać składników. Receptura przerwana."
                         )
                         return False
 
-            if pooled_pool and pooled_needed:
-                pooled_choices = self.recipe_pooled_ingredient_choices(recipe)
-                if len(pooled_choices) < pooled_needed:
-                    await self.send(
-                        "Nie masz już wymaganej liczby składników z puli. Receptura przerwana."
-                    )
-                    return False
-                for item_id in pooled_choices[:pooled_needed]:
-                    if not self.consume_recipe_item(item_id, 1):
+                if distinct_pool and distinct_needed:
+                    distinct_choices = self.recipe_distinct_ingredient_choices(recipe)
+                    if len(distinct_choices) < distinct_needed:
                         await self.send(
-                            "Nie udało się pobrać składników z puli. Receptura przerwana."
+                            "Nie masz już wymaganych różnych składników. Receptura przerwana."
                         )
                         return False
+                    for item_id in distinct_choices[:distinct_needed]:
+                        if not self.consume_recipe_item(item_id, 1):
+                            await self.send(
+                                "Nie udało się pobrać różnych składników. Receptura przerwana."
+                            )
+                            return False
+
+                if pooled_pool and pooled_needed:
+                    pooled_choices = self.recipe_pooled_ingredient_choices(recipe)
+                    if len(pooled_choices) < pooled_needed:
+                        await self.send(
+                            "Nie masz już wymaganej liczby składników z puli. Receptura przerwana."
+                        )
+                        return False
+                    for item_id in pooled_choices[:pooled_needed]:
+                        if not self.consume_recipe_item(item_id, 1):
+                            await self.send(
+                                "Nie udało się pobrać składników z puli. Receptura przerwana."
+                            )
+                            return False
 
             output_id = recipe["output"]
             quantity = int(recipe.get("quantity", 1))
@@ -575,9 +616,54 @@ class SessionCraftingMixin:
             from systems.live_olc35_finale import city_craft_bonus
             _guild35=self.guild_row_v0926()
             total_quantity = city_craft_bonus(self.server.db.conn, int(_guild35['clan_id']) if _guild35 else None, total_quantity)
-            self.server.db.add_item(
-                self.account_id, crafted_output_id, total_quantity
-            )
+            _v106_run_id = None
+            if _v106_recipe_staging:
+                # Every physical output has a durable, initially pending
+                # post-commit award journal. The XP/quest/achievement APIs are
+                # not yet atomic with crafting. Never auto-replay uncertain XP.
+                import uuid as _v106_uuid
+                _v106_run_id = _v106_uuid.uuid4().hex
+                # Exactly ONE main-output transaction after quality, critical,
+                # tier and city yield are known.  Never grant XP on failure.
+                _v106_amounts, _v106_containers = _v106_ingredient_plan
+                from systems.equipment_crafting_rewards_v10600 import (
+                    preview_resources as _v106_preview_resources,
+                    publish_success as _v106_publish_success,
+                )
+                _v106_rewards_preview = _v106_preview_resources(self, recipe_id)
+                try:
+                    from systems.equipment_crafting_recipe_v10600 import register_crafted_equipment_variant
+                    register_crafted_equipment_variant(
+                        self.server.db, output_id, crafted_output_id, ITEMS,
+                    )
+                    _v106_crafted = self.server.db.craft_item_atomic_v106(
+                        self.account_id, _v106_amounts,
+                        crafted_output_id, total_quantity,
+                        containers=_v106_containers,
+                        extra_outputs=_v106_rewards_preview[0],
+                        success_accounting={
+                            'profession':profession,'category':mastery_category,
+                            'critical':bool(critical_affix),
+                            'legendary':quality_key=='legendary',
+                            'crafted_items':total_quantity,
+                        },
+                        reward_journal={
+                            'run_id':_v106_run_id,
+                            'recipe_id':str(recipe_id),
+                            'base_item_id':str(output_id),
+                        },
+                    )
+                except (RuntimeError, ValueError, OverflowError, __import__('sqlite3').DatabaseError) as exc:
+                    await self.send(f"Rzemiosło przerwane bez zużycia materiałów: {exc}")
+                    return False
+                if not _v106_crafted:
+                    await self.send("Brakuje składników. Rzemiosło przerwane bez strat.")
+                    return False
+                _v106_publish_success(self, _v106_rewards_preview)
+            else:
+                self.server.db.add_item(
+                    self.account_id, crafted_output_id, total_quantity
+                )
             if ITEMS.get(crafted_output_id, {}).get('infinite_depth_source') == 'forge':
                 crafted_v55 = ITEMS[crafted_output_id]
                 await self.send(
@@ -587,17 +673,23 @@ class SessionCraftingMixin:
                 )
             # OLC33: award a configured material only after a successful craft.
             from systems.live_olc33_mechanics import craft_byproduct
-            _byproduct33 = craft_byproduct(self,recipe_id)
+            if _v106_recipe_staging:
+                _byproduct33 = _v106_rewards_preview[3]
+            else:
+                _byproduct33 = craft_byproduct(self,recipe_id)
             if _byproduct33:
-                self.server.db.add_item(self.account_id,_byproduct33[0],_byproduct33[1])
+                if not _v106_recipe_staging:
+                    self.server.db.add_item(self.account_id,_byproduct33[0],_byproduct33[1])
                 await self.record_item_collection(
                     _byproduct33[0],source='Produkt uboczny rzemiosła',
                     announce=True,amount=_byproduct33[1])
             # OLC34: an additional, independently authored exploration material.
             from systems.live_olc34_integration import profession_find
-            _material34=profession_find(self,recipe_id)
+            _material34 = (_v106_rewards_preview[4] if _v106_recipe_staging
+                           else profession_find(self,recipe_id))
             if _material34:
-                self.server.db.add_item(self.account_id,_material34[0],_material34[1])
+                if not _v106_recipe_staging:
+                    self.server.db.add_item(self.account_id,_material34[0],_material34[1])
                 await self.record_item_collection(
                     _material34[0],source='Odkrycie rzemieslnicze',
                     announce=True,amount=_material34[1])
@@ -607,11 +699,22 @@ class SessionCraftingMixin:
                 output_id, source="Rzemiosło", announce=True,
                 record_history=False, amount=total_quantity
             )
-            mastery_after_row = self.server.db.add_crafting_mastery_action_v03054(
-                self.account_id, profession, mastery_category,
-                critical=bool(critical_affix),
-                legendary=(quality_key == "legendary"),
-            )
+            if _v106_recipe_staging:
+                # Accounted atomically alongside the physical output; do not
+                # increment a second time. Read the actual committed SQL row.
+                mastery_after_row = self.server.db.conn.execute(
+                    "SELECT * FROM crafting_mastery_v03054 "
+                    "WHERE account_id=? AND profession=? AND category=?",
+                    (self.account_id,profession,mastery_category),
+                ).fetchone()
+                if mastery_after_row is None:
+                    raise RuntimeError('v106: brak zatwierdzonego mistrzostwa craftingu')
+            else:
+                mastery_after_row = self.server.db.add_crafting_mastery_action_v03054(
+                    self.account_id, profession, mastery_category,
+                    critical=bool(critical_affix),
+                    legendary=(quality_key == "legendary"),
+                )
             mastery_after = crafting_mastery_level_v03054(mastery_after_row["actions"])
             if quality_key == "legendary" and hasattr(self.server.db, 'add_server_chronicle_event_v03811'):
                 self.server.db.add_server_chronicle_event_v03811(
@@ -621,9 +724,14 @@ class SessionCraftingMixin:
                     account_id=self.account_id, actor_name=self.character.name,
                     subject_id=output_id, subject_name=ITEMS.get(output_id,{}).get('name',output_id),
                     importance=3, event_key=f'legendary:craft:{self.account_id}:{output_id}')
-            self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
-            self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_quantity)
-            self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
+            if not _v106_recipe_staging:
+                self.server.db.add_lifetime_stat(self.account_id, "craft_actions", 1)
+                self.server.db.add_lifetime_stat(self.account_id, "crafted_items", total_quantity)
+                self.server.db.add_lifetime_stat(self.account_id, "profession_actions", 1)
+
+            if _v106_run_id:
+                from systems.equipment_craft_reward_journal_v10600 import checkpoint as _v106_checkpoint
+                _v106_checkpoint(self.server.db,self.account_id,_v106_run_id,'collections')
 
             destination = (
                 "Szkatułki Rzemieślniczej"
@@ -721,7 +829,11 @@ class SessionCraftingMixin:
             # v1.12.0: każde udane wykonanie receptury liczy jeden craft do
             # aktywnego godzinnego zadania klasowego. Bonusowa ilość produktu
             # nie daje dodatkowych punktów, żeby Tier narzędzia nie skracał celu.
+            if _v106_run_id:
+                _v106_checkpoint(self.server.db,self.account_id,_v106_run_id,'quest')
             await self.advance_class_guild_quest_v11132("craft", 1)
+            if _v106_run_id:
+                _v106_checkpoint(self.server.db,self.account_id,_v106_run_id,'guild')
 
             # v1.13.58: legacy recipes without authored XP no longer fall
             # back to the same ~8-15 XP regardless of difficulty.  Use the
@@ -766,7 +878,11 @@ class SessionCraftingMixin:
             for message in messages:
                 await self.send(message)
 
+            if _v106_run_id:
+                _v106_checkpoint(self.server.db,self.account_id,_v106_run_id,'xp')
             await self.sync_extended_achievements()
+            if _v106_run_id:
+                _v106_checkpoint(self.server.db,self.account_id,_v106_run_id,'complete')
             if new_tool_level != old_tool_level:
                 await self.send(
                     f"{tool_name} ma teraz poziom {new_tool_level}, "

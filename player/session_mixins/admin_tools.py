@@ -5,6 +5,7 @@ from core.bootstrap_economy_professions import ADMIN_ACCOUNT_NAMES
 import os
 import time
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from datetime import datetime, timezone
 from data.npcs import NPCS
@@ -1643,7 +1644,7 @@ class SessionAdminToolsMixin:
             folder.mkdir(parents=True,exist_ok=True,mode=0o700)
             stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
             destination = folder / ("soulbound_backup_" + stamp + ".db")
-            with sqlite3.connect(str(destination)) as backup_db:
+            with closing(sqlite3.connect(str(destination))) as backup_db, backup_db:
                 # Consistent SQLite online backup; works with WAL mode.
                 db.conn.backup(backup_db)
                 result = backup_db.execute("PRAGMA quick_check").fetchone()[0]

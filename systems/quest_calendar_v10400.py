@@ -31,11 +31,13 @@ def remaining_seconds(completed_at: int, cadence: str, now: int | None = None) -
 
 
 def cadence_for_quest(quest_id: str, definition: dict) -> str | None:
-    """Restrict new semantics to authored v104 contracts, not older quests.
+    """Restrict UTC calendar to authored v104/v106 contracts, not older quests.
 
     Live OLC modifications to other quest fields keep their old behaviour.
     """
-    if not str(quest_id).startswith('v10400_contract_') or not definition.get('repeatable'):
+    # v106 rozszerza tę samą politykę UTC bez drugiego licznika nagród.
+    # Inne zadania (również stare powtarzalne) zachowują stary cooldown.
+    if not str(quest_id).startswith(('v10400_contract_', 'v10600_contract_')) or not definition.get('repeatable'):
         return None
     cadence = definition.get('repeat_calendar_v104')
     return cadence if cadence in ('day_utc', 'week_utc') else None

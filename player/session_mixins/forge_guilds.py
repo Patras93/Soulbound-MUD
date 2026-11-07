@@ -10,6 +10,26 @@ class SessionForgeGuildsMixin:
             MAX_STAGE, current_stage, required_materials, evolve,
             stage_stat_bonus, stage_defense_bonus,
         )
+        # v106 physical-copy staging: this legacy command addresses item TYPE,
+        # not the exact physical copy. Taking materials here would advance the
+        # wrong ledger while the new stat readers use per-instance stages.
+        # Block BEFORE any read-modify-write, including the destructive reset.
+        if getattr(self.server.db, '_v106_shadow_slots_disposable_copy', False):
+            from systems.v10700_eq_runtime_gate import is_enabled
+            if not is_enabled(self.server.db):
+                raise PermissionError('v107 EQ: fizyczne kopie nieaktywne')
+            # v106 explicitly routes only `ewolucja kopia` to the new,
+            # two-part (number + per-instance code) staging command.
+            if str(args or '').strip().casefold().split()[:1] == ['kopia']:
+                from systems.equipment_evolution_command_v10600 import player_copy_evolution
+                await player_copy_evolution(self, args)
+                return
+            await self.send(
+                'Stara komenda ewolucji EQ jest wstrzymana dla '
+                'fizycznych kopii. Żadne materiały nie zostały zużyte. '
+                'Użyj: ewolucja kopia lista, następnie ewolucja kopia NUMER KOD POTWIERDZAM.'
+            )
+            return
         raw = str(args or '').strip()
         rows = self.owned_equipment_upgrade_rows_v03042()
         # Deliberate, irreversible unbind with explicit Polish confirmation.
@@ -359,6 +379,11 @@ class SessionForgeGuildsMixin:
                 item_id, item = found
                 current = self.server.db.equipment_upgrade_level_v03042(self.account_id, item_id)
 
+            from systems.equipment_inventory_flow_v10600 import tracked as _eq107_tracked
+            if _eq107_tracked(self.server.db,item_id):
+                await self.send('Fizyczne EQ v107: stare ulepszanie typu przedmiotu jest wyłączone. '
+                                'Żadne materiały nie zostały zużyte. Użyj ewolucja kopia lista.')
+                return
             if current >= V03042_EQ_UPGRADE_MAX:
                 await self.send(f"{item['name']} ma już maksymalne ulepszenie +{V03042_EQ_UPGRADE_MAX}.")
                 return
@@ -455,6 +480,11 @@ class SessionForgeGuildsMixin:
                 await self.send("Podaj pełną nazwę posiadanego EQ do przekucia.")
                 return
             item_id,item=found
+            from systems.equipment_inventory_flow_v10600 import tracked as _eq107_tracked
+            if _eq107_tracked(self.server.db,item_id):
+                await self.send('Fizyczne EQ v107: stare przekuwanie całego typu jest niedostępne. '
+                                'Żadna esencja nie została zużyta.')
+                return
             mastery=max(1,int(item.get("required_mastery",1) or 1))
             cost=max(1,1+mastery//100)
             have=self.server.db.storage_qty(self.account_id,"craftbox","reforge_essence")
@@ -511,6 +541,11 @@ class SessionForgeGuildsMixin:
                     await self.send("Użycie: runy wyjmij <numer gniazda> <pełna nazwa EQ>."); return
                 idx=int(parts[1]); found=self.resolve_owned_equipment_v0925(parts[2],False)
                 if not found: await self.send("Nie rozpoznaję posiadanego EQ."); return
+                from systems.equipment_inventory_flow_v10600 import tracked as _eq107_tracked
+                if _eq107_tracked(self.server.db,found[0]):
+                    await self.send('Fizyczne EQ v107: stary system run typu jest niedostępny. '
+                                    'Nic nie zmieniono.')
+                    return
                 rid=self.server.db.remove_equipment_rune_v0925(self.account_id,found[0],idx)
                 if not rid: await self.send("To gniazdo jest puste."); return
                 self.server.db.add_storage_item(self.account_id,"craftbox",rid,1)
@@ -530,7 +565,13 @@ class SessionForgeGuildsMixin:
             found=self.resolve_owned_equipment_v0925(parts[1],False)
             if not found:
                 await self.send("Nie rozpoznaję posiadanego EQ."); return
-            item_id,item=found; sockets=self.equipment_total_socket_capacity_v03114(item_id,item,"rune")
+            item_id,item=found
+            from systems.equipment_inventory_flow_v10600 import tracked as _eq107_tracked
+            if _eq107_tracked(self.server.db,item_id):
+                await self.send('Fizyczne EQ v107: runy starego typu nie obsługują indywidualnych kopii. '
+                                'Nie zużyto żadnej runy.')
+                return
+            sockets=self.equipment_total_socket_capacity_v03114(item_id,item,"rune")
             if sockets <= 0:
                 await self.send("Gniazda runiczne ma endgame EQ wymagające co najmniej Biegłości 200."); return
             existing=list(self.server.db.equipment_runes_v0925(self.account_id,item_id))

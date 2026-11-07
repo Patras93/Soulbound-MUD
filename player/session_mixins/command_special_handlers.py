@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Focused handlers for formerly inline command-loop branches (v0.49.0)."""
 from __future__ import annotations
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 
 from core.command_catalog import COMMAND_LOOP_BREAK
 from network.protocol_gameplay_utils import normalize_lookup_text
@@ -54,6 +55,60 @@ class SessionCommandSpecialHandlersMixin:
             await self.mentor_tasks_v03051(True)
         else:
             await self.mentor_v03052(args)
+
+    async def command_profesja107(self, args):
+        """Eight persistent Soulbound 107 professions with consumed materials."""
+        from core.v10700_new_archetypes import PROFESSION_SPECS
+        from systems.v10700_profession_work import process
+        import os
+        if not _sb107_runtime_enabled():
+            await self.send('Profesje Chaosu są dostępne dopiero w v107.')
+            return
+        if self.account_id is None or self.character is None:
+            await self.send('Najpierw zaloguj postać.')
+            return
+        value=str(args or '').strip().casefold()
+        if value in ('','lista','list','help','pomoc'):
+            await self.send('Profesje Chaosu. Wpisz profesja107 numer, aby wykonać pracę.')
+            for i,(name,tool,label,ingredient) in enumerate(PROFESSION_SPECS,1):
+                await self.send(f'{i}. {name}, narzędzie: {label}, surowiec: {ingredient}.')
+            return
+        if not value.isdecimal() or not 1<=int(value)<=8:
+            await self.send('Nieznana profesja. Wpisz profesja107 lista.')
+            return
+        try:
+            messages,progress,product=process(self.server.db,self.account_id,int(value)-1,
+                                    self.grant_profession_progress)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception('v107 profession action rolled back')
+            await self.send('Nie udało się wykonać pracy profesji. Nie utracono surowców.')
+            return
+        if messages is None:
+            await self.send(progress)
+            return
+        await self.send('Wykonano pracę i zapisano wyrób: '+product)
+        for message in messages:
+            await self.send(str(message))
+        for quest_id,_,_ in progress:
+            if hasattr(self,'announce_active_quest_progress'):
+                await self.announce_active_quest_progress(quest_id)
+
+    async def command_magitek_v107(self, args):
+        """Staging-only Magitek command, never changes the generic skill router."""
+        import os
+        if not _sb107_runtime_enabled():
+            await self.send('Komenda Magitek jest dostępna tylko w testowej v107.')
+            return
+        if not self.character or self.character.class_name != 'Magitek':
+            await self.send('mtek wymaga aktywnej klasy Magitek.')
+            return
+        parts=str(args or '').strip().split(maxsplit=1)
+        if parts and parts[0].casefold() == 'magicite':
+            from systems.magitek_magicite_v107 import magicite_command
+            await magicite_command(self, parts[1] if len(parts)>1 else '')
+            return
+        await self.command_skill_v0490(args)
 
     async def command_skill_v0490(self, args):
         skill_args = str(args or "").strip()

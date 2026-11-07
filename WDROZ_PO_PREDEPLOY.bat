@@ -1,4 +1,12 @@
 @echo off
+if exist "%~dp0validation\v10700_magitek_regression.py" (
+  echo v107 MAGITEK: KOD ROBOCZY, NIE WDRAZAC.
+  exit /b 2
+)
+if exist "%~dp0validation\v10600_tcp_world_smoke.py" (
+  echo WERSJA ROBOCZA v106. WDROZENIE ZABLOKOWANE.
+  exit /b 2
+)
 setlocal EnableExtensions DisableDelayedExpansion
 set "ROOT=%~dp0"
 cd /d "%ROOT%"

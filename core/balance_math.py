@@ -509,7 +509,16 @@ def runtime_room_level(room_id: str, room: dict, rooms: dict | None = None) -> i
             recommended_floor = max(0, int(room.get("recommended_mastery", 0) or 0))
         except (TypeError, ValueError, OverflowError):
             recommended_floor = 0
-        lvl = clamp(max(authored, recommended_floor), 1, MAX_LEVEL)
+        # v106 staging: autorskie pokoje 30 001–60 000 nie są poziomami
+        # postaci. Historyczny 800-cap służy postaciom i światu v105, ale
+        # NIE może wymazać poziomu zagrożenia sal rajdowych. Inaczej
+        # Adaptive Combat liczy Soul34001 jako lvl800 i tworzy 10^16 HP.
+        if (os.environ.get('SOULBOUND_V106_STAGING') == '1'
+                and room_id.startswith('v10600_')
+                and 30001 <= authored <= 60000):
+            lvl = max(authored, min(60000, recommended_floor))
+        else:
+            lvl = clamp(max(authored, recommended_floor), 1, MAX_LEVEL)
         if lvl != authored:
             _assign_runtime_number("ROOMS", room, "generator_level", lvl)
         return lvl

@@ -13,7 +13,7 @@ def visible_era_quests(quest_ids, quests, get_row, active_classes):
     `get_row` jest jedynym odczytem z SQLite; zapisów nie wykonujemy.
     """
     classes = set(active_classes)
-    groups = {'story': [], 'class': [], 'raid': []}
+    groups = {'story': [], 'class': [], 'raid': [], 'legacy_hunt': []}
     professions = []
     for qid in dict.fromkeys(quest_ids):
         quest = quests.get(qid)
@@ -26,6 +26,8 @@ def visible_era_quests(quest_ids, quests, get_row, active_classes):
             groups['story'].append(qid)
         elif '_class_' in qid:
             groups['class'].append(qid)
+        elif quest.get('v107_retired_raid_converted'):
+            groups['legacy_hunt'].append(qid)
         elif '_raid_quest_' in qid:
             groups['raid'].append(qid)
         else:
@@ -38,7 +40,7 @@ def visible_era_quests(quest_ids, quests, get_row, active_classes):
 
     result = []
     # Offer at most one quest per linear series; active has priority.
-    for category in ('story', 'class', 'raid'):
+    for category in ('story', 'class', 'raid', 'legacy_hunt'):
         for qid in groups[category]:
             row = get_row(qid)
             if row and row['status'] == 'active':

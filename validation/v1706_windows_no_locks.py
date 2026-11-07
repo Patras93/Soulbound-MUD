@@ -14,10 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 def run_regression():
     checks=0
     for name in ('START_Soulbound.bat','STOP_Soulbound.bat',
-                 'Start-Soulbound-Windows.bat','START_Soulbound_UKRYTY.vbs',
+                 'Start-Soulbound-Windows.bat',
                  'uruchom_w_tle.py','windows_launcher_state.py'):
         assert (ROOT/name).is_file(), name
         checks+=1
+    assert not (ROOT/'START_Soulbound_UKRYTY.vbs').exists(), 'VBS must not be shipped'
+    checks+=1
     assert 'cwd=str(ROOT)' in (ROOT/'uruchom_w_tle.py').read_text(encoding='utf-8')
     checks+=1
     assert "process_alive(int(pidinfo['pid']))" in (ROOT/'stop_soulbound_windows.py').read_text(encoding='utf-8')

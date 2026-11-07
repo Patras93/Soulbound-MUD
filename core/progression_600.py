@@ -77,6 +77,20 @@ SOUL_TIER_DODGE_BONUS = tuple(SOUL_TIER_DODGE_BONUS[:40]) + (0.05,)*2960
 # Redukcji fizycznej nie wolno zwiększać ponad 65% kosztem odporności
 # bossow/klas; zachowujemy dawne 80 wartości bez zmian.
 SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(29+i//2 for i in range(40)) + tuple(min(65, 49+i//20) for i in range(2920))
+
+# v106: przedprodukcyjna oś Soul Tier 3001–6000. Bez flagi pozostaje
+# dokładna semantyka v105 (3000), wszystkie historyczne wpisy niezmienione.
+import os as _sb106_tier_os
+if _sb106_tier_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+    SOUL_TIER_THRESHOLDS += tuple(tier * 10 for tier in range(3001, 6001))
+    SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
+    SOUL_TIER_POWER_BONUSES += tuple(222 + (2920+i)*2 for i in range(3000))
+    SOUL_TIER_CLASS_BONUS_PERCENT += tuple(61 + (2920+i)//5 for i in range(3000))
+    SOUL_TIER_DODGE_BONUS += (0.05,) * 3000
+    SOUL_TIER_GUARDIAN_REDUCTION += tuple(min(65,49+(2920+i)//20) for i in range(3000))
+    if (SOUL_MAX_TIER != 6000 or SOUL_TIER_THRESHOLDS[2999] != 30000
+            or SOUL_TIER_THRESHOLDS[5999] != 60000):
+        raise RuntimeError('v106: błąd zachowania osi Soul Tier')
 SOUL_TRIAL_QUEST_IDS.update({tier: f'soul_tier_{tier:02d}_trial' for tier in range(41, SOUL_MAX_TIER+1)})
 
 # Weapon Traits 41-60: unikalne nazwy, ten sam klasowy cykl efektów.

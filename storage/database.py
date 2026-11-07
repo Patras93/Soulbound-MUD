@@ -230,6 +230,10 @@ class Database(
         install_live_keyed_xp(self.conn)
         from storage.big_number_live_character_v10400 import install_live_character_progress
         install_live_character_progress(self.conn)
+        # v107 physical ledger must be verified and explicitly installed later,
+        # after live dynamic item templates are registered by MudServer.
+        self._v107_eq_live_active = False
+        self._v107_eq_migration_committed = False
         self._v104_live_exact_character = True
         self._v104_live_exact_keyed_xp = True
         self.conn.commit()

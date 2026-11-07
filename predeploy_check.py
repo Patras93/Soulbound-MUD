@@ -3468,6 +3468,16 @@ for _source_path_v11342 in _root.rglob("*.py"):
             continue
         if _name_v11342 in _known_xp_mutators_v11342:
             continue
+        # v107 profession work receives a content-aware callback from the
+        # session, not a raw XP gateway. Exempt ONLY its audited call with
+        # required level and source key; any other grant_xp stays an error.
+        if (_name_v11342 == 'grant_xp'
+                and _source_path_v11342.relative_to(_root).as_posix()
+                    == 'systems/v10700_profession_work.py'
+                and isinstance(_func_v11342, ast.Name)
+                and {'content_level', 'content_key'} <= {
+                    kw.arg for kw in _node_v11342.keywords}):
+            continue
         _unclassified_xp_mutators_v11342.append(
             f"{_name_v11342}@{_source_path_v11342.relative_to(_root)}:"
             f"{getattr(_node_v11342,'lineno','?')}"

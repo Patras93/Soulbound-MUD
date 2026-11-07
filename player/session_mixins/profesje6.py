@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v6.00.0: eight genuinely distinct, persistent professions."""
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 import time
 import unicodedata
 from systems.new_professions import PROFESSIONS, AREAS, TIERS, BASE_ACTIONS, TIER_BONUS_INPUT, work_for
@@ -163,9 +164,19 @@ class SessionProfesje6Mixin:
             self.character.silver,self.character.gold,self.character.mithril=balance
 
     def valid_tool_type(self, tool_type):
+        from core.v10700_new_archetypes import PROFESSION_SPECS
+        import os
+        if _sb107_runtime_enabled() and any(tool_type == r[1] for r in PROFESSION_SPECS):
+            return True
         return tool_type in {spec[0] for spec in PROFESSIONS.values()} or super().valid_tool_type(tool_type)
 
     def tool_display_name_v11343(self, tool_type):
+        from core.v10700_new_archetypes import PROFESSION_SPECS
+        import os
+        if _sb107_runtime_enabled():
+            for name,tool,label,_ in PROFESSION_SPECS:
+                if tool_type == tool:
+                    return label
         for kind, _, name in PROFESSIONS.values():
             if kind == tool_type:
                 return name

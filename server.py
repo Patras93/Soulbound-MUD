@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """Soulbound runtime bootstrap. Canonical release version lives in core/bootstrap_economy_professions.py."""
+from systems.v10700_activation import enabled as _sb107_runtime_enabled
 from pathlib import Path
 import os
 import socket
@@ -1614,6 +1615,86 @@ if VERSION == '101.00.0':
         if _loaded is not None:
             _loaded.LATEST_CHANGES_TITLE=LATEST_CHANGES_TITLE
             _loaded.LATEST_CHANGES=LATEST_CHANGES
+
+# v107: register the 23rd class only after historical authored-world installs.
+# These installs intentionally validate the unchanged old 22-class catalogue.
+# This is experimental staging and NOT a deployable production configuration.
+import os as _sb_v107_server_env
+if _sb107_runtime_enabled():
+    import core.classes_skills as _sb_v107_catalogue
+    from core.magitek_v107 import install as _sb_v107_install_magitek
+    _sb_v107_catalogue.V107_MAGITEK_ADDED = _sb_v107_install_magitek(
+        vars(_sb_v107_catalogue))
+    V107_MAGITEK_ADDED = _sb_v107_catalogue.V107_MAGITEK_ADDED
+    from core.v10700_new_archetypes import install as _sb_v107_install_new_archetypes
+    V107_ARCHETYPES_BUILD = _sb_v107_install_new_archetypes(vars(_sb_v107_catalogue))
+    from systems.equipment_crafting import install_magitek_guild_v107 as _sb_v107_guild
+    V107_MAGITEK_GUILD_QUESTS = _sb_v107_guild()
+
+    # v107 ETAP 6: only the EXISTING Kraina Owadów gets more wildlife.
+    # Register after historical world audits and before World() is created.
+    from world.v10700_insects_expansion import install as _sb_v107_insects_install
+    V107_INSECTS_BUILD = _sb_v107_insects_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS,
+        HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+    # v107 ETAP 7: follow-up wildlife habitats, never duplicate phase 6 IDs.
+    from world.v10700_insects_wildlife_plus import install as _sb_v107_insects_plus_install
+    V107_INSECTS_PLUS_BUILD = _sb_v107_insects_plus_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS,
+        HELP_TOPICS, HELP_TOPIC_ALIASES)
+
+    # v107 WIELKA PACZKA: komplet 30 krain, pomoc NVDA bez zbędnych ozdobników.
+    if 'krainy107' in HELP_TOPICS or any(
+            a in HELP_TOPIC_ALIASES for a in ('chaos107','nowekrainy107','rozdzialy107')):
+        raise RuntimeError('v107: konflikt identyfikatorów pomocy nowych krain')
+    from world.v10700_region_index import CHAPTER_ONE as _sb_v107_first_chapter
+    from world.v10700_region_index_chapters_2_6 import CHAPTERS as _sb_v107_all_chapters
+    _sb_v107_chapters=(_sb_v107_first_chapter,)+_sb_v107_all_chapters
+    HELP_TOPICS['krainy107'] = [
+        'v107 Era Wiecznego Chaosu. 30 nowych krain w sześciu rozdziałach. Bez rajdów.',
+        'Początek: na wschód od Serca Astralnego Przebudzenia w krainie v106.',
+        'Łącznie 600 lokacji, 360 typów potworów, 1200 regionalnych zadań.',
+        'Każda kraina: 20 pokoi, 10 zwykłych potworów, 2 bossów i 4 NPC.',
+        'Zadania fabularne, polowania, surowce i profesje. Każda droga ma powrót.',
+        'Wszystkie bossy solo lub z drużyną do sześciu prawdziwych graczy.',
+        'Poziomy zalecane od 60001 do 90000, bez sztywnej blokady wejścia.',
+        'Dodatkowo w Krainie Owadów jest 40 zadań, 50 rodzajów nowych owadów.',
+        'Saga v107: 2000 nowych zadań (1200 regionalnych, 40 owadów, 760 dodatkowych).',
+    ]
+    for _sb_v107_chapter_index,_sb_v107_rows in enumerate(_sb_v107_chapters,1):
+        _sb_v107_names=', '.join(row[1] for row in _sb_v107_rows)
+        HELP_TOPICS['krainy107'].append(
+            f'Rozdział {_sb_v107_chapter_index}: {_sb_v107_names}.')
+    HELP_TOPIC_ALIASES['chaos107'] = 'krainy107'
+    HELP_TOPIC_ALIASES['nowekrainy107'] = 'krainy107'
+    HELP_TOPIC_ALIASES['rozdzialy107'] = 'krainy107'
+
+
+# v107: migrate only untouched legacy 800 defaults after all historical
+# bootstrap/catalogue audits. Custom saved Admin Live caps remain unchanged.
+# This is production-authorized only; no migration runs in staging mode.
+if _sb107_runtime_enabled():
+    from core.live_level_caps_v5200 import activate_v107_uncapped_defaults as _v107_uncap
+    _v107_uncap()
+
+
+# v108: documented, actually routed player commands; no overwritten old topic.
+for _v108_help_key, _v108_help_line in (
+    ('rasy', 'W kreatorze po wyborze rasy, na ekranie klas wpisz 0, wroc, wróć lub rasy, aby ponownie odczytać wszystkie opisy ras i zmienić wybór. Imię i płeć zostaną.'),
+    ('klasy', 'W kreatorze numer klasy wybiera klasę. Wpisz 0, wroc, wróć lub rasy, by wrócić do opisu ras. Driada: tylko kobieta.'),
+    ('portale', 'Twierdza Gigantów: portal lista, portal 10 / portal 20 / gigantportal 10. W zaliczonym checkpointcie: portal wyjdz. Każdy członek drużyny musi sam zaliczyć bossa.'),
+    ('kopalnia', 'W Kopalni Głębinowej: kop off zatrzymuje automat, cofnij wraca do sąsiedniego odwiedzonego chodnika, wyjscie wyprowadza i wyłącza auto-kopanie.'),
+    ('questy', 'Oddaj quest NUMER lub turnin NUMER. Zwykłą, nieulepszoną kopię EQ można oddać; założone, runiczne i rozwijane EQ pozostaje chronione.'),
+    ('ekwipunek', 'Przy oddawaniu zadań nie zużywasz założonego, ulepszonego ani runicznego wyposażenia. Zwykły crafting nadal blokuje fizyczne EQ.'),
+):
+    HELP_TOPICS.setdefault(_v108_help_key, []).append(_v108_help_line)
+HELP_TOPICS['twierdzaportal'] = [
+    'Twierdza Gigantów: portal lista, portal 10, portal 20, gigantportal 10 i portal wyjdz.',
+    'Checkpointy co 10 pięter, po osobistym zaliczeniu bossa; członek drużyny bez zaliczenia nie teleportuje się.',
+]
+HELP_TOPIC_ALIASES['gigantportal'] = 'twierdzaportal'
+HELP_TOPIC_ALIASES['portalfortress'] = 'twierdzaportal'
 
 if __name__ == '__main__':
     main()
