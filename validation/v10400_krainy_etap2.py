@@ -15,16 +15,19 @@ def run():
         if not condition:
             raise AssertionError(message)
         checks+=1
+    from validation.class_balance_v1172 import _historical_22
+    historical_classes, _ = _historical_22()
+    assert len(historical_classes)==22
     base='v10300_tron_12'
     rooms={base:{'exits':{'south':'v10300_tron_11'}}}
     mobs={};spawns=[];npcs={};quests={};items={'steel_ingot': {'name': 'Sztabka stali', 'type': 'craft_material'}};recipes={}
     areas=[];zones={};categories={};guides={};power={}
-    result=install(rooms,mobs,spawns,npcs,quests,items,recipes,areas,zones,categories,guides,power)
-    expected={'regions':10,'rooms':140,'mobs':100,'npcs':30,'quests':120+140+10*len(CLASSES),
-              'story_quests':120,'profession_quests':140,'class_quests':10*len(CLASSES),
+    result=install(rooms,mobs,spawns,npcs,quests,items,recipes,areas,zones,categories,guides,power,class_rows=historical_classes)
+    expected={'regions':10,'rooms':140,'mobs':100,'npcs':30,'quests':120+140+10*len(historical_classes),
+              'story_quests':120,'profession_quests':140,'class_quests':10*len(historical_classes),
               'items':50,'recipes':20}
     for key,n in expected.items():ok(result[key]==n,f'{key}: {result[key]} != {n}')
-    ok(len(CLASSES)==22,'registered 22 classes')
+    ok(len(historical_classes)==22,'registered 22 historical classes')
     ok(len(PROFESSION_SPECS)==14,'registered 14 professions')
     ok(len(rooms)==141 and len(mobs)==100 and len(npcs)==30 and len(quests)==480,'registry counts')
     ok(rooms[base]['exits']['east']=='v10400_sztorm_01','v103 -> v104 gate')
@@ -90,9 +93,9 @@ def run():
     from systems.era_npc_offers_v10300 import visible_era_quests
     for slug,*_ in REGIONS:
         prefix=f'v10400_{slug}'
-        for n in range(1,len(CLASSES)+1):
+        for n in range(1,len(historical_classes)+1):
             npc=npcs[f'{prefix}_npc_2']
-            class_name=CLASSES[n-1][0]
+            class_name=historical_classes[n-1][0]
             offered_for_class=visible_era_quests(npc['specialist_quests'],quests,lambda qid:None,(class_name,))
             ok(f'{prefix}_class_{n:02d}' in offered_for_class,f'class offer missing {slug}/{class_name}')
             ok(not any(quests[qid].get('required_class') not in (None,class_name) for qid in offered_for_class),
@@ -108,12 +111,12 @@ def run():
     it={};re={};a=[];z={};cat={};g={};pw={}
     before=deepcopy((r,m,s,n,q,it,re,a,z,cat,g,pw))
     try:
-        install(r,m,s,n,q,it,re,a,z,cat,g,pw)
+        install(r,m,s,n,q,it,re,a,z,cat,g,pw,class_rows=historical_classes)
         raise AssertionError('collision permitted')
     except RuntimeError as e:
         ok('kolizja quests' in str(e),f'wrong collision error: {e}')
     ok(before== (r,m,s,n,q,it,re,a,z,cat,g,pw),'collision is atomic')
-    idempotent=install(rooms,mobs,spawns,npcs,quests,items,recipes,areas,zones,categories,guides,power)
+    idempotent=install(rooms,mobs,spawns,npcs,quests,items,recipes,areas,zones,categories,guides,power,class_rows=historical_classes)
     ok(idempotent['regions']==0,'idempotent install')
     ok(len(spawns)==180,'no duplicate spawns after idempotent install')
     # Real quest sqlite state code with isolated in-memory DB, 480 distinct accounts.

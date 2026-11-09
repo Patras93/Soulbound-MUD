@@ -66,8 +66,14 @@ def run():
               'retention still bounded')
         # v104 wydajemy ZIP bez zbędnych README. Zweryfikuj dostepnosc
         # diagnostyki w rzeczywistym, polskim helpie administratora i SQL.
-        admin_src=(root/'player/session_mixins/admin_tools.py').read_text(encoding='utf-8')
-        check('Użycie: admin komendy wolne.' in admin_src and
+        # v109: metoda ma byc dostepna przez MRO faktycznej klasy sesji.
+        # Nie wystarcza samo wystapienie tekstu w przypadkowym pliku.
+        import inspect
+        from player.session_mixins.admin_tools import SessionAdminToolsMixin
+        admin_handler = SessionAdminToolsMixin.admin_tools_v1224
+        admin_src = inspect.getsource(admin_handler)
+        check(admin_handler.__qualname__.startswith('AdminOwnerDashboardV109Mixin.') and
+              'Użycie: admin komendy wolne.' in admin_src and
               'FROM admin_slow_commands_v1224' in admin_src,
               'diagnostyka dostepna w grze')
         check((root/'VERSION').read_text(encoding='utf-8').strip() == __import__('core.bootstrap_economy_professions', fromlist=['VERSION']).VERSION,

@@ -444,6 +444,18 @@ def class_type_for_name(class_name):
     for cname, ctype, weapon, base in CLASSES:
         if cname == class_name:
             return ctype
+    # Przy pierwszym ładowaniu katalogu EQ klasy v107/v110 jeszcze nie są
+    # dołączone do mutowalnego CLASSES. Ich typ jest jednak już autorsko
+    # zdefiniowany. Bez tego magia Magiteka i następców dostawała ATK/STR
+    # zamiast Magic Attack/INT do czasu późniejszego uruchomienia serwera.
+    from core.magitek_v107 import CLASS_NAME as magitek
+    if class_name == magitek:
+        return "magic"
+    from core.v10700_new_archetypes import CLASS_SPECS as v107_specs
+    from core.v11000_archetypes import CLASS_SPECS as v110_specs
+    for spec in (*v107_specs, *v110_specs):
+        if spec[0] == class_name:
+            return spec[1]
     return "physical"
 
 # v0.8.64: stara wartość 25 dawała około 50 tysięcy użyć na jeden

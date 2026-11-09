@@ -48,17 +48,19 @@ def run_regression():
     check(ai.select_support(healer,base,[ally],200,lambda _:100) is None,'cannot heal other room')
     boss={'name':'Szaman','boss':True,'world_boss':True}
     check(not monster_ai.monster_ai_eligible_v1160(healer,boss),'boss protection')
-    # Build genuine craft catalog, 14 * 3 without duplicate/missing ingredients.
+    # Build genuine historical craft catalog (14 x 3). v107/v110 add new
+    # specializations, which must not expand the original 14-account fixture.
+    assert len(craft.RECIPES)==14 and set(craft.RECIPES)<=set(professions.SPECIALTIES)
     items=dict(ITEMS)
     for k in ('v2200_leviathan_heart','v2200_ancient_pearl','v2200_whisper_coral','v2200_storm_core'):
         items[k]={'name':k,'type':'resource'}
     # Some runtime imports may already register crafting outputs; clean fixture deliberately.
     for v in craft.RECIPES.values():items.pop(v[1],None)
-    for name in professions.SPECIALTIES:
+    for name in craft.RECIPES:
         for tier in (2,3):items.pop(nextcraft.recipe(name,tier)[1],None)
     check(craft.install(items)==42,'42 distinct craft outputs')
-    check(len({nextcraft.recipe(p,t)[1] for p in professions.SPECIALTIES for t in (2,3)})==28,'28 next-stage IDs')
-    for p in professions.SPECIALTIES:
+    check(len({nextcraft.recipe(p,t)[1] for p in craft.RECIPES for t in (2,3)})==28,'28 next-stage IDs')
+    for p in craft.RECIPES:
         for tier in (2,3):
             spec,item,ingredients,price,name=nextcraft.recipe(p,tier)
             check(item in items and all(ing in items for ing in ingredients),'catalog for '+name)
@@ -72,7 +74,7 @@ def run_regression():
     conn.execute('CREATE TABLE profession_storage(account_id INTEGER,container TEXT,item_id TEXT,quantity INTEGER,PRIMARY KEY(account_id,container,item_id))')
     for a in range(1,15):conn.execute('INSERT INTO characters VALUES (?,0,0,0)',(a,))
     professions.init(conn)
-    for account,profession in enumerate(professions.SPECIALTIES,1):
+    for account,profession in enumerate(craft.RECIPES,1):
         for i,spec in enumerate(professions.SPECIALTIES[profession]):
             professions.unlock(conn,account,profession,spec,(100,250,450)[i],now=10000)
         first=craft.RECIPES[profession]

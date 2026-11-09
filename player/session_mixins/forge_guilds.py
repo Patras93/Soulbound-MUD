@@ -3,7 +3,15 @@
 from core.bootstrap_economy_professions import currency_price_text
 from data import catalog_mutations as _catalog_mut
 
-class SessionForgeGuildsMixin:
+from .guild_readonly_parts_v109 import (
+    GuildMembershipV109Mixin, GuildBonusesV109Mixin,
+    GuildPermissionsV109Mixin, GuildMoneyV109Mixin,
+)
+
+class SessionForgeGuildsMixin(
+    GuildMembershipV109Mixin, GuildBonusesV109Mixin,
+    GuildPermissionsV109Mixin, GuildMoneyV109Mixin
+):
     async def evolve_equipment_v10500(self, args=''):
         """Ewolucja EQ u Haldora, strony i krótkie komunikaty NVDA."""
         from systems.equipment_evolution_v10500 import (
@@ -627,82 +635,15 @@ class SessionForgeGuildsMixin:
                 if level>=PROFESSION_MAX_LEVEL and actions>=5000:
                     self.server.db.unlock_achievement(self.account_id,f"prof_{slug}_5000",f"{prof}: Arcydzieło 600","Profession Challenge")
 
-    def guild_row_v0926(self):
-            return self.server.db.clan_membership(self.account_id)
 
-    def clan_row_v0925(self):
-            return self.guild_row_v0926()
 
-    def clan_session_by_account_v0925(self, account_id):
-            for sess in list(self.server.sessions):
-                if getattr(sess,"account_id",None)==account_id and not sess.closed:
-                    return sess
-            return None
 
-    def refresh_guild_bonus_v0926(self):
-            pct=self.server.db.guild_bonus_percent_v0926(self.account_id) if getattr(self,"account_id",None) else 0
-            from systems.live_olc28_expansion import guild_extra_bonus
-            membership = self.guild_row_v0926()
-            pct = int(pct) + guild_extra_bonus(bool(membership))
-            if membership:
-                from systems.live_olc29_creation import guild_level_bonus
-                # Guild growth level is stored in player_clans, not in a character.
-                row = self.server.db.conn.execute(
-                    'SELECT level FROM player_clans WHERE id=?',
-                    (int(membership['clan_id']),)).fetchone()
-                _guild_level = int(row['level']) if row else 1
-                pct += guild_level_bonus(_guild_level)
-                from systems.live_olc32_finale import guild_milestone_bonus
-                pct += guild_milestone_bonus(_guild_level)
-                from systems.live_olc35_finale import city_bonus
-                pct += city_bonus(self.server.db.conn,int(membership['clan_id']))
-            if getattr(self,"character",None):
-                self.character._guild_bonus_percent=int(pct)
-            return int(pct)
 
-    def guild_bonus_percent_v0926(self):
-            return self.refresh_guild_bonus_v0926()
 
-    def guild_role_v0926(self, membership=None):
-            row=membership or self.guild_row_v0926()
-            if not row:
-                return None
-            return self.server.db.guild_role_v0926(int(row["clan_id"]),str(row["rank"]))
 
-    def guild_has_permission_v0926(self, permission, membership=None):
-            row=membership or self.guild_row_v0926()
-            if not row:
-                return False
-            if str(row["rank"])=="leader":
-                return True
-            role=self.guild_role_v0926(row)
-            return bool(role and int(role[permission] or 0))
 
-    def guild_rank_name_v0926(self, membership=None):
-            row=membership or self.guild_row_v0926()
-            if not row:
-                return "Brak"
-            role=self.guild_role_v0926(row)
-            return str(role["name"]) if role else str(row["rank"])
 
-    def guild_rank_priority_v0926(self, membership=None):
-            row=membership or self.guild_row_v0926()
-            if not row:
-                return 0
-            role=self.guild_role_v0926(row)
-            return int(role["priority"]) if role else 0
 
-    def parse_guild_money_v0926(self, raw):
-            parts=str(raw or "").strip().split()
-            if not parts or not parts[0].isdigit():
-                return None
-            amount=int(parts[0])
-            if amount<=0:
-                return None
-            currency=self.normalize_bank_currency(parts[1]) if len(parts)>1 else "silver"
-            if not currency:
-                return None
-            return self.bank_amount_to_silver(amount,currency)
 
     def guild_role_key_v0926(self, name):
             key=_collection_slug(str(name or ""))

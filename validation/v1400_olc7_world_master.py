@@ -77,7 +77,9 @@ def run():
             try: validate_extra('mob_edits','bandit_captain',field,val,svc.draft,set(),set())
             except ValueError:n+=1
             else:raise AssertionError('Invalid boss control accepted')
-        assert len(CLASS_SKILLS)==22;n+=1
+        from validation.class_balance_v1172 import _historical_22
+        old_rows,old_skills=_historical_22()
+        assert len(old_rows)==22 and set(old_skills)<=set(CLASS_SKILLS);n+=1
     finally:
         svc._remove(world)
         assert sum(len(rows) for rows in CLASS_SKILLS.values())==count

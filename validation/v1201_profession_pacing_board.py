@@ -11,8 +11,11 @@ def run_regression():
     from config.balance import profession_xp_requirement_v1401, tool_xp_requirement_v1402
     from systems.new_professions import PROFESSIONS as NEW_PROFESSIONS
     import server  # initialize historical world globals before importing world state
-    from player.session_mixins import museum_bounty as module
+    from importlib import import_module
     from player.session_mixins.museum_bounty import SessionMuseumBountyMixin
+    # Patch the real function-global module. v109 moved this exact method into
+    # museum_parts_v109; patching the old facade would test a different catalog.
+    module=import_module(SessionMuseumBountyMixin.bounty_kill_candidates.__module__)
     checks=0
     assert len(PROJECTS)==22
     checks+=1

@@ -1984,11 +1984,50 @@ _era103_count, _era103_summary = _era103_raids()
 print(f"ERA 103 RAJDY: {_era103_count} checks PASS", flush=True)
 from validation.v10300_era_soul_tiers import run as _era103_soul
 print(f"ERA 103 SOUL TIERS: {_era103_soul()} checks PASS", flush=True)
-from validation.v10300_era_quest_sqlite import run as _era103_sqlite
-_era103_count, _era103_quests = _era103_sqlite()
+# v110: the historical SQLite test swaps db_quests.QUESTS temporarily.
+# Run it in a fresh interpreter so older tests in this monolithic fast audit
+# cannot pollute the class/module state.  The 2,763 original assertions and
+# all 385 historical quest definitions must still pass; no gate is skipped.
+def _era103_sqlite_isolated_v110():
+    import re as _re
+    import subprocess as _sp
+    import sys as _sys
+    from pathlib import Path as _Path
+    root = _Path(__file__).resolve().parent
+    result = _sp.run(
+        [_sys.executable, '-u', '-m', 'validation.v10300_era_quest_sqlite'],
+        cwd=str(root), stdin=_sp.DEVNULL, capture_output=True, text=True,
+        encoding='utf-8', errors='replace', timeout=180,
+    )
+    output = (result.stdout or '') + '\n' + (result.stderr or '')
+    match = _re.search(r'ERA SQLITE: (\d+) checks PASS across (\d+) quests;', output)
+    if result.returncode or not match or tuple(map(int, match.groups())) != (2763, 385):
+        raise AssertionError('historical v103 SQLite audit failed: ' + output[-5000:])
+    return tuple(map(int, match.groups()))
+_era103_count, _era103_quests = _era103_sqlite_isolated_v110()
 print(f"ERA 103 SQLITE QUESTS: {_era103_count} checks PASS; {_era103_quests} quests", flush=True)
-from validation.v10300_era_admin import run as _era103_admin
-print(f"ERA 103 ADMIN READ: {_era103_admin()} checks PASS", flush=True)
+def _era103_admin_isolated_v110():
+    # Legacy admin report uses a shared module registry: earlier historical
+    # audits in this large process may have already modified that registry.
+    # Run all original assertions on a clean historical fixture in a fresh
+    # interpreter; a nonzero exit, a missing marker or an unexpected check
+    # count still fails PREDEPLOY (never a silent skip).
+    import re as _re
+    import subprocess as _sp
+    import sys as _sys
+    from pathlib import Path as _Path
+    root = _Path(__file__).resolve().parent
+    result = _sp.run(
+        [_sys.executable, '-u', '-m', 'validation.v10300_era_admin'],
+        cwd=str(root), stdin=_sp.DEVNULL, capture_output=True, text=True,
+        encoding='utf-8', errors='replace', timeout=180,
+    )
+    output = (result.stdout or '') + '\n' + (result.stderr or '')
+    match = _re.search(r'ERA ADMIN READ-ONLY: (\d+) checks PASS', output)
+    if result.returncode or not match or int(match.group(1)) != 43:
+        raise AssertionError('historical v103 admin read audit failed: ' + output[-5000:])
+    return int(match.group(1))
+print(f"ERA 103 ADMIN READ: {_era103_admin_isolated_v110()} checks PASS", flush=True)
 from validation.v10300_era_dungeon_admin import run as _era103_dungeon
 print(f"ERA 103 DEEP/KRYPTY/WIEZE + ADMIN DRAFT: {_era103_dungeon()} checks PASS", flush=True)
 
@@ -2011,26 +2050,22 @@ from validation.v10300_era_raid_phases_runtime import run as _era103_phases_real
 print(f"ERA 103 REAL RAID PHASE AI: {_era103_phases_real()} checks PASS",flush=True)
 
 
-# v103 ETAP 6: private two-account SQLite raid credit, no double rewards.
-# NOTE: this verifies the per-recipient quest DB operation. Live party combat
-# over TCP is covered only by separate, still-pending server integration.
-from validation.v10300_era_raid_party_sqlite import run as _era103_party_sqlite
-print(f"ERA 103 RAID PARTY 2 KONTA SQLITE: {_era103_party_sqlite()} checks PASS", flush=True)
-
-# v103 ETAP 7: mandatory safety regression for real TCP test accounts.
-# The actual two-player TCP smoke is optional (separate private-server start).
-from validation.v10300_era_tcp_fixture_gate import run as _era103_tcp_fixture
-print(f"ERA 103 TCP POSTACIE TESTOWE: {_era103_tcp_fixture()} checks PASS", flush=True)
-
-# v103 ETAP 9: bounded admin raid listing and full three-stage raid diagnostics.
-# Real TCP across other regions remains an OPTIONAL separate test.
-from validation.v10300_era_raid_nvda_audit import run as _era103_raid_nvda
-print(f"ERA 103 RAJDY ADMIN/NVDA: {_era103_raid_nvda()} checks PASS",flush=True)
-
-# v103.00.0 final shipment gate: release identity, data protection, full Era integration.
-from validation.v10300_final_release import run as _v103_final_gate
-print(f"ERA BEZ GRANIC v103.00.0 FINAL: {_v103_final_gate()} checks PASS",flush=True)
-
-# v103: authored Era enemies must not become trillion-HP terrain variants.
-from validation.v10300_era_authored_hp import run as _v103_authored_hp
-print(f"ERA v103 AUTHORED HP: {_v103_authored_hp()} checks PASS", flush=True)
+# v103: historical per-recipient raid credit runs on a synthetic pre-v107
+# catalog. Its registry is intentionally incompatible with the retired-raid
+# active world. Run every remaining audit in a fresh process, fail-closed.
+from validation.v11000_legacy_tail_isolation import run as _v110_legacy_tail
+from validation.v11000_legacy_tail_isolation import AUDITS as _v110_legacy_audit_specs
+# Enforce original historical gate identities, not just a generic "PASS".
+_v110_historical_gate_identity = {
+    'party': 'validation.v10300_era_raid_party_sqlite',
+    'tcp': 'validation.v10300_era_tcp_fixture_gate',
+    'release': 'validation.v10300_final_release',
+}
+assert all(_v110_legacy_audit_specs[key][0] == module
+           for key, module in _v110_historical_gate_identity.items()), (
+    'historical v103 gate was replaced or removed')
+print(f"ERA 103 RAID PARTY 2 KONTA SQLITE: {_v110_legacy_tail('party')} checks PASS", flush=True)
+print(f"ERA 103 TCP POSTACIE TESTOWE: {_v110_legacy_tail('tcp')} checks PASS", flush=True)
+print(f"ERA 103 RAJDY ADMIN/NVDA: {_v110_legacy_tail('nvda')} checks PASS", flush=True)
+print(f"ERA BEZ GRANIC v103.00.0 FINAL: {_v110_legacy_tail('release')} checks PASS", flush=True)
+print(f"ERA v103 AUTHORED HP: {_v110_legacy_tail('hp')} checks PASS", flush=True)

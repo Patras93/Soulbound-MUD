@@ -58,6 +58,8 @@ def craft(conn, account, profession, level, tier=1):
         from systems.mastery_advancement_v2300 import craft as _craft_adv
         return _craft_adv(conn, account, profession, level, tier)
     profession=canonical(profession)
+    if profession not in RECIPES:
+        raise ValueError('Ta profesja nie ma historycznej receptury mistrzowskiej; użyj jej własnych receptur.')
     required,item,ingredients,price,name=RECIPES[profession]
     if int(level)<100: raise ValueError('Receptury mistrzowskie wymagają poziomu 100 profesji.')
     with atomic(conn):

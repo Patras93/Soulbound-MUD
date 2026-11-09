@@ -487,6 +487,7 @@ def split_static_npcs_into_private_rooms_v03012():
                 "npc_private_room_v03012": True,
                 "npc_owner_v03012": npc_id,
                 "npc_parent_room_v03012": room_id,
+                "generator_level": base_level,
                 "recommended_mastery": base_level,
             }, 'ROOMS', ROOMS, (private_id,))
             npc["room"] = private_id

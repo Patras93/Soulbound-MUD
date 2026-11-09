@@ -11,6 +11,11 @@ def build_default_event_bus(server):
     bus = EventBus(error_reporter=server.report_runtime_error)
     # Chronicle was historically best-effort (try/except pass), preserve that.
     bus.subscribe(MobDefeatedEvent, record_server_kill, name="chronicle.server_kill", critical=False)
+    from systems.v11000_activation import enabled as _v110_events_enabled
+    if _v110_events_enabled():
+        from systems.events_v110.listener import on_defeat as _v110_defeat
+        bus.subscribe(MobDefeatedEvent, _v110_defeat,
+                      name='v110.global_event', critical=False)
     # These replace direct gameplay progression calls, so failures remain critical.
     bus.subscribe(PlayerMobKillQuestEvent, credit_primary_kill_quest, name="quests.kill_credit", critical=True)
     bus.subscribe(PlayerMobKillProgressionEvent, credit_extended_kill_progression, name="progression.kill_extended", critical=True)

@@ -54,7 +54,7 @@ def check_sandbox_environment():
     if not db or not Path(db).is_absolute():
         raise RuntimeError('Brak absolutnej sciezki testowej SQLite; zabroniony start bez izolacji')
     path = Path(db).resolve()
-    if not path.parent.name.startswith(('soulbound-predeploy-', 'soulbound-full-audit-', 'soulbound-coverage-')):
+    if not path.parent.name.startswith(('soulbound-predeploy-', 'soulbound-full-audit-', 'soulbound-coverage-', 'sb110_predeploy_stage_')):
         raise RuntimeError('Test SQLite musi znajdowac sie w katalogu tymczasowym predeploy')
     temp_root = Path(tempfile.gettempdir()).resolve()
     if temp_root not in path.parents or ROOT in path.parents:

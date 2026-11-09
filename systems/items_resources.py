@@ -1165,6 +1165,43 @@ for _v900_class, _v900_eq in _V900_EQUIPMENT.items():
     CLASS_EQUIPMENT_SETS[_v900_class] = {key:_v900_eq[key] for key in ("prefix","set_name","affix","base_defense","room")}
     CLASS_EQUIPMENT_STYLES[_v900_class] = _v900_eq["styles"]
 
+# v110 Windows ULTIMATE: successor classes need genuine finalized shop EQ,
+# not synthetic benchmark items. Original class definitions/IDs remain intact.
+# v107 supplied Magitek + seven classes; v110 adds another eight.
+from core.magitek_v107 import CLASS_NAME as _v110_magitek_name
+from core.v10700_new_archetypes import CLASS_SPECS as _v110_v107_classes
+from core.v11000_archetypes import CLASS_SPECS as _v110_v110_classes
+import unicodedata as _v110_unicode
+
+_v110_successor_classes = ((_v110_magitek_name, 'magic'),) + tuple(
+    (row[0], row[1]) for row in (*_v110_v107_classes, *_v110_v110_classes)
+)
+assert len(_v110_successor_classes) == 16
+for _v110_class_name, _v110_class_mode in _v110_successor_classes:
+    # Stable, ASCII-only newly allocated IDs. Never rename an old item ID.
+    _v110_slug = _v110_unicode.normalize('NFKD', _v110_class_name).translate(
+        str.maketrans({'Ł':'L','ł':'l'})
+    )
+    _v110_slug = ''.join(c if c.isascii() and c.isalnum() else '_'
+                         for c in _v110_slug).strip('_').lower()
+    _v110_prefix = 'successor_' + _v110_slug
+    if _v110_class_name in CLASS_EQUIPMENT_SETS:
+        continue
+    _v110_magic = _v110_class_mode == 'magic'
+    CLASS_EQUIPMENT_SETS[_v110_class_name] = {
+        'prefix': _v110_prefix,
+        'set_name': _v110_class_name,
+        'affix': 'intelligence' if _v110_magic else 'strength',
+        'base_defense': 1 if _v110_magic else 2,
+        'room': 'guild_arcane_chamber' if _v110_magic else 'guild_martial_hall',
+    }
+    CLASS_EQUIPMENT_STYLES[_v110_class_name] = (
+        _v110_class_name, _v110_class_name+' — Mocy',
+        _v110_class_name+' — Ochrony',
+    )
+assert len(CLASS_EQUIPMENT_SETS) == 38, 'Brak klasowego EQ dla jednej z 38 klas'
+assert len({d['prefix'] for d in CLASS_EQUIPMENT_SETS.values()}) == 38, 'Kolizja identyfikatorów EQ'
+
 CLASS_EQUIPMENT_SLOT_DEFS = {
     "head": ("Hełm", 1, 90),
     "body": ("Pancerz", 3, 160),
@@ -1290,6 +1327,37 @@ CLASS_EQUIPMENT_CLASS_PROFILES = {
 for _v900_class, _v900_eq in _V900_EQUIPMENT.items():
     CLASS_EQUIPMENT_CLASS_PROFILES[_v900_class] = {key:_v900_eq[key] for key in ("primary_ratio","properties")}
     CLASS_EQUIPMENT_CLASS_PROFILES[_v900_class]["identity"] = _v900_eq["set_name"]
+
+# v110: 16 klas dodanych po historycznym v0.9.0 ma własne, rzeczywiste
+# profile dwóch statystyk i właściwości przedmiotów. Nie zmieniamy
+# istniejących klas, nazw/ID sprzętu ani zapisanych przedmiotów graczy.
+# Różne archetypy nie mogą otrzymywać identycznych premii przy Tier 400.
+_V110_SUCCESSOR_EQUIPMENT_PROFILES = {
+    "Magitek": (0.61, "magitek: magia i zbroja", {"magic_damage_pct": 0.58, "physical_defense_pct": 0.42}),
+    "Chronotechnik": (0.67, "czas: magia i unik", {"magic_damage_pct": 0.57, "dodge_pct": 0.43}),
+    "Runiczny Obrońca": (0.24, "runy: obrona i życie", {"physical_defense_pct": 0.74, "max_hp_pct": 0.26}),
+    "Władca Burz": (0.80, "burze: magia i mana", {"magic_damage_pct": 0.86, "max_mana_pct": 0.14}),
+    "Łowca Anomalii": (0.70, "anomalia: obrażenia i unik", {"physical_damage_pct": 0.62, "dodge_pct": 0.38}),
+    "Tkacz Dusz": (0.33, "dusze: życie i mana", {"max_mana_pct": 0.58, "max_hp_pct": 0.42}),
+    "Alchemik Bitewny": (0.64, "alchemia: magia i życie", {"magic_damage_pct": 0.44, "max_hp_pct": 0.56}),
+    "Wędrowiec Pustki": (0.76, "pustka: obrażenia i unik", {"physical_damage_pct": 0.53, "dodge_pct": 0.47}),
+    "Wirtuoz Echa": (0.69, "echo: magia i obrona", {"magic_damage_pct": 0.72, "magic_defense_pct": 0.28}),
+    "Fantomowy Szermierz": (0.74, "fantom: unik i cios", {"dodge_pct": 0.73, "physical_damage_pct": 0.27}),
+    "Szeptacz Bestii": (0.36, "bestie: życie i obrona", {"max_hp_pct": 0.63, "magic_defense_pct": 0.37}),
+    "Paladyn Zmierzchu": (0.37, "zmierzch: pancerz i życie", {"physical_defense_pct": 0.67, "max_hp_pct": 0.33}),
+    "Kartograf Przestrzeni": (0.73, "przestrzeń: magia i unik", {"magic_damage_pct": 0.68, "dodge_pct": 0.32}),
+    "Strażnik Przypływów": (0.30, "przypływy: obrona i zdrowie", {"physical_defense_pct": 0.58, "max_hp_pct": 0.42}),
+    "Egzekutor Pieczęci": (0.48, "pieczęcie: magia i odporność", {"magic_damage_pct": 0.42, "magic_defense_pct": 0.58}),
+    "Żarowy Żniwiarz": (0.83, "żar: moc i wytrzymałość", {"physical_damage_pct": 0.82, "max_hp_pct": 0.18}),
+}
+assert set(_V110_SUCCESSOR_EQUIPMENT_PROFILES) == {name for name, _ in _v110_successor_classes}
+assert not (set(_V110_SUCCESSOR_EQUIPMENT_PROFILES) & set(CLASS_EQUIPMENT_CLASS_PROFILES))
+for _v110_name, (_v110_ratio, _v110_identity, _v110_props) in _V110_SUCCESSOR_EQUIPMENT_PROFILES.items():
+    CLASS_EQUIPMENT_CLASS_PROFILES[_v110_name] = {
+        "primary_ratio": _v110_ratio, "identity": _v110_identity,
+        "properties": _v110_props,
+    }
+assert set(CLASS_EQUIPMENT_CLASS_PROFILES) == set(CLASS_EQUIPMENT_SETS)
 
 CLASS_EQUIPMENT_SLOT_PRIMARY_BIAS = {
     "head": -0.01,

@@ -130,7 +130,7 @@ def progression_safety(level):
 
 
 def final_readiness():
-    return ('GOTOWOSC FINALNA: 22 klasy '+str(len(CLASS_SKILLS))+'; superbossy '+
+    return ('GOTOWOSC FINALNA: zarejestrowane klasy '+str(len(CLASS_SKILLS))+'; superbossy '+
         str(len(UOSS_SUPERBOSS_ENCOUNTERS_V11134))+'; typy questow '+str(len(KINDS))+'. '
         'Warunki: 1 ZIP i zgodny SHA256; 2 klon rzeczywistej SQLite, 60/60 PLUS PASS; '
         '3 testy 5 polaczen TCP i restart; 4 NVDA/MUSHclient oraz edycja/cofanie DRAFT; '

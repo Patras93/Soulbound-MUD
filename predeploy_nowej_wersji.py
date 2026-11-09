@@ -23,7 +23,7 @@ import tempfile
 import time
 import zipfile
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(os.environ.get('SOULBOUND_LIVE_ROOT') or Path(__file__).resolve().parent).resolve()
 WORK = ROOT.parent / 'Soulbound_PREDEPLOY'
 INBOX = ROOT / 'NOWE_WERSJE'
 STATE = WORK / 'last_result.json'
@@ -125,7 +125,7 @@ def inspect_zip(zippath):
         root_text = z.read(root_version[1]).decode('utf-8-sig').strip()
         if root_text != ver:
             raise ValueError(f'Plik VERSION ({root_text}) nie zgadza sie z kodem ({ver}).')
-        if version_tuple(ver) >= (108, 0, 0):
+        if ver in ('108.00.0','109.00.0'):
             for required_v108 in ('validation/v10800_release_readiness.py',
                                   'validation/v10800_offline_suite.py',
                                   'systems/v10800_activation.py',
@@ -133,6 +133,24 @@ def inspect_zip(zippath):
                 if required_v108.casefold() not in mapping:
                     raise ValueError('v108: brak produkcyjnej bramki '+required_v108+
                                      '; stare 60/60 nie wystarcza')
+        if ver == '110.00.0':
+            for needed in ('systems/v11000_activation.py',
+                           'world/v11000_realms.py',
+                           'core/v11000_archetypes.py',
+                           'validation/v11000_release_suite.py',
+                           'validation/v11000_release_readiness.py'):
+                if needed.casefold() not in mapping:
+                    raise ValueError('v110: brak niezależnej bramki '+needed)
+            if 'live_content/release_current.json' in mapping:
+                raise ValueError('v110: manifest wydania generuje tylko instalator po PASS')
+        if ver == '109.00.0':
+            for needed in ('systems/v10900_activation.py', 'systems/v10900_gifts.py',
+                           'world/v10900_horizons.py', 'validation/v10900_release_suite.py',
+                           'validation/v10900_release_readiness.py'):
+                if needed.casefold() not in mapping:
+                    raise ValueError('v109: brak wymaganej bramki: '+needed)
+            if 'live_content/v109_release_activation.json' in mapping:
+                raise ValueError('v109: instalacyjnego znacznika aktywacji nie wolno umieszczać w ZIP')
         invalid = z.testzip()
         if invalid:
             raise ValueError('Uszkodzony plik w ZIP: '+invalid)
@@ -269,7 +287,12 @@ def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
     live = Path(source_db or os.environ.get('SOULBOUND_DB') or str(ROOT / 'soulbound.db'))
     if not live.is_absolute():
         live = ROOT / live
-    with tempfile.TemporaryDirectory(prefix='Soulbound_PREDEPLOY_SQLITE_FROZEN_') as frozen_dir:
+    ver=(Path(stage_root)/'VERSION').read_text(encoding='utf-8-sig').strip()
+    prefix='sb110_predeploy_sqlite_frozen_' if ver == '110.00.0' else 'Soulbound_PREDEPLOY_SQLITE_FROZEN_'
+    if ver == '110.00.0':
+        env.update(SOULBOUND_V107_STAGING='1',SOULBOUND_V109_STAGING='1',
+                   SOULBOUND_V110_STAGING='1')
+    with tempfile.TemporaryDirectory(prefix=prefix) as frozen_dir:
         snapshot = create_detached_source_snapshot(
             live, Path(frozen_dir)/'SOURCE_COMMITTED_SNAPSHOT.sqlite')
         # v108 needs the result of a conservative EQ rebuild during PREDEPLOY.
@@ -320,8 +343,12 @@ def verified_staged_pass(code, staged_log, version):
     log = Path(staged_log).read_text(encoding='utf-8', errors='replace')
     basic = ('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS' in log and
              'PLUS CHECKS PASS' in log)
-    if version_tuple(version) >= (108, 0, 0):
+    if version == '108.00.0':
         basic = basic and 'V108 RELEASE GATES PASS' in log
+    elif version == '109.00.0':
+        basic = basic and 'V109 RELEASE GATES PASS' in log
+    elif version == '110.00.0':
+        basic = basic and 'V110 RELEASE GATES PASS' in log
     return basic
 
 
@@ -383,8 +410,12 @@ def main(argv=None):
         state['status']='PASS' if verified else 'FAIL'
         state['completed_stages']=60 if verified else 0
         state['returncode']=result
-        if version_tuple(version) >= (108, 0, 0):
+        if version == '108.00.0':
             state['v108_release_gates_pass'] = bool(verified)
+        if version == '109.00.0':
+            state['v109_release_gates_pass'] = bool(verified)
+        if version == '110.00.0':
+            state['v110_release_gates_pass'] = bool(verified)
         save_state(state)
         print('\nWYNIK PREDEPLOY: '+state['status'],flush=True)
         print('Produkcja nietknieta. '+('Mozna rozwazyc WDROZ_PO_PREDEPLOY.bat.' if verified

@@ -19,7 +19,10 @@ def run_regression():
     count = 0
     assert len(NAMES) == 14
     count += 1
-    assert len(server.CLASS_SKILLS)==22 and (len(server.QUESTS)>=6745 if int(VERSION.split('.',1)[0])>=23 else len(server.QUESTS)==(expected_quest_total_v1100() if int(VERSION.split('.',1)[0])>=11 else 6585 if int(VERSION.split('.',1)[0])==10 else 6573 if int(VERSION.split('.',1)[0])==9 else 5605 if int(VERSION.split('.',1)[0])==8 else 3925 if int(VERSION.split('.',1)[0])==7 else 3861 if VERSION=='6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))
+    from validation.class_balance_v1172 import _historical_22
+    historic_rows,historic_skills=_historical_22()
+    assert len(historic_rows)==22 and {r[0] for r in historic_rows}==set(historic_skills)
+    assert set(historic_skills)<=set(server.CLASS_SKILLS) and (len(server.QUESTS)>=6745 if int(VERSION.split('.',1)[0])>=23 else len(server.QUESTS)==(expected_quest_total_v1100() if int(VERSION.split('.',1)[0])>=11 else 6585 if int(VERSION.split('.',1)[0])==10 else 6573 if int(VERSION.split('.',1)[0])==9 else 5605 if int(VERSION.split('.',1)[0])==8 else 3925 if int(VERSION.split('.',1)[0])==7 else 3861 if VERSION=='6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))
     count += 2
     wrappers = ast.parse((ROOT / 'admin/audits.py').read_text(encoding='utf-8'))
     pure_source = ast.parse((ROOT / 'admin/audit_rules_v406.py').read_text(encoding='utf-8'))

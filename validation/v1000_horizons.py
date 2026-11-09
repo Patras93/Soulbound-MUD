@@ -30,7 +30,15 @@ def run_regression(runtime=None):
     from world.legends_v3200 import _reachable
     ck(NEW_ROOM_IDS <= _reachable(runtime.ROOMS),'all 72 new rooms reachable from main world square')
     ck(QUEST_IDS <= set(runtime.QUESTS),'all new quests installed')
-    ck(len(runtime.CLASS_SKILLS)==22 and len(runtime.CLASSES)==22 and len(runtime.RACES)>=22,'22 unchanged classes and races')
+    # Preserve all 22 historical classes and their skill catalogues without
+    # rejecting additional, independently registered v107/v110 classes.
+    from core.class_skills_v10400 import NAMES as HISTORICAL_CLASSES
+    archived=set(HISTORICAL_CLASSES)
+    current={row[0] for row in runtime.CLASSES}
+    ck(len(archived)==22 and archived <= set(runtime.CLASS_SKILLS)
+       and archived <= current and all(runtime.CLASS_SKILLS[name] for name in archived)
+       and len(runtime.RACES)>=22,
+       'all 22 historical classes, skills and races retained')
     ck(len(runtime.TOOL_PROFESSION_MAP)>=14,'no old profession tools removed')
     names=set()
     for region,zone,level,element,guide,elite,boss,landmarks in REGIONS:

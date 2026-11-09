@@ -147,18 +147,6 @@ class SessionCombatDamageMixin:
                         return True
                 return False
 
-    def mob_effective_max_hp_v11330(self, mob, template=None):
-                if mob is None:
-                    return 1
-                template = template or MOB_TEMPLATES.get(mob.template_id, {})
-                return max(
-                    1,
-                    int(
-                        getattr(mob, "adaptive_max_hp_v11330", 0)
-                        or template.get("max_hp", 1)
-                        or 1
-                    ),
-                )
 
     def apply_adaptive_mob_scale_v11330(self, mob):
                 if not mob or not mob.alive or not self.character:
@@ -301,53 +289,8 @@ class SessionCombatDamageMixin:
                         high = mid
                 return max(1.0, min(1_000_000_000.0, high / float(base_raw)))
 
-    def mec_combat_mastery_active_v1124(self):
-                """Selected Mec inherent adapted to Soulbound's one-Soul-Weapon model."""
-                c = self.character
-                if not c or c.class_name != "Mec":
-                    return False
-                # Source explicitly says Combat Mastery does not work unarmed.
-                if not str(getattr(c, "soul_weapon", "") or "").strip():
-                    return False
-                return self.job_ability_selected(
-                    "inherent", "v0319_mec_combat_mastery"
-                )
 
-    def basic_attack_inherent_multiplier_v1124(self):
-                if self.mec_combat_mastery_active_v1124():
-                    return MEC_COMBAT_MASTERY_DAMAGE_MULTIPLIER_V1124
-                return 1.0
 
-    def basic_attack_build_v11196(self):
-                """Return (power, raw stat, channel) for the active class build."""
-                c = self.character
-                flat = self.equipment_flat_power_totals_v11187()
-                if c.class_type == "physical":
-                    # UOSS Combat Mastery only works with a purely STR melee weapon.
-                    # Soulbound has one persistent Mec Soul Weapon instead of separate
-                    # axe/claw/greatsword/etc. slots, so selecting Combat Mastery makes
-                    # the ordinary Mec Soul Weapon attack use its melee/STR role.
-                    if self.mec_combat_mastery_active_v1124():
-                        raw_stat = max(1, int(self.effective_strength()))
-                        power = self.physical_power()
-                    else:
-                        primary, _secondary = class_equipment_base_stat_pair(c.class_name)
-                        if primary == "dexterity":
-                            raw_stat = max(1, int(self.effective_dexterity()))
-                            power = (
-                                character_attribute_power(
-                                    c.character_level, raw_stat
-                                )
-                                + int(flat["attack"])
-                                + int(flat["weapon_power"])
-                            )
-                        else:
-                            raw_stat = max(1, int(self.effective_strength()))
-                            power = self.physical_power()
-                    return max(1, int(power)), raw_stat, "physical"
-
-                raw_stat = max(1, int(self.effective_intelligence()))
-                return max(1, int(self.spell_power())), raw_stat, "magic"
 
     def player_damage(self):
                 c = self.character
@@ -494,64 +437,6 @@ class SessionCombatDamageMixin:
                 )
                 return max(1.0, float(value) * crit_factor)
 
-    def consider_enemy_expected_hit(self, template):
-                damage_type = template.get("damage_type", "physical")
-                raw = max(1.0, float(template.get("damage", 1)))
-
-                if damage_type == "magic":
-                    reduction = float(self.magic_defense())
-                else:
-                    reduction = float(self.defense())
-
-                # Match real combat: flat Defense can strongly reward equipment,
-                # but cannot erase enemy attacks completely. Bosses retain the
-                # stricter 60% cap; ordinary enemies can be reduced by up to 75%.
-                is_boss = bool(
-                    template.get("boss")
-                    or template.get("world_boss")
-                    or template.get("crypt_boss")
-                    or template.get("mythic_crypt_boss")
-                    or template.get("astral_boss")
-                    or template.get("mythic_astral_boss")
-                    or template.get("boss_mechanic")
-                )
-                defense_cap_ratio = 0.60 if is_boss else 0.75
-                reduction = min(reduction, raw * defense_cap_ratio)
-                incoming = max(1.0, raw - reduction)
-
-                if damage_type == "physical":
-                    physical_race_percent = (
-                        self.character.racial_physical_damage_reduction_percent()
-                    )
-                    incoming *= max(
-                        0.0,
-                        1.0 - physical_race_percent / 100.0,
-                    )
-
-                racial_percent = (
-                    self.character.racial_damage_reduction_percent()
-                )
-                incoming *= max(
-                    0.0,
-                    1.0 - racial_percent / 100.0,
-                )
-
-                class_percent = (
-                    self.character.class_damage_reduction_percent()
-                )
-                incoming *= max(
-                    0.0,
-                    1.0 - class_percent / 100.0,
-                )
-
-                # Unik obniża średnie obrażenia w dłuższej walce.
-                incoming *= max(
-                    0.0,
-                    1.0 - self.dodge_chance(),
-                )
-
-                incoming *= elemental_expected_incoming_multiplier_v11339(template)
-                return max(1.0, incoming)
 
     def consider_adaptive_preview_v11331(self, mob, template):
                 """Preview encounter-local Adaptive Combat without starting or mutating combat."""
@@ -666,70 +551,6 @@ class SessionCombatDamageMixin:
                     "already_scaled": active_max_hp > 0,
                 }
 
-    def consider_rating(self, mob, template):
-                preview = self.consider_adaptive_preview_v11331(mob, template)
-                player_hit = preview["player_hit"]
-                player_action = preview["player_action"]
-                party_action = preview["party_action"]
-                enemy_hit = preview["enemy_hit"]
-
-                mob_hp = max(1, int(preview["current_hp"]))
-                player_hp = max(1, int(self.current_hp))
-
-                # In party play the encounter scales from total local party output,
-                # so danger must be judged against the same local party rather than
-                # pretending that the player fights the scaled target alone.
-                actions_to_kill = mob_hp / max(1.0, party_action)
-                enemy_actions_to_die = player_hp / max(1.0, enemy_hit)
-                ratio = enemy_actions_to_die / max(0.01, actions_to_kill)
-
-                # Boss mechanics are deliberately treated as extra danger.
-                if template.get("boss_mechanic"):
-                    ratio *= 0.82
-                if (
-                    template.get("crypt_boss")
-                    or template.get("astral_boss")
-                    or template.get("mythic_crypt_boss")
-                    or template.get("mythic_astral_boss")
-                ):
-                    ratio *= 0.90
-                if template.get("world_boss"):
-                    ratio *= 0.90
-
-                if ratio >= 3.0:
-                    label = "bardzo słaby"
-                    advice = "Powinien być dla ciebie łatwy."
-                elif ratio >= 1.9:
-                    label = "słaby"
-                    advice = "Masz wyraźną przewagę."
-                elif ratio >= 1.25:
-                    label = "korzystny"
-                    advice = "Masz przewagę, ale przeciwnik może zranić."
-                elif ratio >= 0.80:
-                    label = "porównywalny"
-                    advice = "Walka może być wyrównana."
-                elif ratio >= 0.50:
-                    label = "niebezpieczny"
-                    advice = "Przeciwnik ma przewagę. Przygotuj leczenie lub skille."
-                elif ratio >= 0.28:
-                    label = "bardzo niebezpieczny"
-                    advice = "Ryzyko śmierci jest wysokie."
-                else:
-                    label = "śmiertelnie groźny"
-                    advice = "Bez mocnego przygotowania lepiej go teraz nie atakować."
-
-                return {
-                    "label": label,
-                    "advice": advice,
-                    "player_hit": max(1, int(round(player_hit))),
-                    "player_hits": int(preview["player_hits"]),
-                    "player_action": max(1, int(round(player_action))),
-                    "party_action": max(1, int(round(party_action))),
-                    "enemy_hit": max(1, int(round(enemy_hit))),
-                    "turns_to_kill": max(1, int(math.ceil(actions_to_kill))),
-                    "turns_to_die": max(1, int(math.ceil(enemy_actions_to_die))),
-                    "adaptive": preview,
-                }
 
     async def consider_mob(self, query):
                 self.server.world.refresh()
@@ -901,3 +722,18 @@ class SessionCombatDamageMixin:
                     "i nie uruchamia automatycznej pętli walki."
                 )
 
+
+
+# v109: export safe domain implementations after the standalone-compatible class.
+from .combat_damage_parts_v109 import (
+    CombatMasteryV109Mixin,
+    CombatIncomingV109Mixin,
+    CombatRatingV109Mixin,
+    CombatHealthReadOnlyV109Mixin,
+)
+SessionCombatDamageMixin.mec_combat_mastery_active_v1124 = CombatMasteryV109Mixin.mec_combat_mastery_active_v1124
+SessionCombatDamageMixin.basic_attack_inherent_multiplier_v1124 = CombatMasteryV109Mixin.basic_attack_inherent_multiplier_v1124
+SessionCombatDamageMixin.basic_attack_build_v11196 = CombatMasteryV109Mixin.basic_attack_build_v11196
+SessionCombatDamageMixin.consider_enemy_expected_hit = CombatIncomingV109Mixin.consider_enemy_expected_hit
+SessionCombatDamageMixin.consider_rating = CombatRatingV109Mixin.consider_rating
+SessionCombatDamageMixin.mob_effective_max_hp_v11330 = CombatHealthReadOnlyV109Mixin.mob_effective_max_hp_v11330

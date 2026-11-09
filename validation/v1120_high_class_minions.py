@@ -21,8 +21,9 @@ def _validate_catalog():
         checks += 1
         if not v:
             raise AssertionError('MINIONY v11.00.20: ' + name)
-    classes = {r[0] for r in CLASSES}
-    assert len(classes) == 22
+    from core.class_skills_v10400 import NAMES as HISTORICAL_CLASSES
+    classes = set(HISTORICAL_CLASSES)
+    assert len(classes) == 22 and classes <= {r[0] for r in CLASSES}
     ck(len(CLASS_MINIONS_V1119) == 95, '95 unikalnych przywołań 19 klas')
     ck(len(CLASS_MINIONS_BY_CLASS_V1119) == 19, '19 klas klasowych')
     ck(set(CLASS_MINIONS_BY_CLASS_V1119) == classes - {'Druid','Mag','Nekromanta'}, '22/22 klas')

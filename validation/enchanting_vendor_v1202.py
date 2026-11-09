@@ -8,7 +8,7 @@ from types import SimpleNamespace
 def audit_enchanting_vendor_v1202():
     from data.catalogs import NPCS, ROOMS, ITEMS
     from systems.equipment_crafting import SHOPS, SHOP_SELLERS
-    from systems.items_resources import CLASS_SHOP_CLASSES_BY_ROOM
+    from systems.items_resources import CLASS_SHOP_CLASSES_BY_ROOM, CLASS_EQUIPMENT_SETS
     from core.mines_threat import TOOL_SHOP_ROOMS
     from player.session_mixins.command_registry import resolve_session_command
     from player.session_mixins.shops_teachers import SessionShopsTeachersMixin
@@ -38,7 +38,15 @@ def audit_enchanting_vendor_v1202():
     check(int(tool.get('price') or 0) > 0, 'Runic Focus has invalid price')
     check(TOOL_SHOP_ROOMS.get(item_id) == room_id, 'tool navigation points to wrong room')
     check(room_id not in CLASS_SHOP_CLASSES_BY_ROOM, 'class shop accidentally restored in shared chamber')
-    check(len(CLASS_SHOP_CLASSES_BY_ROOM) == 22, 'separate class shops missing')
+    # The original 22 independent shops must remain intact even after the
+    # 16 later classes join; audit the active class catalogue, not a frozen 22.
+    check(len(CLASS_SHOP_CLASSES_BY_ROOM) == len(CLASS_EQUIPMENT_SETS),
+          'separate class shop count does not match playable classes')
+    check(all(len(classes) == 1 for classes in CLASS_SHOP_CLASSES_BY_ROOM.values()),
+          'class shop room is shared by multiple classes')
+    check({classes[0] for classes in CLASS_SHOP_CLASSES_BY_ROOM.values()
+           if len(classes) == 1} == set(CLASS_EQUIPMENT_SETS),
+          'class shop missing or foreign playable class')
     check(resolve_session_command('list') == 'shop', 'list command no longer opens shop')
     check(resolve_session_command('kup') == 'buy', 'kup command no longer opens buy')
     sample = SimpleNamespace(character=SimpleNamespace(room_id=room_id))

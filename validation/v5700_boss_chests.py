@@ -78,7 +78,10 @@ async def suite():
     ok(repr(owner.server.live_content_v1204.draft)==before_draft,'quest DRAFT mutated')
     ok(list(owner.server.db.conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"))==before_tables,'SQLite modified')
     # Gameplay integration exactly after authored roll, before assignment in per-member loop.
-    source=(root/'player/session_mixins/admin_tools.py').read_text('utf8')
+    # v109: the exact chest reward handler lives in a shipped admin mixin.
+    # Inspect the real imported shard, not the former one-file facade.
+    from validation.v10900_actual_modular_source import read_actual_modular_source_v109
+    source=read_actual_modular_source_v109(root/'player/session_mixins/admin_tools.py')
     segment=source[source.index('            rewarded = []'):source.index('            if len(rewarded) > 1:',source.index('            rewarded = []'))]
     ok('reward = boss_chest_reward_roll(kind, floor, power)' in segment)
     ok('reward = extend_boss_chest_reward_v5700(kind, floor, reward)' in segment)

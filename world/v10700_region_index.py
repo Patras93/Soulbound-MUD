@@ -42,7 +42,7 @@ CHAPTER_ONE = (
         ('Popielny Piechur', 'Żarowy Strzelec', 'Ognisty Uciekinier',
          'Golem Spieków', 'Błędny Kowal', 'Płonący Posłaniec',
          'Wartownik Popiołu', 'Krwawa Iskra', 'Mistrz Pieców', 'Rycerz Zwęglonej Stali'),
-        ('Pył Spalonej Kuźni', 'Stopiony Gwóźdź', 'Serce Żaru', 'Piecowa Pieczęć'),
+        ('Pył Spalonej Kuźni', 'Stopiony Gwóźdź', 'Serce Żaru z Bastionu Popiołu', 'Piecowa Pieczęć'),
     ),
     (
         'zelazne_gwiazdy', 'Kraina Żelaznych Gwiazd',

@@ -6,6 +6,7 @@ Wszystkie ID historyczne zachowane; żadnych zmian na produkcji bez świadomego
 włączenia całego trybu roboczego SOULBOUND_V107_STAGING=1.
 """
 from __future__ import annotations
+from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
 
 from world.v10700_region_index import CHAPTER_ONE
 from world.v10300_era_bez_granic import PROFESSION_SPECS
@@ -277,7 +278,7 @@ def install(rooms,mobs,spawns,npcs,quests,items,recipes,
                 'olc_reward_xp':low*1650,'olc_reward_class_xp':low*1400,
                 'olc_reward_soul_xp':low*1200,'reward_gold':900+i*350+j*90,
                 'reward_mithril':i+2,'reward_items':{material_keys[(j-1)%4]:1},
-                'repeatable':not elite,flag:True,
+                'repeatable':not elite,**({'repeat_cooldown': QUEST_REPEAT_COOLDOWN_SECONDS} if not elite else {}),flag:True,
             }
             by_npc[who].append(qid)
         for j in range(1,9):
@@ -294,7 +295,7 @@ def install(rooms,mobs,spawns,npcs,quests,items,recipes,
                 'olc_reward_xp':low*1500,'olc_reward_class_xp':low*1300,
                 'olc_reward_soul_xp':low*1100,'reward_gold':900+i*340+j*90,
                 'reward_mithril':i+2,'reward_items':{material_keys[j%4]:1},
-                'repeatable':True,flag:True,
+                'repeatable':True,'repeat_cooldown':QUEST_REPEAT_COOLDOWN_SECONDS,flag:True,
             }
             by_npc[who].append(qid)
         for j in range(1,7):
@@ -315,7 +316,7 @@ def install(rooms,mobs,spawns,npcs,quests,items,recipes,
                 'olc_reward_xp':low*1500,'olc_reward_class_xp':low*1300,
                 'olc_reward_soul_xp':low*1200,'reward_gold':1000+i*420+j*110,
                 'reward_mithril':i+2,'reward_items':{material_keys[(j-1)%4]:1},
-                'repeatable':True,flag:True,
+                'repeatable':True,'repeat_cooldown':QUEST_REPEAT_COOLDOWN_SECONDS,flag:True,
             }
             by_npc[who].append(qid)
         for j,roomno in enumerate((2,5,9,15),1):

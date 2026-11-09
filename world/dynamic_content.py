@@ -1946,3 +1946,25 @@ if _sb107_runtime_enabled():
     from world.v10700_saga_760_quests import install as _sb_v107_saga_install
     V10700_SAGA_760_BUILD = _sb_v107_saga_install(
         ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS)
+
+# v109 Horyzonty: register only in the isolated test or approved v109 release.
+from systems.v10900_gifts import enabled as _sb_v109_world_enabled
+V10900_HORIZONS_BUILD = None
+from systems.v11000_activation import enabled as _sb110_world_enabled
+if _sb_v109_world_enabled() or _sb110_world_enabled():
+    from world.v10900_horizons import install as _sb109_install_horizons
+    V10900_HORIZONS_BUILD = _sb109_install_horizons(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER,
+    )
+    EXP_AREAS = EXP_AREAS + V10900_HORIZONS_BUILD['areas']
+
+V11000_REALMS_BUILD = None
+if _sb110_world_enabled():
+    from world.v11000_realms import install as _sb110_install_realms
+    V11000_REALMS_BUILD = _sb110_install_realms(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER)
+    EXP_AREAS = EXP_AREAS + V11000_REALMS_BUILD['areas']

@@ -47,12 +47,16 @@ def run():
         'validation/v10300_era_tcp_fixture_gate.py',
         'validation/v10300_era_crafting_runtime.py',
         'validation/v10300_era_crypt_unlock_runtime.py',
-        'SPRAWDZ_RAJD_ERA_V103_TCP.bat',
-        'SPRAWDZ_INNE_RAJDY_ERA_V103_TCP.bat',
         'PREDEPLOY_NOWEJ_WERSJI.bat',
         'WDROZ_PO_PREDEPLOY.bat',
     ]
     for item in required:ok((base/item).is_file(),'missing '+item)
+    for historical in ('SPRAWDZ_RAJD_ERA_V103_TCP.bat',
+                       'SPRAWDZ_INNE_RAJDY_ERA_V103_TCP.bat'):
+        if release.startswith('110.'):
+            ok(not (base/historical).exists(), 'retired root BAT returned: '+historical)
+        else:
+            ok((base/historical).is_file(), 'missing historical BAT '+historical)
     for script in ('predeploy_check.py','predeploy_full.py'):
         source=(base/script).read_text(encoding='utf-8')
         ok('v10300_final_release' in source,'final release gate in '+script)
@@ -64,7 +68,13 @@ def run():
                  'systems/era_npc_offers_v10300.py','validation/v10300_final_release.py'):
         ast.parse((base/item).read_text(encoding='utf-8'),filename=item)
         checks+=1
-    ok('Nie wdrazaj' not in changelog[:300], 'release is not labeled as a draft')
+    # The historical v103 shipping gate is also executed BEFORE v110's actual
+    # Windows approval.  A v110 staging ZIP MUST be unmistakably non-deployable;
+    # the old v103 final-release wording must not force an unsafe claim here.
+    if release.startswith('110.'):
+        ok(changelog.splitlines()[1].startswith('STATUS: NIE WDRAŻAĆ'), 'unapproved v110 must display a stable NOT DEPLOYABLE status on line two')
+    else:
+        ok('Nie wdrazaj' not in changelog[:300], 'release is not labeled as a draft')
     return checks
 
 if __name__=='__main__':

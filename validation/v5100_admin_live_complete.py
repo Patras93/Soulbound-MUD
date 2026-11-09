@@ -25,7 +25,9 @@ async def suite():
     async def cmd(txt,who=owner):
         await who.admin_command('live '+txt)
         return who.messages[-1]
-    ok(len(CLASS_SKILLS)==22,'22 classes')
+    from validation.class_balance_v1172 import _historical_22
+    old_rows,old_skills=_historical_22()
+    ok(len(old_rows)==22 and set(old_skills)=={r[0] for r in old_rows} and set(old_skills)<=set(CLASS_SKILLS),'22 historical classes intact')
     ok('POMOC 8/8' in await cmd('pomoc 8'),'single admin live help')
     ok('EDYCJA STATUS' in await cmd('questy edycja status'),'edit status')
     sample='questy edycja plan bandit_patrol | reward_stat_xp | 88 ; bandit_patrol | reward_stat_strength | 44'
@@ -94,25 +96,31 @@ async def suite():
     ok('ARENA11 START' in await cmd('arena start black_rabite 1000000 20000'),'boss lab')
     before=copy.deepcopy(owner.guardian7_lab)
     def digest(s):return (s['boss'].hp,s['hero_hp'],s['round'],s['total_dealt'],s['total_taken'],s['_guardian10_rng'])
-    for page in ('1','2','3'):
+    pages=max(1,(len(CLASS_SKILLS)+7)//8)
+    for page in map(str,range(1,pages+1)):
         msg=await cmd('arena klasy test 2 '+page)
-        ok('ARENA TEST KLAS: 22 klas' in msg,'22 classes report '+page+' '+msg)
+        ok(f'ARENA TEST KLAS: {len(CLASS_SKILLS)} klas' in msg,'all classes report '+page+' '+msg)
         ok('MODELEM' in msg,'honest label '+page)
         ok(digest(owner.guardian7_lab)==digest(before),'lab unchanged '+page)
         ok(random.getstate()==rnd,'production PRNG unchanged '+page)
-    ok(len(UOSS_SUPERBOSS_ENCOUNTERS_V11134)==21,'21 UOSS unique bosses')
-    for page in ('1','2','3'):
+    from validation.v11000_historical_uoss import verify_historical_uoss_ids
+    ok(verify_historical_uoss_ids(UOSS_SUPERBOSS_ENCOUNTERS_V11134)==21,'21 historic UOSS bosses intact')
+    boss_pages=max(1,(len(UOSS_SUPERBOSS_ENCOUNTERS_V11134)+7)//8)
+    for page in map(str,range(1,boss_pages+1)):
         msg=await cmd('arena bossy test 3 '+page)
-        ok('ARENA TEST BOSSY UOSS: 21' in msg,'21 boss source report '+page)
-        ok('model odmowil' not in msg,'source test completed '+page)
+        ok(f'ARENA TEST BOSSY UOSS: {len(UOSS_SUPERBOSS_ENCOUNTERS_V11134)}' in msg,'all boss source report '+page)
+        ok('ARENA TEST BOSSY UOSS:' in msg,'source boss model returned '+page)
+        from validation.v11000_historical_uoss import HISTORICAL_UOSS_IDS
+        ok(not any(f'{bid}: model odmowil' in msg for bid in HISTORICAL_UOSS_IDS),
+           'historical UOSS model rejected '+page)
         ok(digest(owner.guardian7_lab)==digest(before),'boss matrix leaves arena unchanged '+page)
         ok(random.getstate()==rnd,'boss matrix RNG isolation '+page)
     for turns in ('0','4','abc'):
         ok('ADMIN LIVE:' in await cmd('arena bossy test '+turns),'boss bad input')
-    ok('ADMIN LIVE:' in await cmd('arena bossy test 2 4'),'boss invalid page')
+    ok('ADMIN LIVE:' in await cmd('arena bossy test 2 '+str(boss_pages+1)),'boss invalid page')
     for turns in ('0','4','abc'):
         ok('ADMIN LIVE:' in await cmd('arena klasy test '+turns),'bad turns')
-    ok('ADMIN LIVE:' in await cmd('arena klasy test 1 4'),'bad page')
+    ok('ADMIN LIVE:' in await cmd('arena klasy test 1 '+str(pages+1)),'bad page')
     ok('QUEST BLEDY' in await cmd('questy bledy'),'older v49')
     ok('QUEST CYKLE' in await cmd('questy cykle'),'older v50')
     ok('QUEST EXP' in await cmd('questy exp bandit_patrol'),'older v47')

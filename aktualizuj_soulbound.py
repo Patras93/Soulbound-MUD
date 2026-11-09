@@ -24,7 +24,7 @@ import zipfile
 from windows_launcher_state import wait_gone
 from release_readme_cleanup import cleanup_legacy_readmes
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(os.environ.get('SOULBOUND_LIVE_ROOT') or Path(__file__).resolve().parent).resolve()
 VERSION_PATTERN = re.compile(r'^\s*VERSION\s*=\s*[\'"]([0-9]+(?:\.[0-9]+){2})[\'"]', re.M)
 RELEASE_PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 SKIP_PARTS = {'__pycache__', 'logs', '.git'}
@@ -79,7 +79,7 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
         if k in seen:
             raise UpdateError(f'Powtarzajaca sie nazwa w ZIP: {relative}')
         seen.add(k)
-        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json'):
+        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json', 'live_content/v109_release_activation.json', 'live_content/release_current.json'):
             raise UpdateError('Znaczniki zatwierdzenia v107/v108 moze utworzyc tylko instalator.')
         if protected(relative):
             if relative.name.lower().endswith(SQLITE_SUFFIXES):
@@ -149,9 +149,25 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
     fabricate an approval by bundling a JSON file. Earlier releases retain
     their historic updater behavior.
     """
-    if version_tuple(new_version) >= (108, 0, 0):
+    if new_version == '110.00.0':
+        # Only today's installed version and today's approved ZIP matter.
+        # Historical installer .py files and old approval manifests are irrelevant.
+        if file_version(root/'core/bootstrap_economy_professions.py')!='109.00.0':
+            raise UpdateError('v110: wymagana zainstalowana v109.00.0; bez migracji skokowej.')
+    elif version_tuple(new_version) >= (110, 0, 0):
+        raise UpdateError('v110: nieznana nowsza wersja bez osobnego zatwierdzenia.')
+    elif new_version == '109.00.0':
+        from validation.v10900_release_readiness import unmet_requirements as v109_missing
+        if v109_missing(ROOT):
+            raise UpdateError('v109: niekompletna integracja aktywacji, STOP zabroniony.')
+        if file_version(root/'core/bootstrap_economy_professions.py')!='108.00.0':
+            raise UpdateError('v109: wymagana zainstalowana produkcyjna v108.00.0.')
+        from systems.v10800_activation import verify_root_for_test as verify_v108
+        if not verify_v108(root):
+            raise UpdateError('v109: brak trwałej autoryzacji zainstalowanej v108.')
+    elif version_tuple(new_version) >= (108, 0, 0):
         if new_version != '108.00.0':
-            raise UpdateError('v108: nieznany numer wydania, brak zweryfikowanej sciezki migracji.')
+            raise UpdateError('Nieznany numer wydania, brak zweryfikowanej sciezki migracji.')
         from validation.v10800_release_readiness import unmet_requirements
         if unmet_requirements(ROOT):
             raise UpdateError('v108: niekompletna sciezka aktywacji i EQ; STOP zabroniony.')
@@ -171,6 +187,10 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
         if new_version == '108.00.0' and (state.get('v108_release_gates_pass') is not True
                                                  or state.get('v108_eq_rebuild_trial_pass') is not True):
             raise UpdateError('v108: brak zaliczonej dodatkowej bramki wydania, niczego nie zatrzymano.')
+        if new_version == '110.00.0' and state.get('v110_release_gates_pass') is not True:
+            raise UpdateError('v110: brak osobnej bramki wydania; STOP zabroniony.')
+        if new_version == '109.00.0' and state.get('v109_release_gates_pass') is not True:
+            raise UpdateError('v109: brak zaliczonych osobnych bramek v109, STOP zabroniony.')
     except (OSError, ValueError, UnicodeError) as exc:
         raise UpdateError('v104: brak zaliczonego oficjalnego PREDEPLOY 60/60 PLUS. '
                           'Uruchom PREDEPLOY_NOWEJ_WERSJI.bat; niczego nie zatrzymano.') from exc
@@ -186,7 +206,9 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
               and state.get('installed_at_test') == file_version(
                   root / 'core/bootstrap_economy_professions.py')
               and (new_version != '108.00.0' or (state.get('v108_release_gates_pass') is True
-                         and state.get('v108_eq_rebuild_trial_pass') is True)))
+                         and state.get('v108_eq_rebuild_trial_pass') is True))
+              and (new_version != '109.00.0' or state.get('v109_release_gates_pass') is True)
+              and (new_version != '110.00.0' or state.get('v110_release_gates_pass') is True))
     if not needed:
         raise UpdateError('v104: brak zgodnego 60/60 PLUS dla tej wersji i aktualnie '
                           'zainstalowanej gry. Niczego nie zatrzymano.')
@@ -328,9 +350,11 @@ def _restore_prior_code_after_v108_cutover_failure(root: Path, backup: Path, sta
 
     # Generated v108 manifest is installer-created rather than a ZIP member.
     # Do not leave it behind when reverting to the previous release.
-    generated = Path('LIVE_CONTENT/v108_release_activation.json')
-    if not (backup/generated).exists():
-        (root/generated).unlink(missing_ok=True)
+    for generated in (Path('LIVE_CONTENT/v108_release_activation.json'),
+                      Path('LIVE_CONTENT/v109_release_activation.json'),
+                      Path('LIVE_CONTENT/release_current.json')):
+        if not (backup/generated).exists():
+            (root/generated).unlink(missing_ok=True)
 
 
 def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True) -> Path:
@@ -394,6 +418,24 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
                                          sort_keys=True, indent=2)+'\n',encoding='utf-8')
             if not verify_root_for_test(stage):
                 raise UpdateError('v108: znacznik instalacji nie zweryfikowal plikow przed STOP.')
+        if new_version == '110.00.0':
+            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
+            from systems.v11000_activation import activation_manifest, verify
+            marker=stage/'LIVE_CONTENT'/'release_current.json'
+            marker.parent.mkdir(parents=True,exist_ok=True)
+            marker.write_text(json.dumps(activation_manifest(state,archive_path,stage,mapping),
+                                         sort_keys=True,indent=2)+'\n',encoding='utf-8')
+            if not verify(stage):
+                raise UpdateError('v110: manifest bieżącego wydania nie zgadza się ze stagingiem; brak STOP.')
+        if new_version == '109.00.0':
+            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
+            from systems.v10900_activation import activation_manifest, verify_root_for_test
+            marker=stage/'LIVE_CONTENT'/'v109_release_activation.json'
+            marker.parent.mkdir(parents=True,exist_ok=True)
+            marker.write_text(json.dumps(activation_manifest(state,archive_path,stage),
+                                         sort_keys=True,indent=2)+'\n',encoding='utf-8')
+            if not verify_root_for_test(stage):
+                raise UpdateError('v109: manifest stagingu nie zweryfikował kodu; brak STOP.')
         # The ZIP was approved BEFORE staging. The source might change during
         # extraction (download, antivirus or another process). Verify the
         # approved SHA again BEFORE stopping the running server. This is a
@@ -450,6 +492,59 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
                         raise UpdateError('V108: przerwano, automatyczne cofniecie NIEPELNE: '
                                           +', '.join(errors)+'. Nie uruchamiaj bez kontroli.')
                     raise
+        elif new_version == '110.00.0':
+            installed=False
+            try:
+                install_stage(root,stage,backup)
+                installed=True
+                # Retire the old, exactly certified v109 BAT/Python launchers.
+                # The backup exists; changed user files are not removed.
+                from systems.v11000_retired_installers import retire
+                retired, retained = retire(root, backup)
+                print(f'V110: usunieto {len(retired)} identycznych starych launcherow; '
+                      f'zachowano {len(retained)} plikow zmodyfikowanych.',flush=True)
+                from systems.v11000_activation import verify
+                if (file_version(root/'core/bootstrap_economy_professions.py') != new_version
+                    or not verify(root)):
+                    raise UpdateError('v110: niezgodne pliki lub manifest po instalacji.')
+                from contextlib import closing
+                import sqlite3
+                db_path=root/'soulbound.db'
+                with closing(sqlite3.connect(db_path.as_uri()+'?mode=ro',uri=True)) as conn:
+                    conn.execute('PRAGMA query_only=ON')
+                    if not conn.execute("SELECT 1 FROM sqlite_master "
+                            "WHERE name='v107_eq_production_cutover'").fetchone():
+                        raise UpdateError('v110: brak fizycznego rejestru EQ z v108.')
+                    if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+                        raise UpdateError('v110: kontrola SQLite nie powiodła się.')
+                print('V110: bieżący manifest PASS; EQ i bazę graczy zachowano.',flush=True)
+            except BaseException:
+                if installed:
+                    _restore_prior_code_after_v108_cutover_failure(root,backup,set(mapping)|{
+                        Path('LIVE_CONTENT/release_current.json')})
+                raise
+        elif new_version == '109.00.0':
+            installed=False
+            try:
+                install_stage(root,stage,backup)
+                installed=True
+                from systems.v10900_activation import verify_root_for_test
+                if (file_version(root/'core/bootstrap_economy_professions.py') != new_version
+                        or not verify_root_for_test(root)):
+                    raise UpdateError('v109: po instalacji brak zgodnego znacznika i kodu.')
+                # No EQ rebuild: preserve the certified v108 physical ledger.
+                from contextlib import closing
+                import sqlite3
+                live_db=root/'soulbound.db'
+                with closing(sqlite3.connect(live_db.as_uri()+'?mode=ro',uri=True)) as conn:
+                    conn.execute('PRAGMA query_only=ON')
+                    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v107_eq_production_cutover'").fetchone():
+                        raise UpdateError('v109: zniknęła istniejąca tabela EQ v108.')
+                print('V109: kod i trwały manifest PASS, fizyczne EQ bez migracji.',flush=True)
+            except BaseException:
+                if installed:
+                    _restore_prior_code_after_v108_cutover_failure(root,backup,set(mapping))
+                raise
         else:
             install_stage(root, stage, backup)
         if file_version(root / 'core/bootstrap_economy_professions.py') != new_version:

@@ -33,9 +33,29 @@ def audit_economy_final_v1175():
             errors.append(message)
 
     from core.bootstrap_economy_professions import VERSION
-    expected_professions = 22 if int(VERSION.split('.',1)[0]) >= 6 else 14
+    current_major=int(VERSION.split('.',1)[0])
+    expected_professions = 22 if current_major >= 6 else 14
+    successor_names=set()
+    if current_major >= 107:
+        from core.v10700_new_archetypes import PROFESSION_SPECS as v107_professions
+        v107_names={row[0] for row in v107_professions}
+        check(len(v107_names)==8, 'v107 must declare eight unique professions')
+        successor_names.update(v107_names)
+        expected_professions += 8
+    if current_major >= 110:
+        from core.v11000_archetypes import PROFESSION_SPECS as v110_professions
+        v110_names={row[0] for row in v110_professions}
+        check(len(v110_names)==8 and not (v110_names & successor_names),
+              'v110 must declare eight additional, non-colliding professions')
+        successor_names.update(v110_names)
+        expected_professions += 8
     check(len(PROFESSION_RANK_NAMES) == expected_professions,
           f"profession definitions mismatch: expected {expected_professions}, got {len(PROFESSION_RANK_NAMES)}")
+    check(successor_names <= set(PROFESSION_RANK_NAMES),
+          'v107/v110 registered professions do not match their authored identifiers')
+    for name in sorted(successor_names):
+        check(len(PROFESSION_RANK_NAMES[name]) == 8,
+              f'{name}: missing one of eight profession ranks')
     check((SILVER_PER_GOLD, SILVER_PER_MITHRIL) == (100, 100_000_000),
           "currency denomination drift")
     sale = SessionSalesMixin()

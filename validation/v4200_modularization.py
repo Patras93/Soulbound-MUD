@@ -30,14 +30,14 @@ def expected_moved_ast_digest_v4200(root, symbol, legacy_digest, function_node):
     # v106 and v107 retain the exact audited v105 Soul trial implementation;
     # the v106 raid-counterattack safeguard also remains byte-for-byte audited.
     # A new release number must not silently reinstate the v104 hash.
-    if version in ('106.00.0', '107.00.0', '108.00.0') and symbol == 'SessionSkillLearningMixin.enemy_counterattack':
+    if version in ('106.00.0', '107.00.0', '108.00.0', '109.00.0', '110.00.0') and symbol == 'SessionSkillLearningMixin.enemy_counterattack':
         if legacy_digest != 'd87b3547c382fc27bc675b4e1bba6efe2f2aa17302aec76cf1fa80279fead176':
             raise AssertionError('Historyczny kontrakt kontry bossa ulegl zmianie.')
         body=ast.unparse(function_node)
         if 'cap_raid_incoming_v106' not in body or 'self.current_hp -= incoming' not in body:
             raise AssertionError('Brak ochrony realnej druzyny v106 w kontrataku.')
         return V106_COUNTERATTACK_AST_SHA256
-    if version in ('107.00.0', '108.00.0') and symbol == 'SessionIOAuthCharacterMixin.choose_existing_character':
+    if version in ('107.00.0', '108.00.0', '109.00.0', '110.00.0') and symbol == 'SessionIOAuthCharacterMixin.choose_existing_character':
         # The v107 rescue code deliberately differs from the v104 refactoring
         # baseline. Pin its full AST; do not disable the legacy audit.
         if legacy_digest != '83ac11323fe3aa427837c71c59098d896ba01932f8574d2aa998a9858bd7d570':
@@ -54,14 +54,14 @@ def expected_moved_ast_digest_v4200(root, symbol, legacy_digest, function_node):
     # v108 modifies two extracted methods on purpose: the creator's route
     # back to races and the Giant Fortress portal dispatch. Preserve a strict
     # exact AST pin for both; never silently waive the refactoring ledger.
-    if version == '108.00.0' and symbol == 'SessionIOAuthCharacterMixin.character_creator':
+    if version in ('108.00.0', '109.00.0', '110.00.0') and symbol == 'SessionIOAuthCharacterMixin.character_creator':
         if legacy_digest != '38585cde3f8bf660db1f0bb46de9d66e2dbae0b9dd345fa0c4116fe794962767':
             raise AssertionError('Kreator: nieoczekiwany historyczny wzorzec AST.')
         body=ast.unparse(function_node)
         if not all(token in body for token in ('wroc', 'wróć', 'rasy', 'Wybierz rasę', 'Wybierz klasę')):
             raise AssertionError('Kreator v108: brak powrotu do ras i wyboru klasy.')
         return '5bb2cffd976ef4f5564a57893e190a5c1ea23765953d64ba24cc50dcfea98116'
-    if version == '108.00.0' and symbol == 'SessionDungeonProgressionMixin.use_crypt_portal':
+    if version in ('108.00.0', '109.00.0', '110.00.0') and symbol == 'SessionDungeonProgressionMixin.use_crypt_portal':
         if legacy_digest != '373549c583e8c9fc998f1dda2a84d07abca3b48d44da0f1bbb7ef8a656b26551':
             raise AssertionError('Portale: nieoczekiwany historyczny wzorzec AST.')
         body=ast.unparse(function_node)
@@ -70,7 +70,7 @@ def expected_moved_ast_digest_v4200(root, symbol, legacy_digest, function_node):
                 'portal_requires_local_leader_v12811')):
             raise AssertionError('Portale v108: brak ochrony i routingu Twierdzy.')
         return '8a7c5c1672c3df266f7e908ce2ce3c585960392a5d3106eeea2f9a313ee3cbf0'
-    if version not in ('105.00.0', '106.00.0', '107.00.0', '108.00.0') or symbol != 'SessionSkillLearningMixin.unlock':
+    if version not in ('105.00.0', '106.00.0', '107.00.0', '108.00.0', '109.00.0', '110.00.0') or symbol != 'SessionSkillLearningMixin.unlock':
         return legacy_digest
     if legacy_digest != V104_UNLOCK_AST_SHA256:
         raise AssertionError('Historyczny fingerprint metody unlock z v104 zostal zmieniony.')
@@ -113,7 +113,15 @@ def run_regression():
     assert release_valid(VERSION, '4.20.0')
     # v53: v50+ retains the current 6793-quest catalog too.
     if modern_quest_catalog(VERSION):
-        assert len(server.CLASS_SKILLS)==22 and len(server.QUESTS)>=6793, 'v35 regression: 22 classes and 6793 real quests'
+        # The v107 catalogue is activated after the 22-class bootstrap.
+        # Require 30 in an activated runtime, never in an isolated predeploy bootstrap.
+        if int(VERSION.split('.',1)[0])>=107:
+            from systems.v10700_activation import enabled as v107_enabled
+            expected_classes=(38 if int(VERSION.split(".",1)[0]) >= 110 and v107_enabled()
+                              else 30 if v107_enabled() else 22)
+        else:
+            expected_classes=22
+        assert len(server.CLASS_SKILLS)==expected_classes and len(server.QUESTS)>=6793, ('legacy runtime classes/quests',VERSION,len(server.CLASS_SKILLS),len(server.QUESTS))
     else:
         assert len(server.CLASS_SKILLS)==22 and len(server.QUESTS)== (6793 if VERSION in ('73.00.0','74.00.0','75.00.0','76.00.0','77.00.0','78.00.0','79.00.0','80.00.0','81.00.0','82.00.0','83.00.0','84.00.0','85.00.0','86.00.0','87.00.0','88.00.0','89.00.0','90.00.0','91.00.0','92.00.0','93.00.0','94.00.0','95.00.0','96.00.0') else expected_quest_total_v1100() if VERSION in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 6585 if VERSION in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 6573 if VERSION == '9.00.0' else 5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 2701)
     checks+=3
@@ -125,7 +133,22 @@ def run_regression():
     for label,cls in [('SessionCombatSkillsMixin',SessionCombatSkillsMixin),('SessionSkillLearningMixin',SessionSkillLearningMixin),('DatabaseWorldMixin',DatabaseWorldMixin)]:
         for sym in (x.rsplit('.',1)[1] for x in LEDGER if x.startswith(label+'.')):
             fn=cls.__dict__.get(sym)
-            assert fn is not None and fn.__module__==cls.__module__ and fn.__globals__ is __import__(cls.__module__,fromlist=['']).__dict__,(label,sym)
+            module_globals=__import__(cls.__module__,fromlist=['']).__dict__
+            assert fn is not None and fn.__module__==cls.__module__,(label,sym)
+            if VERSION=='110.00.0':
+                # v107 Magitek deliberately wraps six existing skill entrypoints.
+                # Verify every wrapper's owning module and that the chain ends
+                # at the original v4200 rebound method, not at an unknown shim.
+                underlying=fn
+                while underlying.__globals__ is not module_globals:
+                    origin=underlying.__globals__.get('__name__')
+                    assert origin in ('systems.magitek_runtime_v107',
+                                      'systems.magitek_support_v107'),(label,sym,origin)
+                    underlying=getattr(underlying,'__wrapped__',None)
+                    assert underlying is not None,(label,sym,'missing original')
+                assert underlying.__module__==cls.__module__,(label,sym)
+            else:
+                assert fn.__globals__ is module_globals,(label,sym)
             checks+=1
     return checks
 

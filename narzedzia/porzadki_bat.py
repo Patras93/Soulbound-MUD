@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Opcjonalne porządki BAT po instalacji Soulbound v108.
+"""Opcjonalne porządki BAT po instalacji Soulbound v108 lub v109.
 
 Domyslnie tylko sprawdza. --wykonaj wymaga recznego potwierdzenia.
 Nie dotyka SQLite, plikow graczy ani dzialania serwera. Stare BAT zachowuje
@@ -82,8 +82,8 @@ def plan(root=ROOT):
 
 def cleanup(root=ROOT, *, execute=False):
     root=Path(root)
-    if execute and (root/'VERSION').read_text(encoding='utf-8-sig').strip()!='108.00.0':
-        raise RuntimeError('Porzadki tylko po instalacji v108, nie na v107')
+    if execute and (root/'VERSION').read_text(encoding='utf-8-sig').strip() not in ('108.00.0', '109.00.0'):
+        raise RuntimeError('Porzadki tylko po instalacji v108/v109, nie na starszej wersji')
     planned=plan(root)
     if execute:
         target=root/'narzedzia'/'bat_historyczne'/'z_instalacji'
@@ -121,7 +121,7 @@ def main(argv=None):
     changed=sum(state=='POMIN_ZMIENIONY' for _,state in planned)
     print(('PRZENIESIONO' if execute else 'DO PRZENIESIENIA')+': '+str(ready))
     print('POMINIETO, BO ZMIENIONE PRZEZ UZYTKOWNIKA: '+str(changed))
-    if not execute: print('Tryb tylko do odczytu. --wykonaj wymaga potwierdzenia i v108.')
+    if not execute: print('Tryb tylko do odczytu. --wykonaj wymaga potwierdzenia i v108/v109.')
     return 0
 
 if __name__=='__main__':

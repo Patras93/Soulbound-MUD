@@ -79,6 +79,115 @@ async def quest_page_number(client, npc, qname):
                           command, bytes(result[-1600:]).decode('utf-8', 'replace')))
 
 
+async def tcp_confirm_boss(client, boss):
+    """Do not mistake the first TCP room-header chunk for a complete `look`.
+
+    Looking directly at the named living mob returns its name followed by
+    a separate HP line. Require BOTH genuine server messages, with a bounded
+    deadline; missing bosses and truncated replies still fail this gate.
+    """
+    await client.drain_idle(quiet=.08, total=.25)
+    await client.send('look ' + boss)
+    response = bytearray()
+    deadline = time.monotonic() + 65
+    name_line = boss + '. Przeciwnik.'
+    while time.monotonic() < deadline:
+        remaining = deadline - time.monotonic()
+        try:
+            piece = await asyncio.wait_for(client.reader.read(16384),
+                                           timeout=min(2, max(.01, remaining)))
+        except asyncio.TimeoutError:
+            continue
+        if not piece:
+            raise AssertionError((client.name, boss, 'TCP closed before full mob description',
+                                  response[-800:].decode('utf-8', 'replace')))
+        response.extend(piece)
+        if len(response) > 100_000:
+            raise AssertionError((client.name, boss, 'oversized mob description'))
+        text = response.decode('utf-8', 'replace').replace('\r', '')
+        if 'Wystąpił błąd komendy' in text or 'Wystąpił błąd sesji' in text:
+            raise AssertionError((client.name, boss, 'server error', text[-850:]))
+        if 'Nie widzisz tutaj takiego gracza' in text:
+            raise AssertionError((client.name, boss, 'mob not visible', text[-850:]))
+        if (name_line in text and re.search(r'(?m)^HP:\s*\d+\s+z\s+\d+\.', text)):
+            return text
+    raise AssertionError((client.name, boss, 'incomplete boss look after 65 seconds',
+                          response[-1000:].decode('utf-8', 'replace')))
+
+
+async def tcp_start_boss_combat(client, boss):
+    """Await the genuine combat acknowledgement instead of a partial TCP read."""
+    await client.drain_idle(quiet=.1, total=.4)
+    await client.send('k ' + boss)
+    response = bytearray()
+    deadline = time.monotonic() + 65
+    while time.monotonic() < deadline:
+        remaining = deadline - time.monotonic()
+        try:
+            piece = await asyncio.wait_for(client.reader.read(16384),
+                                           timeout=min(2, max(.01, remaining)))
+        except asyncio.TimeoutError:
+            continue
+        if not piece:
+            raise AssertionError((client.name, boss, 'TCP closed before combat',
+                                  response[-850:].decode('utf-8', 'replace')))
+        response.extend(piece)
+        if len(response) > 200_000:
+            raise AssertionError((client.name, boss, 'oversized combat response'))
+        text = response.decode('utf-8', 'replace')
+        if 'Wystąpił błąd komendy' in text or 'Wystąpił błąd sesji' in text:
+            raise AssertionError((client.name, boss, 'server error', text[-850:]))
+        if 'Walka w czasie rzeczywistym' in text or 'pokonany' in text.lower():
+            return text
+        if 'Nie widzisz tutaj' in text or 'Nie ma takiego' in text:
+            raise AssertionError((client.name, boss, 'combat target absent', text[-850:]))
+    raise AssertionError((client.name, boss, 'no combat acknowledgement after 65 seconds',
+                          response[-1000:].decode('utf-8', 'replace')))
+
+
+def run_tcp_stream_regression():
+    """Fragmented TCP output and a missing boss must never become false PASS."""
+    class Reader:
+        def __init__(self, parts):
+            self.parts = iter(parts)
+        async def read(self, _size):
+            await asyncio.sleep(0)
+            return next(self.parts, b'')
+    class Client:
+        name = 'stream-test'
+        def __init__(self, parts):
+            self.reader = Reader(parts)
+            self.sent = []
+        async def send(self, cmd):
+            self.sent.append(cmd)
+        async def drain_idle(self, **_kwargs):
+            return ''
+    async def check():
+        checks = 0
+        boss = 'Strażnik Popiołu'
+        client = Client([b'Arena Stra', 'żnika\n'.encode('utf-8'),
+                         (boss + '. Przeciwnik.\nH').encode('utf-8'), b'P: 1 z 410040000.\n'])
+        result = await tcp_confirm_boss(client, boss)
+        assert 'HP: 1 z 410040000.' in result and client.sent == ['look '+boss]
+        checks += 1
+        for parts in (['Arena Strażnika. Strefa: test.\n'.encode('utf-8')],
+                      ['Nie widzisz tutaj takiego gracza, NPC, przeciwnika ani przedmiotu.\n'.encode('utf-8')]):
+            client = Client(parts)
+            try:
+                await tcp_confirm_boss(client, boss)
+            except AssertionError:
+                checks += 1
+            else:
+                raise AssertionError('Missing boss / truncated TCP incorrectly accepted')
+        client = Client([b'SOUND_EVENT MOB_HP', b'Walka w czasie rzeczy',
+                         'wistym rozpoczęta.\n'.encode('utf-8')])
+        result = await tcp_start_boss_combat(client, boss)
+        assert 'Walka w czasie rzeczywistym' in result and client.sent == ['k '+boss]
+        checks += 1
+        return checks
+    return asyncio.run(check())
+
+
 async def game(port,stage):
     print('BOSS clients login: '+stage,flush=True)
     clients=[TcpPlayer(f'tcpcheck{i}',f'Testtcp{i}',port) for i in range(1,PLAYERS+1)]
@@ -93,9 +202,9 @@ async def game(port,stage):
                 response=await c.command('przyjmij '+number,quiet=.3)
                 assert 'Quest przyjęty' in response,(i,response[-1100:]);checks+=1
             elif stage=='battle':
-                look=await c.command('look',quiet=.3)
-                assert boss.lower() in look.lower(),(i,look[-750:]);checks+=1
-                response=await c.command('k '+boss,quiet=.3)
+                look=await tcp_confirm_boss(c,boss)
+                assert boss + '. Przeciwnik.' in look,(i,look[-750:]);checks+=1
+                response=await tcp_start_boss_combat(c,boss)
                 assert 'Walka w czasie rzeczywistym' in response or 'pokonany' in response.lower(),(i,response[-900:]);checks+=1
                 print('BOSS ATTACK:',boss,repr(response[-380:]),flush=True)
             elif stage=='reward':
@@ -173,10 +282,13 @@ def cycle(directory,dbpath,stage):
     finally:_stop_child(proc)
 
 def run():
+    stream_checks=run_tcp_stream_regression()
+    assert stream_checks==4
+    print('V105 TCP BOSS fragmented stream regression: 4/4 PASS',flush=True)
     with tempfile.TemporaryDirectory(prefix='soulbound-tcp5-v105-boss-') as temp:
         dbpath=Path(temp).resolve()/'five_players.sqlite'
         print('BOSS offer stage',flush=True)
-        checks=cycle(temp,dbpath,'offer')
+        checks=stream_checks+cycle(temp,dbpath,'offer')
         checks+=status(dbpath,'active')
         print('BOSS battle stage',flush=True)
         checks+=cycle(temp,dbpath,'battle')

@@ -23,8 +23,19 @@ def run_regression():
         nonlocal count
         assert condition, message
         count+=1
-    check(len(master.SPECIALTIES)==14, 'all 14 professions')
-    for profession,options in master.SPECIALTIES.items():
+    # This v2.20.0 regression owns the original 14 mastery contracts only.
+    # v107 and v110 register additional professions into the same runtime map;
+    # exercising them here would require historical fixtures that only have 14
+    # separate accounts. Their new contracts have dedicated release tests.
+    historical_professions=(
+        'Wędkarstwo','Górnictwo','Drwalstwo','Kowalstwo','Gotowanie',
+        'Zielarstwo','Alchemia','Jubilerstwo','Krawiectwo','Garbarstwo',
+        'Stolarstwo','Zaklinanie','Archeologia','Kartografia',
+    )
+    check(len(historical_professions)==14 and set(historical_professions)<=set(master.SPECIALTIES),
+          'all 14 historical profession contracts retained')
+    for profession in historical_professions:
+        options=master.SPECIALTIES[profession]
         check(len(options)==3 and len(set(options))==3, f'specialties {profession}')
         check(master.canonical(profession)==profession, f'canonical {profession}')
     check(tactics.ROLES==frozenset(('obronca','dowodca','uzdrowiciel','mag','lowca','wojownik','nekromanta')), 'roles')
@@ -41,7 +52,8 @@ def run_regression():
     conn.executemany('INSERT INTO characters VALUES (?,?,0,0)',[(i,5000) for i in range(1,15)])
     master.init(conn);master.init(conn)
     check(len(conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'profession_%_v2200'").fetchall())==2,'idempotent schema')
-    for i,(profession,specialties) in enumerate(master.SPECIALTIES.items(),1):
+    for i,profession in enumerate(historical_professions,1):
+        specialties=master.SPECIALTIES[profession]
         try:master.unlock(conn,i,profession,specialties[0],99,now=10000)
         except ValueError:count+=1
         else:raise AssertionError('must reject too-low level')

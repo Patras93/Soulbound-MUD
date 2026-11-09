@@ -15,7 +15,50 @@ def run():
     n = 0
     original = next(row.copy() for row in CLASS_SKILLS['Wojownik'] if row['id']=='warrior_power_slash')
     amount = sum(len(group) for group in CLASS_SKILLS.values())
-    assert amount == 5527;n+=1
+    # Every era must preserve its existing authored catalogue. v107 added
+    # Magitek (16) plus 7 x 7 skills; v110 added another 8 x 10. Avoid an
+    # obsolete total count, but never replace it with a permissive >= check.
+    from core.magitek_v107 import CLASS_NAME as magitek_name, skill_catalogue as magitek_skills
+    from core.v10700_new_archetypes import CLASS_SPECS as old_specs, _skills as old_skills
+    from core.v11000_archetypes import CLASS_SPECS as new_specs, _skills as new_skills
+    magitek_present = magitek_name in CLASS_SKILLS
+    old_names = {row[0] for row in old_specs}
+    new_names = {row[0] for row in new_specs}
+    extra_names = old_names | new_names | {magitek_name}
+    authored_names = set(CLASS_SKILLS) - extra_names
+    authored_amount = sum(len(CLASS_SKILLS[name]) for name in authored_names)
+    assert len(authored_names) == 22 and authored_amount == 5527;n+=1
+    extra_total = 0
+    if magitek_present:
+        assert {s['id'] for s in CLASS_SKILLS[magitek_name]} == {s['id'] for s in magitek_skills()}
+        assert len(CLASS_SKILLS[magitek_name]) == 16;n+=2
+        extra_total += 16
+    old_present = any(name in CLASS_SKILLS for name in old_names)
+    if old_present:
+        assert magitek_present and all(name in CLASS_SKILLS for name in old_names);n+=1
+        v107_ids = []
+        for name,mode,_weapon,stat,_passive,_value,labels in old_specs:
+            slug = str(name).lower().replace('ł','l').replace(' ','_')
+            expected = {s['id'] for s in old_skills(name,slug,stat,mode=='magic',labels)}
+            actual = {s['id'] for s in CLASS_SKILLS[name]}
+            assert actual == expected and len(CLASS_SKILLS[name]) == 7;n+=1
+            v107_ids.extend(actual)
+        assert len(v107_ids) == len(set(v107_ids)) == 49;n+=1
+        extra_total += 49
+    new_present = any(name in CLASS_SKILLS for name in new_names)
+    if new_present:
+        assert magitek_present and old_present
+        assert all(name in CLASS_SKILLS for name in new_names);n+=1
+        v110_ids = []
+        for name,mode,_weapon,stat,_passive,_value,*labels in new_specs:
+            tag = name.casefold().translate(str.maketrans('ąćęłńóśźż', 'acelnoszz')).replace(' ', '_')
+            expected = {s['id'] for s in new_skills(name,tag,stat,mode=='magic',labels)}
+            actual = {s['id'] for s in CLASS_SKILLS[name]}
+            assert actual == expected and len(CLASS_SKILLS[name]) == 10;n+=1
+            v110_ids.extend(actual)
+        assert len(v110_ids) == len(set(v110_ids)) == 80;n+=1
+        extra_total += 80
+    assert amount == 5527 + extra_total;n+=1
     conn = sqlite3.connect(':memory:');conn.row_factory = sqlite3.Row
     conn.execute('CREATE TABLE quests (quest_id TEXT,status TEXT)')
     world=SimpleNamespace(mobs={},_last_refresh_at=0.0,_register_runtime_spawn=lambda *_:None)

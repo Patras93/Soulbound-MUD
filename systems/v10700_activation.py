@@ -103,7 +103,16 @@ def production_approved():
         return True
     try:
         from systems.v10800_activation import production_approved as v108_approved
-        return v108_approved()
+        if v108_approved():
+            return True
+        current=(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()
+        if current == '109.00.0':
+            from systems.v10900_activation import production_approved as v109_approved
+            return v109_approved()
+        if current == '110.00.0':
+            from systems.v11000_activation import production_approved as v110_approved
+            return v110_approved()
+        return False
     except (ImportError, OSError):
         return False
 

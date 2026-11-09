@@ -10,12 +10,21 @@ def run():
     import server
     from systems.content_registry import MOB_TEMPLATES
     from systems.encounter_brain_v1230 import boss_tactics_phase_v1230
-    from world.v10300_era_bez_granic import ERAS
+    from world.v10300_era_bez_granic import ERAS, install as era_install
+    from world.v10300_era_raids import install as legacy_raid_install
+    # v107 deleted these enemies from LIVE.  Preserve the original state-
+    # machine regression on a synthetic pre-v107 content catalog, never by
+    # resurrecting retired raid mobs on the running server.
+    rooms={'v3000_eternal_6': {'exits': {}}}; mobs={}; spawns=[]
+    npcs={}; quests={}; items={}; recipes={}; areas=[]
+    era_install(rooms,mobs,spawns,npcs,quests,items,recipes,areas,{},{},{},{})
+    legacy_raid_install(rooms,mobs,spawns,npcs,quests,items,recipes)
     checks=0
     for slug,*_ in ERAS:
         for j in (1,2,3):
             mid=f'v10300_{slug}_raid_boss_{j}'
-            template=MOB_TEMPLATES[mid]
+            assert mid not in MOB_TEMPLATES, ('retired raid mob leaked into live world',mid)
+            template=mobs[mid]
             maximum=int(template['max_hp'])
             mob=SimpleNamespace(alive=True,hp=maximum,adaptive_max_hp_v11330=0,v1230_boss_phase=0)
             for pct,phase in ((79,1),(59,2),(39,3),(19,4)):

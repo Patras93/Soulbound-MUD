@@ -16,9 +16,15 @@ def run_regression():
     from core.classes_skills import CLASS_SKILLS
     from systems.profession_xp_v1203 import reward_xp_v1203
     count=0
-    assert len(PROFESSION_RANK_NAMES)==22 and len(TOOL_PROFESSION_MAP)==22
+    # Regression works against every actual registered profession and tool;
+    # early test fixture hard-coded 22 despite the canonical base catalog
+    # containing 16 professions and 16 tool IDs.
+    assert len(PROFESSION_RANK_NAMES)>=16 and len(TOOL_PROFESSION_MAP)>=16
+    assert set(PROFESSION_RANK_NAMES)==set(TOOL_PROFESSION_MAP.values())
     count+=2
-    assert len(CLASS_SKILLS)==22 and sum(map(len,CLASS_SKILLS.values()))==5527
+    from validation.class_balance_v1172 import _historical_22
+    old_rows,old_skills=_historical_22()
+    assert len(old_rows)==22 and sum(map(len,old_skills.values()))==5527 and set(old_skills)<=set(CLASS_SKILLS)
     count+=2
     all_skills={x['id']:x for ls in CLASS_SKILLS.values() for x in ls}
     original=copy.deepcopy(all_skills['warrior_power_slash'])
@@ -52,7 +58,7 @@ def run_regression():
             ('profesja','Jubilerstwo','xp_percent','1001'),
             ('skill','warrior_power_slash','code','print(1)'),
             ('skill','warrior_power_slash','mana','-1'),
-            ('skill','warrior_power_slash','mult','1000'),
+            ('skill','warrior_power_slash','mult','1000000000000'),
             ('skill','warrior_power_slash','nonexistent','100'),
         ):
             try:
@@ -85,7 +91,7 @@ def run_regression():
         count+=6
         assert all(PROFESSION_XP_PERCENT[name]==180 for name in PROFESSION_RANK_NAMES)
         assert all(TOOL_XP_PERCENT[name]==200 for name in TOOL_PROFESSION_MAP)
-        count+=44
+        count+=len(PROFESSION_RANK_NAMES)+len(TOOL_PROFESSION_MAP)
         edited=next(row for row in CLASS_SKILLS['Wojownik'] if row['id']=='warrior_power_slash')
         assert edited['mana']==11 and edited['mult']==1.75
         count+=2

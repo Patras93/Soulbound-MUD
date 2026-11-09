@@ -191,6 +191,9 @@ def stage_env(temp):
                SOULBOUND_V108_PREDEPLOY='1',
                SOULBOUND_DB=str(Path(temp) / 'audit.sqlite'),
                SOULBOUND_WORLD_SEED_FILE=str(Path(temp) / 'audit_seed.txt'))
+    if (ROOT/'VERSION').read_text(encoding='utf-8-sig').strip() == '110.00.0':
+        env.update(SOULBOUND_V107_STAGING='1', SOULBOUND_V109_STAGING='1',
+                   SOULBOUND_V110_STAGING='1')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('127.0.0.1', 0))
         env['SOULBOUND_PORT'] = str(sock.getsockname()[1])
@@ -262,6 +265,11 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
         pending.put(index)
     results = [None] * len(stages)
     report_lock = threading.Lock()
+    # The authenticated five-player combat gate was starved on Windows while
+    # the 1500-second exhaustive Python audit used the other worker. It must
+    # still run as a real, mandatory TCP/SQLite gate, but only AFTER the heavy
+    # audit has released CPU. No stages or assertions are skipped.
+    full_audit_done = threading.Event()
 
     with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-workers-') as root_temp:
         roots = []
@@ -284,13 +292,18 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                 began = time.monotonic()
                 output_lines = []
                 try:
+                    if phase == 'ETAP' and title == '5 KLIENTOW TCP + RESTART':
+                        if not full_audit_done.wait(timeout=2250):
+                            raise TimeoutError('TCP: pelny audyt nie zakonczyl pracy w limicie izolacji')
                     with report_lock:
                         say(f'\nSTART: {phase} {index + 1}/{len(stages)}: {title} [{script}]')
                     if not (root / script.split()[0]).is_file():
                         output_lines.append('FAIL: Brak wymaganego pliku: ' + script)
                         code = 2
                     else:
-                        with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-stage-') as scratch:
+                        v110_stage=(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()=='110.00.0'
+                        stage_prefix='sb110_predeploy_stage_' if v110_stage else 'soulbound-predeploy-stage-'
+                        with tempfile.TemporaryDirectory(prefix=stage_prefix) as scratch:
                             env = stage_env(scratch)
                             if staging_v106 and 'KOPII' not in title:
                                 env['SOULBOUND_V106_STAGING'] = '1'
@@ -307,6 +320,8 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                     say(f'KONIEC: {title} | {"PASS" if code == 0 else "FAIL"} | '
                         f'kod {code} | czas {elapsed:.1f} s')
                 results[index] = (title, code)
+                if phase == 'ETAP' and title == 'PELNY AUDYT':
+                    full_audit_done.set()
                 pending.task_done()
 
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix='sb-predeploy') as executor:
@@ -343,13 +358,29 @@ def main():
         candidate_version = (ROOT/'VERSION').read_text(encoding='utf-8').strip()
         from validation.v10800_release_readiness import (release_at_least_108,
                                                           unmet_requirements as v108_missing)
-        if release_at_least_108(candidate_version):
+        if candidate_version == '108.00.0':
             missing_v108 = v108_missing(ROOT)
             if missing_v108:
                 say('V108 PREDEPLOY: FAIL PRZED 60 ETAPAMI; stare 60/60 nie zatwierdza wersji v108.')
                 for number, reason in enumerate(missing_v108, 1):
                     say(f'BLOKADA V108 {number}: {reason}')
                 say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ; produkcja i baza bez zmian.')
+                return 3
+        if candidate_version == '110.00.0':
+            from validation.v11000_release_readiness import unmet_requirements as v110_missing
+            missing_v110=v110_missing(ROOT)
+            if missing_v110:
+                for number,reason in enumerate(missing_v110,1):
+                    say(f'BLOKADA V110 {number}: {reason}')
+                say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ')
+                return 3
+        if candidate_version == '109.00.0':
+            from validation.v10900_release_readiness import unmet_requirements as v109_missing
+            missing_v109 = v109_missing(ROOT)
+            if missing_v109:
+                for number, reason in enumerate(missing_v109, 1):
+                    say(f'BLOKADA V109 {number}: {reason}')
+                say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ')
                 return 3
         # v107: stop immediately if the staged release has known production
         # blockers. Historical 60/60 tests mostly inspect pre-v107 gameplay;
@@ -453,12 +484,15 @@ def main():
         # in addition to 60 legacy tests and 3 v105 checks. Unlike the old
         # predeploy, a green historical suite alone cannot approve v107.
         v107_extra=[]
-        if actual_version in ('107.00.0', '108.00.0'):
+        if actual_version in ('107.00.0', '108.00.0', '109.00.0', '110.00.0'):
             if (len(status)==60 and all(code==0 for _,code in status)
                     and len(v105_extra)==3 and all(code==0 for _,code in v105_extra)):
+                legacy_audit = ('validation/v11000_v107_functional_audit.py'
+                                if actual_version == '110.00.0'
+                                else 'audyt_v107_windows_przed_predeploy.py')
                 v107_extra=run_parallel_stages((
-                    ('V107 33 REGRESJE KODU I BLOKADY PRODUKCYJNE',
-                     'audyt_v107_windows_przed_predeploy.py', 2400),
+                    ('V107 33 REGRESJE MECHANIKI + AKTUALNA OCHRONA INSTALACJI',
+                     legacy_audit, 2400),
                 ), say, phase='V107')
             else:
                 say('V107: stare bramki nie przeszly; dodatkowy audyt nie daje PASS.')
@@ -481,12 +515,12 @@ def main():
                 say('FAIL: Nie wykonano dwoch dodatkowych bramek v106.')
         v106_proof = (actual_version!='106.00.0' or
                       (len(v106_extra)==2 and all(ret==0 for _,ret in v106_extra)))
-        if actual_version in ('107.00.0', '108.00.0'):
+        if actual_version in ('107.00.0', '108.00.0', '109.00.0', '110.00.0'):
             for title,ret in v107_extra:
                 say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
             if len(v107_extra)!=1:
                 say('FAIL: Nie wykonano obowiazkowego audytu regresji v107.')
-        v107_proof = (actual_version not in ('107.00.0','108.00.0') or
+        v107_proof = (actual_version not in ('107.00.0','108.00.0','109.00.0','110.00.0') or
                       (len(v107_extra)==1 and all(ret==0 for _,ret in v107_extra)))
         # v108 executes its own mandatory suite on an isolated candidate and
         # the FULL REAL snapshot (already detached by predeploy_nowej_wersji).
@@ -504,16 +538,67 @@ def main():
                 say('FAIL: V108 nie uruchamia bramek przed zaliczeniem 60 + v105 + v107.')
             for title,ret in v108_extra:
                 say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
-        v108_additional_proof = (not release_at_least_108(actual_version) or
-                                 (actual_version=='108.00.0' and len(v108_extra)==2
-                                  and all(ret==0 for _,ret in v108_extra)))
+        v108_additional_proof = (actual_version!='108.00.0' or
+                                 (len(v108_extra)==2 and all(ret==0 for _,ret in v108_extra)))
         if not v108_additional_proof:
             say('FAIL: V108 zgodnosc danych v107 i osobne regresje nie zaliczone.')
+        # v109 uses new release identity/activation checks and re-executes
+        # all 32 version-neutral v108 regressions. The 3 historical checks
+        # hardcoding 108.00.0 are replaced with version-specific v109 tests.
+        v109_extra=[]
+        if actual_version == '109.00.0':
+            if (len(status)==60 and all(code==0 for _,code in status)
+                    and plus_proof and extra_proof and v107_proof):
+                v109_extra=run_parallel_stages((
+                    ('V109 ROZWOJ SWIATA, PREZENTY, AKTYWACJA, REGRESJE V108',
+                     'validation/v10900_release_suite.py', 2400),
+                    ('V109 BEZ ZMIAN FIZYCZNEGO EQ V108 - KOPIA SQLITE',
+                     'validation/v10800_v107_equipment_compat_gate.py', 1200),
+                    ('V109 KONTA POSTACIE PORTFELE I PELNA KOPIA SQLITE 1 DO 1',
+                     'validation/v10900_snapshot_preservation.py', 1200),
+                ),say,phase='V109',max_workers=1)
+            else:
+                say('FAIL: bramki v109 nie ruszyły: 60, v105 lub v107 FAIL')
+            for title,ret in v109_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+        v109_proof=(actual_version!='109.00.0' or
+                    (len(v109_extra)==3 and all(ret==0 for _,ret in v109_extra)))
+        if not v109_proof:
+            say('FAIL: brak osobnego kompletu testów i migawki EQ v109')
+        # v110: all 60 old stages + v105 + v107 are compulsory, not bypassed.
+        # Run the full SIX-player authenticated TCP gate in its own isolated
+        # stage; the historical five-player gate above remains unchanged.
+        v110_extra=[]
+        if actual_version == '110.00.0':
+            if (len(status)==60 and all(code==0 for _,code in status)
+                and plus_proof and extra_proof and v107_proof):
+                v110_extra=run_parallel_stages((
+                    ('V110 6 BRAMEK: MODULY, WYDARZENIA, ROLLBACK, ROZRUCH',
+                     'validation/v11000_release_suite.py',2400),
+                    ('V110 FIZYCZNE EQ I DANE GRACZY BEZ MIGRACJI',
+                     'validation/v10800_v107_equipment_compat_gate.py',1200),
+                    ('V110 MIGAWKA BAZY SQLITE, WIERNE ODTWORZENIE 1 DO 1',
+                     'validation/v11000_snapshot_preservation.py',1200),
+                    ('V110 SZESC PRAWDZIWYCH GRACZY TCP, PARTY, QUESTY, RESTART',
+                     'validation/v11000_tcp_six_players.py',900),
+                ),say,phase='V110',max_workers=1)
+            else:
+                say('FAIL: bramki v110 nie ruszyły: 60, v105 lub v107 FAIL')
+            for title,ret in v110_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+        v110_proof=(actual_version!='110.00.0' or
+                     (len(v110_extra)==4 and all(ret==0 for _,ret in v110_extra)))
+        if not v110_proof:
+            say('FAIL: brak osobnych bramek v110 i porównania danych SQLite')
         good = (len(status) == len(STAGES) and all(ret == 0 for _,ret in status)
                 and plus_proof and extra_proof and v106_proof and v107_proof
-                and v108_additional_proof)
+                and v108_additional_proof and v109_proof and v110_proof)
         if good and actual_version == '108.00.0':
             say('V108 RELEASE GATES PASS')
+        if good and actual_version == '109.00.0':
+            say('V109 RELEASE GATES PASS')
+        if good and actual_version == '110.00.0':
+            say('V110 RELEASE GATES PASS')
         if not plus_proof: say('FAIL: Brak dowodu wykonania regresji PLUS')
         say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 60 ETAPOW PLUS' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))

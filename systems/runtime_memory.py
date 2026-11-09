@@ -14,12 +14,13 @@ import gc
 V0616_MEMORY_EFFICIENCY_VERSION = "0.61.6"
 
 # These fields are startup/audit metadata for ordinary class-shop equipment.
+# v110: preserve class_equipment_style: shop UI, EQ scoring and post-boot
+# identity validation still depend on it to distinguish all three lines.
 # Runtime code either does not read them or already has the exact fallback noted
 # below.  They are removed only after all startup audits have completed.
 _CLASS_SHOP_DEAD_FIELDS_V0616 = (
     "class_base_stat_pair",      # no runtime readers
     "class_equipment_tier",     # Generator/audit-only after startup
-    "class_equipment_style",    # HELP/audit-only after startup
     "class_set_piece",          # runtime falls back to slot
 )
 

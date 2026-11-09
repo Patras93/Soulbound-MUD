@@ -11,14 +11,16 @@ from world.v10400_krainy_5001_10000 import REGIONS
 SLOTS=(('head','Korona'),('body','Pancerz'),('hands','Rękawice'),('feet','Buty'))
 
 
-def expected_ids():
+def expected_ids(class_rows=None):
+    classes = tuple(CLASSES if class_rows is None else class_rows)
     names=[f'v10400_set_{slug}_{slot}' for slug,*_ in REGIONS for slot,_ in SLOTS]
-    names += [f'v10400_class_{index:02d}_{slot}' for index,_ in enumerate(CLASSES,1) for slot,_ in SLOTS]
+    names += [f'v10400_class_{index:02d}_{slot}' for index,_ in enumerate(classes,1) for slot,_ in SLOTS]
     return frozenset(names)
 
 
-def install(items,recipes,bonuses):
-    planned=expected_ids()
+def install(items,recipes,bonuses, *, class_rows=None):
+    classes = tuple(CLASSES if class_rows is None else class_rows)
+    planned=expected_ids(classes)
     if all(i in items and i in recipes for i in planned):
         if not all(('v10400_'+slug) in bonuses for slug,*_ in REGIONS):
             raise RuntimeError('Niekompletne bonusy zestawów v104')
@@ -26,9 +28,9 @@ def install(items,recipes,bonuses):
     collisions=planned & (set(items) | set(recipes))
     if collisions:
         raise RuntimeError(f'Kolizja elementu zestawu v104: {sorted(collisions)[0]}')
-    if len({c[0] for c in CLASSES})!=len(CLASSES):
+    if len({c[0] for c in classes})!=len(classes):
         raise RuntimeError('Powtórzone nazwy klas')
-    set_ids={f'v10400_{slug}' for slug,*_ in REGIONS} | {f'v10400_class_{n:02d}' for n in range(1,len(CLASSES)+1)}
+    set_ids={f'v10400_{slug}' for slug,*_ in REGIONS} | {f'v10400_class_{n:02d}' for n in range(1,len(classes)+1)}
     if set_ids & set(bonuses):
         raise RuntimeError('Kolizja ID zestawu w tabeli bonusów')
     local_items={};local_recipes={};local_bonuses={}
@@ -49,7 +51,7 @@ def install(items,recipes,bonuses):
                                 'profession':'Kowalstwo','generator_level':800,'min_profession_level':low,
                           'profession_xp':max(200,low*4),'tool_xp':max(150,low*3),
                                 'desc':f'Zestaw regionalny {region}, próg 2/4 i 4/4.'}
-    for index,(class_name,klass_type,*_) in enumerate(CLASSES,1):
+    for index,(class_name,klass_type,*_) in enumerate(classes,1):
         slug=REGIONS[(index-1)%len(REGIONS)][0]
         low=REGIONS[(index-1)%len(REGIONS)][2]
         setid=f'v10400_class_{index:02d}'

@@ -192,6 +192,14 @@ class Database(
         # New, isolated v104 world-event tables; never touches player balances.
         from systems.world_invasions_v10400 import create_schema as _v104_invasions_schema
         _v104_invasions_schema(self.conn)
+        from core.bootstrap_economy_professions import VERSION as _release_version
+        if _release_version == '110.00.0':
+            from systems.events_v110.storage import create_schema as _v110_event_schema
+            _v110_event_schema(self.conn)
+            # v110: created once at startup; no DDL in player work commands.
+            self.conn.execute('CREATE TABLE IF NOT EXISTS v110_profession_cooldowns ('
+                'account_id INTEGER NOT NULL,tool_type TEXT NOT NULL,ready_at INTEGER NOT NULL,'
+                'PRIMARY KEY(account_id,tool_type))')
         # v1.22.4: persistent but minimal admin diagnostics; no passwords or tokens.
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS admin_actions_v1224 (

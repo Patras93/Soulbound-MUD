@@ -304,7 +304,9 @@ class LiveContentV1204:
         validate_summons(data['summon_edits'])
         validate_world(data['world_overrides'])
         from systems.live_olc24_revolution import validate as validate_v24
-        validate_v24(data['v24_rules'], items={**ITEMS, **data['items']}, rooms={**ROOMS,**data['rooms']})
+        from systems.v11000_olc_validation_views import combined_catalog
+        validate_v24(data['v24_rules'], items=combined_catalog(ITEMS, data['items']),
+                     rooms=combined_catalog(ROOMS, data['rooms']))
         from systems.live_olc26_world import validate as validate_v26
         validate_v26(data['v26_rules'], quests=data['quests'], professions=data['v24_rules']['professions'])
         from systems.live_olc27_master import validate as validate_v27
@@ -365,10 +367,17 @@ class LiveContentV1204:
             _integer(amount, 1, 10000, 'Ilość materiału')
 
     def _validate_catalog_additions(self, data, room_ids, mob_ids):
-        item_ids = set(ITEMS) | set(data['items'])
-        quest_ids = set(QUESTS) | set(data['quests'])
-        npc_names = {n['name'].casefold() for key, n in NPCS.items() if key not in self.active['npcs']}
-        occupied = {n['room'] for key, n in NPCS.items() if key not in self.active['npcs']}
+        # Build large catalogue views only when a staged definition needs them.
+        # Each downstream consumer is guarded by its corresponding section.
+        item_ids = (set(ITEMS) | set(data['items'])
+                    if any(data[k] for k in ('shops', 'quests', 'recipes')) else set())
+        quest_ids = (set(QUESTS) | set(data['quests'])
+                     if data['quests'] or data['npcs'] else set())
+        npc_names = ({n['name'].casefold() for key, n in NPCS.items()
+                      if key not in self.active['npcs']}
+                     if data['npcs'] or data['quests'] else set())
+        occupied = ({n['room'] for key, n in NPCS.items()
+                     if key not in self.active['npcs']} if data['npcs'] else set())
         for section, max_count in (('items', 200), ('npcs', 100), ('quests', 200),
                                    ('recipes', 200), ('shops', 200)):
             if not isinstance(data[section], dict) or len(data[section]) > max_count:
@@ -484,12 +493,10 @@ class LiveContentV1204:
             _integer(quest['reward_silver'], 0, 10**12, 'Srebro')
         # A cycle would make every quest in it impossible to start. Check the
         # full effective chain, including staged changes to older quests.
-        effective_chains = {q:dict(v) for q,v in QUESTS.items()}
-        effective_chains.update({q:dict(v) for q,v in data['quests'].items()})
-        for q, patch in data['quest_edits'].items():
-            effective_chains[q] = dict(effective_chains.get(q, {}), **patch)
+        from systems.v11000_olc_validation_views import quest_dependency_view
         from systems.live_olc17_quest_dependencies import validate_dependency_graph
-        validate_dependency_graph(effective_chains)
+        validate_dependency_graph(quest_dependency_view(
+            QUESTS, data['quests'], data['quest_edits']))
         for rid, recipe in data['recipes'].items():
             if not ID.fullmatch(rid) or (rid in CRAFT_RECIPES and rid not in self.active['recipes']):
                 raise ValueError(f'Receptura wymaga wolnego ID live_: {rid}.')

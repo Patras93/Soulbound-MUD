@@ -35,8 +35,11 @@ async def suite():
         await who.admin_command('live '+command)
         return who.messages[-1]
     check(len(KINDS)==18)
-    check(len(CLASS_SKILLS)==22)
-    check(len(UOSS_SUPERBOSS_ENCOUNTERS_V11134)==21)
+    from validation.class_balance_v1172 import _historical_22
+    old_rows,old_skills=_historical_22()
+    check(len(old_rows)==22 and set(old_skills)=={r[0] for r in old_rows} and set(old_skills)<=set(CLASS_SKILLS))
+    from validation.v11000_historical_uoss import verify_historical_uoss_ids
+    check(verify_historical_uoss_ids(UOSS_SUPERBOSS_ENCOUNTERS_V11134)==21)
     check('POMOC 9' in HELP)
     check('POMOC 9' in await run('pomoc 9'))
     check('QUESTY PRZEGLAD' in await run('questy przeglad'))

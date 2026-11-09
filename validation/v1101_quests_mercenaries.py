@@ -32,9 +32,14 @@ def run_regression(runtime=None):
         assert expr, 'v11.00.1: ' + what
         count += 1
 
-    playable={row[0] for row in CLASSES}
-    ck(len(playable)==22, '22 real playable classes')
-    ck(set(GUILD_CLASS_QUEST_POOLS)==playable, 'guild offers for all 22')
+    # This audit owns the 22 original guild roles, not classes added in
+    # v107/v110. All 22 historical names must still exist in the live catalog.
+    from core.class_skills_v10400 import NAMES as HISTORICAL_CLASSES
+    active_classes={row[0] for row in CLASSES}
+    playable=set(HISTORICAL_CLASSES)
+    ck(len(playable)==22 and playable <= active_classes,
+       'all 22 historical playable classes retained')
+    ck(playable <= set(GUILD_CLASS_QUEST_POOLS), 'guild offers for all 22 historical classes')
     ck(GUILD_CLASS_QUEST_AUDIT_V1120['error_count']==0, 'complete guild quest audit')
     ck(len(MERCENARIES)==22, '22 hireable roles')
     ck({row['class'] for row in MERCENARIES.values()}==playable, 'all playable classes matched')

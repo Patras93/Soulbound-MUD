@@ -81,7 +81,20 @@ SOUL_TIER_GUARDIAN_REDUCTION = tuple(SOUL_TIER_GUARDIAN_REDUCTION[:40]) + tuple(
 # v106: przedprodukcyjna oś Soul Tier 3001–6000. Bez flagi pozostaje
 # dokładna semantyka v105 (3000), wszystkie historyczne wpisy niezmienione.
 import os as _sb106_tier_os
-if _sb106_tier_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+# v110 inherits the complete 3,001–6,000 Soul Tier expansion from v106.
+# Do NOT use version text or the V110_STAGING flag alone for authorization:
+# the test DB must be isolated, or production must have a valid v110 manifest.
+_sb106_tier_extension_enabled = _sb106_tier_os.environ.get('SOULBOUND_V106_STAGING') == '1'
+if not _sb106_tier_extension_enabled:
+    try:
+        from pathlib import Path as _sb110_tier_Path
+        _sb110_tier_root = _sb110_tier_Path(__file__).resolve().parents[1]
+        if (_sb110_tier_root / 'VERSION').read_text(encoding='utf-8-sig').strip() == '110.00.0':
+            from systems.v11000_activation import enabled as _sb110_tier_authorized
+            _sb106_tier_extension_enabled = bool(_sb110_tier_authorized())
+    except (OSError, ImportError, ValueError):
+        _sb106_tier_extension_enabled = False
+if _sb106_tier_extension_enabled:
     SOUL_TIER_THRESHOLDS += tuple(tier * 10 for tier in range(3001, 6001))
     SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
     SOUL_TIER_POWER_BONUSES += tuple(222 + (2920+i)*2 for i in range(3000))

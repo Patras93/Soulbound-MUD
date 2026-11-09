@@ -21,7 +21,7 @@ _HELP = ('ADMIN LIVE POMOC 8/8: questy edycja plan ID | POLE | WARTOSC ; '
          'questy edycja zatwierdz POTWIERDZAM - tylko DRAFT; '
          'questy edycja cofnij POTWIERDZAM - cofnij wlasne zmiany; '
          'questy edycja anuluj / status; arena klasy test [1-3] [STRONA]; arena bossy test [1-3] [STRONA] '
-         '- 22 klasy i 21 superbossow na odizolowanych kopiach. '
+         '- katalog klas i 21 historycznych superbossow na odizolowanych kopiach. '
          'Arena nadal NIE jest rzeczywista walka UOSS 1:1. '
          'Zwykle publikowanie questow pozostaje osobno w admin live.')
 _ID = re.compile(r'[A-Za-z0-9_\-]{1,100}\Z')
@@ -108,14 +108,19 @@ def _status(session):
 
 def _class_matrix(session,turns='1',page='1',mastery=800):
     turns=_int(turns,1,3,'tury')
-    p=_int(page,1,3,'strona')
     source=_arena(session)
     if source['finished']:raise ValueError('Arena zakonczona. Rozpocznij nowa.')
-    # 22 independently detached, identically seeded experiments. Only supported
-    # damage skills; absence is shown explicitly instead of fabricated effects.
+    # Test every registered class using separate detached simulations; legacy
+    # reports remain present while v107/v110 classes get their own pages.
     classes=sorted(CLASS_SKILLS)
-    if len(classes)!=22:
-        raise ValueError('Nieoczekiwana liczba klas: '+str(len(classes))+'. Test wymaga 22.')
+    from core.v10700_new_archetypes import CLASS_SPECS as _v107_rows
+    from core.v11000_archetypes import CLASS_SPECS as _v110_rows
+    from core.magitek_v107 import CLASS_NAME as _magitek
+    extensions={_magitek}|{r[0] for r in _v107_rows}|{r[0] for r in _v110_rows}
+    if len(set(classes)-extensions)!=22:
+        raise ValueError('Niekompletny historyczny katalog 22 klas.')
+    pages=max(1,(len(classes)+7)//8)
+    p=_int(page,1,pages,'strona')
     if not isinstance(mastery,int) or not 1<=mastery<=1_000_000_000:
         raise ValueError('Nieprawidlowa bieglosc testu.')
     outputs=[]
@@ -148,7 +153,7 @@ def _class_matrix(session,turns='1',page='1',mastery=800):
         change=s['total_dealt']-source['total_dealt']
         outputs.append(f'{name}: {row["id"]}; tur {done}; obrazenia +{change}'+(f'; model odmowil: {err}' if err else ''))
     lo=(p-1)*8;hi=p*8
-    return (f'ARENA TEST KLAS: {len(classes)} klas; {turns} tur na klase; strona {p}/3. '
+    return (f'ARENA TEST KLAS: {len(classes)} klas; {turns} tur na klase; strona {p}/{pages}. '
             +'; '.join(outputs[lo:hi])+'. '
             f'Wyniki z tych samych danych bossa i prywatnego RNG; bieglosc TESTOWA {mastery}, MP 10^12; '
             'nie modyfikuje aktualnej areny, postaci, SQL ani RNG serwera. '

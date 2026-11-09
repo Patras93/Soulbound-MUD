@@ -24,8 +24,12 @@ def run_regression(runtime=None):
         if not flag:raise AssertionError('v9: '+reason)
         checks+=1
     ck(release_valid(runtime.VERSION, '9.00.0'),'release identity')
-    ck(len(CLASSES)==22 and len(RACES)>=22,'22 base classes/races retained')
-    ck(len({x[0] for x in CLASSES})==22 and len({x[0] for x in RACES})==len(RACES),'unique names')
+    from validation.class_balance_v1172 import _historical_22
+    historical_classes, _ = _historical_22()
+    ck(len(historical_classes)==22 and len(CLASSES)>=22 and len(RACES)>=22,
+       '22 base classes/races retained')
+    ck(len({x[0] for x in CLASSES})==len(CLASSES)
+       and len({x[0] for x in RACES})==len(RACES),'unique names')
     ck(len(runtime.QUESTS)>=6573 and len(ALL_IDS)==960,f'5605+960 quests: runtime={len(runtime.QUESTS)}, new={len(ALL_IDS)}')
     ck(len(QUEST_IDS)==8 and all(len(v)==120 for v in QUEST_IDS.values()),'8x120 sagas')
     ck(len(runtime.QUESTS.keys() & set(ALL_IDS))==960,'no lost new quests')

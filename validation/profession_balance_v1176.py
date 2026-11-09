@@ -25,8 +25,31 @@ def audit_profession_balance_v1176(*, runtime=False):
 
     all_professions = set(PROFESSION_RANK_NAMES)
     all_tools = set(TOOL_PROFESSION_MAP)
-    verify(len(all_professions) == (22 if runtime else 16), f"incorrect professions count: {len(all_professions)}")
-    verify(len(all_tools) == (22 if runtime else 16), f"incorrect tools count: {len(all_tools)}")
+    if runtime:
+        from core.v11000_archetypes import PROFESSION_SPECS
+        from core.v10700_new_archetypes import PROFESSION_SPECS as V107_PROFESSIONS
+        v110_professions = {row[0] for row in PROFESSION_SPECS}
+        v110_tools = {row[1] for row in PROFESSION_SPECS}
+        v107_professions = {row[0] for row in V107_PROFESSIONS}
+        v107_tools = {row[1] for row in V107_PROFESSIONS}
+        verify(len(v110_professions) == len(v110_tools) == 8, 'v110 professions or tool count wrong')
+        verify(len(v107_professions) == len(v107_tools) == 8, 'v107 professions or tool count wrong')
+        verify(v110_professions <= all_professions and v110_tools <= all_tools,
+               'v110 profession not registered')
+        verify(v107_professions <= all_professions and v107_tools <= all_tools,
+               'v107 profession not registered')
+        verify(len(all_professions-v110_professions-v107_professions) == 22,
+               'historical 22 professions changed')
+        verify(len(all_tools-v110_tools-v107_tools) == 22,
+               'historical 22 tools changed')
+    else:
+        v110_professions = set()
+        v110_tools = set()
+        v107_professions = set()
+        v107_tools = set()
+    expected = 38 if runtime else 16
+    verify(len(all_professions) == expected, f"incorrect professions count: {len(all_professions)}")
+    verify(len(all_tools) == expected, f"incorrect tools count: {len(all_tools)}")
     verify(set(TOOL_PROFESSION_MAP.values()) == all_professions, "missing profession tool mapping")
     verify(len(set(TOOL_PROFESSION_MAP.values())) == len(all_professions), "multiple tools mapped to one profession")
     verify(all_tools <= set(TOOL_ACTION_BASE_SECONDS) and all_tools <= set(TOOL_ACTION_MIN_SECONDS), "timing catalogue mismatch")
@@ -73,7 +96,8 @@ def audit_profession_balance_v1176(*, runtime=False):
     from player.session_mixins.profesje6 import ORDER_GOODS, SUPPLY_REWARD
     from systems.new_professions import PROFESSIONS
     new_names = set(PROFESSIONS)
-    traditional_names = all_professions - new_names
+    traditional_names = all_professions - new_names - v107_professions - v110_professions
+    verify(len(traditional_names) == 14, 'historic fourteen profession order catalogue changed')
     verify(len(new_names) == 8, "missing eight new professions")
     verify(set(ORDER_GOODS) == new_names and set(SUPPLY_REWARD) == new_names, "new profession orders or rewards missing")
     orders = list(CRAFTING_ORDER_NPCS_V0600.values())

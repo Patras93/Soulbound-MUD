@@ -24,15 +24,29 @@ def run_regression(rooms, npcs, stats, shop_sellers=None, original_npc_ids=None)
             test(npcs[seller_id]['room']==rid, 'shopkeeper relocated without moving shop: '+seller_id)
     test(bool(stats.get('shared_rooms_fixed')), 'expected repaired shared NPC rooms')
     test(stats['npcs_moved']==len(stats['relocated_npc_ids']), 'count of relocated NPCs')
-    # Full historical audits may register temporary test NPCs. Compare IDs,
-    # not registry length: additions are allowed only if all room invariants hold.
-    # The initial call (without a snapshot) retains its strict catalog count.
+    # The v3.10.1 isolation snapshot is taken *after* the 48 v110 NPCs
+    # have been registered in world.dynamic_content, but BEFORE the four
+    # v107 Insect World NPCs are appended later by server.py. Enforce exact
+    # IDs and counts; do not just relax old snapshot equality.
+    from world.v11000_realms import planned_ids as v110_planned_ids
+    from world.v10700_insects_expansion import planned_ids as insect_planned_ids
+    from world.v10700_insects_wildlife_plus import planned_ids as insect_plus_planned_ids
+    region_npcs = frozenset(v110_planned_ids()['npcs'])
+    late_npcs = frozenset(insect_planned_ids()['npcs'] | insect_plus_planned_ids()['npcs'])
+    assert len(region_npcs)==48 and len(late_npcs)==4
+    current_ids = frozenset(npcs)
+    test(region_npcs <= current_ids, 'v110 48 region NPCs missing')
+    late_present = current_ids & late_npcs
+    test(not late_present or late_present == late_npcs,
+         'partially registered v107 insects NPCs')
     if original_npc_ids is None:
-        test(stats['total_npcs']==len(npcs), 'initial NPC registry size differs from isolation snapshot')
+        test(len(current_ids - late_present)==stats['total_npcs'],
+             'historical NPC count changed outside four late insect NPCs')
     else:
         original_npc_ids = frozenset(original_npc_ids)
-        test(len(original_npc_ids)==stats['total_npcs'], 'initial snapshot size does not match isolation stats')
-        missing = original_npc_ids.difference(npcs)
+        test(len(original_npc_ids - (original_npc_ids & late_npcs))==stats['total_npcs'],
+             'historical NPC snapshot count changed')
+        missing = original_npc_ids.difference(current_ids)
         test(not missing, 'original NPC disappeared: '+repr(sorted(missing)[:20]))
 
     occupied=defaultdict(list)

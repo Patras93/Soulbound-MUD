@@ -19,4 +19,12 @@ SHOPS = {
     "jeweler_workshop": ["jeweler_pliers"],
 }
 
+# v110: no missing/invisible profession equipment. Authorised staging and
+# installed v110 only; v109 historical shops are otherwise byte-identical.
+from systems.v11000_activation import enabled as _v110_shops_enabled
+if _v110_shops_enabled():
+    from core.v11000_archetypes import PROFESSION_SPECS as _v110_professions
+    SHOPS['market'].extend('v11000_prof_tool_'+str(i+1)
+                           for i in range(len(_v110_professions)))
+
 __all__ = ['SHOPS']

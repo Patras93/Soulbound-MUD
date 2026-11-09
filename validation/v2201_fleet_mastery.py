@@ -27,7 +27,9 @@ def run_regression():
     check(len(crafting.RECIPES)==14,'14 recipes')
     check(len({v[1] for v in crafting.RECIPES.values()})==14,'distinct outputs')
     check(len(mods.MODULES)==4,'four modules')
-    check(set(crafting.TOOL_TYPES)==set(professions.SPECIALTIES),'all 14 profession tools')
+    check(len(crafting.RECIPES)==14 and set(crafting.TOOL_TYPES)==set(crafting.RECIPES)
+          and set(crafting.RECIPES)<=set(professions.SPECIALTIES),
+          'all historical 14 tools preserved when newer professions are installed')
     for prof, (spec,item,mats,sell,name) in crafting.RECIPES.items():
         check(prof in professions.SPECIALTIES,'known profession '+prof)
         check(spec==professions.SPECIALTIES[prof][0],'first specialty '+prof)
@@ -40,7 +42,7 @@ def run_regression():
     # FULL/FAST predeploy already imported server and registered outputs globally.
     # Use a clean fixture so the duplicate-install check is still meaningful.
     from systems.mastery_advancement_v2300 import recipe as advanced_recipe
-    advanced_outputs = {advanced_recipe(prof, tier)[1] for prof in professions.SPECIALTIES for tier in (2,3)}
+    advanced_outputs = {advanced_recipe(prof, tier)[1] for prof in crafting.RECIPES for tier in (2,3)}
     items={key:value for key,value in ITEMS.items() if key not in crafting.OUTPUTS and key not in advanced_outputs}
     for resource in ['v2200_leviathan_heart','v2200_storm_core','v2200_whisper_coral','v2200_ancient_pearl']:
         items[resource]={'name':resource,'type':'resource'}

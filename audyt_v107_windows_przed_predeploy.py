@@ -80,7 +80,7 @@ def check_sources(stage: Path) -> tuple[int, str]:
     version = (stage / 'VERSION').read_text(encoding='utf-8-sig').strip()
     bootstrap = (stage / 'core/bootstrap_economy_professions.py').read_text(encoding='utf-8-sig')
     actual = re.search(r'^\s*VERSION\s*=\s*[\'"](\d+\.\d+\.\d+)[\'"]', bootstrap, re.M)
-    if version not in ('107.00.0','108.00.0') or actual is None or actual.group(1) != version:
+    if version not in ('107.00.0','108.00.0','109.00.0') or actual is None or actual.group(1) != version:
         raise RuntimeError('Niezgodne VERSION i kod gry v107.')
     sources = list(stage.rglob('*.py'))
     if not sources:
@@ -108,13 +108,24 @@ def call(stage: Path, module: str, args: tuple[str, ...] = (), seconds: int = 12
                 'SOULBOUND_MAIL_PASSWORD', 'SMTP_PASSWORD'):
         env.pop(key, None)
     env['SOULBOUND_V107_STAGING'] = '1'
+    # Regressions inherited by v109 run ONLY against isolated TEMP SQLite.
+    # Keep the v109 production guard active: both flags and the TEMP-path
+    # restriction are enforced by systems.v10900_staging_guard.
+    check_version = (stage / 'VERSION').read_text(encoding='utf-8-sig').strip()
+    if check_version in ('109.00.0', '110.00.0'):
+        env['SOULBOUND_V109_STAGING'] = '1'
+        # Only disposable TCP lab subtrees are accepted by the v108 guard.
+        env['SOULBOUND_V108_PREDEPLOY'] = '1'
+    if check_version == '110.00.0':
+        # Only under TEMP/sb110_*; never a live DB or installed game tree.
+        env['SOULBOUND_V110_STAGING'] = '1'
     env['SOULBOUND_HOST'] = '127.0.0.1'
     env['PYTHONDONTWRITEBYTECODE'] = '1'
     env['PYTHONIOENCODING'] = 'utf-8'
     env['PYTHONUTF8'] = '1'
     cmd = [sys.executable, '-B', '-m', module, *args]
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix='soulbound107_test_db_') as test_home:
+    with tempfile.TemporaryDirectory(prefix='sb110_legacy_db_' if check_version == '110.00.0' else 'soulbound_107_test_db_') as test_home:
         env['SOULBOUND_DB'] = str(Path(test_home)/'audyt_test.sqlite')
         env['SOULBOUND_WORLD_SEED_FILE'] = str(Path(test_home)/'test_seed.txt')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:

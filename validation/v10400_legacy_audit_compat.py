@@ -26,20 +26,40 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
     from core.class_skills_v10400 import NAMES as authored_names, is_authored_endgame_unlock_v104
     from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS
 
-    class_names = [entry[0] for entry in CLASSES]
-    if len(class_names) != 22 or len(set(class_names)) != 22 or set(class_names) != set(authored_names):
-        raise AssertionError('v104 audit: invalid 22-class identity')
+    from validation.release_contracts import parse_version
+    current=parse_version(version)
+    playable_names=[entry[0] for entry in CLASSES]
+    class_names=playable_names[:22]
+    if (len(class_names)!=22 or len(set(class_names))!=22
+        or set(class_names)!=set(authored_names)):
+        raise AssertionError('v104 audit: invalid historical 22-class identity')
+    # Verify successor identities separately instead of ignoring additional
+    # playable classes or treating them as v104 skills.
+    expected_successors=[]
+    if current >= (107,0,0):
+        from core.magitek_v107 import CLASS_NAME as magitek
+        from core.v10700_new_archetypes import CLASS_SPECS as successor_v107
+        expected_successors.extend([magitek]+[row[0] for row in successor_v107])
+    if current >= (110,0,0):
+        from core.v11000_archetypes import CLASS_SPECS as successor_v110
+        expected_successors.extend(row[0] for row in successor_v110)
+    if (playable_names[22:]!=expected_successors
+        or len(set(playable_names))!=len(playable_names)):
+        raise AssertionError('v104 audit: v107/v110 successor class identities differ')
     # v105 extends the catalogue. Keep auditing the immutable v104 prefix
     # rather than rejecting newer, fully backward-compatible Tier entries.
-    if (SOUL_MAX_TIER not in (1000, 3000) or
+    allowed_tiers={1000,3000}
+    if current >= (110,0,0):allowed_tiers.add(6000)
+    if (SOUL_MAX_TIER not in allowed_tiers or
         len(SOUL_TIER_THRESHOLDS) != SOUL_MAX_TIER or
         (SOUL_TIER_THRESHOLDS[499], SOUL_TIER_THRESHOLDS[500], SOUL_TIER_THRESHOLDS[999])
         != (5000, 5010, 10000) or
-        (SOUL_MAX_TIER == 3000 and SOUL_TIER_THRESHOLDS[-1] != 30000)):
+        (SOUL_MAX_TIER>=3000 and SOUL_TIER_THRESHOLDS[2999] != 30000) or
+        (SOUL_MAX_TIER==6000 and SOUL_TIER_THRESHOLDS[5999] != 60000)):
         raise AssertionError('v104 audit: historical 501-1000 tiers changed or v105 invalid')
     all_skills = ns['CLASS_SKILLS']
-    if set(all_skills) != set(class_names):
-        raise AssertionError('v104 audit: missing or added class')
+    if set(all_skills) != set(playable_names):
+        raise AssertionError('v104 audit: missing or extra successor class skills')
     high = []
     for idx, name in enumerate(class_names, 1):
         rows = all_skills[name]
@@ -70,8 +90,7 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
     # the v105 Astral Tower creates 10k+ bosses lazily on first floor entry.
     # Admit precisely the real milestone/target pairs, not arbitrary unknown
     # quest targets; validate them against the genuine infinite-floor rule.
-    from validation.release_contracts import parse_version
-    if parse_version(version) >= (105, 0, 0):
+    if current >= (105, 0, 0):
         from core.progression_600 import SOUL_TRIAL_QUEST_IDS, SOUL_TIER_THRESHOLDS
         from world.dynamic_content import QUESTS
         from systems.dungeons_regions import is_astral_boss_floor
@@ -97,6 +116,141 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
             f'quest mob target missing {qid}:{target}' for _, qid, target in astral_advisories
         )
         expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'] = astral_advisories
+    # v107/v109/v110 added crafted regional alloys at author-defined mastery
+    # 60001–113001. The frozen v104 validator caps ALL recipes at 800.
+    # Require the exact number, consecutive progression, source prefixes,
+    # ownership, forge station, material inputs and output IDs. The historical
+    # 800-cap assertions remain intact for every older recipe.
+    if current >= (107, 0, 0):
+        recipes=ns['CRAFT_RECIPES']
+        items=ns['ITEMS']
+        regional_groups=[('v10700_chaos_', 30, 60001)]
+        if current >= (109, 0, 0):
+            regional_groups.append(('v10900_horizon_', 12, 90001))
+        if current >= (110, 0, 0):
+            regional_groups.append(('v11000_realm_', 12, 102001))
+        known_recipe_advisories=[]
+        for prefix,count,start in regional_groups:
+            entries=sorted((rid,row) for rid,row in recipes.items()
+                           if rid.startswith(prefix) and rid.endswith('_alloy'))
+            if len(entries)!=count:
+                raise AssertionError(f'v104 audit: regional alloy set {prefix} count {len(entries)} != {count}')
+            actual_levels=[]
+            for rid,row in entries:
+                if (row.get('output')!=rid or rid not in items or
+                    row.get('profession')!='Kowalstwo' or
+                    ('forge' not in tuple(row.get('stations',())) or
+                     not set(row.get('stations',())) <= {'forge','crafting_workshop'}) or
+                    len(row.get('ingredients',{}))!=2 or
+                    any(int(amount)!=2 or material not in items
+                        for material,amount in row['ingredients'].items())):
+                    raise AssertionError('v104 audit: broken regional alloy recipe '
+                                         +rid+' '+repr(row)[:550]
+                                         +' item_exists='+str(rid in items))
+                minimum=int(row.get('min_profession_level',0) or 0)
+                generator=int(row.get('generator_level',0) or 0)
+                if generator!=minimum:
+                    raise AssertionError('v104 audit: regional alloy progression mismatch '+rid)
+                actual_levels.append(minimum)
+                known_recipe_advisories.append(f'CRAFT_RECIPES level {rid}:{minimum}')
+            if sorted(actual_levels)!=[start+i*1000 for i in range(count)]:
+                raise AssertionError('v104 audit: regional alloy level grid changed '+prefix)
+        expected['FULL_GAME_AUDIT_V03014'].extend(known_recipe_advisories)
+    # Successor catalogues are installed after the frozen v0.33.6 snapshot.
+    # Preserve the original snapshot and its assertions; reconcile ONLY known
+    # successor entries after independently verifying their real runtime IDs,
+    # profession identities, cooldowns and class equipment sets.
+    if current >= (107, 0, 0):
+        from core.v10700_new_archetypes import PROFESSION_SPECS as prof_v107
+        from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
+        new_professions = {row[0] for row in prof_v107}
+        if current >= (110, 0, 0):
+            from core.v11000_archetypes import PROFESSION_SPECS as prof_v110
+            new_professions.update(row[0] for row in prof_v110)
+        expected_new_professions = 8 if current < (110, 0, 0) else 16
+        if len(new_professions) != expected_new_professions:
+            raise AssertionError('v104 audit: successor profession source is incomplete')
+        live_professions = set(ns['PROFESSION_RANK_NAMES'])
+        if not new_professions <= live_professions or len(live_professions) != 22 + expected_new_professions:
+            raise AssertionError('v104 audit: missing or extra real professions')
+        live_quests = ns['QUESTS']
+        professional_quest_ids = []
+        v107_count = v110_count = 0
+        for qid, quest in live_quests.items():
+            profession = quest.get('required_profession')
+            if profession not in new_professions:
+                continue
+            if (qid.startswith('v10700_saga_prof_') and
+                profession in {row[0] for row in prof_v107}):
+                v107_count += 1
+            elif (current >= (110, 0, 0) and
+                  qid.startswith('v11000_realm_') and '_prof_' in qid and
+                  profession in {row[0] for row in prof_v110}):
+                v110_count += 1
+            else:
+                raise AssertionError('v104 audit: unrecognized successor profession quest '+qid)
+            if (quest.get('kind') != 'profession_action'
+                or quest.get('target') != profession
+                or quest.get('reward_profession') != profession
+                or type(quest.get('needed')) is not int or quest['needed'] < 1
+                or quest.get('repeatable') is not True
+                or int(quest.get('repeat_cooldown') or 0) != QUEST_REPEAT_COOLDOWN_SECONDS
+                or not (quest.get('specialist_tool_type') or quest.get('reward_tool_type'))):
+                raise AssertionError('v104 audit: damaged successor profession quest '+qid)
+            professional_quest_ids.append((qid, profession))
+        if (v107_count != 320 or
+            v110_count != (48 if current >= (110, 0, 0) else 0)):
+            raise AssertionError('v104 audit: wrong number of successor profession quests')
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'].extend(
+            ('quest_bad_required_profession', qid, profession)
+            for qid,profession in professional_quest_ids
+        )
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'].extend(
+            ('quest_bad_reward_profession', qid, profession)
+            for qid,profession in professional_quest_ids
+        )
+        if not set(expected_successors) <= set(ns['CLASS_SKILLS']):
+            raise AssertionError('v104 audit: successor skills missing from live catalogue')
+        for name in expected_successors:
+            if (not ns['CLASS_SKILLS'].get(name) or
+                name not in ns['LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER'] or
+                name not in ns['CLASS_EQUIPMENT_SETS']):
+                raise AssertionError('v104 audit: successor class equipment incomplete '+name)
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'].extend(
+            ('legendary_set_missing_class', name) for name in expected_successors
+        )
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'].extend(
+            ('class_set_unknown_class', name) for name in expected_successors
+        )
+        # Only the archived v104 post-raid quest titles and one known historic
+        # item display-name collision may survive; validate their real objects.
+        # No future duplicate gets a free pass through this compatibility gate.
+        snapshot=ns['FULL_GAME_PREDEPLOY_AUDIT_V0336']
+        duplicates=[row for row in snapshot['errors'] if row[0]=='duplicate_display_name']
+        if len(duplicates) not in (0, 13):
+            raise AssertionError('v104 audit: unexpected number of display-name collisions')
+        item_count = quest_count = 0
+        for row in duplicates:
+            if len(row)!=4 or not isinstance(row[3],(tuple,list)) or len(row[3])!=2:
+                raise AssertionError('v104 audit: malformed duplicate display name')
+            _,category,display,ids=row
+            registry=ns['ITEMS'] if category=='items' else ns['QUESTS'] if category=='quests' else None
+            if registry is None or any(entry not in registry for entry in ids):
+                raise AssertionError('v104 audit: missing duplicate source')
+            names=tuple(str(registry[entry].get('name','')).casefold().strip() for entry in ids)
+            if names != (display,display) or ids[0]==ids[1]:
+                raise AssertionError('v104 audit: changed duplicate labels')
+            if category=='items':
+                if set(ids) != {'v10700_chaos_popiol_material_3','v11339_emberheart_charm'} or display != 'serce żaru':
+                    raise AssertionError('v104 audit: unexpected duplicate item')
+                item_count+=1
+            elif category=='quests':
+                if not all(str(entry).startswith('v10400_raid_') for entry in ids):
+                    raise AssertionError('v104 audit: unexpected duplicate quest')
+                quest_count+=1
+        if (item_count,quest_count) not in ((0,0),(1,12)):
+            raise AssertionError('v104 audit: historical duplicate count changed')
+        expected['FULL_GAME_PREDEPLOY_AUDIT_V0336'].extend(duplicates)
     expected['V03014_SKILL_NAME_AUDIT'] = [
         f'{c}/{r["name"]}: unlock poza zakresem: {r["unlock"]}' for c,r in high
     ]
@@ -125,7 +279,7 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
     ]
     expected['FULL_RELEASE_INTEGRITY_AUDIT_V03025'] = ['v0.30.22 release gate regressed']
     allowed = set()
-    required_names = NAMES + (('FULL_GAME_PREDEPLOY_AUDIT_V0336',) if parse_version(version) >= (105, 0, 0) else ())
+    required_names = NAMES + (('FULL_GAME_PREDEPLOY_AUDIT_V0336',) if current >= (105, 0, 0) else ())
     for name in required_names:
         report = ns.get(name)
         if not isinstance(report,dict):
@@ -135,7 +289,11 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
         if (not isinstance(errors,(list,tuple)) or
             int(report.get('error_count', -1)) != len(errors) or
             Counter(errors) != Counter(expected_errors)):
+            extra=list((Counter(errors)-Counter(expected_errors)).elements())
+            missing=list((Counter(expected_errors)-Counter(errors)).elements())
             raise AssertionError(f'v104 audit: unexpected legacy findings in {name}: '
-                                 f'{repr(errors)[:400]}')
+                                 f'extra={len(extra)} {extra[:5]!r}; '
+                                 f'missing={len(missing)} {missing[:5]!r}; '
+                                 f'actual={len(errors)} expected={len(expected_errors)}')
         allowed.add(name)
     return frozenset(allowed)

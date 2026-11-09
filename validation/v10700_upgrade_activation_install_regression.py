@@ -42,7 +42,8 @@ def run():
                     out.writestr(rel,'107.00.0\n')
                 elif rel == 'core/bootstrap_economy_professions.py':
                     body=(ROOT/rel).read_text(encoding='utf-8-sig').replace(
-                        'VERSION = "108.00.0"','VERSION = "107.00.0"')
+                        'VERSION = "'+(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()+'"',
+                        'VERSION = "107.00.0"')
                     out.writestr(rel,body)
                 else:
                     out.write(ROOT/rel,rel)

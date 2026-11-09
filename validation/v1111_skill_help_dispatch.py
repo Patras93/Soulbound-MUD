@@ -51,10 +51,19 @@ def run_regression():
         checks+=1
         if not condition: raise AssertionError('HELP SKILLI v11.00.11: '+why)
     ck(release_valid(VERSION, '11.00.11') and server.VERSION==VERSION, 'release version')
-    ck(len(CLASS_SKILLS)==22, '22 class catalogues')
-    ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5527, 'global matching index complete')
-    ck(sum(len(v) for v in CLASS_SKILLS.values())==5527, 'all skills retained')
-    for klass, skills in CLASS_SKILLS.items():
+    # Legacy 22-class test can run on an expanded v107/v110 server. It still
+    # verifies ALL 22 original authored catalogues and their 5527 skills;
+    # newer skills have independent v107/v110 functional gates.
+    from core.v10700_new_archetypes import CLASS_SPECS as v107_classes
+    from core.magitek_v107 import CLASS_NAME as magitek_class
+    from core.v11000_archetypes import CLASS_SPECS as v110_classes
+    new_names={magitek_class}|{x[0] for x in v107_classes}|{x[0] for x in v110_classes}
+    legacy_skills={name:skills for name,skills in CLASS_SKILLS.items() if name not in new_names}
+    ck(len(legacy_skills)==22 and len(CLASS_SKILLS) in (22,30,38),
+       '22 original class catalogues complete and expanded count legal')
+    ck(len(_FINAL_SKILL_HELP_SEARCH_ROWS)==5527, 'global historical matching index complete')
+    ck(sum(len(v) for v in legacy_skills.values())==5527, 'all 5527 original skills retained')
+    for klass, skills in legacy_skills.items():
         ck(bool(skills), 'class skills '+klass)
         # Real dispatch without the extra "skill" keyword, plus accented
         # and accent-free variants; no action/cast can be invoked.
@@ -74,7 +83,7 @@ def run_regression():
         ck(any(t.startswith('Status:') for t in sess.sent), 'real help status '+klass)
     # Historical command aliases for renamed skills must continue to open help.
     sample_aliases=0
-    for klass, skills in CLASS_SKILLS.items():
+    for klass, skills in legacy_skills.items():
         sample=next((sk for sk in skills if sk.get('pre_v1110_skill_name')),None)
         if sample:
             old=sample['pre_v1110_skill_name']

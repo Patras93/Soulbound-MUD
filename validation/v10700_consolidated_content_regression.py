@@ -36,8 +36,11 @@ def run():
         nonlocal checks
         assert cond, 'v107: '+why
         checks+=1
-    check(len(CLASSES)==30,'30 klas po dodaniu 8')
-    check(len(RACES)==30,'30 ras po dodaniu 8')
+    from core.v11000_archetypes import CLASS_SPECS as V110_CLASSES, RACE_SPECS as V110_RACES
+    old_class_names={r[0] for r in CLASSES}-{r[0] for r in V110_CLASSES}
+    old_race_names={r[0] for r in RACES}-{r[0] for r in V110_RACES}
+    check(len(old_class_names)==30 and len(old_class_names)+len(V110_CLASSES)==len(CLASSES),'30 historical classes + new v110 classes')
+    check(len(old_race_names)==30 and len(old_race_names)+len(V110_RACES)==len(RACES),'30 historical races + new v110 races')
     class_names={x[0] for x in CLASSES}
     new_names=('Magitek',)+tuple(x[0] for x in CLASS_SPECS)
     check(len(set(new_names))==8,'8 unikalnych nowych klas')

@@ -12,7 +12,9 @@ from systems.mob_recovery_v1405 import (
 
 from core.performance_v2002 import measure_async
 
-class MudServer:
+from server_parts_v109 import (MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV109Mixin)
+
+class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV109Mixin):
     def __init__(self):
         from pathlib import Path as _SBPath108
         _ver108 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip() == '108.00.0'
@@ -25,11 +27,23 @@ class MudServer:
             from systems.v10800_activation import production_approved as _v108_approved
             if not _v108_approved() and not _v108_predeploy:
                 raise PermissionError('Soulbound v108: brak autoryzowanego PREDEPLOY, serwer nie uruchamia bazy')
+        _ver109 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(
+            encoding='utf-8-sig').strip() == '109.00.0'
+        _v109_mode = None
+        if _ver109:
+            from systems.v10900_staging_guard import ensure_authorized_start
+            _v109_mode = ensure_authorized_start(DB_PATH)
+        _ver110 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(
+            encoding='utf-8-sig').strip() == '110.00.0'
+        _v110_mode = None
+        if _ver110:
+            from systems.v11000_activation import authorized_mode
+            _v110_mode = authorized_mode(DB_PATH)
         self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
         # A real v108 server explicitly activates clock-driven Over Cap.
         # Legacy test databases do not accidentally inherit today's event.
-        if _ver108:
+        if _ver108 or _v109_mode == 'production' or _v110_mode == 'production':
             self.db._v108_live_event_caps = True
         # v71: restore conservative character-creator profiles in place.
         from systems.admin_live_heritage_v7100 import restore as _restore_heritage_v7100
@@ -58,7 +72,9 @@ class MudServer:
         # The already-active v107 equipment ledger is retained exactly as-is.
         # For v108 production require the existing, verified v107 marker so
         # that a missing physical ledger can NEVER silently trigger a migration.
-        if _running_version == '108.00.0' and not _v108_predeploy:
+        if ((_running_version == '108.00.0' and not _v108_predeploy)
+            or (_running_version == '109.00.0' and _v109_mode == 'production')
+            or (_running_version == '110.00.0' and _v110_mode == 'production')):
             existing = self.db.conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' "
                 "AND name='v107_eq_production_cutover'").fetchone()
@@ -101,76 +117,13 @@ class MudServer:
             print(f"[ADMIN DIAGNOSTICS] Cannot store error id: {type(exc).__name__}", flush=True)
         return report
 
-    def account_online(self, account_id):
-        return self.session_by_master_account(account_id) is not None
 
-    def session_by_master_account(self, account_id, exclude=None):
-        for session in list(self.sessions):
-            if session is exclude or session.closed:
-                continue
-            if getattr(session, "master_account_id", None) == int(account_id):
-                return session
-        return None
 
-    def find_character_session(self, name):
-        for s in self.sessions:
-            if s.closed or not s.character:
-                continue
-            if s.character.name.lower() == str(name or "").lower():
-                return s
-        return None
 
-    def session_by_account(self, account_id):
-        for session in self.sessions:
-            if session.account_id == account_id and session.character:
-                return session
-        return None
 
-    def party_key_for_account(self, account_id):
-        for leader_id, members in self.parties.items():
-            if account_id in members:
-                return leader_id
-        return None
 
-    def same_party(self, account_a, account_b):
-        key_a = self.party_key_for_account(account_a)
-        key_b = self.party_key_for_account(account_b)
-        return key_a is not None and key_a == key_b
 
-    def clear_party_protector_for_account(self, account_id):
-        removed = False
-        for leader_id, protector_id in list(self.party_protectors.items()):
-            if protector_id == account_id:
-                self.party_protectors.pop(leader_id, None)
-                removed = True
-        return removed
 
-    def party_protector_session(self, account_id, same_room=None):
-        key = self.party_key_for_account(account_id)
-        if key is None:
-            return None
-        protector_id = self.party_protectors.get(key)
-        if protector_id is None:
-            return None
-        if protector_id not in self.parties.get(key, set()):
-            self.party_protectors.pop(key, None)
-            return None
-        protector = self.session_by_account(protector_id)
-        if (
-            not protector
-            or not protector.character
-            or protector.closed
-            or protector.current_hp <= 0
-            or not protector.character.has_active_class("Strażnik")
-        ):
-            self.party_protectors.pop(key, None)
-            return None
-        if (
-            same_room is not None
-            and protector.character.room_id != same_room
-        ):
-            return None
-        return protector
 
     async def apply_party_protection(self, attacker, mob):
         """Przekieruj jeden wspólny cel drużyny na aktywnego tanka Strażnika."""
@@ -212,88 +165,9 @@ class MudServer:
         await protector.ensure_realtime_combat()
         return protector
 
-    def party_sessions(self, account_id, same_room=None):
-        key = self.party_key_for_account(account_id)
-        if key is None:
-            session = self.session_by_account(account_id)
-            if (
-                session
-                and (
-                    same_room is None
-                    or session.character.room_id == same_room
-                )
-            ):
-                return [session]
-            return []
 
-        result = []
-        for member_id in self.parties.get(key, set()):
-            session = self.session_by_account(member_id)
-            if not session:
-                continue
-            if (
-                same_room is not None
-                and session.character.room_id != same_room
-            ):
-                continue
-            result.append(session)
-        return result
 
-    def party_engaged_mobs(self, session, room_id=None):
-        """Żywe moby będące wspólnymi celami lokalnej drużyny.
 
-        Cel nie jest zapisywany osobno: wynika z realnego engaged_by któregoś
-        członka tej samej drużyny w tym samym pokoju. Dzięki temu każdy mob
-        zaatakowany przez członka party natychmiast staje się legalnym celem
-        dla pozostałych członków party, bez zombie-targetów po wyjściu.
-        """
-        if not session or not session.character:
-            return []
-        rid = session.character.room_id if room_id is None else room_id
-        members = self.party_sessions(session.account_id, same_room=rid)
-        if not members:
-            return []
-        member_names = {
-            m.character.name for m in members
-            if m.character and not m.closed and m.current_hp > 0
-        }
-        if not member_names:
-            return []
-        result = []
-        for mob in self.world.room_mobs(rid):
-            if not mob.alive:
-                continue
-            self.sanitize_mob_engagement(mob)
-            if mob.engaged_by in member_names:
-                result.append(mob)
-        return result
-
-    def party_combat_targets(self, owner_session, mob):
-        """All living local party members are targets of one mob action.
-
-        A Guardian protector remains a special case: while protection is active,
-        the protector takes the party-facing attack. Otherwise every living party
-        member in the room is attacked once by that mob action.
-        """
-        if not owner_session or not mob or not mob.alive:
-            return [owner_session] if owner_session else []
-        protector = self.party_protector_session(
-            owner_session.account_id, same_room=mob.room_id
-        )
-        if protector and protector.current_hp > 0:
-            return [protector]
-        candidates = [
-            session for session in self.party_sessions(
-                owner_session.account_id, same_room=mob.room_id
-            )
-            if session.character and not session.closed and session.current_hp > 0
-        ]
-        return sorted(candidates or [owner_session], key=lambda session: session.character.name.lower())
-
-    def party_combat_target(self, owner_session, mob):
-        # Compatibility for callers that still need one target.
-        targets=self.party_combat_targets(owner_session,mob)
-        return targets[0] if targets else owner_session
 
     async def auto_priest_party_heal(self, damaged_session):
         if (
@@ -437,124 +311,10 @@ class MudServer:
         mob.adaptive_party_dps_v11330 = 0.0
         mob.adaptive_rank_v11330 = ""
 
-    def sanitize_mob_engagement(self, mob):
-        """Usuń zombie-aggro, jeśli deklarowany właściciel już realnie nie walczy."""
-        if not mob or not mob.alive or not mob.engaged_by:
-            return None
 
-        owner = self.find_character_session(mob.engaged_by)
-        aoe_owner = getattr(mob, "aoe_engaged_by", None)
-        if (
-            owner
-            and owner.character
-            and owner.current_hp > 0
-            and owner.character.room_id == mob.room_id
-            and (
-                owner.combat_mob_key == mob.key
-                or aoe_owner == mob.engaged_by
-            )
-        ):
-            return owner
 
-        # Jeśli stary właściciel zniknął, ale ktoś naprawdę nadal walczy z tym
-        # mobem w tym samym pokoju, przekaż aggro aktywnemu uczestnikowi.
-        candidates = [
-            s for s in self.sessions
-            if (
-                not s.closed
-                and s.character
-                and s.current_hp > 0
-                and s.character.room_id == mob.room_id
-                and s.combat_mob_key == mob.key
-            )
-        ]
-        if candidates:
-            replacement = sorted(
-                candidates, key=lambda s: s.character.name.lower()
-            )[0]
-            mob.engaged_by = replacement.character.name
-            mob.aoe_engaged_by = None
-            return replacement
 
-        # Nikt realnie nie walczy: stan aggro był osierocony.
-        mob.engaged_by = None
-        mob.aoe_engaged_by = None
-        mob.engaged_at = 0.0
-        mob.combat_turn = 0
-        mob.player_hits = 0
-        self.reset_adaptive_mob_encounter_v11330(mob)
-        return None
 
-    def release_all_engagements_for_session(self, leaving_session):
-        """Zwolnij wszystkie moby trzymane przez postać, nie tylko combat_mob_key."""
-        if not leaving_session or not leaving_session.character:
-            return 0
-        released = 0
-        name = leaving_session.character.name
-        for mob in self.world.mobs.values():
-            if not mob.alive or mob.engaged_by != name:
-                continue
-            self.reassign_mob_engagement(mob, leaving_session)
-            if mob.engaged_by == name:
-                mob.engaged_by = None
-                mob.aoe_engaged_by = None
-                mob.engaged_at = 0.0
-                mob.combat_turn = 0
-                mob.player_hits = 0
-                self.reset_adaptive_mob_encounter_v11330(mob)
-            released += 1
-        return released
-
-    def engagement_allowed(self, session, mob):
-        if not mob or not mob.alive:
-            return False
-        self.sanitize_mob_engagement(mob)
-        if not mob.engaged_by or mob.engaged_by == session.character.name:
-            return True
-        owner = self.find_character_session(mob.engaged_by)
-        return bool(
-            owner
-            and self.same_party(session.account_id, owner.account_id)
-        )
-
-    def reassign_mob_engagement(self, mob, leaving_session):
-        if not mob or not mob.alive:
-            return
-        if mob.engaged_by != leaving_session.character.name:
-            return
-        candidates = [
-            session
-            for session in self.party_sessions(
-                leaving_session.account_id, same_room=mob.room_id
-            )
-            if (
-                session is not leaving_session
-                and session.combat_mob_key == mob.key
-            )
-        ]
-        mob.engaged_by = (
-            candidates[0].character.name if candidates else None
-        )
-        # Przekazanie zwykłego aggro kończy specjalne wielo-aggro AoE.
-        mob.aoe_engaged_by = None
-
-    def session_engaged_mobs(self, session, room_id=None):
-        """Żywe moby, których aggro należy dokładnie do tej sesji.
-
-        Obejmuje zarówno zwykły główny cel, jak i dodatkowe moby trafione AoE.
-        """
-        if not session or not session.character:
-            return []
-        rid = session.character.room_id if room_id is None else room_id
-        owner_name = session.character.name
-        result = []
-        for mob in self.world.room_mobs(rid):
-            if not mob.alive:
-                continue
-            self.sanitize_mob_engagement(mob)
-            if mob.engaged_by == owner_name:
-                result.append(mob)
-        return result
 
     async def broadcast_room(self, room_id, text, exclude=None, history_category=None):
         targets = [s for s in tuple(self.sessions)

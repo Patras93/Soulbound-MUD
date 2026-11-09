@@ -5,6 +5,9 @@ import time
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from systems.mercenary_taverns import MERCENARIES, mercenary_role, pick_next_contract
 from core.classes_skills import CLASSES
+from core.v10700_new_archetypes import CLASS_SPECS as V107_CLASS_SPECS
+from core.v11000_archetypes import CLASS_SPECS as V110_CLASS_SPECS
+from core.magitek_v107 import CLASS_NAME as MAGITEK_CLASS
 
 
 def mercenary_contract_audit_v1170():
@@ -32,16 +35,21 @@ def mercenary_contract_audit_v1170():
         checks+=1
     check(mercenary_role('Elira')=='kaplan', 'hiring by name')
     check(mercenary_role('Kapłanka')=='kaplan', 'hiring by class')
-    check(len(CLASSES)==22, 'canonical class count')
-    check(len(MERCENARIES)==22, 'one permanent mercenary per playable class')
-    check({s['class'] for s in MERCENARIES.values()}=={c[0] for c in CLASSES}, 'all 22 classes covered')
+    # The tavern contracts are the 22 historical templates, not one automatic
+    # hire for every class introduced in subsequent releases (v107/v110).
+    # Verify that none of those old contracts disappears as the roster grows.
+    newer = {MAGITEK_CLASS} | {row[0] for row in V107_CLASS_SPECS} | {row[0] for row in V110_CLASS_SPECS}
+    historical = {row[0] for row in CLASSES} - newer
+    check(len(historical)==22, 'all 22 historical classes preserved')
+    check(len(MERCENARIES)==22, '22 historical permanent hire templates')
+    check({s['class'] for s in MERCENARIES.values()}==historical, 'historical class coverage intact')
     check(MERCENARIES['paladyn']['name']=='Seren' and MERCENARIES['paladyn']['role']=='Paladyn', 'historical Paladin contract preserved')
     check(len({s['name'].casefold() for s in MERCENARIES.values()})==len(MERCENARIES), 'unique hire names')
     check(mercenary_role('Łowca')=='lucznik' and mercenary_role('Łucznik')=='lucznik' and mercenary_role('Riven')=='lucznik', 'old archer contracts remain valid')
     check(mercenary_role('Cyborg') is None and mercenary_role('Mec')=='mec', 'Mec class not Cyborg race')
-    for klass in CLASSES:
-        role = mercenary_role(klass[0])
-        check(role is not None and MERCENARIES[role]['class']==klass[0], f'can hire {klass[0]}')
+    for class_name in sorted(historical):
+        role = mercenary_role(class_name)
+        check(role is not None and MERCENARIES[role]['class']==class_name, f'can hire {class_name}')
     for role, spec in MERCENARIES.items():
         check(bool(spec['ability']) and spec['attack_type'] in ('physical','magic') and spec['power']>0, f'{role} combat action')
     check(db.hire_mercenary(2,'kaplan',13000,now=1000)=='ok','hire')

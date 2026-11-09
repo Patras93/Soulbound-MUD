@@ -1650,3 +1650,21 @@ LATEST_CHANGES = [
     "v108.00.0: bez nowej migracji EQ; zachowana ochrona istniejacego wyposazenia v107.",
     "v108.00.0: odizolowane scenariusze TCP PREDEPLOY i poprawiona spójność numeru wersji.",
 ] + LATEST_CHANGES
+
+# v109 — working code identity; cannot be deployed without a dedicated release gate.
+LATEST_CHANGES_TITLE = "Soulbound v109.00.0 - Era Nieodkrytych Horyzontów (KOD ROBOCZY)"
+LATEST_CHANGES = [
+    "v109.00.0: 12 nowych krain, 288 lokacji, 360 questów, bossowie dla maksymalnie 6 graczy.",
+    "v109.00.0: automatyczne prezenty z opóźnieniem; Adwent 1–31 grudnia, Daily od 1 stycznia.",
+    "v109.00.0: kod roboczy tylko na bazach testowych; brak zgody na wdrożenie.",
+] + LATEST_CHANGES
+
+# v110: player-facing release identity; version-neutral updater and full
+# historical world retained, without reintroducing versioned installer scripts.
+LATEST_CHANGES_TITLE = "Soulbound v110.00.0 - Era Żyjących Kontynentów"
+LATEST_CHANGES = [
+    "v110.00.0: 12 nowych krain i 360 lokacji, 700 questów i 40 bossów.",
+    "v110.00.0: 8 klas, 8 ras i 8 profesji w niezależnych modułach.",
+    "v110.00.0: cztery automatyczne wydarzenia świata; zapis i nagrody SQLite.",
+    "v110.00.0: jeden uniwersalny PREDEPLOY i WDRAZAM, bez instalatorów starych wersji.",
+] + LATEST_CHANGES

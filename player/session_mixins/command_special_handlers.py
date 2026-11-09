@@ -94,6 +94,52 @@ class SessionCommandSpecialHandlersMixin:
             if hasattr(self,'announce_active_quest_progress'):
                 await self.announce_active_quest_progress(quest_id)
 
+    async def command_profesja110(self, args):
+        """Profesje v110, odizolowane od komend i transakcji v107."""
+        from systems.v11000_activation import enabled
+        from core.v11000_archetypes import PROFESSION_SPECS
+        from systems.v11000_profession_work import process
+        if not enabled():
+            await self.send('Profesje v110 niedostępne przed zatwierdzonym wydaniem.')
+            return
+        if self.account_id is None or self.character is None:
+            await self.send('Najpierw zaloguj postać.')
+            return
+        value=str(args or '').strip().casefold()
+        if value in ('','lista','list','help','pomoc'):
+            await self.send('Profesje v110. Narzędzia kupisz na targu za 1200 srebra, raz na postać. Wpisz profesja110 numer.')
+            for index,(name,tool,label,ingredient) in enumerate(PROFESSION_SPECS,1):
+                await self.send(f'{index}. {name}; narzędzie: {label}; surowiec: {ingredient}.')
+            return
+        if not value.isdecimal() or not 1<=int(value)<=len(PROFESSION_SPECS):
+            await self.send('Nieznana profesja. Wpisz profesja110 lista.')
+            return
+        try:
+            messages,changed,product=process(self.server.db,self.account_id,int(value)-1,
+                                              self.grant_profession_progress)
+        except Exception as exc:
+            print('V110_PROFESSION_ERROR: '+type(exc).__name__+': '+str(exc),flush=True)
+            await self.send('Praca nieudana; transakcja wycofana.')
+            return
+        if messages is None:
+            await self.send(changed)
+            return
+        await self.send('Wykonano profesję. Wyrób: '+product)
+        for message in messages:
+            await self.send(str(message))
+        for qid,_,_ in changed:
+            if hasattr(self,'announce_active_quest_progress'):
+                await self.announce_active_quest_progress(qid)
+
+    async def command_wydarzenie110(self, args):
+        """Krótki status NVDA bez skanowania świata i zapisów SQLite."""
+        from systems.v11000_activation import enabled
+        if not enabled():
+            await self.send('Wydarzenia v110 niedostępne przed zatwierdzonym wydaniem.')
+            return
+        from systems.events_v110.status import text_status
+        await self.send(text_status(self.server.db.conn))
+
     async def command_magitek_v107(self, args):
         """Staging-only Magitek command, never changes the generic skill router."""
         import os

@@ -264,6 +264,13 @@ def repeated_tcp_waves():
             SOULBOUND_V108_PREDEPLOY=os.environ.get('SOULBOUND_V108_PREDEPLOY',''),
             SOULBOUND_WORLD_SEED_FILE=str(tmp/'world.seed'),
             PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1',PYTHONUTF8='1')
+        # v110: child gets no production credentials or paths, only the
+        # original runner's three staging flags on a fixed disposable DB.
+        if (ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()=='110.00.0':
+            if all(os.environ.get(k)=='1' for k in
+                   ('SOULBOUND_V107_STAGING','SOULBOUND_V109_STAGING','SOULBOUND_V110_STAGING')):
+                env.update(SOULBOUND_V107_STAGING='1', SOULBOUND_V109_STAGING='1',
+                           SOULBOUND_V110_STAGING='1')
         flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=='nt' else 0
         log=tmp/'server.log'
         with log.open('wb') as out:

@@ -15,14 +15,27 @@ STAT_KEYS = frozenset({'strength', 'dexterity', 'constitution', 'intelligence', 
 STAGES = (1, 100, 200, 400, 600)
 
 
+def _historical_22():
+    """Keep all original v104 skill/EQ checks while v107/v110 extend roster."""
+    from core.v10700_new_archetypes import CLASS_SPECS as chaos
+    from core.v11000_archetypes import CLASS_SPECS as newcomers
+    from core.magitek_v107 import CLASS_NAME as magitek
+    excluded={magitek}|{r[0] for r in chaos}|{r[0] for r in newcomers}
+    from core.classes_skills import CLASSES as current_classes, CLASS_SKILLS as current_skills
+    rows=[r for r in current_classes if r[0] not in excluded]
+    skills={name:ls for name,ls in current_skills.items() if name not in excluded}
+    return rows,skills
+
+
 def audit_class_skill_balance_v1172():
     errors, report, checks = [], {}, 0
-    roster = {row[0] for row in CLASSES}
-    if len(roster) != 22 or set(CLASS_SKILLS) != roster:
-        errors.append('class roster mismatch')
-    legacy, modern = old_and_new_skills(CLASS_SKILLS)
+    historic_rows, historic_skills = _historical_22()
+    roster = {row[0] for row in historic_rows}
+    if len(roster) != 22 or set(historic_skills) != roster:
+        errors.append('historic 22-class roster mismatch')
+    legacy, modern = old_and_new_skills(historic_skills)
     for class_name in sorted(roster):
-        rows = CLASS_SKILLS.get(class_name, ())
+        rows = historic_skills.get(class_name, ())
         counter = Counter(str(s.get('kind') or '') for s in rows)
         offensive = [s for s in rows if s.get('kind') in OFFENSIVE]
         late = [s for s in offensive if int(s.get('unlock', 0) or 0) >= 400]
@@ -45,7 +58,7 @@ def audit_class_skill_balance_v1172():
             'endgame_400_plus': len(late), 'heals': counter['heal'] + counter['group_heal'],
             'buffs': counter['boost'] + counter['guard'],
         }
-    return {'version': '1.17.2', 'checks': checks, 'skills': sum(len(v) for v in CLASS_SKILLS.values()),
+    return {'version': '1.17.2', 'checks': checks, 'skills': sum(len(v) for v in historic_skills.values()),
             'classes': len(roster), 'per_class': report,
             'errors': errors, 'error_count': len(errors)}
 
@@ -53,7 +66,8 @@ def audit_class_skill_balance_v1172():
 def audit_class_equipment_balance_v1172(items, catalog, tech_set_ids):
     """Inspect post-Generator ITEMS, rather than early recipe templates."""
     errors, checks, report = [], 0, {}
-    roster = {row[0] for row in CLASSES}
+    historic_rows,_ = _historical_22()
+    roster = {row[0] for row in historic_rows}
     for class_name in sorted(roster):
         class_report = {}
         previous = -1

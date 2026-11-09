@@ -139,6 +139,13 @@ def _private_env(folder, port):
     # Never propagate this marker for an ordinary manual private-game launch.
     if os.environ.get('SOULBOUND_V108_PREDEPLOY') == '1':
         env['SOULBOUND_V108_PREDEPLOY'] = '1'
+    # A v110 PREDEPLOY is already authorized before it creates the v85
+    # native test. Pass its three existing staging flags through to the
+    # SECOND, disposable clone. Never generate new rights or copy secrets.
+    # server.py independently verifies the clone root, DB and loopback port.
+    stages=('SOULBOUND_V107_STAGING','SOULBOUND_V109_STAGING','SOULBOUND_V110_STAGING')
+    if all(os.environ.get(key)=='1' for key in stages):
+        env.update({key:'1' for key in stages})
     if admin_accounts.strip():
         env['SOULBOUND_ADMIN_ACCOUNTS'] = admin_accounts
     return env

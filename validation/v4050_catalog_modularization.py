@@ -57,7 +57,23 @@ def run_regression():
     assert '2–1000' in npcs['priest_elor'] and 'quest list Elor 81' in npcs['priest_elor']
     assert '1000' in sys_descriptions['broń duszy'] and 'Elora' in sys_descriptions['próby duszy']
     counts+=4
-    assert len(server.CLASS_SKILLS)==(22 if int(VERSION.split('.',1)[0]) >= 9 else 14)
+    # v107 intentionally installs eight classes AFTER the historical 22-class
+    # bootstrap. In an unactivated TEMP candidate, early audits see 22;
+    # in the fully enabled v107+/production runtime they must see 30.
+    # Never infer activation solely from VERSION: offline tests MUST NOT
+    # fabricate a production marker or bypass the install guard.
+    major=int(VERSION.split('.',1)[0])
+    if major>=110:
+        from systems.v10700_activation import enabled as v107_active
+        from systems.v11000_activation import enabled as v110_active
+        # Staging is allowed only for an isolated test DB, not VERSION alone.
+        expected_classes=38 if v110_active() else 30 if v107_active() else 22
+    elif major>=107:
+        from systems.v10700_activation import enabled as v107_active
+        expected_classes=30 if v107_active() else 22
+    else:
+        expected_classes=22 if major>=9 else 14
+    assert len(server.CLASS_SKILLS)==expected_classes,(VERSION,len(server.CLASS_SKILLS),expected_classes)
     counts+=1
     assert (len(server.QUESTS) >= 6745 if int(VERSION.split('.',1)[0]) >= 23 else len(server.QUESTS) == (expected_quest_total_v1100() if int(VERSION.split('.',1)[0]) >= 11 else 6585 if int(VERSION.split('.',1)[0]) == 10 else 6573 if int(VERSION.split('.',1)[0]) == 9 else 5605 if int(VERSION.split('.',1)[0]) == 8 else 3925 if int(VERSION.split('.',1)[0]) == 7 else 3861 if VERSION == '6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))
     counts+=1

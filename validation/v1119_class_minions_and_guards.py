@@ -63,7 +63,9 @@ async def _run():
         def spell_power(self): return 100
         def active_class_names(self): return (self.cls,)
         async def send(self, txt): self.messages.append(str(txt))
-    names={name for name,*_ in CLASSES}
+    from core.class_skills_v10400 import NAMES as HISTORICAL_CLASSES
+    names=set(HISTORICAL_CLASSES)
+    assert len(names)==22 and names <= {name for name,*_ in CLASSES}
     for klass in names:
         assert any(spec[1] == klass for spec in SUMMONS.values()), klass
         checks+=1

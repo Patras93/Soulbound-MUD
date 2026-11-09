@@ -1,0 +1,151 @@
+"""ROOMS: historyczna czesc 2, wpisy 29-56.
+Bez zmiany ID, wartosci i kolejnosci wpisow.
+"""
+
+def build_catalog():
+    return {'guild_arcane_chamber': {'zone': 'Gildia Dusz',
+                          'name': 'Komnata Arkanów Gildii',
+                          'desc': 'Runy świecą na ścianach. Tutaj Magowie i Psionicy ćwiczą kontrolę '
+                                  'energii.',
+                          'exits': {'west': 'guild_hall', 'east': 'guild_dark_chamber'}},
+ 'guild_dark_chamber': {'zone': 'Gildia Dusz',
+                        'name': 'Komnata Mrocznych Sztuk',
+                        'desc': 'Zabezpieczona sala do nauki Nekromantów i Czarowników.',
+                        'exits': {'west': 'guild_arcane_chamber'}},
+ 'guild_shadow_gallery': {'zone': 'Gildia Dusz',
+                          'name': 'Galeria Cieni Gildii',
+                          'desc': 'Wąskie przejścia i cele treningowe służą Łotrzykom i Łowcom.',
+                          'exits': {'down': 'guild_hall'}},
+ 'guild_sanctuary': {'zone': 'Gildia Dusz',
+                     'name': 'Sanktuarium Gildii',
+                     'desc': 'Cicha sala natury i światła, w której szkolą się Kapłani i Druidzi.',
+                     'exits': {'up': 'guild_hall'}},
+ 'north_street': {'zone': 'Miasto Dusz',
+                  'name': 'Ulica Północna',
+                  'desc': 'Szeroka ulica prowadząca ku dziedzińcowi i północnej bramie.',
+                  'exits': {'south': 'square',
+                            'north': 'training',
+                            'east': 'guard_hall',
+                            'west': 'guild_hall'}},
+ 'guard_hall': {'zone': 'Miasto Dusz',
+                'name': 'Strażnica Główna',
+                'desc': 'Główna sala miejskiej straży. Na ścianach wiszą mapy szlaków, tablice patroli i '
+                        'meldunki z obu bram. Stąd można przejść do koszar, zbrojowni, komnaty dowódcy, '
+                        'wieży obserwacyjnej i cel strażnicy.',
+                'exits': {'west': 'north_street',
+                          'east': 'guard_barracks',
+                          'south': 'guard_armory',
+                          'north': 'guard_command',
+                          'up': 'guard_watchtower',
+                          'down': 'guard_cells'}},
+ 'guard_barracks': {'zone': 'Miasto Dusz',
+                    'name': 'Koszary Straży',
+                    'desc': 'Rzędy prycz, stojaki na płaszcze i tablice zmian wypełniają koszary. Strażnicy '
+                            'odpoczywają tutaj między patrolami północnej i południowej bramy.',
+                    'exits': {'west': 'guard_hall', 'east': 'guard_mess'}},
+ 'guard_mess': {'zone': 'Miasto Dusz',
+                'name': 'Jadalnia Straży',
+                'desc': 'Długi stół, kocioł i beczki z wodą zajmują niewielką jadalnię. Na ścianie wisi plan '
+                        'godzinnych zmian patroli miejskich.',
+                'exits': {'west': 'guard_barracks'}},
+ 'guard_armory': {'zone': 'Miasto Dusz',
+                  'name': 'Zbrojownia Straży',
+                  'desc': 'Zamknięte stojaki przechowują włócznie, tarcze, kusze i zapasowe pancerze. '
+                          'Kwatermistrz prowadzi tu ewidencję wyposażenia miejskiej straży.',
+                  'exits': {'north': 'guard_hall'}},
+ 'guard_command': {'zone': 'Miasto Dusz',
+                   'name': 'Komnata Dowódcy Straży',
+                   'desc': 'Duży stół mapowy pokazuje Miasto Dusz, Stary Trakt, Gaj Szeptów i pogranicze. '
+                           'Tutaj planowane są patrole i akcje przeciw goblinom oraz bandytom.',
+                   'exits': {'south': 'guard_hall', 'east': 'guard_archive'}},
+ 'guard_archive': {'zone': 'Miasto Dusz',
+                   'name': 'Archiwum Straży',
+                   'desc': 'Regały są pełne raportów z patroli, listów gończych i starych map. Archiwistka '
+                           'straży porządkuje meldunki z obu bram.',
+                   'exits': {'west': 'guard_command'}},
+ 'guard_watchtower': {'zone': 'Miasto Dusz',
+                      'name': 'Wieża Obserwacyjna Straży',
+                      'desc': 'Z kamiennej wieży widać północną bramę, Stary Trakt i dachy miasta. '
+                              'Wartownicy przekazują stąd sygnały do posterunków przy bramach.',
+                      'exits': {'down': 'guard_hall'}},
+ 'guard_cells': {'zone': 'Miasto Dusz',
+                 'name': 'Cele Strażnicy',
+                 'desc': 'Kilka żelaznych cel służy do przetrzymywania schwytanych bandytów i szabrowników. '
+                         'Korytarz prowadzi do małego pokoju przesłuchań.',
+                 'exits': {'up': 'guard_hall', 'east': 'guard_interrogation'}},
+ 'guard_interrogation': {'zone': 'Miasto Dusz',
+                         'name': 'Pokój Przesłuchań',
+                         'desc': 'Surowy stół, dwa krzesła i półka z raportami tworzą niewielki pokój '
+                                 'przesłuchań. Straż zbiera tu informacje o napadach, goblinach i ruchach '
+                                 'bandytów.',
+                         'exits': {'west': 'guard_cells'}},
+ 'training': {'zone': 'Miasto Dusz',
+              'name': 'Plac Treningowy',
+              'desc': 'Plac do ćwiczeń. Drewniane manekiny stoją obok północnej bramy.',
+              'exits': {'south': 'north_street', 'north': 'north_gate'}},
+ 'north_gate': {'zone': 'Miasto Dusz',
+                'name': 'Północna Brama',
+                'desc': 'Ciężka brama otwiera się na Stary Trakt. Dwóch miejskich strażników pełni tu stałą '
+                        'wartę i kontroluje podróżnych wracających z pogranicza.',
+                'exits': {'south': 'training', 'north': 'old_road'}},
+ 'market': {'zone': 'Miasto Dusz',
+            'name': 'Rynek',
+            'desc': 'Kupcy sprzedają prowiant i podstawowe wyposażenie. Mikstury kupisz w Aptece Pod '
+                    'Srebrnym Liściem. Przy kamiennym kantorze działa Bank Dusz Bankiera Aldrena. Handlarz '
+                    'Skupu Radan kupuje łupy, trofea i niezałożone EQ, ale nie skupuje ryb, rud, drewna, '
+                    'ziół ani innych materiałów rzemieślniczych.',
+            'exits': {'west': 'square', 'east': 'forge', 'south': 'inn', 'north': 'fish_market'}},
+ 'fish_market': {'zone': 'Miasto Dusz',
+                 'name': 'Targ Rybny',
+                 'desc': 'Stragany pachną świeżą rybą i mokrymi sieciami. Tutaj sprzedaje się sprzęt '
+                         'wędkarski.',
+                 'exits': {'south': 'market', 'east': 'harbor'}},
+ 'harbor': {'zone': 'Miasto Dusz',
+            'name': 'Port Dusz',
+            'desc': 'Drewniane pomosty, kutry i skrzynie rybackie wypełniają miejski port.',
+            'exits': {'west': 'fish_market', 'east': 'sea_pier'}},
+ 'sea_pier': {'zone': 'Wybrzeże',
+              'name': 'Morskie Molo',
+              'desc': 'Długie molo wychodzi nad morze. To łowisko typowych ryb morskich.',
+              'exits': {'west': 'harbor', 'east': 'ocean_platform'}},
+ 'ocean_platform': {'zone': 'Wybrzeże',
+                    'name': 'Oceaniczna Platforma',
+                    'desc': 'Daleka platforma nad otwartym oceanem. Trafiają się tu wielkie ryby oceaniczne '
+                            'i rekiny.',
+                    'exits': {'west': 'sea_pier'}},
+ 'forge': {'zone': 'Miasto Dusz',
+           'name': 'Kuźnia Dusz',
+           'desc': 'Młoty uderzają o metal, a Broń Duszy odpowiada cichym rezonansem.',
+           'exits': {'west': 'market'}},
+ 'inn': {'zone': 'Miasto Dusz',
+         'name': 'Karczma Pod Błękitnym Płomieniem',
+         'desc': 'Ciepła karczma pełna rozmów podróżników.',
+         'exits': {'north': 'market', 'west': 'south_street'}},
+ 'south_street': {'zone': 'Miasto Dusz',
+                  'name': 'Ulica Południowa',
+                  'desc': 'Cichsza część miasta prowadząca do południowej bramy.',
+                  'exits': {'north': 'square', 'east': 'inn', 'south': 'south_gate'}},
+ 'south_gate': {'zone': 'Miasto Dusz',
+                'name': 'Południowa Brama',
+                'desc': 'Brama otwiera się na łąki i Gaj Szeptów. Miejska straż utrzymuje tu stały '
+                        'posterunek i ostrzega podróżnych o wilkach oraz zagrożeniach w dziczy.',
+                'exits': {'north': 'south_street', 'south': 'meadow'}},
+ 'meadow': {'zone': 'Łąki',
+            'name': 'Srebrna Łąka',
+            'desc': 'Centralna część rozległych łąk. W trawie rosną Pokrzywa, Rumianek, Mięta, Krwawnik, '
+                    'Melisa i Lawenda. Na zachodzie leży Łąka Kwiatów, na wschodzie Łąka Mięty, a na '
+                    'południu Łąka Nadjeziorna.',
+            'exits': {'north': 'south_gate',
+                      'west': 'flower_meadow',
+                      'east': 'mint_meadow',
+                      'south': 'lakeside_meadow'}},
+ 'mint_meadow': {'zone': 'Łąki',
+                 'name': 'Łąka Mięty',
+                 'desc': 'Wilgotniejsza łąka pachnąca Miętą i Melisą. To dobre miejsce do Zielarstwa, '
+                         'szczególnie dla początkujących.',
+                 'exits': {'west': 'meadow', 'east': 'riverbank'}},
+ 'flower_meadow': {'zone': 'Łąki',
+                   'name': 'Łąka Kwiatów',
+                   'desc': 'Kolorowa łąka pełna Rumianku, Lawendy i Krwawnika. Dalej na zachodzie zaczyna '
+                           'się Gaj Szeptów.',
+                   'exits': {'east': 'meadow', 'west': 'whisper_grove'}}}

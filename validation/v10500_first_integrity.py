@@ -31,8 +31,22 @@ def run():
         nonlocal checks
         if not condition:raise AssertionError(msg)
         checks+=1
-    ok(SOUL_MAX_TIER==3000,'3000 tiers')
-    ok(len(SOUL_TIER_THRESHOLDS)==3000,'threshold count')
+    # v105 owns the immutable 1..3000 prefix; an approved v110 extends it
+    # to 6000 without changing any historical tier, trial or quest ID.
+    # Reject unexpected intermediate/truncated ranges, not the legal successor.
+    from systems.v11000_activation import enabled as v110_authorized
+    import os
+    from pathlib import Path
+    v110_runtime = (Path(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip() == '110.00.0'
+    extended = os.environ.get('SOULBOUND_V106_STAGING') == '1' or (v110_runtime and v110_authorized())
+    cap = 6000 if extended else 3000
+    ok(SOUL_MAX_TIER == cap, 'tier cap from authenticated v110/v106 environment: '+str(SOUL_MAX_TIER))
+    ok(len(SOUL_TIER_THRESHOLDS) == cap, 'threshold count '+str(cap))
+    ok(SOUL_TIER_THRESHOLDS[0] == 1, 'historical Tier 1')
+    for newer_tier in range(3001, cap+1):
+        ok(SOUL_TIER_THRESHOLDS[newer_tier-1] == newer_tier*10, 'successor tier '+str(newer_tier))
+        ok(SOUL_TRIAL_QUEST_IDS.get(newer_tier) == f'soul_tier_{newer_tier:02d}_trial',
+           'successor trial ID '+str(newer_tier))
     for tier in range(2,3001):
         ok(SOUL_TIER_THRESHOLDS[tier-1]==tier*10,f'level requirement T{tier}')
     ok(len(REGIONS)==20,'20 distinct regions')

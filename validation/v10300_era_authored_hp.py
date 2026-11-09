@@ -11,7 +11,14 @@ def run():
     import server  # installs World v0384 patch, same as production startup
     from world.world_state import World
     from systems.content_registry import MOB_TEMPLATES
-    from world.v10300_era_bez_granic import ERAS
+    from world.v10300_era_bez_granic import ERAS, install as era_install
+    from world.v10300_era_raids import install as legacy_raid_install
+    # Verify legacy authored HP on a local pre-retirement fixture.  All
+    # raid enemies MUST remain absent from the active v110 monster registry.
+    rooms={'v3000_eternal_6': {'exits': {}}}; old_mobs={};spawns=[]
+    npcs={};quests={};items={};recipes={};areas=[]
+    era_install(rooms,old_mobs,spawns,npcs,quests,items,recipes,areas,{},{},{},{})
+    legacy_raid_install(rooms,old_mobs,spawns,npcs,quests,items,recipes)
     world=World.__new__(World)
     checks=0
     for slug,zone,low,high,*_ in ERAS:
@@ -20,7 +27,8 @@ def run():
             mob=f'v10300_{slug}_raid_boss_{stage}'
             assert world._terrain_scaled_template_v0362(room,mob)==mob,(room,mob)
             checks+=1
-            hp=int(MOB_TEMPLATES[mob]['max_hp'])
+            assert mob not in MOB_TEMPLATES, ('retired raid boss restored',mob)
+            hp=int(old_mobs[mob]['max_hp'])
             # v104: ordinary authored HP is the floor; optional global difficulty
             # may legitimately increase it. Reject any accidental repeated scaling
             # (especially the old trillion-HP terrain-clone regression).

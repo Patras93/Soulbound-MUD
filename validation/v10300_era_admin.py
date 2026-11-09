@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-def run():
+def _run_legacy():
     from systems.admin_live_era_v10300 import report,handle
     from world.v10300_era_bez_granic import install as era_install
     from world.v10300_era_raids import install as raids_install
@@ -34,4 +34,18 @@ def run():
     asyncio.run(handle(guest,'audyt'))
     ok(guest.messages==['Nieznana komenda. Wpisz help.'],'guest access')
     return n
+def run():
+    # v107 successor must block retired raid admin routes. The original v103
+    # NVDA-size and permission assertions run on synthetic historical data.
+    from systems import admin_live_era_v10300 as admin
+    original=admin._sb107_runtime_enabled
+    if original():
+        assert 'wycofane' in admin.report('rajdy',{}, {}, {}, {})
+        assert 'wycofane' in admin.report('rajd swit',{}, {}, {}, {})
+    admin._sb107_runtime_enabled=lambda:False
+    try:
+        return _run_legacy()
+    finally:
+        admin._sb107_runtime_enabled=original
+
 if __name__=='__main__':print(f'ERA ADMIN READ-ONLY: {run()} checks PASS',flush=True)

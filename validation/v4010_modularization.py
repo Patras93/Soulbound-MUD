@@ -58,7 +58,14 @@ def run_regression():
     import copy
     assert CLASS_SKILLS is not authored_skills
     assert ENDGAME_CLASS_SKILLS is not authored_endgame
-    assert len(CLASS_SKILLS)==(22 if int(VERSION.split('.',1)[0]) >= 9 else 14)
+    # The unmodified source catalog authors twelve classes; the compatibility
+    # facade composes additional historical classes before later expansions.
+    # Keep these independent identities distinct, even in a v110 server.
+    authored_baseline = 12
+    historical_facade_baseline = 22 if int(VERSION.split('.',1)[0]) >= 9 else 14
+    assert len(authored_skills)==authored_baseline
+    assert set(authored_skills).issubset(CLASS_SKILLS)
+    assert len(CLASS_SKILLS)>=historical_facade_baseline
     checks+=3
     original_runtime = copy.deepcopy(CLASS_SKILLS)
     original_authored = copy.deepcopy(authored_skills)

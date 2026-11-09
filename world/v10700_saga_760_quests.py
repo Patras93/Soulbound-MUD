@@ -7,6 +7,7 @@ kill counters. The 60 real regional Chaos threats rotate hourly: 10 available
 per window, each eligible once in six hours; accepted hunts stay playable.
 """
 from __future__ import annotations
+from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
 from collections import Counter
 from core.v10700_new_archetypes import CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS
 from world.v10700_chaos_chapter_one import prefix
@@ -63,7 +64,7 @@ def install(rooms,mobs,spawns,npcs,quests,items):
             olc_reward_xp=lvl*1250,olc_reward_class_xp=lvl*1200,
             olc_reward_soul_xp=lvl*1050,reward_gold=500+idx*13,
             reward_mithril=2+idx//100,reward_items={material:1},
-            repeatable=repeat,v10700_saga=True)
+            repeatable=repeat,**({'repeat_cooldown':QUEST_REPEAT_COOLDOWN_SECONDS} if repeat else {}),v10700_saga=True)
 
     # Eight truly separate profession action tracks; actual events must be
     # emitted by the new 'profesja107' processor for the native quest counter.

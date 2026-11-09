@@ -3,6 +3,7 @@
 from __future__ import annotations
 from datetime import datetime
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -25,9 +26,20 @@ def main():
         if not z.is_file() or sha256(z)!=s.get('sha256'):
             raise ValueError('ZIP zostal zmieniony po predeploy. Wykonaj test ponownie.')
         ver,_=inspect_zip(z)
-        if version_tuple(ver) >= (108, 0, 0):
-            raise ValueError('v108: nie ma autoryzowanej migracji LIVE ani '
-                             'dodatkowych bramek PREDEPLOY. Nie zatrzymano serwera.')
+        if ver == '110.00.0':
+            if (s.get('v110_release_gates_pass') is not True
+                    or s.get('installed_at_test')!='109.00.0'
+                    or s.get('returncode')!=0):
+                raise ValueError('v110: brak zatwierdzonej osobnej bramki 60/60 PLUS.')
+        elif ver == '109.00.0':
+            if (s.get('v109_release_gates_pass') is not True
+                    or s.get('installed_at_test')!='108.00.0'
+                    or s.get('returncode')!=0):
+                raise ValueError('v109: brak odrębnego zatwierdzenia PREDEPLOY i wersji bazowej.')
+            # Full revalidation (including installed v108 marker) happens
+            # in updater before any server STOP, and again after staging.
+        elif version_tuple(ver) >= (108, 0, 0):
+            raise ValueError('Nieautoryzowana wersja: brak testow LIVE; nie zatrzymano serwera.')
         current=installed_version()
         if ver!=s.get('version') or version_tuple(ver)<=version_tuple(current):
             raise ValueError(f'Wersja kandydata v{ver} nie jest nowsza niz produkcyjna v{current}.')
@@ -43,8 +55,16 @@ def main():
             return 2
         if sha256(z)!=s['sha256']:
             raise ValueError('Zmiana paczki w trakcie potwierdzania. Wdrozenie anulowane.')
-        cmd=[sys.executable,'-u',str(ROOT/'aktualizuj_soulbound.py'),str(z),'--yes']
-        return subprocess.call(cmd,cwd=ROOT)
+        # The certified candidate supplies its own universal updater. Never
+        # execute the installed v109 updater: it does not know v110's safety
+        # gate and might reintroduce historical installer dependencies.
+        updater = Path(__file__).resolve().with_name('aktualizuj_soulbound.py')
+        if not updater.is_file() or updater.is_symlink():
+            raise ValueError('Brak bezpiecznego aktualizatora z zatwierdzonego ZIP.')
+        env = os.environ.copy()
+        env['SOULBOUND_LIVE_ROOT'] = str(ROOT)
+        cmd=[sys.executable,'-u',str(updater),str(z),'--yes']
+        return subprocess.call(cmd,cwd=ROOT,env=env)
     except (OSError,ValueError,KeyError,TypeError,json.JSONDecodeError) as exc:
         print('WDROZENIE ZABLOKOWANE: '+str(exc),file=sys.stderr,flush=True)
         return 1

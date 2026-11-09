@@ -28,20 +28,22 @@ ADVANCED = {
 def recipe(profession, tier):
     from systems.mastery_crafting_v2201 import RECIPES
     profession = canonical(profession)
+    if profession not in ADVANCED:
+        raise ValueError('Ta profesja nie ma receptury historycznego mistrzostwa; użyj jej własnych receptur.')
     tier = int(tier)
     if tier not in (2, 3):
         raise ValueError('Wybierz poziom receptury 2 lub 3.')
     first = RECIPES[profession]
     names = ADVANCED[profession]
-    item_id = 'v2300_master_' + str(list(SPECIALTIES).index(profession)+1) + '_' + str(tier)
-    prev_id = first[1] if tier==2 else 'v2300_master_'+str(list(SPECIALTIES).index(profession)+1)+'_2'
+    item_id = 'v2300_master_' + str(list(ADVANCED).index(profession)+1) + '_' + str(tier)
+    prev_id = first[1] if tier==2 else 'v2300_master_'+str(list(ADVANCED).index(profession)+1)+'_2'
     extra = names[2] if tier==2 else names[3]
     return (SPECIALTIES[profession][tier-1], item_id,
             {prev_id:1,extra:2 if tier==2 else 3}, first[3]*(2 if tier==2 else 4),names[tier-2])
 
 def install(items):
     from data import catalog_mutations as cm
-    for prof in SPECIALTIES:
+    for prof in ADVANCED:
         for tier in (2,3):
             spec,item,inputs,price,name=recipe(prof,tier)
             if item in items:

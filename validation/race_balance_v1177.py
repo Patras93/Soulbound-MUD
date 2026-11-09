@@ -45,6 +45,11 @@ PASSIVE_METHODS = {
 
 
 def audit_race_balance_v1177(*, runtime=False):
+    # Fast predeploy imports historical 22-class audits *before* the server
+    # extends the catalogue. Resolve canonical live lists at invocation time,
+    # not the pre-bootstrap snapshots captured by this module's import.
+    from core.classes_skills import (RACES as RACES, CLASSES as CLASSES,
+                                     RACE_CLASS_RECOMMENDATIONS as RACE_CLASS_RECOMMENDATIONS)
     checks, errors = 0, []
     def check(ok, description):
         nonlocal checks
@@ -54,12 +59,33 @@ def audit_race_balance_v1177(*, runtime=False):
 
     race_names = [r[0] for r in RACES]
     from systems.admin_live_races_v7600 import current as custom_races
+    from core.v10700_new_archetypes import (RACE_SPECS as V107_RACES,
+                                            CLASS_SPECS as V107_CLASSES)
+    from core.v11000_archetypes import (RACE_SPECS as V110_RACES,
+                                       CLASS_SPECS as V110_CLASSES)
     custom=custom_races()
-    expected_names=set(EXPECTED)|set(custom)
     class_names = [c[0] for c in CLASSES]
-    check(len(RACES) == 22+len(custom) and len(set(race_names)) == len(RACES), 'unique 22 baseline races plus custom')
-    check(len(CLASSES) == 22 and len(set(class_names)) == 22, 'class catalogue must contain 14 unique classes')
-    check(set(race_names) == expected_names, 'race names differ from anchored baseline plus custom')
+    # Anchored v1.17 races are immutable. v107/v110 add strictly independent
+    # full packs, each with 8 races and 8 classes; partial installs FAIL.
+    v107_race_names={r[0] for r in V107_RACES}
+    v110_race_names={r[0] for r in V110_RACES}
+    v107_class_names={c[0] for c in V107_CLASSES}
+    v110_class_names={c[0] for c in V110_CLASSES}
+    active_v107 = bool(v107_race_names & set(race_names))
+    active_v110 = bool(v110_race_names & set(race_names))
+    profile_expected=dict(EXPECTED)
+    if active_v107:
+        profile_expected.update({n:(kind,val) for n,kind,val,*_ in V107_RACES})
+    if active_v110:
+        profile_expected.update({n:(kind,val) for n,kind,val,*_ in V110_RACES})
+    expected_names=set(profile_expected)|set(custom)
+    check(len(RACES) == 22+len(custom)+8*active_v107+8*active_v110
+          and len(set(race_names)) == len(RACES), 'races: 22 historical plus complete 8-race packs')
+    check(len(CLASSES) == 22+8*active_v107+8*active_v110
+          and len(set(class_names)) == len(CLASSES), 'classes: 22 historical plus complete 8-class packs')
+    check(not active_v107 or v107_class_names <= set(class_names), 'incomplete v107 classes')
+    check(not active_v110 or v110_class_names <= set(class_names), 'incomplete v110 classes')
+    check(set(race_names) == expected_names, 'race names differ from anchored baseline plus registered packs')
     check(set(AUTHORED_RACE_PASSIVE_PROFILES) == expected_names | {'Smoczy'}, 'race passive profile roster drift')
     check(race_passive_profile('Smoczy') == race_passive_profile('Smok'), 'legacy Smoczy no longer matches Smok')
     check(set(RACE_CLASS_RECOMMENDATIONS) == set(race_names), 'race recommendations are incomplete')
@@ -67,7 +93,7 @@ def audit_race_balance_v1177(*, runtime=False):
     for race in RACES:
         name = race[0]
         check(sum(race[2:]) == 50, f'{name}: race stat budget no longer 50')
-        kind, value = EXPECTED[custom[name]['parent']] if name in custom else EXPECTED[name]
+        kind, value = EXPECTED[custom[name]['parent']] if name in custom else profile_expected[name]
         row = race_passive_profile(name)
         check(row == {'kind': kind, 'value': value}, f'{name}: race passive diverges from described profile')
         check('brak' not in race_passive_text_pl(name).lower(), f'{name}: missing passive text')
@@ -75,7 +101,11 @@ def audit_race_balance_v1177(*, runtime=False):
             check(recommended in class_names, f'{name}: nonexistent recommended class {recommended}')
         for clazz in CLASSES:
             stats = class_starting_stats_for(race, clazz)
-            check(sum(stats.values()) == 69, f'{name}/{clazz[0]}: start budget not 69')
+            # Seven v107 Chaos classes had an authored 8-point bonus.
+            # Preserve that historical live balance; new v110 classes use 9.
+            budget = 68 if clazz[0] in v107_class_names else 69
+            check(sum(stats.values()) == budget,
+                  f'{name}/{clazz[0]}: starting budget {sum(stats.values())} != {budget}')
             check(all(v > 0 for v in stats.values()), f'{name}/{clazz[0]}: non-positive starting stat')
             hp, mana = starting_hp_mana_for(race, clazz)
             base_hp = character_hp_base(1, stats['constitution'])
@@ -88,7 +118,7 @@ def audit_race_balance_v1177(*, runtime=False):
     if runtime:
         from player.character import Character
         for name in race_names + ['Smoczy']:
-            kind, val = EXPECTED[custom[name]['parent']] if name in custom else EXPECTED['Smok' if name == 'Smoczy' else name]
+            kind, val = EXPECTED[custom[name]['parent']] if name in custom else profile_expected['Smok' if name == 'Smoczy' else name]
             ch = object.__new__(Character)
             ch.race = name
             check(ch._generated_race_passive() == race_passive_profile(name), f'{name}: runtime passive profile mismatch')

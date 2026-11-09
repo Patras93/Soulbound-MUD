@@ -48,7 +48,8 @@ def run():
                 target.write_text('107.00.0\n',encoding='utf-8')
             elif rel == 'core/bootstrap_economy_professions.py':
                 txt=(ROOT/rel).read_text(encoding='utf-8-sig').replace(
-                    'VERSION = "108.00.0"','VERSION = "107.00.0"')
+                    'VERSION = "'+(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()+'"',
+                        'VERSION = "107.00.0"')
                 target.write_text(txt,encoding='utf-8')
             else:
                 target.write_bytes((ROOT/rel).read_bytes())

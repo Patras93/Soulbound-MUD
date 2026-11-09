@@ -18,9 +18,11 @@ def run():
         nonlocal checks
         if not value:raise AssertionError(why)
         checks+=1
-    ok(len(CLASSES)==22,'22 classes')
+    from validation.class_balance_v1172 import _historical_22
+    historical_classes, _ = _historical_22()
+    ok(len(historical_classes)==22,'22 historical classes retained')
     ok(V10400_CLASS_SKILLS_ADDED==66,'66 new skills')
-    for n,(name,*_) in enumerate(CLASSES,1):
+    for n,(name,*_) in enumerate(historical_classes,1):
         new=[x for x in CLASS_SKILLS[name] if x['id'].startswith(f'v10400_skill_{n:02d}_')]
         ok(len(new)==3 and {x['unlock'] for x in new}=={5200,7600,9800}, f'class skills {name}')
         ok({x['kind'] for x in new}=={'damage','aoe_damage','boost'},f'kinds {name}')
@@ -31,10 +33,10 @@ def run():
         for kind in ('alloy','material_3'):
             items[f'v10400_{slug}_{kind}']={'type':'craft_material'}
     old=deepcopy((items,recipes,bonuses))
-    stats=equip(items,recipes,bonuses)
+    stats=equip(items,recipes,bonuses,class_rows=historical_classes)
     ok(stats=={'sets':32,'items':128,'recipes':128},'set catalog counts')
-    ok(set(expected_ids())==set(recipes),'every set piece craftable')
-    for iid in expected_ids():
+    ok(set(expected_ids(historical_classes))==set(recipes),'every set piece craftable')
+    for iid in expected_ids(historical_classes):
         info=items[iid];recipe=recipes[iid]
         ok(info['regional_set'] in bonuses,f'bonus {iid}')
         ok(info['slot'] in ('head','body','hands','feet'),f'slot {iid}')
@@ -42,7 +44,7 @@ def run():
         ok(recipe['min_profession_level']>=5001,f'high level profession {iid}')
         if '_class_' in iid:
             ok(info['required_class'] in {c[0] for c in CLASSES},f'class-only {iid}')
-    ok(equip(items,recipes,bonuses)['sets']==0,'idempotent set install')
+    ok(equip(items,recipes,bonuses,class_rows=historical_classes)['sets']==0,'idempotent set install')
     before=deepcopy((items,recipes,bonuses))
     ok(before==(items,recipes,bonuses),'no mutation on noop')
     quest={}; npcs={};mobs={}

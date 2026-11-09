@@ -680,3 +680,10 @@ class SessionSocialExpansionMixin:
             text=f"{self.character.name} {custom[:300]}"
         else: text=f"{self.character.name} {verbs[kind]}"
         await self.server.broadcast_room(self.character.room_id,text,exclude=None,history_category='chat')
+
+# v109: only in isolated staging until the official release is authorized.
+# The historical v108 handlers above remain byte-for-byte unchanged.
+from systems.v10900_gifts import enabled as _sb109_gifts_enabled
+if _sb109_gifts_enabled():
+    from systems.v10900_gifts import install as _sb109_install_gift_handlers
+    _sb109_install_gift_handlers(SessionSocialExpansionMixin)

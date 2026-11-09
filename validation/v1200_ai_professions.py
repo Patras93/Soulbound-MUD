@@ -18,7 +18,10 @@ from storage.database import Database
 
 def ai_rules():
     checks=0
-    classes={r[0] for r in CLASSES}
+    from core.class_skills_v10400 import NAMES as HISTORICAL_CLASSES
+    classes=set(HISTORICAL_CLASSES)
+    # v12 AI owns 22 historical profiles. Later classes are independent.
+    assert len(classes)==22 and classes <= {r[0] for r in CLASSES}
     assert classes==set(CLASS_AI)
     checks+=1
     for cls,(title,role,bonus) in CLASS_AI.items():

@@ -653,6 +653,64 @@ def install_magitek_guild_v107():
     GUILD_CLASS_QUEST_FLAVOUR_V11342['Magitek'] = 'łącz magię i technologię podczas wypraw i prac warsztatowych'
     return len(GUILD_CLASS_QUEST_POOLS['Magitek'])
 
+def install_successor_guild_v110():
+    """Complete existing guild quests for the seven v107 + eight v110 classes.
+
+    Existing 22 class pools and Magitek keep their original identities and
+    rows unchanged.  The 15 new pools share the established 7200s cadence,
+    five activity kinds and scaling. This function is idempotent.
+    """
+    from core.v11000_runtime_catalogue import canonical_classes_skills
+    from core.v10700_new_archetypes import CLASS_SPECS as v107_classes
+    from core.v11000_archetypes import CLASS_SPECS as v110_classes
+    playable=[row[0] for row in canonical_classes_skills().CLASSES]
+    expected={row[0] for row in (*v107_classes,*v110_classes)}
+    if (len(playable)!=38 or len(set(playable))!=38 or len(expected)!=15
+        or not expected <= set(playable) or 'Magitek' not in GUILD_CLASS_QUEST_POOLS):
+        raise RuntimeError('v110: incomplete 38-class guild catalogue')
+    existing=set(GUILD_CLASS_QUEST_POOLS)
+    if not (existing-{name for name in playable[:23]})==set():
+        raise RuntimeError('v110: unexpected guild quest identities')
+    missing=[name for name in playable if name in expected and name not in existing]
+    if len(existing)+len(missing)!=38:
+        raise RuntimeError('v110: missing or duplicate guild class quest pools')
+    new_legacy={}
+    new_identity={}
+    new_pools={}
+    for index,name in enumerate(playable):
+        if name not in missing:continue
+        legacy=(f'Próba {name}', f'Pokonaj 12 przeciwników jako {name}.',
+                32, 800, 12, 'kill')
+        identity=f'Szlak {name}'
+        new_legacy[name]=legacy
+        new_identity[name]=identity
+        # Reuse the old five-activity contract, but materialize all rows
+        # before making even one modification to the shared game catalogue.
+        rows=[legacy]
+        for activity in ('boss','explore','gather','craft'):
+            need,rep,silver=_GUILD_CLASS_ACTIVITY_BASE_V1120[activity]
+            need+=index%2 if activity in ('boss','craft') else index%4
+            rep+=(index%3)*2
+            silver+=(index%4)*50
+            suffix,description=_GUILD_CLASS_ACTIVITY_V1120[activity]
+            rows.append((f'{identity}: {suffix}',description.format(needed=need),
+                         rep,silver,need,activity))
+        pool=tuple(rows)
+        if (len(pool)!=5 or {row[5] for row in pool} != _GUILD_CLASS_REQUIRED_ACTIVITIES_V1120
+            or len({row[0] for row in pool})!=5):
+            raise RuntimeError('v110: corrupt successor guild quests '+name)
+        new_pools[name]=pool
+    _GUILD_CLASS_QUEST_LEGACY_V11132.update(new_legacy)
+    _GUILD_CLASS_QUEST_IDENTITIES_V1120.update(new_identity)
+    GUILD_CLASS_QUEST_POOLS.update(new_pools)
+    GUILD_CLASS_QUESTS.update({name:pool[0] for name,pool in new_pools.items()})
+    GUILD_CLASS_QUEST_FOCUS_V11342.update({name:{'kill','boss'} for name in missing})
+    GUILD_CLASS_QUEST_FLAVOUR_V11342.update({name:'rozwijaj swoją klasę podczas wypraw' for name in missing})
+    if set(GUILD_CLASS_QUEST_POOLS)!=set(playable):
+        raise RuntimeError('v110: quest guild identity mismatch after install')
+    return len(GUILD_CLASS_QUEST_POOLS)
+
+
 # Nie zostawiaj klasy bez kontraktów po dodaniu nowego bohatera.
 from core.classes_skills import CLASSES as _GUILD_PLAYABLE_CLASSES_V1101
 assert set(GUILD_CLASS_QUEST_POOLS) == {row[0] for row in _GUILD_PLAYABLE_CLASSES_V1101}, (

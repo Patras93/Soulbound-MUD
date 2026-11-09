@@ -22,7 +22,10 @@ def run_regression():
         checks += 1
 
     check(MULTICLASS_MAX_ACTIVE == 1, 'global limit one')
-    check(len(CLASSES) == 22, 'twenty-two classes available at creation')
+    from validation.class_balance_v1172 import _historical_22
+    legacy_classes, _ = _historical_22()
+    check(len(legacy_classes)==22 and len(CLASSES)>=22,
+          'original twenty-two classes available at creation')
     db = TestDB()
     own = 'Wojownik'
     other = 'Mag'

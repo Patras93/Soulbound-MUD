@@ -169,7 +169,13 @@ def run_regression():
         source=(Path(__file__).resolve().parents[1] / 'player/session_methods_v4200/perceptionmaps_part02.py').read_text('utf8')
         assert 'session.is_downed_v0371()' in source and 'session.party_key() == _my_party' in source
         count += 1
-        assert len(PROFESSION_RANK_NAMES) == 22 and len(TOOL_PROFESSION_MAP) == 22
+        # v110: v12's 22 original masterwork professions and tools must remain
+        # intact; later independent professions must not invalidate this audit.
+        from systems.profession_projects_v1200 import PROJECTS
+        assert len(PROJECTS) == 22 and set(PROJECTS) <= set(PROFESSION_RANK_NAMES)
+        assert all(p.tool in TOOL_PROFESSION_MAP and
+                   TOOL_PROFESSION_MAP[p.tool] == name
+                   for name, p in PROJECTS.items())
         count += 1
     finally:
         install({}, {})

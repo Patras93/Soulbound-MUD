@@ -28,9 +28,18 @@ def run():
         assert ok, reason
         checks += 1
 
+    version = (ROOT / 'VERSION').read_text('utf-8').strip()
     for name, reference in BASELINE.items():
         path = ROOT / name
-        verify(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == reference,
+        verify(path.is_file(), 'Brakuje kodu v107: ' + name)
+        body = path.read_bytes()
+        if name == 'world/dynamic_content.py' and version == '109.00.0':
+            # v109 only APPENDS its registration hook. The entire v107/v108
+            # foundation must retain its original SHA256, byte for byte.
+            marker = b'\n# v109 Horyzonty:'
+            verify(body.count(marker) == 1, 'Brak jednoznacznego rozszerzenia v109')
+            body = body[:body.index(marker)]
+        verify(hashlib.sha256(body).hexdigest() == reference,
                'Zmodyfikowano zawartosc v107: ' + name)
     from core.v10700_new_archetypes import CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS
     verify(len(CLASS_SPECS) == 7, 'utracone klasy v107')

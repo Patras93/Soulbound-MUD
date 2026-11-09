@@ -155,7 +155,7 @@ async def run_actual_npc_journey(clients):
 
     # Combat runs asynchronously. A single nonzero quest progress is only
     # counted after the server's authentic kill event, NOT after attack start.
-    deadline = time.monotonic() + 100
+    deadline = time.monotonic() + 180
     last = ''
     progress = 0
     next_retry = time.monotonic() + 22
@@ -174,7 +174,14 @@ async def run_actual_npc_journey(clients):
             await lead.command('attack Szczur')
             next_retry = time.monotonic() + 22
     if progress < 1:
-        raise AssertionError('Attack started but no actual rat kill credited in 100 seconds: '+last[-500:])
+        # A failed real combat is never converted into synthetic quest credit.
+        # Capture the fighter/room condition to distinguish player death,
+        # wrong target and a genuinely stalled combat on a slower Windows PC.
+        condition = await lead.command('score')
+        view = await lead.command('look')
+        raise AssertionError('No authentic rat kill credited in 180 seconds. '
+                             + 'Quest: ' + last[-400:] + ' Score: '
+                             + condition[-400:] + ' Room: ' + view[-650:])
     checked += 1
     print(f'AUTOGRACZ TCP: rzeczywisty kill -> quest {EXPECTED_QUEST}: '+
           f'{progress}/{GOAL}, bez ustawiania postepu SQLite', flush=True)

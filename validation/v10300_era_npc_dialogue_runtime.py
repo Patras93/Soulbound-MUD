@@ -96,8 +96,17 @@ def run():
                 ck(db.quest(account,raid1)['status']=='active', f'numbered quest accept failed {slug}: {texts[-8:]}')
                 ids = session.quest_ids_for_npc(master_id,master)
                 ck(raid1 in ids, f'active raid disappeared {slug}')
-                db.increment_quest(account, prefix+'_raid_boss_1')
-                ck(db.quest(account,raid1)['progress']==1, f'raid boss not credited {slug}')
+                # v107 retired every raid room/boss but preserved the exact
+                # quest ID and its progress as a solo-capable regional hunt.
+                # Verify the conversion instead of crediting a removed boss.
+                quest = QUESTS[raid1]
+                ck(quest.get('v107_retired_raid_converted') is True,
+                   f'legacy raid quest not converted to solo hunt {slug}')
+                ck(quest['target'] != prefix+'_raid_boss_1',
+                   f'retired raid boss still required {slug}')
+                db.increment_quest(account, quest['target'])
+                ck(db.quest(account,raid1)['progress']==1,
+                   f'converted solo hunt not credited {slug}')
                 events.clear()
                 texts.clear()
                 await session.quests('oddaj ' + str(ids.index(raid1)+1))
@@ -137,28 +146,28 @@ def run():
             elor = NPCS['priest_elor']
             session.character.room_id = elor['room']
             if is_v105:
-                for tier in (1, 9, 10, 79, 80, 81, 250, 499, 500, 1000, 2990, 2999, 3000, 10000):
+                for tier in (1, 9, 10, 79, 80, 81, 250, 499, 500, 1000, 2990, 2999, 3000, 5990, 6000, 10000):
                     session.character.soul_tier=tier
                     offered=session.quest_ids_for_npc('priest_elor',elor)
                     got=[QUESTS[q]['unlocks_soul_tier'] for q in offered if 'unlocks_soul_tier' in QUESTS[q]]
                     start=((tier//10)+1)*10
-                    expected=list(range(start, min(3001,start+100),10))
+                    expected=list(range(start, min(SOUL_MAX_TIER+1,start+100),10))
                     ck(got==expected, f'Elor v105 Tier {tier}: expected {expected}, got {got}')
                     ck(len(offered)<=11, f'Elor NVDA too many quests Tier {tier}: {len(offered)}')
                 session.character.soul_tier=9
-                for requested in (10,81,501,801,991,1000,1001,1501,2991,3000):
+                for requested in (10,81,501,801,991,1000,1001,1501,2991,3000,3001,5991,6000):
                     texts.clear()
                     await session.show_quest_npc_list(f'Elor {requested}')
                     got=[QUESTS[q]['unlocks_soul_tier'] for q in session.quest_list_context['quest_ids']]
                     first=((requested+9)//10)*10
-                    expected=list(range(first,min(3001,first+100),10))
+                    expected=list(range(first,min(SOUL_MAX_TIER+1,first+100),10))
                     ck(got==expected,f'Elor page v105 {requested}: {got} vs {expected}')
                     ck(any(f'Tiery {first}–{expected[-1]}' in line for line in texts),
                        f'Elor page {requested} range incorrect: {texts[:2]}')
                     ck(len(texts)<=14,f'Elor page {requested} too long for NVDA')
                 texts.clear()
-                await session.show_quest_npc_list('Elor 3001')
-                ck(any('Podaj Tier' in line for line in texts),'v105 invalid tier accepted')
+                await session.show_quest_npc_list('Elor '+str(SOUL_MAX_TIER+1))
+                ck(any('Podaj Tier' in line for line in texts),'invalid tier beyond current cap accepted')
                 from systems.content_registry import HELP_TOPICS,HELP_TOPIC_ALIASES
                 ck('3000' in ' '.join(HELP_TOPICS['dusza']) and 'co 10 Tierów' in ' '.join(HELP_TOPICS['dusza']), 'v105 help dusza stale')
                 ck(HELP_TOPIC_ALIASES.get('proby duszy')=='proby_duszy','help missing alias')

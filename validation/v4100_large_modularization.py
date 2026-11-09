@@ -32,7 +32,10 @@ def run_regression():
     import server
     from core.bootstrap_economy_professions import VERSION
     assert release_valid(VERSION, '4.10.0')
-    assert (len(server.QUESTS)>=6745 if int(VERSION.split('.',1)[0])>=23 else len(server.QUESTS)==(expected_quest_total_v1100() if int(VERSION.split('.',1)[0])>=11 else 6585 if int(VERSION.split('.',1)[0])==10 else 6573 if int(VERSION.split('.',1)[0])==9 else 5605 if int(VERSION.split('.',1)[0])==8 else 3925 if int(VERSION.split('.',1)[0])==7 else 3861 if VERSION=='6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701)) and len(server.CLASS_SKILLS)==22
+    from validation.class_balance_v1172 import _historical_22
+    historic_rows,historic_skills=_historical_22()
+    assert len(historic_rows)==22 and {r[0] for r in historic_rows}==set(historic_skills) and set(historic_skills)<=set(server.CLASS_SKILLS)
+    assert (len(server.QUESTS)>=6745 if int(VERSION.split('.',1)[0])>=23 else len(server.QUESTS)==(expected_quest_total_v1100() if int(VERSION.split('.',1)[0])>=11 else 6585 if int(VERSION.split('.',1)[0])==10 else 6573 if int(VERSION.split('.',1)[0])==9 else 5605 if int(VERSION.split('.',1)[0])==8 else 3925 if int(VERSION.split('.',1)[0])==7 else 3861 if VERSION=='6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))
     from config.balance import ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310
     assert ALL_PROGRESS_XP_REQUIREMENT_MULTIPLIER_V3310==10
     checks+=4

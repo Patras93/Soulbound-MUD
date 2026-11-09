@@ -38,8 +38,20 @@ def regression(n):
     if not path.is_file():
         raise AssertionError(f'{title}: brak {path.relative_to(ROOT)}')
     cmd=[sys.executable,'-u','-c',script] if script else [sys.executable,'-u','-m',mod]
-    result=subprocess.run(cmd,cwd=ROOT,stdin=subprocess.DEVNULL,capture_output=True,
-                          text=True,encoding='utf-8',errors='replace',timeout=220)
+    # Case 51 needs its own scratch SQLite, not the detached source snapshot.
+    # All approval flags MUST already come from the authorized Windows runner.
+    # Other cases retain their historical subprocess environment and assertions.
+    if n == 51:
+        with tempfile.TemporaryDirectory(prefix='soulbound-coverage-') as work:
+            env=os.environ.copy()
+            env.update(SOULBOUND_DB=str(Path(work)/'coverage.sqlite'),
+                       SOULBOUND_WORLD_SEED_FILE=str(Path(work)/'coverage.seed'),
+                       SOULBOUND_HOST='127.0.0.1')
+            result=subprocess.run(cmd,cwd=ROOT,env=env,stdin=subprocess.DEVNULL,
+                capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=220)
+    else:
+        result=subprocess.run(cmd,cwd=ROOT,stdin=subprocess.DEVNULL,capture_output=True,
+                              text=True,encoding='utf-8',errors='replace',timeout=220)
     output=(result.stdout+'\n'+result.stderr).strip()
     if output:
         print(output[-11000:],flush=True)

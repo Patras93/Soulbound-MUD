@@ -164,6 +164,11 @@ class SessionProfesje6Mixin:
             self.character.silver,self.character.gold,self.character.mithril=balance
 
     def valid_tool_type(self, tool_type):
+        from systems.v11000_activation import enabled as _v110_enabled
+        if _v110_enabled():
+            from core.v11000_archetypes import PROFESSION_SPECS as _v110_professions
+            if any(tool_type == row[1] for row in _v110_professions):
+                return True
         from core.v10700_new_archetypes import PROFESSION_SPECS
         import os
         if _sb107_runtime_enabled() and any(tool_type == r[1] for r in PROFESSION_SPECS):
@@ -171,6 +176,11 @@ class SessionProfesje6Mixin:
         return tool_type in {spec[0] for spec in PROFESSIONS.values()} or super().valid_tool_type(tool_type)
 
     def tool_display_name_v11343(self, tool_type):
+        from systems.v11000_activation import enabled as _v110_enabled
+        if _v110_enabled():
+            from core.v11000_archetypes import PROFESSION_SPECS as _v110_professions
+            for name,tool,label,_ in _v110_professions:
+                if tool_type == tool:return label
         from core.v10700_new_archetypes import PROFESSION_SPECS
         import os
         if _sb107_runtime_enabled():

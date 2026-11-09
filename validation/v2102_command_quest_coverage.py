@@ -18,10 +18,22 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 if __name__ == '__main__':
     import os
+    import socket
     import tempfile
-    _debug_test_directory = tempfile.TemporaryDirectory(prefix='soulbound-catalog-test-')
-    os.environ['SOULBOUND_DB'] = _debug_test_directory.name + '/db.sqlite'
+    # Use the restricted v110 TEMP candidate convention. Never inherit the
+    # production database, network address or port from the parent process.
+    # All v107/v109/v110 staging attestations must still be supplied by the
+    # parent PREDEPLOY runner; this test cannot grant them to itself.
+    _debug_test_directory = tempfile.TemporaryDirectory(prefix='sb110_catalogue_')
+    _db = Path(_debug_test_directory.name, 'db.sqlite').resolve()
+    os.environ['SOULBOUND_DB'] = str(_db)
     os.environ['SOULBOUND_HOST'] = '127.0.0.1'
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as _sock:
+        _sock.bind(('127.0.0.1', 0))
+        _test_port = _sock.getsockname()[1]
+    os.environ['SOULBOUND_PORT'] = str(_test_port)
+    from systems.v11000_activation import authorized_mode
+    assert authorized_mode(str(_db)) == 'test', 'Test catalog isolation not authorized'
     import server  # Assembles dynamic world catalogs before their modules are imported.
 
 from core.command_catalog import COMMAND_CATALOG

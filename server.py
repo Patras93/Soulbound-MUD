@@ -10,6 +10,16 @@ from core.native_runtime import load_native_runtime
 
 _ROOT = Path(__file__).resolve().parent
 
+# v109: check isolated staging or durable installed approval before opening TCP.
+# Environment flags alone never authorize the production database.
+if (_ROOT / 'VERSION').read_text(encoding='utf-8-sig').strip() == '109.00.0':
+    from systems.v10900_staging_guard import ensure_authorized_start
+    ensure_authorized_start(os.getenv('SOULBOUND_DB', str(_ROOT / 'soulbound.db')))
+
+
+if (_ROOT / 'VERSION').read_text(encoding='utf-8-sig').strip() == '110.00.0':
+    from systems.v11000_activation import authorized_mode
+    authorized_mode(os.getenv('SOULBOUND_DB', str(_ROOT/'soulbound.db')))
 
 def _boot_port() -> int:
     # Keep exactly the same precedence as core/bootstrap_economy_professions.py.
@@ -1621,15 +1631,83 @@ if VERSION == '101.00.0':
 # This is experimental staging and NOT a deployable production configuration.
 import os as _sb_v107_server_env
 if _sb107_runtime_enabled():
-    import core.classes_skills as _sb_v107_catalogue
+    if VERSION == '110.00.0':
+        # Native loader can replace sys.modules after a pre-bootstrap import.
+        from core.v11000_runtime_catalogue import canonical_classes_skills
+        _sb_v107_catalogue = canonical_classes_skills()
+    else:
+        import core.classes_skills as _sb_v107_catalogue
     from core.magitek_v107 import install as _sb_v107_install_magitek
     _sb_v107_catalogue.V107_MAGITEK_ADDED = _sb_v107_install_magitek(
         vars(_sb_v107_catalogue))
     V107_MAGITEK_ADDED = _sb_v107_catalogue.V107_MAGITEK_ADDED
     from core.v10700_new_archetypes import install as _sb_v107_install_new_archetypes
     V107_ARCHETYPES_BUILD = _sb_v107_install_new_archetypes(vars(_sb_v107_catalogue))
+    if VERSION == '110.00.0':
+        from core.v11000_archetypes import install as _sb110_install_archetypes
+        V110_ARCHETYPES_BUILD = _sb110_install_archetypes(vars(_sb_v107_catalogue))
     from systems.equipment_crafting import install_magitek_guild_v107 as _sb_v107_guild
     V107_MAGITEK_GUILD_QUESTS = _sb_v107_guild()
+    if VERSION == '110.00.0':
+        from systems.equipment_crafting import install_successor_guild_v110
+        V110_GUILD_QUEST_CLASS_COUNT = install_successor_guild_v110()
+
+        # v110: all new classes have authored Tier EQ and one teacher each,
+        # but the old shop map was frozen at 22 entries during native bootstrap.
+        # Reuse the teacher's EXISTING room and NPC as an actual vendor rather
+        # than introducing 16 redundant rooms, NPCs, Python modules or BATs.
+        from core.v10700_new_archetypes import CLASS_SPECS as _v110_previous_classes
+        from core.v11000_archetypes import CLASS_SPECS as _v110_current_classes
+        from network.protocol_gameplay_utils import normalize_lookup_text as _v110_norm
+        _v110_class_names = ('Magitek',) + tuple(
+            row[0] for row in (*_v110_previous_classes, *_v110_current_classes))
+        if len(_v110_class_names) != 16 or len(set(_v110_class_names)) != 16:
+            raise RuntimeError('v110: brak 16 jednoznacznych klas sklepowych')
+        _v110_used_shop_rooms = set(CLASS_SHOP_ROOM_BY_CLASS_V03036.values())
+        for _v110_class in _v110_class_names:
+            _v110_teachers = [(key, npc) for key, npc in NPCS.items()
+                             if npc.get('teacher_class') == _v110_class]
+            if len(_v110_teachers) != 1 or _v110_class not in CLASS_EQUIPMENT_SETS:
+                raise RuntimeError(f'v110: brak pojedynczego nauczyciela/EQ: {_v110_class}')
+            _v110_teacher_id, _v110_teacher = _v110_teachers[0]
+            _v110_room = _v110_teacher.get('room')
+            if (_v110_room not in ROOMS or _v110_room in _v110_used_shop_rooms
+                    or _v110_room in SHOP_SELLERS or SHOPS.get(_v110_room)
+                    or _v110_class in CLASS_SHOP_ROOM_BY_CLASS_V03036):
+                raise RuntimeError(f'v110: konflikt sali sklepu EQ: {_v110_class}')
+            _v110_tier_one = list(CLASS_EQUIPMENT_ITEMS_BY_CLASS_TIER[_v110_class][1])
+            if not _v110_tier_one or any(
+                    ITEMS.get(iid, {}).get('required_class') != _v110_class
+                    for iid in _v110_tier_one):
+                raise RuntimeError(f'v110: niewlasciwy Tier 1 EQ klasy {_v110_class}')
+            _v110_used_shop_rooms.add(_v110_room)
+            CLASS_SHOP_ROOM_BY_CLASS_V03036[_v110_class] = _v110_room
+            CLASS_SHOP_SELLER_NAMES_V03036[_v110_class] = _v110_teacher['name']
+            CLASS_SHOP_CLASSES_BY_ROOM[_v110_room] = [_v110_class]
+            CLASS_SHOP_ITEMS_BY_ROOM[_v110_room] = _v110_tier_one
+            CLASS_EQUIPMENT_SETS[_v110_class]['room'] = _v110_room
+            SHOPS[_v110_room] = list(_v110_tier_one)
+            SHOP_SELLERS[_v110_room] = _v110_teacher_id
+            _v110_teacher['shopkeeper'] = True
+            _v110_teacher['class_eq_shop'] = _v110_class
+            _v110_teacher['dialogue'] = (
+                str(_v110_teacher.get('dialogue') or '')
+                + f' Sprzedaję również wyposażenie klasy {_v110_class}: shop, list, kup 1.')
+            ROOMS[_v110_room]['desc'] = (
+                str(ROOMS[_v110_room].get('desc') or '')
+                + f' Tutaj kupisz klasowe EQ: {_v110_class}; wpisz shop.')
+            for _v110_prefix in ('eq', 'sklep eq', 'sklep z eq', 'ekwipunek', 'sklep'):
+                GUIDE_DESTINATION_ALIASES[_v110_norm(
+                    f'{_v110_prefix} {_v110_class}')] = _v110_room
+        CLASS_SHOP_AUDIT_V03036 = class_shop_audit_v03036()
+        if CLASS_SHOP_AUDIT_V03036['error_count'] or CLASS_SHOP_AUDIT_V03036['class_shops_checked'] != 38:
+            raise RuntimeError('v110: audyt nowych sklepów klasowych: '
+                               + repr(CLASS_SHOP_AUDIT_V03036))
+        HELP_TOPICS['sklepy klasowe'] = [
+            'Wszystkie 38 klas ma własny sklep EQ; u nowszych klas sprzedaje nauczyciel.',
+            'Wpisz prowadz eq albo walk eq <klasa>; na miejscu shop, list i kup 1.',
+            'Każdy zakup wymaga właściwej klasy, a Tier zależy od Levelu postaci.',
+        ]
 
     # v107 ETAP 6: only the EXISTING Kraina Owadów gets more wildlife.
     # Register after historical world audits and before World() is created.
@@ -1695,6 +1773,19 @@ HELP_TOPICS['twierdzaportal'] = [
 ]
 HELP_TOPIC_ALIASES['gigantportal'] = 'twierdzaportal'
 HELP_TOPIC_ALIASES['portalfortress'] = 'twierdzaportal'
+
+if VERSION == '110.00.0':
+    HELP_TOPICS['krainy110'] = [
+        'v110: 12 nowych krain, 360 lokacji, 40 bossów, 700 questów.',
+        'Nowa kraina zaczyna się na wschód od ostatniego regionu Horyzontów v109.',
+        'Osiem nowych klas i ras oraz osiem profesji: komenda profesja110 lista.',
+        'Wydarzenia globalne: komenda wydarzenie110. Rotacja co sześć godzin.',
+        'Brak rajdów i blokad poziomu. Drużyna do sześciu prawdziwych graczy.',
+    ]
+    HELP_TOPIC_ALIASES['nowekrainy110'] = 'krainy110'
+    LATEST_CHANGES_TITLE = 'Soulbound v110.00.0 — Świat Przebudzenia (kandydat roboczy)'
+    LATEST_CHANGES = ['v110: osobne moduły 12 krain, 700 questów, 40 bossów, 8 klas, 8 ras i 8 profesji.',
+                      'v110: wydarzenia globalne 3.0, nowy bezpieczny kontrakt uruchamiania.']+LATEST_CHANGES
 
 if __name__ == '__main__':
     main()

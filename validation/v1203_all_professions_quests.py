@@ -30,8 +30,35 @@ def run_regression():
         c+=5
     assert set(prof_quests)==set(PROJECTS)
     if modern_quest_catalog(server.VERSION):
-        from validation.v10400_profession_quest_baseline import check_baseline
-        check_baseline(QUESTS, prof_quests, version=server.VERSION)
+        from validation.v10400_profession_quest_baseline import check_baseline, FIXTURE
+        from validation.release_contracts import parse_version
+        import json
+        from world.v10500_region_index import REGIONS as V105_REGIONS
+        if parse_version(server.VERSION) >= (106, 0, 0):
+            # The frozen v103 + v104 + v105 contract must remain EXACT. The
+            # original verifier knows no later releases; pass only its owned
+            # era rather than weakening or altering that historical verifier.
+            old_ids=set(json.loads(FIXTURE.read_text(encoding='utf-8')))
+            v105_ids={f'v10500_{slug}_prof_{i:02d}'
+                      for slug,*_ in V105_REGIONS for i in range(1,16)}
+            historical=defaultdict(list)
+            additions=set()
+            for prof, rows in prof_quests.items():
+                for qid, row in rows:
+                    if qid in old_ids or qid.startswith('v10400_') or qid in v105_ids:
+                        historical[prof].append((qid,row))
+                    else:
+                        additions.add(qid)
+            check_baseline(QUESTS, historical, version='105.00.0')
+            counts=Counter(qid.split('_',1)[0] for qid in additions)
+            expected={'v10600':450}
+            if parse_version(server.VERSION)>=(107,0,0):expected['v10700']=180
+            if parse_version(server.VERSION)>=(109,0,0):expected['v10900']=48
+            if parse_version(server.VERSION)>=(110,0,0):expected['v11000']=72
+            assert counts==Counter(expected), ('later profession quest identities',counts,expected)
+            assert sum(map(len,prof_quests.values()))==2815+sum(expected.values())
+        else:
+            check_baseline(QUESTS, prof_quests, version=server.VERSION)
     else:
         assert sum(map(len,prof_quests.values()))==2221,(sum(map(len,prof_quests.values())),)
     c+=2

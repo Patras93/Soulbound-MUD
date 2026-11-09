@@ -22,8 +22,8 @@ ENEMY_PARTS = ('Zwiadowca', 'Łowca', 'Żołnierz', 'Runiczny Mag', 'Zjawisko',
 OPPOSITE = {'north': 'south', 'south': 'north', 'east': 'west', 'west': 'east'}
 
 
-def _planned_ids():
-    classes = tuple(row[0] for row in CLASSES)
+def _planned_ids(class_rows=None):
+    classes = tuple(row[0] for row in (CLASSES if class_rows is None else class_rows))
     ids = {
         'rooms': {f'v10400_{slug}_{n:02d}' for slug, *_ in REGIONS for n in range(1,15)},
         'mobs': {f'v10400_{slug}_{kind}_{n}' for slug, *_ in REGIONS
@@ -40,16 +40,19 @@ def _planned_ids():
 
 
 def install(rooms, mobs, spawns, npcs, quests, items, recipes,
-            areas, zone_ids, categories, guides, target_power):
+            areas, zone_ids, categories, guides, target_power, *, class_rows=None):
     """Podłącza 10 krain do ostatniej sali v103 atomowo po prewalidacji ID.
 
     Wywoływany raz podczas bootstrapu świata. Przy ponownym wywołaniu no-op.
     Nie dotyka baz graczy, zapisów questów ani polityki limitów.
     """
+    # v110 historical audits may supply the 22 original classes explicitly.
+    # Regular runtime callers always retain the existing registry behavior.
+    active_classes = tuple(CLASSES if class_rows is None else class_rows)
     first = 'v10400_sztorm_01'
     if first in rooms:
         # Odmowa cichego zaakceptowania niekompletnej/kolizyjnej instalacji.
-        ids = _planned_ids()
+        ids = _planned_ids(active_classes)
         for key,registry in (('rooms',rooms),('mobs',mobs),('npcs',npcs),
                              ('quests',quests),('items',items),('recipes',recipes)):
             if not ids[key].issubset(registry):
@@ -63,7 +66,7 @@ def install(rooms, mobs, spawns, npcs, quests, items, recipes,
         raise RuntimeError('v104 etap2: brak Tronu Tysiąca Epok z v103')
     if 'east' in rooms[parent].get('exits',{}):
         raise RuntimeError('v104 etap2: wschodnie przejście z v103 zajęte')
-    ids = _planned_ids()
+    ids = _planned_ids(active_classes)
     for name,registry in (('rooms',rooms),('mobs',mobs),('npcs',npcs),
                           ('quests',quests),('items',items),('recipes',recipes)):
         collisions=ids[name].intersection(registry)
@@ -72,14 +75,14 @@ def install(rooms, mobs, spawns, npcs, quests, items, recipes,
     for slug,zone,*_ in REGIONS:
         if zone in zone_ids or f'v10400_{slug}' in categories or zone.casefold() in guides:
             raise RuntimeError(f'v104 etap2: kolizja regionu: {zone}')
-    if len({row[0] for row in CLASSES}) != len(CLASSES):
+    if len({row[0] for row in active_classes}) != len(active_classes):
         raise RuntimeError('v104 etap2: powtórzona nazwa klasy')
     if len({row[0] for row in PROFESSION_SPECS}) != len(PROFESSION_SPECS):
         raise RuntimeError('v104 etap2: powtórzona profesja')
 
     new_areas=[]
     previous=parent
-    class_names=tuple(row[0] for row in CLASSES)
+    class_names=tuple(row[0] for row in active_classes)
     for stage,(slug,zone,low,high,theme,boss1,boss2) in enumerate(REGIONS,1):
         prefix=f'v10400_{slug}'
         entrance=f'{prefix}_01'
@@ -243,6 +246,6 @@ def install(rooms, mobs, spawns, npcs, quests, items, recipes,
     return {'regions':len(REGIONS), 'rooms':len(ids['rooms']), 'mobs':len(ids['mobs']),
             'npcs':len(ids['npcs']),'quests':len(ids['quests']),
             'story_quests':12*len(REGIONS),'profession_quests':len(PROFESSION_SPECS)*len(REGIONS),
-            'class_quests':len(CLASSES)*len(REGIONS),
+            'class_quests':len(active_classes)*len(REGIONS),
             'items':len(ids['items']),'recipes':len(ids['recipes']),
             'areas':tuple(new_areas)}

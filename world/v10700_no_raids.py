@@ -160,7 +160,8 @@ def retire_all_raids_v107(rooms, mobs, spawns, npcs, quests, items, recipes):
             q['kind'] = 'kill'
             q['target'] = target
             q['needed'] = 1
-            q['name'] = f'{rooms[g["entry"]]["zone"]}: polowanie dziedzictwa {stage}/3'
+            q['name'] = (f'{rooms[g["entry"]]["zone"]}: polowanie dziedzictwa {stage}/3'
+                         + (f' — szlak {g["number"]}' if g['number'] in (13, 15, 17, 19) else ''))
             q['description'] = (
                 f'Pokonaj {mobs[target]["name"]} w zwykłej krainie. '
                 f'Wróć do {q.get("giver", "zleceniodawcy")}. '

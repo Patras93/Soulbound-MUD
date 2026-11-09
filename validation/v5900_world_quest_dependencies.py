@@ -137,7 +137,8 @@ async def suite():
         ok(random.getstate()==rng,'global RNG touched')
         ok(svc.draft==start_draft and svc.active==start_active)
         root=Path(__file__).resolve().parents[1]
-        rewards=(root/'player/session_mixins/combat_rewards.py').read_text('utf8')
+        from validation.v10900_actual_modular_source import read_actual_modular_source_v109
+        rewards=read_actual_modular_source_v109(root/'player/session_mixins/combat_rewards.py')
         ok('convert_normal_equipment_drop_v5600(item_id, template)' in rewards)
         ok(rewards.index('if random.random() <= _effective_drop_chance_v11329:') < rewards.index('convert_normal_equipment_drop_v5600(item_id, template)'))
         ok('party_drop_recipients_v0359(item_id, recipients)' in rewards)
