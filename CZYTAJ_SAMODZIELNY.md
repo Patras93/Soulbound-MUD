@@ -27,3 +27,7 @@ Kolejność finalizacji świata jest jawna: specjalne połączenia aren są domy
 Pełne źródła zawierają także historyczne testy offline. Do nowej instalacji nie są kopiowane aktywatory v107–v111 ani 74 pliki dawnego łączenia kodu. Ich obecność w archiwum źródeł nie jest wymogiem uruchomienia aktualnej gry.
 
 Dockerfile przygotowuje samodzielną grę w osobnym etapie za pomocą tego samego instalatora, bez obrazu starszej wersji. Testy tej dostawy wykonano na Windows z Python 3.14; budowa obrazu Linux wymaga odrębnego sprawdzenia w środowisku Docker.
+
+## Porządek w archiwum źródeł
+
+Niewykorzystywane skrypty `sprawdz_v104_zbiorczo.py` i `_debug_boot_local.py` przeniesiono do osobnego archiwum `SOULBOUND_V112_ARCHIWUM_NARZEDZI_20261111.zip`. Nie są potrzebne grze ani instalacji. Pozostałe materiały regresyjne i narzędzia aktualizacji zachowano ze względu na ich odwołania w testach. Szczegóły: `PORZADEK_ZRODEL.md` na najwyższym poziomie ZIP-a.
