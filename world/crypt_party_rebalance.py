@@ -31,6 +31,10 @@ def _v0368_apply_crypt_threat(template):
     Mythic Crypt is another clear step above it. This function is idempotent
     because the canonical refresher is always called first at runtime.
     """
+    import world.uoss_superbosses as _current_uoss_superbosses  # explicit optional dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    import core.balance_math as balance_math  # explicit current dependency
+    from world.uoss_superbosses import uoss_superboss_profile_v0366  # explicit current dependency
     kind = _v0368_crypt_kind(template)
     if kind is None:
         return template
@@ -80,7 +84,7 @@ def _v0368_apply_crypt_threat(template):
             dmg_mult *= 1.25
             # Concrete UOSSMUD Superboss identities keep their individual feel
             # after the generic Mythic multiplier.
-            if template.get("uoss_superboss") and "uoss_superboss_profile_v0366" in globals():
+            if template.get("uoss_superboss") and hasattr(_current_uoss_superbosses, 'uoss_superboss_profile_v0366'):
                 try:
                     profile = uoss_superboss_profile_v0366("mythic_crypt", int(template.get("mythic_crypt_floor") or 10))
                     hp_mult *= float(profile.get("hp", 1.0) or 1.0)
@@ -101,18 +105,24 @@ def _v0368_apply_crypt_threat(template):
 
 # Every World spawn/respawn restores canonical Generator numbers first. Wrap
 # that single refresh point so the dedicated dungeon layer can never be lost.
+from core.progression_resources import v0190_apply_combat_template  # explicit current dependency
 _v0190_apply_combat_template_before_v0368 = v0190_apply_combat_template
 
 def v0190_apply_combat_template(template):
     result = _v0190_apply_combat_template_before_v0368(template)
     return _v0368_apply_crypt_threat(result)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
+
 
 # EXP uses Generator Core dynamically at kill time, not the legacy hand-written
 # reward fields. Give harder Crypt encounters an explicit final reward premium.
+from core.progression_resources import v0190_combat_reward  # explicit current dependency
 _v0190_combat_reward_before_v0368 = v0190_combat_reward
 
 def v0190_combat_reward(template, kind):
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
     base = int(_v0190_combat_reward_before_v0368(template, kind))
     if str(kind) == "coins":
         return base
@@ -122,9 +132,13 @@ def v0190_combat_reward(template, kind):
     mult = float(V0368_CRYPT_XP_MULTIPLIERS[crypt_kind])
     return min(V019_SAFE_INT, max(0, int(round(base * mult))))
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_combat_reward', v0190_combat_reward)
+
 
 # Rebuild the already-created static templates through the same final runtime
 # refresh path. Lazy 201+ floors are covered automatically by the wrapper above.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _v0368_tid, _v0368_template in list(MOB_TEMPLATES.items()):
     if _v0368_crypt_kind(_v0368_template):
         v0190_apply_combat_template(_v0368_template)
@@ -133,9 +147,13 @@ for _v0368_tid, _v0368_template in list(MOB_TEMPLATES.items()):
 # Lazy floor builders create templates after module import. Their internal calls
 # do not always refresh after the final dict mutation, so patch every spawned
 # template once more before returning the floor definition.
+from world.economy_quests import create_infinite_crypt_floor_definition  # explicit current dependency
 _create_infinite_crypt_floor_definition_before_v0368 = create_infinite_crypt_floor_definition
 
 def create_infinite_crypt_floor_definition(floor, mythic=False):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     room_id, spawns = _create_infinite_crypt_floor_definition_before_v0368(floor, mythic=mythic)
     for _room_id, template_id in list(spawns or ()): 
         template = MOB_TEMPLATES.get(template_id)
@@ -143,8 +161,12 @@ def create_infinite_crypt_floor_definition(floor, mythic=False):
             v0190_apply_combat_template(template)
     return room_id, spawns
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('create_infinite_crypt_floor_definition', create_infinite_crypt_floor_definition)
+
 
 # ----------------------- PARTY DUNGEON EXIT -----------------------
+from player.session import Session  # explicit current dependency
 _dungeon_exit_before_v0368 = Session.dungeon_exit
 
 async def _party_dungeon_exit_v0368(self):
@@ -155,6 +177,7 @@ async def _party_dungeon_exit_v0368(self):
     Members on another floor/room of the same dungeon remain where they are.
     Combat tasks and mob aggro for moved members are cleared before teleport.
     """
+    from data.rooms import ROOMS  # canonical current dependency
     result = self.dungeon_exit_destination()
     key = self.party_key() if self.account_id is not None else None
 
@@ -237,6 +260,8 @@ Session.dungeon_exit = _party_dungeon_exit_v0368
 
 
 # ----------------------------- HELP -----------------------------
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("krypta", []).extend([
     "v0.36.8: zwykła Krypta jest celowo trudniejsza od zwykłego terenu o podobnym etapie; wraz z piętrem rosną HP i obrażenia zwykłych mobów oraz bossów.",
     "Zwykłe moby Krypty dają x2 bazowego EXP Generator Core, bossowie x3. Mityczna Krypta daje x3 za zwykłe moby i x5 za bossów/Superbossów, przed dynamicznym EXP i Dungeon Party Bonus.",
@@ -254,6 +279,12 @@ HELP_TOPICS.setdefault("soul", []).append(
 
 
 def crypt_party_rebalance_audit_v0368():
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import core.balance_math as balance_math  # explicit current dependency
+    from player.session import Session  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_combat_reward = _current_rule('v0190_combat_reward')
     errors = []
     # Static checkpoints must visibly exceed canonical same-stage terrain values.
     for floor in (10, 50, 100, 200):

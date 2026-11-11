@@ -31,7 +31,7 @@ def install_on_migrated_connection(db, catalog, *, approved_test_copy=False):
     if getattr(db, '_v107_eq_live_active', False):
         # A live server is authorised solely by the installed 60/60 PLUS
         # candidate marker and a verified, committed migration checkpoint.
-        from systems.v10700_activation import production_approved
+        from systems.runtime_activation import production_approved
         if (approved_test_copy or not production_approved() or
                 not getattr(db, '_v107_eq_migration_committed', False)):
             raise PermissionError('Bramka EQ v107: brak zatwierdzonej migracji produkcyjnej')

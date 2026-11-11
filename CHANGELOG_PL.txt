@@ -1,282 +1,333 @@
-Aktualna paczka: v110.00.0
-STATUS: NIE WDRAŻAĆ — wymagany kompletny Windows PREDEPLOY i wszystkie bramki.
+SOULBOUND v112.00.0 — ZBIORCZA MODERNIZACJA 44 MODUŁÓW (11.11.2026, KOD ROBOCZY, NIE WDRAŻAĆ)
+- Jedna większa seria zamiast kilkunastu drobnych etapów: 7 modułów kalendarza, wyzwań, walk i nagród świątecznych; 5 Magitek/Magicite; 32 moduły archetypów (klasy, rasy, profesje, ich części i katalogi).
+- Aktualne katalogi: systems/holiday, systems/magitek, core/magitek, core/archetypes/expansion_parts i world/holiday_expareas.py. Żaden z 44 starych modułów nie pozostaje w zestawie instalacyjnym.
+- Nie zmieniono historycznych identyfikatorów SQLite, zadań, NPC i Magitek; nadal funkcjonują zapisy z poprzednich wydań.
+- Magicite oraz walka świąteczna sprawdzają wyłącznie bieżącą autoryzację v112. Flagi testowe v107/v110/v111 nie dają zgody na start gry.
+- Nowa obowiązkowa bramka v112 kontroluje 44 przeniesione moduły (148 PASS): AST, komplet plików instalacyjnych, spójność katalogów i zakaz dawnych flag. Sześć istniejących regresji świąt i testy Magitek są zachowane.
+- Zbiorczy lokalny zestaw 20/20 PASS, w tym testowy start 38 klas/38 ras/15136 questów; Magitek 107+38+47+31 PASS. Kontrola instalatora: 0 brakujących modułów, odniesienia do historycznie nazwanych importów 581→480.
+- To NIE jest potwierdzenie pełnej niezależności v112: pozostały inne stare moduły i aktywatory. Nadal NIE WOLNO WDRAŻAĆ bez pełnego Windows PREDEPLOY 60 PLUS, LIVE sześciu graczy, weryfikacji fizycznego EQ i zapisów.
+
+SOULBOUND v112.00.0 — SAMODZIELNY INSTALATOR I PREDEPLOY (11.11.2026, KOD ROBOCZY, NIE WDRAŻAĆ)
+- Usunięto z aktywnego aktualizatora ścieżki uruchamiające instalatory i walidatory starszych wydań v107–v111. Instalator w ZIP v112 przyjmuje tylko wydanie docelowe v112 i dopuszcza dane ze zweryfikowanej v110/v111; nie uruchamia starego serwera.
+- Historyczny manifest instalacji sprawdzany wyłącznie jako DANE i SHA256 przez aktualizator v112. Brak lub uszkodzenie manifestu blokuje usuwanie starego kodu; pliki zmienione lokalnie pozostają.
+- PREDEPLOY nie importuje dawnego mostu przebudowy EQ v108. Testy operują na izolowanej kopii SQLite. Rzeczywiste dane EQ użytkownika nie były dotykane.
+- Domknięcie rzeczywistej listy plików instalacyjnych: 8 brakujących importów -> 0; pozostałe historycznie nazwane importy nie są jeszcze zmodernizowane (672 w tej kopii).
+- Główne 60 etapów: 1–4 izolowane równoległe kopie według dostępnych rdzeni; obowiązkowy test TCP przeniesiony na koniec kolejki. Trzy dodatkowe bramki v112 uruchamiane współbieżnie.
+- Nowe obowiązkowe regresje instalatora i równoległości: 17 + 9 kontroli PASS. Łączny lokalny zestaw v112: 13/13 PASS; rzeczywisty rozruch na izolowanej bazie 38 klas/38 ras/15136 questów PASS. Składnia 1719/1719 PASS.
+- Nadal brak pełnego Windows PREDEPLOY 60 PLUS, testów LIVE na Windows oraz testów na zachowanych zapisach. Stan: NIE WDRAŻAĆ. To pełna kopia źródeł do dalszej pracy, NIE paczka instalacyjna.
+
+SOULBOUND v112.00.0 — ODTWARZANIE KODU, 11.11.2026 (ROBOCZE, NIE WDRAŻAĆ)
+- Po utracie katalogu roboczego odtworzono pracę ze starszego pełnego ZIP v112 z 9.11.2026. Nie jest to jeszcze komplet późniejszych zmian z 10.11.
+- Przeniesiono 12 plików wydarzeń globalnych do systems/global_events i world/events, bez zmiany identyfikatorów tabel SQLite ani nagród.
+- Własna bramka v112 sprawdza 12 odcisków AST, 4 typy wydarzeń, 36 zaliczeń, 8 nagród i 4 wycofania transakcji.
+- Weryfikacja podstawy danych v112 przyjmuje zgodne uszkodzone v110 albo v111; brak fizycznego rejestru EQ, zły VERSION i niezatwierdzone PREDEPLOY nadal blokują proces. Testy: 16 syntetycznych kontroli PASS.
+- Poprawiono kontrolę instalowanego zestawu: audit wykrywa 8 odwołań do 5 modułów wykluczonych z instalacji. Nadal FAIL — nie wolno wdrażać.
+- Pełne źródła zapisano w trwałej bibliotece jako kopię roboczą; wersja finalna i testy Windows 60 PLUS nadal niezakończone.
+
+SOULBOUND v112.00.0 — NAPRAWA WINDOWS PREDEPLOY I SAMOWYSTARCZALNY START (ROBOCZY, NIE WDRAŻAĆ)
+- Naprawiono etapy 24/60 i 50/60: serwery TCP otrzymują wyłącznie flagę testową v112 i własną bazę TEMP, localhost, port nieprodukcyjny.
+- Tester Windows zawsze zwraca FAIL bez wyjątku UnboundLocalError, gdy wymagane bramki nie przejdą.
+- Szybki audyt sprawdza faktyczną izolację runtime/PREDEPLOY, zamiast starego wzorca kodu.
+- Normalny rozruch pełnej paczki nie uruchamia historycznych audytów wyłącznie ze względu na ich obecność w ZIP.
+- Produkcyjny finalizator świata używa stałej nazwy world/runtime_gameplay_finalize.py.
+- Jawne postępowanie z wyjątkami (8 miejsc), bez wyłączania skanera.
+- Dodano 28 kontroli niezależności runtime/PREDEPLOY do bieżącej bramki v112.
+- Zachowano 60/60 PLUS, 33 regresje EQ, bezpieczeństwo TCP i ochronę baz danych.
+
+SOULBOUND MUD v112.00.0 — PORZADKI SILNIKA I SAMOWYSTARCZALNY PREDEPLOY (ROBOCZE — NIE WDRAZAC)
+- Nowy numer wydania 112.00.0; źródłowe dane z uszkodzonej v110 lub v111 są dopuszczane po weryfikacji SQLite/EQ (bez uruchamiania starego serwera).
+- Zachowany i rozdzielony bieżący katalog questów world/quests; historyczne zduplikowane źródła v109/v110 nie są wymagane do gry.
+- Odrębny manifest kodu v112, odrębne bramki zatwierdzenia i kontrola wersji źródłowej v111 przed STOP.
+- Tester 60/60 PLUS i audyt 33 regresji v107 pozostają obowiązkowe; nowa bramka v112 nie może zostać pominięta.
+- Kontrole kalendarza v111 nadal chronią istniejącą mechanikę w v112 bez zmieniania ID questów.
+- Changelog pozostaje opcjonalną dokumentacją; nie blokuje normalnego startu gry.
+- Aktywacja v112 samodzielnie rozpoznaje tylko bezpieczne bazy testowe w TEMP; nie importuje starszych modułów aktywacji. Blokuje port 4000, obce katalogi i adresy inne niż localhost.
+- Szybki PREDEPLOY odczytuje rzeczywiste moduły przez bieżący core/source_contracts.py zamiast historycznych czytników v4.20 i v109. Zachowano sprawdzanie oryginalnych odcisków AST i pełne regresje zgodności.
+- Zgodność nowych odczytów potwierdzona identyczną treścią 8 modułów, w tym world/quests; pełny lokalny rozruch gry i zestaw v112 9/9 PASS.
+- Dodatkowa bramka v112 nie pozwala wrócić do starych czytników ani zgubić plików world/quests.
+- Stan: roboczy, bez zatwierdzenia Windows 60/60 PLUS i bez zgody na wdrożenie.
+
+Historia wersji bazowej v111.00.0
+v111.00.0 HOTFIX: nauczycielka Magiteka dostepna na podpisanej produkcji bez flagi roboczej.
+Test ochronny: zatwierdzony serwer widzi NPC; niezatwierdzony nie. Bez zmian w bazach i ekwipunku.
+
+SOULBOUND MUD v111.00.0 – KALENDARZ ŻYWEGO ŚWIATA
+
+- 12 miesięcznych expowisk, 96 lokacji, 60 przeciwników (12 bossów).
+- 36 questów, 12 opiekunów świąt i 12 pamiątek z bossów.
+- Święta polskie, ruchome daty, sezonowe okna wydarzeń i bonusy EXP.
+- Wyzwania dzienne/tygodniowe przypisane do konta głównego.
+- Nagrody po walce automatycznie, bez wpisywania komendy odbioru.
+- Próby można sprawdzić komendą `proby`.
+- Trwała autoryzacja po certyfikacji 60/60 PLUS + v111 gates.
+- Używa sprawdzonych systemów walki, EXP, waluty i ekwipunku v110.
+- Nie modyfikuje danych graczy w ZIP. PREDEPLOY tymczasowy.
+
+- POPRAWKA KOMPATYBILNOŚCI: v111 zachowuje 38 klas/38 ras i sklepy oraz katalog v110 także po zmianie numeru wersji.
+- POPRAWKA SQLITE: nowa baza v111 tworzy również wymagane tabele wydarzeń i profesji v110.
+- TESTY LOKALNE: pełna bramka v111 9/9 PASS, w tym start serwera (15 136 questów).
+- WYMAGANE NADAL: 33 regresje z prawdziwą migawką EQ i Windows PREDEPLOY 60/60 PLUS.
+
+STATUS: KANDYDAT DO TESTÓW WINDOWS – NIE WDRAŻAĆ BEZ PREDEPLOY 60/60 PLUS.
+
+POPRAWKI PREDEPLOY WINDOWS (09.11.2026):
+- Naprawiono brak strefy czasowej Europe/Warsaw w Pythonie Windows bez tzdata.
+  Awaryjne, spakowane dane IANA TZif gwarantują prawidłowy czas polski i DST.
+  Nie trzeba instalować dodatkowego pakietu pip, nie używamy bieżącego przesunięcia UTC.
+- Przywrócono przekazywanie uprawnień TESTOWYCH v111 do dwóch izolowanych
+  procesów prywatnego serwera TCP (etap 24 i fale TCP), tylko dla TEMP/localhost.
+- Dodano testy bez tzdata, zimowego i letniego UTC, zachowania ochrony
+  produkcyjnej bazy i bramki aktywacji.
+- Wszystkie standardowe bramki PREDEPLOY pozostają obowiązkowe.
+
+POPRAWKI PO WINDOWS PREDEPLOY 57/60 (09.11.2026):
+- Przywrocono pierwszy wiersz `Aktualna paczka: v111.00.0`, wymagany
+  przez historyczna bramke V96.00.4 (bez zmiany numeru wydania).
+- W tescie 5 graczy TCP wymagane sa odpowiedzi `quests` wszystkich 4
+  czlonkow druzyny; odczyt jest ponawiany z limitem i bez dopisywania postepu.
+- Rozszerzono scisle kontrole AST portali, kreatora, Duszy i kontrataku na
+  nastepce v111 z niezmienionymi hashami historycznych metod.
+- Testy sprzatania historycznych BAT i migracji v104 rozpoznaja wersje v111
+  jako nastepce v110; stare pliki BAT nie wracaja do dystrybucji.
+- Usunieto 5 niejawnych `except: pass`: cztery testy odrzucania bledow
+  sprawdzaja dokladny komunikat; autoryzacja pozostaje fail-closed.
+- Lokalne testy: v111 9/9 PASS, TCP 5 graczy i restart PASS,
+  298 rygorystycznych odciskow AST PASS, czyszczenie BAT 124/124 i 132/132 PASS.
+- Nadal wymagany pelny Windows PREDEPLOY 60/60 PLUS oraz bramki v105/v107/v111.
+
+STATUS: NIE WDRAZAC BEZ ZATWIERDZENIA WINDOWS PREDEPLOY.
+
+ZGODNOŚĆ HISTORYCZNA:
+- Zachowano mechaniki „Era Bez Granic” (v103) oraz wszystkie późniejsze wydania.
+- Dawne testy v103 nadal działają, lecz usunięte historyczne BAT-y nie wracają do paczki.
+
+V111.00.0: Changelog jest dokumentacją, nie jest potrzebny do startu gry, PREDEPLOY, instalacji ani aktywacji.
+Wersję potwierdzają VERSION, kod i podpisany manifest; usuwanie lub edycja opisu nie unieważnia instalacji.
+Historyczne bramki nie wymagają usuniętych instalatorów i skryptów rajdowych.
+
+POPRAWKA PO WINDOWS PREDEPLOY 60/60 PLUS (09.11.2026):
+- Naprawiono pozostale niezalezne wywolanie ZoneInfo w harmonogramie v111.
+  Harmonogram korzysta teraz z odpornej na brak tzdata strefy WARSAW
+  dostarczanej przez kalendarz. Nie wymaga instalacji dodatkowego pakietu.
+- Test harmonogramu sprawdza prawdziwe uruchomienie bez systemowego TZPATH
+  i bez pakietow site-packages, w tym zmiane czasu lato/zima w Polsce.
+- Poprzedni Windows PREDEPLOY: 60/60 PLUS PASS; bramka v111 4/9,
+  poniewaz 5 testow nie moglo wczytac tzdata. Po poprawce lokalnie
+  8/9 PASS, a test uruchomienia serwera mial PASS na Windows przed zmiana.
+- Nowa paczka wymaga ponownego PREDEPLOY 60/60 + v105/v107/v111.
+
+POPRAWKA STARTU EQ v111 — BRAK ZALEZNOSCI OD ARCHIWUM v106 (09.11.2026):
+- Po zakonczonej migracji EQ v107 serwer NIE wymaga starego pliku
+  soulbound_v106_before_eq107_*.sqlite. Wpis migracji zostaje zachowany.
+- Uruchomienie sprawdza integralnosc aktualnej bazy SQLite, relacje FK
+  magazynu/slotow i zgodnosc kopii fizycznych z ekwipunkiem wszystkich kont.
+- Nadal odrzuca uszkodzone rekordy, niezatwierdzony kod i brak migracji.
+- Brakujacy oryginal v106 NIE jest odtwarzany z dzisiejszej bazy;
+  nie zmieniamy historii ani etapow ewolucji.
+- PIERWSZA migracja nadal wymaga prawdziwej kopii stanu sprzed zmian.
+- Test: ponowny start po usunieciu historycznej migawki i odmowa przy
+  umyslnie rozjechanej liczbie fizycznych kopii. Test w bramce v111.
+- Każda nowa wersja ma zalezec od aktualnej, zweryfikowanej instalacji
+  i danych graczy, nie od zewnetrznych plikow starych wydan ani PREDEPLOY.
+- NIE WDRAZAC bez zatwierdzenia tego zmienionego kodu po PREDEPLOY.
+
+PORZĄDKOWANIE CAŁEJ GRY — KANDYDAT ROBOCZY (09.11.2026):
+- Usunięto 66 martwych bloków historii wersji v39–v102 z server.py.
+  Katalogi świata, identyfikatory i aktywne moduły rozgrywki bez zmian.
+- PREDEPLOY nadal bada pełny ZIP, w tym wszystkie historyczne testy.
+  Instalator v111 przenosi do produkcji tylko minimalny zestaw 19
+  kompatybilnościowych plików validation (wraz z __init__.py); reszta
+  istnieje wyłącznie w tymczasowej kopii podczas testów PREDEPLOY.
+- Manifest aktywacji podpisuje rzeczywiście instalowane pliki gry,
+  a nie niepotrzebne audyty i pliki tymczasowych testów.
+- Changelog nadal jest niewymagany do działania i aktywacji gry.
+- Produkcja, GitHub i dane graczy nie zostały zmienione.
+- ZMIENIONY KOD WYMAGA NOWEGO pełnego PREDEPLOY 60/60 PLUS przed wdrożeniem.
+- Po pełnym backupie stara certyfikowana v110 może automatycznie usunąć
+  zbędne testy, jeżeli ich SHA256 odpowiada poprzedniemu manifestowi.
+  Pliki zmienione przez użytkownika i pliki bez poświadczenia pozostają.
+- Do produkcji nie trafia też 38 historycznych audytów admin.
+  Są zachowane w pełnym ZIP-ie dla PREDEPLOY.
+- Narzędzie likwidowania starych instalatorów v110 zostaje w ZIP-ie
+  na potrzeby migracji, ale nie jest wymagane do uruchomienia v111.
+
+ROZDZIELENIE PLIKÓW URUCHOMIENIOWYCH I AUDYTÓW — KOLEJNA PRACA V111:
+- Usunięto z docelowej instalacji WSZYSTKIE pliki katalogu validation;
+  pełen zestaw historycznych regresji nadal jest w ZIP-ie do PREDEPLOY.
+- Zastąpiono cztery aktywne importy historycznego źródła walidacyjnego
+  jednym modułem core/source_contracts.py (sprawdzanie rzeczywistego AST
+  pozostaje bez zmian i nadal odrzuca niezgodny kod).
+- Weryfikacja fizycznych kopii EQ potrzebna podczas pierwszej migracji
+  znajduje się w systems/eq_migration, a nie w validation.
+- Stary mostek migracji v108 pozostaje wyłącznie do kontroli kandydata,
+  nie jest kopiowany do współczesnej instalacji v111.
+- Aktywne katalogi questów i świata pozostają w data/catalogs_v109,
+  world/quests_v110 i world/realms_v110; bez zmian ID i rozgrywki.
+- Produkcja i GitHub nietknięte. Zmieniony kod wymaga Windows 60/60 PLUS.
+
+PORZĄDKI KATALOGÓW QUESTÓW V111 — KOLEJNA KOPIA ROBOCZA:
+- Cały aktywny katalog fragmentów questów został zebrany w world/quests/.
+- data/quests.py pozostał publicznym wejściem dla mechanik i postaci.
+- Siedem plików ze starych ścieżek v109/v110 przeniesiono bajt w bajt do
+  world/quests/; ich historyczne oryginały zostają wyłącznie w ZIP-ie
+  testowym do PREDEPLOY, a nie w instalacji produkcyjnej.
+- Mechanizm budowania krain korzysta z world/quests/, zachowując dane i ID.
+- Systemy world/realms_v110, world/horizons_v109 i wszystkie inne źródła
+  świata pozostają bez zmian; usuwamy zależność od starych nazw katalogów,
+  nie aktywną zawartość gry.
+- Produkcja, bazy graczy i GitHub są nietknięte. Zmiana wymaga 60/60 PLUS.
+
+9.11.2026 — dalsze rozdzielenie kodu gry od testów (wydanie robocze, NIE WDRAŻAĆ):
+- Dziewięć dodatkowych modułów używanych wyłącznie przez audyty PREDEPLOY i próby migracji pozostaje w pełnym archiwum wydania, lecz nie jest kopiowane do instalacji produkcyjnej.
+- Dotyczy trzech historycznych audytów administracyjnych i audytu usług miejskich, prototypu koszyka BigNumber, ręcznego audytu rzemiosła v106, pomocniczego kalendarza v106, prognozy rajdowej v106 oraz odtwarzania katalogu EQ v108 w kopii testowej.
+- Rozszerzono istniejący test minimalnej instalacji o dokładne sprawdzanie tego rozdziału i obecności pełnych modułów tylko w paczce PREDEPLOY.
+- admin/audits.py nadal zawiera aktywne operacje świata (m.in. klasy i HELP), więc nie usuwamy go ani nie wyłączamy jego kodu bez pełnej kontroli zachowania.
+- Bez zmian danych graczy, krain, questów i identyfikatorów. Wymagany pełny Windows PREDEPLOY 60/60 PLUS dla nowego SHA256.
+- Bezwarunkowe kasowanie `core/generator_core.py` zastąpiono identyczną kontrolą starego manifestu i SHA256; własne zmiany są zachowywane.
+
+PORZADKI RUNTIME / AUDYTY v111 (ROBOCZE, NIE WDRAZAC):
+- Rozdzielono historyczny admin/audits.py od biezacego startu gry.
+- Produkcja laduje admin/runtime_gameplay_v111.py: identyczne instrukcje rejestracji swiata, NPC, sklepów, EQ i HELP, bez niepotrzebnych raportow historycznych.
+- Pełna kontrola wydania uruchamia oryginalny admin/audits.py bez zmian; audyty nie trafiaja do finalnej instalacji.
+- Nic nie zmieniono w definicjach krain i questow. Brak ingerencji w konta, przedmioty i dane graczy.
+
+WYNIK PORZADKOW (kandydat roboczy v111):
+- Do instalacji z ZIP trafia 953 plikow. Zachowywany lokalnie chroniony soulbound_world_seed.txt daje 954 pliki w kopii testowej; pelny ZIP zachowuje wszystkie testy.
+- Z serwera usunieto zaleznosci od historycznych admin/audits.py, admin/audit_rules_v406.py, admin/v410_release_audits.py i systems/full_systems_audit_v03062.py.
+- Bezwzglednie wymagane podczas gry sa jedynie bieżące dane, modulowe mechaniki, wspolczesny manifest oraz niezbędna administracja.
+- Potwierdzono rozruch izolowanego, odchudzonego serwera; pelny PREDEPLOY Windows jest wymagany dla nowej sumy SHA256.
+
+PORZADKI STRUKTURY WERSJI v111 (ROBOCZE, NIE WDRAZAC):
+- Przeniesiono biezace finalizowanie swiata, NPC, questow, sklepów oraz HELP
+  z admin/runtime_gameplay_v111.py do world/runtime_gameplay_finalize_v111.py.
+  Zachowano tresc i kolejnosc instrukcji odpowiedzialnych za stan swiata.
+- Oryginalne audyty pozostaja w pelnym ZIP-ie i biegna w PREDEPLOY.
+- Historyczny inspektor zrodel core/source_contracts.py i dwa prototypowe
+  moduly BigNumber v104 (zdarzenia i ich ledger) nie trafiaja do gry.
+- Ochrona biezacej bazy i aktywnego BigNumber pozostaje zachowana.
+- Zadnych zmian w danych graczy, krainach, questach ani ich identyfikatorach.
+
+DALSZE ODCHUDZANIE v111 (ROBOCZE — NIE WDRAZAC):
+- Oddzielono historyczny admin/v410_equipment_audits.py od rozruchu gry.
+- Cztery nadal aktywne funkcje HELP, sklepów klasowych i profili EQ
+  przeniesiono bez zmian instrukcji do world/runtime_gameplay_finalize_v111.py.
+- Oryginalny plik audytowy pozostaje w pelnym ZIP-ie do PREDEPLOY,
+  ale nie jest instalowany na serwerze produkcyjnym.
+- Dodano regresje tozsamosci AST wszystkich czterech funkcji oraz
+  zakaz importowania historycznego audytu z uruchomieniowego swiata.
+- Questy, krainy i bazy graczy pozostaja bez zmian.
+
+PREDEPLOY BEZ HISTORYCZNYCH ZALEZNOSCI — PRACE V111 (NIE WDRAZAC):
+- Biezaca kontrola zatwierdzenia v111 ma wlasna kompletna liste krytycznych
+  plikow; nie importuje listy wymagan aktywacji v110.
+- W biezacej bramce minimalnej instalacji zastapiono odniesienia do
+  historycznych kopii questow v109/v110 sprawdzeniem aktywnego world/quests.
+- Zamiast zewnetrznych kopii dawnych audytow w testach bieżącej wersji
+  sprawdzane sa zatwierdzone odciski AST aktualnego finalizatora swiata.
+- Nowa szybka bramka v111 sprawdza, ze paczka kandydata moze byc
+  rozpoznana bez starych kopii questow i skryptow audytowych, oraz
+  ze 60 etapow Windows PREDEPLOY pozostaje zarejestrowanych.
+- Stare regresje 60/60 nadal istnieja w pelnym ZIP-ie wydania; caly
+  ich kod wymaga osobnego dalszego unowoczesnienia — nie uznajemy
+  tych porzadkow za zakonczony audyt wszystkich historycznych zaleznosci.
+- Dodatkowo cztery aktywne funkcje HELP/sklepow/EQ przeniesiono z
+  admin/v410_equipment_audits.py do world/runtime_gameplay_finalize_v111.py
+  bez zmian instrukcji. Historyczny audyt zostaje tylko w paczce testow.
+- Produkcja, baza graczy, GitHub nietkniete; konieczny Windows 60/60 PLUS.
+- Rozpoznawanie rzeczywistego zrodla modularnego zadan (testy v109) kieruje
+  sie teraz w wersji v111 do world/quests/base_*.py. Historyczne testy
+  starszej wersji zachowuja dotychczasowe reguly kompatybilnosci.
+- Testy zgodnosci katalogow modularnych: 62 PASS, z nowymi sciezkami.
+
+PREDEPLOY v111 — DALSZE UNIEZALEZNIANIE I ZABEZPIECZENIE ZGODY (ROBOCZE):
+- Obowiazkowe 33 regresje v107 w bramce v111 maja obecnie wlasna liste
+  przypadkow i wlasny izolowany mechanizm ich uruchamiania, bez importowania
+  archiwalnego skryptu audyt_v107_windows_przed_predeploy.py.
+- Wszystkie 33 przypadki sa zabezpieczone niezmiennym odciskiem zestawu.
+  Zmiana/usuniecie przypadku blokuje wynik zamiast tworzyc pozorny PASS.
+- Uszczelniono koncowy warunek wdrozenia: dla v111 brak wyniku audytu v107,
+  jego porazka lub zdublowany wynik to zawsze FAIL. Poprzednio podsumowanie
+  moglo pominac wynik v107 dla v111 mimo uruchomienia bramki.
+- Szybki test wypraw wedkarskich Borysa sprawdza biezacy finalizator swiata,
+  a nie historyczny admin/audits.py.
+- Nastepne stare testy wymagaja dalszej adaptacji. Pełne 60/60 PLUS nadal
+  musi byc wykonane na Windows przed instalacja tego zmienionego ZIP-u.
+- Zabezpieczenie zgody obejmuje tez przyszle wersje powyzej v111: brak
+  obowiazkowego audytu dziedziczonego EQ nie moze dac automatycznego PASS.
+- Test minimalnej instalacji sprawdza obecne moduly, nie wymaga juz
+  plikow archiwalnych administracji do uzyskania v111 readiness.
+
+V111 PREDEPLOY — BIEZACE NARZEDZIA URUCHOMIENIOWE (ROBOCZE):
+- FAST i FULL nie importuja juz uruchamiacza pieciu testow v103 z v110.
+  Wlasny izolowany uruchamiacz v111 zachowuje piec oryginalnych scenariuszy,
+  wymagane liczniki, prywatny port TCP i tymczasowa baze SQLite.
+- Plik v110 pozostaje wyłącznie cienką przejściówką dla wczesniejszych testow.
+- FAST uzywa odrebnej bramki prywatnego srodowiska v111. Baza produkcyjna,
+  port 4000, obcy katalog oraz brak znacznika procesu testowego sa odrzucane.
+- Test samowystarczalnosci sprawdza brak importow dawnych uruchamiaczy i
+  negatywne przypadki zabezpieczen; komplet 60/60 PLUS nie zostal okrojony.
+- Kolejne historyczne regresje w FAST/FULL nadal wymagaja modernizacji.
+  Nie jest to potwierdzenie Windows PREDEPLOY ani zgoda na wdrozenie.
+
+V111 PREDEPLOY — BEZ DAWNEJ IZOLACJI v104 (ROBOCZE, NIE WDRAZAC):
+- FAST i FULL nie importuja juz historycznego uruchamiacza izolacji v104.
+- Izolowane srodowisko i filtrowanie baz, portow oraz sekretow sa teraz
+  czescia biezacej bramki v111, przed importowaniem danych gry.
+- Nowy test samowystarczalnosci sprawdza port 4000, nieznany katalog,
+  sekrety z Railway, sygnal klienta i rzeczywisty start procesu testowego
+  bez importow starych narzedzi v104.
+- Regresje archiwalne v104 pozostaja w paczce PREDEPLOY, ale nie sa
+  wymogiem uruchomieniowym bieżących FAST/FULL v111.
+- Pelne 60/60 PLUS Windows nadal wymagane przed wdrozeniem.
+
+V111 — PORZADKI PREDEPLOY: Usunieto siedem identycznych kopii questow v109/v110 i jeden pusty historyczny inicjalizator z calego ZIP-u. Historyczne testy v111+ czytaja biezace moduly world/quests. Kontrola samowystarczalnosci wykrywa ich powrot takze w pelnym ZIP-ie. Produkcja i dane postaci bez zmian.
 
 
-NAPRAWA WINDOWS PREDEPLOY — V110 MIGAWKA SQLITE / 09.11.2026
-- Windows PREDEPLOY v109 tworzy odłączoną bazę w katalogu TEMP o prefiksie
-  Soulbound_PREDEPLOY_SQLITE_FROZEN_, a kandydat v110 znał tylko nowy
-  sb110_predeploy_sqlite_frozen_. Powodowało to fałszywy FAIL bramki 3/4.
-- Bramka v110 uznaje teraz obie oficjalne nazwy katalogów. Nadal wymaga
-  bezpośredniego podfolderu systemowego TEMP, istniejącej migawki o dokładnej
-  nazwie SOURCE_COMMITTED_SNAPSHOT.sqlite i weryfikacji SQLite 1 do 1.
-- Dodano test obu ścieżek oraz blokadę fałszywych katalogów zagnieżdżonych.
-- Żadnych zmian schematu SQLite, danych graczy, instalatora ani gry.
-- Wymagany ponowny komplet Windows 60/60 PLUS i wszystkie bramki v105/v107/v110.
-- NIE WDRAŻAĆ bez końcowego PASS.
+V112.00.0 — NAPRAWA AWARYJNEGO WDROZENIA Z NIEDZIALAJACEJ V111 (ROBOCZE, NIE WDRAZAC)
+- Instalator akceptuje v111 z nieaktualnym lub brakujacym manifestem v111 tylko po niezaleznym odczycie VERSION, podstawowego kodu i istniejacego rejestru fizycznego EQ.
+- Nigdy nie wymaga nieistniejacej historycznej migawki sprzed migracji v107; odrzuca za to uszkodzony biezacy rejestr SQLite, obce klucze EQ i niespojny znacznik migracji.
+- Zatwierdzenie nowej paczki nadal wymaga 60/60 PLUS Windows, dokladnej sumy SHA256 i osobnych bramek v112. Zadna stara zgoda nie zatwierdza v112.
+- PRZED zatrzymaniem serwera i podmiana kodu wykonuje pelny rozruch v112 na odlaczonej kopii biezacej bazy graczy z podpisanym manifestem nowego kodu. Nie dotyka bazy produkcyjnej ani portu 4000.
+- Po zatrzymaniu wymaga kompletnego, zgodnego bitowo backupu SQLite i plikow WAL/SHM; w razie bledu przerywa instalacje.
+- Rejestracja klas Wirtuoz Echa i Magitek nie zalezy od dawnych flag wersji v107-v111. Bezpieczne testy stagingu korzystaja z biezacej autoryzacji v112.
+- Testy regresji odzyskiwania niedzialajacej v111 obejmuja zle dane, brak migawki, brak starego manifestu, falszywe wyniki PREDEPLOY i ochrone backupu.
+- Wykonano lokalne testy kodu. Windows PREDEPLOY 60/60 PLUS i start na rzeczywistej kopii bazy graczy u uzytkownika nadal sa niezbedne do wdrozenia.
+- Usunieto zawieszanie procesu izolowanego testu rozruchu po komunikacie PASS; tymczasowe dane testowe sa usuwane przed zakonczeniem procesu.
+- Pelna symulacja v111 -> v112 z wydania ZIP, uszkodzonym zatwierdzeniem v111 i migrowanym fizycznym EQ zakonczyla sie lokalnie PASS; wynik Windows 60/60 wciaz wymagany.
+- W procesie izolowanego rozruchu blad EQ/klasy zwraca pelny traceback i kod odmowy bez czekania na watki gry.
 
+[v112 — modernizacja Wiecznej Chwały, 11.11.2026 — ROBOCZA, NIE WDRAŻAĆ]
+- Przeniesiono siedem aktywnych modułów świata, lochów, rzemiosła, gildii, fabuły, nieskończoności i towarzyszy z nazw v1100 do systems/eternal_glory.
+- Zachowano niezmienione identyfikatory lokacji, bossów, questów i checkpointów SQLite (v1100_*).
+- Usunięto importy do siedmiu dawnych lokalizacji oraz dodano nowy obowiązkowy audyt AST/manifestu.
+- Wciąż wymagane pełne Windows PREDEPLOY 60 PLUS i LIVE; prace nad całkowitą niezależnością trwają.
 
-NAPRAWA WINDOWS PREDEPLOY — V105 TCP BOSS / 09.11.2026
-- Przy 60/60 PLUS PASS dodatkowa bramka walki z dwoma bossami v105
-  czasem traktowała pierwszy fragment odpowiedzi `look` (nagłówek areny)
-  jako pełny wykaz przeciwników. Na Windows dawało to fałszywy FAIL.
-- W istniejącym teście `validation/v10500_tcp_boss_rewards.py` sprawdzanie
-  używa teraz skierowanego do konkretnego bossa `look <nazwa>`; czeka
-  na prawdziwy opis potwora i jego HP, a przy ataku na komunikat walki.
-  Oba odczyty mają skończony limit 65 sekund; brak potwora, błąd serwera,
-  przerwane TCP i brak potwierdzenia nadal dają FAIL.
-- Dodano cztery kontrole fragmentacji i braku bossa w tym samym teście;
-  kontrola postępu questa i fizycznego odbioru nagród w SQLite pozostaje.
-- Żadnych zmian HP/obrażeń prawdziwych bossów, questów, kont, instalatora
-  ani mechanizmu czyszczenia 75 starych plików po pełnym backupie.
-- Wymagany ponowny komplet Windows 60/60 PLUS, bramki v105/v107/v110.
-- NIE WDRAŻAĆ na podstawie samego lokalnego testu.
+[2026-11-11 | v112 | ODCHUDZANIE KATALOGÓW I PREZENTÓW – PRACE ROBOCZE, NIE WDRAŻAĆ]
+- 16 plików statycznych katalogów (ITEMS/ROOMS/NPCS/MOBS) przeniesiono bez zmian bajtowych z data/catalogs_v109 do data/catalog_parts. Uniknięto konfliktu z data/catalogs.py.
+- Automatyczne prezenty: 5 części logiki oraz interfejs przeniesiono do systems/gift_parts i systems/gift_runtime; 120 s opóźnienia i tabela v109_gift_claims zachowane.
+- Wypłaty SQL/EXP, ochrona przed dublem i rollback niezmienione. Stare flagi v107/v109/v110/v111 nie mogą włączać prezentów w v112; decyzję podejmuje wyłącznie aktywator bieżącej wersji.
+- Manifest aktywacji v112 wymaga wszystkich przeniesionych modułów; nowa obowiązkowa bramka sprawdza SHA256, obecność w zestawie instalacyjnym i autoryzację.
+- Nie zmieniano prawdziwej bazy graczy ani GitHuba. Pełny Windows PREDEPLOY 60 PLUS nadal wymagany.
 
+[2026-11-11 | v112 | CZYSTA INSTALACJA – KOD ROBOCZY, NIE WDRAŻAĆ]
+- Dla v112 aktualizator uruchamiany standardowym BAT/WDRAZAM instaluje do nowego katalogu Soulbound-MUD_V112_NOWA; stary silnik v110/v111 nie jest uruchamiany, zatrzymywany ani nadpisywany.
+- Kopia źródłowa jest wykonywana przed przeniesieniem zapisów; SQLite online backup zachowuje zatwierdzone dane z WAL do czystego pliku bazy, z weryfikacją integralności i liczby rekordów wszystkich tabel.
+- Kopiowane są tylko zapisy i prywatne ustawienia; stare aktywatory, skrypty, BAT, EXE, stare manifesty i pliki procesu nie trafiają do nowej instalacji.
+- Instalacja zostaje opublikowana jako nowy katalog dopiero po sprawdzeniu manifestu; istniejący katalog docelowy blokuje nadpisanie.
+- Nowa regresja bez prawdziwych danych sprawdza stary serwer nietknięty, SQLite/EQ, ustawienia, brak podwójnego katalogu i blokady przy uszkodzonej bazie.
+- Nadal konieczny pełny Windows PREDEPLOY 60 PLUS i weryfikacja rozruchu z prawdziwymi zapisami; nie wdrażać roboczego ZIP-a.
 
-NAPRAWA WINDOWS PREDEPLOY — 09.11.2026
-- Historyczny test v103 nie odrzuca juz wydania po dopisaniu nowych zmian.
-- Status NIE WDRAŻAĆ jest na drugiej linii changelogu i jest tam sprawdzany.
-- Zachowano pelny audyt, bramki v105/v107/v110 i automatyczne czyszczenie
-  75 certyfikowanych, niezmienionych starych BAT/PY po pelnym backupie.
-- Bez zmian w danych graczy, mechanice gry, katalogu plikow i instalatorze.
+11.11.2026 — v112, kod roboczy (NIE WDRAŻAĆ): 12 krain przeniesiono z world/realms_v110 do world/realms. Zachowano 700 questów i 1376 ID świata. Dodano obowiązkową bramkę zawartości, SHA256 i manifestu instalacyjnego.
 
-PORZADKOWANIE STAREJ INSTALACJI — v110 / 08.11.2026
-- Bezpieczny aktualizator automatycznie usuwa także 8 historycznych skryptow
-  diagnostycznych Python v104-v109, wycofanych po audycie zaleznosci.
-- 75 konkretnych starych plikow BAT/PY jest rozpoznawanych po dokladnych
-  sumach SHA256 z certyfikowanej v109, po uprzednim pelnym backupie.
-- Pliki zmienione przez administratora, nieznane skrypty, bazy graczy,
-  konfiguracja, logi i dane postaci sa zachowywane.
-- Nie usuwa sie wszystkich historycznie nazwanych modulow: czesc v108/v109
-  nadal obsluguje migracje i bezpieczenstwo ekwipunku.
-- Liczba plikow w nowym ZIP pozostaje bez zmian (11 BAT, 1679 PY).
-- Wymagany ponowny Windows PREDEPLOY 60/60 PLUS i bramki wydania.
+[11.11.2026 | Soulbound v112 | Horyzonty w bieżącym silniku — NIE WDRAŻAĆ]
+- Przeniesiono implementację 12 Zapomnianych Horyzontów z world/horizons_v109, world/v10900_horizons.py i world/v10900_horizon_index.py do world/horizons, world/horizons_engine.py oraz world/horizon_index.py.
+- Zachowano identyfikatory 288 pomieszczeń, 168 potworów, 48 NPC, 360 questów, 60 przedmiotów i 12 receptur oraz komplet obustronnych przejść.
+- Bieżące importy rozgrywki i testów kierują do nowych modułów. Historyczne nazwy w manifestach v109 są zachowane wyłącznie jako dane do weryfikacji dawnych ZIP-ów.
+- Nowa obowiązkowa bramka kontroluje zestaw instalacyjny, niezmienność identyfikatorów i 2962 zachowania Horyzontów. Windows PREDEPLOY 60 PLUS nadal niepotwierdzony.
 
-POPRAWKA WINDOWS PREDEPLOY — v110 / 08.11.2026
-- Wyeliminowano WinError 32 w historycznej bramce v107 (test aktualizatora):
-  dwa testowe połączenia SQLite są zamykane jawnie przed usunięciem katalogu TEMP.
-- Dodano kontrolę zamknięcia uchwytów SQLite działającą także na Linuxie.
-- Nie zmieniono schematu danych graczy, działania aktualizatora ani zakresu
-  automatycznego porządkowania instalacji. Produkcja v109 nietknięta.
-- Wymagany ponowny Windows PREDEPLOY 60/60 PLUS oraz bramki v105/v107/v110.
-
-SOULBOUND MUD v110.00.0 — WIELKA AKTUALIZACJA MODUŁOWA
-===================================================
-
-STATUS: PUNKT WZNOWIENIA KODU ROBOCZEGO — NIE WDRAŻAĆ.
-Nie jest to finalne wydanie ani wynik pełnego Windows PREDEPLOY.
-Bazowa wersja produkcyjna: v109.00.0.
-
-NOWA ZAWARTOŚĆ
-- 12 odrębnych krain, każda we własnym module, z 360 nowymi lokacjami.
-- 700 nowych zadań: 600 regionalnych, 40 klasowych, 24 rasowe i 36 wydarzeń.
-- 40 nowych bossów (36 w krainach i 4 wydarzeniowych), 328 nowych spawnów.
-- 8 nowych klas z 80 umiejętnościami; razem 38 klas.
-- 8 nowych ras; razem 38 ras. Wszystkie nowe rasy współpracują ze wszystkimi klasami.
-- 8 nowych profesji wraz z narzędziami, wyrobami i transakcjami.
-- Cztery wydarzenia globalne 3.0: Przebudzenie Kontynentu, Zanik Prądów,
-  Echo Zapomnianych Imion oraz Wielka Migracja.
-- Postęp wydarzeń i nagrody zapisywane w SQLite; ponowne naliczenie nagrody
-  oraz niepełne transakcje muszą być odrzucane lub cofane.
-
-IZOLACJA I ZGODNOŚĆ
-- Nowe klasy, rasy, profesje, krainy i wydarzenia w niezależnych modułach.
-- Unikalne identyfikatory; konflikt danych odrzuca całą nieukończoną operację.
-- Bez rajdów. Zgodność z rozwojem bez limitu i istniejącą historią postaci.
-- Zachowana historyczna zawartość i audyty v103 Era Bez Granic bez przywracania rajdów do aktywnej gry.
-- Balans dla 1–6 rzeczywistych graczy; najemnicy nie są liczeni jako gracze.
-- Brak zmian produkcyjnej bazy bez autoryzowanego wdrożenia.
-
-PROSTE WDRAŻANIE
-- Tylko standardowe PREDEPLOY_NOWEJ_WERSJI.bat i WDROZ_PO_PREDEPLOY.bat.
-- Potwierdzenie przez użytkownika: dokładnie WDRAZAM.
-- Nowy instalator używa tylko zatwierdzonego ZIP, SHA256, aktualnej wersji
-  i bieżącego wyniku PREDEPLOY; nie potrzebuje skryptów wdrożeniowych v107–v109.
-- Trwałe poświadczenie instalacji w LIVE_CONTENT/release_current.json.
-- Po wpisaniu WDRAZAM uruchamiany jest wyłącznie aktualizator z bieżącego
-  zatwierdzonego ZIP, nigdy stary aktualizator z v109. Odrębny test tej
-  ścieżki sprawdza także odmowę po niezaliczonym PREDEPLOY.
-- Zachowany backup, ochrona SQLite oraz odtwarzanie wcześniejszego kodu po błędzie.
-- W v110 nie umieszczamy 51 archiwalnych BAT-ów ani 6 starszych
-  wersjonowanych instalatorów Python z zatwierdzonego ZIP v109.
-- Przy pierwszym wdrożeniu v110 po backupie instalator rozpoznaje 67
-  historycznych plików wyłącznie po dokładnym SHA256 i usuwa tylko niezmienione.
-  Pliki zmodyfikowane przez użytkownika pozostają nietknięte. Kopia zapasowa
-  poprzedniej wersji pozostaje dostępna do przywrócenia.
-- Dwa historyczne audyty BAT testują bezpieczne przenoszenie na sztucznych
-  plikach, a nowy niezależny audyt pilnuje, by stare instalatory nie wróciły.
-
-PORZĄDEK W SKRYPTACH WINDOWS (V110)
-- Z 21 BAT w katalogu głównym usunięto 10 zbędnych: 9 historycznych
-  uruchamiaczy v103/v104/v107/v108 i przestarzałe PORZADKI_BAT_Soulbound.bat.
-- Pozostało dokładnie 11 rzeczywiście używanych BAT: start i jego pomocnik,
-  stop, status, aktualizacja, backup, autostart wł./wył., testy,
-  PREDEPLOY oraz wdrożenie po pozytywnym wyniku.
-- Brak archiwalnych BAT w pakiecie. Dawne testy pozostały aktywne i
-  działają na syntetycznych danych, bez brakujących skryptów.
-- Instalator v110 po pełnej kopii kodu rozpoznaje dodatkowych 10 BAT
-  z certyfikowanej paczki v109 po dokładnym SHA256. Zmienionych plików
-  użytkownika nie usuwa; oryginały są zachowane w backupie sprzed instalacji.
-- Dodatkowe testy wymagają dokładnej listy 11 BAT, braku 10 wycofanych,
-  testują idempotencję i ochronę zmodyfikowanych skryptów.
-
-OPTYMALIZACJA OLC V110
-- Pełna walidacja wciąż działa przy każdej pojedynczej edycji.
-- Katalogi przedmiotów i krain są kopiowane tylko gdy pojawiają się rzeczywiste nowe definicje.
-- Łańcuchy zależności questów nadal są sprawdzane; bez zmian questów nie kopiujemy całych 15 tys. definicji.
-- Test 200 edycji surowców: 270 PASS, 43.04 s zamiast 56.61 s (około 24% szybciej).
-- Osobny moduł kontroli widoków i cykli questów: 14 PASS.
-
-TESTY I ODBIÓR
-- 14 niezależnych lokalnych bramek wydania v110: kompletne moduły,
-  zabezpieczenia, zawartość, nauczyciele, transakcje, wydarzenia,
-  aktualizator, rozruch serwera i historyczne OLC.
-- Nowa obowiązkowa bramka OLC 15.40–19: 184 kontrole PASS na
-  prawdziwym serwerze testowym, w tym widoczność ośmiu nowych ras
-  i ośmiu nowych klas w kreatorze postaci.
-- Dodatkowy obowiązkowy test sześciu graczy przez prawdziwe TCP: 2 uruchomienia,
-  wspólna drużyna, NPC, walka, quest, wznowienie postępu i integralność SQLite.
-- Zachowane historyczne 60 etapów PLUS, 3 bramki v105 oraz 33 testy v107;
-  testy historycznych instalatorów zastąpiono odpowiednimi testami v110.
-- Dodatkowe testy zgodności fizycznego EQ i pełnej migawki SQLite.
-- Bezpieczniejszy odcisk migawki SQLite uwzględnia również trwałe metadane
-  user_version, application_id i kodowanie, poza schematem, wierszami i BLOB.
-  Zmiana samych znaczników bazy nie może już pozostać niewidoczna dla SHA256.
-- Osobna 11. bramka sprawdza na sztucznej bazie wierność odtworzenia 1:1,
-  dane BLOB, odmowę po uszkodzeniu SQLite, brak tabel EQ i odmowę uruchomienia
-  audytu bez bezpiecznej migawki. Nie zastępuje sprawdzenia prawdziwej bazy.
-- 12. bramka: bezpieczne dziedziczenie Prób Duszy 3001–6000 wyłącznie po
-  autoryzacji v110 lub historycznego trybu v106 (6 scenariuszy izolowanych).
-- Kontrola 6 rzeczywistych połączeń TCP na prywatnym serwerze: po dwóch
-  uruchomieniach 387 poleceń i 368 kontroli PASS, drużyna, polowanie,
-  zapis questa i kurier Sol -> Doran zachowane po restarcie. Baza tylko TEMP.
-- Historyczne testy v103 dostosowane bez przywracania rajdów: polowania
-  dziedzictwa zastępują wycofane bossy; stary katalog używany wyłącznie
-  jako syntetyczny fixture do testów faz, HP i komunikatów NVDA.
-- Test dawnych questów v103 SQLite (2763 kontroli, 385 questów) w osobnym
-  interpreterze w FAST i FULL, bez zależności od stanu innych audytów.
-- Test Elora i dawnych NPC: 419 kontroli PASS z bieżącą osią Soul Tier.
-- Audyty historycznych faz/HP/NVDA/wydania v103: 396 + 77 + 61 + 40 PASS.
-- Historyczny Admin Live v103: 43 PASS (stare komunikaty w fixture,
-  wycofane komendy rajdów zablokowane); premie lochów v103: 401 PASS.
-- Szybki i pełny PREDEPLOY uruchamiają audyt Admin Live v103 osobno,
-  aby wyeliminować zanieczyszczenie współdzielonego rejestru testowego.
-  Pełne 43 asercje nadal są obowiązkowe i zakończenie błędem blokuje wydanie.
-- Końcowe pięć audytów historycznych v103 działa w izolowanych
-  interpreterach w FAST i FULL: dwa konta i kredyt zabójstwa (618), TCP (27), NVDA (61),
-  bramka historyczna (40), autorskie HP bossów (77). Stary katalog
-  bossów jest wyłącznie syntetycznym fixture, nigdy częścią żywego świata.
-  Nowa 13. bramka wydania wymusza fail-closed: błędne wyjście, brak znacznika,
-  podwójny znacznik i fałszywy PASS ze stderr nie mogą zaliczyć testu.
-- Izolacja pięciu końcowych audytów v103 przydziela teraz własny wolny
-  port TCP na 127.0.0.1 dla każdego procesu, czyszcząc odziedziczone
-  zmienne PORT i RAILWAY_TCP_APPLICATION_PORT. Usuwa to konflikt z portem
-  serwera testowego przy imporcie server.py przez audyt autorskich HP.
-  Dodatkowy test z celowo zajętym portem głównym: HP 77/77 PASS.
-  Test izolacji: 47 kontroli, także odmowa dopisywania uprawnień staging.
-- Dodatkowe audyty historii OLC v20–v25: 753 kontrole PASS;
-  OLC v26–v33: 548 kontroli PASS. Razem 1301 kontroli wykonanych osobno.
-- Windows PREDEPLOY na faktycznej kopii produkcyjnej bazy musi zakończyć się
-  kompletnym PASS przed jakimkolwiek wdrożeniem.
-
-WAŻNE
-- Ta paczka nie zawiera baz ani danych graczy i nie zmienia produkcji.
-- Na Windows wykonaj tylko PREDEPLOY_NOWEJ_WERSJI.bat dla dokładnie tego ZIP.
-- Jeśli dowolna bramka zgłosi FAIL, nie uruchamiaj WDROZ_PO_PREDEPLOY.bat.
-
-Weryfikacja profesji (po logu 2026-11-08): 8 nowych narzędzi v110 ma prawdziwą ofertę targu (1200 srebra), przypisanie do postaci i wymaganie posiadania do pracy. Test braku narzędzia oraz 8 transakcji weryfikuje brak darmowej pracy. Rozwój historycznych profesji v107 pozostaje bez zmian.
-
-Porzadki PY (robocze, 2026-11-08): usunieto z katalogu wydania 8 historycznych, niewywolywanych samodzielnych diagnostyk v104/v105/v106/v108/v109. Nie usunieto modulow v108 potrzebnych do migracji EQ, ochrony aktywacji i wydarzen; pozostawiono wszystkie testy PREDEPLOY oraz ich zaleznosci. Archiwalne kopie osmiu plikow zachowano jedynie w odrebnym katalogu roboczym poza ZIP. Pelny Windows PREDEPLOY 60/60 PLUS pozostaje wymagany; wydania NIE WDRAZAC.
-
-
-POPRAWKI PO WINDOWS PREDEPLOY 2026-11-08 (KOD ROBOCZY, NIE WDRAŻAĆ)
-- Pierwszy log Windows wykazał 50/60 PASS i 10 FAIL. Nie stanowi pozwolenia na instalację.
-- Poprawiono izolowaną autoryzację v110 dla katalogów TCP, kopii SQLite i testów lokalnych,
-  bez otwierania dostępu do produkcyjnej bazy i portu 4000. Test ochrony: 33 PASS.
-- Naprawiono rzeczywiste klasowe EQ 16 nowych klas: pełne profile statystyk, właściwości,
-  osobne źródła ataku fizycznego i magicznego; unikalne profile dla wszystkich 38 klas.
-- Pole identyfikujące jeden z trzech stylów EQ jest zachowane po kompakcji pamięci;
-  sklep i audyty rozróżniają sety ofensywne, pancerne i zbalansowane.
-- Zbudowano brakujące zadania gildyjne dla 15 klas, z zachowaniem istniejących
-  puli: wszystkie 38 klas mają po 5 rodzajów zadań. Etap 57 Windows: 25 PASS.
-- Etap 51 Windows (rejestr komend): test odrębnej bazy TEMP, 225829 PASS.
-- Osiem nowych profesji ma rzeczywiste, przypisywane do postaci narzędzia, dostępne
-  w ofercie targu po 1200 srebra; praca bez narzędzia nie przechodzi.
-- Skorygowano oczekiwanie ekonomii dla 38 profesji i reguły zgodności starszych
-  wersji: odziedziczone klasy/Tiery oraz 54 regionalne receptury o wyższych poziomach
-  mają oddzielne, dokładne kontrole. Żadne historyczne testy nie są pomijane.
-- Usunięto 8 nieużywanych diagnostyk Python. W roboczym katalogu jest 1679 .py
-  i 11 potrzebnych .bat. Moduły historyczne z rzeczywistymi zależnościami zostały.
-- Lokalny zestaw wydania po poprawkach: 14/14 PASS, z prawdziwym uruchomieniem
-  serwera na bazie TEMP. Pełny audyt historyczny zgłasza nadal dodatkowe
-  pozycje odziedziczone z nowego świata — NIE UZNAJEMY GO ZA PASS.
-- Przed wdrożeniem konieczny nowy Windows PREDEPLOY 60/60 PLUS na odłączonej
-  kopii rzeczywistej bazy graczy. Produkcja v109 i GitHub bez zmian.
-
-Kontynuacja kontroli questów i zgodności v104 (8.11.2026):
-- W 2084 odnawialnych questach v107/v109/v110 zapisano jawnie godzinny cooldown, identyczny z dotychczasowym zachowaniem silnika (3600 s). Dotychczasowe wyjątki pozostały bez zmian.
-- Historyczny audyt v104: ścisła weryfikacja dodatkowych 16 klas, 16 profesji i 368 questów profesyjnych oraz archiwalnych konfliktów nazw. Stare raporty i ich asercje pozostają nienaruszone; każda nieznana rozbieżność nadal blokuje wydanie.
-- Dopisano asercje czasu odnowienia do istniejących testów v110, bez nowych plików BAT/PY.
-- Dalszy Windows PREDEPLOY 60/60 PLUS na rzeczywistej migawce nadal wymagany. NIE WDRAŻAĆ.
-
-KONTROLA INTEGRACYJNA PO NAPRAWACH (8.11.2026)
-- Wszystkie 38 klas maja dostep do sklepów klasowego EQ: nauczyciele 16
-  nowszych klas pelnia rowniez role sprzedawców, bez dodatkowych NPC i pokojów.
-- Dziewiec odziedziczonych pokojów nauczycieli/specjalistów zachowuje poziom
-  generatora, zalecany poziom i powiazania wymagane przez audyt balansu.
-- Naprawiono uwierzytelnianie DRUGIEJ, tymczasowej kopii gry w historycznych
-  scenariuszach pelnego TCP UOSS v85-v87; bez zmian w bazie i porcie produkcji.
-  Dopuszczona jest tylko kopia TEMP/Soulbound_UOSS_REAL_*/gra/soulbound.db,
-  lokalny port inny niz 4000 i juz posiadane uprawnienia staging v107/v109/v110.
-  Żaden skrypt nie moze sam sobie nadac tych uprawnien.
-- Ochrona testowych baz: 44/44 PASS, historyczne v108: 107/107 PASS;
-  rzeczywiste UOSS v85: 10 PASS, v86: 19 PASS, v87: 9 PASS.
-- Pelny audyt historyczny `predeploy_full.py` wykonany w calosci po tych
-  poprawkach na odizolowanej bazie: kod wyjscia 0; koncowe v103 HP: 77 PASS.
-- Zawartosc docelowa: 11 plików BAT i 1679 Python, bez dodatkowych
-  diagnostyk historycznych i bez baz graczy.
-- Uwaga: powyzszy audyt Linux/TEMP NIE jest zatwierdzeniem Windows
-  PREDEPLOY 60/60 PLUS na rzeczywistej migawce. NIE WDRAŻAĆ.
-
-POPRAWKI PO WINDOWS PREDEPLOY 58/60 Z 8.11.2026 (21:14)
-- Windows: 58/60 historycznych etapów PASS, FAIL w etapach 9 (rzeczywista walka TCP)
-  i 26 (niedozwolona ścieżka tymczasowej bazy). Dodatkowe bramki v105/v107/v110
-  nie zostały wtedy zatwierdzone; nie jest to wersja do wdrożenia.
-- Etap 26: test pełnego katalogu uruchamia odizolowaną bazę w TEMP/sb110_catalogue_*,
-  localhost i osobny, losowy port; nie dziedziczy ścieżki produkcyjnej ani portu 4000.
-  Uprawnienia staging musi otrzymać od PREDEPLOY, nie nadaje ich sobie sam.
-  Ponowiona regresja katalogów: 134785 kontroli PASS na lokalnej kopii.
-- Etap 9: prawdziwy pięcioosobowy TCP nie jest już uruchamiany równolegle z
-  intensywnym pełnym audytem Python. Nadal jest obowiązkowym etapem 9/60,
-  wykonuje prawdziwą walkę, sprawdza postęp questa i trwały zapis SQLite po restarcie.
-  Ograniczony czas walki zwiększono do 180 s dla obciążonego Windows; brak zabójstwa
-  w tym czasie oznacza FAIL wraz z diagnostyką postaci i pokoju. Żadnych sztucznych
-  zabójstw ani dopisywania postępu.
-- Istniejący test bezpieczeństwa rozbudowano o rzeczywiste sprawdzenie kolejności
-  audyt/TCP; 50/50 PASS. Lokalny test TCP bez Windows zakończył się PASS,
-  ale tylko nowy Windows PREDEPLOY 60/60 PLUS może zatwierdzić wydanie.
-- Bez nowych plików Python/BAT. Nadal 1679 PY i 11 BAT, jeden CHANGELOG_PL.txt.
-- Produkcja v109 i GitHub pozostały bez zmian. NIE WDRAŻAĆ przed PASS Windows.
-
-POPRAWKA PREDEPLOY WINDOWS — HISTORYCZNY AUDYT V105 (8.11.2026)
-- Po 60/60 PLUS PASS na Windows ujawniono błąd dodatkowej bramki v105:
-  historyczny test wymagał 3000 Soul Tierów, mimo że autoryzowany v110 ma 6000.
-- Zmieniono tylko istniejący validation/v10500_first_integrity.py. Test nadal
-  sprawdza wszystkie historyczne progi i 300 kamieni milowych Tier 1–3000;
-  w zatwierdzonym środowisku v110 wymaga dokładnie 6000 progów i sprawdza
-  dodatkowe Tiery 3001–6000 z zachowaniem ich identyfikatorów Prób Duszy.
-- Bez zatwierdzonego trybu v110 zakres 3001–6000 nadal jest niedostępny.
-  Nie zmieniono sposobu aktywacji, danych graczy ani funkcji rozwoju w grze.
-- Lokalnie sprawdzono dodatkową bramkę v105: 5/5 PASS, bez wyłączenia testów.
-  Główne 60 etapów przeszło na Windows w poprzedniej paczce; wynik nie
-  zatwierdza automatycznie nowego ZIP-a. Ponowny PREDEPLOY Windows jest
-  obowiązkowy przed WDRAZAM.
-- Bez nowych plików PY/BAT. Nadal jeden kompletny ZIP, 1679 PY i 11 BAT.
-- Dodatkowo poprawiono istniejący adapter zgodności v107/v110:
-  validation/v11000_v107_catalog_compat.py nie ogranicza już sztucznie
-  katalogu do 30 klas i ras przed wywołaniem pełnego historycznego audytu.
-  Sprawdza 30 historycznych + 8 nowych pozycji na kompletnym katalogu:
-  4546 kontroli PASS, w tym questy v107, profesje i SQLite dwóch kont.
-  Pełny audyt 33 regresji v107 po tej poprawce: 33/33 PASS na kopii testowej.
-  Lokalny zestaw obowiązkowych bramek v110: 14/14 PASS.
-- Zmieniono łącznie dwa istniejące pliki Python i ten polski changelog;
-  żadnych nowych BAT/PY, nadal 1696 plików w paczce.
+[V112 11.11.2026 — praca profesji w aktualnej architekturze]
+- Przeniesiono bez zmian logiki 16 profesji z v107/v110 do systems/profession_generations/{chaos,expansion}.py.
+- Identyfikatory wyrobow, narzedzi, profesji i tabel SQLite pozostaja identyczne.
+- Komendy pracy profesji autoryzuje biezaca v112; stare flagi testowe nie wystarcza.
+- Obowiazkowy test: 16 profesji, cooldown 12s, atomowosc i rollback, izolacja bazy, mapa instalacji i AST.
+- To pelna kopia robocza NIE WDRAZAC; Windows 60 PLUS i LIVE/EQ nadal wymagane.

@@ -1,7 +1,10 @@
 from data import catalog_mutations as _catalog_mut
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_SPAWNS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from world.machine_expansion import _machine_template
 # v0.31.9 - Magitek Dungeon 2.0
 MAGITEK_DUNGEON_ZONE = "Kompleks Magitek 2.0"

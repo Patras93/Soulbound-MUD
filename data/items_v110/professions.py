@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Czysty katalog ośmiu profesji — bez zależności od serwera i SQLite."""
-from core.v11000_archetypes import PROFESSION_SPECS
+from core.archetypes.expansion import PROFESSION_SPECS
 
 
 def tools():

@@ -374,7 +374,7 @@ class SessionMercenaryTavernsMixin:
                                    * specialist_factor * memory_factor_v1250 * duo_mult_v1270))
                 # v11 coordinated strikes against new two-phase ancient bosses.
                 # Bonus only; the full owner-equipment damage floor is unchanged.
-                from systems.eternal_glory_companions_v1100 import companion_coordination_v1100
+                from systems.eternal_glory.companions import companion_coordination_v1100
                 power = max(power, int(power * companion_coordination_v1100(
                     target_template, hired_count=len(roles))))
                 template = MOB_TEMPLATES.get(mob.template_id, {})

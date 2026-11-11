@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Static Soulbound catalog. Data only; gameplay logic lives elsewhere."""
-from data.catalogs_v109.items_01 import build_catalog as _items_part_01
-from data.catalogs_v109.items_02 import build_catalog as _items_part_02
-from data.catalogs_v109.items_03 import build_catalog as _items_part_03
-from data.catalogs_v109.items_04 import build_catalog as _items_part_04
-from data.catalogs_v109.items_05 import build_catalog as _items_part_05
-from data.catalogs_v109.items_06 import build_catalog as _items_part_06
-from data.catalogs_v109.items_07 import build_catalog as _items_part_07
+from data.catalog_parts.items_01 import build_catalog as _items_part_01
+from data.catalog_parts.items_02 import build_catalog as _items_part_02
+from data.catalog_parts.items_03 import build_catalog as _items_part_03
+from data.catalog_parts.items_04 import build_catalog as _items_part_04
+from data.catalog_parts.items_05 import build_catalog as _items_part_05
+from data.catalog_parts.items_06 import build_catalog as _items_part_06
+from data.catalog_parts.items_07 import build_catalog as _items_part_07
 
 ITEMS = {}
 ITEMS.update(_items_part_01())
@@ -73,7 +73,7 @@ for _id, _spec in _v1200_masterwork_items().items():
     ITEMS[_id] = _spec
 
 # v110: isolated content catalog; no session, database or mutable legacy import.
-from systems.v11000_activation import enabled as _v110_items_enabled
+from systems.runtime_activation import enabled as _v110_items_enabled
 if _v110_items_enabled():
     from data.items_v110.professions import tools as _v110_profession_catalog
     _extra_v110 = _v110_profession_catalog()

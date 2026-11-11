@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 """Quest lists, matching, turn-in and interaction flow."""
 
+from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
+from data.items import ITEMS
+from data.npcs import NPCS
+from data.quests import QUESTS
+
 class SessionQuestTurninMixin:
     def consume_quest_items_batch_v10800(self, requirements):
             """One SAVEPOINT for the entire quest set, including physical EQ."""

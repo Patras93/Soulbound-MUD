@@ -9,7 +9,10 @@ from __future__ import annotations
 
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
 from data.catalog_mutations import catalog_assign, catalog_set_path
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_SPAWNS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from world.generation_systems import v0130_refresh_exploration_catalog
 
 WORLD_EXPANSION_IV_VERSION = "0.80.0"

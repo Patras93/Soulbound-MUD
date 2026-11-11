@@ -24,6 +24,7 @@ _REGIONS_V1140 = (
     ("twilight", "Pogranicze Zmierzchu", "mieszające się światło i mrok nad eterycznymi ruinami", "arcane"),
 )
 
+from data.rooms import ROOMS  # canonical current dependency
 ROOMS.setdefault(ETHEREAL_HUB_V1140, {
     "zone": ETHEREAL_ZONE_V1140,
     "name": "Rozdroże Eteru",
@@ -85,6 +86,10 @@ _ETHEREAL_MOB_ARCHETYPES_V1140 = {
     "shadow": ("Łowca Cienia", "shadow"),
     "twilight": ("Eteryczny Rozszczepieniec", "arcane"),
 }
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+from world.global_difficulty_overdrive import v0190_apply_combat_template  # explicit current dependency
+from core.runtime_rules import get_rule as _current_rule  # explicit optional dependency
 for region_index,(key,_zone,_flavor,_element) in enumerate(_REGIONS_V1140):
     base_name, element = _ETHEREAL_MOB_ARCHETYPES_V1140[key]
     for variant in range(1,4):
@@ -104,7 +109,7 @@ for region_index,(key,_zone,_flavor,_element) in enumerate(_REGIONS_V1140):
             "ethereal_mob_v1140": True,
             "drops": {"soul_shard": min(0.45, 0.10 + variant*0.05)},
         })
-        if callable(globals().get("v0190_apply_combat_template")):
+        if callable(_current_rule('v0190_apply_combat_template')):
             v0190_apply_combat_template(MOB_TEMPLATES[tid])
     rooms=ETHEREAL_REGION_ROOMS_V1140[key]
     for i,rid in enumerate(rooms):
@@ -150,6 +155,11 @@ def ethereal_floor_id_v1140(kind, floor):
     return f"{spec['prefix']}{max(1,int(floor))}_v1140"
 
 def create_ethereal_floor_v1140(kind, floor):
+    from core.runtime_rules import get_rule as _current_rule  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     kind=str(kind); floor=max(1,int(floor)); spec=ETHEREAL_DUNGEONS_V1140[kind]
     rid=ethereal_floor_id_v1140(kind,floor)
     prev=spec["gate"] if floor==1 else ethereal_floor_id_v1140(kind,floor-1)
@@ -187,7 +197,7 @@ def create_ethereal_floor_v1140(kind, floor):
             "ethereal_floor_v1140":floor,
             "drops":{"soul_shard":min(0.65,0.18+floor/2000.0)},
         })
-        if callable(globals().get("v0190_apply_combat_template")):
+        if callable(_current_rule('v0190_apply_combat_template')):
             v0190_apply_combat_template(MOB_TEMPLATES[tid])
         spawns.append((rid,tid))
     if boss:
@@ -207,7 +217,7 @@ def create_ethereal_floor_v1140(kind, floor):
             "boss_mechanic_text":f"Boss piętra {floor}: rosnący bez limitu Overdrive {spec['element'].upper()}.",
             "drops":{"soul_shard":1.0,"soul_elixir":min(1.0,0.45+floor/1000.0)},
         })
-        if callable(globals().get("v0190_apply_combat_template")):
+        if callable(_current_rule('v0190_apply_combat_template')):
             v0190_apply_combat_template(MOB_TEMPLATES[tid])
         spawns.append((rid,tid))
     return rid, spawns
@@ -221,6 +231,7 @@ for _seed_kind in ETHEREAL_DUNGEONS_V1140:
             MOB_SPAWNS.append(_seed_spawn)
 
 # Patch dynamic world generation without replacing other infinite dungeons.
+from world.world_state import World  # explicit current dependency
 _ensure_inf_before_v1140 = World.ensure_infinite_dungeon_floor
 def _ensure_infinite_dungeon_floor_v1140(self, room_id):
     identity=ethereal_floor_identity_v1140(room_id)
@@ -235,6 +246,7 @@ def _ensure_infinite_dungeon_floor_v1140(self, room_id):
 World.ensure_infinite_dungeon_floor = _ensure_infinite_dungeon_floor_v1140
 
 # Dungeon exit routing.
+from player.session import Session  # explicit current dependency
 _dungeon_exit_before_v1140 = Session.dungeon_exit_destination
 def _dungeon_exit_destination_v1140(self, room_id=None):
     rid=str(room_id or (self.character.room_id if self.character else ""))
@@ -246,13 +258,16 @@ def _dungeon_exit_destination_v1140(self, room_id=None):
 Session.dungeon_exit_destination = _dungeon_exit_destination_v1140
 
 # Named dungeon entry commands at each gate.
-if "DUNGEON_ENTRY_SPECS_V03812" in globals() and callable(globals().get("_v03812_spec")):
+from systems.dungeon_entry_commands import DUNGEON_ENTRY_SPECS_V03812, _v03812_spec  # explicit current dependency
+import systems.dungeon_entry_commands as _current_dungeon_entry_commands  # explicit optional dependency
+if hasattr(_current_dungeon_entry_commands, 'DUNGEON_ENTRY_SPECS_V03812') and callable(getattr(_current_dungeon_entry_commands, '_v03812_spec', None)):
     for key,spec in ETHEREAL_DUNGEONS_V1140.items():
         DUNGEON_ENTRY_SPECS_V03812.append(_v03812_spec(
             spec["name"], spec["gate"], ethereal_floor_id_v1140(key,1),
             (spec["name"], key, f"loch {key}"), spec["name"],
         ))
 
+from core.mines_threat import GUIDE_DESTINATION_ALIASES  # explicit current dependency
 GUIDE_DESTINATION_ALIASES.update({
     "pustkowia eteru": ETHEREAL_HUB_V1140,
     "eter": ETHEREAL_HUB_V1140,
@@ -284,6 +299,8 @@ _arena_hosts = (
     ETHEREAL_REGION_ROOMS_V1140["void"][15], ETHEREAL_REGION_ROOMS_V1140["holy"][15],
     ETHEREAL_REGION_ROOMS_V1140["shadow"][15], ETHEREAL_REGION_ROOMS_V1140["twilight"][15],
 )
+from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134  # explicit current dependency
+from core.runtime_rules import get_rule as _current_rule  # explicit optional dependency
 for i,(key,name,element,lvl,hp,dmg) in enumerate(_ETHEREAL_SUPERBOSSES_V1140):
     arena=f"ethereal_superboss_{key}_arena_v1140"; mid=f"ethereal_superboss_{key}_v1140"
     host=_arena_hosts[i]
@@ -309,11 +326,13 @@ for i,(key,name,element,lvl,hp,dmg) in enumerate(_ETHEREAL_SUPERBOSSES_V1140):
         "boss_mechanic_text":f"Unikalny Super Boss Pustkowi Eteru. Główny żywioł: {element.upper()}.",
         "drops":{"soul_shard":1.0,"soul_elixir":1.0},
     })
-    if callable(globals().get("v0190_apply_combat_template")):
+    if callable(_current_rule('v0190_apply_combat_template')):
         v0190_apply_combat_template(MOB_TEMPLATES[mid])
     MOB_SPAWNS.append((arena,mid))
 
 # Help / discoverability.
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["pustkowia_eteru_v1140"] = [
     "v1.14.0: Pustkowia Eteru to nowy wymiar late-game połączony z Placem Dusz przez północny-wschód.",
     "Rozszerzenie ma 76 nowych lokacji statycznych oraz trzy nieskończone lochy: Otchłań Pustki, Nieskończone Sanktuarium i Labirynt Cienia.",
@@ -321,6 +340,8 @@ HELP_TOPICS["pustkowia_eteru_v1140"] = [
     "Nowe encountery używają realnych obrażeń Void, Holy i Shadow. Void i Shadow nie są aliasem Dark.",
     "W wymiarze znajduje się 8 nowych superbossów; mogą być atakowani solo albo w party, a po pokonaniu konkretnego bossa obowiązuje 24h lockout.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "pustkowia eteru":"pustkowia_eteru_v1140", "eter":"pustkowia_eteru_v1140",
     "ethereal wastes":"pustkowia_eteru_v1140", "void":"pustkowia_eteru_v1140",
@@ -328,6 +349,8 @@ HELP_TOPIC_ALIASES.update({
 
 
 def ethereal_wastes_audit_v1140():
+    from data.rooms import ROOMS  # canonical current dependency
+    from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134  # explicit current dependency
     errors=[]
     authored=[rid for rid,row in ROOMS.items() if isinstance(row,dict) and (row.get("ethereal_dimension_v1140") or rid==ETHEREAL_HUB_V1140 or rid.startswith("ethereal_superboss_") or rid.endswith("_gate_v1140"))]
     if len(set(authored)) < 76:

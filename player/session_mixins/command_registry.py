@@ -4,7 +4,7 @@
 Simple commands are data here; only commands with custom branching remain in
 command_loop.py. This keeps aliases and direct handler calls easy to audit.
 """
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 import asyncio
 
@@ -491,10 +491,16 @@ if _sb107_runtime_enabled():
     COMMAND_REGISTRY['mtek'] = ('command_magitek_v107', (COMMAND_TEXT,), {})
     COMMAND_REGISTRY['profesja107'] = ('command_profesja107', (COMMAND_TEXT,), {})
 
-from systems.v11000_activation import enabled as _sb110_commands_enabled
+from systems.runtime_activation import enabled as _sb110_commands_enabled
 if _sb110_commands_enabled():
     COMMAND_REGISTRY['profesja110'] = ('command_profesja110', (COMMAND_TEXT,), {})
     COMMAND_REGISTRY['wydarzenie110'] = ('command_wydarzenie110', (COMMAND_TEXT,), {})
+
+from systems.runtime_activation import enabled as _sb111_commands_enabled
+if _sb111_commands_enabled():
+    COMMAND_REGISTRY['swieta'] = ('command_swieta_v111', (COMMAND_TEXT,), {})
+    COMMAND_REGISTRY['kalendarz'] = ('command_swieta_v111', (COMMAND_TEXT,), {})
+    COMMAND_REGISTRY['proby'] = ('command_proby_v111', (COMMAND_TEXT,), {})
 
 for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     COMMAND_CATALOG.register_handler(

@@ -299,8 +299,8 @@ class SessionExplorationProfessionsV1100Mixin:
         tool = self.server.db.tool(self.account_id, "cartography_profession")
         surveyed = self.server.db.collection_entry_ids(self.account_id, "cartography_v1100")
         from systems.forgotten_horizons_v1000 import LANDMARK_IDS
-        from systems.eternal_glory_world_v1100 import LANDMARK_IDS as V11_LANDMARK_IDS
-        from systems.eternal_glory_depths_v1100 import DUNGEON_EP_IDS
+        from systems.eternal_glory.world import LANDMARK_IDS as V11_LANDMARK_IDS
+        from systems.eternal_glory.depths import DUNGEON_EP_IDS
         LANDMARK_IDS = LANDMARK_IDS | V11_LANDMARK_IDS | DUNGEON_EP_IDS
         zone = ROOMS.get(str(self.character.room_id),{}).get('zone')
         local_landmarks = {rid for rid in LANDMARK_IDS if rid in ROOMS and ROOMS[rid].get('zone')==zone}

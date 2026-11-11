@@ -1,11 +1,12 @@
 from data import catalog_mutations as _catalog_mut
-from data.items import ITEMS
+from data.items import ITEMS  # canonical current dependency
 from data.crafting_recipes import CRAFT_RECIPES
 from data.alchemy_recipes import ALCHEMY_RECIPES
 from systems.equipment_crafting import COOK_RECIPES, JEWELCRAFT_RECIPES, CUT_GEM_IDS
 
 def normalize_recipe_requirements_v0866():
     """v0.8.66: receptury blokuje profesja, nigdy level narzędzia."""
+    from systems.equipment_crafting import ALCHEMY_RECIPES, COOK_RECIPES, CRAFT_RECIPES, JEWELCRAFT_RECIPES  # explicit current dependency
     alchemy_defaults = {
         "mana_potion": 1,
         "healing_potion": 5,
@@ -38,7 +39,7 @@ CRAFT_MATERIAL_STORAGE_IDS = frozenset(
     if item.get("type") == "craft_material" or item_id in CUT_GEM_IDS
 )
 
-from data.npcs import NPCS
+from data.npcs import NPCS  # canonical current dependency
 
 
 _catalog_mut.catalog_assign({
@@ -461,12 +462,13 @@ LATEST_CHANGES = [
 ]
 
 from data.help_base_catalog_v405 import make_help_topic_aliases_v405
-HELP_TOPIC_ALIASES = make_help_topic_aliases_v405()
+from data.current_help import get_help_catalogs
+HELP_TOPICS, HELP_TOPIC_ALIASES = get_help_catalogs()
 
 from data.help_base_catalog_v405 import make_help_topics_v405
-HELP_TOPICS = make_help_topics_v405()
+HELP_TOPICS, HELP_TOPIC_ALIASES = get_help_catalogs()
 
-from data.quests import QUESTS
+from data.quests import QUESTS  # canonical current dependency
 
 
 # v0.30.51: Godzinne Zlecenia — pełna stała oferta.
@@ -884,7 +886,7 @@ _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     },
 })
 
-from data.mobs import MOB_TEMPLATES
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 
 # v0.9.10: fauna otwartego świata. Miasta, Gildia Dusz i Wioska Górska
 # pozostają bez wrogich spawnów; Plac Treningowy zachowuje tylko manekina.
@@ -1667,4 +1669,21 @@ LATEST_CHANGES = [
     "v110.00.0: 8 klas, 8 ras i 8 profesji w niezależnych modułach.",
     "v110.00.0: cztery automatyczne wydarzenia świata; zapis i nagrody SQLite.",
     "v110.00.0: jeden uniwersalny PREDEPLOY i WDRAZAM, bez instalatorów starych wersji.",
+] + LATEST_CHANGES
+
+# v111: aktualności dla NVDA; nie zmieniają dawnych komunikatów w historii.
+LATEST_CHANGES_TITLE = "Soulbound v111.00.0 - Kalendarz Żywego Świata"
+LATEST_CHANGES = [
+    "v111.00.0: całoroczny kalendarz świąt i 12 expowisk (96 lokacji).",
+    "v111.00.0: 60 świątecznych przeciwników, 12 bossów i 36 questów.",
+    "v111.00.0: dzienne i tygodniowe wyzwania, nagrody automatyczne po walce.",
+    "v111.00.0: bonus EXP w expowisku miesiąca, prezenty v109 nadal działają.",
+] + LATEST_CHANGES
+
+# v112: nowa samodzielna wersja; wszystkie dawne wydarzenia i wpisy pozostają.
+LATEST_CHANGES_TITLE = "Soulbound v112.00.0 - Samowystarczalny Świat (ROBOCZA)"
+LATEST_CHANGES = [
+    "v112.00.0: czyszczenie runtime i PREDEPLOY z duplikatów oraz obowiązku posiadania dawnych audytów.",
+    "v112.00.0: aktualne questy w world/quests; historyczne ID i funkcje gry pozostają niezmienione.",
+    "v112.00.0: odrębne zatwierdzanie 60/60 PLUS, kontrola EQ i bezpieczna aktualizacja z v111.",
 ] + LATEST_CHANGES

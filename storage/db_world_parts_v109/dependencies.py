@@ -1,38 +1,5 @@
 # -*- coding: utf-8 -*-
 """Wspólne zależności db_world, zachowane bez zmiany działania."""
-# v4.20.0: bound, AST-identical method implementations (MRO unchanged)
-from core.legacy_method_binding_v4200 import bind_legacy_method_v4200 as _sb420_bind
-import storage.methods_v4200.databaseworld_part01 as _sb420_src_01
-# DatabaseWorldMixin.unlock_crypt_checkpoint -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.unlock_astral_checkpoint -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.boss_floor_cleared -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mine_progress -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.add_mine_wall_hit -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mine_tunnel_hit_v1251 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mine_discover_v1260 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mercenary_memory_read_v1260 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.grand_expedition_visit_v1260 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mine_startup_status -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mark_room_discovered_with_points_v2322 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.record_bestiary_kill -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.record_boss_codex_kill -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.promote_nemesis_v029 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.add_ascension_xp_v021 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.mark_instance_floor_visited -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.instance_checkpoint_floors -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.record_activity_v0560 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.bounty_board_state -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.save_bounty_board_state -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.save_dynamic_world_quest_v015 -> storage/methods_v4200/databaseworld_part01.py
-# DatabaseWorldMixin.record_fish_catch -> storage/methods_v4200/databaseworld_part01.py
-import storage.methods_v4200.databaseworld_part02 as _sb420_src_02
-# DatabaseWorldMixin.record_fishing_global_v022 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.add_world_project_contribution_v022 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.postal_delivery_state_v0522 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.save_postal_delivery_state_v0522 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.courier_guild_state_v0530 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.save_courier_guild_state_v0530 -> storage/methods_v4200/databaseworld_part02.py
-# DatabaseWorldMixin.add_city_reputation_v0710 -> storage/methods_v4200/databaseworld_part02.py
 
 # -*- coding: utf-8 -*-
 """World, dungeon, exploration, records and world progression persistence."""

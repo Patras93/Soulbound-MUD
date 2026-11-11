@@ -481,3 +481,16 @@ HELP_TOPIC_ALIASES.update({
     "income": "ekonomia",
     "economy": "ekonomia",
 })
+
+
+def finalize_current_economy():
+    """Apply final currency rules after all authored world overlays exist."""
+    global ECONOMY_INCOME_BALANCE_V1124, MOB_CURRENCY_NORMALIZATION_V11337
+    global MOB_DISPLAY_NAME_CLEANUP_V11337, PRODUCTION_CLEANUP_AUDIT_V11337
+    global ECONOMY_INCOME_AUDIT_V1124, REWARD_CONSISTENCY_AUDIT_V11330
+    ECONOMY_INCOME_BALANCE_V1124 = v1124_rebalance_positive_quest_currency()
+    MOB_CURRENCY_NORMALIZATION_V11337 = v11337_normalize_mob_currency()
+    MOB_DISPLAY_NAME_CLEANUP_V11337 = v11337_unique_mob_display_names()
+    PRODUCTION_CLEANUP_AUDIT_V11337 = production_cleanup_audit_v11337()
+    ECONOMY_INCOME_AUDIT_V1124 = economy_income_audit_v1124()
+    REWARD_CONSISTENCY_AUDIT_V11330 = reward_consistency_audit_v11330()

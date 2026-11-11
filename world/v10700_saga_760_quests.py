@@ -9,7 +9,7 @@ per window, each eligible once in six hours; accepted hunts stay playable.
 from __future__ import annotations
 from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
 from collections import Counter
-from core.v10700_new_archetypes import CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS
+from core.archetypes.chaos import CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS
 from world.v10700_chaos_chapter_one import prefix
 from world.v10700_region_index import CHAPTER_ONE
 from world.v10700_region_index_chapters_2_6 import ALL_NEXT
@@ -150,7 +150,7 @@ def install(rooms,mobs,spawns,npcs,quests,items):
         if nid not in npcs and nid not in newnpcs:
             raise RuntimeError('v107 saga: brak oferenta '+nid)
     # Check new profession outputs before mutating any existing catalogs.
-    from systems.v10700_profession_work import install_products
+    from systems.profession_generations.chaos import install_products
     for i in range(1,9):
         if f'v10700_prof_product_{i}' in items:
             raise RuntimeError('v107: kolizja wyrobów profesji')

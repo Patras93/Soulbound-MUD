@@ -683,7 +683,7 @@ class SessionSocialExpansionMixin:
 
 # v109: only in isolated staging until the official release is authorized.
 # The historical v108 handlers above remain byte-for-byte unchanged.
-from systems.v10900_gifts import enabled as _sb109_gifts_enabled
+from systems.gift_runtime import enabled as _sb109_gifts_enabled
 if _sb109_gifts_enabled():
-    from systems.v10900_gifts import install as _sb109_install_gift_handlers
+    from systems.gift_runtime import install as _sb109_install_gift_handlers
     _sb109_install_gift_handlers(SessionSocialExpansionMixin)

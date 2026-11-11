@@ -1,8 +1,8 @@
 import os
-from data.rooms import ROOMS
+from data.rooms import ROOMS  # canonical current dependency
 from core.progression_resources import mine_floor_id, MINE_MIN_FLOOR, MINE_MAX_FLOOR, v0190_apply_combat_template
-from core.progression_600 import CHARACTER_MAX_LEVEL
-from core import balance_math
+from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+import core.balance_math as balance_math  # canonical current dependency
 from data import catalog_mutations as _catalog_mut
 from core.command_catalog import CommandAliasMap
 from config.command_aliases import COMMAND_ALIAS_DEFINITIONS
@@ -10,6 +10,9 @@ from config.postal import GUIDE_CITY_HUBS_V0522
 from config.character_tools import CHARACTER_BOUND_TOOL_IDS
 
 def build_mine_depth_rooms():
+    from data.rooms import ROOMS  # canonical current dependency
+    from core.progression_resources import MINE_MAX_FLOOR, MINE_MIN_FLOOR, mine_floor_id
+    import data.catalog_mutations as _catalog_mut  # canonical current dependency
     _catalog_mut.catalog_assign(mine_floor_id(1), 'ROOMS', ROOMS, ("crystal_chamber", "exits", "down"))
 
     for floor in range(MINE_MIN_FLOOR, MINE_MAX_FLOOR + 1):
@@ -540,6 +543,7 @@ TOOL_BUY_ALIASES = {
 }
 
 def is_character_bound_item(item_id):
+    from data.items import ITEMS  # canonical current dependency
     item = ITEMS.get(item_id, {})
     return item_id in CHARACTER_BOUND_TOOL_IDS or bool(item.get("bind_on_pickup"))
 
@@ -1083,6 +1087,8 @@ def v0866_is_random_variant_template(template):
     )
 
 def v0866_template_explicit_floor_power(template):
+    import core.balance_math as balance_math  # canonical current dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
     level = template.get("generator_level")
     if level is not None:
         return max(1, min(CHARACTER_MAX_LEVEL, int(level)))
@@ -1091,6 +1097,9 @@ def v0866_template_explicit_floor_power(template):
 
 def v0866_mob_progression_power(template):
     """Compatibility route: active threat is Generator Core stage 1-600."""
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     level = template.get("generator_level")
     if level is not None:
         return max(1, min(CHARACTER_MAX_LEVEL, int(level)))
@@ -1111,6 +1120,9 @@ def v0866_percentile(values, fraction):
     return values[index]
 
 def v0866_room_threat_profile(room_id, fallback=1):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
     cache_key = str(room_id or "")
     cached = _ROOM_THREAT_CACHE.get(cache_key)
     if cached is not None:
@@ -1171,6 +1183,7 @@ def v0866_threat_label(target, power):
 
 
 def v0866_zone_threat_profile(zone):
+    from data.rooms import ROOMS  # canonical current dependency
     cache_key = str(zone or "")
     cached = _ZONE_THREAT_CACHE.get(cache_key)
     if cached is not None:
@@ -1205,5 +1218,5 @@ COMMAND_ALIASES.update({
     "frakcje":"frakcje", "arena":"arena",
 })
 
-from data.items import ITEMS
+from data.items import ITEMS  # canonical current dependency
 

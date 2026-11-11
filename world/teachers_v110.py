@@ -6,7 +6,7 @@ or historical NPC is mutated here: only the not-yet-committed v110 staging rows.
 """
 from __future__ import annotations
 
-from core.v11000_archetypes import CLASS_SPECS
+from core.archetypes.expansion import CLASS_SPECS
 from world.v11000_realm_index import REGIONS
 
 

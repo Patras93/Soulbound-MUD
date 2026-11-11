@@ -33,10 +33,12 @@ def _v0370_crypt_boosts(kind, floor):
     return float(hp), float(dmg), float(xp)
 
 
+from world.crypt_floor_progression import v0190_apply_combat_template  # explicit current dependency
 _v0370_crypt_apply_before = v0190_apply_combat_template
 
 
 def v0190_apply_combat_template(template):
+    from world.crypt_floor_progression import _v03610_floor, _v03610_kind  # explicit current dependency
     result = _v0370_crypt_apply_before(template)
     kind = _v03610_kind(result)
     if kind is None:
@@ -65,11 +67,17 @@ def v0190_apply_combat_template(template):
     result["crypt_overdrive_damage_mult_v0370"] = round(dmg_boost, 6)
     return result
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
 
+
+from world.crypt_floor_progression import v0190_combat_reward  # explicit current dependency
 _v0370_crypt_reward_before = v0190_combat_reward
 
 
 def v0190_combat_reward(template, kind):
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
+    from world.crypt_floor_progression import _v03610_floor, _v03610_kind  # explicit current dependency
     base = int(_v0370_crypt_reward_before(template, kind))
     if str(kind) == "coins":
         return base
@@ -84,8 +92,13 @@ def v0190_combat_reward(template, kind):
         extra *= 4
     return min(V019_SAFE_INT, max(0, int(round(base * xp_boost)) + extra))
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_combat_reward', v0190_combat_reward)
+
 
 # Rebuild every already-created Crypt template through the final v0.37.0 layer.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from world.crypt_floor_progression import _v03610_kind  # explicit current dependency
 for _v0370_tid, _v0370_template in list(MOB_TEMPLATES.items()):
     if _v03610_kind(_v0370_template):
         v0190_apply_combat_template(_v0370_template)
@@ -93,6 +106,8 @@ for _v0370_tid, _v0370_template in list(MOB_TEMPLATES.items()):
 # v0.36.8 lazy-floor generation resolves v0190_apply_combat_template globally,
 # therefore infinite floors created after boot also receive Crypt Overdrive.
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("krypta", []).extend([
     "v0.37.0: wszystkie zwykłe i Mityczne Krypty zostały ponownie wzmocnione od piętra 1. Dotyczy to zwykłych mobów, bossów i Superbossów.",
     "Crypt Overdrive zwiększa HP, obrażenia oraz Class/Soul/stat EXP na każdym piętrze; dodatkowy mnożnik sam rośnie wraz z numerem piętra.",
@@ -101,6 +116,9 @@ HELP_TOPICS.setdefault("krypta", []).extend([
 
 
 def crypt_overdrive_audit_v0370():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_combat_reward = _current_rule('v0190_combat_reward')
     errors = []
 
     # Closed-form boost curves must increase on every floor through 600.

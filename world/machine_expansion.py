@@ -2,7 +2,10 @@ from data import catalog_mutations as _catalog_mut
 from data.items import ITEMS
 from data.mobs import MOB_TEMPLATES
 from data.rooms import ROOMS
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_SPAWNS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 # v0.31.4 - Machine Enemy Expansion
 MACHINE_ZONE = "Kompleks Magitek"
 MACHINE_BIO_IMMUNITIES = ("poison", "bleed", "sleep", "drain", "disease", "fear", "charm")

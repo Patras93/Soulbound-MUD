@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """Static Soulbound catalog. Data only; gameplay logic lives elsewhere."""
-from data.catalogs_v109.rooms_01 import build_catalog as _rooms_part_01
-from data.catalogs_v109.rooms_02 import build_catalog as _rooms_part_02
-from data.catalogs_v109.rooms_03 import build_catalog as _rooms_part_03
-from data.catalogs_v109.rooms_04 import build_catalog as _rooms_part_04
+from data.catalog_parts.rooms_01 import build_catalog as _rooms_part_01
+from data.catalog_parts.rooms_02 import build_catalog as _rooms_part_02
+from data.catalog_parts.rooms_03 import build_catalog as _rooms_part_03
+from data.catalog_parts.rooms_04 import build_catalog as _rooms_part_04
 
 ROOMS = {}
 ROOMS.update(_rooms_part_01())

@@ -221,8 +221,20 @@ FULL_AUDIT_ONLY_MODULES = frozenset(
         and m != "admin/audits.py"
     )
 )
+# This historical cross-system report imports the complete legacy admin audit;
+# it is release-only and never belongs on a running production instance.
+FULL_AUDIT_ONLY_MODULES = FULL_AUDIT_ONLY_MODULES | frozenset({'systems/full_systems_audit_v03062.py'})
 FULL_RUNTIME_MODULES = tuple(_RUNTIME_MODULES_ALL)
-RUNTIME_MODULES = tuple(m for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES)
+# The full audit path keeps the unchanged historical audit in exactly the
+# original position. Production loads the state-mutating gameplay projection.
+RUNTIME_MODULES = tuple(
+    'world/runtime_gameplay_finalize.py' if m == 'admin/audits.py' else m
+    for m in FULL_RUNTIME_MODULES if m not in FULL_AUDIT_ONLY_MODULES
+)
+AUDIT_RUNTIME_MODULES = tuple(
+    m for m in FULL_RUNTIME_MODULES
+    if m not in (FULL_AUDIT_ONLY_MODULES - {'systems/full_systems_audit_v03062.py'})
+)
 
 
 # v0.43.0+: modules in this map are NOT seeded with the compatibility runtime
@@ -951,6 +963,7 @@ LEGACY_COMPATIBILITY_ALLOWLIST = (
     'server/mud_server.py',
     'admin/help_refresh.py',
     'admin/audits.py',
+    'world/runtime_gameplay_finalize.py',
     'systems/economy_audit_v03060.py',
     'world/uoss_superbosses.py',
     'world/uoss_superboss_world.py',
@@ -1118,3 +1131,29 @@ EXPLICIT_RUNTIME_EXPORTS["world/great_world.py"] = (
 EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/great_world.py"] = (
     "SessionGreatWorldV1200Mixin",
 )
+
+# Current maintenance: these mixins own their dependencies through normal
+# imports. Never seed or synchronize them through compatibility globals.
+EXPLICIT_RUNTIME_EXPORTS.update({
+    "player/session_mixins/rest_mana.py": (
+        "STANDING_REGEN_PERCENT_V1124", "STANDING_REGEN_TICK_SECONDS_V1124",
+        "SessionRestManaMixin", "superboss_healing_blocked_v11179",
+    ),
+    "player/session_mixins/session_runtime_state.py": ("SessionRuntimeStateMixin",),
+    "player/session_mixins/tech_crafting.py": ("SessionTechCraftingV03111Mixin",),
+    "player/session_mixins/milestone.py": ("SessionMilestoneV0320Mixin",),
+})
+
+EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/quest_turnin.py"] = ("SessionQuestTurninMixin",)
+
+# Current runtime uses ordinary imports exclusively; legacy audit manifests
+# above are retained only as offline source history.
+from core.current_runtime_exports import CURRENT_RUNTIME_EXPORTS
+EXPLICIT_RUNTIME_EXPORTS.update(CURRENT_RUNTIME_EXPORTS)
+
+# Explicit late composition steps replace historical re-execution of modules
+# that had been imported earlier as providers of pure helper functions.
+RUNTIME_INITIALIZERS = {
+    "world/uoss_superboss_world.py": "finalize_superboss_routes",
+    "systems/economy_income_balance.py": "finalize_current_economy",
+}

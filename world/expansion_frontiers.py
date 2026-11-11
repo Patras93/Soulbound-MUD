@@ -19,7 +19,10 @@ from core.progression_resources import (
     WOOD_ATLAS_ALL,
     WOOD_RESOURCE_IDS,
 )
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_DESCRIPTIONS
+from systems.content_registry import MOB_DESCRIPTIONS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from systems.dungeons_regions import (
     FISHING_ROOMS,
     GIANT_FORTRESS_BOSS_FLOORS,

@@ -1,6 +1,14 @@
 # -*- coding: utf-8 -*-
 """Session initialization, cooldowns, x2 EXP, wimpy and temple teleport."""
 
+import time
+from collections import deque
+
+from core.bootstrap_economy_professions import (
+    HISTORY_BUFFER_LIMIT, V019_SAFE_INT, double_xp_event_state,
+)
+from network.protocol_gameplay_utils import DEFAULT_TEXT_ENCODING
+
 class SessionRuntimeStateMixin:
 
     def __init__(self, server, reader, writer):

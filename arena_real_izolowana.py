@@ -146,6 +146,15 @@ def _private_env(folder, port):
     stages=('SOULBOUND_V107_STAGING','SOULBOUND_V109_STAGING','SOULBOUND_V110_STAGING')
     if all(os.environ.get(key)=='1' for key in stages):
         env.update({key:'1' for key in stages})
+        # v111 full audit uses an additional isolated UOSS replica.  Copy the
+        # v111 staging proof ONLY when the parent is already authorized and
+        # the cloned source really contains v111. Never manufacture a flag.
+        if (os.environ.get('SOULBOUND_V111_STAGING')=='1'
+                and (folder/'VERSION').is_file()
+                and (folder/'VERSION').read_text(encoding='utf-8-sig').strip() in ('111.00.0','112.00.0')):
+            env['SOULBOUND_V111_STAGING']='1'
+            if (folder/'VERSION').read_text(encoding='utf-8-sig').strip()=='112.00.0' and os.environ.get('SOULBOUND_V112_STAGING')=='1':
+                env['SOULBOUND_V112_STAGING']='1'
     if admin_accounts.strip():
         env['SOULBOUND_ADMIN_ACCOUNTS'] = admin_accounts
     return env

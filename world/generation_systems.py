@@ -16,7 +16,7 @@ from core.progression_resources import v0190_log_curve  # bound dependency
 from world.dynamic_content import ACHIEVEMENT_TRACKS  # restored modularization dependency
 from world.dynamic_content import ALL_EXPLORATION_ROOMS  # restored modularization dependency
 from world.dynamic_content import BOSS_COLLECTION_CATALOG  # restored modularization dependency
-from config.balance import CHARACTER_MAX_LEVEL  # restored modularization dependency
+from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
 from world.dynamic_content import CHEST_COLLECTION_CATALOG  # restored modularization dependency
 from world.dynamic_content import EQUIPMENT_COLLECTION_CATALOG  # restored modularization dependency
 from world.dynamic_content import EXPLORATION_REWARD_ITEMS  # restored modularization dependency
@@ -25,17 +25,19 @@ from world.dynamic_content import EXPLORATION_ZONE_ROOMS  # restored modularizat
 from core.progression_resources import FISHING_ECOLOGY_PREFERRED_IDS  # restored modularization dependency
 from core.progression_resources import FISHING_WATER_TYPE_OVERRIDES  # restored modularization dependency
 from core.mines_threat import GUIDE_DESTINATION_ALIASES  # restored modularization dependency
-from systems.content_registry import HELP_TOPICS  # restored modularization dependency
-from systems.content_registry import HELP_TOPIC_ALIASES  # restored modularization dependency
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from core.classes_skills import HERB_ATLAS_ROOM_MIN_LEVELS  # restored modularization dependency
-from data.items import ITEMS  # restored modularization dependency
+from data.items import ITEMS  # canonical current dependency
 from systems.content_registry import MOB_SPAWNS  # restored modularization dependency
-from data.mobs import MOB_TEMPLATES  # restored modularization dependency
-from data.npcs import NPCS  # restored modularization dependency
-from data.quests import QUESTS  # restored modularization dependency
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from data.npcs import NPCS  # canonical current dependency
+from data.quests import QUESTS  # canonical current dependency
 from world.dynamic_content import RARE_MOB_COLLECTION_CATALOG  # restored modularization dependency
 from world.expansions import REGIONAL_SET_BONUSES  # restored modularization dependency
-from data.rooms import ROOMS  # restored modularization dependency
+from data.rooms import ROOMS  # canonical current dependency
 from world.dynamic_content import TRACKED_EXPLORATION_ZONES  # restored modularization dependency
 from world.expansions import TREASURE_CHESTS  # restored modularization dependency
 from world.dynamic_content import UNIQUE_ITEM_COLLECTION_CATALOG  # restored modularization dependency
@@ -44,7 +46,7 @@ from core.bootstrap_economy_professions import V0250_WORLD_SEED  # restored modu
 from world.dynamic_content import _collection_slug  # restored modularization dependency
 from world.economy_quests import ensure_profession_quest_currency_v098  # restored modularization dependency
 import hashlib  # restored modularization dependency
-from storage.db_shared import normalize_lookup_text  # restored modularization dependency
+from storage.db_shared import normalize_lookup_text  # canonical current dependency
 from world.economy_quests import normalize_profession_requirements_v0866  # restored modularization dependency
 from world.economy_quests import normalize_quest_progress_tracking_v0866  # restored modularization dependency
 import random  # restored modularization dependency
@@ -52,15 +54,8 @@ import re  # restored modularization dependency
 import time  # restored modularization dependency
 from core.progression_resources import v0190_apply_combat_template  # restored modularization dependency
 from core.progression_resources import v0190_economy_sink  # restored modularization dependency
-from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
-import world.v420_generation_random as _sb420_topsrc01
-import world.v420_generation_mobs as _sb420_topsrc02
 
-from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
 
-import world.v410_generation_waters as _sb410_mod_v410_generation_waters
-import world.v410_generation_frontier as _sb410_mod_v410_generation_frontier
-import world.v410_generation_islands as _sb410_mod_v410_generation_islands
 
 from data import catalog_mutations as _catalog_mut
 
@@ -82,11 +77,15 @@ V012_HERB_ECOLOGY_POOLS = {}
 
 
 def _v012_connect(a, direction_a, b, direction_b):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[direction_a] = b
     _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[direction_b] = a
 
 
 def _v012_add_room(room_id, zone, name, desc):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     _catalog_mut.catalog_assign({
         "zone": zone,
         "name": name,
@@ -95,10 +94,180 @@ def _v012_add_room(room_id, zone, name, desc):
     }, 'ROOMS', ROOMS, (room_id,))
 
 
-def build_v012_living_waters_and_meadows(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: build_v012_living_waters_and_meadows")
-build_v012_living_waters_and_meadows = _sb410_bind(_sb410_mod_v410_generation_waters.build_v012_living_waters_and_meadows, globals())
+def build_v012_living_waters_and_meadows():
+    # --------------------------------------------------------
+    # WYBRZEŻE, MORZE I OCEAN
+    # --------------------------------------------------------
+    from data.rooms import ROOMS  # canonical current dependency
+    from core.progression_resources import FISHING_ROOMS, FRESHWATER_FISHING_ROOMS, HERBALISM_ROOMS, LAKE_FISHING_ROOMS, MARINE_FISHING_ROOMS, MEADOW_HERBALISM_ROOMS, OCEAN_FISHING_ROOMS, RIVER_FISHING_ROOMS, SEA_FISHING_ROOMS  # explicit current dependency
+    water_rooms = {
+        "coastal_cove": ("Wybrzeże", "Spokojna Zatoka", "Osłonięta zatoka o łagodnym nurcie. Płytka woda sprzyja rybom przybrzeżnym."),
+        "rocky_shore": ("Wybrzeże", "Skalisty Brzeg", "Poszarpane skały schodzą w słoną wodę. Między głazami tworzą się głębsze rynny łowiskowe."),
+        "river_estuary": ("Wybrzeże", "Ujście Srebrnej Rzeki", "Słodka i słona woda mieszają się w szerokim ujściu. Łowisko ma charakter estuarium."),
+        "salt_marsh": ("Wybrzeże", "Słone Mokradła", "Płytkie kanały pływowe przecinają kępy słonolubnych traw."),
+        "tidal_flats": ("Wybrzeże", "Płycizny Pływowe", "Rozległe płycizny zmieniają się wraz z przypływem. Ryby podchodzą tu blisko brzegu."),
+        "coastal_lagoon": ("Wybrzeże", "Laguna Przybrzeżna", "Ciepła laguna jest częściowo odcięta od morza pasem skał i piasku."),
+        "kelp_bay": ("Wybrzeże", "Zatoka Wodorostów", "Gęste pasma wodorostów falują pod powierzchnią i kryją wiele morskich gatunków."),
+        "outer_reef": ("Ocean", "Zewnętrzna Rafa", "Rafa leży już poza spokojnym pasem wybrzeża. Woda jest głęboka i przejrzysta."),
+        "bluewater_channel": ("Ocean", "Błękitny Kanał", "Silny prąd oceaniczny tworzy naturalny szlak dużych ryb pelagicznych."),
+        "ocean_shelf": ("Ocean", "Krawędź Szelfu", "Dno gwałtownie opada. To przejście między wodami przybrzeżnymi a otwartym oceanem."),
+        "deep_ocean_buoy": ("Ocean", "Boja Głębokiego Oceanu", "Samotna boja wyznacza dalekie łowisko na bardzo głębokiej wodzie."),
+        "trench_edge": ("Ocean", "Krawędź Rowu Oceanicznego", "Ciemna toń zaczyna się tuż za krawędzią podmorskiego urwiska."),
+        "storm_current": ("Ocean", "Prąd Burzowy", "Niespokojny prąd niesie chłodniejszą wodę i przyciąga silne oceaniczne drapieżniki."),
+    }
+    for rid, (zone, name, desc) in water_rooms.items():
+        _v012_add_room(rid, zone, name, desc)
+
+    _v012_connect("sea_pier", "north", "coastal_cove", "south")
+    _v012_connect("coastal_cove", "east", "rocky_shore", "west")
+    _v012_connect("rocky_shore", "north", "river_estuary", "south")
+    _v012_connect("river_estuary", "west", "salt_marsh", "east")
+    _v012_connect("salt_marsh", "south", "coastal_cove", "north")
+    _v012_connect("sea_pier", "south", "tidal_flats", "north")
+    _v012_connect("tidal_flats", "east", "coastal_lagoon", "west")
+    _v012_connect("coastal_lagoon", "north", "rocky_shore", "south")
+    _v012_connect("tidal_flats", "south", "kelp_bay", "north")
+    _v012_connect("kelp_bay", "east", "coastal_lagoon", "south")
+
+    _v012_connect("ocean_platform", "north", "outer_reef", "south")
+    _v012_connect("outer_reef", "east", "bluewater_channel", "west")
+    _v012_connect("bluewater_channel", "south", "ocean_shelf", "north")
+    _v012_connect("ocean_platform", "south", "ocean_shelf", "west")
+    _v012_connect("bluewater_channel", "east", "deep_ocean_buoy", "west")
+    _v012_connect("deep_ocean_buoy", "south", "trench_edge", "north")
+    _v012_connect("trench_edge", "west", "storm_current", "east")
+    _v012_connect("storm_current", "north", "ocean_shelf", "south")
+
+    sea_ids = {
+        "coastal_cove", "rocky_shore", "river_estuary", "salt_marsh",
+        "tidal_flats", "coastal_lagoon", "kelp_bay",
+    }
+    ocean_ids = {
+        "outer_reef", "bluewater_channel", "ocean_shelf",
+        "deep_ocean_buoy", "trench_edge", "storm_current",
+    }
+    SEA_FISHING_ROOMS.update(sea_ids)
+    OCEAN_FISHING_ROOMS.update(ocean_ids)
+    MARINE_FISHING_ROOMS.update(sea_ids | ocean_ids)
+    FISHING_ROOMS.update(sea_ids | ocean_ids)
+    V012_NEW_FISHING_ROOMS.update(sea_ids | ocean_ids)
+
+    # --------------------------------------------------------
+    # RZEKA, JEZIORO, STARORZECZE I STAW ŁĄKOWY
+    # --------------------------------------------------------
+    fresh_rooms = {
+        "willow_bend": ("Dolina Rzeki", "Wierzbowe Zakole", "Rzeka zwalnia pod starymi wierzbami i tworzy głębokie stanowiska przy brzegu."),
+        "river_rapids": ("Dolina Rzeki", "Srebrne Bystrza", "Szybki nurt pieni się między kamieniami. Żyją tu gatunki lubiące natlenioną wodę."),
+        "reed_bank": ("Dolina Rzeki", "Trzcinowy Brzeg", "Szeroki pas trzcin osłania spokojniejsze zatoczki rzecznego brzegu."),
+        "river_ford": ("Dolina Rzeki", "Kamienny Bród", "Płytki bród przecina rzekę, a za głazami tworzą się naturalne kieszenie dla ryb."),
+        "spring_creek": ("Dolina Rzeki", "Źródlany Potok", "Chłodny potok wpada do rzeki. Woda jest czysta i szybka."),
+        "oxbow_pool": ("Dolina Rzeki", "Stare Starorzecze", "Odcięte zakole tworzy ciche, zarośnięte łowisko o niemal jeziorowym charakterze."),
+        "reed_lake_bank": ("Srebrne Jezioro", "Trzcinowy Brzeg Jeziora", "Płytki brzeg jeziora porastają trzciny i lilie wodne."),
+        "quiet_cove": ("Srebrne Jezioro", "Cicha Zatoka Jeziora", "Osłonięta zatoka ma spokojną wodę i głębszy środek."),
+        "southern_lake_bank": ("Srebrne Jezioro", "Południowy Brzeg Jeziora", "Kamienisto-piaszczysty brzeg otwiera dostęp do szerokiej tafli Srebrnego Jeziora."),
+        "pebble_lake_bank": ("Srebrne Jezioro", "Żwirowy Brzeg Jeziora", "Dno opada tu równomiernie, a żwir przyciąga inne gatunki niż trzcinowe zatoki."),
+        "fisher_inlet": ("Srebrne Jezioro", "Zatoczka Rybaków", "Mała zatoczka z resztkami starego pomostu jest wygodnym miejscem do spokojnego łowienia."),
+        "deepwater_pier": ("Srebrne Jezioro", "Pomost Głębokiej Toni", "Długi pomost sięga nad najgłębszą część jeziora dostępną z brzegu."),
+        "meadow_pond": ("Łąki", "Staw pośród Łąk", "Niewielki staw otaczają miękkie trawy, mięta i owady. To spokojne łowisko jeziorno-stawowe."),
+    }
+    for rid, (zone, name, desc) in fresh_rooms.items():
+        _v012_add_room(rid, zone, name, desc)
+
+    _v012_connect("riverbank", "north", "willow_bend", "south")
+    _v012_connect("willow_bend", "east", "river_rapids", "west")
+    _v012_connect("river_rapids", "south", "stone_bridge", "north")
+    _v012_connect("riverbank", "south", "reed_bank", "north")
+    _v012_connect("reed_bank", "east", "river_ford", "west")
+    _v012_connect("river_ford", "north", "stone_bridge", "south")
+    _v012_connect("willow_bend", "west", "spring_creek", "east")
+    _v012_connect("spring_creek", "south", "reed_bank", "west")
+    _v012_connect("reed_bank", "south", "oxbow_pool", "north")
+
+    _v012_connect("lake_shore", "east", "reed_lake_bank", "west")
+    _v012_connect("reed_lake_bank", "south", "quiet_cove", "north")
+    _v012_connect("quiet_cove", "west", "southern_lake_bank", "east")
+    _v012_connect("southern_lake_bank", "north", "lake_shore", "south")
+    _v012_connect("lake_shore", "west", "pebble_lake_bank", "east")
+    _v012_connect("pebble_lake_bank", "south", "fisher_inlet", "north")
+    _v012_connect("fisher_inlet", "east", "southern_lake_bank", "west")
+    _v012_connect("quiet_cove", "east", "deepwater_pier", "west")
+    _v012_connect("deepwater_pier", "north", "reed_lake_bank", "east")
+
+    river_ids = {
+        "willow_bend", "river_rapids", "reed_bank", "river_ford", "spring_creek",
+    }
+    lake_ids = {
+        "oxbow_pool", "reed_lake_bank", "quiet_cove", "southern_lake_bank",
+        "pebble_lake_bank", "fisher_inlet", "deepwater_pier", "meadow_pond",
+    }
+    RIVER_FISHING_ROOMS.update(river_ids)
+    LAKE_FISHING_ROOMS.update(lake_ids)
+    FRESHWATER_FISHING_ROOMS.update(river_ids | lake_ids)
+    FISHING_ROOMS.update(river_ids | lake_ids)
+    V012_NEW_FISHING_ROOMS.update(river_ids | lake_ids)
+
+    # --------------------------------------------------------
+    # ROZLEGŁE ŁĄKI - kilka typów siedlisk połączonych pętlami
+    # --------------------------------------------------------
+    meadow_rooms = {
+        "wildflower_basin": ("Kotlina Dzikich Kwiatów", "Łagodna niecka pełna rumianku, lawendy, krwawnika i wysokich kwiatów."),
+        "butterfly_field": ("Łąka Motyli", "Ciepła polana przyciąga chmary motyli i drobną zwierzynę. Rosną tu lekkie zioła łąkowe."),
+        "heather_field": ("Wrzosowisko", "Purpurowe wrzosy pokrywają suchszy fragment łąk, gdzie roślinność jest rzadsza, ale bardziej aromatyczna."),
+        "wind_meadow": ("Wietrzna Łąka", "Wysoka trawa ugina się pod stałym wiatrem. Między kępami rosną odporne zioła."),
+        "clover_field": ("Pole Koniczyny", "Niskie, miękkie trawy i koniczyna tworzą spokojny teren dla drobnych zwierząt."),
+        "tall_grass_field": ("Morze Wysokich Traw", "Trawa sięga niemal do pasa i tworzy naturalne ścieżki między pagórkami."),
+        "wet_meadow": ("Mokra Łąka", "Grunt jest nasiąknięty wodą z rzeki. Mięta, melisa i rośliny wilgociolubne rosną bardzo gęsto."),
+        "reed_meadow": ("Trzcinowa Łąka", "Łąka przechodzi w pas trzcin i niewielkich oczek wodnych."),
+        "marshy_meadow": ("Podmokła Łąka", "Między trawami błyszczą małe rozlewiska. To przejście między łąką a mokradłem."),
+        "creek_meadow": ("Łąka Nad Potokiem", "Wąski potok przecina zielony teren, tworząc wilgotne stanowiska zielarskie."),
+        "herb_ridge": ("Zielarska Grań", "Nieznacznie wyniesiony teren jest suchszy i nasłoneczniony. Rosną tu szałwia i późniejsze zioła."),
+        "sage_hollow": ("Niecka Szałwii", "Ciepła niecka pachnie szałwią i gorzkimi roślinami leczniczymi."),
+        "valerian_lowland": ("Nizina Waleriany", "Chłodniejsza, wilgotna dolinka sprzyja walerianie i roślinom późniejszej progresji."),
+        "ginseng_hill": ("Wzgórze Żeń-szenia", "Stoki wzgórza są zacienione przez pojedyncze drzewa. Wśród korzeni można znaleźć cenne zioła."),
+        "moon_meadow": ("Księżycowa Łąka", "Jasne kwiaty pozostają otwarte nawet nocą. To jeden z bardziej wymagających terenów Zielarstwa."),
+        "old_stone_meadow": ("Łąka Starych Kamieni", "Krąg omszałych głazów dzieli łąkę na kilka naturalnych polan i ścieżek."),
+        "orchard_meadow": ("Łąka Przy Sadzie", "Trawiaste zbocze łączy dzikie łąki ze starymi sadami przedmieść."),
+    }
+    for rid, (name, desc) in meadow_rooms.items():
+        _v012_add_room(rid, "Łąki", name, desc)
+        HERBALISM_ROOMS.add(rid)
+        MEADOW_HERBALISM_ROOMS.add(rid)
+        V012_NEW_MEADOW_ROOMS.add(rid)
+
+    _v012_connect("flower_meadow", "south", "wildflower_basin", "north")
+    _v012_connect("wildflower_basin", "west", "butterfly_field", "east")
+    _v012_connect("butterfly_field", "south", "old_stone_meadow", "north")
+    _v012_connect("wildflower_basin", "east", "heather_field", "west")
+    _v012_connect("heather_field", "east", "wind_meadow", "west")
+    _v012_connect("wind_meadow", "south", "clover_field", "north")
+    _v012_connect("clover_field", "south", "mint_meadow", "north")
+    _v012_connect("heather_field", "north", "tall_grass_field", "south")
+    _v012_connect("tall_grass_field", "east", "old_stone_meadow", "west")
+    _v012_connect("old_stone_meadow", "south", "wind_meadow", "north")
+
+    _v012_connect("mint_meadow", "south", "wet_meadow", "north")
+    _v012_connect("wet_meadow", "east", "reed_meadow", "west")
+    _v012_connect("reed_meadow", "south", "marshy_meadow", "north")
+    _v012_connect("marshy_meadow", "west", "herb_ridge", "east")
+    _v012_connect("lakeside_meadow", "west", "creek_meadow", "east")
+    _v012_connect("creek_meadow", "south", "meadow_pond", "north")
+    _v012_connect("marshy_meadow", "south", "valerian_lowland", "north")
+
+    _v012_connect("creek_meadow", "north", "wet_meadow", "south")
+    _v012_connect("herb_ridge", "south", "sage_hollow", "north")
+    _v012_connect("sage_hollow", "east", "valerian_lowland", "west")
+    _v012_connect("sage_hollow", "south", "ginseng_hill", "north")
+    _v012_connect("ginseng_hill", "east", "moon_meadow", "west")
+    _v012_connect("moon_meadow", "north", "valerian_lowland", "south")
+    _v012_connect("tall_grass_field", "north", "orchard_meadow", "south")
+    if "old_orchard" in ROOMS:
+        _v012_connect("orchard_meadow", "north", "old_orchard", "south")
+
+    HERBALISM_ROOMS.add("meadow_pond")
+    MEADOW_HERBALISM_ROOMS.add("meadow_pond")
+    V012_WATER_MEADOW_ROOMS.update({
+        "wet_meadow", "reed_meadow", "marshy_meadow", "creek_meadow", "meadow_pond",
+    })
 
 
 build_v012_living_waters_and_meadows()
@@ -404,6 +573,7 @@ def v0130_frontier_room_id(kind, x, y):
 
 
 def v0130_frontier_room_identity(room_id):
+    import re  # explicit current dependency
     match = re.fullmatch(r"v0130_frontier_([a-z]+)_(\d{2})_(\d{2})", str(room_id or ""))
     if not match:
         return None
@@ -429,6 +599,8 @@ def v0130_gateway_id(kind):
 
 
 def v0130_build_static_gateways():
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     for kind, spec in V013_FRONTIER_SPECS.items():
         anchor = spec["anchor"]
         direction = spec["direction"]
@@ -454,19 +626,133 @@ def v0130_build_static_gateways():
         _catalog_mut.catalog_assign(gateway, 'ROOMS', ROOMS, (anchor, "exits", direction))
 
 
-def _v0130_apply_resources(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound _v0130_apply_resources")
-_v0130_apply_resources = _sb420_topbind(_sb420_topsrc02._v0130_apply_resources, globals())
+def _v0130_apply_resources(room_id, spec):
+    from core.progression_resources import FISHING_ROOMS, FISHING_WATER_TYPE_OVERRIDES, FRESHWATER_FISHING_ROOMS, HERBALISM_ROOMS, LAKE_FISHING_ROOMS, MARINE_FISHING_ROOMS, MEADOW_HERBALISM_ROOMS, OCEAN_FISHING_ROOMS, RIVER_FISHING_ROOMS, SEA_FISHING_ROOMS, WOODCUTTING_ROOMS  # explicit current dependency
+    for resource in spec.get("resources", ()):
+        if resource == "herb_meadow":
+            HERBALISM_ROOMS.add(room_id)
+            MEADOW_HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "meadow"
+        elif resource == "herb_forest":
+            HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "forest"
+        elif resource == "herb_water":
+            HERBALISM_ROOMS.add(room_id)
+            V012_MEADOW_HERB_GROUP[room_id] = "water"
+        elif resource == "wood":
+            WOODCUTTING_ROOMS.add(room_id)
+        elif resource == "mine":
+            # v0.25.1: geologiczny motyw może wystąpić wizualnie, ale
+            # wydobycie jest dostępne wyłącznie w Kopalni Głębinowej.
+            pass
+        elif resource == "fish_river":
+            RIVER_FISHING_ROOMS.add(room_id)
+            FRESHWATER_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralna rzeka"
+        elif resource == "fish_lake":
+            LAKE_FISHING_ROOMS.add(room_id)
+            FRESHWATER_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralne jezioro"
+        elif resource == "fish_sea":
+            SEA_FISHING_ROOMS.add(room_id)
+            MARINE_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralne morze"
+        elif resource == "fish_ocean":
+            OCEAN_FISHING_ROOMS.add(room_id)
+            MARINE_FISHING_ROOMS.add(room_id)
+            FISHING_ROOMS.add(room_id)
+            FISHING_WATER_TYPE_OVERRIDES[room_id] = "Proceduralny ocean"
 
 
-def v0130_create_frontier_room_definition(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0130_create_frontier_room_definition")
-v0130_create_frontier_room_definition = _sb410_bind(_sb410_mod_v410_generation_frontier.v0130_create_frontier_room_definition, globals())
+def v0130_create_frontier_room_definition(room_id):
+    import world.generation_systems as _current_generation_systems  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import hashlib  # explicit current dependency
+    import random  # explicit current dependency
+    identity = v0130_frontier_room_identity(room_id)
+    if identity is None:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind, x, y = identity
+    spec = V013_FRONTIER_SPECS[kind]
+    seed_text = f"{V013_WORLD_SEED}:{kind}:{x}:{y}"
+    seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
+    rng = random.Random(seed)
+    title = rng.choice(spec["titles"])
+    feature = rng.choice(spec["features"])
+    distance = x + y
+    mastery = min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + distance * int(spec["step"]))
+    exits = {}
+    if x > 0:
+        exits["west"] = v0130_frontier_room_id(kind, x - 1, y)
+    if x + 1 < V013_FRONTIER_SIDE:
+        exits["east"] = v0130_frontier_room_id(kind, x + 1, y)
+    if y > 0:
+        exits["south"] = v0130_frontier_room_id(kind, x, y - 1)
+    if y + 1 < V013_FRONTIER_SIDE:
+        exits["north"] = v0130_frontier_room_id(kind, x, y + 1)
+    if x == 0 and y == 0:
+        direction = spec["direction"]
+        exits[V013_REVERSE_DIRECTION[direction]] = v0130_gateway_id(kind)
+
+    # v0.14.0: wejścia do mini-lochów są częścią trwałego seedu sektora.
+    # Funkcja jest zdefiniowana niżej; nazwa rozwiązuje się dopiero przy
+    # faktycznym generowaniu pokoju po zakończeniu importu modułu.
+    if hasattr(_current_generation_systems, 'v0140_has_mini_dungeon') and v0140_has_mini_dungeon(kind, x, y):
+        exits["down"] = v0140_mini_room_id(kind, x, y, 1)
+    if hasattr(_current_generation_systems, 'v0180_has_great_ruin') and v0180_has_great_ruin(kind, x, y):
+        exits["up"] = v0180_ruin_room_id(kind, x, y, 1)
+
+    _catalog_mut.catalog_assign({
+        "zone": spec["zone"],
+        "name": f"{title} — sektor {x + 1}-{y + 1}",
+        "desc": (
+            f"Rozległy sektor biomu {spec['zone']}. Wyróżnia się tu {feature}. "
+            "Teren został wygenerowany z trwałego seedu świata, więc po ponownym "
+            "uruchomieniu serwera zachowuje ten sam układ i charakter."
+        ),
+        "exits": exits,
+        "recommended_mastery": mastery,
+        "procedural_surface": True,
+        "generated_on_demand": True,
+        "procedural_biome": kind,
+        "procedural_x": x,
+        "procedural_y": y,
+    }, 'ROOMS', ROOMS, (room_id,))
+    if hasattr(_current_generation_systems, 'v0140_has_mini_dungeon') and v0140_has_mini_dungeon(kind, x, y):
+        _catalog_mut.catalog_aug_path('ROOMS', ROOMS, (room_id, "desc"), 'Add', " W terenie ukrywa się zejście do proceduralnego mini-lochu.")
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0140_mini_entrance"))
+    if hasattr(_current_generation_systems, 'v0180_has_great_ruin') and v0180_has_great_ruin(kind, x, y):
+        _catalog_mut.catalog_aug_path('ROOMS', ROOMS, (room_id, "desc"), 'Add', " Nad sektorem wznoszą się rozległe ruiny; wejście prowadzi w górę.")
+        _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0180_great_ruin_entrance"))
+    if hasattr(_current_generation_systems, 'v0140_surface_secret_info'):
+        secret_info = v0140_surface_secret_info(room_id)
+        if secret_info:
+            _catalog_mut.catalog_assign(True, 'ROOMS', ROOMS, (room_id, "v0140_surface_secret"))
+            _catalog_mut.catalog_assign(secret_info["name"], 'ROOMS', ROOMS, (room_id, "v0140_secret_name"))
+    _v0130_apply_resources(room_id, spec)
+
+    mob_pool = tuple(t for t in spec.get("mobs", ()) if t in MOB_TEMPLATES)
+    spawns = []
+    if mob_pool:
+        spawn_count = 1 + (1 if rng.random() < 0.38 else 0)
+        for _ in range(spawn_count):
+            spawns.append((room_id, rng.choice(mob_pool)))
+    return room_id, tuple(spawns)
 
 
 def v0130_refresh_exploration_catalog():
+    from data.items import ITEMS  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.dynamic_content import ACHIEVEMENT_TRACKS, EXPLORATION_REWARD_ITEMS, EXPLORATION_ZONE_ROOMS, _collection_slug  # explicit current dependency
+    from world.economy_quests import EXPLORATION_ZONE_MIN_ROOMS  # explicit current dependency
     global TRACKED_EXPLORATION_ZONES, ALL_EXPLORATION_ROOMS
     EXPLORATION_ZONE_ROOMS.clear()
     for room_id, room in ROOMS.items():
@@ -630,6 +916,7 @@ V014_EVENT_DEFS = {
 
 
 def _v0140_hash_int(*parts):
+    import hashlib  # explicit current dependency
     text = ":".join(str(part) for part in (V014_WORLD_SEED,) + parts)
     return int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], 16)
 
@@ -649,6 +936,7 @@ def v0140_mini_room_id(kind, x, y, index):
 
 
 def v0140_mini_identity(room_id):
+    import re  # explicit current dependency
     match = re.fullmatch(r"v0140_mini_([a-z]+)_(\d{2})_(\d{2})_(\d{2})", str(room_id or ""))
     if not match:
         return None
@@ -669,6 +957,7 @@ def v0140_secret_room_id(kind, x, y):
 
 
 def v0140_secret_room_identity(room_id):
+    import re  # explicit current dependency
     match = re.fullmatch(r"v0140_secret_([a-z]+)_(\d{2})_(\d{2})", str(room_id or ""))
     if not match:
         return None
@@ -720,11 +1009,14 @@ def v0140_surface_secret_room_ids(kind=None):
 
 
 def v0140_event_slot(now=None):
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     return int(now // V014_EVENT_ROTATION_SECONDS)
 
 
 def v0140_active_world_events(now=None):
+    import random  # explicit current dependency
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     slot = v0140_event_slot(now)
     result = []
@@ -770,6 +1062,7 @@ def active_profession_event_for_room(room_id, tool_type, now=None):
 
     The permanent Deep Mine and ordinary authored profession rooms remain unchanged.
     """
+    import world.generation_systems as _current_generation_systems  # explicit optional dependency
     expected = {
         "fish_run": "fishing", "herb_bloom": "herbalism",
         "rich_vein": "mining", "forest_growth": "woodcutting",
@@ -779,7 +1072,7 @@ def active_profession_event_for_room(room_id, tool_type, now=None):
     if normal and expected.get(normal["type"]) == str(tool_type or ""):
         return normal
     # v0180 is resolved at runtime, after its later definitions have loaded.
-    legendary_resolver = globals().get("v0180_legendary_event_for_room")
+    legendary_resolver = getattr(_current_generation_systems, 'v0180_legendary_event_for_room', None)
     if legendary_resolver:
         legendary = legendary_resolver(room_id, now=now)
         if legendary and legendary.get("tool") == str(tool_type or ""):
@@ -804,10 +1097,42 @@ def v0140_gather_event_bonus(room_id, tool_type=None, now=None):
     }
 
 
-def _v0140_clone_variant(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound _v0140_clone_variant")
-_v0140_clone_variant = _sb420_topbind(_sb420_topsrc02._v0140_clone_variant, globals())
+def _v0140_clone_variant(base_id, *, rare=False, miniboss=False):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    base = MOB_TEMPLATES.get(base_id)
+    if not base:
+        return None
+    suffix = "rare" if rare else "miniboss"
+    variant_id = f"v0140_{suffix}_{base_id}"
+    if variant_id in MOB_TEMPLATES:
+        return variant_id
+    data = dict(base)
+    data["drops"] = dict(base.get("drops", {}))
+    if rare:
+        data["name"] = f"Wędrujący Rzadki {base['name']}"
+        data["rare_mob"] = True
+        data["rare_base_template"] = base_id
+        hp_mult, dmg_mult, reward_mult = 1.75, 1.30, 2.20
+    else:
+        data["name"] = f"Strażnik Mini-Lochu: {base['name']}"
+        data["mini_boss"] = True
+        data["stationary_mob"] = True
+        data["v0140_mini_boss"] = True
+        hp_mult, dmg_mult, reward_mult = 2.80, 1.55, 3.20
+    data["max_hp"] = max(1, int(round(int(base.get("max_hp", 1)) * hp_mult)))
+    data["damage"] = max(1, int(round(int(base.get("damage", 1)) * dmg_mult)))
+    data["stat_reward"] = max(1, int(round(int(base.get("stat_reward", 1)) * min(1.8, reward_mult))))
+    data["soul_reward"] = max(1, int(round(int(base.get("soul_reward", 1)) * reward_mult)))
+    data["class_xp_reward"] = max(50, int(round(int(base.get("class_xp_reward", max(50, int(base.get("stat_reward", 1))*10))) * reward_mult)))
+    data["silver"] = max(1, int(round(int(base.get("silver", 1)) * reward_mult)))
+    data["gold"] = 0
+    data["mithril"] = 0
+    data["auto_aggro"] = False
+    data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.28 if rare else 0.45)
+    data["drops"].setdefault("soul_shard", 0.45 if rare else 0.70)
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (variant_id,))
+    return variant_id
 
 
 for _kind, _spec in V013_FRONTIER_SPECS.items():
@@ -826,7 +1151,9 @@ for _mob_id, _data in MOB_TEMPLATES.items():
 
 
 def v0140_rare_template_for_kind(kind, salt="event"):
-    if "v11339_named_rare_template_for_kind" in globals():
+    import world.generation_systems as _current_generation_systems  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    if hasattr(_current_generation_systems, 'v11339_named_rare_template_for_kind'):
         named = v11339_named_rare_template_for_kind(kind, "rare_hunt")
         if named:
             return named
@@ -838,6 +1165,7 @@ def v0140_rare_template_for_kind(kind, salt="event"):
 
 
 def v0140_miniboss_template_for_sector(kind, x, y):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     pool = [base for base in V013_FRONTIER_SPECS[kind].get("mobs", ()) if base in MOB_TEMPLATES]
     if not pool:
         return None
@@ -845,13 +1173,86 @@ def v0140_miniboss_template_for_sector(kind, x, y):
     return _v0140_clone_variant(base, miniboss=True)
 
 
-def v0140_create_mini_room_definition(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0140_create_mini_room_definition")
-v0140_create_mini_room_definition = _sb410_bind(_sb410_mod_v410_generation_frontier.v0140_create_mini_room_definition, globals())
+def v0140_create_mini_room_definition(room_id):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
+    from world.dynamic_content import CHEST_COLLECTION_CATALOG  # explicit current dependency
+    from world.expansions import TREASURE_CHESTS  # explicit current dependency
+    identity = v0140_mini_identity(room_id)
+    if identity is None:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind, x, y, index, size = identity
+    spec = V013_FRONTIER_SPECS[kind]
+    width = 3
+    cx, cy = (index - 1) % width, (index - 1) // width
+    exits = {}
+    candidates = {
+        "west": (cx - 1, cy), "east": (cx + 1, cy),
+        "south": (cx, cy - 1), "north": (cx, cy + 1),
+    }
+    for direction, (nx, ny) in candidates.items():
+        if nx < 0 or ny < 0 or nx >= width:
+            continue
+        neighbor = ny * width + nx + 1
+        if 1 <= neighbor <= size:
+            exits[direction] = v0140_mini_room_id(kind, x, y, neighbor)
+    parent = v0130_frontier_room_id(kind, x, y)
+    if index == 1:
+        exits["up"] = parent
+    final = index == size
+    seed = _v0140_hash_int("mini-room", kind, x, y, index)
+    rng = random.Random(seed)
+    room_titles = (
+        "Zawalone Przejście", "Kamienna Galeria", "Boczna Komora", "Stary Korytarz",
+        "Podziemna Sala", "Szczelina Korzeni", "Zapomniany Tunel", "Komora Runiczna",
+    )
+    title = "Komnata Strażnika" if final else rng.choice(room_titles)
+    _catalog_mut.catalog_assign({
+        "zone": f"Mini-loch: {spec['zone']}",
+        "name": f"{title} — {index}/{size}",
+        "desc": (
+            f"Proceduralny mini-loch odkryty w sektorze {x+1}-{y+1} biomu {spec['zone']}. "
+            "Układ tej podziemnej siatki jest trwały dla seedu świata."
+            + (" To finałowa komnata ze strażnikiem i skrzynią." if final else "")
+        ),
+        "exits": exits,
+        "recommended_mastery": min(CHARACTER_MAX_LEVEL, int(spec["base_mastery"]) + (x+y)*int(spec["step"]) + index*3),
+        "generated_on_demand": True,
+        "v0140_mini_dungeon": True,
+        "v0140_mini_kind": kind,
+        "v0140_mini_index": index,
+        "v0140_mini_size": size,
+        "v0140_mini_final": final,
+    }, 'ROOMS', ROOMS, (room_id,))
+    spawns = []
+    mob_pool = tuple(base for base in spec.get("mobs", ()) if base in MOB_TEMPLATES)
+    if final:
+        boss = v0140_miniboss_template_for_sector(kind, x, y)
+        if boss:
+            spawns.append((room_id, boss))
+        TREASURE_CHESTS.setdefault(room_id, {
+            "name": f"Skrzynia Mini-Lochu: {spec['zone']}",
+            "respawn": 3600,
+            "base_pool": ("soul_shard", "soul_elixir", V014_TREASURE_MAP_ITEM),
+            "set_pool": (),
+        })
+        CHEST_COLLECTION_CATALOG[room_id] = TREASURE_CHESTS[room_id]["name"]
+    elif mob_pool:
+        count = 1 + (1 if rng.random() < 0.45 else 0)
+        for _ in range(count):
+            spawns.append((room_id, rng.choice(mob_pool)))
+    return room_id, tuple(spawns)
 
 
 def v0140_create_secret_room_definition(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.dynamic_content import CHEST_COLLECTION_CATALOG  # explicit current dependency
+    from world.expansions import TREASURE_CHESTS  # explicit current dependency
     identity = v0140_secret_room_identity(room_id)
     if identity is None:
         return None, ()
@@ -1000,6 +1401,7 @@ V015_BIOME_TITLE_BASE = {
 
 
 def v0150_time_state(now=None):
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     pos = (now % V015_DAY_SECONDS) / V015_DAY_SECONDS
     idx = min(3, int(pos * 4))
@@ -1008,6 +1410,7 @@ def v0150_time_state(now=None):
 
 
 def v0150_weather_state(room_id, now=None):
+    import time  # explicit current dependency
     identity = v0130_frontier_room_identity(room_id)
     if not identity:
         return {"kind":"", "weather":"bezchmurnie", "label":"Spokojna pogoda", "slot":0}
@@ -1046,6 +1449,9 @@ def v0150_environment_bonus(room_id, tool_type=None, now=None):
         "xp_mult": round(mult, 4),
     }
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0150_environment_bonus', v0150_environment_bonus)
+
 
 def v0150_biome_mastery_title(kind, threshold):
     zone = V013_FRONTIER_SPECS[kind]["zone"]
@@ -1054,14 +1460,47 @@ def v0150_biome_mastery_title(kind, threshold):
 
 
 def v0150_dynamic_quest_slot(now=None):
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     return int(now // V015_DYNAMIC_QUEST_SECONDS)
 
 
-def v0150_dynamic_world_offer(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound v0150_dynamic_world_offer")
-v0150_dynamic_world_offer = _sb420_topbind(_sb420_topsrc02.v0150_dynamic_world_offer, globals())
+def v0150_dynamic_world_offer(account_id, now=None):
+    import math  # explicit current dependency
+    from core.bootstrap_economy_professions import SILVER_PER_GOLD  # explicit current dependency
+    from core.progression_resources import V019_QUEST_COIN, V019_SOUL_KILL_NORMAL, v0190_log_curve  # explicit current dependency
+    slot = v0150_dynamic_quest_slot(now)
+    kinds = tuple(V013_FRONTIER_SPECS)
+    qtypes = ("explore", "event", "secret", "mini", "fish", "herb", "mine", "wood")
+    qtype = qtypes[_v0140_hash_int("v015-dq-type", account_id, slot) % len(qtypes)]
+    kind = kinds[_v0140_hash_int("v015-dq-kind", account_id, slot) % len(kinds)]
+    target = kind if qtype in {"explore"} else "any"
+    needs = {"explore":12, "event":2, "secret":2, "mini":1, "fish":12, "herb":12, "mine":12, "wood":12}
+    labels = {
+        "explore":f"Zbadaj nowe sektory: {V013_FRONTIER_SPECS[kind]['zone']}",
+        "event":"Odwiedź aktywne wydarzenia świata", "secret":"Odkryj sekrety rubieży",
+        "mini":"Dotrzyj do finału proceduralnego mini-lochu", "fish":"Złów ryby",
+        "herb":"Zbierz zioła", "mine":"Wydobądź surowce", "wood":"Pozyskaj drewno",
+    }
+    needed = needs[qtype]
+    stage=max(1,min(CHARACTER_MAX_LEVEL,int(V013_FRONTIER_SPECS[kind].get("base_mastery",1) or 1)))
+    complexity=1.5 if qtype in {"event","secret","mini"} else 1.0
+    reward_soul=max(1,int(round(v0190_log_curve(stage,V019_SOUL_KILL_NORMAL)*max(2.0,math.sqrt(needed))*complexity)))
+    # v1.13.8: dynamic world quests bypass the static QUESTS finalizer, so
+    # they need the same modern economy floor explicitly.
+    from systems.economy_income_balance import v1138_activity_income
+    reward_coins=max(
+        1,
+        int(round(v0190_log_curve(stage,V019_QUEST_COIN)*complexity)),
+        v1138_activity_income(stage, "dynamic_world", complexity),
+    )
+    reward_gold=max(1,reward_coins//SILVER_PER_GOLD)
+    return {
+        "quest_key":f"v015:{slot}:{qtype}:{kind}", "quest_type":qtype, "target":target,
+        "label":labels[qtype], "needed":needed, "progress":0,
+        "stage":stage, "reward_soul_xp":reward_soul,
+        "reward_gold":reward_gold, "accepted_slot":slot, "completed":False,
+    }
 
 HELP_TOPICS["pogoda"] = [
     "pogoda / weather pokazuje aktualną pogodę, porę cyklu i ewentualny mały bonus profesyjny.",
@@ -1190,6 +1629,9 @@ V016_SETTLEMENTS = {
 
 
 def v0160_build_settlements():
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from core.mines_threat import GUIDE_DESTINATION_ALIASES  # explicit current dependency
     for faction_id, data in V016_SETTLEMENTS.items():
         gateway = v0130_gateway_id(data["kind"])
         first, second, third = [row[0] for row in data["rooms"]]
@@ -1328,6 +1770,8 @@ V016_TRAVELERS = {
 
 
 def v0160_traveler_room(npc_id, now=None):
+    from data.rooms import ROOMS  # canonical current dependency
+    import time  # explicit current dependency
     data = V016_TRAVELERS.get(npc_id)
     if not data:
         return None
@@ -1341,6 +1785,7 @@ def v0160_traveler_room(npc_id, now=None):
 
 
 def v0160_npcs_in_room(room_id, now=None):
+    from data.npcs import NPCS  # canonical current dependency
     result = {nid: npc for nid, npc in NPCS.items() if npc.get("room") == room_id}
     for npc_id, data in V016_TRAVELERS.items():
         if v0160_traveler_room(npc_id, now) == room_id:
@@ -1352,10 +1797,58 @@ def v0160_npcs_in_room(room_id, now=None):
 
 
 # --- Legendary rare i world bossy ---
-def _v0160_clone_encounter_template(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: _v0160_clone_encounter_template")
-_v0160_clone_encounter_template = _sb410_bind(_sb410_mod_v410_generation_islands._v0160_clone_encounter_template, globals())
+def _v0160_clone_encounter_template(kind, encounter_type):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.dynamic_content import BOSS_COLLECTION_CATALOG, RARE_MOB_COLLECTION_CATALOG  # explicit current dependency
+    spec = V013_FRONTIER_SPECS.get(kind, {})
+    pool = [mid for mid in spec.get("mobs", ()) if mid in MOB_TEMPLATES]
+    if not pool:
+        return None
+    base_id = pool[-1]
+    base = MOB_TEMPLATES[base_id]
+    if encounter_type == "world_boss":
+        tid = f"v016_worldboss_{kind}"
+        if tid in MOB_TEMPLATES:
+            return tid
+        mult_hp, mult_damage, mult_reward = 14.0, 2.25, 10.0
+        prefix = f"Władca {spec['zone']}"
+    else:
+        tid = f"v016_legendary_{kind}"
+        if tid in MOB_TEMPLATES:
+            return tid
+        mult_hp, mult_damage, mult_reward = 3.8, 1.60, 4.0
+        prefix = f"Legendarny Trop {spec['zone']}"
+    data = dict(base)
+    data["drops"] = dict(base.get("drops", {}))
+    data["name"] = f"{prefix}: {base['name']}"
+    data["max_hp"] = max(1, int(round(int(base.get("max_hp", 1)) * mult_hp)))
+    data["damage"] = max(1, int(round(int(base.get("damage", 1)) * mult_damage)))
+    data["silver"] = max(1, int(round(int(base.get("silver", 1)) * mult_reward)))
+    data["gold"] = max(1, int(base.get("gold", 0)) + (12 if encounter_type == "world_boss" else 4))
+    data["mithril"] = int(base.get("mithril", 0)) + (1 if encounter_type == "world_boss" else 0)
+    data["soul_reward"] = max(1, int(round(int(base.get("soul_reward", 1)) * mult_reward)))
+    data["class_xp_reward"] = max(50, int(round(int(base.get("class_xp_reward", 50)) * mult_reward)))
+    data["stat_reward"] = max(1, int(round(int(base.get("stat_reward", 1)) * min(2.5, mult_reward))))
+    data["auto_aggro"] = False
+    data["v016_biome"] = kind
+    if encounter_type == "world_boss":
+        data["world_boss"] = True
+        data["v016_world_boss"] = True
+        data["stationary_mob"] = True
+        data["drops"].setdefault("soul_elixir", 0.65)
+        data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.80)
+        BOSS_COLLECTION_CATALOG[tid] = data["name"]
+    else:
+        data["rare_mob"] = True
+        data["v016_legendary_rare"] = True
+        data["rare_base_template"] = base_id
+        data.pop("stationary_mob", None)
+        data["drops"].setdefault("soul_elixir", 0.35)
+        data["drops"].setdefault(V014_TREASURE_MAP_ITEM, 0.55)
+        RARE_MOB_COLLECTION_CATALOG[tid] = data["name"]
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
+    return tid
 
 
 for _kind in tuple(V013_FRONTIER_SPECS):
@@ -1364,6 +1857,8 @@ for _kind in tuple(V013_FRONTIER_SPECS):
 
 
 def _v0160_active_encounters(encounter_type, now=None):
+    import random  # explicit current dependency
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     if encounter_type == "world_boss":
         seconds, count = V016_WORLD_BOSS_ROTATION_SECONDS, 3
@@ -1669,6 +2164,7 @@ V018_SEASONS = (
 
 
 def v0180_season_state(now=None):
+    import time  # explicit current dependency
     now = time.time() if now is None else float(now)
     slot = int(now // V018_SEASON_SECONDS)
     key, label, desc = V018_SEASONS[slot % len(V018_SEASONS)]
@@ -1693,11 +2189,12 @@ def v0180_season_profession_multiplier(tool_type=None, now=None):
 # Wrap the mature v0.15 environment system instead of replacing it.
 _v0180_environment_bonus_base = v0150_environment_bonus
 def v0150_environment_bonus(room_id, tool_type=None, now=None):
+    import world.generation_systems as _current_generation_systems  # explicit optional dependency
     base = dict(_v0180_environment_bonus_base(room_id, tool_type=tool_type, now=now))
     season = v0180_season_state(now)
     mult = v0180_season_profession_multiplier(tool_type, now)
     # Legendary world events may add a small, optional profession bonus.
-    levent = v0180_legendary_event_for_room(room_id, now=now) if "v0180_legendary_event_for_room" in globals() else None
+    levent = v0180_legendary_event_for_room(room_id, now=now) if hasattr(_current_generation_systems, 'v0180_legendary_event_for_room') else None
     if levent and levent.get("tool") == str(tool_type or ""):
         mult *= float(levent.get("xp_mult", 1.0) or 1.0)
         base["quantity_bonus"] = int(base.get("quantity_bonus", 0) or 0) + int(levent.get("quantity_bonus", 0) or 0)
@@ -1707,6 +2204,9 @@ def v0150_environment_bonus(room_id, tool_type=None, now=None):
         labels.append(f"LEGENDARNE WYDARZENIE — {levent['title']}")
     base["label"] = " + ".join(x for x in labels if x)
     return base
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0150_environment_bonus', v0150_environment_bonus)
 
 
 # ------------------------------------------------------------
@@ -1732,6 +2232,7 @@ def v0180_archipelago_room_id(expedition_id, x, y):
 
 
 def v0180_archipelago_identity(room_id):
+    import re  # explicit current dependency
     m = re.fullmatch(r"v018_arch_([a-z]+)_(\d{2})_(\d{2})", str(room_id or ""))
     if not m:
         return None
@@ -1749,10 +2250,52 @@ def v0180_archipelago_room_ids(expedition_id):
                  for y in range(V018_EXPEDITION_SIDE) for x in range(V018_EXPEDITION_SIDE))
 
 
-def v0180_create_archipelago_room_definition(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0180_create_archipelago_room_definition")
-v0180_create_archipelago_room_definition = _sb410_bind(_sb410_mod_v410_generation_islands.v0180_create_archipelago_room_definition, globals())
+def v0180_create_archipelago_room_definition(room_id):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
+    from core.progression_resources import FISHING_ROOMS, FISHING_WATER_TYPE_OVERRIDES, HERBALISM_ROOMS, MARINE_FISHING_ROOMS, OCEAN_FISHING_ROOMS  # explicit current dependency
+    ident = v0180_archipelago_identity(room_id)
+    if not ident:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    eid, x, y = ident
+    spec = V018_EXPEDITIONS[eid]
+    seed = _v0140_hash_int("v018-arch", eid, x, y)
+    rng = random.Random(seed)
+    exits = {}
+    if x > 0: exits["west"] = v0180_archipelago_room_id(eid, x-1, y)
+    if x+1 < V018_EXPEDITION_SIDE: exits["east"] = v0180_archipelago_room_id(eid, x+1, y)
+    if y > 0: exits["south"] = v0180_archipelago_room_id(eid, x, y-1)
+    if y+1 < V018_EXPEDITION_SIDE: exits["north"] = v0180_archipelago_room_id(eid, x, y+1)
+    if x == 0 and y == 0:
+        exits["down"] = "harbor"
+    title = rng.choice(spec["titles"])
+    _catalog_mut.catalog_assign({
+        "zone":spec["zone"], "name":f"{title} — sektor {x+1}-{y+1}",
+        "desc":(
+            f"Sektor ekspedycji na {spec['name']}. Wyspy są generowane z trwałego seedu; "
+            "po restarcie zachowują układ. Powrót do Portu Dusz prowadzi z pierwszego sektora w dół."
+        ),
+        "exits":exits, "recommended_mastery":int(spec["mastery"]),
+        "generated_on_demand":True, "v018_archipelago":eid,
+        "v018_arch_x":x, "v018_arch_y":y,
+    }, 'ROOMS', ROOMS, (room_id,))
+    # Island gathering ecology: marine fishing everywhere; some later islands also support herbs/mining.
+    FISHING_ROOMS.add(room_id); MARINE_FISHING_ROOMS.add(room_id); OCEAN_FISHING_ROOMS.add(room_id)
+    FISHING_WATER_TYPE_OVERRIDES[room_id] = spec["name"]
+    if eid in ("coral","mist") and (x+y)%2 == 0:
+        HERBALISM_ROOMS.add(room_id)
+    # v0.25.1: ekspedycje nie są już alternatywnymi kopalniami.
+    base_kind = spec["biome"]
+    pool = [t for t in V013_FRONTIER_SPECS[base_kind].get("mobs",()) if t in MOB_TEMPLATES]
+    spawns = []
+    if pool:
+        for _ in range(1 + (1 if rng.random() < 0.45 else 0)):
+            spawns.append((room_id, rng.choice(pool)))
+    return room_id, tuple(spawns)
 
 
 # ------------------------------------------------------------
@@ -1773,6 +2316,7 @@ def v0180_ruin_room_id(kind, x, y, index):
 
 
 def v0180_ruin_identity(room_id):
+    import re  # explicit current dependency
     m = re.fullmatch(r"v018_ruin_([a-z]+)_(\d{2})_(\d{2})_(\d{2})", str(room_id or ""))
     if not m:
         return None
@@ -1808,10 +2352,51 @@ for _kind, _spec in V013_FRONTIER_SPECS.items():
     V018_RUIN_GUARDIANS[_kind] = _tid
 
 
-def v0180_create_ruin_room_definition(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0180_create_ruin_room_definition")
-v0180_create_ruin_room_definition = _sb410_bind(_sb410_mod_v410_generation_islands.v0180_create_ruin_room_definition, globals())
+def v0180_create_ruin_room_definition(room_id):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
+    ident = v0180_ruin_identity(room_id)
+    if not ident:
+        return None, ()
+    if room_id in ROOMS:
+        return room_id, ()
+    kind,x,y,index,size = ident
+    seed = _v0140_hash_int("v018-ruin-room",kind,x,y,index)
+    rng = random.Random(seed)
+    exits = {}
+    if index > 1: exits["west"] = v0180_ruin_room_id(kind,x,y,index-1)
+    if index < size: exits["east"] = v0180_ruin_room_id(kind,x,y,index+1)
+    # deterministic cross-links create loops and alternative paths, never traps.
+    if index % 4 == 1 and index + 4 <= size:
+        exits["north"] = v0180_ruin_room_id(kind,x,y,index+4)
+    if index >= 5 and (index-4) % 4 == 1:
+        exits["south"] = v0180_ruin_room_id(kind,x,y,index-4)
+    if index == 1:
+        exits["down"] = v0130_frontier_room_id(kind,x,y)
+    final = index == size
+    zone = f"Wielkie Ruiny — {V013_FRONTIER_SPECS[kind]['zone']}"
+    names = ("Galeria Run","Zawalona Nawa","Sala Kolumn","Kamienny Dziedziniec","Archiwum Ruin","Korytarz Posągów")
+    _catalog_mut.catalog_assign({
+        "zone":zone, "name":f"{rng.choice(names)} {index}/{size}",
+        "desc":(
+            "Rozległy fragment proceduralnych ruin. Układ jest deterministyczny, ma pętle i alternatywne przejścia. "
+            + ("To finałowa komnata strażnika. " if final else "")
+            + "Nie ma tu pułapek ani automatycznych obrażeń wejściowych."
+        ),
+        "exits":exits, "recommended_mastery":min(CHARACTER_MAX_LEVEL, int(V013_FRONTIER_SPECS[kind].get("base_mastery",1))+40),
+        "generated_on_demand":True, "v018_great_ruin":True, "v018_ruin_final":final,
+        "v018_biome":kind, "v018_ruin_parent":v0130_frontier_room_id(kind,x,y),
+    }, 'ROOMS', ROOMS, (room_id,))
+    spawns=[]
+    pool=[t for t in V013_FRONTIER_SPECS[kind].get("mobs",()) if t in MOB_TEMPLATES]
+    if final and kind in V018_RUIN_GUARDIANS:
+        spawns.append((room_id,V018_RUIN_GUARDIANS[kind]))
+    elif pool and rng.random() < 0.82:
+        spawns.append((room_id,rng.choice(pool)))
+        if rng.random() < 0.33: spawns.append((room_id,rng.choice(pool)))
+    return room_id, tuple(spawns)
 
 
 def v0180_all_great_ruins():
@@ -1837,14 +2422,52 @@ V018_LEGENDARY_EVENT_DEFS = {
 
 
 def v0180_legendary_event_slot(now=None):
+    import time  # explicit current dependency
     now=time.time() if now is None else float(now)
     return int(now//V018_LEGENDARY_EVENT_SECONDS)
 
 
-def v0180_active_legendary_events(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound v0180_active_legendary_events")
-v0180_active_legendary_events = _sb420_topbind(_sb420_topsrc01.v0180_active_legendary_events, globals())
+def v0180_active_legendary_events(now=None):
+    import time  # explicit current dependency
+    now=time.time() if now is None else float(now)
+    slot=v0180_legendary_event_slot(now)
+    keys=tuple(V018_LEGENDARY_EVENT_DEFS)
+    picked=[]; used=set(); used_rooms=set()
+    for n in range(2):
+        etype=keys[_v0140_hash_int("v018-legend-event-type",slot,n)%len(keys)]
+        # ensure distinct type when possible
+        if etype in used:
+            etype=keys[(keys.index(etype)+1)%len(keys)]
+        used.add(etype)
+        d=V018_LEGENDARY_EVENT_DEFS[etype]
+        kinds=tuple(d["kinds"])
+        kind=kinds[_v0140_hash_int("v018-legend-event-kind",slot,n)%len(kinds)]
+        x=_v0140_hash_int("v018-legend-event-x",slot,n)%V013_FRONTIER_SIDE
+        y=_v0140_hash_int("v018-legend-event-y",slot,n)%V013_FRONTIER_SIDE
+        room_id=v0130_frontier_room_id(kind,x,y)
+        # Two different legendary events can select the same tile. The
+        # location-only resolver would then hide the second event (and its
+        # profession action), depending on the server's random world seed.
+        # Keep the historical placement unless there really is a collision.
+        if room_id in used_rooms:
+            size = V013_FRONTIER_SIDE * V013_FRONTIER_SIDE
+            start = _v0140_hash_int("v018-legend-event-retry-index",slot,n) % size
+            for offset in range(size):
+                cell = (start + offset) % size
+                other_x, other_y = cell % V013_FRONTIER_SIDE, cell // V013_FRONTIER_SIDE
+                other_id = v0130_frontier_room_id(kind,other_x,other_y)
+                if other_id not in used_rooms:
+                    x,y,room_id = other_x,other_y,other_id
+                    break
+            else:
+                raise RuntimeError("Brak dostepnego sektora legendarnego wydarzenia")
+        used_rooms.add(room_id)
+        picked.append({
+            "type":etype,"title":d["title"],"desc":d["desc"],"kind":kind,"x":x,"y":y,"room_id":room_id,
+            "tool":d.get("tool"),"xp_mult":float(d.get("xp_mult",1.0)),"quantity_bonus":int(d.get("quantity_bonus",0)),
+            "slot":slot,"token":f"{slot}:{etype}:{kind}:{x}:{y}","expires_at":(slot+1)*V018_LEGENDARY_EVENT_SECONDS,
+        })
+    return tuple(picked)
 
 
 def v0180_legendary_event_for_room(room_id, now=None):
@@ -1879,6 +2502,7 @@ def v0180_endless_room_id(depth):
 
 
 def v0180_endless_identity(room_id):
+    import re  # explicit current dependency
     m=re.fullmatch(r"v018_endless_(\d{8})",str(room_id or ""))
     if not m: return None
     depth=int(m.group(1))
@@ -1890,6 +2514,8 @@ def v0180_endless_band(depth):
 
 
 def v0180_endless_template(depth):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     band=v0180_endless_band(depth)
     tid=f"v018_endless_echo_b{band:02d}"
     if tid in MOB_TEMPLATES: return tid
@@ -1908,6 +2534,9 @@ def v0180_endless_template(depth):
 
 
 def v0180_create_endless_room_definition(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
     depth=v0180_endless_identity(room_id)
     if depth is None: return None,()
     if room_id in ROOMS: return room_id,()
@@ -2043,6 +2672,7 @@ def v0200_mega_room_id(key, index):
 
 
 def v0200_mega_identity(room_id):
+    import re  # explicit current dependency
     m = re.fullmatch(r"v020_mega_([a-z]+)_(\d+)", str(room_id or ""))
     if not m or m.group(1) not in V020_MEGADUNGEONS:
         return None
@@ -2082,13 +2712,20 @@ def v0200_mega_neighbors(key, index):
 
 
 def v0200_mega_template(key, index, boss=False):
+    import world.runtime_progression as _current_runtime_progression  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
+    from world.dynamic_content import BOSS_COLLECTION_CATALOG  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     stage=v0200_mega_stage(key,index); spec=V020_MEGADUNGEONS[key]; biome=spec["biome"]
     tid=f"v020_mega_{key}_{'boss' if boss else 'mob'}_{index if boss else stage}"
     if tid in MOB_TEMPLATES:
         return tid
     if boss:
         mechanic, mechanic_text = V017_BIOME_BOSS_MECHANICS.get(biome,("two_hundred_lord","Wielofazowy profil bossa."))
-        pool=list((globals().get("V021_MYTHIC_SET_ITEMS",{}).get(key) or V017_BIOME_SET_ITEMS.get(biome,())))
+        pool=list((getattr(_current_runtime_progression, 'V021_MYTHIC_SET_ITEMS', {}).get(key) or V017_BIOME_SET_ITEMS.get(biome,())))
         _catalog_mut.catalog_assign({
             "name":f"Strażnik Progu {index}",
             "max_hp":1,"damage":1,"damage_type":"magic" if biome in ("void","crown","ocean") else "physical",
@@ -2115,6 +2752,9 @@ def v0200_mega_template(key, index, boss=False):
 
 
 def v0200_create_mega_room_definition(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import random  # explicit current dependency
     ident=v0200_mega_identity(room_id)
     if not ident: return None,()
     if room_id in ROOMS: return room_id,()
@@ -2181,6 +2821,11 @@ for _gkey,_gdata in V020_GAUNTLETS.items():
 
 # -------------------- MYTHIC WORLD BOSSES --------------------
 def v0200_mythic_template(kind):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.dynamic_content import BOSS_COLLECTION_CATALOG  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     tid=f"v020_mythic_worldboss_{kind}"
     if tid in MOB_TEMPLATES: return tid
     spec=V013_FRONTIER_SPECS[kind]; biome=kind
@@ -2198,6 +2843,8 @@ def v0200_mythic_template(kind):
 for _kind in tuple(V013_FRONTIER_SPECS): v0200_mythic_template(_kind)
 
 def v0200_active_mythic_world_bosses(now=None):
+    import random  # explicit current dependency
+    import time  # explicit current dependency
     now=time.time() if now is None else float(now); slot=int(now//V020_MYTHIC_WORLD_BOSS_SECONDS)
     rng=random.Random(_v0140_hash_int(V020_WORLD_SEED,"mythic-world",slot)); kinds=list(V013_FRONTIER_SPECS); rng.shuffle(kinds)
     out=[]
@@ -2366,10 +3013,71 @@ for _element_v11339, _item_id_v11339 in V11339_ELEMENT_CHASE_ITEMS.items():
     }, 'ITEMS', ITEMS, (_item_id_v11339,))
 
 
-def v11339_named_rare_template_for_kind(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v11339_named_rare_template_for_kind")
-v11339_named_rare_template_for_kind = _sb410_bind(_sb410_mod_v410_generation_islands.v11339_named_rare_template_for_kind, globals())
+def v11339_named_rare_template_for_kind(kind, event_type="rare_hunt"):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    kind = str(kind or "")
+    event_type = str(event_type or "rare_hunt")
+    if kind not in V013_FRONTIER_SPECS:
+        return None
+    pool = [
+        base for base in V013_FRONTIER_SPECS[kind].get("mobs", ())
+        if base in MOB_TEMPLATES
+    ]
+    if not pool:
+        return None
+    base_id = pool[_v0140_hash_int("v11339-named-base", kind) % len(pool)]
+    suffix = {
+        "rare_hunt": "hunt",
+        "elemental_rift": "rift",
+        "shadow_invasion": "shadow",
+    }.get(event_type, "hunt")
+    template_id = f"v11339_named_{suffix}_{kind}"
+    if template_id in MOB_TEMPLATES:
+        return template_id
+
+    base = MOB_TEMPLATES[base_id]
+    data = dict(base)
+    data["drops"] = dict(base.get("drops", {}))
+    base_name = V11339_BIOME_NAMED_RARES[kind]
+    if event_type == "elemental_rift":
+        data["name"] = "Rozszczepiony " + base_name
+    elif event_type == "shadow_invasion":
+        data["name"] = "Cienisty " + base_name
+    else:
+        data["name"] = base_name
+
+    element = (
+        "dark"
+        if event_type == "shadow_invasion"
+        else V11339_BIOME_ELEMENTS[kind]
+    )
+    data["rare_mob"] = True
+    data["rank"] = "rare"
+    data["v11339_named_rare"] = True
+    data["v11339_world_event_type"] = event_type
+    data["rare_base_template"] = base_id
+    data["attack_elements_v11339"] = (element,)
+    data["auto_aggro"] = False
+    data["max_hp"] = max(1, int(round(int(base.get("max_hp", 1)) * 2.20)))
+    data["damage"] = max(1, int(round(int(base.get("damage", 1)) * 1.35)))
+    data["stat_reward"] = max(1, int(round(int(base.get("stat_reward", 1)) * 2.00)))
+    data["soul_reward"] = max(1, int(round(int(base.get("soul_reward", 1)) * 2.50)))
+    data["class_xp_reward"] = max(
+        50,
+        int(round(
+            int(base.get("class_xp_reward", max(50, int(base.get("stat_reward", 1)) * 10)))
+            * 2.50
+        )),
+    )
+    data["silver"] = max(1, int(round(int(base.get("silver", 1)) * 2.50)))
+    data["gold"] = 0
+    data["mithril"] = 0
+    chase = V11339_ELEMENT_CHASE_ITEMS[element]
+    data["drops"][chase] = max(float(data["drops"].get(chase, 0.0) or 0.0), 0.12)
+    data["drops"].setdefault("soul_shard", 0.70)
+    _catalog_mut.catalog_assign(data, 'MOB_TEMPLATES', MOB_TEMPLATES, (template_id,))
+    return template_id
 
 
 def v11339_combat_events_for_room(room_id, now=None):
@@ -2381,10 +3089,45 @@ def v11339_combat_events_for_room(room_id, now=None):
     return tuple(result)
 
 
-def v11339_world_content_audit(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound v11339_world_content_audit")
-v11339_world_content_audit = _sb420_topbind(_sb420_topsrc01.v11339_world_content_audit, globals())
+def v11339_world_content_audit():
+    from data.items import ITEMS  # canonical current dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    errors = []
+    if set(V11339_BIOME_NAMED_RARES) != set(V013_FRONTIER_SPECS):
+        errors.append("named rare catalog does not cover every frontier biome")
+    if set(V11339_ELEMENT_CHASE_ITEMS) != {
+        "fire", "ice", "lightning", "dark", "poison", "holy", "water", "arcane"
+    }:
+        errors.append("chase item catalog does not cover all eight elements")
+    names = []
+    for kind in V013_FRONTIER_SPECS:
+        tid = v11339_named_rare_template_for_kind(kind, "rare_hunt")
+        template = MOB_TEMPLATES.get(tid, {})
+        names.append(str(template.get("name") or ""))
+        if not template.get("v11339_named_rare"):
+            errors.append(f"{kind}: named rare marker missing")
+        if not template.get("attack_elements_v11339"):
+            errors.append(f"{kind}: named rare elemental affinity missing")
+        if not any(
+            item_id in (template.get("drops") or {})
+            for item_id in V11339_ELEMENT_CHASE_ITEMS.values()
+        ):
+            errors.append(f"{kind}: named rare chase drop missing")
+    if len(names) != len(set(names)):
+        errors.append("named rare display names are not unique")
+    for element, item_id in V11339_ELEMENT_CHASE_ITEMS.items():
+        item = ITEMS.get(item_id, {})
+        if float((item.get("element_wards") or {}).get(element, 0.0) or 0.0) < 0.20:
+            errors.append(f"{element}: chase item ward missing")
+        if float((item.get("element_damage_bonus_pct") or {}).get(element, 0.0) or 0.0) < 12.0:
+            errors.append(f"{element}: chase item elemental damage bonus missing")
+    return {
+        "version": "1.13.39",
+        "named_rare_count": len(V11339_BIOME_NAMED_RARES),
+        "chase_item_count": len(V11339_ELEMENT_CHASE_ITEMS),
+        "errors": errors,
+        "error_count": len(errors),
+    }
 
 
 V11339_WORLD_CONTENT_AUDIT = v11339_world_content_audit()
@@ -2404,3 +3147,11 @@ HELP_TOPIC_ALIASES.update({
     "synergy 2": "elementy_v11339", "synergia 2": "elementy_v11339",
     "kontrakty party": "kontrakty_party_v11339", "party contracts": "kontrakty_party_v11339",
 })
+
+
+# Publish authored progress targets once. Later spatial refreshes retain their
+# own generated indexes while existing character progress keeps stable targets.
+from data.exploration_tracking import install_authored_catalog as _publish_authored_exploration
+from data.exploration_tracking import TRACKED_EXPLORATION_ZONES as _authored_exploration_targets
+_publish_authored_exploration(TRACKED_EXPLORATION_ZONES, ALL_EXPLORATION_ROOMS)
+TRACKED_EXPLORATION_ZONES = _authored_exploration_targets

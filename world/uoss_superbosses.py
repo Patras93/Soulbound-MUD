@@ -82,6 +82,7 @@ def uoss_superboss_display_name_v0366(kind, floor):
 
 
 def _apply_uoss_superboss_v0366(template, kind, floor, scale_stats=True):
+    from core.bootstrap_economy_professions import normalize_currency_values  # explicit current dependency
     if not isinstance(template, dict):
         return template
     profile = uoss_superboss_profile_v0366(kind, floor)

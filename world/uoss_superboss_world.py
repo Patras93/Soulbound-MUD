@@ -4,8 +4,11 @@
 Creates stable superboss arenas plus the on-demand UOSS Deep Dungeon.
 """
 import re
-from data.catalogs import ROOMS, MOB_TEMPLATES, NPCS, SHOPS
-from data.items import ITEMS
+from data.catalogs import SHOPS
+from data.rooms import ROOMS  # canonical current dependency
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from data.npcs import NPCS  # canonical current dependency
+from data.items import ITEMS  # canonical current dependency
 from systems.dungeon_names import dungeon_mob_display_name_v11336
 from world.uoss_superbosses import UOSS_SUPERBOSS_ENCOUNTERS_V11134
 
@@ -32,6 +35,7 @@ def uoss_deep_dungeon_floor_id_v11331(floor):
 
 
 def uoss_deep_dungeon_floor_number_v11331(room_id):
+    import re  # explicit current dependency
     match = re.fullmatch(
         r"uoss_deep_dungeon_floor_(\d+)_v11331",
         str(room_id or ""),
@@ -44,6 +48,9 @@ def uoss_deep_dungeon_floor_number_v11331(room_id):
 
 def create_infinite_uoss_deep_dungeon_floor_definition_v11331(floor):
     """Create one Deep Dungeon floor on demand. There is deliberately no max floor."""
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    from world.economy_quests import dungeon_mob_display_name_v11336  # explicit current dependency
     floor = max(1, int(floor))
     room_id = uoss_deep_dungeon_floor_id_v11331(floor)
     if room_id in ROOMS:
@@ -543,6 +550,7 @@ def install_uoss_superboss_spawns_v11136(mob_spawns):
     return 27
 
 def uoss_full_progression_xp_audit_v11331():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     expected = {
         key
         for key, row in SOURCE_SCANNER_V11156.items()
@@ -583,3 +591,17 @@ UOSS_SUPERBOSS_WORLD_STATE_V11136={
  "deep_dungeon":"infinite","deep_dungeon_serpentarius_unlock_floor":100,
  "deep_dungeon_apanda_step":25,
 }
+
+
+def finalize_superboss_routes():
+    """Restore authored arena links after the general topology pass.
+
+    This is an explicit world composition step. Importing healing helpers may
+    load arena definitions early; the topology builder runs before these
+    special forward/back links are finalized.
+    """
+    previous = HUB
+    for key in _ORDER:
+        target = f"uoss_superboss_arena_{key}_v11136"
+        ROOMS.setdefault(previous, {}).setdefault("exits", {}).setdefault("forward", target)
+        previous = target

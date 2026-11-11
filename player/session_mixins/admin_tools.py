@@ -6,13 +6,13 @@ import os
 import time
 import sqlite3
 from contextlib import closing
-from pathlib import Path
+from pathlib import Path  # canonical current dependency
 from datetime import datetime, timezone
-from data.npcs import NPCS
-from data.mobs import MOB_TEMPLATES
+from data.npcs import NPCS  # canonical current dependency
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 
-from core.classes_skills import ROOMS
-from core.mines_threat import ITEMS
+from data.rooms import ROOMS  # canonical current dependency
+from data.items import ITEMS  # canonical current dependency
 from network.protocol_gameplay_utils import (
     BOSS_CHEST_OPENED_CATEGORY_V11332,
     _boss_floor_chest_spec,
@@ -50,12 +50,15 @@ from .admin_tools_parts_v109 import AdminOwnerDashboardV109Mixin
 class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV109Mixin, AdminBossChestsV109Mixin, AdminWipeSafetyV109Mixin, AdminOwnerDashboardV109Mixin):
 
     def is_admin(self):
+            from core.bootstrap_economy_professions import ADMIN_ACCOUNT_NAMES  # explicit current dependency
             if self.master_account_id is None:
                 return False
             username = self.server.db.account_name(self.master_account_id).casefold()
             return bool(username and username in ADMIN_ACCOUNT_NAMES)
 
     async def admin_command(self, args=""):
+            from data.rooms import ROOMS  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
             raw = str(args or "").strip()
             first_guardian = raw.split(maxsplit=1)[0].casefold() if raw else ""
             guardian_direct = {"test", "moc", "ratunek", "wsparcie", "spawn", "event",
@@ -661,7 +664,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
             return
         if cmd in ('cele', 'wielocele'):
             from systems.live_olc18_multi_objective import describe_goals
-            from data.quests import QUESTS
+            from data.quests import QUESTS  # canonical current dependency
             await self.send(describe_goals(service, tail, QUESTS))
             return
         if cmd in ('', 'help', 'pomoc'):
@@ -720,7 +723,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                 return
             if cmd in ('zaleznosci', 'wymaganiaquest'):
                 read_only_preview = True
-                from data.quests import QUESTS
+                from data.quests import QUESTS  # canonical current dependency
                 from systems.live_olc17_quest_dependencies import describe_quest_dependencies
                 if not tail or len(tail.split()) != 1:
                     raise ValueError('Użycie: admin live zaleznosci bandit_patrol')
@@ -804,7 +807,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                 await self.send(find_catalog(service, category, ' '.join(words), page))
                 return
             if cmd in ('questy', 'zadania'):
-                from data.quests import QUESTS
+                from data.quests import QUESTS  # canonical current dependency
                 from systems.live_quest_olc_v1209 import profession_quest_ids
                 bits = tail.split()
                 page = 1
@@ -826,7 +829,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                                    if show else 'Brak zadań.'))
                 return
             if cmd in ('quest', 'zadanie'):
-                from data.quests import QUESTS
+                from data.quests import QUESTS  # canonical current dependency
                 definition = QUESTS.get(tail)
                 if not definition:
                     raise ValueError('Nieznany quest. Podaj dokładne ID, np. bandit_patrol.')
@@ -862,7 +865,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                     'Wartości bazowe przed premiami, skalowaniem i EXP Bank.')
                 return
             if cmd == 'surowiec':
-                from data.items import ITEMS
+                from data.items import ITEMS  # canonical current dependency
                 item = ITEMS.get(tail)
                 if not item or item.get('type') not in (
                         'resource', 'material', 'craft_material', 'gem_raw', 'archaeology_find'):
@@ -887,7 +890,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                                 'Aby opublikować: admin live aktywuj POTWIERDZAM.')
                 return
             if cmd in ('wczytaj', 'import'):
-                from pathlib import Path
+                from pathlib import Path  # canonical current dependency
                 import re
                 filename = tail or 'nowe_lokacje.json'
                 if not re.fullmatch(r'[a-zA-Z0-9_-]{1,70}\.json', filename):
@@ -898,7 +901,7 @@ class SessionAdminToolsMixin(AdminGuardianControlsV109Mixin, AdminSessionSafetyV
                                 'Sprawdź admin live sprawdz, następnie aktywuj POTWIERDZAM.')
                 return
             if cmd == 'eksport':
-                from pathlib import Path
+                from pathlib import Path  # canonical current dependency
                 import re
                 filename = tail or 'pakiet_olc.json'
                 if not re.fullmatch(r'[a-zA-Z0-9_-]{1,70}\.json', filename):

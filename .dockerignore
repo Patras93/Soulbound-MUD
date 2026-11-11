@@ -1,0 +1,15 @@
+__pycache__
+**/__pycache__
+.git
+logs
+backups
+LIVE_CONTENT
+*.db
+*.db-*
+*.sqlite*
+*.zip
+.env*
+*.pem
+*.key
+*.pfx
+soulbound_control.json

@@ -4,6 +4,22 @@ from events.bootstrap import build_default_event_bus
 import time
 import sqlite3
 import asyncio
+import os
+import sys
+from pathlib import Path  # canonical current dependency
+from core.bootstrap_economy_professions import (
+    DB_PATH, HOST, MAX_CLIENTS, PARTY_AUTO_HEAL_THRESHOLD, PORT, PORT_SOURCE,
+    VERSION, double_xp_event_state,
+)
+from core.runtime_transport import take_boot_socket
+from data.items import ITEMS  # canonical current dependency
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from data.rooms import ROOMS  # canonical current dependency
+from network.protocol_gameplay_utils import DEFAULT_TEXT_ENCODING, telnet_charset_offer_bytes
+from player.session import Session
+from storage.database import Database
+from systems.crafting_quality import ensure_crafting_quality_variant_v0332
+from world.world_state import World
 from systems.infinite_equipment import ensure_infinite_equipment_variant
 from systems.mob_recovery_v1405 import (
     preserve_hp_when_encounter_ends_v1405,
@@ -16,34 +32,21 @@ from server_parts_v109 import (MudSessionsV109Mixin, MudPartyMembersV109Mixin, M
 
 class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV109Mixin):
     def __init__(self):
-        from pathlib import Path as _SBPath108
-        _ver108 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip() == '108.00.0'
-        # Runtime tests may use multiple *named* private SQLite fixtures. An
-        # arbitrary SOULBOUND_V108_PREDEPLOY flag can never start production.
-        from systems.v10800_predeploy_isolation import authorized_predeploy_test
-        _v108_predeploy = (_ver108 and authorized_predeploy_test(
-            _SBPath108(__file__).resolve().parents[1], DB_PATH))
-        if _ver108:
-            from systems.v10800_activation import production_approved as _v108_approved
-            if not _v108_approved() and not _v108_predeploy:
-                raise PermissionError('Soulbound v108: brak autoryzowanego PREDEPLOY, serwer nie uruchamia bazy')
-        _ver109 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(
-            encoding='utf-8-sig').strip() == '109.00.0'
-        _v109_mode = None
-        if _ver109:
-            from systems.v10900_staging_guard import ensure_authorized_start
-            _v109_mode = ensure_authorized_start(DB_PATH)
-        _ver110 = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(
-            encoding='utf-8-sig').strip() == '110.00.0'
-        _v110_mode = None
-        if _ver110:
-            from systems.v11000_activation import authorized_mode
-            _v110_mode = authorized_mode(DB_PATH)
+        # The current release owns startup authorization. Historical releases
+        # and their markers/flags are never consulted by this server.
+        from core.bootstrap_economy_professions import DB_PATH  # explicit current dependency
+        from data.items import ITEMS  # canonical current dependency
+        import time  # canonical current dependency
+        from storage.database import Database  # explicit current dependency
+        from systems.crafting_quality import ensure_crafting_quality_variant_v0332  # explicit current dependency
+        from systems.infinite_equipment import ensure_infinite_equipment_variant  # explicit current dependency
+        from world.world_state import World  # explicit current dependency
+        from systems.runtime_activation import authorized_mode
+        _runtime_mode = authorized_mode(DB_PATH)
         self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
-        # A real v108 server explicitly activates clock-driven Over Cap.
-        # Legacy test databases do not accidentally inherit today's event.
-        if _ver108 or _v109_mode == 'production' or _v110_mode == 'production':
+        # Clock-driven live events remain disabled in isolated staging.
+        if _runtime_mode == 'production':
             self.db._v108_live_event_caps = True
         # v71: restore conservative character-creator profiles in place.
         from systems.admin_live_heritage_v7100 import restore as _restore_heritage_v7100
@@ -66,27 +69,17 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         # v107 EQ: load/verify physical instances only AFTER all persisted
         # dynamic equipment templates have been restored. Always before any
         # TCP client or World() can read or change a player's equipment.
-        from pathlib import Path as _SBPath108
-        _running_version = (_SBPath108(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip()
-        # v108 scope freeze: NO EQ 2.0 migration, repair or v108 cutover.
-        # The already-active v107 equipment ledger is retained exactly as-is.
-        # For v108 production require the existing, verified v107 marker so
-        # that a missing physical ledger can NEVER silently trigger a migration.
-        if ((_running_version == '108.00.0' and not _v108_predeploy)
-            or (_running_version == '109.00.0' and _v109_mode == 'production')
-            or (_running_version == '110.00.0' and _v110_mode == 'production')):
+        if _runtime_mode == 'production':
+            # Existing player databases must already have a validated physical
+            # ledger. Removing historical release authorization must not turn
+            # startup into an implicit conversion of player equipment.
             existing = self.db.conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' "
                 "AND name='v107_eq_production_cutover'").fetchone()
             if not existing:
-                raise PermissionError('v108: brak istniejącej migracji EQ v107; nie uruchamiam nowej')
+                raise PermissionError('EQ: brak zatwierdzonego rejestru fizycznych kopii; wymagana jawna inicjalizacja')
             from systems.v10700_live_equipment import activate_production_ledger
             activate_production_ledger(self.db, ITEMS)
-        else:
-            from systems.v10700_activation import production_approved as _v107_production_approved
-            if _v107_production_approved():
-                from systems.v10700_live_equipment import activate_production_ledger
-                activate_production_ledger(self.db, ITEMS)
         # v1.25.0: deploy/restart must NOT collapse the mine or teleport miners.
         self.mine_startup_state = self.db.mine_startup_status()
         # v12.00.4: restore additive live rooms/mobs/exits BEFORE World() spawns.
@@ -107,8 +100,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         self.party_routes_v1193 = {}
 
     def report_runtime_error(self, exc, *, command=None, handler=None):
+        import sqlite3  # canonical current dependency
         report = build_runtime_error_report(
-            exc, root=globals().get("_ROOT"), command=command, handler=handler
+            exc, root=Path(__file__).resolve().parents[1], command=command, handler=handler
         )
         log_runtime_error(report)
         try:
@@ -127,6 +121,8 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
     async def apply_party_protection(self, attacker, mob):
         """Przekieruj jeden wspólny cel drużyny na aktywnego tanka Strażnika."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import time  # canonical current dependency
         if not attacker or not attacker.character or not mob or not mob.alive:
             return None
         protector = self.party_protector_session(
@@ -170,6 +166,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
 
     async def auto_priest_party_heal(self, damaged_session):
+        from core.bootstrap_economy_professions import PARTY_AUTO_HEAL_THRESHOLD  # explicit current dependency
         if (
             not damaged_session or damaged_session.closed or not damaged_session.character
             or damaged_session.current_hp <= 0
@@ -212,6 +209,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         This helper is for nearby gameplay feed: combat, healing, loot and other
         events that should never travel across the map.
         """
+        import asyncio  # canonical current dependency
         if (
             actor is None
             or actor.closed
@@ -245,6 +243,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
     async def auto_assist_party_combat(self, initiator, mob):
         """Automatycznie dołącza całą żywą drużynę z tej samej lokacji."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         if not initiator or not initiator.character or not mob or not mob.alive:
             return []
         key = self.party_key_for_account(initiator.account_id)
@@ -290,6 +289,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
     def reset_adaptive_mob_encounter_v11330(self, mob):
         """Restore template-local stats when an encounter fully ends without a kill."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         if not mob:
             return
         template = MOB_TEMPLATES.get(mob.template_id, {})
@@ -317,6 +317,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
 
     async def broadcast_room(self, room_id, text, exclude=None, history_category=None):
+        import asyncio  # canonical current dependency
         targets = [s for s in tuple(self.sessions)
                    if s is not exclude and not s.closed and s.character
                    and s.character.room_id == room_id]
@@ -325,12 +326,16 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
     async def broadcast_all(self, text, history_category=None, *, exclude=None):
         # Pozwala pominąć nadawcę ogłoszenia (np. postać podczas wylogowania).
+        import asyncio  # canonical current dependency
         targets = [s for s in tuple(self.sessions)
                    if s is not exclude and s.character and not s.closed]
         if targets:
             await asyncio.gather(*(s.send(text, history_category=history_category) for s in targets))
 
     async def double_xp_event_loop(self):
+        from core.bootstrap_economy_professions import double_xp_event_state
+        import asyncio  # canonical current dependency
+        import time  # canonical current dependency
         from systems.v10800_seasonal_events import overcap_event_state
         last_active_overcap_v108 = overcap_event_state()['active']
         last_active = double_xp_event_state()["active"]
@@ -345,7 +350,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                 if current_slot_v12812 != last_world_slot_v12812:
                     last_world_slot_v12812 = current_slot_v12812
                     from world.world_state import v0290_active_world_events
-                    from data.rooms import ROOMS as _rooms_v12812
+                    from data.rooms import ROOMS as _rooms_v12812  # canonical current dependency
                     from systems.world_events_v12812 import active_city_event_v12812
                     city_event = active_city_event_v12812()
                     self.world.ensure_runtime_room(city_event['room_id'])
@@ -400,6 +405,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         A player in the room still fighting prevents healing, even if aggro is
         temporarily transferred between party members or AoE targets.
         """
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         active_keys = {
             s.combat_mob_key for s in self.sessions
             if (not s.closed and s.character and s.current_hp > 0
@@ -424,6 +430,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         return restored
 
     async def mob_wander_loop(self):
+        import asyncio  # canonical current dependency
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import time  # canonical current dependency
         while True:
             # v1.11.22: ruch świata nie wymaga ticku co 5 s. Same moby mają
             # własne next_wander_at liczone w znacznie dłuższych interwałach.
@@ -459,6 +468,10 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                 )
 
     async def handle_client(self, reader, writer):
+        from core.bootstrap_economy_professions import MAX_CLIENTS
+        import asyncio  # canonical current dependency
+        from network.protocol_gameplay_utils import DEFAULT_TEXT_ENCODING, telnet_charset_offer_bytes  # explicit current dependency
+        from player.session import Session  # explicit current dependency
         if len(self.sessions) >= MAX_CLIENTS:
             writer.write(
                 telnet_charset_offer_bytes()
@@ -509,10 +522,12 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
             self.sessions.discard(session)
 
     async def run(self):
-        boot_socket = globals().get("_BOOT_SOCKET")
+        from core.bootstrap_economy_professions import DB_PATH, HOST, MAX_CLIENTS, PORT, PORT_SOURCE, VERSION
+        import asyncio  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        boot_socket = take_boot_socket()
         if boot_socket is not None:
             server = await asyncio.start_server(self.handle_client, sock=boot_socket)
-            globals()["_BOOT_SOCKET"] = None
         else:
             server = await asyncio.start_server(self.handle_client, HOST, PORT)
         addresses = ", ".join(str(sock.getsockname()) for sock in server.sockets or [])

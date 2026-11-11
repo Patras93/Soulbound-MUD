@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.31.13 tech/crafting UI mixin."""
+import time
+
+from core.progression_600 import CHARACTER_MAX_LEVEL
+from data.items import ITEMS
+from network.protocol_gameplay_utils import find_by_name
+from storage.db_shared import normalize_lookup_text
+from systems.tech_crafting import TECH_CRAFT_RECIPES, TECH_SALVAGE_RECIPES
+
 class SessionTechCraftingV03111Mixin:
     async def tech_salvage_v03111(self, query=""):
         raw=str(query or "").strip()

@@ -193,8 +193,8 @@ class Database(
         from systems.world_invasions_v10400 import create_schema as _v104_invasions_schema
         _v104_invasions_schema(self.conn)
         from core.bootstrap_economy_professions import VERSION as _release_version
-        if _release_version == '110.00.0':
-            from systems.events_v110.storage import create_schema as _v110_event_schema
+        if _release_version in ('110.00.0', '111.00.0','112.00.0'):
+            from systems.global_events.storage import create_schema as _v110_event_schema
             _v110_event_schema(self.conn)
             # v110: created once at startup; no DDL in player work commands.
             self.conn.execute('CREATE TABLE IF NOT EXISTS v110_profession_cooldowns ('

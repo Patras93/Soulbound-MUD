@@ -11,17 +11,8 @@ from network.protocol_gameplay_utils import find_by_name, normalize_lookup_text
 from systems.content_registry import NPCS, QUESTS, MOB_SPAWNS, MOB_TEMPLATES
 from systems.economy_income_balance import v1138_activity_income
 from systems.game_feel_rewards import exploration_find_v11324
-from world.dynamic_content import (
-    ACHIEVEMENT_TRACKS,
-    ALL_EXPLORATION_ROOMS,
-    COLLECTION_CATALOGS,
-    EXPLORATION_REWARD_ITEMS,
-    EXPLORATION_ZONE_ROOMS,
-    REGION_COLLECTION_ENTRIES,
-    TRACKED_EXPLORATION_ZONES,
-    _collection_slug,
-    _zone_title,
-)
+from world.dynamic_content import ACHIEVEMENT_TRACKS, COLLECTION_CATALOGS, EXPLORATION_REWARD_ITEMS, EXPLORATION_ZONE_ROOMS, REGION_COLLECTION_ENTRIES, _collection_slug, _zone_title
+from data.exploration_tracking import ALL_EXPLORATION_ROOMS, TRACKED_EXPLORATION_ZONES
 from world.economy_quests import (
     COLLECTION_CATEGORY_LABELS,
     EXPLORATION_ZONE_MIN_ROOMS,
@@ -899,8 +890,8 @@ class SessionExplorationProgressMixin:
                 f"pozostało {max(0, ep_possible-ep_earned)}."
             )
             from systems.forgotten_horizons_v1000 import NEW_ROOM_IDS, LANDMARK_IDS
-            from systems.eternal_glory_world_v1100 import ROOM_IDS as NEW_V11_IDS, LANDMARK_IDS as V11_LANDMARK_IDS
-            from systems.eternal_glory_depths_v1100 import DUNGEON_ROOM_IDS as NEW_V11_DUNGEONS, DUNGEON_EP_IDS
+            from systems.eternal_glory.world import ROOM_IDS as NEW_V11_IDS, LANDMARK_IDS as V11_LANDMARK_IDS
+            from systems.eternal_glory.depths import DUNGEON_ROOM_IDS as NEW_V11_DUNGEONS, DUNGEON_EP_IDS
             NEW_ROOM_IDS = NEW_ROOM_IDS | NEW_V11_IDS | NEW_V11_DUNGEONS
             LANDMARK_IDS = LANDMARK_IDS | V11_LANDMARK_IDS | DUNGEON_EP_IDS
             if zone in {ROOMS[rid]['zone'] for rid in NEW_ROOM_IDS if rid in ROOMS}:

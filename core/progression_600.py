@@ -87,10 +87,10 @@ import os as _sb106_tier_os
 _sb106_tier_extension_enabled = _sb106_tier_os.environ.get('SOULBOUND_V106_STAGING') == '1'
 if not _sb106_tier_extension_enabled:
     try:
-        from pathlib import Path as _sb110_tier_Path
+        from pathlib import Path as _sb110_tier_Path  # canonical current dependency
         _sb110_tier_root = _sb110_tier_Path(__file__).resolve().parents[1]
-        if (_sb110_tier_root / 'VERSION').read_text(encoding='utf-8-sig').strip() == '110.00.0':
-            from systems.v11000_activation import enabled as _sb110_tier_authorized
+        if (_sb110_tier_root / 'VERSION').read_text(encoding='utf-8-sig').strip() in ('110.00.0','111.00.0','112.00.0'):
+            from systems.runtime_activation import enabled as _sb110_tier_authorized
             _sb106_tier_extension_enabled = bool(_sb110_tier_authorized())
     except (OSError, ImportError, ValueError):
         _sb106_tier_extension_enabled = False

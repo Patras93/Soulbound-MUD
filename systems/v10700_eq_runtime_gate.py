@@ -8,7 +8,7 @@ def is_enabled(db):
     live=bool(getattr(db,'_v107_eq_live_active',False))
     staging=bool(getattr(db,'_v106_shadow_slots_disposable_copy',False))
     if live:
-        from systems.v10700_activation import production_approved
+        from systems.runtime_activation import production_approved
         if not production_approved():
             raise PermissionError('EQ v107: utracono autoryzację zatwierdzonej instalacji')
         if not staging or not isinstance(getattr(db,'_v106_shadow_item_catalog',None),dict):

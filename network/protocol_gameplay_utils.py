@@ -1,23 +1,23 @@
 import re, secrets, hashlib, hmac, random, math, time, json, os
 import unicodedata
-from core import balance_math
-from typing import Optional
-from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb420_topbind
-from core.progression_600 import CHARACTER_MAX_LEVEL
-from core.bootstrap_economy_professions import PROFESSION_MAX_LEVEL
-import network.v420_chests as _sb420_topsrc01
-import network.v420_lookups as _sb420_topsrc02
+import core.balance_math as balance_math  # canonical current dependency
+from typing import Optional  # canonical current dependency
+from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
 
 from data import catalog_mutations as _catalog_mut
 from data.help_base_catalog_v405 import make_help_topic_aliases_v405, make_help_topics_v405
 from systems.dungeons_regions import (GIANT_FORTRESS_BOSS_FLOORS, CRYPT_BOSS_FLOORS, ASTRAL_BOSS_FLOORS, MYTHIC_BOSS_FLOORS, is_giant_fortress_boss_floor, is_crypt_boss_floor, is_astral_boss_floor)
-from data.items import ITEMS
+from data.items import ITEMS  # canonical current dependency
 from core.mines_threat import GUIDE_DESTINATION_ALIASES
 from core.progression_resources import RIVER_FISH_ATLAS
 from systems.items_resources import CLASS_SHOP_CLASSES_BY_ROOM, FISH_STORAGE_IDS, ORE_STORAGE_IDS, WOOD_STORAGE_IDS, HERB_STORAGE_IDS, base_fish_species_id
-from systems.content_registry import CRAFT_MATERIAL_STORAGE_IDS, QUESTS, NPCS, MOB_TEMPLATES
-HELP_TOPIC_ALIASES = make_help_topic_aliases_v405()
-HELP_TOPICS = make_help_topics_v405()
+from systems.content_registry import CRAFT_MATERIAL_STORAGE_IDS
+from data.quests import QUESTS  # canonical current dependency
+from data.npcs import NPCS  # canonical current dependency
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from data.current_help import begin_live_help
+HELP_TOPICS, HELP_TOPIC_ALIASES = begin_live_help()
 
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
 # v0.49.0: aliasy komend są centralnie zdefiniowane w config/command_aliases.py.
@@ -371,6 +371,7 @@ def clean_telnet(
 
 
 def mob_respawn_seconds(template):
+    from core.bootstrap_economy_professions import BOSS_RESPAWN_SECONDS, GLOBAL_MOB_RESPAWN_MULTIPLIER, REGULAR_MOB_RESPAWN_SECONDS, TRAINING_DUMMY_RESPAWN_SECONDS  # explicit current dependency
     if template.get("respawn_seconds") is not None:
         base_seconds = max(
             1,
@@ -399,10 +400,14 @@ def mob_respawn_seconds(template):
     ))
 
 def safe_name(name: str) -> bool:
+    import re  # canonical current dependency
     return bool(re.fullmatch(r"[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9_-]{3,20}", name))
 
 
 def hash_password(password: str, salt: Optional[bytes] = None) -> tuple[str, str]:
+    from core.bootstrap_economy_professions import PBKDF2_ROUNDS
+    import hashlib  # canonical current dependency
+    import secrets  # canonical current dependency
     if salt is None:
         salt = secrets.token_bytes(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ROUNDS)
@@ -410,6 +415,7 @@ def hash_password(password: str, salt: Optional[bytes] = None) -> tuple[str, str
 
 
 def verify_password(password: str, salt_hex: str, hash_hex: str) -> bool:
+    import hmac  # canonical current dependency
     salt = bytes.fromhex(salt_hex)
     _, candidate = hash_password(password, salt)
     return hmac.compare_digest(candidate, hash_hex)
@@ -426,32 +432,144 @@ def boss_floor_chest_state_id(kind, floor):
     return f"{str(kind)}:{int(floor)}"
 
 
-def boss_floor_chest_room_id(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound boss_floor_chest_room_id")
-boss_floor_chest_room_id = _sb420_topbind(_sb420_topsrc01.boss_floor_chest_room_id, globals())
+def boss_floor_chest_room_id(kind, floor):
+    """Return the REAL room where the checkpoint boss is spawned.
+
+    v0.10 expands dungeon floors into many _rXX rooms and moves the boss from
+    the canonical landing room into the final guard room. Resolve from
+    MOB_SPAWNS first so boss chests follow the boss instead of the old landing.
+    """
+    from data.rooms import ROOMS  # canonical current dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    kind = str(kind or "")
+    floor = int(floor)
+    fallback = {
+        "giant": f"giant_fortress_{floor}",
+        "crypt": f"crypt_floor_{floor}",
+        "astral": f"astral_floor_{floor}",
+        "mythic_crypt": f"mythic_crypt_floor_{floor}",
+        "mythic_astral": f"mythic_astral_floor_{floor}",
+    }.get(kind, "")
+    boss_meta = {
+        "giant": ("giant_fortress_boss", "giant_fortress_floor"),
+        "crypt": ("crypt_boss", "crypt_floor"),
+        "astral": ("astral_boss", "astral_floor"),
+        "mythic_crypt": ("mythic_crypt_boss", "mythic_crypt_floor"),
+        "mythic_astral": ("mythic_astral_boss", "mythic_astral_floor"),
+    }.get(kind)
+    if not boss_meta:
+        return fallback
+
+    boss_flag, floor_key = boss_meta
+    # v1.28.6: authoritative room marker from v0100_expand_instance_floor.
+    # Dynamic floor spawns may be pruned/rehydrated independently of room map.
+    canonical = ROOMS.get(fallback, {})
+    marked_room = str(canonical.get('v1286_boss_chest_room', '') or '')
+    if (marked_room in ROOMS and
+            ROOMS[marked_room].get('v1286_boss_chest_parent') == fallback):
+        return marked_room
+
+    # Self-heal already-expanded floors without the new marker (e.g. loaded
+    # from a historical runtime map). All subrooms carry numeric position.
+    if canonical and f'{fallback}_r01' in ROOMS:
+        best = ''
+        for index in range(1, 100):
+            candidate_id = f'{fallback}_r{index:02d}'
+            candidate = ROOMS.get(candidate_id)
+            if candidate is None:
+                break
+            if (candidate.get('v0100_instance_kind') == kind
+                    and int(candidate.get('v0100_floor', 0) or 0) == floor
+                    and int(candidate.get('v0100_floor_room', 0) or 0) > 1):
+                best = candidate_id
+        if best:
+            # Backfill so subsequent 'look' calls stay O(1).
+            canonical['v1286_boss_chest_room'] = best
+            ROOMS[best]['v1286_boss_chest_parent'] = fallback
+            return best
+
+    for spawn_room, template_id in reversed(MOB_SPAWNS):
+        template = MOB_TEMPLATES.get(template_id, {})
+        if not template.get(boss_flag):
+            continue
+        try:
+            template_floor = int(template.get(floor_key, 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if template_floor == floor:
+            return str(spawn_room)
+    # Boss checkpoint chests are never at the landing after expansion.
+    if any(f'{fallback}_r{n:02d}' in ROOMS for n in (1, 2)):
+        return ''
+    return fallback
 
 
-def _boss_floor_chest_spec(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound _boss_floor_chest_spec")
-_boss_floor_chest_spec = _sb420_topbind(_sb420_topsrc01._boss_floor_chest_spec, globals())
 
-BOSS_CHEST_KIND_NAMES = {
-    "giant": "Twierdzy Gigantów",
-    "crypt": "Krypty",
-    "astral": "Wieży Astralnej",
-    "mythic_crypt": "Mitycznej Krypty",
-    "mythic_astral": "Mitycznej Wieży Astralnej",
-}
+def _boss_floor_chest_spec(room_id):
+    """Boss chest exists only in the exact room that actually contains the boss."""
+    from systems.dungeons_regions import astral_floor_number, crypt_floor_number, giant_fortress_floor_number, is_astral_boss_floor, is_crypt_boss_floor, is_giant_fortress_boss_floor, is_mythic_astral_boss_floor, is_mythic_crypt_boss_floor, mythic_astral_floor_number, mythic_crypt_floor_number  # explicit current dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    room_id = str(room_id or "")
 
-def boss_floor_key_id(kind, floor):
-    return f"boss_chest_key_{kind}_{int(floor)}"
+    floor = giant_fortress_floor_number(room_id)
+    if (
+        is_giant_fortress_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("giant", floor)
+    ):
+        return ("giant", floor, min(CHARACTER_MAX_LEVEL, max(20, floor * 2)))
+
+    floor = crypt_floor_number(room_id)
+    if (
+        is_crypt_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("crypt", floor)
+    ):
+        return ("crypt", floor, min(CHARACTER_MAX_LEVEL, floor))
+
+    floor = astral_floor_number(room_id)
+    if (
+        is_astral_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("astral", floor)
+    ):
+        return ("astral", floor, max(1, int(floor)))
+
+    floor = mythic_crypt_floor_number(room_id)
+    if (
+        is_mythic_crypt_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("mythic_crypt", floor)
+    ):
+        return (
+            "mythic_crypt",
+            floor,
+            min(CHARACTER_MAX_LEVEL, 100 + floor // 2),
+        )
+
+    floor = mythic_astral_floor_number(room_id)
+    if (
+        is_mythic_astral_boss_floor(floor)
+        and room_id == boss_floor_chest_room_id("mythic_astral", floor)
+    ):
+        return (
+            "mythic_astral",
+            floor,
+            110 + floor // 2,
+        )
+    return None
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('_boss_floor_chest_spec', _boss_floor_chest_spec)
+
+from core.boss_keys import BOSS_CHEST_KIND_NAMES, boss_floor_key_id
+
 
 def boss_floor_chest_name(kind, floor):
     return f"Skrzynia Bossa {BOSS_CHEST_KIND_NAMES[kind]}, piętro {int(floor)}"
 
 def _register_boss_floor_keys():
+    from data.items import ITEMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # canonical current dependency
+    from systems.content_registry import CRYPT_BOSS_FLOORS  # explicit current dependency
+    from systems.dungeons_regions import ASTRAL_BOSS_FLOORS, GIANT_FORTRESS_BOSS_FLOORS, MYTHIC_BOSS_FLOORS  # explicit current dependency
     rows = []
     rows.extend(("giant", f) for f in GIANT_FORTRESS_BOSS_FLOORS)
     rows.extend(("crypt", f) for f in CRYPT_BOSS_FLOORS)
@@ -476,6 +594,7 @@ def _register_boss_floor_keys():
 _register_boss_floor_keys()
 
 def boss_key_for_template(template):
+    from systems.dungeons_regions import is_astral_boss_floor, is_crypt_boss_floor, is_giant_fortress_boss_floor, is_mythic_astral_boss_floor, is_mythic_crypt_boss_floor  # explicit current dependency
     if template.get("giant_fortress_boss"):
         floor = int(template.get("giant_fortress_floor", 0) or 0)
         return boss_floor_key_id("giant", floor) if is_giant_fortress_boss_floor(floor) else None
@@ -493,13 +612,20 @@ def boss_key_for_template(template):
         return boss_floor_key_id("mythic_astral", floor) if is_mythic_astral_boss_floor(floor) else None
     return None
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('boss_key_for_template', boss_key_for_template)
+
 def roll_profession_gather_quantity(tool_level, profession_level, kind):
+    import core.balance_math as balance_math  # canonical current dependency
+    import random  # canonical current dependency
     return balance_math.gather_quantity(
         str(kind), tool_level, profession_level, random.random()
     )
 
 def roll_crafting_xp(base_value, variance=0.15):
     # variance is kept only for API compatibility; Generator Core owns the spread.
+    import core.balance_math as balance_math  # canonical current dependency
+    import random  # canonical current dependency
     return balance_math.crafting_xp_roll(base_value, random.random())
 
 def v1138_boss_chest_gold_anchor(power):
@@ -530,12 +656,74 @@ def v1138_boss_chest_gold_anchor(power):
     return anchors[-1][1]
 
 
-def boss_chest_reward_roll(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound boss_chest_reward_roll")
-boss_chest_reward_roll = _sb420_topbind(_sb420_topsrc01.boss_chest_reward_roll, globals())
+def boss_chest_reward_roll(kind, floor, power):
+    import random  # canonical current dependency
+    from data.items import ITEMS  # canonical current dependency
+    from systems.equipment_crafting import GEM_DEFINITIONS  # explicit current dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    floor = int(floor)
+    raw_power=max(1,int(power))
+    power = raw_power if str(kind) in {"astral","mythic_astral"} else min(CHARACTER_MAX_LEVEL,raw_power)
+    # v1.13.8: skrzynia bossa ma być nagrodą, nie kilkoma symbolicznymi Gold.
+    kind_mult = {
+        "giant": 0.90,
+        "crypt": 1.00,
+        "astral": 1.20,
+        "mythic_crypt": 1.60,
+        "mythic_astral": 1.75,
+    }.get(kind, 1.0)
+    base_gold = max(
+        1,
+        int(round(v1138_boss_chest_gold_anchor(power) * kind_mult)),
+    )
+    gold = random.randint(
+        base_gold,
+        max(base_gold, int(round(base_gold * 1.50))),
+    )
+
+    items = []
+    # Fragmenty Duszy są użyteczne na każdym etapie. Endless Tower depth
+    # increases quantity instead of freezing chest quality at progression 600.
+    if "soul_shard" in ITEMS:
+        depth_bonus=(max(0,power-600)//200) if str(kind) in {"astral","mythic_astral"} else 0
+        items.extend(["soul_shard"] * random.randint(1+depth_bonus,3+depth_bonus))
+
+    consumables = ["healing_potion", "mana_potion", "soul_elixir"]
+    if power >= 60:
+        consumables += ["greater_healing_potion", "greater_mana_potion", "vitality_elixir"]
+    if power >= 120:
+        consumables += ["supreme_healing_potion", "supreme_mana_potion", "soul_tonic"]
+    if power >= 170:
+        consumables += ["astral_restoration_elixir", "eternal_soul_elixir"]
+    consumables = [item for item in consumables if item in ITEMS]
+    if consumables:
+        items.append(random.choice(consumables))
+
+    # Szansa na surowy klejnot odblokowany na poziomie tej zawartości.
+    available_gems = [
+        f"raw_gem_{definition['key']}"
+        for definition in GEM_DEFINITIONS
+        if int(definition.get("mining_level", 1)) <= power
+        and f"raw_gem_{definition['key']}" in ITEMS
+    ]
+    if available_gems and random.random() < min(0.55, 0.18 + power / 700.0):
+        items.append(random.choice(available_gems))
+
+    # Endgame ma małą szansę na drugi przydatny consumable.
+    if power >= 100 and consumables and random.random() < 0.30:
+        items.append(random.choice(consumables))
+
+    # v1.13.63: every additional 200 effective Tower power above 600 grants
+    # another useful loot roll, so boss chests keep improving without an end floor.
+    if str(kind) in {"astral","mythic_astral"} and power>600 and consumables:
+        for _ in range(min(8,max(0,(power-600)//200))):
+            items.append(random.choice(consumables))
+
+    return {"gold": gold, "items": items}
 
 def normalize_lookup_text(value):
+    import re  # canonical current dependency
+    import unicodedata  # canonical current dependency
     text = str(value or "").strip().lower()
     text = text.replace("ł", "l")
     text = unicodedata.normalize("NFKD", text)
@@ -569,10 +757,69 @@ for _eq_room, _eq_classes in CLASS_SHOP_CLASSES_BY_ROOM.items():
             GUIDE_DESTINATION_ALIASES[normalize_lookup_text(f"{_eq_prefix} {_eq_class}")] = _eq_room
 
 
-def find_by_name(*args, **kwargs):
-    """Native compatibility entrypoint; rebound to unmodified function."""
-    raise RuntimeError("unbound find_by_name")
-find_by_name = _sb420_topbind(_sb420_topsrc02.find_by_name, globals())
+def find_by_name(mapping, query, name_field="name"):
+    from data.items import ITEMS  # canonical current dependency
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
+    q = normalize_lookup_text(query)
+    if not q:
+        return None
+
+    # v0.71.5: exact item lookups are O(1); partial searches reuse normalized
+    # names/aliases instead of normalizing tens of thousands of strings again.
+    # Cache lives on this already-existing function, so the architectural global
+    # dependency budget does not grow.
+    if mapping is ITEMS and name_field == "name":
+        cache = getattr(find_by_name, "_v0715_cache", None)
+        if not isinstance(cache, dict) or cache.get("size") != len(ITEMS):
+            rows = []
+            exact = {}
+            for key, value in ITEMS.items():
+                key_name = normalize_lookup_text(key)
+                name = normalize_lookup_text(value.get("name", key))
+                aliases = tuple(
+                    normalize_lookup_text(alias)
+                    for alias in (value.get("aliases") or ())
+                    if str(alias or "").strip()
+                )
+                rows.append((key, value, key_name, name, aliases))
+                for token in (key_name, name, *aliases):
+                    if token and token not in exact:
+                        exact[token] = (key, value)
+            cache = {"size": len(ITEMS), "rows": tuple(rows), "exact": exact}
+            find_by_name._v0715_cache = cache
+        hit = cache["exact"].get(q)
+        if hit is not None:
+            return hit
+        partial = []
+        for key, value, key_name, name, aliases in cache["rows"]:
+            if q in name or q in key_name or any(q in alias for alias in aliases):
+                partial.append((key, value))
+                if len(partial) > 1:
+                    return None
+        return partial[0] if partial else None
+
+    exact = []
+    partial = []
+    for key, value in mapping.items():
+        key_name = normalize_lookup_text(key)
+        name = normalize_lookup_text(value[name_field])
+        aliases = [
+            normalize_lookup_text(alias)
+            for alias in (value.get("aliases") or ())
+            if str(alias or "").strip()
+        ]
+        if q == key_name or q == name or q in aliases:
+            exact.append((key, value))
+        elif (
+            q in name or q in key_name or
+            any(q in alias for alias in aliases)
+        ):
+            partial.append((key, value))
+    if exact:
+        return exact[0]
+    if len(partial) == 1:
+        return partial[0]
+    return None
 
 
 def canonical_profession_resource_id(item_id):
@@ -582,6 +829,7 @@ def canonical_profession_resource_id(item_id):
     zasobu, więc quest na ten zasób nie może gubić postępu tylko dlatego,
     że gracz trafił lepszą jakość. Zwykłe i terenowe zasoby zwracają siebie.
     """
+    from data.items import ITEMS  # canonical current dependency
     item = ITEMS.get(item_id, {})
     return str(item.get("base_resource_id") or item_id)
 
@@ -671,6 +919,7 @@ V0925_AFFIX_PL = {
 V0925_MASTERY_MILESTONES = (1, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600)
 
 def v0925_item_material_key(item):
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
     key = str(item.get("corpse_material") or item.get("blacksmith_material") or "").strip()
     if key in V0925_SALVAGE_MATERIALS:
         return key
@@ -693,6 +942,8 @@ def v03041_salvage_material_key(item):
     nazwy materiału mapuje się po wymaganym Levelu postaci na tę samą
     drabinkę materiałów co późne dropy mobów.
     """
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
     explicit = str(item.get("corpse_material") or item.get("blacksmith_material") or "").strip()
     if explicit in V0925_SALVAGE_MATERIALS:
         return explicit
@@ -740,6 +991,7 @@ def v03042_equipment_level(item):
     )))
 
 def v03042_upgrade_required_smithing(item, target_upgrade):
+    from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
     target_upgrade = max(1, min(V03042_EQ_UPGRADE_MAX, int(target_upgrade)))
     return min(PROFESSION_MAX_LEVEL, v03042_equipment_level(item) + (target_upgrade - 1) * 5)
 
@@ -753,6 +1005,7 @@ def v03042_upgrade_material_cost(item, target_upgrade):
     return max(1, 1 + target_upgrade + level // 100 + rarity_bonus)
 
 def v03042_upgrade_defense_bonus(item, upgrade_level):
+    import math  # canonical current dependency
     upgrade_level = max(0, min(V03042_EQ_UPGRADE_MAX, int(upgrade_level)))
     if upgrade_level <= 0:
         return 0
@@ -791,6 +1044,9 @@ def v0925_equipment_socket_count(item):
     return 0
 
 def v0925_craftbox_category(item_id):
+    from data.items import ITEMS  # canonical current dependency
+    from systems.equipment_crafting import CUT_GEM_IDS  # explicit current dependency
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
     item = ITEMS.get(item_id, {})
     explicit = item.get("craftbox_category")
     if explicit:
@@ -860,6 +1116,7 @@ V0926_GUILD_PERMISSION_LABELS = {
 def _v0926_legacy_guild_anchor_400():
     # v0.35.11 używało Generator Core MAX_LEVEL=400 jako kotwicy kosztu.
     # Wyliczamy tę samą wartość bez zależności od aktualnego limitu 800.
+    import core.balance_math as balance_math  # canonical current dependency
     old_max = int(balance_math.MAX_LEVEL)
     try:
         balance_math.MAX_LEVEL = V0926_GUILD_PREVIOUS_CAP
@@ -869,6 +1126,7 @@ def _v0926_legacy_guild_anchor_400():
 
 def v0926_guild_upgrade_cost(current_level):
     """Koszt rozwoju Gildii 1-800; poziomy 1-600 zachowują wcześniejszy balans."""
+    import core.balance_math as balance_math  # canonical current dependency
     level=max(1,min(V0926_GUILD_MAX_LEVEL,int(current_level or 1)))
     if level >= V0926_GUILD_MAX_LEVEL:
         return 0
@@ -892,6 +1150,7 @@ def v0926_guild_upgrade_cost(current_level):
 
 def v0926_guild_bonus_percent(level):
     """Poziomy 1-600 bez zmian; 601-800 daje dalszy, łagodny wzrost do 35%."""
+    import core.balance_math as balance_math  # canonical current dependency
     level=max(1,min(800,int(level or 1)))
     if level <= V0926_GUILD_LEGACY_MAX_LEVEL:
         return balance_math.guild_bonus_percent(level,V0926_GUILD_LEGACY_MAX_LEVEL)
@@ -920,18 +1179,26 @@ V0927_GUILD_BUILDINGS = {
     "training": ("Sala Treningowa", "trening", "training"),
 }
 def v0927_guild_hall_upgrade_cost(current_level):
+    import core.balance_math as balance_math  # canonical current dependency
     level=max(1,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 1)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
     stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
     return balance_math.system_cost(stage,"guild-hall",500.0)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0927_guild_hall_upgrade_cost', v0927_guild_hall_upgrade_cost)
+
 def v0927_guild_building_upgrade_cost(current_level):
+    import core.balance_math as balance_math  # canonical current dependency
     level=max(0,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 0)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
     stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
     return balance_math.system_cost(stage,"guild-building",150.0)
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0927_guild_building_upgrade_cost', v0927_guild_building_upgrade_cost)
 
 # Tożsamość kontraktów jest treścią; cele, nagrody i cooldown wylicza Generator Core.
 V0927_GUILD_CONTRACTS = {
@@ -953,6 +1220,7 @@ for _contract_id,_contract in V0927_GUILD_CONTRACTS.items():
     _contract["cooldown"]=balance_math.generated_cooldown_seconds(_stage,"guild-contract:"+_contract_id,3600,21600)
 
 def v0927_guild_contract_ready_text(ready_at):
+    import time
     now=int(time.time()); ready=max(0,int(ready_at or 0)-now)
     if ready<=0: return "aktywny"
     return f"odnowi się za {max(1,(ready+59)//60)} min"
@@ -1167,6 +1435,7 @@ _catalog_mut.catalog_assign({
 
 # Haldor i Orin pokazują nowe zlecenia również w swoich jawnych listach specjalisty.
 def _v0929_append_specialist_quests(npc_id, *quest_ids):
+    from data.npcs import NPCS  # canonical current dependency
     npc = NPCS.get(npc_id)
     if not npc:
         return
@@ -1208,6 +1477,7 @@ V03035_BROKEN_BLADE_SOURCES = frozenset({
 
 def v0929_kill_drop_item(quest_id, mob_template_id, template):
     """Quest-only drop. Zwraca item_id albo None."""
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
     name = normalize_lookup_text(template.get("name", ""))
     if quest_id == "haldor_broken_blades_v0929":
         # v0.30.35: jawne źródła na Starym Cmentarzu + kompatybilny fallback

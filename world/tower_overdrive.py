@@ -40,6 +40,7 @@ def tower_mutator_multipliers_v11363(kind, floor):
 
 
 def _v0381_tower_floor(template):
+    from systems.dungeons_regions import ASTRAL_MIN_FLOOR  # explicit current dependency
     if not isinstance(template, dict):
         return 0
     if template.get("mythic_astral_floor") is not None:
@@ -66,6 +67,7 @@ def _v0381_tower_kind(template):
 
 
 def _v0381_tower_depth(kind, floor):
+    from systems.dungeons_regions import ASTRAL_MIN_FLOOR  # explicit current dependency
     floor = int(floor)
     if str(kind).startswith("mythic_"):
         return max(1, floor)
@@ -100,6 +102,7 @@ def _v0381_tower_boosts(kind, floor):
     return float(hp), float(dmg), float(xp)
 
 
+from world.crypt_overdrive import v0190_apply_combat_template  # explicit current dependency
 _v0381_tower_apply_before = v0190_apply_combat_template
 
 
@@ -148,11 +151,16 @@ def v0190_apply_combat_template(template):
     result["tower_overdrive_damage_mult_v0381"] = round(dmg_boost, 6)
     return result
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
 
+
+from world.crypt_overdrive import v0190_combat_reward  # explicit current dependency
 _v0381_tower_reward_before = v0190_combat_reward
 
 
 def v0190_combat_reward(template, kind):
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
     base = int(_v0381_tower_reward_before(template, kind))
     if str(kind) == "coins":
         return base
@@ -169,18 +177,26 @@ def v0190_combat_reward(template, kind):
         extra *= 5
     return min(V019_SAFE_INT, max(0, int(round(base * xp_boost)) + extra))
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_combat_reward', v0190_combat_reward)
+
 
 # Refresh every already-created Astral template through the final layer.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _v0381_tid, _v0381_template in list(MOB_TEMPLATES.items()):
     if _v0381_tower_kind(_v0381_template):
         v0190_apply_combat_template(_v0381_template)
 
 
 # Lazy levels above the static range must receive exactly the same final layer.
+from world.economy_quests import create_infinite_astral_floor_definition  # explicit current dependency
 _create_infinite_astral_floor_definition_before_v0381 = create_infinite_astral_floor_definition
 
 
 def create_infinite_astral_floor_definition(floor, mythic=False):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     room_id, spawns = _create_infinite_astral_floor_definition_before_v0381(floor, mythic=mythic)
     for _room_id, template_id in list(spawns or ()):
         template = MOB_TEMPLATES.get(template_id)
@@ -188,7 +204,12 @@ def create_infinite_astral_floor_definition(floor, mythic=False):
             v0190_apply_combat_template(template)
     return room_id, spawns
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('create_infinite_astral_floor_definition', create_infinite_astral_floor_definition)
 
+
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("wieza", []).extend([
     "v0.38.1: Wieża Astralna i Mityczna Wieża Astralna mają Tower Overdrive. Każdy kolejny poziom jest mocniejszy i bardziej nagradzający od poprzedniego.",
     "Zwykła Wieża zaczyna się od poziomu 100, a Mityczna od 1. Bazowe skalowanie rośnie bez płaskich przedziałów; losowe mutatory mogą chwilowo obniżyć jeden parametr w zamian za mocniejsze inne parametry i większy EXP.",
@@ -197,6 +218,8 @@ HELP_TOPICS.setdefault("wieza", []).extend([
     "v1.13.63 Endless Towers 2.0: każde piętro ma stabilny losowy mutator; od głębokości 100 działają dwa, a od 300 trzy jednocześnie. Mutatory zmieniają HP, obrażenia, typ obrażeń i EXP.",
     "Skrzynie bossów co 10 pięter skalują nagrody dalej ponad progresję 600; Wieża nadal nie ma końcowego piętra.",
 ])
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "wieża": "wieza", "tower": "wieza", "wiezaastralna": "wieza", "astraltower": "wieza",
     "mitycznawieza": "wieza", "mythicastral": "wieza",
@@ -204,6 +227,10 @@ HELP_TOPIC_ALIASES.update({
 
 
 def tower_overdrive_audit_v0381():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from systems.dungeons_regions import ASTRAL_MAX_FLOOR, ASTRAL_MIN_FLOOR, MYTHIC_MAX_FLOOR  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_combat_reward = _current_rule('v0190_combat_reward')
     errors = []
 
     # Mathematical curves must rise at every level through 600.

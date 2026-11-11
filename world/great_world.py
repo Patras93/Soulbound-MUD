@@ -11,7 +11,9 @@ import time
 
 from data.catalog_mutations import catalog_assign, catalog_set_path
 from data.catalogs import ITEMS, MOB_TEMPLATES, NPCS, QUESTS, ROOMS
-from systems.content_registry import MOB_SPAWNS, HELP_TOPICS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 from world.expansions import TREASURE_CHESTS
 
 V1200_WORLD_VERSION = "1.20.0"

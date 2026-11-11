@@ -113,9 +113,9 @@ def _class_matrix(session,turns='1',page='1',mastery=800):
     # Test every registered class using separate detached simulations; legacy
     # reports remain present while v107/v110 classes get their own pages.
     classes=sorted(CLASS_SKILLS)
-    from core.v10700_new_archetypes import CLASS_SPECS as _v107_rows
-    from core.v11000_archetypes import CLASS_SPECS as _v110_rows
-    from core.magitek_v107 import CLASS_NAME as _magitek
+    from core.archetypes.chaos import CLASS_SPECS as _v107_rows
+    from core.archetypes.expansion import CLASS_SPECS as _v110_rows
+    from core.magitek.catalogue import CLASS_NAME as _magitek
     extensions={_magitek}|{r[0] for r in _v107_rows}|{r[0] for r in _v110_rows}
     if len(set(classes)-extensions)!=22:
         raise ValueError('Niekompletny historyczny katalog 22 klas.')

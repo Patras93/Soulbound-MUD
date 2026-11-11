@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 """v110: atomowa instalacja 12 nowych krain i 700 grywalnych questów.
 
-Dane poszczególnych krain żyją w world.realms_v110.*. Konstruktor pracuje na
+Dane poszczególnych krain żyją w world.realms.*. Konstruktor pracuje na
 prywatnych rejestrach, nie zapisuje bazy SQLite i nie usuwa dawnych nagród.
 """
 from __future__ import annotations
 from config.balance import QUEST_REPEAT_COOLDOWN_SECONDS
 from world.v11000_realm_index import REGIONS
-from world.v10900_horizon_index import REGIONS as OLD_REGIONS
+from world.horizon_index import REGIONS as OLD_REGIONS
 from world.v10300_era_bez_granic import PROFESSION_SPECS as OLD_PROFS
-from core.v11000_archetypes import (CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS)
+from core.archetypes.expansion import (CLASS_SPECS, RACE_SPECS, PROFESSION_SPECS)
 from world.legends_v3100 import OPPOSITE
 
 PREFIX='v11000_realm'
@@ -98,9 +98,9 @@ def _build_quest(p,qid,npc_id,entry,prospective,offer):
 
 def _extra_quests(prospective,offer):
     """Separate authors/unique names; all targets are physically spawned."""
-    from world.quests_v110.classes import rows as class_rows
-    from world.quests_v110.races import rows as race_rows
-    from world.quests_v110.events import rows as event_rows
+    from world.quests.classes import rows as class_rows
+    from world.quests.races import rows as race_rows
+    from world.quests.events import rows as event_rows
     for produce in (class_rows,race_rows,event_rows):
         for nid,qid,quest in produce(REGIONS,prefix,prospective['mobs'],prospective['npcs']):
             _build_quest('',qid,nid,quest,prospective,offer)
@@ -194,7 +194,7 @@ def install(rooms,mobs,spawns,npcs,quests,items,recipes,zones,categories,guides,
                 'specialist_quests':(),'quest_chain':(),
                 'v700_story_npc':True,'v10300_era_npc':True,'v10400_era_npc':True,
                 'v11000':True}
-        from world.quests_v110.regional import produce_regional
+        from world.quests.regional import produce_regional
         for nid,qid,quest in produce_regional(idx,slug,name,low,p,enemies,bosses,itemids,prospective['npcs']):
             _build_quest(p,qid,nid,quest,prospective,offer)
         new_zones[name]=p;new_categories[p]='Endgame';new_guides[name.casefold()]=p+'_01';new_power[p]=low
@@ -204,7 +204,7 @@ def install(rooms,mobs,spawns,npcs,quests,items,recipes,zones,categories,guides,
           'enemies':', '.join(enemies),'description':story+' 30 lokacji i 50 questów.',
           'note':'Solo i drużyna do sześciu osób. Bez rajdów i progów wejścia.'})
     # Four distinct event bosses (12*3 + 4 = 40).
-    from world.events_v110.registry import BOSSES
+    from world.events.registry import BOSSES
     for slug,title,region_i in EVENTS:
         p=prefix(REGIONS[region_i][0]);mid='v11000_event_'+slug+'_boss'
         spec=BOSSES[slug];lvl=102001+region_i*1000+950

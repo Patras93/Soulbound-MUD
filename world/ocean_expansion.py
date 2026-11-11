@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from data.catalogs import ROOMS, NPCS, ITEMS, MOB_TEMPLATES
 from data.catalog_mutations import catalog_assign, catalog_set_path
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_SPAWNS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from core.progression_resources import (
     FISH_RESOURCE_IDS, FISH_ATLAS_ALL, FISHING_ROOMS, OCEAN_FISHING_ROOMS,
     MARINE_FISHING_ROOMS, OCEAN_FISH_ATLAS,

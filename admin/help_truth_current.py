@@ -15,7 +15,9 @@ from core.classes_skills import CLASSES, RACES
 from core.command_catalog import COMMAND_CATALOG
 from core.profession_timing import TOOL_ACTION_BASE_SECONDS, TOOL_ACTION_MIN_SECONDS
 from systems.items_resources import CLASS_EQUIPMENT_SLOT_DEFS
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 
 HELP_TRUTH_CURRENT_VERSION_V11328 = str(VERSION)
 

@@ -6,7 +6,7 @@ IDs only, staged in the SAME historic journal and rollback. No new SQLite or
 source-code execution; ordinary v105 server never sees these commands.
 """
 from __future__ import annotations
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 import os
 from world.v10600_region_index import REGIONS

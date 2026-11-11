@@ -15,7 +15,10 @@ import unicodedata
 
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
 from data.catalog_mutations import catalog_assign, catalog_set_path
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES, MOB_SPAWNS
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from config.postal import POSTAL_CITY_HUBS_V0522, GUIDE_CITY_HUBS_V0522
 from world.generation_systems import v0130_refresh_exploration_catalog
 from world.world_expansion_iv import ZONE_ROOM_IDS as V0800_ZONE_ROOM_IDS, STORY_QUEST_IDS_V0800

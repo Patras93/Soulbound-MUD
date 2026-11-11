@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Owner-only, read-only era audit for NVDA. Does not mutate SQLite/DRAFT."""
 from __future__ import annotations
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 import os as _v107_era_env
 
 from world.v10300_era_bez_granic import ERAS

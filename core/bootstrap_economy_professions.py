@@ -26,19 +26,19 @@ import secrets
 import sqlite3
 import time
 import unicodedata
-from collections import deque
-from dataclasses import dataclass
-from typing import Optional
+from collections import deque  # canonical current dependency
+from dataclasses import dataclass  # canonical current dependency
+from typing import Optional  # canonical current dependency
 
 from config.balance import BLACKSMITH_QUEST_COOLDOWN_SECONDS, QUEST_REPEAT_COOLDOWN_SECONDS
 
 # v0.40.0: formerly embedded runtime engines are real importable modules.
-from core import balance_math
+import core.balance_math as balance_math  # canonical current dependency
 from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "110.00.0"
+VERSION = "112.00.0"
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -51,6 +51,7 @@ DOUBLE_XP_EVENT_DURATION_SECONDS = 15 * 60
 DOUBLE_XP_EVENT_MULTIPLIER = 2
 
 def double_xp_event_state(now=None):
+    import time
     now = time.time() if now is None else float(now)
     elapsed = now % DOUBLE_XP_EVENT_INTERVAL_SECONDS
     active = elapsed < DOUBLE_XP_EVENT_DURATION_SECONDS
@@ -196,7 +197,8 @@ V0250_GATHER_HOTSPOT_LABELS = {
 
 
 def v0250_room_generator_profile(room_id):
-    room = globals().get("ROOMS", {}).get(str(room_id), {})
+    from data.rooms import ROOMS  # canonical current dependency
+    room = ROOMS.get(str(room_id), {})
     zone = str(room.get("zone", "Nieznana strefa"))
     rng = v0250_rng("room-profile", room_id, zone)
     city = "miasto" in zone.casefold() or "świątynia" in zone.casefold()
@@ -211,11 +213,13 @@ def v0250_room_generator_profile(room_id):
 
 
 def v0250_gather_hotspot(room_id, tool_type=None, now=None):
+    import time
     tool = str(tool_type or "").strip().casefold()
     labels = V0250_GATHER_HOTSPOT_LABELS.get(tool)
     if not labels:
         return {"label":"", "quantity_bonus":0, "xp_mult":1.0, "slot":0}
-    room = globals().get("ROOMS", {}).get(str(room_id), {})
+    from data.rooms import ROOMS  # canonical current dependency
+    room = ROOMS.get(str(room_id), {})
     zone = str(room.get("zone", ""))
     slot = int((time.time() if now is None else float(now)) // V0250_HOTSPOT_SECONDS)
     roll = v0250_seed_int("hotspot", slot, zone, tool)
@@ -424,6 +428,7 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
     SOUL_TIER_TRAITS_BY_CLASS[_class_name] = _rows
 
 def soul_weapon_trait_for_tier(tier, class_name=None):
+    from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_TRAITS_BY_CLASS  # explicit current dependency
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
     # Additional Admin Live classes inherit the real soul trait table of their
@@ -435,6 +440,7 @@ def soul_weapon_trait_for_tier(tier, class_name=None):
     return rows.get(tier)
 
 def soul_weapon_trait_totals(tier, class_name=None):
+    from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_TRAITS_BY_CLASS  # explicit current dependency
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
     # Additional Admin Live classes inherit the real soul trait table of their
@@ -545,7 +551,8 @@ def currency_denominations(total_silver):
 
 def currency_unit_multiplier(raw):
     """Mnożnik nominału dla komend. Wszystkie trafiają do jednego salda."""
-    value = normalize_lookup_text(raw) if 'normalize_lookup_text' in globals() else str(raw or '').strip().lower()
+    from storage.db_shared import normalize_lookup_text  # canonical current dependency
+    value = normalize_lookup_text(raw)
     if value in ('silver','srebro','srebra','srebrnych','s'):
         return 1
     if value in ('gold','zloto','złoto','zlota','złota','g','zl','zł'):
@@ -734,10 +741,15 @@ def normalize_profession_name(profession):
         return "Jubilerstwo"
     return str(profession)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('normalize_profession_name', normalize_profession_name)
+
 def profession_max_level(profession):
+    from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
     return PROFESSION_MAX_LEVEL
 
 def profession_rank_thresholds(profession):
+    from core.progression_600 import PROFESSION_RANK_THRESHOLDS  # explicit current dependency
     return PROFESSION_RANK_THRESHOLDS
 
 def profession_max_rank(profession):
@@ -759,6 +771,8 @@ def profession_rank(level, profession=None):
     return min(rank, profession_max_rank(profession))
 
 def profession_rank_name(profession, level):
+    from core.runtime_rules import get_rule as _current_rule
+    normalize_profession_name = _current_rule('normalize_profession_name')
     profession = normalize_profession_name(profession)
     names = PROFESSION_RANK_NAMES.get(profession)
     if not names:
@@ -886,6 +900,7 @@ if TOOL_TIER_THRESHOLDS[-1] != TOOL_MAX_LEVEL:
     )
 
 def tool_max_level(tool_type):
+    from core.progression_600 import TOOL_MAX_LEVEL  # canonical current dependency
     return TOOL_MAX_LEVEL
 
 TOOL_TIER_NAMES = {
@@ -1285,6 +1300,8 @@ for _tool_type, _stem in _V11343_TOOL_STEMS.items():
     )
 
 def tool_tier(level):
+    from core.progression_600 import TOOL_TIER_THRESHOLDS
+    from core.progression_600 import TOOL_MAX_LEVEL  # canonical current dependency
     level = max(1, min(TOOL_MAX_LEVEL, int(level)))
     if level > 800:
         from core.endless_tiers_v10300 import tool_tier_v10300
@@ -1303,6 +1320,7 @@ def tool_tier_access_level(level):
     Dostęp do nowej zawartości zmienia się wyłącznie przy awansie Tieru,
     a nie przy każdym pojedynczym levelu narzędzia.
     """
+    from core.progression_600 import TOOL_TIER_THRESHOLDS  # explicit current dependency
     tier = tool_tier(level)
     if tier > len(TOOL_TIER_THRESHOLDS):
         from core.endless_tiers_v10300 import tool_tier_level_v10300
@@ -1336,6 +1354,7 @@ def tool_tier_name(tool_type, level):
     return f"{display} Tier {tier}"
 
 def tool_tier_bonus_chance(level):
+    from core.progression_600 import TOOL_TIER_BONUS_CHANCES  # explicit current dependency
     tier = tool_tier(level)
     if tier <= len(TOOL_TIER_BONUS_CHANCES):
         return TOOL_TIER_BONUS_CHANCES[tier-1]

@@ -29,11 +29,12 @@ def world_threat_multipliers_v0384(stage, rank="normal", nemesis=False):
 
     The old v0.36.2 terrain HP/damage boost remains underneath this layer.
     """
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # explicit optional dependency
     try:
         stage = max(1, int(stage or 1))
     except Exception:
         stage = 1
-    cap = max(1, int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600))
+    cap = max(1, int(CHARACTER_MAX_LEVEL or 600))
     x = min(stage, cap) / float(cap)
     rank = str(rank or "normal")
 
@@ -57,6 +58,7 @@ def world_threat_multipliers_v0384(stage, rank="normal", nemesis=False):
 
 
 def _v0384_instance_room(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
     rid = str(room_id or "")
     room = ROOMS.get(rid, {}) or {}
     flags = (
@@ -81,6 +83,7 @@ def _v0384_instance_room(room_id):
     return False
 
 
+from world.world_state import World  # explicit current dependency
 _v0384_base_terrain_scaled = World._terrain_scaled_template_v0362
 
 
@@ -89,6 +92,11 @@ def _terrain_scaled_template_v0384(self, room_id, template_id):
     # The historical terrain runtime_mob_balance would otherwise re-create
     # these high-level boss templates at trillion-HP values. This is NOT
     # adaptive player scaling. Preserve all legacy spawns unchanged.
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import core.balance_math as balance_math  # explicit current dependency
     if (str(room_id or '').startswith('v10300_')
             and str(template_id or '').startswith('v10300_')):
         return str(template_id)
@@ -117,7 +125,7 @@ def _terrain_scaled_template_v0384(self, room_id, template_id):
         stage = int(room.get("generator_level", room.get("recommended_mastery", resolved.get("generator_level", 1))) or 1)
     except Exception:
         stage = int(resolved.get("generator_level", 1) or 1)
-    stage = max(1, min(int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600), stage))
+    stage = max(1, min(int(CHARACTER_MAX_LEVEL or 600), stage))
     try:
         base_stage = int(resolved.get("generator_level", 1) or 1)
     except Exception:
@@ -148,10 +156,12 @@ World._terrain_scaled_template_v0362 = _terrain_scaled_template_v0384
 World._terrain_scaled_template_v0362._world_threat_overdrive_v0384 = True
 
 
+from world.tower_overdrive import v0190_apply_combat_template  # explicit current dependency
 _v0384_base_apply_combat_template = v0190_apply_combat_template
 
 
 def v0190_apply_combat_template_v0384(template):
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
     template = _v0384_base_apply_combat_template(template)
     if not isinstance(template, dict) or not template.get("world_threat_overdrive_v0384"):
         return template
@@ -175,6 +185,9 @@ v0190_apply_combat_template._world_threat_overdrive_v0384 = True
 
 
 def _v0384_rebind_spawned_mob(world, mob):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     if mob is None:
         return mob
     room_id = str(getattr(mob, "room_id", "") or "")
@@ -190,6 +203,7 @@ def _v0384_rebind_spawned_mob(world, mob):
 
 
 def _v0384_wrap_spawn_method(name):
+    from world.world_state import World  # explicit current dependency
     original = getattr(World, name, None)
     if not callable(original) or getattr(original, "_world_threat_overdrive_v0384", False):
         return
@@ -215,6 +229,8 @@ for _v0384_method in (
     _v0384_wrap_spawn_method(_v0384_method)
 
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["trudnosc swiata"] = [
     "v0.38.4: cały otwarty świat jest wyraźnie trudniejszy od pierwszych stref aż po endgame.",
     "Zwykłe moby, Elite, Rare, regionalni bossowie, World Bossowie, Nemesis i eventowi przeciwnicy dostają globalny wzrost HP i obrażeń zależny od etapu.",
@@ -222,6 +238,8 @@ HELP_TOPICS["trudnosc swiata"] = [
     "Class XP, Soul XP, Character XP, stat XP i waluta rosną razem z trudnością.",
     "Krypty, Wieże i Nieskończony Kompleks Magitek zachowują własne mocniejsze warstwy balansu i nie dostają drugiej kopii World Threat Overdrive.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "trudnosc swiata": "trudnosc swiata", "world threat": "trudnosc swiata",
     "world difficulty": "trudnosc swiata", "trudnosc": "trudnosc swiata",
@@ -229,6 +247,10 @@ HELP_TOPIC_ALIASES.update({
 
 
 def world_threat_overdrive_audit_v0384():
+    from data.rooms import ROOMS  # canonical current dependency
+    from world.world_state import World  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
     errors = []
     samples = (1, 50, 100, 300, 600)
     vals = [world_threat_multipliers_v0384(s, "normal") for s in samples]
@@ -270,6 +292,8 @@ def world_threat_overdrive_audit_v0384():
 
 WORLD_THREAT_OVERDRIVE_AUDIT_V0384 = world_threat_overdrive_audit_v0384()
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.4: World Threat Overdrive — cały otwarty świat, eventy, bossowie i Nemesis są mocniejsze, a EXP/nagrody rosną razem z zagrożeniem."
 )

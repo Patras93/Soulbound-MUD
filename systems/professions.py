@@ -20,21 +20,26 @@ V1100_EXPLORATION_PROFESSIONS = {
 
 # Rangi 1-600. Pierwsze 13 są opisowe, ostatnie 10 zgodne z progresją 201-600.
 def _profession_rank_names(label, master):
+    from core.bootstrap_economy_professions import _PROFESSION_400_RANK_SUFFIXES  # explicit current dependency
+    from core.progression_600 import _PROFESSION_600_RANK_SUFFIXES  # explicit current dependency
     base=(f"Uczeń {label}",f"Adept {label}",f"Czeladnik {label}",f"Specjalista {label}",f"Ekspert {label}",f"Mistrz {label}",f"Arcymistrz {label}",f"Legenda {label}",f"Runiczny {master}",f"Smoczy {master}",f"Astralny {master}",f"{master} Pustki",f"Wieczny {master}")
     return base + tuple(f"{suffix} {label}" for suffix in (_PROFESSION_400_RANK_SUFFIXES + _PROFESSION_600_RANK_SUFFIXES))
 
+from core.bootstrap_economy_professions import PROFESSION_RANK_NAMES  # explicit current dependency
 PROFESSION_RANK_NAMES["Krawiectwo"] = _profession_rank_names("Krawiectwa", "Krawiec")
 PROFESSION_RANK_NAMES["Garbarstwo"] = _profession_rank_names("Garbarstwa", "Garbownik")
 PROFESSION_RANK_NAMES["Stolarstwo"] = _profession_rank_names("Stolarstwa", "Stolarz")
 PROFESSION_RANK_NAMES["Zaklinanie"] = _profession_rank_names("Zaklinania", "Zaklinacz")
 PROFESSION_RANK_NAMES["Archeologia"] = _profession_rank_names("Archeologii", "Archeolog")
 PROFESSION_RANK_NAMES["Kartografia"] = _profession_rank_names("Kartografii", "Kartograf")
+from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP  # explicit current dependency
 TOOL_PROFESSION_MAP.update({
     "tailoring":"Krawiectwo", "leatherworking":"Garbarstwo",
     "carpentry":"Stolarstwo", "enchanting":"Zaklinanie",
     "archaeology":"Archeologia", "cartography_profession":"Kartografia",
 })
 
+from core.bootstrap_economy_professions import normalize_profession_name  # explicit current dependency
 _old_normalize_profession_name_v03053 = normalize_profession_name
 def normalize_profession_name(profession):
     raw=str(profession or '').strip().casefold()
@@ -47,6 +52,9 @@ def normalize_profession_name(profession):
       'kartografia':'Kartografia','cartography profession':'Kartografia','cartography_profession':'Kartografia','kartograf':'Kartografia',
     }
     return aliases.get(raw) or _old_normalize_profession_name_v03053(profession)
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('normalize_profession_name', normalize_profession_name)
 
 # Czterdzieści nazw Tierów na profesję; poziomy i progi pozostają wspólne 1-600.
 def _tool_names(prefix):
@@ -61,6 +69,7 @@ def _tool_names(prefix):
            "Pamięci Przodków", "Żaru Wieczności", "Szeptu Światów",
            "Ostatniej Gwiazdy", "Nowego Świtu")
     return tuple(f"{prefix} {x}" for x in stages+extra+extended+final)
+from core.bootstrap_economy_professions import TOOL_TIER_NAMES  # explicit current dependency
 TOOL_TIER_NAMES["tailoring"]=_tool_names("Zestaw Krawiecki")
 TOOL_TIER_NAMES["leatherworking"]=_tool_names("Nóż Garbarski")
 TOOL_TIER_NAMES["carpentry"]=_tool_names("Narzędzia Ciesielskie")
@@ -69,6 +78,7 @@ TOOL_TIER_NAMES["archaeology"]=_tool_names("Pędzel Archeologa")
 TOOL_TIER_NAMES["cartography_profession"]=_tool_names("Kompas Mierniczy")
 
 # Narzędzia - brak trwałości, jak we wszystkich profesjach Soulbound.
+from data.items import ITEMS  # canonical current dependency
 _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
  "tailor_kit":{"name":"Zestaw Krawiecki","type":"tool","tool_type":"tailoring","price":1200,"currency":"silver","desc":"Igły, nici i nożyce do Krawiectwa. Level 1-800, 80 Tierów, bez trwałości."},
  "tanning_knife":{"name":"Nóż Garbarski","type":"tool","tool_type":"leatherworking","price":1200,"currency":"silver","desc":"Narzędzie Garbarstwa. Level 1-800, 80 Tierów, bez trwałości."},
@@ -86,6 +96,8 @@ _catalog_mut.catalog_update_path('ITEMS', ITEMS, (), {
 
 # Przykładowe pełne linie EQ 1-600. Każdy wynik ma inną tożsamość/statystyki.
 def _armor(iid,name,slot,defense,affix,amount,level,profession):
+    from data.items import ITEMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     _catalog_mut.catalog_assign({"name":name,"type":"armor","slot":slot,"defense":defense,"price":None,"rarity":"crafted","rarity_name":profession,"affix":affix,"affix_amount":amount,"generator_level":level,"desc":f"{profession} level {level}. Obrona +{defense}; {affix} +{amount}."}, 'ITEMS', ITEMS, (iid,))
 
 _tailor=[
@@ -152,6 +164,7 @@ for _i,_lvl in enumerate(V0360_EXTENDED_PROFESSION_LEVELS):
     _jewel.append((_lvl,_j_slot,_j_name,_j_aff,_j_amt,f"ingot_400_{_lvl}"))
 
 # Skóry dropią z realnych bestii, bez osobnego generatora zasobów.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _mid,_mob in MOB_TEMPLATES.items():
     _name=str(_mob.get('name','')).casefold()
     if any(k in _name for k in ('wilk','niedźw','dzik','bestia','pająk','stalker','bear','wolf','boar')):
@@ -159,11 +172,14 @@ for _mid,_mob in MOB_TEMPLATES.items():
         _mob['drops'].setdefault('beast_hide',0.18)
 
 # Warsztaty i sprzedawcy.
+from systems.equipment_crafting import SHOPS  # explicit current dependency
+from systems.equipment_crafting import SHOP_SELLERS  # explicit current dependency
 for _room,_item,_seller in (
  ('tailor_workshop','tailor_kit','tailor_lysa'),('leatherworker_workshop','tanning_knife','leatherworker_soren'),('carpenter_workshop','carpenter_tools','carpenter_edric'),('guild_arcane_chamber','runic_focus','guild_quartermaster_arcane')):
     _catalog_mut.catalog_setdefault_path('SHOPS', SHOPS, (), _room,[])
     if _item not in SHOPS[_room]: SHOPS[_room].append(_item)
     SHOP_SELLERS[_room]=_seller
+from core.mines_threat import TOOL_SHOP_ROOMS  # explicit current dependency
 TOOL_SHOP_ROOMS.update({
  'tailor_kit':'tailor_workshop','tanning_knife':'leatherworker_workshop',
  'carpenter_tools':'carpenter_workshop','runic_focus':'guild_arcane_chamber',
@@ -185,12 +201,14 @@ _V03053_REQUIRED_BOUND_TOOLS = frozenset({
  'tailor_kit','tanning_knife','carpenter_tools','runic_focus',
  'archaeology_brush','surveyor_compass',
 })
+from core.mines_threat import CHARACTER_BOUND_TOOL_IDS  # explicit current dependency
 _missing_bound_tools = _V03053_REQUIRED_BOUND_TOOLS.difference(CHARACTER_BOUND_TOOL_IDS)
 if _missing_bound_tools:
     raise RuntimeError(
         "Brak narzędzi profesji w CHARACTER_BOUND_TOOL_IDS: "
         + ", ".join(sorted(_missing_bound_tools))
     )
+from core.mines_threat import TOOL_BUY_ALIASES  # explicit current dependency
 TOOL_BUY_ALIASES.update({
  'zestaw krawiecki':'tailor_kit','tailor kit':'tailor_kit','sewing kit':'tailor_kit',
  'noz garbarski':'tanning_knife','tanning knife':'tanning_knife','leatherworking knife':'tanning_knife',
@@ -203,6 +221,7 @@ TOOL_BUY_ALIASES.update({
 # Receptury wspólnego silnika perform_recipe.
 V03053_CRAFT_RECIPES={}
 def _recipe(key,name,profession,tool_type,tool_item,station,level,ingredients,output,quantity=1,xp=None):
+    from data.items import ITEMS  # canonical current dependency
     V03053_CRAFT_RECIPES[key]={"name":name,"profession":profession,"tool_type":tool_type,"tool_item_id":tool_item,"tool_name":ITEMS[tool_item]['name'],"stations":(station,),"min_profession_level":level,"ingredients":ingredients,"output":output,"quantity":quantity,"profession_xp":xp or max(20,level*3),"tool_xp":max(15,level*2),"generator_level":level,"desc":f"Receptura profesji {profession}."}
 
 _recipe('cloth','Tkana Tkanina','Krawiectwo','tailoring','tailor_kit','tailor_workshop',1,{'nettle':2,'chamomile':1},'woven_cloth')
@@ -223,6 +242,7 @@ for lvl,slot,name,affix in _carp:
     _recipe(f'carp_{lvl}',name,'Stolarstwo','carpentry','carpenter_tools','carpenter_workshop',lvl,{_carp_mats[lvl]:2},f'v03053_carp_{lvl}')
 
 # Jubilerstwo 2.0 w istniejącym systemie receptur.
+from systems.equipment_crafting import JEWELCRAFT_RECIPES  # explicit current dependency
 for lvl,slot,name,affix,amt,mat in _jewel:
     iid=f'v03053_jewel_{lvl}'
     JEWELCRAFT_RECIPES[iid]={"name":name,"profession":"Jubilerstwo","tool_type":"jewelcrafting","stations":('jeweler_workshop',),"min_profession_level":lvl,"ingredients":{mat:2},"output":iid,"quantity":1,"profession_xp":max(30,lvl*3),"tool_xp":max(20,lvl*2),"generator_level":lvl,"desc":"Receptura Jubilerstwa 2.0."}

@@ -2,6 +2,8 @@
 """Rest and mana regeneration."""
 import asyncio
 
+from config.balance import REST_REGEN_PERCENT, REST_TICK_SECONDS
+from storage.db_shared import normalize_lookup_text
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 
 STANDING_REGEN_PERCENT_V1124 = 2

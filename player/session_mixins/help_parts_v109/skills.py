@@ -13,7 +13,9 @@ from player.session_mixins.io_auth_character import CLASS_SKILLS
 from player.session_mixins.museum_bounty import BESTIARY_CATALOG
 from storage.db_schema import FISH_RESOURCE_IDS
 from systems.content_registry import LATEST_CHANGES, LATEST_CHANGES_TITLE
-from systems.content_registry import HELP_TOPICS, HELP_TOPIC_ALIASES
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from world.world_state import _FINAL_SKILL_HELP_EXACT_INDEX, _FINAL_SKILL_HELP_SEARCH_ROWS
 
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v107 approved physical-EQ activation, with persistent rollback snapshot.
+"""Approved physical-EQ activation; historical snapshots are archival only.
 
 This function is called ONLY after server boot has registered dynamic gear,
 AND only after v107 release activation has verified 60/60 PLUS and exact
@@ -20,7 +20,7 @@ from systems.v10700_equipment_write_barrier import install_on_migrated_connectio
 
 
 def _require_approved():
-    from systems.v10700_activation import production_approved
+    from systems.runtime_activation import production_approved
     if not production_approved():
         raise PermissionError('EQ v107: brak autoryzowanego pełnego PREDEPLOY')
 
@@ -39,7 +39,7 @@ def _check_all_accounts(conn, catalog):
 
 def _backup_and_check(conn, catalog, output):
     """Never rehearse on the immutable rollback backup itself."""
-    from validation.v10700_eq_ledger_live_clone import analyze_copy
+    from systems.eq_migration.ledger_copy import analyze_copy
     raw=getattr(conn,'_connection',conn)
     with closing(sqlite3.connect(output)) as rollback_backup:
         raw.backup(rollback_backup)
@@ -84,9 +84,20 @@ def activate_production_ledger(db, catalog):
         rows=conn.execute('SELECT cutover_version,backup_name FROM v107_eq_production_cutover').fetchall()
         if len(rows)!=1 or rows[0][0]!='107.00.0':
             raise RuntimeError('EQ v107: nieznany lub uszkodzony znacznik migracji')
-        backup=Path(db.path).resolve().parent/'backups'/rows[0][1]
-        if not backup.is_file():
-            raise RuntimeError('EQ v107: zaginęła migawka umożliwiająca wycofanie')
+        name=rows[0][1]
+        if (not isinstance(name,str) or not name or name in ('.','..')
+            or Path(name).name != name or '/' in name or '\\' in name):
+            raise RuntimeError('EQ v107: uszkodzona nazwa historycznej migawki')
+        # This is an ALREADY committed migration. Its original v106 rollback
+        # snapshot can be archived/removed by later upgrades. It must never
+        # be reconstructed from the current database or used as a live gate.
+        # The *current* ledger, not historical file presence, is authoritative.
+        integrity=conn.execute('PRAGMA integrity_check').fetchone()
+        if integrity is None or integrity[0]!='ok':
+            raise RuntimeError('EQ: obecna baza SQLite ma błędy integralności')
+        for table in ('v106_equipped_instances','v106_stored_instances'):
+            if conn.execute(f'PRAGMA foreign_key_check("{table}")').fetchone():
+                raise RuntimeError('EQ: niespójne powiązania fizycznych kopii')
         _check_all_accounts(conn,catalog)
     else:
         # Database must be idle before copying; do not race against players.

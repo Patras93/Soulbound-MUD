@@ -6,7 +6,7 @@ are validated against their native runtime shape before an atomic file publish.
 Never edits user SQLite, soul-level thresholds, scripts or historical content.
 """
 from __future__ import annotations
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 from copy import deepcopy
 import json

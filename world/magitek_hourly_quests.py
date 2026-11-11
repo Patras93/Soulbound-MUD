@@ -22,6 +22,7 @@ V0383_MAGITEK_HOURLY_IDS = (
 
 # All quests use the existing hourly board. The `level` field is a reward-stage
 # hint only; it is NOT an acceptance gate.
+from data.quests import QUESTS  # canonical current dependency
 _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
     "hourly_magitek_patrol": {
         "name": "Godzinne Magitek: Czyszczenie kompleksu",
@@ -104,6 +105,7 @@ _catalog_mut.catalog_update_path('QUESTS', QUESTS, (), {
 })
 
 # Append to the permanent hourly board without disturbing the existing offer order.
+from systems.content_registry import HOURLY_QUEST_IDS  # explicit current dependency
 HOURLY_QUEST_IDS = tuple(dict.fromkeys(tuple(HOURLY_QUEST_IDS) + V0383_MAGITEK_HOURLY_IDS))
 
 
@@ -138,25 +140,35 @@ def v0383_tag_magitek_template(template):
 
 
 # Tag all authored and already-materialized Machine templates.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _v0383_mid, _v0383_template in list(MOB_TEMPLATES.items()):
     v0383_tag_magitek_template(_v0383_template)
 
 # Future lazy-generated Magitek floors must receive the same aliases.
+from world.magitek_infinite import create_infinite_magitek_floor_definition  # explicit current dependency
 _create_infinite_magitek_floor_definition_before_v0383 = create_infinite_magitek_floor_definition
 
 def create_infinite_magitek_floor_definition(floor):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     room_id, spawns = _create_infinite_magitek_floor_definition_before_v0383(floor)
     for _room_id, template_id in spawns:
         v0383_tag_magitek_template(MOB_TEMPLATES.get(template_id))
     return room_id, spawns
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('create_infinite_magitek_floor_definition', create_infinite_magitek_floor_definition)
 
+
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["godzinne magitek"] = [
     "v0.38.3: Tablica Godzinnych Zleceń ma 7 stałych zleceń Magitek.",
     "Każde zlecenie odnawia się niezależnie po 60 minutach od oddania i każdy nowy odbiór zaczyna od 0/x.",
     "Cele obejmują dowolne Machine, nieskończone piętra, elitarne prototypy, bossów, Rdzenie Magitek, Rdzenie WarMecha i zestaw komponentów.",
     "Komenda: questy godzinne. Przyjęcie przez lidera nadal korzysta z synchronizacji questów dla członków drużyny stojących razem.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "magitek questy": "godzinne magitek",
     "questy magitek": "godzinne magitek",
@@ -166,6 +178,11 @@ HELP_TOPIC_ALIASES.update({
 
 
 def magitek_hourly_quests_audit_v0383():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.quests import QUESTS  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.magitek_infinite import magitek_floor_id  # explicit current dependency
     errors = []
     for quest_id in V0383_MAGITEK_HOURLY_IDS:
         q = QUESTS.get(quest_id)
@@ -232,6 +249,8 @@ def magitek_hourly_quests_audit_v0383():
 
 MAGITEK_HOURLY_QUESTS_AUDIT_V0383 = magitek_hourly_quests_audit_v0383()
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.3: 7 godzinnych zleceń Magitek; każde odnawia się osobno po 60 minutach i zaczyna ponownie od 0/x."
 )

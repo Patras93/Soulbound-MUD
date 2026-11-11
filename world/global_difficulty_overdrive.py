@@ -93,6 +93,7 @@ def _v0386_stage(template):
 
 
 def _v0386_rank(template):
+    import core.balance_math as balance_math  # explicit current dependency
     template = template or {}
     raw = str(template.get("rank", "") or "").strip().lower()
     if (
@@ -197,9 +198,10 @@ def pressure_by_content_v1020012(template):
 
 def global_difficulty_multipliers_v0386(template):
     """Return final HP/damage/reward/coin multipliers for every combat mob."""
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # explicit optional dependency
     template = template or {}
     stage = _v0386_stage(template)
-    cap = max(1, int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600))
+    cap = max(1, int(CHARACTER_MAX_LEVEL or 600))
     # Keep growing past 600, but more gently, so infinite dungeons never flatten.
     capped = min(stage, cap) / float(cap)
     overflow = max(0, stage - cap)
@@ -268,6 +270,7 @@ def global_difficulty_multipliers_v0386(template):
     }
 
 
+from world.world_threat_overdrive import v0190_apply_combat_template  # explicit current dependency
 _v0386_apply_before = v0190_apply_combat_template
 
 
@@ -280,6 +283,9 @@ def v0190_apply_combat_template(template):
     """
     # v12.00.2: real endgame floor levels, not just huge multipliers of
     # generator stage 1. This runs on spawn/respawn as well as static creation.
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # explicit optional dependency
+    import core.balance_math as balance_math  # explicit current dependency
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
     if isinstance(template, dict) and template.get("giant_fortress_floor") is not None:
         floor = max(1, int(template.get("giant_fortress_floor") or 1))
         # The historic Giant Fortress is an advanced combat location. Preserve
@@ -309,7 +315,7 @@ def v0190_apply_combat_template(template):
     # old Generator Core did not always map to its boss rank. Enforce a
     # canonical minimum for the FINAL detected rank before applying v0.38.6.
     _rank_floor = _v0386_rank(result)
-    _stage_floor = max(1, min(int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600), _v0386_stage(result)))
+    _stage_floor = max(1, min(int(CHARACTER_MAX_LEVEL or 600), _v0386_stage(result)))
     try:
         _canon_hp = int(balance_math.mob_hp(_stage_floor, _rank_floor))
         _canon_dmg = int(balance_math.mob_damage(_stage_floor, _rank_floor))
@@ -385,14 +391,22 @@ def v0190_apply_combat_template(template):
     result["global_difficulty_rank_v0386"] = mult["rank"]
     return result
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
+
 
 v0190_apply_combat_template._global_difficulty_overdrive_v0386 = True
 
 
+from world.tower_overdrive import v0190_combat_reward  # explicit current dependency
 _v0386_reward_before = v0190_combat_reward
 
 
 def v0190_combat_reward(template, kind):
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # explicit optional dependency
+    import core.balance_math as balance_math  # explicit current dependency
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
+    from systems.infinite_equipment import infinite_coin_multiplier  # explicit current dependency
     base = int(_v0386_reward_before(template, kind))
     if not isinstance(template, dict):
         return base
@@ -400,7 +414,7 @@ def v0190_combat_reward(template, kind):
     # Enforce the reward floor for the final rank too; this fixes legacy
     # boss=True templates whose old generated reward could still look normal.
     rank = _v0386_rank(template)
-    stage = max(1, min(int(globals().get("CHARACTER_MAX_LEVEL", 600) or 600), _v0386_stage(template)))
+    stage = max(1, min(int(CHARACTER_MAX_LEVEL or 600), _v0386_stage(template)))
     try:
         if str(kind) == "coins":
             canonical = int(balance_math.currency_for_stage(stage, rank))
@@ -433,6 +447,9 @@ def v0190_combat_reward(template, kind):
     reward = min(V019_SAFE_INT, max(0, int(round(base * factor))))
     return dungeon_kill_xp_v1285(template, str(kind), reward)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_combat_reward', v0190_combat_reward)
+
 
 v0190_combat_reward._global_difficulty_overdrive_v0386 = True
 
@@ -440,6 +457,7 @@ v0190_combat_reward._global_difficulty_overdrive_v0386 = True
 # v12.00.2: static authored floors are defined before the final world combat
 # layer is installed. Refresh only the five reviewed dungeon families at
 # bootstrap; lazy floors receive the same logic during spawn/respawn.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _v1202_tid, _v1202_template in list(MOB_TEMPLATES.items()):
     if isinstance(_v1202_template, dict) and (
         _v1202_template.get("giant_fortress_floor") is not None
@@ -456,6 +474,8 @@ for _v1202_tid, _v1202_template in list(MOB_TEMPLATES.items()):
 # World._register_runtime_spawn / the v0.38.4 rebind hooks. Existing live mobs
 # are refreshed on normal World.refresh/respawn through v0190_apply... .
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("trudnosc swiata", []).append(
     "v102.00.12: stala trudnosc swiata +20% HP / +22% obrazen i +40% EXP walki ponad dotychczasowy profil. "
     "Krypty, Mityczne Krypty, obie Wieze i instancje maja osobne mocniejsze mnozniki. "
@@ -595,6 +615,7 @@ def global_difficulty_overdrive_audit_v0386():
 
 
 def global_mob_feel_audit_v11323():
+    from data.items import ITEMS  # canonical current dependency
     errors = []
     normal = global_difficulty_multipliers_v0386({"generator_level": 100})
     elite = global_difficulty_multipliers_v0386({"generator_level": 100, "rank": "elite", "elite": True})

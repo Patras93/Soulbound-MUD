@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.30.51 Session mixin: equipment_stats."""
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import random
@@ -1033,5 +1033,5 @@ class SessionEquipmentStatsMixin:
 # v107 experimental Magitek effects. No effect on production v106.
 import os as _v107_magitek_env
 if _sb107_runtime_enabled():
-    from systems.magitek_support_v107 import install_defense_adapter as _v107_install_magitek
+    from systems.magitek.support import install_defense_adapter as _v107_install_magitek
     _v107_install_magitek(SessionEquipmentStatsMixin)

@@ -1,4 +1,4 @@
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 from systems.items_resources import CLASS_EQUIPMENT_SETS  # required by bound historical collection builder
 from systems.dungeons_regions import ASTRAL_MAX_FLOOR  # restored source dependency
 from systems.items_resources import CORPSE_MATERIAL_TIERS  # restored source dependency
@@ -23,20 +23,22 @@ from systems.equipment_crafting import SHOP_SELLERS  # restored explicit depende
 from data.shops import SHOPS  # restored explicit dependency v6.00
 from core.progression_resources import mine_floor_id  # restored explicit dependency v6.00
 from systems.dungeons_regions import ASTRAL_MIN_FLOOR  # restored explicit dependency v6.00
-from core.legacy_function_binding_v410 import bind_legacy_function_v410 as _sb410_bind
 import unicodedata
 import re
 
-import world.v410_dynamic_regions as _sb410_mod_v410_dynamic_regions
-import world.v410_dynamic_instances as _sb410_mod_v410_dynamic_instances
-import world.v410_dynamic_collectors as _sb410_mod_v410_dynamic_collectors
 
 from data import catalog_mutations as _catalog_mut
 from systems.dungeons_regions import crypt_floor_id, astral_floor_id, giant_fortress_floor_id, mythic_crypt_floor_id, mythic_astral_floor_id, profession_dungeon_room_id, crypt_subroom_display_name, crypt_floor_number, astral_floor_number, giant_fortress_floor_number, mythic_crypt_floor_number, mythic_astral_floor_number, profession_dungeon_floor
-from data.items import ITEMS
+from data.items import ITEMS  # canonical current dependency
 from data.crafting_recipes import CRAFT_RECIPES
-from data.rooms import ROOMS
-from systems.content_registry import MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, CRAFT_MATERIAL_STORAGE_IDS, HELP_TOPICS, HELP_TOPIC_ALIASES
+from data.rooms import ROOMS  # canonical current dependency
+from systems.content_registry import MOB_SPAWNS, CRAFT_MATERIAL_STORAGE_IDS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
+from data.npcs import NPCS  # canonical current dependency
+from data.quests import QUESTS  # canonical current dependency
 from core.mines_threat import EXP_AREAS, EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES
 from core.progression_resources import mine_floor_number
 from world.economy_quests import _configure_dynamic_corpse_material
@@ -167,6 +169,8 @@ def bounty_reward_values(kind, needed):
 
 
 def _collection_slug(value):
+    import re  # explicit current dependency
+    import unicodedata  # explicit current dependency
     text = str(value or "").strip().lower().replace("ł", "l")
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
@@ -564,10 +568,203 @@ HELP_TOPIC_ALIASES.update({
 # ============================================================
 # v0.9.30 - LARGE EXPLORATION REGIONS
 # ============================================================
-def build_v0930_large_exploration_regions(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: build_v0930_large_exploration_regions")
-build_v0930_large_exploration_regions = _sb410_bind(_sb410_mod_v410_dynamic_regions.build_v0930_large_exploration_regions, globals())
+def build_v0930_large_exploration_regions():
+    """Rozbudowuje małe expowiska do dużych, zapętlonych regionów.
+
+    Bez nowego eventu eksploracyjnego: zmiana dotyczy wyłącznie świata.
+    Nowe sektory tworzą siatki z pętlami i bocznymi drogami zamiast prostych
+    krzyży. Istniejące wejścia, bossowie i połączenia między regionami zostają.
+    """
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    reverse = {"north":"south","south":"north","east":"west","west":"east","up":"down","down":"up"}
+    targets = {
+        "Obozowiska Bandytów": 24,
+        "Jaskinie Goblinów": 24,
+        "Ruiny Strażnicy": 24,
+        "Stary Cmentarz": 24,
+        "Ruiny Kultystów": 24,
+        "Legowisko Bestii": 24,
+        "Nekropolia": 24,
+        "Kanały Pod Miastem": 24,
+        "Lodowe Jaskinie": 24,
+        "Las Szeptów": 24,
+        "Pustynia": 28,
+        "Bagna": 28,
+        "Góry": 28,
+        "Popielne Pustkowia": 30,
+        "Rozbite Niebo": 30,
+        "Wybrzeże Pustki": 30,
+        "Korona Świata": 30,
+    }
+    anchors = {
+        "Obozowiska Bandytów":"bandit_outer_ring",
+        "Jaskinie Goblinów":"goblin_scrap_tunnels",
+        "Ruiny Strażnicy":"ruin_courtyard",
+        "Stary Cmentarz":"cemetery_ossuary_path",
+        "Ruiny Kultystów":"cult_ruins_courtyard",
+        "Legowisko Bestii":"beast_lair_tracks",
+        "Nekropolia":"necropolis_procession",
+        "Kanały Pod Miastem":"sewer_runoff",
+        "Lodowe Jaskinie":"ice_cave_blue_tunnel",
+        "Las Szeptów":"forest_old_oaks",
+        "Pustynia":"desert_dunes",
+        "Bagna":"reed_mire",
+        "Góry":"mountain_lower_slopes",
+        "Popielne Pustkowia":"ashen_waste",
+        "Rozbite Niebo":"storm_bridge",
+        "Wybrzeże Pustki":"void_shore",
+        "Korona Świata":"eternal_causeway",
+    }
+    words = {
+        "Obozowiska Bandytów": (("Ścieżka","Namioty","Barykada","Plac","Zaułek"),("Czerwonych Chust","Zrabowanych Wozów","Nocnej Straży","Starych Palisad","Przemytników","Wilczych Zębów"),"Palisady, wozy i boczne przejścia rozbijają obóz na wiele połączonych sektorów."),
+        "Jaskinie Goblinów": (("Tunel","Grota","Szyb","Nora","Galeria"),("Zielonego Dymu","Kościanych Totemów","Złomiarzy","Krzywych Kilofów","Grzybowych Lamp","Piszczałek"),"Kręte tunele przecinają się i wracają do wcześniejszych grot, tworząc rozległą sieć."),
+        "Ruiny Strażnicy": (("Korytarz","Dziedziniec","Wieża","Komnata","Galeria"),("Pękniętych Tarcz","Starej Warty","Runicznych Murów","Zawalonych Łuków","Zapomnianego Garnizonu","Kamiennych Schodów"),"Pozostałości murów, krużganków i podziemi łączą się wieloma drogami."),
+        "Stary Cmentarz": (("Aleja","Kwatera","Mauzoleum","Krypta","Ogród"),("Zapomnianych Imion","Krzywych Krzyży","Czarnych Róż","Otwartych Grobów","Płaczących Figur","Zgaszonych Lamp"),"Nagrobki, mauzolea i boczne alejki tworzą rozległy cmentarz z licznymi pętlami."),
+        "Ruiny Kultystów": (("Krużganek","Komnata","Dziedziniec","Galeria","Przejście"),("Czarnej Pieczęci","Zgaszonych Świec","Pękniętych Run","Szeptów Otchłani","Spalonego Pergaminu","Pustych Masek"),"Ruiny świątyni ciągną się przez dziedzińce, biblioteki i boczne przejścia rytualne."),
+        "Legowisko Bestii": (("Grota","Korytarz","Gniazdo","Szczelina","Łowisko"),("Starych Kości","Poszarpanych Skór","Żelaznych Korzeni","Ciepłego Oddechu","Śladów Pazurów","Głębokiego Ryku"),"Naturalne jaskinie rozchodzą się na kilka poziomów i łączą z powrotem bocznymi szczelinami."),
+        "Nekropolia": (("Aleja","Katakumby","Mauzoleum","Plac","Grobowiec"),("Kamiennych Królów","Bezimiennych","Czarnych Chorągwi","Milczących Straży","Kościanych Bram","Wiecznego Czuwania"),"Monumentalna nekropolia ma wiele ulic grobowych, placów i zejść do katakumb."),
+        "Kanały Pod Miastem": (("Kanał","Tunel","Komora","Przepust","Cysterna"),("Czarnej Wody","Starych Krat","Zgniłych Desek","Przemytników","Zielonego Szlamu","Głębokiego Odpływu"),"Kanały tworzą prawdziwy labirynt przepustów, cystern i bocznych odpływów."),
+        "Lodowe Jaskinie": (("Tunel","Grota","Szczelina","Komora","Galeria"),("Błękitnego Lodu","Szronowych Kolumn","Zamarzniętych Ech","Kryształowego Pyłu","Pękniętego Lodowca","Wiecznej Zimy"),"Lodowe korytarze rozgałęziają się między szczelinami i zamarzniętymi komorami."),
+        "Las Szeptów": (("Ścieżka","Polana","Zagajnik","Parów","Krąg"),("Starych Dębów","Cichego Mchu","Wilczych Tropów","Srebrnych Brzóz","Księżycowych Paproci","Powalonych Pni"),"Leśne trakty przecinają się, zawracają i prowadzą przez liczne polany oraz parowy."),
+        "Pustynia": (("Wydmy","Kanion","Równina","Ruiny","Szlak"),("Siedmiu Wiatrów","Białych Kości","Czerwonego Piasku","Zaginionych Karawan","Szklanego Pyłu","Palącego Słońca"),"Wydmy i kaniony tworzą szeroki teren z wieloma szlakami między ruinami i oazami."),
+        "Bagna": (("Mokradło","Groble","Rozlewisko","Torfowisko","Zarośla"),("Czarnej Wody","Gnijących Korzeni","Trujących Oparów","Zatopionych Drzew","Bagiennych Świateł","Wężowych Gniazd"),"Groble, wyspy i rozlewiska układają się w duży, zapętlony teren bagienny."),
+        "Góry": (("Grań","Przełęcz","Półka","Wąwóz","Szlak"),("Białych Szczytów","Wiecznego Wiatru","Kamiennych Kozic","Starych Kopalń","Burzowych Chmur","Zamarzniętych Turni"),"Górskie trakty rozchodzą się po graniach, półkach i bocznych przełęczach."),
+        "Popielne Pustkowia": (("Szlak","Pole","Wąwóz","Ruiny","Krawędź"),("Czarnego Popiołu","Dogasłych Palenisk","Zwęglonych Kości","Czerwonego Żaru","Martwych Pieców","Popielnej Burzy"),"Pustkowia rozciągają się daleko między polami popiołu, ruinami i pęknięciami ziemi."),
+        "Rozbite Niebo": (("Most","Półka","Taras","Grań","Platforma"),("Piorunów","Rozdartych Chmur","Nawałnicy","Gromowych Wież","Podniebnych Ruin","Białego Wiatru"),"Podniebne mosty i półki tworzą wielodrogowy region wysoko nad chmurami."),
+        "Wybrzeże Pustki": (("Brzeg","Molo","Ruiny","Zatoka","Taras"),("Czarnego Przypływu","Bezgwiezdnej Wody","Zatopionych Dzwonów","Pustych Latarni","Martwych Żagli","Otchłani"),"Czarny brzeg ciągnie się przez zatoki, mola i zatopione ruiny połączone wieloma ścieżkami."),
+        "Korona Świata": (("Grobla","Galeria","Taras","Schody","Dziedziniec"),("Absolutu","Wiecznego Światła","Ponadczasowych Bram","Milczących Gwiazd","Białego Kamienia","Ostatniej Korony"),"Monumentalny szczyt tworzy rozległy kompleks tarasów, galerii i wielkich schodów."),
+    }
+    detail = (
+        "Boczna droga wraca do dalszej części regionu, więc nie jest to ślepy krzyż.",
+        "Kilka przejść pozwala obejść główny trakt i odkrywać teren różnymi trasami.",
+        "Ścieżki łączą ten sektor z sąsiednimi częściami regionu w dużą pętlę.",
+        "To jeden z wielu równoległych traktów; mapa ma liczne alternatywne połączenia.",
+    )
+
+    # Zbierz zwykłe moby obecnych regionów zanim dołożymy nowe spawny.
+    room_zone = {rid: room.get("zone") for rid, room in ROOMS.items()}
+    zone_pools = {}
+    for rid, mid in list(MOB_SPAWNS):
+        zone = room_zone.get(rid)
+        if zone not in targets:
+            continue
+        tmpl = MOB_TEMPLATES.get(mid, {})
+        if tmpl.get("world_boss") or tmpl.get("boss") or tmpl.get("boss_mechanic"):
+            continue
+        zone_pools.setdefault(zone, [])
+        if mid not in zone_pools[zone]:
+            zone_pools[zone].append(mid)
+
+    # Cmentarz dostaje gęstszy zestaw nieumarłych, aby 0/25 nie wymagało stania na respawnie.
+    cemetery_pool = [
+        mid for mid in (
+            "cemetery_restless_dead", "cemetery_bone_collector",
+            "cemetery_bell_wraith", "cemetery_steel_skeleton",
+            "cemetery_grave_hound", "cemetery_crypt_reaper",
+            "cemetery_mourning_knight",
+        ) if mid in MOB_TEMPLATES
+    ]
+    if cemetery_pool:
+        zone_pools["Stary Cmentarz"] = cemetery_pool
+
+    for zone, target in targets.items():
+        existing = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
+        need = max(0, int(target) - len(existing))
+        if need <= 0:
+            continue
+        anchor = anchors[zone]
+        prefixes, suffixes, zone_desc = words[zone]
+        safe = _collection_slug(zone)
+        new_ids = [f"v0930_{safe}_{i+1:02d}" for i in range(need)]
+        # v0.33.6: nazwa każdego pokoju ma być globalnie jednoznaczna dla NVDA.
+        # Wybieramy pełne kombinacje prefix x suffix i omijamy nazwy istniejące
+        # już wcześniej w świecie; żadnych dopisków 2/3/4.
+        used_room_names = {
+            str(existing_room.get("name", "")).casefold().strip()
+            for existing_room in ROOMS.values()
+            if str(existing_room.get("name", "")).strip()
+        }
+        name_combinations = [
+            (pfx, sfx)
+            for sfx in suffixes
+            for pfx in prefixes
+        ]
+        combo_cursor = 0
+        for i, rid in enumerate(new_ids):
+            chosen_pair = None
+            while combo_cursor < len(name_combinations):
+                candidate = name_combinations[combo_cursor]
+                combo_cursor += 1
+                candidate_name = f"{candidate[0]} {candidate[1]}"
+                if candidate_name.casefold().strip() not in used_room_names:
+                    chosen_pair = candidate
+                    used_room_names.add(candidate_name.casefold().strip())
+                    break
+            if chosen_pair is None:
+                # Teoretyczny bezpiecznik: pula ma 30 kombinacji, a każdy region
+                # potrzebuje mniej nowych sektorów niż ten limit.
+                chosen_pair = (prefixes[i % len(prefixes)], suffixes[(i // len(prefixes)) % len(suffixes)])
+            prefix, suffix = chosen_pair
+            room_data = {
+                "zone": zone,
+                "name": f"{prefix} {suffix}",
+                "desc": f"{zone_desc} {detail[i % len(detail)]}",
+                "exits": {},
+            }
+            endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
+            if endgame_recommended is not None:
+                room_data["recommended_mastery"] = int(endgame_recommended)
+            _catalog_mut.catalog_assign(room_data, 'ROOMS', ROOMS, (rid,))
+
+        # Dołącz nową część bez nadpisywania istniejących wyjść.
+        anchor_exits = _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (anchor,), "exits", {})
+        attach = next((d for d in ("south","east","west","north","down","up") if d not in anchor_exits), None)
+        if attach is None:
+            attach = "down"
+        anchor_exits[attach] = new_ids[0]
+        _catalog_mut.catalog_assign(anchor, 'ROOMS', ROOMS, (new_ids[0], "exits", reverse[attach]))
+
+        # Łącznik + nieregularna siatka 5 kolumn. Pełne poziome rzędy i kilka
+        # pionowych łączników dają pętle i alternatywne trasy, ale nie prosty krzyż.
+        if len(new_ids) > 1:
+            back_from_connector = reverse[attach]
+            forward = "south" if back_from_connector != "south" else "east"
+            _catalog_mut.catalog_assign(new_ids[1], 'ROOMS', ROOMS, (new_ids[0], "exits", forward))
+            _catalog_mut.catalog_assign(new_ids[0], 'ROOMS', ROOMS, (new_ids[1], "exits", reverse[forward]))
+
+            grid = new_ids[1:]
+            width = 5
+            for idx, rid in enumerate(grid):
+                row, col = divmod(idx, width)
+                # poziome przejścia
+                if col + 1 < width and idx + 1 < len(grid):
+                    other = grid[idx + 1]
+                    _catalog_mut.catalog_assign(other, 'ROOMS', ROOMS, (rid, "exits", "east"))
+                    _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (other, "exits", "west"))
+                # pionowe przejścia: kolumny skrajne zawsze, środkowe naprzemiennie
+                down_idx = idx + width
+                if down_idx < len(grid) and (col in (0, width-1) or (row + col) % 2 == 0):
+                    other = grid[down_idx]
+                    _catalog_mut.catalog_assign(other, 'ROOMS', ROOMS, (rid, "exits", "south"))
+                    _catalog_mut.catalog_assign(rid, 'ROOMS', ROOMS, (other, "exits", "north"))
+
+        # Zaludnij nowe sektory istniejącymi zwykłymi mobami regionu.
+        pool = zone_pools.get(zone, [])
+        if pool:
+            for i, rid in enumerate(new_ids):
+                MOB_SPAWNS.append((rid, pool[i % len(pool)]))
+                if i % 4 == 0 and len(pool) > 1:
+                    MOB_SPAWNS.append((rid, pool[(i + 1) % len(pool)]))
+
+    # Achievement ma oznaczać faktyczne odkrycie całego aktualnego świata.
+    tiers = list(ACHIEVEMENT_TRACKS.get("exploration_rooms", {}).get("tiers", ()))
+    if tiers:
+        fixed = [(req, rank) for req, rank in tiers if rank != "Platinum"]
+        fixed.append((len(ROOMS), "Platinum"))
+        ACHIEVEMENT_TRACKS["exploration_rooms"]["tiers"] = tuple(fixed)
 
 build_v0930_large_exploration_regions()
 
@@ -582,6 +779,23 @@ V0100_RESOURCE_ROOM_SETS = (
     "OCEAN_FISHING_ROOMS", "MARINE_FISHING_ROOMS",
     "WOODCUTTING_ROOMS", "HERBALISM_ROOMS", "MEADOW_HERBALISM_ROOMS",
 )
+
+
+def _resource_room_sets():
+    from core.progression_resources import (
+        MINING_ROOMS, FISHING_ROOMS, SEA_FISHING_ROOMS, OCEAN_FISHING_ROOMS,
+        MARINE_FISHING_ROOMS, WOODCUTTING_ROOMS, HERBALISM_ROOMS,
+        MEADOW_HERBALISM_ROOMS, MINING_DEPTH_ROOMS,
+    )
+    return {
+        'MINING_ROOMS': MINING_ROOMS, 'FISHING_ROOMS': FISHING_ROOMS,
+        'SEA_FISHING_ROOMS': SEA_FISHING_ROOMS,
+        'OCEAN_FISHING_ROOMS': OCEAN_FISHING_ROOMS,
+        'MARINE_FISHING_ROOMS': MARINE_FISHING_ROOMS,
+        'WOODCUTTING_ROOMS': WOODCUTTING_ROOMS, 'HERBALISM_ROOMS': HERBALISM_ROOMS,
+        'MEADOW_HERBALISM_ROOMS': MEADOW_HERBALISM_ROOMS,
+        'MINING_DEPTH_ROOMS': MINING_DEPTH_ROOMS,
+    }
 
 V0100_INSTANCE_LABELS = {
     "crypt": (
@@ -632,10 +846,62 @@ V0100_INSTANCE_LABELS = {
 }
 
 
-def v0100_instance_spec(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0100_instance_spec")
-v0100_instance_spec = _sb410_bind(_sb410_mod_v410_dynamic_instances.v0100_instance_spec, globals())
+def v0100_instance_spec(room_id):
+    """Zwraca opis kanonicznego pokoju piętra, bez jego nowych odnóg."""
+    from core.progression_resources import mine_floor_id, mine_floor_number  # explicit current dependency
+    from systems.dungeons_regions import astral_floor_id, astral_floor_number, crypt_floor_id, crypt_floor_number, giant_fortress_floor_id, giant_fortress_floor_number, mythic_astral_floor_id, mythic_astral_floor_number, mythic_crypt_floor_id, mythic_crypt_floor_number, profession_dungeon_floor, profession_dungeon_room_id  # explicit current dependency
+    rid = str(room_id or "")
+    floor = crypt_floor_number(rid)
+    if floor is not None and rid == crypt_floor_id(floor):
+        return {
+            "kind": "crypt", "floor": floor, "next_dir": "down",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "crypt_boss",
+        }
+    floor = mythic_crypt_floor_number(rid)
+    if floor is not None and rid == mythic_crypt_floor_id(floor):
+        return {
+            "kind": "mythic_crypt", "floor": floor, "next_dir": "down",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "mythic_crypt_boss",
+        }
+    floor = astral_floor_number(rid)
+    if floor is not None and rid == astral_floor_id(floor):
+        return {
+            "kind": "astral", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "astral_boss",
+        }
+    floor = mythic_astral_floor_number(rid)
+    if floor is not None and rid == mythic_astral_floor_id(floor):
+        return {
+            "kind": "mythic_astral", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "mythic_astral_boss",
+        }
+    floor = giant_fortress_floor_number(rid)
+    if floor is not None and rid == giant_fortress_floor_id(floor):
+        return {
+            "kind": "giant", "floor": floor, "next_dir": "up",
+            "rooms": V0100_MAJOR_FLOOR_ROOMS, "boss_flag": "giant_fortress_boss",
+        }
+    floor = mine_floor_number(rid)
+    if floor is not None and rid == mine_floor_id(floor):
+        return {
+            "kind": "mine", "floor": floor, "next_dir": "down",
+            "rooms": V0100_PROF_FLOOR_ROOMS, "boss_flag": None,
+        }
+    dungeon, floor = profession_dungeon_floor(rid)
+    if dungeon is not None and rid == profession_dungeon_room_id(dungeon, floor):
+        next_dirs = {
+            "crystal_mine": "down", "sunken_grotto": "down",
+            "ancient_forest": "south", "alchemy_garden": "east",
+        }
+        return {
+            "kind": "profession", "profession_dungeon": dungeon,
+            "floor": floor, "next_dir": next_dirs[dungeon],
+            "rooms": V0100_PROF_FLOOR_ROOMS, "boss_flag": None,
+        }
+    return None
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0100_instance_spec', v0100_instance_spec)
 
 
 def v0100_subroom_id(canonical_room, index):
@@ -644,23 +910,254 @@ def v0100_subroom_id(canonical_room, index):
 
 def v0100_copy_resource_membership(canonical_room, subrooms):
     for set_name in V0100_RESOURCE_ROOM_SETS:
-        room_set = globals().get(set_name)
+        room_set = _resource_room_sets().get(set_name)
         if isinstance(room_set, set) and canonical_room in room_set:
             room_set.update(subrooms)
 
 
 def v0100_connect_pair(a, direction, b, reverse_direction):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
     _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[direction] = b
     _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[reverse_direction] = a
 
 
-def v0100_expand_instance_floor(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0100_expand_instance_floor")
-v0100_expand_instance_floor = _sb410_bind(_sb410_mod_v410_dynamic_instances.v0100_expand_instance_floor, globals())
+def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False):
+    """Zmienia jedno liniowe piętro w dużą, zapętloną mapę.
+
+    Kanoniczny pokój pozostaje lądowaniem/checkpointem. Wyjście na kolejne
+    piętro zostaje przeniesione do ostatniej komnaty. Na piętrze bossa boss
+    również trafia do tej komnaty, dzięki czemu naprawdę pilnuje dalszej drogi.
+    """
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    import hashlib  # explicit current dependency
+    import random  # explicit current dependency
+    from core.bootstrap_economy_professions import V0250_WORLD_SEED, v0250_instance_floor_profile  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    from systems.dungeons_regions import is_crypt_boss_floor  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0100_instance_spec = _current_rule('v0100_instance_spec')
+    canonical_room = str(canonical_room or "")
+    spec = v0100_instance_spec(canonical_room)
+    if not spec or canonical_room not in ROOMS:
+        return list(spawn_pairs or ())
+    first_sub = v0100_subroom_id(canonical_room, 1)
+    if first_sub in ROOMS:
+        return list(spawn_pairs or ())
+
+    base = ROOMS[canonical_room]
+    exits = base.setdefault("exits", {})
+    next_dir = spec["next_dir"]
+    vertical_reverse = {"down":"up", "up":"down", "south":"north", "north":"south", "east":"west", "west":"east"}
+    previous_dir = vertical_reverse[next_dir]
+    # Jeżeli poprzednie piętro jest już rozbudowane, powrót prowadzi do jego
+    # prawdziwej komnaty schodów, a nie teleportuje na początek piętra.
+    previous_target = exits.get(previous_dir)
+    previous_spec = v0100_instance_spec(previous_target) if previous_target else None
+    if previous_spec:
+        previous_final = v0100_subroom_id(previous_target, int(previous_spec["rooms"]) - 1)
+        if previous_final in ROOMS:
+            exits[previous_dir] = previous_final
+    next_target = exits.pop(next_dir, None)
+    total_rooms = max(3, int(spec["rooms"]))
+    subrooms = [v0100_subroom_id(canonical_room, i) for i in range(1, total_rooms)]
+    maze_rooms = subrooms[:-1]
+    final_room = subrooms[-1]
+    labels = V0100_INSTANCE_LABELS[spec["kind"]]
+    floor = int(spec["floor"])
+    zone = base.get("zone", "Loch")
+    generated_profile_v025 = v0250_instance_floor_profile(spec["kind"], floor)
+
+    for index, rid in enumerate(subrooms, 1):
+        label_seed = int(hashlib.sha256(f"{spec['kind']}:{floor}".encode("utf-8")).hexdigest()[:8], 16)
+        label = labels[(label_seed + index - 1) % len(labels)]
+        if rid == final_room:
+            if spec.get("boss_flag") and is_crypt_boss_floor(floor) and spec["kind"] in {"crypt", "mythic_crypt"}:
+                label = "Komnata Strażnika Progu"
+            elif spec.get("boss_flag") and spec["kind"] in {"astral", "mythic_astral"} and floor % 10 == 0:
+                label = "Komnata Strażnika Kręgu"
+            elif spec.get("boss_flag") and spec["kind"] == "giant" and floor % 10 == 0:
+                label = "Sala Strażnika Bastionu"
+        if spec["kind"] in {"crypt", "mythic_crypt"}:
+            room_name = crypt_subroom_display_name(
+                label, floor, index + 1, mythic=(spec["kind"] == "mythic_crypt")
+            )
+            room_desc = (
+                "Rozległa część Krypty. Korytarze rozchodzą się w kilka stron, "
+                "łączą w pętle i prowadzą przez boczne komnaty. To pełna sekcja lochu, "
+                "a nie pojedynczy liniowy pokój. "
+                f"Generator: {generated_profile_v025['layout']}; "
+                f"motyw: {generated_profile_v025['motif']}."
+            )
+        else:
+            room_name = f"{label} — {floor}"
+            room_desc = (
+                f"Rozległa część poziomu {floor}. Korytarze rozchodzą się w kilka stron, "
+                "łączą w pętle i prowadzą przez boczne komnaty. To pełne piętro lochu, "
+                "a nie pojedynczy liniowy pokój. "
+                f"Generator piętra: {generated_profile_v025['layout']}; "
+                f"motyw: {generated_profile_v025['motif']}."
+            )
+        _catalog_mut.catalog_assign({
+            "zone": zone,
+            "name": room_name,
+            "desc": room_desc,
+            "exits": {},
+            "v0100_instance_kind": spec["kind"],
+            "v0250_generator_profile": generated_profile_v025,
+            "v0100_floor": floor,
+            "v0100_floor_room": index + 1,
+            "procedural_dynamic": True,
+        }, 'ROOMS', ROOMS, (rid,))
+        if "recommended_mastery" in base:
+            _catalog_mut.catalog_assign(base["recommended_mastery"], 'ROOMS', ROOMS, (rid, "recommended_mastery"))
+        dungeon = spec.get("profession_dungeon")
+        if dungeon:
+            _catalog_mut.catalog_assign(dungeon, 'ROOMS', ROOMS, (rid, "profession_dungeon"))
+            _catalog_mut.catalog_assign(floor, 'ROOMS', ROOMS, (rid, "profession_dungeon_floor"))
+
+    # v0.11.0: układ jest proceduralny, ale deterministyczny dla rodzaju i numeru
+    # piętra. Restart serwera nie zmienia mapy w trakcie progresji gracza.
+    seed_text = f"{V0250_WORLD_SEED}:soulbound-v0110:{spec['kind']}:{floor}:{spec.get('profession_dungeon','')}"
+    floor_seed = int(hashlib.sha256(seed_text.encode("utf-8")).hexdigest()[:16], 16)
+    floor_rng = random.Random(floor_seed)
+
+    # Najpierw budujemy pełną siatkę labiryntu. Wejście z kanonicznego pokoju
+    # podłączamy dopiero po utworzeniu połączeń wewnętrznych. Starszy układ
+    # podpinał wejście do r01 przed siatką i mógł zająć jedyny kierunek, który
+    # miał łączyć r01 z r02 (np. zwykła Krypta piętro 1), odcinając większość
+    # piętra.
+    reverse = {"east": "west", "west": "east", "north": "south", "south": "north"}
+
+    # Różne piętra dostają siatkę o szerokości 3 albo 4. Każdy rząd pozostaje
+    # spójny, a między kolejnymi rzędami zawsze istnieje co najmniej jedno
+    # przejście; dodatkowe przejścia tworzą losowane, lecz stałe pętle.
+    width = 3 + floor_rng.randrange(2)
+    for idx, rid in enumerate(maze_rooms):
+        row, col = divmod(idx, width)
+        if col + 1 < width and idx + 1 < len(maze_rooms):
+            other = maze_rooms[idx + 1]
+            if "east" not in ROOMS[rid]["exits"] and "west" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "east", other, "west")
+
+    rows = (len(maze_rooms) + width - 1) // width
+    for row in range(rows - 1):
+        current = list(range(row * width, min((row + 1) * width, len(maze_rooms))))
+        below = list(range((row + 1) * width, min((row + 2) * width, len(maze_rooms))))
+        possible = [c for c in range(min(len(current), len(below)))]
+        if not possible:
+            continue
+        chosen = {floor_rng.choice(possible)}
+        # Każde piętro ma co najmniej jedną prawdziwą pętlę, a część rzędów
+        # dostaje dodatkowe alternatywne przejście.
+        if len(possible) > 1 and (row == 0 or floor_rng.random() < 0.70):
+            extras = [c for c in possible if c not in chosen]
+            if extras:
+                chosen.add(floor_rng.choice(extras))
+        for c in sorted(chosen):
+            a = maze_rooms[current[c]]
+            b = maze_rooms[below[c]]
+            if "south" not in ROOMS[a]["exits"] and "north" not in ROOMS[b]["exits"]:
+                v0100_connect_pair(a, "south", b, "north")
+
+    # Podepnij lądowanie do dowolnej komnaty brzegowej z wolnym kierunkiem.
+    # Dzięki temu wejście nigdy nie rozrywa spójności siatki.
+    free_attach = [d for d in ("east", "south", "west", "north") if d not in exits]
+    attach_candidates = []
+    for d in free_attach:
+        rev = reverse[d]
+        for rid in maze_rooms:
+            if rev not in ROOMS[rid]["exits"]:
+                attach_candidates.append((d, rid, rev))
+    if not attach_candidates:
+        raise RuntimeError(f"Brak wolnego połączenia wejściowego dla {canonical_room}")
+    attach_dir, attach_room, attach_reverse = floor_rng.choice(attach_candidates)
+    v0100_connect_pair(canonical_room, attach_dir, attach_room, attach_reverse)
+
+    # Ostatnia komnata jest za labiryntem i zawiera drogę na kolejne piętro.
+    tail = maze_rooms[-1]
+    if "east" in ROOMS[tail]["exits"]:
+        # Dla krótszej siatki użyj pierwszej wolnej pary.
+        for d, rev in (("south", "north"), ("north", "south"), ("west", "east")):
+            if d not in ROOMS[tail]["exits"] and rev not in ROOMS[final_room]["exits"]:
+                v0100_connect_pair(tail, d, final_room, rev)
+                break
+    else:
+        v0100_connect_pair(tail, "east", final_room, "west")
+    if next_target:
+        _catalog_mut.catalog_assign(next_target, 'ROOMS', ROOMS, (final_room, "exits", next_dir))
+        # Gdy następne piętro istnieje już statycznie, jego droga powrotna
+        # wskazuje na tę samą klatkę schodową. Dynamiczne piętro naprawi ten
+        # link w chwili utworzenia.
+        next_spec = v0100_instance_spec(next_target)
+        if next_spec and next_target in ROOMS:
+            _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (next_target,), "exits", {})[vertical_reverse[next_dir]] = final_room
+
+    v0100_copy_resource_membership(canonical_room, subrooms)
+
+    pairs = list(spawn_pairs or ())
+    if not pairs and not runtime:
+        pairs = [(r, t) for r, t in MOB_SPAWNS if r == canonical_room]
+    boss_flag = spec.get("boss_flag")
+    boss_ids = []
+    regular_ids = []
+    for r, tid in pairs:
+        if r != canonical_room:
+            continue
+        template = MOB_TEMPLATES.get(tid, {})
+        if boss_flag and template.get(boss_flag):
+            boss_ids.append(tid)
+        else:
+            regular_ids.append(tid)
+
+    # v1.28.6: Boss chest has a stable, O(1) authoritative room location.
+    # In v0.11 lazy dungeons, pregenerated MOB_SPAWNS are removed and rebuilt
+    # only when a player arrives. Chests must NEVER depend on whether the
+    # historical spawn list happens to contain the current boss at query time.
+    # The marker only exists on actual boss checkpoints, never on regular floors.
+    if boss_ids:
+        _catalog_mut.catalog_assign(final_room, 'ROOMS', ROOMS,
+                                    (canonical_room, 'v1286_boss_chest_room'))
+        _catalog_mut.catalog_assign(canonical_room, 'ROOMS', ROOMS,
+                                    (final_room, 'v1286_boss_chest_parent'))
+
+    # Przy statycznych piętrach przenieś bossów z lądowania do sali wyjściowej.
+    if not runtime and boss_ids:
+        moved = set(boss_ids)
+        MOB_SPAWNS[:] = [
+            (r, t) for r, t in MOB_SPAWNS
+            if not (r == canonical_room and t in moved)
+        ]
+        for tid in boss_ids:
+            MOB_SPAWNS.append((final_room, tid))
+    elif runtime and boss_ids:
+        pairs = [
+            (final_room if (r == canonical_room and t in set(boss_ids)) else r, t)
+            for r, t in pairs
+        ]
+
+    # Każda boczna komnata dostaje przeciwnika; część komnat ma dwa różne typy.
+    extra_pairs = []
+    if regular_ids:
+        for index, rid in enumerate(subrooms):
+            if rid == final_room and boss_ids:
+                continue
+            extra_pairs.append((rid, regular_ids[index % len(regular_ids)]))
+            if index % 3 == 1 and len(regular_ids) > 1:
+                extra_pairs.append((rid, regular_ids[(index + 1) % len(regular_ids)]))
+    if runtime:
+        pairs.extend(extra_pairs)
+        return pairs
+    MOB_SPAWNS.extend(extra_pairs)
+    return pairs
 
 
 def build_v0100_massive_instance_floors():
+    from data.rooms import ROOMS  # canonical current dependency
+    from systems.content_registry import CRYPT_PREGENERATED_MAX_FLOOR  # explicit current dependency
+    from systems.dungeons_regions import ASTRAL_MAX_FLOOR, ASTRAL_MIN_FLOOR, GIANT_FORTRESS_MAX_FLOOR, MYTHIC_MAX_FLOOR, PROF_DUNGEON_MAX_FLOOR, PROF_DUNGEON_PREFIXES, astral_floor_id, crypt_floor_id, giant_fortress_floor_id, mythic_astral_floor_id, mythic_crypt_floor_id, profession_dungeon_room_id  # explicit current dependency
     canonical = []
     canonical.extend(crypt_floor_id(f) for f in range(1, CRYPT_PREGENERATED_MAX_FLOOR + 1))
     canonical.extend(mythic_crypt_floor_id(f) for f in range(1, MYTHIC_MAX_FLOOR + 1))
@@ -714,6 +1211,9 @@ V0100_SURFACE_WORDS = {
 
 
 def v0100_zone_regular_pool(zone):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     result = []
     for rid, tid in MOB_SPAWNS:
         if ROOMS.get(rid, {}).get("zone") != zone:
@@ -732,6 +1232,9 @@ def v0100_zone_regular_pool(zone):
 
 
 def v0100_find_surface_anchor(zone):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     candidates = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
     # Najpierw wybierz pomieszczenie z wolnym kierunkiem poziomym i bez bossa.
     boss_rooms = {
@@ -750,10 +1253,68 @@ def v0100_find_surface_anchor(zone):
     return candidates[0] if candidates else None
 
 
-def v0100_expand_surface_zone(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: v0100_expand_surface_zone")
-v0100_expand_surface_zone = _sb410_bind(_sb410_mod_v410_dynamic_instances.v0100_expand_surface_zone, globals())
+def v0100_expand_surface_zone(zone, target):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    existing = [rid for rid, room in ROOMS.items() if room.get("zone") == zone]
+    need = max(0, int(target) - len(existing))
+    if not need:
+        return
+    anchor = v0100_find_surface_anchor(zone)
+    if not anchor:
+        return
+    pool = v0100_zone_regular_pool(zone)
+    safe = _collection_slug(zone)
+    new_ids = [f"v0100_{safe}_{i+1:03d}" for i in range(need)]
+    words = V0100_SURFACE_WORDS.get(zone, ("Szlak", "Sektor", "Przejście", "Odnoga", "Rejon"))
+    for i, rid in enumerate(new_ids):
+        word = words[i % len(words)]
+        _catalog_mut.catalog_assign({
+            "zone": zone,
+            "name": f"{word} {zone} {i+1}",
+            "desc": (
+                f"Rozległa część regionu {zone}. Teren rozchodzi się na boczne drogi, "
+                "pętle i alternatywne przejścia, dzięki czemu obszar nie jest małym expowiskiem."
+            ),
+            "exits": {},
+            "procedural_surface_v0100": True,
+        }, 'ROOMS', ROOMS, (rid,))
+        endgame_recommended = dict(V0923_ENDGAME_REGIONS).get(zone)
+        if endgame_recommended is not None:
+            _catalog_mut.catalog_assign(int(endgame_recommended), 'ROOMS', ROOMS, (rid, "recommended_mastery"))
+
+    reverse = {"east":"west", "west":"east", "north":"south", "south":"north"}
+    anchor_exits = _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (anchor,), "exits", {})
+    attach = next((d for d in ("east", "south", "west", "north") if d not in anchor_exits), None)
+    if attach is None:
+        return
+    v0100_connect_pair(anchor, attach, new_ids[0], reverse[attach])
+
+    width = 5
+    for idx, rid in enumerate(new_ids):
+        row, col = divmod(idx, width)
+        if col + 1 < width and idx + 1 < len(new_ids):
+            other = new_ids[idx + 1]
+            if "east" not in ROOMS[rid]["exits"] and "west" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "east", other, "west")
+        down_idx = idx + width
+        if down_idx < len(new_ids) and (col in (0, width - 1) or (row + col) % 2 == 0):
+            other = new_ids[down_idx]
+            if "south" not in ROOMS[rid]["exits"] and "north" not in ROOMS[other]["exits"]:
+                v0100_connect_pair(rid, "south", other, "north")
+
+    # Skopiuj charakter profesyjny regionu, jeśli stara część już go miała.
+    for set_name in V0100_RESOURCE_ROOM_SETS:
+        room_set = _resource_room_sets().get(set_name)
+        if isinstance(room_set, set) and any(r in room_set for r in existing):
+            room_set.update(new_ids)
+
+    if pool:
+        for i, rid in enumerate(new_ids):
+            MOB_SPAWNS.append((rid, pool[i % len(pool)]))
+            if i % 3 == 0 and len(pool) > 1:
+                MOB_SPAWNS.append((rid, pool[(i + 1) % len(pool)]))
 
 
 def build_v0100_massive_surface_world():
@@ -774,6 +1335,8 @@ build_v0100_massive_surface_world()
 # Dzięki temu piętro 1 działa dokładnie tak samo proceduralnie jak piętro 401+.
 
 def v0110_dynamic_instance_kind(room_id):
+    from core.progression_resources import mine_floor_number  # explicit current dependency
+    from systems.dungeons_regions import astral_floor_number, crypt_floor_number, giant_fortress_floor_number, mythic_astral_floor_number, mythic_crypt_floor_number, profession_dungeon_floor  # explicit current dependency
     rid = str(room_id or "")
     if crypt_floor_number(rid) is not None:
         return "crypt"
@@ -798,6 +1361,9 @@ def v0110_is_dynamic_instance_room(room_id):
 
 
 def v0110_remove_pregenerated_instance_rooms():
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     removed = {rid for rid in tuple(ROOMS) if v0110_is_dynamic_instance_room(rid)}
     if not removed:
         return 0
@@ -812,7 +1378,7 @@ def v0110_remove_pregenerated_instance_rooms():
     # Zestawy zasobowe mają zawierać tylko realnie istniejące pokoje.
     # create_infinite_* doda je ponownie, kiedy piętro faktycznie powstanie.
     for set_name in V0100_RESOURCE_ROOM_SETS + ("MINING_DEPTH_ROOMS",):
-        room_set = globals().get(set_name)
+        room_set = _resource_room_sets().get(set_name)
         if isinstance(room_set, set):
             room_set.difference_update(removed)
 
@@ -839,10 +1405,190 @@ V0110_DYNAMIC_DUNGEON_ENTRANCES = {
 # v0.10.2 - CITY LIFE + OUTSKIRTS + ROAMING MOBS + TOOL BALANCE
 # ============================================================
 
-def build_v0102_city_and_outskirts(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: build_v0102_city_and_outskirts")
-build_v0102_city_and_outskirts = _sb410_bind(_sb410_mod_v410_dynamic_regions.build_v0102_city_and_outskirts, globals())
+def build_v0102_city_and_outskirts():
+    """Rozbudowuje Miasto Dusz i tworzy żywe przedmieścia.
+
+    Miasto pozostaje strefą bezpieczną bez wrogich spawnów. Przedmieścia
+    są niskopoziomowym obszarem przejściowym między bramami i Łąkami.
+    """
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    city_rooms = {
+        "artisan_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Rzemieślników",
+            "desc":"Kamienna ulica pachnie drewnem, skórą i rozgrzanym metalem. Z obu stron stoją małe warsztaty miejskich fachowców.",
+            "exits":{},
+        },
+        "tailor_workshop": {
+            "zone":"Miasto Dusz", "name":"Pracownia Krawiecka",
+            "desc":"Stoły są przykryte tkaninami, nićmi i wykrojami płaszczy dla mieszkańców oraz straży.",
+            "exits":{},
+        },
+        "carpenter_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Ciesielski",
+            "desc":"Belki, deski i gotowe framugi wypełniają pracownię. Cieśla naprawia wozy i miejskie budynki.",
+            "exits":{},
+        },
+        "leatherworker_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Kaletnika",
+            "desc":"Na półkach leżą pasy, torby i uprzęże. W powietrzu czuć garbowaną skórę i wosk.",
+            "exits":{},
+        },
+        "mason_yard": {
+            "zone":"Miasto Dusz", "name":"Dziedziniec Kamieniarzy",
+            "desc":"Kamienne bloki, dłuta i fragmenty nowych murów tworzą głośny plac pracy budowniczych.",
+            "exits":{},
+        },
+        "potter_workshop": {
+            "zone":"Miasto Dusz", "name":"Warsztat Garncarski",
+            "desc":"Koło garncarskie obraca się obok pieca. Na półkach schną misy, dzbany i naczynia dla karczmy.",
+            "exits":{},
+        },
+        "lantern_alley": {
+            "zone":"Miasto Dusz", "name":"Zaułek Latarni",
+            "desc":"Wąski zaułek oświetlają rzędy błękitnych lamp. Mieszkańcy skracają tędy drogę do południowej dzielnicy.",
+            "exits":{},
+        },
+        "city_bakery": {
+            "zone":"Miasto Dusz", "name":"Piekarnia Pod Złotym Bochenkiem",
+            "desc":"Ciepły zapach chleba wypełnia niewielką piekarnię zaopatrującą karczmę i strażników przy bramach.",
+            "exits":{},
+        },
+        "healer_house": {
+            "zone":"Miasto Dusz", "name":"Dom Uzdrowicielki",
+            "desc":"Cicha izba z łóżkami, bandażami i suszonymi ziołami służy rannym podróżnym oraz mieszkańcom.",
+            "exits":{},
+        },
+        "residential_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Domów",
+            "desc":"Szereg niewielkich kamiennych domów otacza spokojną ulicę z ławkami i studzienkami deszczowymi.",
+            "exits":{},
+        },
+        "well_square": {
+            "zone":"Miasto Dusz", "name":"Plac Starej Studni",
+            "desc":"Mały plac skupia mieszkańców południowej dzielnicy. Pośrodku stoi głęboka, nadal używana studnia.",
+            "exits":{},
+        },
+        "courier_office": {
+            "zone":"Miasto Dusz", "name":"Poczta i Biuro Kurierów",
+            "desc":"Posłańcy sortują listy, paczki i meldunki przeznaczone dla portu, straży oraz odległych posterunków.",
+            "exits":{},
+        },
+        "dockside_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Portowa",
+            "desc":"Szeroka droga biegnie wzdłuż magazynów i nabrzeża. Słychać liny, dzwonki statków i nawoływania tragarzy.",
+            "exits":{},
+        },
+        "harbor_warehouse": {
+            "zone":"Miasto Dusz", "name":"Magazyn Portowy",
+            "desc":"Skrzynie, beczki i zaplombowane pakunki czekają na odbiór przez kupców oraz rybaków.",
+            "exits":{},
+        },
+        "ropewalk": {
+            "zone":"Miasto Dusz", "name":"Powroźnia",
+            "desc":"Długi warsztat służy do skręcania lin dla statków, wozów i miejskich dźwigów.",
+            "exits":{},
+        },
+        "shipwright_yard": {
+            "zone":"Miasto Dusz", "name":"Stocznia Miejska",
+            "desc":"Na drewnianych podporach stoi naprawiany kuter. Szkutnicy wymieniają deski i uszczelniają kadłub.",
+            "exits":{},
+        },
+        "scholar_lane": {
+            "zone":"Miasto Dusz", "name":"Ulica Uczonych",
+            "desc":"Spokojna uliczka łączy Plac Treningowy z domami skrybów, nauczycieli i kartografów.",
+            "exits":{},
+        },
+        "cartographer_house": {
+            "zone":"Miasto Dusz", "name":"Pracownia Kartografa",
+            "desc":"Ściany pokrywają mapy traktów, ruin, bagien i gór. Na dużym stole powstają nowe szkice szlaków.",
+            "exits":{},
+        },
+        "city_watch_office": {
+            "zone":"Miasto Dusz", "name":"Biuro Patroli Miejskich",
+            "desc":"Małe biuro przy północnej dzielnicy zbiera zgłoszenia mieszkańców i rozdziela krótkie patrole poza murami.",
+            "exits":{},
+        },
+    }
+    _catalog_mut.catalog_update_path('ROOMS', ROOMS, (), city_rooms)
+
+    def connect(a, da, b, db):
+        from data.rooms import ROOMS  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (a,), "exits", {})[da] = b
+        _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (b,), "exits", {})[db] = a
+
+    # Dzielnica rzemieślnicza przy Kuźni.
+    connect("forge", "east", "artisan_lane", "west")
+    connect("artisan_lane", "north", "tailor_workshop", "south")
+    connect("artisan_lane", "east", "carpenter_workshop", "west")
+    connect("artisan_lane", "south", "mason_yard", "north")
+    connect("carpenter_workshop", "east", "leatherworker_workshop", "west")
+    connect("carpenter_workshop", "south", "potter_workshop", "north")
+    connect("potter_workshop", "west", "mason_yard", "east")
+
+    # Południowa dzielnica mieszkalna.
+    connect("south_street", "west", "lantern_alley", "east")
+    connect("lantern_alley", "west", "residential_lane", "east")
+    connect("lantern_alley", "south", "city_bakery", "north")
+    connect("residential_lane", "west", "well_square", "east")
+    connect("residential_lane", "south", "healer_house", "north")
+    connect("well_square", "south", "courier_office", "north")
+    connect("courier_office", "east", "healer_house", "west")
+
+    # Dzielnica portowa.
+    connect("harbor", "north", "dockside_lane", "south")
+    connect("dockside_lane", "west", "harbor_warehouse", "east")
+    connect("dockside_lane", "east", "ropewalk", "west")
+    connect("ropewalk", "east", "shipwright_yard", "west")
+    connect("shipwright_yard", "south", "dockside_lane", "north")
+
+    # Uczeni i patrole.
+    connect("training", "east", "scholar_lane", "west")
+    connect("scholar_lane", "east", "cartographer_house", "west")
+    connect("scholar_lane", "south", "city_watch_office", "north")
+
+    outskirts = {
+        "city_outskirts_gate": ("Przedbramie Południowe", "Droga tuż za murami rozdziela się na sad, pola i trakt prowadzący ku Łąkom."),
+        "caravan_road": ("Droga Karawan", "Ubity trakt nosi ślady kół, końskich kopyt i pieszych podróżnych zmierzających do miasta."),
+        "orchard_path": ("Droga Sadowa", "Niska kamienna ściana oddziela drogę od starych sadów należących do mieszkańców miasta."),
+        "old_orchard": ("Stary Sad", "Pomiędzy jabłoniami i gruszami stoją porzucone kosze. Krzewy przyciągają drobną zwierzynę."),
+        "mill_road": ("Droga do Młyna", "Boczna droga biegnie w stronę starego młyna i zakola rzeki."),
+        "old_mill": ("Stary Młyn", "Koło wodne obraca się powoli przy kamiennym młynie, który nadal obsługuje okolicznych rolników."),
+        "riverside_path": ("Ścieżka Nad Rzeką", "Wąska ścieżka ciągnie się wzdłuż trzcin i płytkiego brzegu rzeki."),
+        "east_fields": ("Wschodnie Pola", "Niskie pola uprawne i miedze ciągną się aż do łagodnych wzgórz."),
+        "shepherd_hill": ("Wzgórze Pasterzy", "Z trawiastego wzgórza widać mury miasta, Łąki i fragment Starego Traktu."),
+        "roadside_shrine": ("Kapliczka Podróżnych", "Mała kamienna kapliczka stoi przy skrzyżowaniu dróg. Podróżni zostawiają tu świece i drobne monety."),
+        "drainage_ditch": ("Stary Rów Obronny", "Wyschnięty fragment dawnego rowu otacza południową część murów i tworzy osłoniętą ścieżkę."),
+        "abandoned_storehouse": ("Opuszczony Magazyn", "Zamknięty kiedyś magazyn ma wyłamane drzwi i ślady nieproszonych gości."),
+        "charcoal_camp": ("Obóz Węglarzy", "Dymiące mielerze stoją przy skraju zagajnika. Węglarze wracają tu tylko w dzień."),
+        "outer_wall_path": ("Ścieżka Pod Murami", "Patrolowa droga prowadzi wzdłuż zewnętrznej strony miejskich murów ku północnemu posterunkowi."),
+    }
+    for rid, (name, desc) in outskirts.items():
+        _catalog_mut.catalog_assign({"zone":"Przedmieścia Miasta Dusz", "name":name, "desc":desc, "exits":{}}, 'ROOMS', ROOMS, (rid,))
+
+    # Wstaw przedmieścia pomiędzy miasto i Łąki oraz dodaj boczną pętlę do Starego Traktu.
+    _catalog_mut.catalog_assign("city_outskirts_gate", 'ROOMS', ROOMS, ("south_gate", "exits", "south"))
+    _catalog_mut.catalog_assign("caravan_road", 'ROOMS', ROOMS, ("meadow", "exits", "north"))
+    connect("south_gate", "south", "city_outskirts_gate", "north")
+    connect("city_outskirts_gate", "south", "caravan_road", "north")
+    connect("caravan_road", "south", "meadow", "north")
+    connect("city_outskirts_gate", "west", "orchard_path", "east")
+    connect("orchard_path", "west", "old_orchard", "east")
+    connect("orchard_path", "south", "mill_road", "north")
+    connect("mill_road", "west", "old_mill", "east")
+    connect("mill_road", "south", "riverside_path", "north")
+    connect("riverside_path", "east", "caravan_road", "west")
+    connect("city_outskirts_gate", "east", "outer_wall_path", "west")
+    connect("outer_wall_path", "south", "east_fields", "north")
+    connect("east_fields", "south", "shepherd_hill", "north")
+    connect("shepherd_hill", "west", "roadside_shrine", "east")
+    connect("roadside_shrine", "north", "caravan_road", "east")
+    connect("east_fields", "east", "drainage_ditch", "west")
+    connect("drainage_ditch", "south", "abandoned_storehouse", "north")
+    connect("abandoned_storehouse", "west", "charcoal_camp", "east")
+    connect("charcoal_camp", "north", "shepherd_hill", "south")
+    connect("outer_wall_path", "north", "north_watchpost", "south")
 
 build_v0102_city_and_outskirts()
 
@@ -1263,6 +2009,7 @@ def mob_template_can_wander(template):
 
 
 def mob_room_can_wander(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
     room = ROOMS.get(room_id, {})
     zone = str(room.get("zone", ""))
     if not room or room_id in MOB_WANDER_SAFE_ROOMS:
@@ -1279,6 +2026,7 @@ def mob_room_can_wander(room_id):
 
 
 def mob_wander_candidates(room_id):
+    from data.rooms import ROOMS  # canonical current dependency
     if not mob_room_can_wander(room_id):
         return []
     room = ROOMS[room_id]
@@ -1399,6 +2147,8 @@ for _zone, _room_ids in TRACKED_EXPLORATION_ZONES.items():
 
 
 def _build_set_catalog():
+    from data.items import ITEMS  # canonical current dependency
+    from world.expansions import REGIONAL_SET_BONUSES  # explicit current dependency
     catalog = {}
     item_to_set = {}
     for item_id, item in ITEMS.items():
@@ -1440,6 +2190,7 @@ def _build_set_catalog():
 SET_COLLECTION_CATALOG, SET_ENTRY_BY_ITEM = _build_set_catalog()
 
 def boss_codex_drop_is_unique(item_id):
+    from data.items import ITEMS  # canonical current dependency
     item = ITEMS.get(str(item_id), {})
     if not item:
         return False
@@ -1465,7 +2216,9 @@ NAMED_LOOT_CATALOG = {
     )
 }
 
-BOSS_COLLECTION_CATALOG = {
+from data.boss_collection import BOSS_COLLECTION_CATALOG
+BOSS_COLLECTION_CATALOG.clear()
+BOSS_COLLECTION_CATALOG.update({
     mob_id: data["name"]
     for mob_id, data in MOB_TEMPLATES.items()
     if any(
@@ -1475,7 +2228,7 @@ BOSS_COLLECTION_CATALOG = {
             "mythic_crypt_boss", "mythic_astral_boss", "giant_fortress_boss",
         )
     )
-}
+})
 
 RARE_MOB_COLLECTION_CATALOG = {
     mob_id: data["name"]
@@ -1547,7 +2300,10 @@ COLLECTION_CATALOGS = {
 # i dokładamy brakujące instancje w istniejących pokojach. Bossowie (needed=1)
 # pozostają pojedynczymi przeciwnikami.
 def _v0922_expand_quest_mob_spawns():
+    from data.quests import QUESTS  # canonical current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     def quest_tags(mob_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         template = MOB_TEMPLATES.get(mob_id, {})
         tags = {mob_id}
         primary = template.get("quest_target")
@@ -1592,10 +2348,60 @@ V0922_ADDED_QUEST_MOB_SPAWNS = _v0922_expand_quest_mob_spawns()
 
 # v0.9.21 - COLLECTION CODEX 2.0 dynamic group indexes
 # ============================================================
-def _build_collection_v2_groups(*args, **kwargs):
-    """Compatibility entrypoint; rebound to the unchanged native implementation."""
-    raise RuntimeError("Unbound native function: _build_collection_v2_groups")
-_build_collection_v2_groups = _sb410_bind(_sb410_mod_v410_dynamic_collectors._build_collection_v2_groups, globals())
+def _build_collection_v2_groups():
+    from data.items import ITEMS  # canonical current dependency
+    from systems.items_resources import CLASS_EQUIPMENT_SETS, CORPSE_MATERIAL_TIERS  # explicit current dependency
+    from world.expansions import REGIONAL_SET_BONUSES  # explicit current dependency
+    class_groups = {name: set() for name in CLASS_EQUIPMENT_SETS}
+    legendary_groups = {name: set() for name in CLASS_EQUIPMENT_SETS}
+    legendary_groups["Ogólne"] = set()
+    material_groups = {tier["key"]: set() for tier in CORPSE_MATERIAL_TIERS}
+    set_groups = {}
+    set_names = {}
+    for item_id, item in ITEMS.items():
+        if item.get("type") not in ("armor", "weapon"):
+            continue
+        req_class = str(item.get("required_class") or "")
+        if req_class in class_groups:
+            class_groups[req_class].add(item_id)
+        if (
+            str(item.get("rarity", "")).lower() == "legendary"
+            or item.get("legendary_set_loot")
+            or item.get("legendary_class_relic")
+        ):
+            legendary_groups[req_class if req_class in CLASS_EQUIPMENT_SETS else "Ogólne"].add(item_id)
+        material = str(item.get("corpse_material") or item.get("blacksmith_material") or "")
+        if material in material_groups:
+            material_groups[material].add(item_id)
+
+        group_id = None
+        group_name = None
+        if item.get("class_set_name"):
+            mastery = int(item.get("required_mastery", 1) or 1)
+            group_id = f"class:{req_class}:{item.get('class_set_name')}:{mastery}"
+            group_name = f"{item.get('class_set_name')} — {req_class}, Biegłość {mastery}"
+        elif item.get("regional_set"):
+            sid = str(item["regional_set"])
+            group_id = f"regional:{sid}"
+            group_name = REGIONAL_SET_BONUSES.get(sid, {}).get("name", f"Set regionalny {sid}")
+        elif item.get("crypt_set_tier"):
+            tier = int(item["crypt_set_tier"])
+            group_id = f"crypt:{tier}"
+            group_name = f"Zestaw Krypty Tier {tier}"
+        elif item.get("astral_set_tier"):
+            tier = int(item["astral_set_tier"])
+            group_id = f"astral:{tier}"
+            group_name = f"Astralny Zestaw Kręgu {tier}"
+        if group_id:
+            set_groups.setdefault(group_id, set()).add(item_id)
+            set_names[group_id] = group_name
+    return (
+        {k: frozenset(v) for k, v in class_groups.items()},
+        {k: frozenset(v) for k, v in legendary_groups.items()},
+        {k: frozenset(v) for k, v in material_groups.items()},
+        {k: frozenset(v) for k, v in set_groups.items()},
+        set_names,
+    )
 
 (
     COLLECTION_V2_CLASS_GROUPS,
@@ -1619,6 +2425,7 @@ def canonical_bestiary_template_id(template_id):
     intentionally tracks the actual species instead of requiring a separate
     entry for every affix copy.
     """
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     template_id = str(template_id or "")
     seen = set()
     while template_id and template_id not in seen:
@@ -1647,6 +2454,7 @@ def quest_kill_targets_v0389(template_id, template=None):
     v0.38.9: generated Elite/Rare/dense variants must also credit quests for
     the canonical base species and for any quest aliases authored on that base.
     """
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     template_id = str(template_id or "")
     template = template or MOB_TEMPLATES.get(template_id, {}) or {}
     canonical_id = canonical_bestiary_template_id(template_id)
@@ -1759,6 +2567,8 @@ for _mob_id, _mob in MOB_TEMPLATES.items():
 
 
 def loot_rarity_rank(item_id):
+    from data.items import ITEMS  # canonical current dependency
+    from world.economy_quests import LOOT_RARITY_ORDER  # explicit current dependency
     item = ITEMS.get(item_id, {})
     return LOOT_RARITY_ORDER.get(str(item.get("rarity", "common")).lower(), 0)
 
@@ -1948,11 +2758,11 @@ if _sb107_runtime_enabled():
         ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS)
 
 # v109 Horyzonty: register only in the isolated test or approved v109 release.
-from systems.v10900_gifts import enabled as _sb_v109_world_enabled
+from systems.gift_runtime import enabled as _sb_v109_world_enabled
 V10900_HORIZONS_BUILD = None
-from systems.v11000_activation import enabled as _sb110_world_enabled
+from systems.runtime_activation import enabled as _sb110_world_enabled
 if _sb_v109_world_enabled() or _sb110_world_enabled():
-    from world.v10900_horizons import install as _sb109_install_horizons
+    from world.horizons_engine import install as _sb109_install_horizons
     V10900_HORIZONS_BUILD = _sb109_install_horizons(
         ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
         EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
@@ -1968,3 +2778,14 @@ if _sb110_world_enabled():
         EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
         __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER)
     EXP_AREAS = EXP_AREAS + V11000_REALMS_BUILD['areas']
+
+# v111: odrębna aktywacja; sam manifest v110 NIGDY nie uruchamia nowej zawartości.
+V11100_HOLIDAY_BUILD = None
+from systems.runtime_activation import enabled as _sb111_world_enabled
+if _sb111_world_enabled():
+    from world.holiday_expareas import install as _sb111_install
+    V11100_HOLIDAY_BUILD = _sb111_install(
+        ROOMS, MOB_TEMPLATES, MOB_SPAWNS, NPCS, QUESTS, ITEMS, CRAFT_RECIPES,
+        EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
+        __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER)
+    EXP_AREAS = EXP_AREAS + V11100_HOLIDAY_BUILD['areas']

@@ -10,6 +10,8 @@ class SessionCollectionLootRecordsMixin:
             return len(item_ids.intersection(discovered_eq)), len(item_ids)
 
     async def show_collection_v2_classes(self):
+            from world.dynamic_content import COLLECTION_V2_CLASS_GROUPS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
             await self.send("KODEKS KOLEKCJI — EQ WEDŁUG KLASY")
             for class_name in sorted(COLLECTION_V2_CLASS_GROUPS, key=normalize_lookup_text):
@@ -18,6 +20,9 @@ class SessionCollectionLootRecordsMixin:
                 await self.send(f"{class_name}: {count} z {total}, {pct}%.")
 
     async def show_collection_v2_sets(self, page=1):
+            import math  # canonical current dependency
+            from world.dynamic_content import COLLECTION_V2_SET_GROUPS, COLLECTION_V2_SET_NAMES  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
             rows = []
             for set_id, items in COLLECTION_V2_SET_GROUPS.items():
@@ -36,6 +41,8 @@ class SessionCollectionLootRecordsMixin:
                 await self.send(f"Następna strona: kolekcja sety2 {page + 1}.")
 
     async def show_collection_v2_legends(self):
+            from world.dynamic_content import COLLECTION_V2_LEGENDARY_GROUPS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
             all_items = set().union(*COLLECTION_V2_LEGENDARY_GROUPS.values()) if COLLECTION_V2_LEGENDARY_GROUPS else set()
             count, total = self._collection_v2_count(all_items, discovered)
@@ -45,6 +52,8 @@ class SessionCollectionLootRecordsMixin:
                 await self.send(f"{class_name}: {c} z {t}, {int(c*100/max(1,t))}%.")
 
     async def show_collection_v2_materials(self):
+            from systems.items_resources import CORPSE_MATERIAL_TIERS  # explicit current dependency
+            from world.dynamic_content import COLLECTION_V2_MATERIAL_GROUPS, COLLECTION_V2_MATERIAL_LABELS  # explicit current dependency
             discovered = self.server.db.collection_entry_ids(self.account_id, "equipment")
             await self.send("KODEKS KOLEKCJI — MATERIAŁOWE EQ")
             for tier in CORPSE_MATERIAL_TIERS:
@@ -53,6 +62,8 @@ class SessionCollectionLootRecordsMixin:
                 await self.send(f"{COLLECTION_V2_MATERIAL_LABELS[key]}: {c} z {t}, {int(c*100/max(1,t))}%.")
 
     async def show_collection_v2_regions(self):
+            from world.dynamic_content import EXPLORATION_ZONE_ROOMS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             discovered = self.server.db.discovered_room_ids(self.account_id)
             await self.send("KODEKS KOLEKCJI — REGIONY")
             for zone in sorted(EXPLORATION_ZONE_ROOMS, key=normalize_lookup_text):
@@ -62,6 +73,7 @@ class SessionCollectionLootRecordsMixin:
                 await self.send(f"{zone}: {count} z {total}, {int(count*100/max(1,total))}%.")
 
     async def show_collection_v2_instances(self):
+            from world.economy_quests import INSTANCE_MAP_DEFS, instance_sector_bounds  # explicit current dependency
             await self.send("KODEKS KOLEKCJI — INSTANCJE")
             any_seen = False
             for kind, info in INSTANCE_MAP_DEFS.items():
@@ -82,6 +94,10 @@ class SessionCollectionLootRecordsMixin:
                 await self.send("Nie odkryto jeszcze żadnej instancji.")
 
     async def show_collection(self, args=""):
+            import math  # canonical current dependency
+            from world.dynamic_content import COLLECTION_CATALOGS, COLLECTION_CATEGORY_ALIASES  # explicit current dependency
+            from world.economy_quests import COLLECTION_CATEGORY_LABELS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             await self.sync_collection_from_inventory()
             raw = str(args or "").strip()
             norm = normalize_lookup_text(raw)
@@ -177,6 +193,15 @@ class SessionCollectionLootRecordsMixin:
                 )
 
     async def show_boss_codex(self, args=""):
+            import math  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from data.mobs import MOB_TEMPLATES  # canonical current dependency
+            from network.protocol_gameplay_utils import find_by_name  # explicit current dependency
+            from world.dynamic_content import BOSS_COLLECTION_CATALOG, boss_codex_drop_is_unique  # explicit current dependency
+            from world.economy_quests import INSTANCE_MAP_DEFS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
+            from core.runtime_rules import get_rule as _current_rule
+            boss_floor_identity = _current_rule('boss_floor_identity')
             raw = str(args or "").strip()
             norm = normalize_lookup_text(raw)
             discovered = self.server.db.collection_entry_ids(self.account_id, "bosses")
@@ -321,6 +346,7 @@ class SessionCollectionLootRecordsMixin:
             await self.send(f"Loot filter ustawiony: {mode}.")
 
     async def show_corpses(self, query=""):
+            from data.items import ITEMS  # canonical current dependency
             all_corpses = self.server.world.room_corpses(self.character.room_id)
             if not all_corpses:
                 await self.send("Nie ma tutaj żadnych ciał.")
@@ -371,6 +397,8 @@ class SessionCollectionLootRecordsMixin:
             )
 
     async def _record_corpse_loot(self, corpse, looted):
+            from data.items import ITEMS  # canonical current dependency
+            from world.dynamic_content import BOSS_COLLECTION_CATALOG, canonical_bestiary_template_id  # explicit current dependency
             recipients = self._corpse_party_recipients_v03510(corpse)
             boss_id = canonical_bestiary_template_id(corpse.mob_template_id)
             for recipient in recipients:
@@ -390,6 +418,7 @@ class SessionCollectionLootRecordsMixin:
             return recipients
 
     async def loot_corpse(self, query=""):
+            from data.items import ITEMS  # canonical current dependency
             corpses = self.server.world.room_corpses(self.character.room_id)
             if not corpses:
                 await self.send("Nie ma tutaj żadnych ciał do przeszukania.")
@@ -480,6 +509,10 @@ class SessionCollectionLootRecordsMixin:
             Przykłady: get sword from 2.corpse; get all from 2.corpse;
             wez miecz z 2.cialo; weź wszystko z 3.ciało.
             """
+            import re  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import find_by_name  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             raw = str(args or "").strip()
             if not raw:
                 await self.send(
@@ -539,6 +572,11 @@ class SessionCollectionLootRecordsMixin:
                         )
 
     async def open_treasure_chest(self, args=""):
+            from core.bootstrap_economy_professions import currency_reading_text  # explicit current dependency
+            from data.rooms import ROOMS  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from data.mobs import MOB_TEMPLATES  # canonical current dependency
+            from world.expansions import TREASURE_CHEST_RARITIES  # explicit current dependency
             normalized = self.normalize_description_query(str(args or "").strip())
             if normalized in ("geoda", "geode", "geode kamienna", "geoda kamienna", "geoda krysztalowa", "geoda kryształowa", "crystal geode", "stone geode", "geoda astralna", "astral geode"):
                 await self.open_geode(args)
@@ -609,6 +647,7 @@ class SessionCollectionLootRecordsMixin:
 
     async def show_leaderboards(self, args=""):
             """v0.9.23: trwałe rankingi postaci oparte wyłącznie na zapisanym stanie."""
+            from data.items import ITEMS  # canonical current dependency
             raw = self.normalize_description_query(args or "")
             compact = raw.replace(" ", "")
             db = self.server.db
@@ -648,6 +687,7 @@ class SessionCollectionLootRecordsMixin:
             legendary_ids = legendary_cache[1]
 
             def collection_rank(kind, limit=10):
+                from world.dynamic_content import COLLECTION_V2_SET_GROUPS  # explicit current dependency
                 rows = []
                 chars = db.conn.execute(
                     "SELECT account_id,name FROM characters ORDER BY name COLLATE NOCASE"
@@ -676,6 +716,7 @@ class SessionCollectionLootRecordsMixin:
                     await self.send(f"{pos}. {row['name']} — piętro {int(row['score'])}.")
 
             async def send_boss(limit=10):
+                from world.dynamic_content import BOSS_COLLECTION_CATALOG  # explicit current dependency
                 rows = boss_speed_rows(limit)
                 await self.send("Najszybsze pokonania bossów:")
                 if not rows:

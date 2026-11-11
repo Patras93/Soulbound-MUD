@@ -29,7 +29,7 @@ INBOX = ROOT / 'NOWE_WERSJE'
 STATE = WORK / 'last_result.json'
 PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 VERSION = re.compile(r'^\s*VERSION\s*=\s*[\'\"](\d+\.\d+\.\d+)[\'\"]', re.M)
-REQUIRED = ('server.py', 'CHANGELOG_PL.txt', 'core/bootstrap_economy_professions.py',
+REQUIRED = ('server.py', 'core/bootstrap_economy_professions.py',
             'testuj_soulbound_windows.py', 'predeploy_check.py', 'predeploy_full.py',
             'validation/v2102_tcp_six_players.py', 'validation/predeploy_ultra_v2327.py',
             'validation/predeploy_ultimate_v2328.py', 'validation/predeploy_ultimate60_v2329.py',
@@ -133,10 +133,30 @@ def inspect_zip(zippath):
                 if required_v108.casefold() not in mapping:
                     raise ValueError('v108: brak produkcyjnej bramki '+required_v108+
                                      '; stare 60/60 nie wystarcza')
+        if ver == '112.00.0':
+            for required_v112 in ('systems/v11200_activation.py',
+                  'validation/v11200_release_suite.py',
+                  'validation/v11200_release_readiness.py',
+                  'validation/v11200_release_activation_regression.py',
+                  'validation/v11200_broken_v111_recovery_regression.py',
+                  'validation/v11200_profession_ownership_regression.py'):
+                if required_v112.casefold() not in mapping:
+                    raise ValueError('v112: brak obowiązkowej bramki '+required_v112)
+            if 'live_content/release_current.json' in mapping:
+                raise ValueError('v112: manifest może wystawić tylko instalator po PASS')
+        if ver == '111.00.0':
+            for required_v111 in ('systems/v11100_holiday_activation.py',
+                  'validation/v11100_release_suite.py',
+                  'validation/v11100_release_readiness.py',
+                  'validation/v11100_release_activation_regression.py'):
+                if required_v111.casefold() not in mapping:
+                    raise ValueError('v111: brak obowiązkowej bramki '+required_v111)
+            if 'live_content/release_current.json' in mapping:
+                raise ValueError('v111: manifest może wystawić tylko instalator po PASS')
         if ver == '110.00.0':
             for needed in ('systems/v11000_activation.py',
                            'world/v11000_realms.py',
-                           'core/v11000_archetypes.py',
+                           'core/archetypes/expansion.py',
                            'validation/v11000_release_suite.py',
                            'validation/v11000_release_readiness.py'):
                 if needed.casefold() not in mapping:
@@ -288,23 +308,19 @@ def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
     if not live.is_absolute():
         live = ROOT / live
     ver=(Path(stage_root)/'VERSION').read_text(encoding='utf-8-sig').strip()
-    prefix='sb110_predeploy_sqlite_frozen_' if ver == '110.00.0' else 'Soulbound_PREDEPLOY_SQLITE_FROZEN_'
-    if ver == '110.00.0':
+    prefix='sb110_predeploy_sqlite_frozen_' if ver in ('110.00.0','111.00.0','112.00.0') else 'Soulbound_PREDEPLOY_SQLITE_FROZEN_'
+    if ver in ('110.00.0','111.00.0','112.00.0'):
         env.update(SOULBOUND_V107_STAGING='1',SOULBOUND_V109_STAGING='1',
                    SOULBOUND_V110_STAGING='1')
+        if ver in ('111.00.0','112.00.0'):env['SOULBOUND_V111_STAGING']='1'
+        if ver=='112.00.0':env['SOULBOUND_V112_STAGING']='1' 
     with tempfile.TemporaryDirectory(prefix=prefix) as frozen_dir:
         snapshot = create_detached_source_snapshot(
             live, Path(frozen_dir)/'SOURCE_COMMITTED_SNAPSHOT.sqlite')
-        # v108 needs the result of a conservative EQ rebuild during PREDEPLOY.
-        # The original source and old pre-v107 backup remain read-only. The
-        # live installer MUST repeat this rehearsal after STOP, on fresh data.
-        if (Path(stage_root)/'VERSION').read_text(encoding='utf-8-sig').strip() == '108.00.0':
-            from systems.v10800_eq_cutover_bridge import prepare_from_snapshot
-            prepared,counts = prepare_from_snapshot(snapshot,live.parent,Path(frozen_dir))
-            snapshot = prepared
-            with logpath.open('a',encoding='utf-8') as report:
-                report.write('V108 PREDEPLOY REBUILD SNAPSHOT PASS: '
-                    +', '.join(f'{k}={v}' for k,v in sorted(counts.items()))+'\n')
+        # v112 runs only on a detached source snapshot. Earlier release
+        # rebuild tools are not part of the current PREDEPLOY runtime.
+        if ver != '112.00.0':
+            raise ValueError('Bieżący PREDEPLOY obsluguje tylko v112.00.0')
         env['SOULBOUND_ULTRA_SOURCE_DB'] = str(snapshot)
         env['SOULBOUND_DB'] = str(snapshot)  # no fallthrough to production
         env['SOULBOUND_HOST'] = '127.0.0.1'
@@ -349,6 +365,10 @@ def verified_staged_pass(code, staged_log, version):
         basic = basic and 'V109 RELEASE GATES PASS' in log
     elif version == '110.00.0':
         basic = basic and 'V110 RELEASE GATES PASS' in log
+    elif version == '111.00.0':
+        basic = basic and 'V111 RELEASE GATES PASS' in log
+    elif version == '112.00.0':
+        basic = basic and 'V112 RELEASE GATES PASS' in log
     return basic
 
 
@@ -364,6 +384,14 @@ def main(argv=None):
         active=installed_version()
         if version_tuple(version) < version_tuple(active):
             raise ValueError(f'Nowa paczka v{version} jest starsza od dzialajacej v{active}.')
+        # Fail BEFORE an expensive 60-stage run if the local broken v111
+        # installation has no trustworthy physical EQ ledger.  Never inspect
+        # or require its historical v106 rollback file or prior approval.
+        if version == '112.00.0':
+            if active != '111.00.0':
+                raise ValueError('V112: wymagana baza gry v111.00.0.')
+            from aktualizuj_soulbound import v112_base_preflight
+            v112_base_preflight(ROOT)
         checksum=sha256(zip_path)
         WORK.mkdir(parents=True,exist_ok=True)
         (WORK/'logs').mkdir(exist_ok=True)
@@ -416,6 +444,10 @@ def main(argv=None):
             state['v109_release_gates_pass'] = bool(verified)
         if version == '110.00.0':
             state['v110_release_gates_pass'] = bool(verified)
+        if version == '111.00.0':
+            state['v111_release_gates_pass'] = bool(verified)
+        if version == '112.00.0':
+            state['v112_release_gates_pass'] = bool(verified)
         save_state(state)
         print('\nWYNIK PREDEPLOY: '+state['status'],flush=True)
         print('Produkcja nietknieta. '+('Mozna rozwazyc WDROZ_PO_PREDEPLOY.bat.' if verified

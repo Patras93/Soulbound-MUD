@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.32.0 milestone player systems."""
+from data.items import ITEMS
+from systems.crafting_expansion import TECH_SET_ITEMS_V03114
+from systems.milestone import (
+    TECH_SET_UPGRADE_COSTS_V0320, dungeon_party_bonus_v0320, room_is_dungeon_v0320,
+)
+
 class SessionMilestoneV0320Mixin:
     def tech_set_mark_bonus_v0320(self, item_id):
         mark=self.server.db.tech_set_mark_v0320(self.account_id,item_id)
@@ -74,6 +80,7 @@ class SessionMilestoneV0320Mixin:
         await self.send(f"Dungeon Party Bonus: {st['members']} osób obok; różne klasy {st['diverse']}; pełna drużyna: {'tak' if st['full'] else 'nie'}; bonus EXP +{st.get('bonus_pct',0)} procent.")
 
     async def recap2_v0320(self,death=False):
+        from player.session_mixins.progression_accessibility import SessionProgressionAccessibilityV03052Mixin
         summary=self.server.db.recap_summary_v0320(self.account_id)
         if death:
             await SessionProgressionAccessibilityV03052Mixin.death_recap_v03052(self)

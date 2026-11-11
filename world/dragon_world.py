@@ -12,11 +12,15 @@ Kraina nie wprowadza blokady poziomem. Etap jest rekomendacją i źródłem
 skalowania nagród; gracz może wejść wcześniej na własne ryzyko.
 """
 from __future__ import annotations
+from data.exploration_tracking import TRACKED_EXPLORATION_ZONES as _authored_exploration_targets
 
 from data.catalogs import ROOMS, NPCS, ITEMS, QUESTS, MOB_TEMPLATES
 from core.economy_curve import economy_stage_anchor
 from data.catalog_mutations import catalog_assign, catalog_set_path
-from systems.content_registry import MOB_SPAWNS, HELP_TOPICS, HELP_TOPIC_ALIASES
+from systems.content_registry import MOB_SPAWNS
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 from world.generation_systems import GUIDE_DESTINATION_ALIASES, v0130_refresh_exploration_catalog
 from world import dynamic_content as _dynamic_content
 from world import generation_systems as _generation_systems
@@ -660,7 +664,7 @@ for zone, room_ids in DRAGON_WORLD_ZONE_ROOMS.items():
     ordered = sorted(set(room_ids))
     _dynamic_content.EXPLORATION_ZONE_ROOMS[zone] = ordered
     if len(ordered) >= 3:
-        _dynamic_content.TRACKED_EXPLORATION_ZONES[zone] = tuple(ordered)
+        _authored_exploration_targets[zone] = tuple(ordered)
     reward_item = _generation_systems.EXPLORATION_REWARD_ITEMS.get(zone)
     if reward_item:
         _dynamic_content.EXPLORATION_REWARD_ITEMS[zone] = reward_item

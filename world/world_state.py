@@ -21,6 +21,7 @@ from world.uoss_superboss_world import (
     uoss_deep_dungeon_floor_number_v11331,
 )
 
+from dataclasses import dataclass  # canonical current dependency
 @dataclass
 class CorpseState:
     key: str
@@ -32,6 +33,7 @@ class CorpseState:
     expires_at: float
 
 
+from typing import Optional  # canonical current dependency
 @dataclass
 class MobState:
     key: str
@@ -62,6 +64,11 @@ class MobState:
 # v0.29.0 - DYNAMIC WORLD EVENTS + BOSS/NEMESIS GENERATOR
 # ============================================================
 def v0290_active_world_events(now=None):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import world.dynamic_world_generator as dynamic_world_v029  # explicit current dependency
+    from core.bootstrap_economy_professions import V0250_WORLD_SEED  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     events = dynamic_world_v029.active_events(
         ROOMS, MOB_SPAWNS, MOB_TEMPLATES, str(V0250_WORLD_SEED), now=now
     )
@@ -75,11 +82,15 @@ def v0290_event_for_room(room_id, now=None):
     room_id = str(room_id or "")
     return tuple(event for event in v0290_active_world_events(now) if event["room_id"] == room_id)
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["dynamic_world_v029"] = [
     "dynamiceventy pokazuje cykliczne wydarzenia świata. Wydarzenia korzystają z istniejącego katalogu lokacji i potworów, bez Generator Core.",
     "Event może wygenerować Elite, Rare, czempiona albo proceduralnego World Bossa. Wszystkie są pasywne do chwili ataku.",
     "nemesis pokazuje przeciwnika, który ostatnio cię pokonał. Nemesis rośnie po kolejnych zwycięstwach nad tobą i czeka w miejscu ostatniej porażki.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "dynamiczne eventy":"dynamic_world_v029", "dynamiceventy":"dynamic_world_v029",
     "nemesis":"dynamic_world_v029", "nemezis":"dynamic_world_v029",
@@ -103,6 +114,8 @@ V11314_TREASURE_CHEST_LEGACY_COINS = {
 
 def treasure_chest_economy_stage_v11314(room_id):
     """Etap skrzyni wynika z lokacji i jej realnych spawnów, nie z gracza."""
+    from data.rooms import ROOMS  # canonical current dependency
+    from core.mines_threat import v0866_room_threat_profile  # explicit current dependency
     room = ROOMS.get(str(room_id or ""), {}) or {}
     candidates = []
     for key in ("generator_level", "recommended_mastery"):
@@ -141,6 +154,8 @@ class World:
         # WYŁĄCZNIE specjalnie oznaczony, autorski poziom unikatowego
         # bossa v106 po każdym pierwszym spawnie i respawnie. Bez zmiany
         # logiki v105, obrażeń, HP, nagród, drużyn ani limitów Admin Live.
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
         if (str(room_id).startswith("v10600_")
                 and str(template_id).startswith("v10600_")):
             import os as _v106_world_os
@@ -187,6 +202,14 @@ class World:
                     tpl["damage"] = max(1, int(authored.get("damage", 1) or 1))
 
     def __init__(self):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+        from systems.dungeons_regions import resolve_world_spawn_template  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         self.mobs = {}
         self.corpses = {}
         self.corpse_counter = 0
@@ -225,6 +248,10 @@ class World:
 
     def _elite_spawn_template_v11338(self, template_id):
         """Roll one ordinary spawn into a reviewed elite affix, if eligible."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         template_id = str(template_id or "")
         current = MOB_TEMPLATES.get(template_id)
         if not isinstance(current, dict):
@@ -258,6 +285,11 @@ class World:
         Dungeons/gauntlets keep their dedicated floor logic. Open-world normal,
         elite and rare mobs are additionally tougher from stage 50 upward.
         """
+        from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        import core.balance_math as balance_math  # explicit current dependency
         room_id = str(room_id or "")
         template_id = str(template_id or "")
         room = ROOMS.get(room_id, {})
@@ -321,6 +353,14 @@ class World:
         return runtime_id
 
     def _register_runtime_spawn(self, room_id, template_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         room_meta = ROOMS.get(str(room_id or ""), {})
         spawn_template_id = self._terrain_scaled_template_v0362(room_id, template_id)
         template_meta = MOB_TEMPLATES.get(spawn_template_id)
@@ -361,6 +401,8 @@ class World:
         MobState keys. A summoned add shares the owner's engagement and cannot
         respawn as a permanent world mob after the fight.
         """
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import time  # explicit current dependency
         template=MOB_TEMPLATES.get(str(template_id))
         if not boss_mob or not boss_mob.alive or not template:
             return None
@@ -384,6 +426,9 @@ class World:
 
     def spawn_boss_companion_v1281(self, boss_mob):
         """Spawn a temporary guardian tied to a real boss, with XP on defeat."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        import time  # explicit current dependency
         from systems.boss_companions_v1281 import boss_guardian_role_v12811
         if not boss_mob or not boss_mob.alive or not boss_mob.engaged_by:
             return None
@@ -444,10 +489,13 @@ class World:
         return add
 
     def mob_templates_for_ai_v1160(self, mob):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         return MOB_TEMPLATES.get(str(getattr(mob, "template_id", "")), {})
 
     def spawn_monster_ai_add_v1160(self, parent, template_id, now=None):
         """One unbankable, short-lived summon per encounter, using existing templates."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
         import time as _time
         now = _time.monotonic() if now is None else float(now)
         if not parent or not parent.alive or not parent.engaged_by:
@@ -504,6 +552,8 @@ class World:
 
         Join them to the existing battle exactly once, without cloning adds.
         """
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import time  # explicit current dependency
         if not boss_mob or not boss_mob.alive or not boss_mob.engaged_by:
             return ()
         boss_template=MOB_TEMPLATES.get(boss_mob.template_id,{})
@@ -526,6 +576,8 @@ class World:
 
     def clear_superboss_companions_v1144(self, boss_mob):
         """A defeated boss cannot leave active minions attacking its party."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import time  # explicit current dependency
         if not boss_mob:
             return 0
         owner=str(getattr(boss_mob,"engaged_by","") or "")
@@ -550,6 +602,13 @@ class World:
         return cleared
 
     def _ensure_v0290_event_spawns(self, room_id, now=None):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import core.balance_math as balance_math  # explicit current dependency
+        import world.dynamic_world_generator as dynamic_world_v029  # explicit current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from core.bootstrap_economy_professions import V0250_WORLD_SEED  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
         created = []
         for event in v0290_event_for_room(room_id, now=now):
             for index in range(int(event.get("count", 1) or 1)):
@@ -577,6 +636,7 @@ class World:
         return created
 
     def remove_v029_nemesis(self, account_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         account_id = int(account_id)
         for key, mob in list(self.mobs.items()):
             tmpl = MOB_TEMPLATES.get(mob.template_id, {})
@@ -585,6 +645,11 @@ class World:
                 self._last_refresh_at = 0.0
 
     def ensure_v029_nemesis(self, record):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        import core.balance_math as balance_math  # explicit current dependency
+        import world.dynamic_world_generator as dynamic_world_v029  # explicit current dependency
+        import time  # explicit current dependency
         if not record or not int(record["active"] or 0):
             return None
         account_id = int(record["account_id"])
@@ -608,6 +673,13 @@ class World:
         return mob
 
     def _ensure_v0160_encounters(self, room_id, now=None):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from world.generation_systems import v0160_encounters_for_room  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         created = []
         for encounter in v0160_encounters_for_room(room_id, now):
             event_key = "v016:" + encounter["token"]
@@ -635,6 +707,11 @@ class World:
         return created
 
     def _ensure_v0200_mythic_encounters(self, room_id, now=None):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from world.generation_systems import v0200_mythic_encounters_for_room  # explicit current dependency
         created=[]
         for encounter in v0200_mythic_encounters_for_room(room_id,now):
             event_key="v020mythic:"+encounter["token"]
@@ -649,10 +726,16 @@ class World:
         return created
 
     def _ensure_v0140_event_spawn(self, room_id, now=None):
+        import world.generation_systems as _current_generation_systems  # explicit optional dependency
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from world.generation_systems import v0140_event_for_room, v0140_rare_template_for_kind, v11339_combat_events_for_room, v11339_named_rare_template_for_kind  # explicit current dependency
         created = []
         events = (
             v11339_combat_events_for_room(room_id, now=now)
-            if "v11339_combat_events_for_room" in globals()
+            if hasattr(_current_generation_systems, 'v11339_combat_events_for_room')
             else tuple(
                 event for event in (
                     v0140_event_for_room(room_id, "rare_hunt", now=now),
@@ -672,7 +755,7 @@ class World:
             if existing:
                 created.append(existing)
                 continue
-            if "v11339_named_rare_template_for_kind" in globals():
+            if hasattr(_current_generation_systems, 'v11339_named_rare_template_for_kind'):
                 template_id = v11339_named_rare_template_for_kind(
                     event["kind"], event.get("type", "rare_hunt")
                 )
@@ -698,6 +781,11 @@ class World:
         return created[0] if created else None
 
     def _ensure_v0180_legendary_event_spawn(self, room_id, now=None):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from world.generation_systems import V018_TITAN_TEMPLATES, v0180_legendary_event_for_room  # explicit current dependency
         event = v0180_legendary_event_for_room(room_id, now=now)
         if not event or event.get("type") != "titan_awakening":
             return None
@@ -721,6 +809,8 @@ class World:
         return mob
 
     def ensure_v0180_special_room(self, room_id):
+        from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+        from world.generation_systems import v0180_create_archipelago_room_definition, v0180_create_endless_room_definition, v0180_create_ruin_room_definition  # explicit current dependency
         created_room, spawns = v0180_create_archipelago_room_definition(room_id)
         if not created_room:
             created_room, spawns = v0180_create_ruin_room_definition(room_id)
@@ -736,6 +826,10 @@ class World:
         return True
 
     def ensure_v0140_special_room(self, room_id):
+        from data.npcs import NPCS  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+        from world.generation_systems import v0140_create_mini_room_definition, v0140_create_secret_room_definition  # explicit current dependency
         created_room, spawns = v0140_create_mini_room_definition(room_id)
         if not created_room:
             created_room, spawns = v0140_create_secret_room_definition(room_id)
@@ -749,6 +843,8 @@ class World:
         return True
 
     def _generatorize_runtime_room(self, room_id):
+        from data.rooms import ROOMS  # canonical current dependency
+        import core.balance_math as balance_math  # explicit current dependency
         room=ROOMS.get(str(room_id or ""))
         if isinstance(room,dict):
             balance_math.runtime_room_level(str(room_id),room,ROOMS)
@@ -756,6 +852,9 @@ class World:
         return False
 
     def ensure_hybrid_surface_room(self, room_id):
+        from data.rooms import ROOMS  # canonical current dependency
+        from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+        from world.generation_systems import v0130_create_frontier_room_definition  # explicit current dependency
         room_id = str(room_id or "")
         if not room_id:
             return False
@@ -784,6 +883,9 @@ class World:
         return True
 
     def _ensure_city_world_event_v12812(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         from systems.world_events_v12812 import active_city_event_v12812
         event = active_city_event_v12812()
         if event['room_id'] != str(room_id):
@@ -809,6 +911,9 @@ class World:
         return True
 
     def _ensure_awakening_war_event_v1300(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         from systems.era_awakening_v1300 import active_kingdom_war_v1300
         event=active_kingdom_war_v1300()
         if event['room_id'] != str(room_id):
@@ -830,6 +935,9 @@ class World:
         return True
 
     def _ensure_invasion_v1600(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         from systems.era_legends_v1600 import active_invasion_v1600
         event = active_invasion_v1600()
         if event['room_id'] != str(room_id):
@@ -851,6 +959,20 @@ class World:
         return True
 
     def ensure_runtime_room(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.npcs import NPCS  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+        from core.progression_resources import mine_floor_id  # explicit current dependency
+        from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+        from systems.dungeons_regions import PROF_DUNGEON_PREFIXES, astral_floor_id, crypt_floor_id, giant_fortress_floor_id, mythic_astral_floor_id, mythic_crypt_floor_id, profession_dungeon_room_id  # explicit current dependency
+        from world.dynamic_content import CHEST_COLLECTION_CATALOG  # explicit current dependency
+        from world.economy_quests import INSTANCE_MAP_DEFS, instance_secret_name  # explicit current dependency
+        from world.expansions import TREASURE_CHESTS  # explicit current dependency
+        from world.generation_systems import v0200_create_mega_room_definition  # explicit current dependency
+        from world.magitek_infinite import magitek_floor_id  # explicit current dependency
+        from world.runtime_progression import v0210_create_endless_gauntlet_room_definition  # explicit current dependency
         room_id = str(room_id or "")
         # Private, mined-out chambers are recreated deterministically after deploy.
         from core.mine_tunnels import mine_tunnel_identity
@@ -975,6 +1097,18 @@ class World:
         return ok
 
     def ensure_infinite_dungeon_floor(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from data.rooms import ROOMS  # canonical current dependency
+        import data.catalog_mutations as _catalog_mut  # explicit current dependency
+        from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+        from core.progression_resources import mine_floor_number  # explicit current dependency
+        from systems.dungeons_regions import astral_floor_number, crypt_floor_number, giant_fortress_floor_number, mythic_astral_floor_number, mythic_crypt_floor_number, profession_dungeon_floor  # explicit current dependency
+        from world.dynamic_content import v0100_expand_instance_floor  # explicit current dependency
+        from world.economy_quests import create_infinite_giant_fortress_floor_definition, create_infinite_mine_floor_definition, create_infinite_profession_dungeon_floor_definition  # explicit current dependency
+        from world.uoss_superboss_world import create_infinite_uoss_deep_dungeon_floor_definition_v11331, uoss_deep_dungeon_floor_number_v11331  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        create_infinite_astral_floor_definition = _current_rule('create_infinite_astral_floor_definition')
+        create_infinite_crypt_floor_definition = _current_rule('create_infinite_crypt_floor_definition')
         room_id = str(room_id or "")
         if not room_id:
             return False
@@ -1074,6 +1208,12 @@ class World:
         are handled in one pass.  Callers that need the scheduled world tick
         immediately (wander_step) use ``force=True``.
         """
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
         now = time.time()
         if not force and (now - self._last_refresh_at) < self._refresh_min_interval:
             return self._last_live_counts
@@ -1183,6 +1323,10 @@ class World:
 
     def wander_step(self, now=None):
         """Wykonuje pojedynczy bezpieczny tick ruchu zwykłych mobów."""
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from world.dynamic_content import MOB_WANDER_MAX_SECONDS, MOB_WANDER_MIN_SECONDS, MOB_WANDER_ROOM_CAP, mob_template_can_wander, mob_wander_candidates  # explicit current dependency
         now = time.time() if now is None else float(now)
         # v0.71.5: refresh already calculates per-room live counts, so wander no
         # longer performs a second full counting pass before its movement pass.
@@ -1231,6 +1375,7 @@ class World:
         return moves
 
     def live_crypt_boss(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         for mob in self.room_mobs(room_id):
             if MOB_TEMPLATES[mob.template_id].get("crypt_boss"):
                 return mob
@@ -1239,6 +1384,8 @@ class World:
     def crypt_descent_blocked(self, room_id, direction="down"):
         # v0.10.1: boss blokuje tylko rzeczywiste zejście na dalsze piętro.
         # Wszystkie przejścia wewnątrz bieżącego piętra pozostają dostępne.
+        from data.rooms import ROOMS  # canonical current dependency
+        from systems.dungeons_regions import crypt_floor_number, is_crypt_boss_floor  # explicit current dependency
         if direction != "down":
             return False
         floor = crypt_floor_number(room_id)
@@ -1251,12 +1398,15 @@ class World:
         return self.live_crypt_boss(room_id) is not None
 
     def live_astral_boss(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         for mob in self.room_mobs(room_id):
             if MOB_TEMPLATES[mob.template_id].get("astral_boss"):
                 return mob
         return None
 
     def astral_ascent_blocked(self, room_id, direction="up"):
+        from data.rooms import ROOMS  # canonical current dependency
+        from systems.dungeons_regions import astral_floor_number, is_astral_boss_floor  # explicit current dependency
         if direction != "up":
             return False
         floor = astral_floor_number(room_id)
@@ -1269,6 +1419,7 @@ class World:
         return self.live_astral_boss(room_id) is not None
 
     def live_mythic_crypt_boss(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         for mob in self.room_mobs(room_id):
             if MOB_TEMPLATES[mob.template_id].get("mythic_crypt_boss"):
                 return mob
@@ -1277,6 +1428,8 @@ class World:
     def mythic_crypt_descent_blocked(
         self, room_id, direction="down"
     ):
+        from data.rooms import ROOMS  # canonical current dependency
+        from systems.dungeons_regions import is_mythic_crypt_boss_floor, mythic_crypt_floor_number  # explicit current dependency
         if direction != "down":
             return False
         floor = mythic_crypt_floor_number(room_id)
@@ -1289,6 +1442,7 @@ class World:
         return self.live_mythic_crypt_boss(room_id) is not None
 
     def live_mythic_astral_boss(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         for mob in self.room_mobs(room_id):
             if MOB_TEMPLATES[mob.template_id].get("mythic_astral_boss"):
                 return mob
@@ -1297,6 +1451,8 @@ class World:
     def mythic_astral_ascent_blocked(
         self, room_id, direction="up"
     ):
+        from data.rooms import ROOMS  # canonical current dependency
+        from systems.dungeons_regions import is_mythic_astral_boss_floor, mythic_astral_floor_number  # explicit current dependency
         if direction != "up":
             return False
         floor = mythic_astral_floor_number(room_id)
@@ -1309,6 +1465,7 @@ class World:
         return self.live_mythic_astral_boss(room_id) is not None
 
     def live_giant_fortress_boss(self, room_id):
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
         for mob in self.room_mobs(room_id):
             if MOB_TEMPLATES[mob.template_id].get("giant_fortress_boss"):
                 return mob
@@ -1317,6 +1474,8 @@ class World:
     def giant_fortress_ascent_blocked(
         self, room_id, direction="up"
     ):
+        from data.rooms import ROOMS  # canonical current dependency
+        from systems.dungeons_regions import giant_fortress_floor_number, is_giant_fortress_boss_floor  # explicit current dependency
         if direction != "up":
             return False
         floor = giant_fortress_floor_number(room_id)
@@ -1329,6 +1488,17 @@ class World:
         return self.live_giant_fortress_boss(room_id) is not None
 
     def create_corpse(self, mob):
+        from data.items import ITEMS  # canonical current dependency
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        import random  # explicit current dependency
+        import time  # explicit current dependency
+        from core.bootstrap_economy_professions import CORPSE_LIFETIME_SECONDS  # explicit current dependency
+        from systems.dungeons_regions import roll_crypt_loot_item  # explicit current dependency
+        from systems.infinite_equipment import infinite_equipment_variant_for_drop  # explicit current dependency
+        from world.economy_quests import _ensure_dynamic_boss_key  # explicit current dependency
+        from world.equipment_help import class_equipment_drop_chance, class_equipment_drop_pool  # explicit current dependency
+        from core.runtime_rules import get_rule as _current_rule
+        boss_key_for_template = _current_rule('boss_key_for_template')
         template=MOB_TEMPLATES[mob.template_id]
         if template.get("leave_corpse", True) is False: return None
         pool=list(template.get("corpse_equipment_pool",()))
@@ -1400,6 +1570,8 @@ class World:
         return corpse
 
     def treasure_chest_status(self, room_id, opened_at=0):
+        import time  # explicit current dependency
+        from world.expansions import TREASURE_CHESTS  # explicit current dependency
         cfg=TREASURE_CHESTS.get(room_id)
         if not cfg:
             return None, 0
@@ -1408,6 +1580,10 @@ class World:
         return cfg, remaining
 
     def open_treasure_chest(self, room_id):
+        import random  # explicit current dependency
+        from core.bootstrap_economy_professions import SILVER_PER_GOLD  # explicit current dependency
+        from systems.items_resources import economy_stage_anchor_v11314  # explicit current dependency
+        from world.expansions import TREASURE_CHESTS, TREASURE_CHEST_RARITIES  # explicit current dependency
         cfg=TREASURE_CHESTS.get(room_id)
         if not cfg:
             return None
@@ -1455,6 +1631,8 @@ class World:
         2.goblin (drugie pasujące ciało goblina). Numeracja jest wspólna dla
         look/l, przeszukaj/loot oraz wez/get.
         """
+        from storage.db_shared import normalize_lookup_text  # canonical current dependency
+        import re  # explicit current dependency
         corpses = self.room_corpses(room_id)
         raw = str(query or "").strip()
         q = normalize_lookup_text(raw)
@@ -1524,6 +1702,9 @@ class World:
         zapytania, wybierane jest najlepsze dostępne dopasowanie zamiast
         odrzucania celu jako niejednoznacznego.
         """
+        from data.mobs import MOB_TEMPLATES  # canonical current dependency
+        from storage.db_shared import normalize_lookup_text  # canonical current dependency
+        import re  # explicit current dependency
         mobs = self.room_mobs(room_id)
         raw = str(query or "").strip()
         if not raw:
@@ -1580,11 +1761,14 @@ class World:
         return None
 
 # v0.24.4: jasne wyświetlanie wspólnego zapasu dla równoległych questów.
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("questy", []).append(
     "v0.30.7: Questy na ryby, zioła, drewno, rudy i inne zużywane zasoby pamiętają wewnętrznie zdarzenia zdobycia od 0/x, ale widoczny Postęp pokazuje tylko zaliczone sztuki nadal dostępne do oddania. Po zużyciu części zapasu licznik spada odpowiednio; stary zapas sprzed przyjęcia nadal nie daje darmowego postępu."
 )
 
 # v0.24.4: finalny HELP umiejętności po zbudowaniu całej siatki 1-600.
+from core.classes_skills import CLASS_SKILLS  # explicit current dependency
 _FINAL_SKILL_HELP_ENTRIES = tuple(
     (class_name, skill)
     for class_name, skills in CLASS_SKILLS.items()
@@ -1595,6 +1779,7 @@ _FINAL_SKILL_HELP_COUNT = len(_FINAL_SKILL_HELP_ENTRIES)
 # całej tabeli 1476 wpisów. Fragmenty nadal używają kontrolowanego skanu.
 _FINAL_SKILL_HELP_EXACT_INDEX = {}
 _FINAL_SKILL_HELP_SEARCH_ROWS = []
+from storage.db_shared import normalize_lookup_text  # canonical current dependency
 for _help_class_name, _help_skill in _FINAL_SKILL_HELP_ENTRIES:
     _help_values = [_help_skill.get("name", ""), _help_skill.get("id", "")]
     _help_values.extend(_help_skill.get("aliases", []))
@@ -1619,6 +1804,10 @@ HELP_TOPICS.setdefault("nazwy_skilli", []).append(
 
 # v0.30.32: pełne pomoce klas + katalogi skills all / spells all.
 _CLASS_TYPE_LABEL_V03032 = {"physical": "fizyczna", "magic": "magiczna"}
+from core.progression_600 import CLASS_MASTERY_MAX_LEVEL  # canonical current dependency
+from data.npcs import NPCS  # canonical current dependency
+from data.rooms import ROOMS  # canonical current dependency
+from core.classes_skills import CLASSES, CLASS_DESCRIPTIONS  # explicit current dependency
 for _class_name, _class_type, _soul_weapon, _base_power in CLASSES:
     _topic_key = "klasa_" + normalize_lookup_text(_class_name).replace(" ", "_")
     _teacher = next(
@@ -1699,6 +1888,10 @@ V0250_NPC_RENAMES = {
 
 
 def v0250_apply_unique_npc_names():
+    from data.npcs import NPCS  # canonical current dependency
+    from data.quests import QUESTS  # canonical current dependency
+    from data.current_help import get_help_catalogs as _current_help_catalogs
+    HELP_TOPICS = _current_help_catalogs()[0]
     replacements = {}
     for npc_id, new_name in V0250_NPC_RENAMES.items():
         npc = NPCS.get(npc_id)
@@ -1776,6 +1969,7 @@ v0250_apply_unique_npc_names()
 
 
 def v0250_duplicate_npc_given_names():
+    from data.npcs import NPCS  # canonical current dependency
     seen = {}
     duplicates = {}
     for npc_id, npc in NPCS.items():
@@ -1794,6 +1988,8 @@ def v0250_duplicate_npc_given_names():
 # v0.26.0 - MUZEUM 2.0 + TYTUŁY I PRESTIŻ
 # Jedna, osiągalna kolekcja końcowa bez dublowania wpisów starego Codexu.
 # ============================================================
+from data.items import ITEMS  # canonical current dependency
+from core.progression_resources import WOOD_RESOURCE_IDS  # explicit current dependency
 V0260_WOOD_CATALOG = {
     item_id: ITEMS[item_id]["name"]
     for item_id in sorted(WOOD_RESOURCE_IDS)
@@ -1821,6 +2017,8 @@ def _v0260_set_piece_key(item_id, item):
 
 
 def _v0260_build_set_piece_groups():
+    from data.items import ITEMS  # canonical current dependency
+    from world.dynamic_content import SET_ENTRY_BY_ITEM  # explicit current dependency
     groups = {}
     for item_id, set_id in SET_ENTRY_BY_ITEM.items():
         item = ITEMS.get(item_id, {})
@@ -1833,17 +2031,20 @@ def _v0260_build_set_piece_groups():
 
 
 V0260_SET_PIECE_GROUPS = _v0260_build_set_piece_groups()
+from world.dynamic_content import SET_COLLECTION_CATALOG  # explicit current dependency
 V0260_SET_CATALOG = {
     set_id: row["name"] for set_id, row in SET_COLLECTION_CATALOG.items()
 }
 
 V0260_SURFACE_SECRET_CATALOG = {}
+from world.generation_systems import v0140_surface_secret_info, v0140_surface_secret_room_ids  # explicit current dependency
 for _rid in v0140_surface_secret_room_ids():
     _info = v0140_surface_secret_info(_rid)
     if _info:
         V0260_SURFACE_SECRET_CATALOG[_rid] = _info["name"]
 
 V0260_INSTANCE_SECRET_CATALOG = {}
+from world.economy_quests import INSTANCE_MAP_DEFS, INSTANCE_SECRET_TITLES  # explicit current dependency
 for _kind, _info in INSTANCE_MAP_DEFS.items():
     for _idx, _title in enumerate(INSTANCE_SECRET_TITLES):
         _key = f"instance:{_kind}:{_idx}"
@@ -1852,6 +2053,7 @@ for _kind, _info in INSTANCE_MAP_DEFS.items():
 V0260_SECRET_CATALOG = dict(V0260_SURFACE_SECRET_CATALOG)
 V0260_SECRET_CATALOG.update(V0260_INSTANCE_SECRET_CATALOG)
 
+from world.dynamic_content import BOSS_COLLECTION_CATALOG, FISH_COLLECTION_CATALOG, HERB_COLLECTION_CATALOG, MINERAL_COLLECTION_CATALOG  # explicit current dependency
 V0260_MUSEUM_CATALOGS = {
     "fish": FISH_COLLECTION_CATALOG,
     "minerals": MINERAL_COLLECTION_CATALOG,
@@ -1952,8 +2154,10 @@ HELP_TOPICS["tytuly"] = [
 ]
 
 # Łowca 1000 Bossów jest długoterminowym, prestiżowym progiem bez bonusu bojowego.
+from world.dynamic_content import ACHIEVEMENT_TRACKS  # explicit current dependency
 _boss_tiers = list(ACHIEVEMENT_TRACKS["boss_kills"]["tiers"])
 if not any(int(req) == 1000 for req, _tier in _boss_tiers):
     _boss_tiers.append((1000, "Mythic"))
 ACHIEVEMENT_TRACKS["boss_kills"]["tiers"] = tuple(_boss_tiers)
+from world.dynamic_content import ACHIEVEMENT_TITLE_REWARDS  # explicit current dependency
 ACHIEVEMENT_TITLE_REWARDS[("boss_kills", "Mythic")] = "Łowca 1000 Bossów"

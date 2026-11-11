@@ -250,7 +250,7 @@ def activate_v107_uncapped_defaults(*,path=None):
     including users who intentionally chose other limits, are preserved.
     Upgrades (+10) remain a separate item mechanic, not an infinite axis.
     """
-    from systems.v10700_activation import production_approved
+    from systems.runtime_activation import production_approved
     if not production_approved():
         return False
     if not _loaded:

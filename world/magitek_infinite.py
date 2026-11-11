@@ -38,6 +38,7 @@ def magitek_floor_stage(floor):
     # Authored sectors previously covered roughly 120..390. Infinite floors
     # continue that curve up to the global 600 progression cap, then keep
     # growing through an uncapped depth multiplier.
+    from core.progression_600 import CLASS_MASTERY_MAX_LEVEL  # canonical current dependency
     floor = max(1, int(floor))
     return min(CLASS_MASTERY_MAX_LEVEL, MAGITEK_INFINITY_START_LEVEL + floor * 7)
 
@@ -103,6 +104,7 @@ _MAGITEK_COMPONENTS = (
 
 
 def _v0382_magitek_gear_pool():
+    from data.items import ITEMS  # canonical current dependency
     pool = []
     for iid, item in ITEMS.items():
         if item.get("type") != "armor":
@@ -132,6 +134,12 @@ def _v0382_magitek_drop_table(floor, boss=False):
 
 
 def create_infinite_magitek_floor_definition(floor):
+    import world.economy_quests as _current_economy_quests  # explicit optional dependency
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from world.economy_quests import _configure_dynamic_corpse_material, dungeon_mob_display_name_v11336  # explicit current dependency
+    from world.machine_expansion import _machine_template  # explicit current dependency
     floor = max(1, int(floor))
     stage = magitek_floor_stage(floor)
     depth = magitek_depth_multiplier(floor)
@@ -203,7 +211,7 @@ def create_infinite_magitek_floor_definition(floor):
             "corpse_equipment_guaranteed": 1 if gear_pool else 0,
         })
         _catalog_mut.catalog_assign(template, 'MOB_TEMPLATES', MOB_TEMPLATES, (tid,))
-        if globals().get("_configure_dynamic_corpse_material"):
+        if getattr(_current_economy_quests, '_configure_dynamic_corpse_material', None):
             _configure_dynamic_corpse_material(template)
         spawns.append((room_id, tid))
 
@@ -288,14 +296,18 @@ def create_infinite_magitek_floor_definition(floor):
             "corpse_equipment_guaranteed": min(5, len(gear_pool)) if gear_pool else 0,
         })
         _catalog_mut.catalog_assign(boss, 'MOB_TEMPLATES', MOB_TEMPLATES, (boss_id,))
-        if globals().get("_configure_dynamic_corpse_material"):
+        if getattr(_current_economy_quests, '_configure_dynamic_corpse_material', None):
             _configure_dynamic_corpse_material(boss)
         spawns.append((room_id, boss_id))
 
     return room_id, spawns
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('create_infinite_magitek_floor_definition', create_infinite_magitek_floor_definition)
+
 
 # -------- Merge both authored Magitek layers into one public dungeon identity.
+from data.rooms import ROOMS  # canonical current dependency
 for _v0382_rid, _v0382_room in list(ROOMS.items()):
     if str(_v0382_rid).startswith("magitek_"):
         _v0382_room["zone"] = MAGITEK_INFINITY_ZONE
@@ -304,6 +316,7 @@ for _v0382_rid, _v0382_room in list(ROOMS.items()):
 _catalog_mut.catalog_setdefault_path('ROOMS', ROOMS, (), "magitek_zero_final", {}).setdefault("exits", {})["down"] = magitek_floor_id(1)
 
 # Expanded procedural labels.
+from world.dynamic_content import V0100_INSTANCE_LABELS  # explicit current dependency
 V0100_INSTANCE_LABELS["magitek"] = (
     "Hala Montażowa", "Galeria Serw", "Węzeł Sensorów", "Magazyn Ogniw",
     "Korytarz Dronów", "Stacja Naprawcza", "Odlewnia Ram", "Komora Chłodzenia",
@@ -311,6 +324,7 @@ V0100_INSTANCE_LABELS["magitek"] = (
     "Archiwum Protokołów", "Szyb Omega", "Węzeł WarMecha", "Platforma Oblężnicza",
 )
 
+from world.dynamic_content import v0100_instance_spec  # explicit current dependency
 _v0100_instance_spec_before_v0382 = v0100_instance_spec
 
 def v0100_instance_spec(room_id):
@@ -323,11 +337,22 @@ def v0100_instance_spec(room_id):
         }
     return _v0100_instance_spec_before_v0382(room_id)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0100_instance_spec', v0100_instance_spec)
+
 
 # -------- Infinite room materialization.
+from world.world_state import World  # explicit current dependency
 _ensure_infinite_dungeon_floor_before_v0382 = World.ensure_infinite_dungeon_floor
 
 def _ensure_infinite_dungeon_floor_v0382(self, room_id):
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from core.mines_threat import _ROOM_THREAT_CACHE, _ZONE_THREAT_CACHE  # explicit current dependency
+    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
+    from world.dynamic_content import v0100_expand_instance_floor, v0100_subroom_id  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    create_infinite_magitek_floor_definition = _current_rule('create_infinite_magitek_floor_definition')
     room_id = str(room_id or "")
     floor = magitek_floor_number(room_id)
     if floor is None:
@@ -388,6 +413,7 @@ World.ensure_infinite_dungeon_floor = _ensure_infinite_dungeon_floor_v0382
 
 
 def _v0382_live_magitek_boss(self, room_id):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     self.refresh()
     for mob in self.mobs.values():
         if not mob.alive or mob.room_id != room_id:
@@ -399,6 +425,7 @@ def _v0382_live_magitek_boss(self, room_id):
 
 
 def _v0382_magitek_descent_blocked(self, room_id, direction="down"):
+    from data.rooms import ROOMS  # canonical current dependency
     if direction != "down":
         return False
     floor = magitek_floor_number(room_id)
@@ -415,6 +442,7 @@ World.magitek_descent_blocked = _v0382_magitek_descent_blocked
 
 
 # -------- First-clear identity/checkpoint integration.
+from world.economy_quests import boss_floor_identity  # explicit current dependency
 _boss_floor_identity_before_v0382 = boss_floor_identity
 
 def boss_floor_identity(template):
@@ -424,11 +452,19 @@ def boss_floor_identity(template):
             return "magitek", floor
     return _boss_floor_identity_before_v0382(template)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('boss_floor_identity', boss_floor_identity)
+
+from world.economy_quests import INSTANCE_MAP_DEFS  # explicit current dependency
 INSTANCE_MAP_DEFS["magitek"] = {"label": "Nieskończony Kompleks Magitek", "min_floor": 1}
+from network.protocol_gameplay_utils import BOSS_CHEST_KIND_NAMES  # explicit current dependency
 BOSS_CHEST_KIND_NAMES["magitek"] = "Nieskończonego Kompleksu Magitek"
 
 
 def _v0382_ensure_magitek_key(floor):
+    from data.items import ITEMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from network.protocol_gameplay_utils import boss_floor_key_id  # explicit current dependency
     floor = int(floor)
     key_id = boss_floor_key_id("magitek", floor)
     if key_id not in ITEMS:
@@ -439,6 +475,7 @@ def _v0382_ensure_magitek_key(floor):
         }, 'ITEMS', ITEMS, (key_id,))
     return key_id
 
+from network.protocol_gameplay_utils import boss_key_for_template  # explicit current dependency
 _boss_key_for_template_before_v0382 = boss_key_for_template
 
 def boss_key_for_template(template):
@@ -448,6 +485,10 @@ def boss_key_for_template(template):
             return _v0382_ensure_magitek_key(floor)
     return _boss_key_for_template_before_v0382(template)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('boss_key_for_template', boss_key_for_template)
+
+from network.protocol_gameplay_utils import _boss_floor_chest_spec  # explicit current dependency
 _boss_floor_chest_spec_before_v0382 = _boss_floor_chest_spec
 
 def _boss_floor_chest_spec(room_id):
@@ -455,6 +496,9 @@ def _boss_floor_chest_spec(room_id):
     if is_magitek_boss_floor(floor):
         return ("magitek", floor, magitek_floor_stage(floor))
     return _boss_floor_chest_spec_before_v0382(room_id)
+
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('_boss_floor_chest_spec', _boss_floor_chest_spec)
 
 
 # -------- Session movement: first clear blocks only the true down-exit room.
@@ -464,10 +508,13 @@ def _v0382_magitek_descent_blocked_for_player(self, room_id, direction="down"):
         return False
     return self.server.world.magitek_descent_blocked(room_id, direction)
 
+from player.session import Session  # explicit current dependency
 Session.magitek_descent_blocked_for_player = _v0382_magitek_descent_blocked_for_player
 
+from player.session import Session  # explicit current dependency
 _move_before_v0382 = Session.move
 async def _move_v0382(self, direction, *args, **kwargs):
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
     if self.character and self.magitek_descent_blocked_for_player(self.character.room_id, direction):
         boss = self.server.world.live_magitek_boss(self.character.room_id)
         boss_name = MOB_TEMPLATES.get(getattr(boss, "template_id", ""), {}).get("name", "boss Magitek")
@@ -486,6 +533,7 @@ Session.move = _move_v0382
 _dungeon_exit_destination_before_v0382 = Session.dungeon_exit_destination
 
 def _dungeon_exit_destination_v0382(self, room_id=None):
+    from data.rooms import ROOMS  # canonical current dependency
     rid = str(room_id or (self.character.room_id if self.character else ""))
     if magitek_floor_number(rid) is not None:
         return "magitek_gate", MAGITEK_INFINITY_ZONE
@@ -498,6 +546,8 @@ Session.dungeon_exit_destination = _dungeon_exit_destination_v0382
 
 
 # -------- Help / version notes.
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["magitek dungeon"] = [
     "Nieskończony Kompleks Magitek jest teraz jednym dungeonem. Dawny Kompleks Magitek i Magitek Dungeon 2.0 tworzą wspólną autorską część wejściową.",
     "Po Archiwum WarMecha można zejść na piętro 1 nieskończonej części. Każde piętro ma dużą, zapętloną mapę z bocznymi komorami; od około 12 pomieszczeń na początku do 20 na dużej głębokości.",
@@ -505,11 +555,15 @@ HELP_TOPICS["magitek dungeon"] = [
     "Machine zachowują biologiczne odporności i główne słabości Lightning/EMP. Piętra są generowane na żądanie bez końca, również ponad progresję 600.",
     "Wyjście awaryjne z dowolnej części Magitek wraca do Bramy Kompleksu Magitek; drużynowe wycofanie lidera nadal obejmuje tylko osoby stojące z nim w tej samej lokacji.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({
     "magitek dungeon":"magitek dungeon", "magitek 2":"magitek dungeon",
     "dungeon magitek":"magitek dungeon", "nieskonczony magitek":"magitek dungeon",
     "infinite magitek":"magitek dungeon",
 })
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("wersja", []).append(
     "v0.38.2: oba dotychczasowe Magitek dungeony zostały scalone w Nieskończony Kompleks Magitek z dużymi proceduralnymi piętrami i bossem co 10."
 )
@@ -517,6 +571,13 @@ HELP_TOPICS.setdefault("wersja", []).append(
 
 # -------- Audit.
 def magitek_infinite_audit_v0382():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from data.rooms import ROOMS  # canonical current dependency
+    import data.catalog_mutations as _catalog_mut  # explicit current dependency
+    from player.session import Session  # explicit current dependency
+    from world.dynamic_content import v0100_expand_instance_floor, v0100_subroom_id  # explicit current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    create_infinite_magitek_floor_definition = _current_rule('create_infinite_magitek_floor_definition')
     errors = []
     _rooms_before = set(ROOMS)
     _mobs_before = set(MOB_TEMPLATES)

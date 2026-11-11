@@ -29,6 +29,170 @@ VERSION_PATTERN = re.compile(r'^\s*VERSION\s*=\s*[\'"]([0-9]+(?:\.[0-9]+){2})[\'
 RELEASE_PATTERN = re.compile(r'^Soulbound-MUD-v(\d+\.\d+\.\d+).*\.zip$', re.I)
 SKIP_PARTS = {'__pycache__', 'logs', '.git'}
 SQLITE_SUFFIXES = ('.db', '.db-wal', '.db-shm', '.sqlite', '.sqlite-wal', '.sqlite-shm', '.sqlite3', '.sqlite3-wal', '.sqlite3-shm')
+# Only candidate PREDEPLOY needs the full historical validation suite.
+# The live installation retains merely the legacy verification helpers still
+# imported by the current server, administrator or approved migration code.
+# All candidate modules are extracted into an isolated TEMP worktree for 60/60.
+V111_OLD_MIGRATION_TOOLS = frozenset({
+    'systems/v11000_retired_installers.py',
+    'systems/v10800_eq_cutover_bridge.py',  # historical v108-only migration
+})
+# Modules imported only by offline PREDEPLOY/regression scripts. They must remain
+# in the full candidate ZIP, never in the production installation. Each entry
+# was checked against the live module manifest and source imports in v111.
+# Do not add gameplay/world modules based on names or age alone.
+V111_CANDIDATE_ONLY_PYTHON_FILES = frozenset({
+    'admin/audits.py',
+    'systems/full_systems_audit_v03062.py',
+    'admin/audit_rules_v406.py',
+    'admin/v410_release_audits.py',
+    'admin/v410_equipment_audits.py',  # original v0.30 equipment audits: offline only
+    'admin/city_services_fast_v1225.py',
+    'admin/cross_system_audit_v1001.py',
+    'admin/fast_predeploy_audit_v0571.py',
+    'admin/mob_display_name_audit_v11129.py',
+    # Read-only source inspector and the staged v104 BigNumber prototype are
+    # kept in the full PREDEPLOY archive, never in live gameplay.
+    'core/source_contracts.py',
+    'storage/big_number_events_v10400.py',
+    'storage/big_number_ledger_v10400.py',
+    'storage/big_number_reward_bundle_v10400.py',
+    'systems/equipment_craft_reward_audit_v10600.py',
+    'systems/quest_calendar_v10600.py',
+    'systems/v106_raid_combat_forecast.py',
+    'systems/v10800_eq_dynamic_catalog.py',
+})
+# Obsolete generated-core entrypoint: remove only when the previous
+# certified manifest includes the unchanged exact file, never unconditionally.
+V111_CERTIFIED_OBSOLETE_RUNTIME = frozenset({'core/generator_core.py'})
+V111_CANDIDATE_ONLY_ROOT_FILES = frozenset({
+    'predeploy_check.py', 'predeploy_full.py', 'testuj_soulbound_windows.py',
+    'TESTUJ_Soulbound.bat', '_debug_boot_local.py',
+    'audyt_v107_windows_przed_predeploy.py', 'sprawdz_v104_zbiorczo.py',
+})
+
+
+# Current runtime uses systems.runtime_activation only. Historical activators
+# remain in the full candidate exclusively for offline regression fixtures.
+V112_HISTORICAL_ACTIVATION_FILES = frozenset({
+    'systems/v10700_activation.py', 'systems/v10800_activation.py',
+    'systems/v10900_activation.py', 'systems/v10900_staging_guard.py',
+    'systems/v11000_activation.py', 'systems/v11100_holiday_activation.py',
+    'systems/v10800_predeploy_isolation.py',
+})
+
+
+# Reviewed after current explicit import migration. These exact split helpers
+# and globals binders have no importers in the installed source closure.
+# Keep their original sources only in the full offline regression candidate.
+V112_OBSOLETE_RUNTIME_GLUE_FILES = frozenset({
+    'admin/v410_help_audits.py',
+    'admin/v410_help_refresh.py',
+    'core/legacy_function_binding_v410.py',
+    'core/legacy_method_binding_v4200.py',
+    'core/v410_class_skill_audits.py',
+    'core/v410_mec_mastery.py',
+    'core/v410_progression_helpers.py',
+    'network/v420_chests.py',
+    'network/v420_lookups.py',
+    'player/session_methods_v4200/__init__.py',
+    'player/session_methods_v4200/atlascodex_part01.py',
+    'player/session_methods_v4200/atlascodex_part02.py',
+    'player/session_methods_v4200/atlascodex_part03.py',
+    'player/session_methods_v4200/combatrealtime_part01.py',
+    'player/session_methods_v4200/combatrealtime_part02.py',
+    'player/session_methods_v4200/combatrealtime_part03.py',
+    'player/session_methods_v4200/combatskills_part01.py',
+    'player/session_methods_v4200/combatskills_part02.py',
+    'player/session_methods_v4200/dungeonprogression_part01.py',
+    'player/session_methods_v4200/dungeonprogression_part02.py',
+    'player/session_methods_v4200/dungeonprogression_part03.py',
+    'player/session_methods_v4200/gathering_part01.py',
+    'player/session_methods_v4200/gathering_part02.py',
+    'player/session_methods_v4200/gathering_part03.py',
+    'player/session_methods_v4200/guidenavigation_part01.py',
+    'player/session_methods_v4200/guidenavigation_part02.py',
+    'player/session_methods_v4200/guidenavigation_part03.py',
+    'player/session_methods_v4200/inventoryequipment_part01.py',
+    'player/session_methods_v4200/inventoryequipment_part02.py',
+    'player/session_methods_v4200/inventoryequipment_part03.py',
+    'player/session_methods_v4200/inventoryequipment_part04.py',
+    'player/session_methods_v4200/inventoryequipment_part05.py',
+    'player/session_methods_v4200/ioauthcharacter_part01.py',
+    'player/session_methods_v4200/ioauthcharacter_part02.py',
+    'player/session_methods_v4200/ioauthcharacter_part03.py',
+    'player/session_methods_v4200/party_part01.py',
+    'player/session_methods_v4200/party_part02.py',
+    'player/session_methods_v4200/party_part03.py',
+    'player/session_methods_v4200/perceptionmaps_part01.py',
+    'player/session_methods_v4200/perceptionmaps_part02.py',
+    'player/session_methods_v4200/perceptionmaps_part03.py',
+    'player/session_methods_v4200/professionstorage_part01.py',
+    'player/session_methods_v4200/professionstorage_part02.py',
+    'player/session_methods_v4200/professionstorage_part03.py',
+    'player/session_methods_v4200/skilllearning_part01.py',
+    'player/session_methods_v4200/skilllearning_part02.py',
+    'player/session_methods_v4200/skilllearning_part03.py',
+    'player/session_methods_v4200/skilllearning_part04.py',
+    'storage/methods_v4200/__init__.py',
+    'storage/methods_v4200/databaseworld_part01.py',
+    'storage/methods_v4200/databaseworld_part02.py',
+    'systems/v410_craft_recipes.py',
+    'systems/v410_dungeon_builders.py',
+    'systems/v410_dungeon_loot.py',
+    'systems/v410_dungeon_regions.py',
+    'systems/v410_equipment_shops.py',
+    'systems/v410_gem_registration.py',
+    'systems/v410_material_profiles.py',
+    'systems/v410_resource_registration.py',
+    'world/v410_dynamic_collectors.py',
+    'world/v410_dynamic_instances.py',
+    'world/v410_dynamic_regions.py',
+    'world/v410_generation_frontier.py',
+    'world/v410_generation_islands.py',
+    'world/v410_generation_waters.py',
+    'world/v410_infinite_floors.py',
+    'world/v410_world_economy.py',
+    'world/v420_equipment_config.py',
+    'world/v420_generation_mobs.py',
+    'world/v420_generation_random.py',
+    'world/v420_help_config.py',
+    'world/v420_runtime_class_equipment.py',
+    'world/v420_runtime_regions.py',
+    'world/v420_runtime_world_audits.py',
+})
+
+
+def v111_live_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Path, zipfile.ZipInfo]:
+    """Only install code needed on a running host; never reduce ZIP PREDEPLOY."""
+    from core.runtime_manifest import FULL_AUDIT_ONLY_MODULES
+    offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
+    result={}
+    for rel,info in mapping.items():
+        parts=rel.parts
+        if (rel.as_posix() in offline_admin_audits
+                or rel.as_posix() in V112_HISTORICAL_ACTIVATION_FILES
+                or rel.as_posix() in V112_OBSOLETE_RUNTIME_GLUE_FILES
+                or rel.as_posix() in V111_OLD_MIGRATION_TOOLS
+                or rel.as_posix() in V111_CANDIDATE_ONLY_PYTHON_FILES):
+            continue
+        # The released v111 server does not contain historical validation.
+        # All live imports were relocated to core/ and systems/.
+        if parts[0]=='validation':
+            continue
+        # Historyczne źródła questów zachowujemy w ZIP-ie tylko dla
+        # regresji v109/v110; działająca gra używa world/quests/.
+        if (len(parts)==3 and parts[0:2]==('data','catalogs_v109')
+                and parts[2] in {'quests_01.py','quests_02.py','quests_03.py'}):
+            continue
+        if len(parts)==3 and parts[0:2]==('world','quests_v110'):
+            continue
+        if len(parts)==1 and parts[0] in V111_CANDIDATE_ONLY_ROOT_FILES:
+            continue
+        result[rel]=info
+    return result
+
+
 PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt', 'admin_level_caps.json', 'shop_progression_v7003.json', 'heritage_v7100.json', 'custom_races_v7600.json', 'custom_classes_v7700.json', 'era_v10300.json'}
 
 
@@ -86,7 +250,7 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
                 raise UpdateError(f'ZIP zawiera baze danych: {relative}. Przerwano, by chronic postacie.')
             continue
         mapping[relative] = item
-    essential = {'server.py', 'CHANGELOG_PL.txt', 'core/bootstrap_economy_professions.py',
+    essential = {'server.py', 'core/bootstrap_economy_professions.py',
                  'START_Soulbound.bat', 'STOP_Soulbound.bat', 'predeploy_check.py'}
     missing = essential.difference(str(x).replace('\\', '/') for x in mapping)
     if missing:
@@ -141,6 +305,63 @@ def find_release(root: Path, selected: Path | None, current_version: str) -> tup
 
 
 
+def v112_base_preflight(root: Path) -> str:
+    """Read-only safety gate for a *broken* v110/v111 installation.
+
+    The player database and completed physical EQ migration are the trusted
+    base-state evidence, not a missing/invalid v111 manifest.  This does not
+    authorize a v112 release: exact Windows PREDEPLOY 60/60 PLUS + SHA256 is
+    checked independently afterwards, and a complete backup precedes writes.
+
+    Both certified and recovery sources must pass the same SQLite checks;
+    historical v106 rollback snapshots are deliberately never required.
+    """
+    import sqlite3
+    from contextlib import closing
+    root = Path(root)
+    version_file = root / 'VERSION'
+    base_code = root / 'core/bootstrap_economy_professions.py'
+    database = root / 'soulbound.db'
+    if (root.is_symlink() or version_file.is_symlink() or
+        base_code.is_symlink() or database.is_symlink()):
+        raise UpdateError('v112: niebezpieczne dowiazanie w bazowej instalacji.')
+    try:
+        installed = version_file.read_text(encoding='utf-8-sig').strip()
+        if installed not in ('110.00.0','111.00.0') or file_version(base_code) != installed:
+            raise UpdateError('v112: źródło danych musi mieć zgodne VERSION i kod v110/v111.')
+        if not database.is_file():
+            raise UpdateError('v112: nie znaleziono bazy postaci soulbound.db.')
+        with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=10)) as conn:
+            conn.execute('PRAGMA query_only=ON')
+            if conn.execute('PRAGMA integrity_check').fetchone() != ('ok',):
+                raise UpdateError('v112: bledy integralnosci SQLite; aktualizacja zablokowana.')
+            must_have={'v107_eq_production_cutover','v106_equipped_instances',
+                       'v106_stored_instances','v106_item_instances','equipment','inventory'}
+            found={row[0] for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+            absent=must_have-found
+            if absent:
+                raise UpdateError('v112: brak aktywnego rejestru fizycznego EQ: '
+                                  +', '.join(sorted(absent)))
+            rows=conn.execute('SELECT cutover_version,backup_name '
+                              'FROM v107_eq_production_cutover').fetchall()
+            if (len(rows)!=1 or rows[0][0]!='107.00.0'
+                    or not isinstance(rows[0][1],str)
+                    or not rows[0][1] or Path(rows[0][1]).name!=rows[0][1]):
+                raise UpdateError('v112: niezgodny znacznik zakonczonej migracji EQ.')
+            for table in ('v106_equipped_instances','v106_stored_instances'):
+                if conn.execute('PRAGMA foreign_key_check("'+table+'")').fetchone():
+                    raise UpdateError('v112: bledne powiazania EQ w tabeli '+table)
+        # v111 may have a missing or stale manifest after a failed install.
+        # An approved v112 candidate can repair it without ever importing
+        # a prior release activator or trying to recreate a v106 snapshot.
+        return 'validated-ledger'
+    except sqlite3.Error as exc:
+        raise UpdateError('v112: nie moge bezpiecznie odczytac SQLite/EQ: '+str(exc)) from exc
+    except (OSError, UnicodeError, ValueError) as exc:
+        raise UpdateError('v112: nie mozna sprawdzic podstawy aktualizacji: '+str(exc)) from exc
+
+
 def require_v104_official_predeploy(root: Path, archive_path: Path, new_version: str) -> None:
     """Never stop the live server for a v104+ ZIP without a matching 60/60 PASS.
 
@@ -149,32 +370,13 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
     fabricate an approval by bundling a JSON file. Earlier releases retain
     their historic updater behavior.
     """
-    if new_version == '110.00.0':
-        # Only today's installed version and today's approved ZIP matter.
-        # Historical installer .py files and old approval manifests are irrelevant.
-        if file_version(root/'core/bootstrap_economy_professions.py')!='109.00.0':
-            raise UpdateError('v110: wymagana zainstalowana v109.00.0; bez migracji skokowej.')
-    elif version_tuple(new_version) >= (110, 0, 0):
-        raise UpdateError('v110: nieznana nowsza wersja bez osobnego zatwierdzenia.')
-    elif new_version == '109.00.0':
-        from validation.v10900_release_readiness import unmet_requirements as v109_missing
-        if v109_missing(ROOT):
-            raise UpdateError('v109: niekompletna integracja aktywacji, STOP zabroniony.')
-        if file_version(root/'core/bootstrap_economy_professions.py')!='108.00.0':
-            raise UpdateError('v109: wymagana zainstalowana produkcyjna v108.00.0.')
-        from systems.v10800_activation import verify_root_for_test as verify_v108
-        if not verify_v108(root):
-            raise UpdateError('v109: brak trwałej autoryzacji zainstalowanej v108.')
-    elif version_tuple(new_version) >= (108, 0, 0):
-        if new_version != '108.00.0':
-            raise UpdateError('Nieznany numer wydania, brak zweryfikowanej sciezki migracji.')
-        from validation.v10800_release_readiness import unmet_requirements
-        if unmet_requirements(ROOT):
-            raise UpdateError('v108: niekompletna sciezka aktywacji i EQ; STOP zabroniony.')
-        # v108 only upgrades certified v107 installations. Older transitions
-        # need a separately validated migration; never infer it from VERSION.
-        if file_version(root/'core/bootstrap_economy_professions.py')!='107.00.0':
-            raise UpdateError('v108: aktualizacja wymaga wgranej produkcyjnej v107.00.0.')
+    # Only v112 is an installable target for this release. A broken v110/v111
+    # may be used as a data source after the strict SQLite / EQ preflight.
+    if new_version != '112.00.0':
+        raise UpdateError('Ten instalator obsluguje tylko niezalezne wydanie v112.00.0.')
+    v112_base_preflight(root)
+    print('V112: baza v110/v111 i fizyczne EQ sprawdzone tylko do odczytu; '
+          'wymagane 60/60 PLUS i pełny backup.',flush=True)
     if version_tuple(new_version) < (104, 0, 0):
         return
     # Never replace the live v107 approval while testing a v108 ZIP.
@@ -187,6 +389,10 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
         if new_version == '108.00.0' and (state.get('v108_release_gates_pass') is not True
                                                  or state.get('v108_eq_rebuild_trial_pass') is not True):
             raise UpdateError('v108: brak zaliczonej dodatkowej bramki wydania, niczego nie zatrzymano.')
+        if new_version == '112.00.0' and state.get('v112_release_gates_pass') is not True:
+            raise UpdateError('v112: brak osobnej bramki; STOP zabroniony.')
+        if new_version == '111.00.0' and state.get('v111_release_gates_pass') is not True:
+            raise UpdateError('v111: brak osobnej bramki; STOP zabroniony.')
         if new_version == '110.00.0' and state.get('v110_release_gates_pass') is not True:
             raise UpdateError('v110: brak osobnej bramki wydania; STOP zabroniony.')
         if new_version == '109.00.0' and state.get('v109_release_gates_pass') is not True:
@@ -208,7 +414,9 @@ def require_v104_official_predeploy(root: Path, archive_path: Path, new_version:
               and (new_version != '108.00.0' or (state.get('v108_release_gates_pass') is True
                          and state.get('v108_eq_rebuild_trial_pass') is True))
               and (new_version != '109.00.0' or state.get('v109_release_gates_pass') is True)
-              and (new_version != '110.00.0' or state.get('v110_release_gates_pass') is True))
+              and (new_version != '110.00.0' or state.get('v110_release_gates_pass') is True)
+              and (new_version != '111.00.0' or state.get('v111_release_gates_pass') is True)
+              and (new_version != '112.00.0' or state.get('v112_release_gates_pass') is True))
     if not needed:
         raise UpdateError('v104: brak zgodnego 60/60 PLUS dla tej wersji i aktualnie '
                           'zainstalowanej gry. Niczego nie zatrzymano.')
@@ -289,6 +497,90 @@ def stage_release(archive_path: Path, target: Path, mapping: dict[Path,zipfile.Z
         raise UpdateError('Niepelna paczka po rozpakowaniu.')
 
 
+def verify_prior_manifest_data_only(backup: Path, record: dict, old_version: str) -> bool:
+    """v112-only parser for an old *data* manifest; never imports old code.
+
+    Any missing, tampered or locally modified source blocks cleanup. No version
+    marker alone authorizes deletion: all declared files must have matching
+    SHA256 in the backed-up installation first.
+    """
+    if old_version not in ('110.00.0', '111.00.0') or not isinstance(record,dict):
+        return False
+    if (type(record.get('schema')) is not int or record.get('schema')!=1
+        or record.get('version')!=old_version or record.get('status')!='PASS'
+        or record.get('quality_gate')!='ULTIMATE-60-PLUS'
+        or record.get('source_gate')!='WINDOWS_PREDEPLOY_APPROVED'):
+        return False
+    archive_hash=record.get('archive_sha256')
+    if not isinstance(archive_hash,str) or not re.fullmatch(r'[0-9a-f]{64}',archive_hash):
+        return False
+    files=record.get('files')
+    if not isinstance(files,dict) or len(files)<3:
+        return False
+    if not {'VERSION','server.py','core/bootstrap_economy_professions.py'}.issubset(files):
+        return False
+    for name, expected in files.items():
+        if not isinstance(name,str) or not name or '\\' in name:
+            return False
+        relative=Path(name)
+        if relative.is_absolute() or '..' in relative.parts or name.startswith('/'):
+            return False
+        if not isinstance(expected,str) or not re.fullmatch(r'[0-9a-f]{64}',expected):
+            return False
+        candidate=backup/relative
+        if not candidate.is_file() or candidate.is_symlink() or sha256_file(candidate)!=expected:
+            return False
+    return True
+
+
+def retire_certified_v111_test_files(root: Path, stage: Path, backup: Path) -> int:
+    """Retire verified historical tools from approved v110/v111 after backup.
+
+    Only files listed and signed in the previous version's *complete* approval
+    may be removed; locally modified files and unknown releases are preserved.
+    The previous code backup permits a full rollback of every removal.
+    """
+    if not (stage/'VERSION').is_file() or (stage/'VERSION').read_text(encoding='utf-8-sig').strip() not in ('111.00.0','112.00.0'):
+        return 0
+    old_manifest=backup/'LIVE_CONTENT/release_current.json'
+    if not old_manifest.is_file():
+        print('V111 porządki: brak poprzedniego manifestu; starych testów nie kasuję.', flush=True)
+        return 0
+    try:
+        old_version=(backup/'VERSION').read_text(encoding='utf-8-sig').strip()
+        record=json.loads(old_manifest.read_text(encoding='utf-8'))
+        if not verify_prior_manifest_data_only(backup,record,old_version):
+            print('V112: poprzedni manifest jest niepelny lub niespojny; bez usuwania plikow.',flush=True)
+            return 0
+        hashes=record['files']
+    except (OSError,ValueError,KeyError,TypeError,UnicodeError):
+        return 0
+    removed=0
+    from core.runtime_manifest import FULL_AUDIT_ONLY_MODULES
+    offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
+    for name,expected in hashes.items():
+        if not isinstance(name,str) or not isinstance(expected,str):
+            continue
+        rel=Path(name)
+        if (rel.is_absolute() or '..' in rel.parts or len(rel.parts)==0
+            or not (rel.parts[0]=='validation' or
+                rel.as_posix() in offline_admin_audits or
+                rel.as_posix() in V111_OLD_MIGRATION_TOOLS or
+                rel.as_posix() in V111_CANDIDATE_ONLY_PYTHON_FILES or
+                rel.as_posix() in V111_CERTIFIED_OBSOLETE_RUNTIME or
+                (len(rel.parts)==1 and rel.name in V111_CANDIDATE_ONLY_ROOT_FILES))):
+            continue
+        if (stage/rel).exists() or protected(rel):
+            continue
+        target=root/rel
+        if target.is_file() and not target.is_symlink() and hashlib.sha256(target.read_bytes()).hexdigest()==expected:
+            target.unlink()
+            removed+=1
+    if removed:
+        print(f'V111: usunięto {removed} potwierdzonych historycznych testów; backup zachowany.',flush=True)
+    return removed
+
+
 def install_stage(root: Path, stage: Path, backup: Path) -> None:
     """Only replace release files; all live databases, logs and user files stay."""
     created: list[Path] = []
@@ -309,8 +601,9 @@ def install_stage(root: Path, stage: Path, backup: Path) -> None:
             staged = dest.with_name(dest.name + '.soulbound-new')
             shutil.copy2(source, staged)
             os.replace(staged, dest)
-        # Retired Generator Core must never return from a stale older directory.
-        (root / 'core' / 'generator_core.py').unlink(missing_ok=True)
+        # Retire obsolete source only through the exact previous signed
+        # manifest + SHA256 + full backup. Locally modified files stay.
+        retire_certified_v111_test_files(root, stage, backup)
         retired, _ = cleanup_legacy_readmes(root, backup)
         if retired:
             print(f'Usunieto {len(retired)} historycznych README z folderu gry; kopie sa w {backup}', flush=True)
@@ -357,7 +650,105 @@ def _restore_prior_code_after_v108_cutover_failure(root: Path, backup: Path, sta
             (root/generated).unlink(missing_ok=True)
 
 
-def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True) -> Path:
+def v112_certified_boot_rehearsal(root: Path, staged_root: Path, *, timeout=240) -> None:
+    """Start exact approved v112 code against an isolated backup of live DB.
+
+    This is intentionally BEFORE STOP or any install write. Running the
+    production authorization + migrated EQ ledger on a disposable copy catches
+    failures that a new/empty SQLite smoke test cannot detect. The original
+    player DB, source code and port 4000 are never passed to this child.
+    """
+    import sqlite3
+    from contextlib import closing
+    from systems.v11200_activation import verify
+    if not verify(staged_root):
+        raise UpdateError('v112: test kopii graczy nie ma podpisanego kodu stagingu.')
+    with tempfile.TemporaryDirectory(prefix='sb112_production_copy_boot_') as scratch:
+        copy = Path(scratch)/'players_test.sqlite'
+        source = Path(root)/'soulbound.db'
+        if not source.is_file() or source.is_symlink():
+            raise UpdateError('v112: brak bezpiecznej zrodlowej bazy postaci.')
+        try:
+            with closing(sqlite3.connect(source.as_uri()+'?mode=ro',uri=True,timeout=15)) as live:
+                with closing(sqlite3.connect(copy,timeout=15)) as test:
+                    live.backup(test,pages=256,sleep=0.05)
+                    if test.execute('PRAGMA integrity_check').fetchone()!=('ok',):
+                        raise UpdateError('v112: niespojna probna kopia bazy postaci.')
+        except sqlite3.Error as exc:
+            raise UpdateError('v112: nie udalo sie sklonowac SQLite bez zapisu: '+str(exc)) from exc
+        with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
+            sock.bind(('127.0.0.1',0))
+            test_port=sock.getsockname()[1]
+        env=os.environ.copy()
+        for key in tuple(env):
+            if key.startswith('SOULBOUND_V') and key.endswith('_STAGING'):
+                env.pop(key,None)
+        for key in ('SOULBOUND_LIVE_ROOT','SOULBOUND_ULTRA_SOURCE_DB',
+                    'RAILWAY_TCP_APPLICATION_PORT','PORT','SOULBOUND_TCP_TEST_CHILD'):
+            env.pop(key,None)
+        env.update(SOULBOUND_DB=str(copy),SOULBOUND_HOST='127.0.0.1',
+                   SOULBOUND_PORT=str(test_port),PYTHONPATH=str(staged_root),
+                   PYTHONDONTWRITEBYTECODE='1',PYTHONUTF8='1')
+        # A failed boot can still create non-daemon game threads. Always
+        # terminate this *disposable child process* on success or failure;
+        # otherwise subprocess.run may wait until timeout and hide the real
+        # traceback even though the startup exception was immediate.
+        script=(
+            "import os,sys,traceback\n"
+            "try:\n"
+            " import server\n"
+            " from server.mud_server import MudServer\n"
+            " s=MudServer()\n"
+            " s.db.conn.close()\n"
+            " server._BOOT_SOCKET.close()\n"
+            " print('V112 PRODUCTION-COPY BOOT PASS',flush=True)\n"
+            "except BaseException:\n"
+            " traceback.print_exc()\n"
+            " sys.stderr.flush()\n"
+            " os._exit(21)\n"
+            "os._exit(0)\n"
+        )
+        print('V112: uruchamiam nowy kod i fizyczne EQ na ODLACZONEJ kopii '
+              'prawdziwej bazy, localhost, przed STOP...',flush=True)
+        try:
+            result=subprocess.run([sys.executable,'-u','-c',script],cwd=staged_root,
+                env=env,capture_output=True,text=True,stdin=subprocess.DEVNULL,
+                timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            raise UpdateError('v112: rozruch na kopii bazy przekroczyl limit; '
+                              'STOP zabroniony.') from exc
+        except OSError as exc:
+            raise UpdateError('v112: nie mozna uruchomic probnego serwera: '+str(exc)) from exc
+        if (result.returncode!=0 or
+            'V112 PRODUCTION-COPY BOOT PASS' not in result.stdout):
+            details=(result.stdout+'\n'+result.stderr).strip()[-1300:]
+            raise UpdateError('v112: rozruch na kopii PRAWDZIWEJ bazy FAIL; '
+                              'produkcja nietknieta. '+details)
+        print('V112: pelny rozruch na kopii bazy, fizyczne EQ, '
+              '38 klas / 38 ras / questy: PASS. Bez zmian produkcji.',flush=True)
+
+
+def v112_confirm_backup(root: Path, backup: Path) -> None:
+    """After confirmed STOP, prove source database and WAL were copied 1:1."""
+    for name in ('soulbound.db','soulbound.db-wal','soulbound.db-shm'):
+        source=Path(root)/name
+        if source.is_file():
+            copy=Path(backup)/name
+            if not copy.is_file() or sha256_file(source)!=sha256_file(copy):
+                raise UpdateError('v112: backup nie zachowal pliku '+name+'. STOP; bez instalacji.')
+
+
+def sha256_file(file: Path) -> str:
+    digest=hashlib.sha256()
+    with Path(file).open('rb') as source:
+        for chunk in iter(lambda: source.read(1024*1024),b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True, fresh: bool = True) -> Path:
+    if new_version != '112.00.0':
+        raise UpdateError('Biezacy aktualizator v112 nie instaluje starszych wydan.')
     # Critical: protect direct callers and --yes alike, before shutdown/backup.
     require_v104_official_predeploy(root, archive_path, new_version)
     # Pre-validate ZIP *before* touching running server.
@@ -374,6 +765,12 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
                 or entry is None
                 or z.read(entry).decode('utf-8-sig').strip() != new_version):
                 raise UpdateError('v104: nazwa ZIP, VERSION i kod gry sa niespojne.')
+    # The ZIP was verified IN FULL above. Only the approved production subset
+    # is staged/installed and placed into the permanent activation manifest.
+    # Prior installed historical audits are retired separately only if their
+    # unchanged SHA matches the previously certified installation manifest.
+    if new_version in ('111.00.0','112.00.0'):
+        mapping = v111_live_release_mapping(mapping)
     parent = root.parent
     name = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup = parent / f'Soulbound_BACKUP_{name}'
@@ -384,169 +781,88 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
     stage = Path(tempfile.mkdtemp(prefix='.Soulbound_stage_', dir=parent))
     try:
         stage_release(archive_path, stage, mapping)
-        if new_version == '107.00.0':
-            # Stage the release activation marker BEFORE stopping the server.
-            # install_stage() installs it with the same rollback semantics as
-            # source files; an unapproved ZIP cannot package its own marker.
-            result_path = root.parent/'Soulbound_PREDEPLOY'/'last_result.json'
-            result = json.loads(result_path.read_text(encoding='utf-8'))
-            if (result.get('status') != 'PASS' or result.get('version') != new_version
-                or result.get('sha256') != hashlib.sha256(archive_path.read_bytes()).hexdigest()
-                or result.get('completed_stages') != 60
-                or result.get('required_stages') != 60):
-                raise UpdateError('Nie utworzono znacznika v107: brak zgodnego PREDEPLOY.')
-            activation = stage/'LIVE_CONTENT'/'v107_release_activation.json'
-            activation.parent.mkdir(parents=True, exist_ok=True)
-            activation.write_text(json.dumps({
-                'schema':1, 'version':new_version, 'sha256':result['sha256']},
-                sort_keys=True)+'\n',encoding='utf-8')
-        if new_version == '108.00.0':
-            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result_v108.json').read_text(encoding='utf-8'))
-            if (state.get('status')!='PASS' or state.get('version')!=new_version
-                or state.get('v108_release_gates_pass') is not True
-                or state.get('v108_eq_rebuild_trial_pass') is not True
-                or state.get('installed_at_test')!='107.00.0'
-                or state.get('sha256')!=hashlib.sha256(archive_path.read_bytes()).hexdigest()):
-                raise UpdateError('v108: brak zgodnego wyniku testow; brak STOP.')
-            # Persist only verified release attestation INSIDE the install.
-            # PREDEPLOY and the candidate ZIP are needed before STOP, not for
-            # every restart after a successful install. No new DB marker/table.
-            from systems.v10800_activation import activation_manifest, verify_root_for_test
-            marker = stage/'LIVE_CONTENT'/'v108_release_activation.json'
-            marker.parent.mkdir(parents=True,exist_ok=True)
-            marker.write_text(json.dumps(activation_manifest(state, archive_path, stage),
-                                         sort_keys=True, indent=2)+'\n',encoding='utf-8')
-            if not verify_root_for_test(stage):
-                raise UpdateError('v108: znacznik instalacji nie zweryfikowal plikow przed STOP.')
-        if new_version == '110.00.0':
-            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
-            from systems.v11000_activation import activation_manifest, verify
-            marker=stage/'LIVE_CONTENT'/'release_current.json'
-            marker.parent.mkdir(parents=True,exist_ok=True)
-            marker.write_text(json.dumps(activation_manifest(state,archive_path,stage,mapping),
-                                         sort_keys=True,indent=2)+'\n',encoding='utf-8')
-            if not verify(stage):
-                raise UpdateError('v110: manifest bieżącego wydania nie zgadza się ze stagingiem; brak STOP.')
-        if new_version == '109.00.0':
-            state = json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
-            from systems.v10900_activation import activation_manifest, verify_root_for_test
-            marker=stage/'LIVE_CONTENT'/'v109_release_activation.json'
-            marker.parent.mkdir(parents=True,exist_ok=True)
-            marker.write_text(json.dumps(activation_manifest(state,archive_path,stage),
-                                         sort_keys=True,indent=2)+'\n',encoding='utf-8')
-            if not verify_root_for_test(stage):
-                raise UpdateError('v109: manifest stagingu nie zweryfikował kodu; brak STOP.')
+        # The only activation contract allowed to install this code is v112.
+        state=json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
+        from systems.v11200_activation import activation_manifest,verify
+        marker=stage/'LIVE_CONTENT'/'release_current.json'
+        marker.parent.mkdir(parents=True,exist_ok=True)
+        marker.write_text(json.dumps(activation_manifest(state,archive_path,stage,mapping),
+                                     sort_keys=True,indent=2)+'\n',encoding='utf-8')
+        if not verify(stage):
+            raise UpdateError('v112: manifest stagingu nie zgadza sie z kodem; brak STOP.')
         # The ZIP was approved BEFORE staging. The source might change during
         # extraction (download, antivirus or another process). Verify the
         # approved SHA again BEFORE stopping the running server. This is a
         # separate fail-closed check; do not trust the earlier approval alone.
         require_v104_official_predeploy(root, archive_path, new_version)
+        if new_version == '112.00.0':
+            v112_certified_boot_rehearsal(root, stage)
+            # A fresh read-only recheck after the snapshot rehearsal.
+            v112_base_preflight(root)
+        if fresh:
+            # The v110/v111 executable may be corrupted. Never run its STOP,
+            # installer or server. The source directory remains unchanged.
+            from systems.v11200_fresh_install import (
+                target_for, carry_saved_data, publish_clean, FreshInstallError)
+            target=target_for(root,new_version)
+            if target.exists() or target.is_symlink():
+                raise UpdateError('v112: nowy katalog juz istnieje; niczego nie nadpisze: '+str(target))
+            if port_open(4000):
+                raise UpdateError('v112: port 4000 zajety. Zamknij proces serwera przed czysta instalacja.')
+            # No old code is executed in this path.
+            backup_existing(root,backup)
+            v112_confirm_backup(root,backup)
+            try:
+                report=carry_saved_data(backup,stage,protected)
+                if not verify(stage):
+                    raise UpdateError('v112: manifest zmieniony po przeniesieniu zapisow')
+                import sqlite3
+                from contextlib import closing
+                with closing(sqlite3.connect((stage/'soulbound.db').as_uri()+'?mode=ro',uri=True)) as conn:
+                    conn.execute('PRAGMA query_only=ON')
+                    if conn.execute('PRAGMA quick_check').fetchone()!=('ok',):
+                        raise UpdateError('v112: kopia graczy nie jest integralna')
+                    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v107_eq_production_cutover'").fetchone():
+                        raise UpdateError('v112: nowy katalog nie zachowal rejestru EQ')
+                publish_clean(stage,target,verify)
+            except (FreshInstallError, OSError, sqlite3.Error) as exc:
+                raise UpdateError('v112: czysta instalacja nieudana, stary folder nietkniety: '+str(exc)) from exc
+            print('V112: CZYSTA INSTALACJA PASS; nowy katalog: '+str(target),flush=True)
+            print('Zapisow SQLite: '+str(report['sqlite_files'])+'; tabel: '+str(report['tables_checked'])+'; plikow prywatnych: '+str(report['private_files']),flush=True)
+            print('Stara gra i pelny backup pozostaja niezmienione.',flush=True)
+            if restart and os.name == 'nt':
+                subprocess.Popen([os.environ.get('COMSPEC','cmd.exe'),'/d','/c',str(target/'START_Soulbound.bat')],cwd=str(target))
+                print('Uruchomiono v112 z NOWEGO katalogu.',flush=True)
+            return backup
+        raise UpdateError('v112: instalacja w miejscu jest wylaczona; wymagana czysta instalacja')
         stop_local_server(root)
         backup_existing(root, backup)
-        if new_version == '108.00.0':
-            # We MUST NOT install code v108 on the unrepaired v107 ledger. The
-            # earlier Windows PREDEPLOY was executed on a freshly rebuilt
-            # detached image. Now rebuild AGAIN on the *stopped* actual source,
-            # verify source/backup preservation, then commit only after the
-            # versioned code and install manifest have been installed.
-            from validation.v10800_eq107_readonly_reconcile import take_snapshot
-            from systems.v10800_eq_cutover_bridge import (prepare_from_snapshot,
-                 commit_verified_copy, restore_sqlite_from_backup)
-            live_db = root / 'soulbound.db'
-            rollback_db = backup / 'V108_EQ_BEFORE_REBUILD_ROLLBACK.sqlite'
-            take_snapshot(live_db,rollback_db)
-            with tempfile.TemporaryDirectory(prefix='Soulbound_v108_EQ_COMMIT_',dir=parent) as working:
-                scratch = Path(working)
-                source_copy = scratch/'STOPPED_PRODUCTION_SNAPSHOT.sqlite'
-                take_snapshot(live_db,source_copy)
-                rebuilt,report = prepare_from_snapshot(source_copy,root,scratch)
-                print('V108: nowy rebuild na ZATRZYMANEJ bazie:',
-                      ', '.join(f'{k}={v}' for k,v in sorted(report.items())),flush=True)
-                installed = False
-                commit_started = False
-                try:
-                    install_stage(root, stage, backup)
-                    installed = True
-                    if file_version(root / 'core/bootstrap_economy_professions.py') != new_version:
-                        raise UpdateError('V108: zly numer kodu przed przebudowa SQLite.')
-                    commit_started = True
-                    commit_verified_copy(rebuilt,live_db)
-                    from systems.v10800_activation import verify_root_for_test
-                    if not verify_root_for_test(root):
-                        raise UpdateError('V108: manifest instalacji nie zgadza sie po przebudowie.')
-                    print('V108: odtworzono zgodnosc fizycznego EQ bez utraty oryginalnych kopii.',flush=True)
-                except BaseException:
-                    # Fail closed even after partial write/DB backup. Restore
-                    # v107 SQLite and v107 code to a stopped server. The
-                    # permanent backup directory remains available for manual
-                    # recovery if e.g. hardware fails during restoration.
-                    errors=[]
-                    if commit_started:
-                        try: restore_sqlite_from_backup(rollback_db,live_db)
-                        except BaseException as exc: errors.append('SQLITE:'+type(exc).__name__)
-                    if installed:
-                        try: _restore_prior_code_after_v108_cutover_failure(
-                            root,backup,set(mapping))
-                        except BaseException as exc: errors.append('KOD:'+type(exc).__name__)
-                    if errors:
-                        raise UpdateError('V108: przerwano, automatyczne cofniecie NIEPELNE: '
-                                          +', '.join(errors)+'. Nie uruchamiaj bez kontroli.')
-                    raise
-        elif new_version == '110.00.0':
-            installed=False
-            try:
-                install_stage(root,stage,backup)
-                installed=True
-                # Retire the old, exactly certified v109 BAT/Python launchers.
-                # The backup exists; changed user files are not removed.
-                from systems.v11000_retired_installers import retire
-                retired, retained = retire(root, backup)
-                print(f'V110: usunieto {len(retired)} identycznych starych launcherow; '
-                      f'zachowano {len(retained)} plikow zmodyfikowanych.',flush=True)
-                from systems.v11000_activation import verify
-                if (file_version(root/'core/bootstrap_economy_professions.py') != new_version
-                    or not verify(root)):
-                    raise UpdateError('v110: niezgodne pliki lub manifest po instalacji.')
-                from contextlib import closing
-                import sqlite3
-                db_path=root/'soulbound.db'
-                with closing(sqlite3.connect(db_path.as_uri()+'?mode=ro',uri=True)) as conn:
-                    conn.execute('PRAGMA query_only=ON')
-                    if not conn.execute("SELECT 1 FROM sqlite_master "
-                            "WHERE name='v107_eq_production_cutover'").fetchone():
-                        raise UpdateError('v110: brak fizycznego rejestru EQ z v108.')
-                    if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
-                        raise UpdateError('v110: kontrola SQLite nie powiodła się.')
-                print('V110: bieżący manifest PASS; EQ i bazę graczy zachowano.',flush=True)
-            except BaseException:
-                if installed:
-                    _restore_prior_code_after_v108_cutover_failure(root,backup,set(mapping)|{
-                        Path('LIVE_CONTENT/release_current.json')})
-                raise
-        elif new_version == '109.00.0':
-            installed=False
-            try:
-                install_stage(root,stage,backup)
-                installed=True
-                from systems.v10900_activation import verify_root_for_test
-                if (file_version(root/'core/bootstrap_economy_professions.py') != new_version
-                        or not verify_root_for_test(root)):
-                    raise UpdateError('v109: po instalacji brak zgodnego znacznika i kodu.')
-                # No EQ rebuild: preserve the certified v108 physical ledger.
-                from contextlib import closing
-                import sqlite3
-                live_db=root/'soulbound.db'
-                with closing(sqlite3.connect(live_db.as_uri()+'?mode=ro',uri=True)) as conn:
-                    conn.execute('PRAGMA query_only=ON')
-                    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v107_eq_production_cutover'").fetchone():
-                        raise UpdateError('v109: zniknęła istniejąca tabela EQ v108.')
-                print('V109: kod i trwały manifest PASS, fizyczne EQ bez migracji.',flush=True)
-            except BaseException:
-                if installed:
-                    _restore_prior_code_after_v108_cutover_failure(root,backup,set(mapping))
-                raise
-        else:
-            install_stage(root, stage, backup)
+        if new_version == '112.00.0':
+            v112_confirm_backup(root, backup)
+        # The broken old release is only a source of SQLite data and settings.
+        # No old release migration, activation or cleanup scripts run here.
+        installed=False
+        try:
+            install_stage(root,stage,backup)
+            installed=True
+            from systems.v11200_activation import verify
+            if (file_version(root/'core/bootstrap_economy_professions.py')!=new_version
+                 or not verify(root)):
+                raise UpdateError('v112: zainstalowany kod nie zgadza sie z manifestem.')
+            from contextlib import closing
+            import sqlite3
+            with closing(sqlite3.connect((root/'soulbound.db').as_uri()+'?mode=ro',uri=True)) as conn:
+                conn.execute('PRAGMA query_only=ON')
+                if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='v107_eq_production_cutover'").fetchone():
+                    raise UpdateError('v112: brak rejestru fizycznego EQ.')
+                if conn.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+                    raise UpdateError('v112: niespojna baza SQLite.')
+            print('V112: manifest i spojnosc SQLite/EQ PASS.',flush=True)
+        except BaseException:
+            if installed:
+                _restore_prior_code_after_v108_cutover_failure(root,backup,set(mapping)|{
+                    Path('LIVE_CONTENT/release_current.json')})
+            raise
         if file_version(root / 'core/bootstrap_economy_professions.py') != new_version:
             raise UpdateError('Zmieniono pliki, ale numer wersji w katalogu gry jest niepoprawny. Sprawdz recznie backup.')
         print(f'AKTUALIZACJA ZAKONCZONA: Soulbound v{new_version}', flush=True)
@@ -576,6 +892,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('zip_path', nargs='?', help='Opcjonalna pelna sciezka do nowego ZIP.')
     parser.add_argument('--yes', action='store_true', help='Potwierdz aktualizacje bez pytania (dla testow).')
     parser.add_argument('--no-start', action='store_true', help='Nie uruchamiaj serwera po aktualizacji.')
+    parser.add_argument('--fresh', action='store_true', help='Zainstaluj v112 do NOWEGO katalogu (bez uruchamiania starej wersji).')
     args = parser.parse_args(argv)
     try:
         root = ROOT
@@ -586,12 +903,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Nowa wersja: v{new_ver}', flush=True)
         print(f'Paczka: {new_zip}', flush=True)
         require_v104_official_predeploy(root, new_zip, new_ver)
-        print('Zachowam bazy postaci, logi i ustawienia prywatne. Przed podmiana utworze kopie starej gry.', flush=True)
+        print('V112: zapisze pelny backup, a nowa gre utworze w osobnym katalogu. Stary silnik pozostanie nietkniety.',flush=True)
         if not args.yes:
             if input('Wpisz TAK, aby zaktualizowac: ').strip().upper() != 'TAK':
                 print('Anulowano, nie dokonano zmian.', flush=True)
                 return 0
-        run_update(root, new_zip, new_ver, restart=not args.no_start)
+        run_update(root, new_zip, new_ver, restart=not args.no_start, fresh=True)
         return 0
     except (UpdateError, OSError, RuntimeError, zipfile.BadZipFile, subprocess.TimeoutExpired) as exc:
         print(f'BLAD: {exc}', file=sys.stderr, flush=True)

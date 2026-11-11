@@ -110,6 +110,7 @@ class SessionForgeGuildsMixin(
             self._read_only_equipment_cache_v1262 = None
 
     def at_haldor_forge_v0925(self):
+            import re  # canonical current dependency
             room_id=str(self.character.room_id or "")
             if room_id in ("forge", "crafting_workshop"):
                 return True
@@ -123,6 +124,8 @@ class SessionForgeGuildsMixin(
             return int(hall["forge_level"] or 0)>=1
 
     def resolve_owned_equipment_v0925(self, query, free_only=False):
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import find_by_name  # explicit current dependency
             quantities = {
                 str(row["item_id"]): int(row["quantity"] or 0)
                 for row in self.server.db.inventory(self.account_id)
@@ -145,6 +148,13 @@ class SessionForgeGuildsMixin(
             Obsługuje materiałowe, klasowe, bossowe, setowe, crafted, Kryptę,
             Astral i pozostałe linie armor. Broń Duszy nie jest itemem inventory.
             """
+            import random  # canonical current dependency
+            from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V0925_SALVAGE_MATERIALS, v03041_salvage_material_key, v03042_equipment_level  # explicit current dependency
+            from systems.crafting_quality import player_item_display_name_v0335  # explicit current dependency
+            from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             if not self.at_haldor_forge_v0925():
                 await self.send("EQ rozkłada Haldor w Kuźni/Warsztacie Rzemieślniczym.")
                 return
@@ -327,6 +337,9 @@ class SessionForgeGuildsMixin(
                 await self.send(message)
 
     def owned_equipment_upgrade_rows_v03042(self):
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V03042_EQ_UPGRADE_MAX, v03042_equipment_level  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             rows = []
             for inv_row in self.server.db.inventory(self.account_id):
                 item_id = str(inv_row["item_id"])
@@ -340,6 +353,14 @@ class SessionForgeGuildsMixin(
             return rows
 
     async def upgrade_equipment_v03042(self, args=""):
+            from core.bootstrap_economy_professions import required_tool_tier_for_level, tool_tier
+            import asyncio  # canonical current dependency
+            import core.balance_math as balance_math  # canonical current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V03042_EQ_UPGRADE_MAX, v03042_equipment_level, v03042_upgrade_defense_bonus, v03042_upgrade_material_cost, v03042_upgrade_primary_stat, v03042_upgrade_required_smithing, v03042_upgrade_stat_bonus  # explicit current dependency
+            from systems.equipment_crafting import CLASS_SET_STAT_NAMES  # explicit current dependency
+            from systems.smithing_materials import v03810_upgrade_material_item_id  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             if not self.at_haldor_forge_v0925():
                 await self.send("EQ ulepsza Haldor w Kuźni/Warsztacie Rzemieślniczym.")
                 return
@@ -480,6 +501,8 @@ class SessionForgeGuildsMixin(
             self.current_mana = min(self.current_mana, self.max_mana())
 
     async def reforge_equipment_v0925(self, args=""):
+            from network.protocol_gameplay_utils import V0925_AFFIX_PL, V0925_REFORGE_AFFIXES  # explicit current dependency
+            from systems.crafting_quality import player_item_display_name_v0335  # explicit current dependency
             if not self.at_haldor_forge_v0925():
                 await self.send("Przekuwanie wykonuje Haldor w Kuźni/Warsztacie Rzemieślniczym.")
                 return
@@ -519,6 +542,9 @@ class SessionForgeGuildsMixin(
             await self.send(f"Przekucie zakończone: {item['name']}. Nowy bonus: {V0925_AFFIX_PL.get(new_affix,new_affix)} +{amount}. Wymóg Biegłości pozostaje {mastery}.")
 
     async def handle_runes_v0925(self, args=""):
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V0925_RUNES  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             raw=str(args or "").strip(); norm=normalize_lookup_text(raw)
             if not raw or norm in ("lista","list","info"):
                 await self.send("RUNY. Endgame EQ: Biegłość 200-299 ma 1 gniazdo, 300-399 ma 2, 400-499 ma 3, 500-600 ma 4. Tworzenie u Haldora: runy stworz <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen>. Osadzanie: runa <typ> <pełna nazwa EQ>. Wyjmowanie: runy wyjmij <nr> <pełna nazwa EQ>.")
@@ -562,6 +588,9 @@ class SessionForgeGuildsMixin(
             await self.send("Użyj: runy, runy stworz <typ> albo runy wyjmij <nr> <EQ>.")
 
     async def socket_rune_v0925(self, args=""):
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V0925_RUNES  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             parts=str(args or "").strip().split(maxsplit=1)
             if len(parts)<2:
                 await self.send("Użycie: runa <moc/ochrona/zycie/mana/unik/hart/impuls/bariera/rdzen> <pełna nazwa EQ>."); return
@@ -594,6 +623,11 @@ class SessionForgeGuildsMixin(
             await self.send(f"Osadzasz {ITEMS[rid]['name']} w gnieździe {idx}/{sockets}: {item['name']}. Wymóg Biegłości nie zmienia się.")
 
     async def show_mastery_achievements_v0925(self):
+            from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP  # explicit current dependency
+            from core.classes_skills import CLASSES  # explicit current dependency
+            from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
+            from network.protocol_gameplay_utils import V0925_MASTERY_MILESTONES  # explicit current dependency
+            from core.progression_600 import CLASS_MASTERY_MAX_LEVEL  # canonical current dependency
             await self.sync_mastery_achievements_v0925()
             await self.send("OSIĄGNIĘCIA KLASOWE I PROFESYJNE 1-600")
             for cname,*_ in CLASSES:
@@ -607,6 +641,12 @@ class SessionForgeGuildsMixin(
             await self.send("Dodatkowe osiągnięcia łączą mastery z bossami, craftingiem, kolekcją i eksploracją i pojawiają się w zwykłej komendzie osiągnięcia.")
 
     async def sync_mastery_achievements_v0925(self):
+            from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP  # explicit current dependency
+            from core.classes_skills import CLASSES  # explicit current dependency
+            from core.progression_600 import PROFESSION_MAX_LEVEL  # canonical current dependency
+            from network.protocol_gameplay_utils import V0925_MASTERY_MILESTONES  # explicit current dependency
+            from world.dynamic_content import _collection_slug  # explicit current dependency
+            from core.progression_600 import CLASS_MASTERY_MAX_LEVEL  # canonical current dependency
             boss_kills=self.server.db.achievement_metric(self.account_id,"boss_kills")
             explored=self.server.db.achievement_metric(self.account_id,"exploration_rooms")
             eq_collection=len(self.server.db.collection_entry_ids(self.account_id,"equipment"))
@@ -646,11 +686,15 @@ class SessionForgeGuildsMixin(
 
 
     def guild_role_key_v0926(self, name):
+            import re  # canonical current dependency
+            from world.dynamic_content import _collection_slug  # explicit current dependency
             key=_collection_slug(str(name or ""))
             key=re.sub(r"[^a-z0-9_]+","_",key).strip("_")
             return key[:40] or "ranga"
 
     async def sync_clan_achievements_v0925(self, clan_id):
+            from core.bootstrap_economy_professions import SILVER_PER_GOLD  # explicit current dependency
+            from systems.equipment_crafting import LEGENDARY_CLASS_SET_ITEMS_BY_CLASS_TIER  # explicit current dependency
             conn=self.server.db.conn
             members=int(conn.execute("SELECT COUNT(*) c FROM player_clan_members WHERE clan_id=?",(clan_id,)).fetchone()["c"])
             bank=int(conn.execute("SELECT COALESCE(SUM(quantity),0) c FROM player_clan_bank WHERE clan_id=?",(clan_id,)).fetchone()["c"])
@@ -692,6 +736,8 @@ class SessionForgeGuildsMixin(
             conn.commit()
 
     async def handle_guild_rank_v0926(self, rest, row):
+            from network.protocol_gameplay_utils import V0926_GUILD_PERMISSION_ALIASES, V0926_GUILD_PERMISSION_LABELS, v0926_bool_word  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             conn=self.server.db.conn; cid=int(row["clan_id"]); leader=str(row["rank"])=="leader"
             parts=str(rest or "").strip().split(maxsplit=1)
             if not parts:
@@ -764,6 +810,10 @@ class SessionForgeGuildsMixin(
             await self.send("Rangi: gildia rangi; gildia ranga utworz/usun/ustaw/priorytet/nadaj.")
 
     def ensure_guild_estate_rooms_v0927(self, clan_id, guild_name):
+            import core.balance_math as balance_math  # canonical current dependency
+            from data.rooms import ROOMS  # canonical current dependency
+            import data.catalog_mutations as _catalog_mut  # canonical current dependency
+            from data.npcs import NPCS  # canonical current dependency
             cid=int(clan_id); base=f"player_guild_estate_{cid}"
             hall=self.server.db.guild_hall_v0927(cid); hall_level=int(hall["hall_level"])
             _catalog_mut.catalog_assign({"zone":f"Siedziba Gildii {guild_name}","name":f"Siedziba Gildii {guild_name}, poziom {hall_level}","desc":f"Prywatna Siedziba Gildii {guild_name}. Poziom Siedziby {hall_level}/10. Rozbudowa budynków jest osobna i tańsza od rozbudowy głównej Siedziby.","exits":{"south":"square"},"guild_hall_level":hall_level}, 'ROOMS', ROOMS, (base,))
@@ -821,12 +871,18 @@ class SessionForgeGuildsMixin(
             return base
 
     async def enter_guild_estate_v0927(self, row):
+            from data.rooms import ROOMS  # canonical current dependency
             cid=int(row["clan_id"]); base=self.ensure_guild_estate_rooms_v0927(cid,row["name"])
             old=self.character.room_id; self.character.room_id=base; self.server.db.save_character(self.character)
             if old in ROOMS: await self.server.broadcast_room(old,f"{self.character.name} udaje się do Siedziby Gildii.",exclude=self)
             await self.look()
 
     async def show_guild_hall_v0927(self, row):
+            from core.bootstrap_economy_professions import currency_price_text, currency_reading_text  # explicit current dependency
+            from network.protocol_gameplay_utils import V0927_GUILD_BUILDINGS  # explicit current dependency
+            from core.runtime_rules import get_rule as _current_rule
+            v0927_guild_building_upgrade_cost = _current_rule('v0927_guild_building_upgrade_cost')
+            v0927_guild_hall_upgrade_cost = _current_rule('v0927_guild_hall_upgrade_cost')
             cid=int(row["clan_id"]); hall=self.server.db.guild_hall_v0927(cid); treasury=int(self.server.db.conn.execute("SELECT treasury FROM player_clans WHERE id=?",(cid,)).fetchone()["treasury"] or 0)
             level=int(hall["hall_level"]); await self.send(f"SIEDZIBA GILDII: poziom {level}/10. Skarbiec: {currency_reading_text(treasury,0,0)}.")
             if level<10: await self.send(f"Rozbudowa Siedziby {level}->{level+1}: {currency_price_text(v0927_guild_hall_upgrade_cost(level),0,0)}.")
@@ -844,6 +900,10 @@ class SessionForgeGuildsMixin(
             await self.send("Komendy: gildia siedziba wejdz; gildia siedziba rozbuduj; gildia budynek rozbuduj <kowal/skarbiec/biblioteka/trening>.")
 
     async def handle_guild_hall_v0927(self, raw, row):
+            from core.bootstrap_economy_professions import currency_price_text  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
+            from core.runtime_rules import get_rule as _current_rule
+            v0927_guild_hall_upgrade_cost = _current_rule('v0927_guild_hall_upgrade_cost')
             cid=int(row["clan_id"]); rank=str(row["rank"]); norm=normalize_lookup_text(raw)
             if not raw or norm in ("status","info"): await self.show_guild_hall_v0927(row); return
             if norm in ("wejdz","wejdź","enter"): await self.enter_guild_estate_v0927(row); return
@@ -859,6 +919,11 @@ class SessionForgeGuildsMixin(
             await self.send("Użyj: gildia siedziba; gildia siedziba wejdz; gildia siedziba rozbuduj [potwierdz].")
 
     async def handle_guild_building_v0927(self, raw, row):
+            from core.bootstrap_economy_professions import currency_price_text  # explicit current dependency
+            from network.protocol_gameplay_utils import V0927_GUILD_BUILDINGS  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
+            from core.runtime_rules import get_rule as _current_rule
+            v0927_guild_building_upgrade_cost = _current_rule('v0927_guild_building_upgrade_cost')
             cid=int(row["clan_id"]); rank=str(row["rank"]); parts=str(raw or '').split(maxsplit=1)
             if len(parts)<2 or normalize_lookup_text(parts[0]) not in ("rozbuduj","upgrade"):
                 await self.send("Użycie: gildia budynek rozbuduj <kowal/skarbiec/biblioteka/trening>."); return
@@ -875,6 +940,10 @@ class SessionForgeGuildsMixin(
             self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury-? WHERE id=?",(cost,cid)); self.server.db.conn.execute(f"UPDATE player_guild_halls_v0927 SET {field}={field}+1,updated_at=CURRENT_TIMESTAMP WHERE clan_id=?",(cid,)); self.server.db.conn.commit(); label=V0927_GUILD_BUILDINGS[chosen][0]; self.server.db.clan_log(cid,self.account_id,f"{self.character.name} rozbudowuje {label} do poziomu {lvl+1}; koszt {currency_price_text(cost)}."); self.ensure_guild_estate_rooms_v0927(cid,row['name']); await self.send(f"{label} osiąga poziom {lvl+1}/10.")
 
     async def handle_guild_contracts_v0927(self, raw, row):
+            from core.bootstrap_economy_professions import currency_reading_text  # explicit current dependency
+            from network.protocol_gameplay_utils import V0927_GUILD_CONTRACTS, v0927_guild_contract_ready_text  # explicit current dependency
+            import time  # canonical current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             cid=int(row["clan_id"]); norm=normalize_lookup_text(raw); now=int(time.time())
             hall=self.server.db.guild_hall_v0927(cid)
             if int(hall["hall_level"])<2:
@@ -897,6 +966,9 @@ class SessionForgeGuildsMixin(
             await self.send("Użyj: gildia kontrakty albo gildia kontrakt oddaj <ilość>.")
 
     async def finish_ready_guild_contracts_v0927(self, cid, changed=None):
+            from core.bootstrap_economy_professions import currency_reading_text  # explicit current dependency
+            from network.protocol_gameplay_utils import V0927_GUILD_CONTRACTS  # explicit current dependency
+            import time  # canonical current dependency
             for contract_id,d in V0927_GUILD_CONTRACTS.items():
                 rr=self.server.db.guild_contract_row_v0927(cid,contract_id)
                 if int(rr['progress'])>=int(d['need']) and int(rr['ready_at'] or 0)<=int(time.time()):
@@ -907,6 +979,11 @@ class SessionForgeGuildsMixin(
                             if sr and int(sr['clan_id'])==cid: await sess.send(f"Gildia kończy kontrakt {d['name']}. Do skarbca trafia {currency_reading_text(d['reward'],0,0)}.")
 
     def ensure_guild_boss_v0927(self, row):
+            from data.mobs import MOB_TEMPLATES  # canonical current dependency
+            import data.catalog_mutations as _catalog_mut  # canonical current dependency
+            from network.protocol_gameplay_utils import v0927_guild_boss_name  # explicit current dependency
+            from core.runtime_rules import get_rule as _current_rule
+            v0190_apply_combat_template = _current_rule('v0190_apply_combat_template')
             cid=int(row['clan_id']); hall=self.server.db.guild_hall_v0927(cid); hl=int(hall['hall_level']); base=self.ensure_guild_estate_rooms_v0927(cid,row['name']); arena=f"{base}_training" if int(hall['training_level'] or 0)>0 else base
             name=v0927_guild_boss_name(hl); tid=f"guild_boss_v0927_{cid}_{hl}"
             if tid not in MOB_TEMPLATES:
@@ -915,6 +992,9 @@ class SessionForgeGuildsMixin(
             mob=self.server.world._register_runtime_spawn(arena,tid); return mob,arena,name
 
     async def handle_guild_boss_v0927(self, raw, row):
+            from data.mobs import MOB_TEMPLATES  # canonical current dependency
+            import time  # canonical current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             cid=int(row['clan_id']); norm=normalize_lookup_text(raw); conn=self.server.db.conn
             hall=self.server.db.guild_hall_v0927(cid)
             if int(hall['hall_level'])<7:
@@ -948,6 +1028,12 @@ class SessionForgeGuildsMixin(
             if not rows: await self.send("Brak trofeów bossów gildyjnych.")
 
     async def handle_guild_v0926(self, args=""):
+            from core.bootstrap_economy_professions import SILVER_PER_GOLD, currency_price_text, currency_reading_text  # explicit current dependency
+            from core.mines_threat import is_character_bound_item  # explicit current dependency
+            from data.items import ITEMS  # canonical current dependency
+            from network.protocol_gameplay_utils import V0926_GUILD_MAX_LEVEL, V0927_GUILD_CONTRACTS, find_by_name, v0926_guild_bonus_percent, v0926_guild_upgrade_cost  # explicit current dependency
+            from systems.crafting_quality import player_item_display_name_v0335  # explicit current dependency
+            from storage.db_shared import normalize_lookup_text  # canonical current dependency
             raw=str(args or "").strip(); norm=normalize_lookup_text(raw); conn=self.server.db.conn
             row=self.guild_row_v0926()
             if not raw or norm in ("status","info"):

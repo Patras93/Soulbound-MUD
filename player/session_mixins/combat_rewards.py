@@ -838,6 +838,19 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         for name in _active_classes_v1286)
                     if not _class_levels_v104:
                         _class_payout_v104 = 0
+                    # v111: izolowany bonus sezonowy tylko dla mobów aktualnego
+                    # miesiąca; po wcześniejszych korektach, PRZED wspólną
+                    # transakcją nagród. Nie dotyczy źródłowego UOSS exact XP.
+                    if template.get('v11100'):
+                        from systems.runtime_activation import enabled as _v111_bonus_enabled
+                        if _v111_bonus_enabled():
+                            from systems.holiday.events import holiday_reward as _v111_bonus
+                            _v111_mob_id=str(mob.template_id)
+                            _v111_exact=bool(source_xp_exact or uoss_full_progression_source_xp_exact)
+                            raw_stat_reward=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,raw_stat_reward,exact=_v111_exact))
+                            _character_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_character_payout_v104,exact=_v111_exact))
+                            _soul_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_soul_payout_v104,exact=_v111_exact))
+                            _class_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_class_payout_v104,exact=_v111_exact))
                     # No await, network writes or event callbacks while a
                     # SAVEPOINT is open. An error in CLASS/SOUL restores coins,
                     # six stats and character EXP, not just that axis.
@@ -1109,6 +1122,22 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                 # Jeden commit po progresji i zapisach wszystkich odbiorców nagrody.
                 # Zachowuje te same dane, ale usuwa serię fsynców przy każdym killu.
                 self.server.db.conn.commit()
+
+                # v111: dodatkowe wyzwania liczymy WYŁĄCZNIE po udanym
+                # rozliczeniu prawdziwego zabicia. Osobny moduł, brak wypłat
+                # i brak wpływu awarii na stare nagrody i walkę.
+                if template.get('v11100'):
+                    try:
+                        from systems.holiday.combat import on_confirmed_kill
+                        on_confirmed_kill(self.server.db, mob, recipients)
+                        for _holiday_session in recipients:
+                            _notices = getattr(_holiday_session, 'v111_holiday_auto_prize_messages', ())
+                            if _notices:
+                                _holiday_session.v111_holiday_auto_prize_messages = []
+                                for _notice in _notices:
+                                    await _holiday_session.send(_notice)
+                    except Exception as exc:
+                        print(f'V111_HOLIDAY_CHALLENGE_ERROR: {type(exc).__name__}: {exc}', flush=True)
 
                 # v0.71.1: lazy/infinite Crypt templates can be rebuilt after boot.
                 # Guarantee the authored Soul Shard drop at the actual reward boundary

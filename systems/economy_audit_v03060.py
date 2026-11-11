@@ -11,6 +11,7 @@ ECONOMY_AUDIT_VERSION = "0.31.6"
 
 
 def _v03060_stage(record):
+    from core.progression_600 import PROGRESSION_MAX_LEVEL  # canonical current dependency
     candidates = (
         record.get("generator_level"), record.get("required_soul_level"),
         record.get("required_profession_level"), record.get("min_profession_level"),
@@ -26,6 +27,7 @@ def _v03060_stage(record):
 
 
 def _v03060_quest_cap(quest):
+    import core.balance_math as balance_math  # explicit current dependency
     stage = _v03060_stage(quest)
     base = int(balance_math.currency_for_stage(stage, "normal"))
     kind = str(quest.get("kind") or "").lower()
@@ -54,6 +56,7 @@ def _v03060_quest_cap(quest):
 
 
 def _v03060_sell_cap(item):
+    import core.balance_math as balance_math  # explicit current dependency
     stage = _v03060_stage(item)
     base = int(balance_math.currency_for_stage(stage, "normal"))
     typ = str(item.get("type") or "").lower()
@@ -66,6 +69,7 @@ def _v03060_sell_cap(item):
 
 
 def _v03060_currency_value(record, prefix="sell"):
+    from core.bootstrap_economy_professions import legacy_currency_to_coins  # explicit current dependency
     return legacy_currency_to_coins(
         record.get(prefix + "_silver", 0),
         record.get(prefix + "_gold", 0),
@@ -74,6 +78,9 @@ def _v03060_currency_value(record, prefix="sell"):
 
 
 def apply_economy_audit_v03060():
+    from data.items import ITEMS  # canonical current dependency
+    from data.quests import QUESTS  # canonical current dependency
+    from core.bootstrap_economy_professions import legacy_currency_to_coins  # explicit current dependency
     result = {
         "version": ECONOMY_AUDIT_VERSION,
         "quest_rewards_clamped": 0,
@@ -123,29 +130,43 @@ ECONOMY_AUDIT_V03060 = apply_economy_audit_v03060()
 # Shared-guild sinks were authored for the pre-rebase denomination. Keep them meaningful,
 # but make a top hall upgrade require a handful of endgame bosses rather than dozens.
 def v0927_guild_hall_upgrade_cost(current_level):
+    import core.balance_math as balance_math  # explicit current dependency
+    from network.protocol_gameplay_utils import V0927_GUILD_HALL_MAX_LEVEL  # explicit current dependency
     level=max(1,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 1)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
     stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
     return balance_math.system_cost(stage,"guild-hall",50.0)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0927_guild_hall_upgrade_cost', v0927_guild_hall_upgrade_cost)
+
 
 def v0927_guild_building_upgrade_cost(current_level):
+    import core.balance_math as balance_math  # explicit current dependency
+    from network.protocol_gameplay_utils import V0927_GUILD_HALL_MAX_LEVEL  # explicit current dependency
     level=max(0,min(V0927_GUILD_HALL_MAX_LEVEL,int(current_level or 0)))
     if level>=V0927_GUILD_HALL_MAX_LEVEL:
         return 0
     stage=balance_math.stage_from_index(level+1,V0927_GUILD_HALL_MAX_LEVEL)
     return balance_math.system_cost(stage,"guild-building",15.0)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0927_guild_building_upgrade_cost', v0927_guild_building_upgrade_cost)
+
 
 def economy_audit_summary_v03060():
     return dict(ECONOMY_AUDIT_V03060)
 
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS["economy_audit2"] = [
     "Economy Audit 2.0 obowiązuje po kursie 100 srebra = 1 złoto i 1 000 000 złota = 1 mithril.",
     "Nagrody questów mają końcowy limit zależny od poziomu, rodzaju celu, liczby wymaganych akcji i powtarzalności; zachowano rozsądne niższe nagrody ręczne.",
     "Jawne ceny sprzedaży surowców i klejnotów są ograniczone względem poziomu, aby pojedynczy drop nie był wielokrotnie cenniejszy od endgame EQ.",
     "Siedziba Gildii i budynki używają skali dostosowanej do nowego nominału. Housing pozostaje lekkim osobistym sinkiem, a odkryty transport jest darmowy z powodów dostępności.",
 ]
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPIC_ALIASES = _current_help_catalogs()[1]
 HELP_TOPIC_ALIASES.update({"audyt ekonomii":"economy_audit2", "economy audit":"economy_audit2", "ekonomia 2":"economy_audit2"})

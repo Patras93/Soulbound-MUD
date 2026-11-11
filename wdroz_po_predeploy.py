@@ -26,7 +26,17 @@ def main():
         if not z.is_file() or sha256(z)!=s.get('sha256'):
             raise ValueError('ZIP zostal zmieniony po predeploy. Wykonaj test ponownie.')
         ver,_=inspect_zip(z)
-        if ver == '110.00.0':
+        if ver == '112.00.0':
+            if (s.get('v112_release_gates_pass') is not True
+                    or s.get('installed_at_test') not in ('110.00.0','111.00.0')
+                    or s.get('returncode')!=0):
+                raise ValueError('v112: wymagany zgodny PREDEPLOY 60/60 PLUS dla uszkodzonej bazy v110/v111.')
+        elif ver == '111.00.0':
+            if (s.get('v111_release_gates_pass') is not True
+                    or s.get('installed_at_test')!='110.00.0'
+                    or s.get('returncode')!=0):
+                raise ValueError('v111: brak zatwierdzonej bramki lub wersji bazowej.')
+        elif ver == '110.00.0':
             if (s.get('v110_release_gates_pass') is not True
                     or s.get('installed_at_test')!='109.00.0'
                     or s.get('returncode')!=0):
@@ -46,8 +56,8 @@ def main():
         print(f'SERWER: v{current}; TESTOWANA WERSJA: v{ver}',flush=True)
         print(f'ZIP: {z}',flush=True)
         print(f'Testy PASS: {s.get("finished_at")}',flush=True)
-        print('ZA CHWILE aktualizator zatrzyma gre, zrobi backup, podmieni kod i uruchomi serwer.',flush=True)
-        print('NIE nadpisze baz SQLite, WAL/SHM, zapisow postaci ani logow.',flush=True)
+        print('V112: stary silnik pozostanie nietkniety; backup zapisow i NOWY katalog gry.',flush=True)
+        print('SQLite zostanie skopiowane do nowego katalogu z WAL; stare zapisy pozostana nietkniete.',flush=True)
         print('Zmienione pliki kodu gry: '+str(s.get('changed_game_file_count','brak raportu')),flush=True)
         print('Upewnij sie, ze gracze zakonczyli gre.',flush=True)
         if input('Aby wdrozyc, wpisz dokladnie WDRAZAM: ').strip()!='WDRAZAM':
@@ -63,7 +73,7 @@ def main():
             raise ValueError('Brak bezpiecznego aktualizatora z zatwierdzonego ZIP.')
         env = os.environ.copy()
         env['SOULBOUND_LIVE_ROOT'] = str(ROOT)
-        cmd=[sys.executable,'-u',str(updater),str(z),'--yes']
+        cmd=[sys.executable,'-u',str(updater),str(z),'--yes','--fresh']
         return subprocess.call(cmd,cwd=ROOT,env=env)
     except (OSError,ValueError,KeyError,TypeError,json.JSONDecodeError) as exc:
         print('WDROZENIE ZABLOKOWANE: '+str(exc),file=sys.stderr,flush=True)

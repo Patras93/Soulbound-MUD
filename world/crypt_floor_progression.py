@@ -77,6 +77,10 @@ def _v03610_xp_mult(kind, floor):
 # refresh that v0.36.8 captured before wrapping it. This prevents multiplier
 # stacking on respawn and makes the function idempotent.
 def _v03610_apply_crypt_threat(template):
+    import world.uoss_superbosses as _current_uoss_superbosses  # explicit optional dependency
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    import core.balance_math as balance_math  # explicit current dependency
+    from world.uoss_superbosses import uoss_superboss_profile_v0366  # explicit current dependency
     kind = _v03610_kind(template)
     if kind is None:
         return template
@@ -131,7 +135,7 @@ def _v03610_apply_crypt_threat(template):
             dmg += floor
 
     # Concrete named UOSSMUD Superboss profiles retain individual identity.
-    if kind == "mythic_boss" and template.get("uoss_superboss") and "uoss_superboss_profile_v0366" in globals():
+    if kind == "mythic_boss" and template.get("uoss_superboss") and hasattr(_current_uoss_superbosses, 'uoss_superboss_profile_v0366'):
         try:
             profile = uoss_superboss_profile_v0366("mythic_crypt", floor)
             hp = max(1, int(round(hp * float(profile.get("hp", 1.0) or 1.0))))
@@ -152,6 +156,7 @@ def _v03610_apply_crypt_threat(template):
 
 # v0.36.8 kept the pre-Crypt canonical refresher in this symbol. Use it directly
 # to replace, not stack, its old capped difficulty layer.
+from world.crypt_party_rebalance import _v0190_apply_combat_template_before_v0368  # explicit current dependency
 _v03610_canonical_combat_refresh = _v0190_apply_combat_template_before_v0368
 
 
@@ -160,6 +165,7 @@ def v0190_apply_combat_template(template):
     # Legacy floor=1 templates wrongly used generator stage 1; multiplying
     # level-1 HP and XP still leaves them trivial for a level-20 character.
     # Preserve identity/floor IDs and do not lower any authored higher stage.
+    from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
     if isinstance(template, dict) and template.get("crypt_floor") is not None:
         floor = _v03610_floor(template)
         endgame_stage = min(CHARACTER_MAX_LEVEL, 79 + floor)
@@ -181,12 +187,17 @@ def v0190_apply_combat_template(template):
     result = _v03610_canonical_combat_refresh(template)
     return _v03610_apply_crypt_threat(result)
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
+
 
 # Replace the old fixed x2/x3/x3/x5 reward layer with a floor-by-floor curve.
+from world.crypt_party_rebalance import _v0190_combat_reward_before_v0368  # explicit current dependency
 _v03610_base_combat_reward = _v0190_combat_reward_before_v0368
 
 
 def v0190_combat_reward(template, kind):
+    from core.bootstrap_economy_professions import V019_SAFE_INT  # explicit current dependency
     base = int(_v03610_base_combat_reward(template, kind))
     if str(kind) == "coins":
         return base
@@ -202,8 +213,12 @@ def v0190_combat_reward(template, kind):
         floor_bonus *= 4
     return min(V019_SAFE_INT, max(0, int(round(base * mult)) + floor_bonus))
 
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_combat_reward', v0190_combat_reward)
+
 
 # Rebuild every already-created Crypt template through the FINAL function.
+from data.mobs import MOB_TEMPLATES  # canonical current dependency
 for _v03610_tid, _v03610_template in list(MOB_TEMPLATES.items()):
     if _v03610_kind(_v03610_template):
         v0190_apply_combat_template(_v03610_template)
@@ -212,6 +227,8 @@ for _v03610_tid, _v03610_template in list(MOB_TEMPLATES.items()):
 # The v0.36.8 lazy-floor wrapper resolves v0190_apply_combat_template globally,
 # so floors 201+ automatically use this v0.36.10 curve as they are generated.
 
+from data.current_help import get_help_catalogs as _current_help_catalogs
+HELP_TOPICS = _current_help_catalogs()[0]
 HELP_TOPICS.setdefault("krypta", []).extend([
     "v0.36.10: trudność Krypty rośnie od piętra 1 na KAŻDYM kolejnym piętrze. Nie ma płaskich przedziałów: 2 jest mocniejsze od 1, 3 od 2 itd.",
     "Na każdym piętrze rosną HP, obrażenia oraz Class/Soul/stat EXP. Boss co 10 pięter pozostaje dodatkowym skokiem ponad ciągły wzrost.",
@@ -220,6 +237,9 @@ HELP_TOPICS.setdefault("krypta", []).extend([
 
 
 def crypt_every_floor_progression_audit_v03610():
+    from data.mobs import MOB_TEMPLATES  # canonical current dependency
+    from core.runtime_rules import get_rule as _current_rule
+    v0190_combat_reward = _current_rule('v0190_combat_reward')
     errors = []
 
     # Closed-form guards: all balance multipliers must strictly increase at

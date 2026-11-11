@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Focused handlers for formerly inline command-loop branches (v0.49.0)."""
 from __future__ import annotations
-from systems.v10700_activation import enabled as _sb107_runtime_enabled
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 from core.command_catalog import COMMAND_LOOP_BREAK
 from network.protocol_gameplay_utils import normalize_lookup_text
@@ -58,10 +58,10 @@ class SessionCommandSpecialHandlersMixin:
 
     async def command_profesja107(self, args):
         """Eight persistent Soulbound 107 professions with consumed materials."""
-        from core.v10700_new_archetypes import PROFESSION_SPECS
-        from systems.v10700_profession_work import process
-        import os
-        if not _sb107_runtime_enabled():
+        from core.archetypes.chaos import PROFESSION_SPECS
+        from systems.profession_generations.chaos import process
+        from systems.v11200_activation import enabled as v112_enabled
+        if not v112_enabled():
             await self.send('Profesje Chaosu są dostępne dopiero w v107.')
             return
         if self.account_id is None or self.character is None:
@@ -96,10 +96,10 @@ class SessionCommandSpecialHandlersMixin:
 
     async def command_profesja110(self, args):
         """Profesje v110, odizolowane od komend i transakcji v107."""
-        from systems.v11000_activation import enabled
-        from core.v11000_archetypes import PROFESSION_SPECS
-        from systems.v11000_profession_work import process
-        if not enabled():
+        from systems.v11200_activation import enabled as v112_enabled
+        from core.archetypes.expansion import PROFESSION_SPECS
+        from systems.profession_generations.expansion import process
+        if not v112_enabled():
             await self.send('Profesje v110 niedostępne przed zatwierdzonym wydaniem.')
             return
         if self.account_id is None or self.character is None:
@@ -133,12 +133,40 @@ class SessionCommandSpecialHandlersMixin:
 
     async def command_wydarzenie110(self, args):
         """Krótki status NVDA bez skanowania świata i zapisów SQLite."""
-        from systems.v11000_activation import enabled
+        from systems.runtime_activation import enabled
         if not enabled():
             await self.send('Wydarzenia v110 niedostępne przed zatwierdzonym wydaniem.')
             return
-        from systems.events_v110.status import text_status
+        from systems.global_events.status import text_status
         await self.send(text_status(self.server.db.conn))
+
+    async def command_swieta_v111(self, args):
+        from systems.runtime_activation import enabled
+        if not enabled():
+            await self.send('Świąteczny kalendarz v111 nie jest aktywny.')
+            return
+        from systems.holiday.events import calendar_text
+        await self.send(calendar_text())
+
+    async def command_proby_v111(self, args):
+        """Tylko podgląd prób; nagrody trafiają automatycznie po walce."""
+        from systems.runtime_activation import enabled
+        if not enabled():
+            await self.send('Próby świąteczne v111 nie są aktywne.')
+            return
+        from systems.holiday.prizes import prize_info
+        if self.account_id is None or not self.character:
+            await self.send('Próby wymagają zalogowanej postaci.')
+            return
+        db=self.server.db
+        master=int(db.master_account_for_character(int(self.account_id)))
+        status=prize_info(db.conn,master)
+        await self.send(
+            f'PRÓBY V111: dzisiaj {status["daily"]}/{status["daily_goal"]}, '
+            f'nagroda {"przyznana" if status["daily_claimed"] else "automatyczna po ukończeniu"}. '
+            f'Tydzień boss {status["weekly"]}/{status["weekly_goal"]}, '
+            f'nagroda {"przyznana" if status["weekly_claimed"] else "automatyczna po ukończeniu"}. '
+            'Nie trzeba odbierać nagród komendą.')
 
     async def command_magitek_v107(self, args):
         """Staging-only Magitek command, never changes the generic skill router."""
@@ -151,7 +179,7 @@ class SessionCommandSpecialHandlersMixin:
             return
         parts=str(args or '').strip().split(maxsplit=1)
         if parts and parts[0].casefold() == 'magicite':
-            from systems.magitek_magicite_v107 import magicite_command
+            from systems.magitek.magicite import magicite_command
             await magicite_command(self, parts[1] if len(parts)>1 else '')
             return
         await self.command_skill_v0490(args)
