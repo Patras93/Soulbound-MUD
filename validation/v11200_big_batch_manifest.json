@@ -1,0 +1,266 @@
+{
+  "core/archetypes/chaos.py": {
+    "ast_logic_sha256": "0a396cf19b201a36c408e362a501a720a30bff2949a7779377ec55dde5dc0f71",
+    "def_count": 2,
+    "old": "core/v10700_new_archetypes.py",
+    "sha256_original": "e3c8337d895e213d4031381cf15690d55a2b53cbd196e924f4eaad34e68229ab"
+  },
+  "core/archetypes/expansion.py": {
+    "ast_logic_sha256": "eb1cb7fcc34761fc7a7522f6f866f07e1f398ebb83df1d817ecb2b502b48716e",
+    "def_count": 3,
+    "old": "core/v11000_archetypes.py",
+    "sha256_original": "9ca45dad76e86c8f495182faa6a258d346b76d5e5fd38860469290502653fcce"
+  },
+  "core/archetypes/expansion_parts/__init__.py": {
+    "ast_logic_sha256": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+    "def_count": 0,
+    "old": "core/archetypes_v110/__init__.py",
+    "sha256_original": "c63be9566d1c3914c23743d9790f25284e005ac5a5f9736681d2077d0ea2aaf2"
+  },
+  "core/archetypes/expansion_parts/classes/__init__.py": {
+    "ast_logic_sha256": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/__init__.py",
+    "sha256_original": "16ce729fccaa7c9228ccfa77236588a93a40b3d9053539a90efbd68d78f6f081"
+  },
+  "core/archetypes/expansion_parts/classes/egzekutor_pieczeci.py": {
+    "ast_logic_sha256": "e77161046da5434c257270090fa761d4eb6d72833edc202ef1908c6517112aba",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/egzekutor_pieczeci.py",
+    "sha256_original": "78a8716c6ee084802e5720cfe69f9471d735703912d1b5ca9c09fba862788d87"
+  },
+  "core/archetypes/expansion_parts/classes/fantomowy_szermierz.py": {
+    "ast_logic_sha256": "c3bc0c113750343b9fa3c3d8e827169f089c27cac76d4e1f6274ecda8d2fa9ed",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/fantomowy_szermierz.py",
+    "sha256_original": "9206662c8b5729154c3ffea10a93fa4fc668846b62b18c174409c3457805f9fa"
+  },
+  "core/archetypes/expansion_parts/classes/kartograf_przestrzeni.py": {
+    "ast_logic_sha256": "c4bc0804727c18892a046894f6c2c27ae1145c6978fc34789dfbfd32a5bd41e8",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/kartograf_przestrzeni.py",
+    "sha256_original": "7f556bd91311eece5032b682a99560b35ebafee02ce9d4b4b50c7fc55eabbdc3"
+  },
+  "core/archetypes/expansion_parts/classes/paladyn_zmierzchu.py": {
+    "ast_logic_sha256": "e77c1bda2728054072dcaf47d97133f04b336d496f3c291542a6e33a71ca0bce",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/paladyn_zmierzchu.py",
+    "sha256_original": "492fb2d91a5980bcac5046e26cf747c7056962894d9f6711b39b517a7071cb08"
+  },
+  "core/archetypes/expansion_parts/classes/straznik_przypywow.py": {
+    "ast_logic_sha256": "16699edc2bc52987df20ec0bca4cc77f575cd3ac3cf8769bbb008ad3e55a41bd",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/straznik_przypywow.py",
+    "sha256_original": "089be2aa063a07ea481b7f4edcd760accb67db61dd8e229f493e47557c87aac0"
+  },
+  "core/archetypes/expansion_parts/classes/szeptacz_bestii.py": {
+    "ast_logic_sha256": "976712f926ccc8ea8104901f03080a47efe8feea873901492bf1f65e470e8543",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/szeptacz_bestii.py",
+    "sha256_original": "a96baf309282598cf48066bc0f0bfe649358660d79bb0b795b69fe73934583cd"
+  },
+  "core/archetypes/expansion_parts/classes/wirtuoz_echa.py": {
+    "ast_logic_sha256": "e7ab893090c194d8c289ec542584d3be495cad75fabf7123119469f45a30faa0",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/wirtuoz_echa.py",
+    "sha256_original": "4eb0886ff3485c88846756fae3796db13c8d4f3ab8932e9bed28836ac7ea5666"
+  },
+  "core/archetypes/expansion_parts/classes/zarowy_zniwiarz.py": {
+    "ast_logic_sha256": "308157ca15e7178a3b519b1667332c2c0c41fddacc51ad017db7dd0087ecac30",
+    "def_count": 0,
+    "old": "core/archetypes_v110/classes/zarowy_zniwiarz.py",
+    "sha256_original": "a4d3e083d19bea48214406d956c96139d61c67117590cdde23214e48506251b5"
+  },
+  "core/archetypes/expansion_parts/profession_timing_v110.py": {
+    "ast_logic_sha256": "876840c2454167d50d1771cac4158590f35999144d02d22b315c34ca804c832c",
+    "def_count": 1,
+    "old": "core/archetypes_v110/profession_timing_v110.py",
+    "sha256_original": "8c99bf94ddbe2fdeb80f5eed590db0b3bdbfaac4e390a01e9c2baf5895238240"
+  },
+  "core/archetypes/expansion_parts/professions/__init__.py": {
+    "ast_logic_sha256": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/__init__.py",
+    "sha256_original": "e227e8a46f51ea65a4ecbac2a6e12a8a4947f9c266ea47085ecd55250e4d498c"
+  },
+  "core/archetypes/expansion_parts/professions/alchemia_dzwieku.py": {
+    "ast_logic_sha256": "9a6b853f3032a11d94c22d385d41b2fd4e672163177344f56b4bf8832676f516",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/alchemia_dzwieku.py",
+    "sha256_original": "73fec0cfc21d6c3507d58a11afe47b2142920786a65e124eef3b7a9d73d25fdd"
+  },
+  "core/archetypes/expansion_parts/professions/burzotronika.py": {
+    "ast_logic_sha256": "e56aa0a46303c3e9a166c839da2fe1d4a68f6c04a7e2473bb3526f0ef1b9171a",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/burzotronika.py",
+    "sha256_original": "30f08997467e5acb93d46d3c2e9f5f56a242ac0ce56b7d1f7a281d0ffeb9e626"
+  },
+  "core/archetypes/expansion_parts/professions/fitoarchitektura.py": {
+    "ast_logic_sha256": "5ee5e78618077a3880096ee3c81ed01ebdd61eeb19888e400c10854a4fbd7ca1",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/fitoarchitektura.py",
+    "sha256_original": "c8674d5a61e143805cbea8eb2b1311ae0762b3409e3e2634c06b1573e5e7b401"
+  },
+  "core/archetypes/expansion_parts/professions/hydrokartografia.py": {
+    "ast_logic_sha256": "dd2c72e4e4b32ea97bb891b6b5f6349e27a3f0c9f155a1c27daaeec490c50001",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/hydrokartografia.py",
+    "sha256_original": "6cd44d489c713d6f5fe221fc4966be48dca0909c1a439e83bccc1790c75d879d"
+  },
+  "core/archetypes/expansion_parts/professions/kronikarstwo_materii.py": {
+    "ast_logic_sha256": "adb82273752cee84adcb6776519966749c91d0147c784f67a5704941ea0c33ea",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/kronikarstwo_materii.py",
+    "sha256_original": "5212ff71178fb78c873bfe6b07babc5cc5f248d14a6cb43bd19074570234f067"
+  },
+  "core/archetypes/expansion_parts/professions/paleoekologia.py": {
+    "ast_logic_sha256": "917486c212e3c5fa17175ce38e87101cece257e31e5500d261f6ef599dddaee7",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/paleoekologia.py",
+    "sha256_original": "4dd2c550726c2e420fc2cf233b6d0d0b358e43b8ba239e04337495af35700743"
+  },
+  "core/archetypes/expansion_parts/professions/technometeorologia.py": {
+    "ast_logic_sha256": "617619869c6fcc115c077eb8f0415fc849d30ad2828891d36ab865c7f4da85eb",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/technometeorologia.py",
+    "sha256_original": "0404ee200c640c47e40f0254810e5a07b45474c49944786ed41206bbc385ff4f"
+  },
+  "core/archetypes/expansion_parts/professions/zwierciadlarstwo.py": {
+    "ast_logic_sha256": "2665b979fcf9468d6dcfd20452960f0314a39af7b02128abf0c2d03e2d1464d5",
+    "def_count": 0,
+    "old": "core/archetypes_v110/professions/zwierciadlarstwo.py",
+    "sha256_original": "c818fb333fa8868ae2a136d48ec3324ffa6b154fb2ad0beb9401ab4a051e4f5a"
+  },
+  "core/archetypes/expansion_parts/races/__init__.py": {
+    "ast_logic_sha256": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/__init__.py",
+    "sha256_original": "9b1c91c1e964e7be2cb0be92b8b6f617da15c6796c78be68ebb050465e5388e9"
+  },
+  "core/archetypes/expansion_parts/races/gebinowcy.py": {
+    "ast_logic_sha256": "39f2701e25c26c5004b131b804b3e04dec35d98115fbdd1d89dcd2ef7d155ad3",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/gebinowcy.py",
+    "sha256_original": "98f8076aab01816d46ddeb3d2b117db61bc1f3a6f2477742efe8b2c47cc9ed6b"
+  },
+  "core/archetypes/expansion_parts/races/lustrzanie.py": {
+    "ast_logic_sha256": "f55dab1612c9919c4ff5a723c2e923ae81df2d4867b5436a1966ff377ab09126",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/lustrzanie.py",
+    "sha256_original": "8e10a9c4079518bbd7490bd8e8e80db8974877dfe01e29440a3e4e9abc5dee6e"
+  },
+  "core/archetypes/expansion_parts/races/miedzianie.py": {
+    "ast_logic_sha256": "cfc84750953d166ceb05650939eb11839205c1a51a49ae02aac446e5c3f84c82",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/miedzianie.py",
+    "sha256_original": "2ee0c6fe8fd5514eb5b669b3a8740384504907420d903f9287894a4089614238"
+  },
+  "core/archetypes/expansion_parts/races/rezonanci.py": {
+    "ast_logic_sha256": "e79f54e988c272fd63e79696fabe7af107c76b59ee984aacb2fc716e337d585f",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/rezonanci.py",
+    "sha256_original": "77628e212e05b0196c0038fe1ac0dae125926ca94793a2781e8b1b516207496f"
+  },
+  "core/archetypes/expansion_parts/races/selenici.py": {
+    "ast_logic_sha256": "271f7a2c7387933808f452dc227d48b1d8d2a8945b995d9d32c61c2273621ba3",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/selenici.py",
+    "sha256_original": "d421dea04e079adf46e55f3aeb4ff8b34c39df07c15b3a63a023f5190e24b69c"
+  },
+  "core/archetypes/expansion_parts/races/zaranie.py": {
+    "ast_logic_sha256": "dbbd86ab60ab14e7399e11711c516a961401ae263f7064225fdfdf99cebe54ce",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/zaranie.py",
+    "sha256_original": "41fdf66e0cd7d727b6dc8cb467da17d552702f2a593134e1f0061df360cb5df2"
+  },
+  "core/archetypes/expansion_parts/races/zarborny.py": {
+    "ast_logic_sha256": "4a8793f8012ec020d63149a3e5a734e89fa051ac514e3aa5ed74acbbc8d1164b",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/zarborny.py",
+    "sha256_original": "1ac943a721131d09795b8623807ce5e20e7e88caa2c9135f5de7652065ee36ea"
+  },
+  "core/archetypes/expansion_parts/races/zarodnikowcy.py": {
+    "ast_logic_sha256": "c33ff6250f4188da6f2056387976baccfd3a9ec99c88b5fb51d98612770b656c",
+    "def_count": 0,
+    "old": "core/archetypes_v110/races/zarodnikowcy.py",
+    "sha256_original": "35de7b75b61115f3e08bd49be108fc03ee143dad3ad438541977dc35df240857"
+  },
+  "core/archetypes/runtime_catalogue.py": {
+    "ast_logic_sha256": "9bb82c928d8b32ace6c269fdbd1333fcbbdf53f576b0ea5c057b85055b51be9b",
+    "def_count": 1,
+    "old": "core/v11000_runtime_catalogue.py",
+    "sha256_original": "478a29d67df909eed30e15e558ec9a4c7b090063b845dc7629192a8e17f8e4b8"
+  },
+  "core/magitek/catalogue.py": {
+    "ast_logic_sha256": "b8aac1331e372d978a4ed19fd55b58d9619c62355e0c2d8791f3609392c35319",
+    "def_count": 2,
+    "old": "core/magitek_v107.py",
+    "sha256_original": "997b4c64275e6743235e2a379eacc827579ca914fab593d35e08dfd7de87747f"
+  },
+  "systems/holiday/calendar.py": {
+    "ast_logic_sha256": "caa51092ba118a082e4005256be6b1d48f5a71ddabcd6caec3b0e6f707485bf9",
+    "def_count": 7,
+    "old": "systems/v11100_holiday_calendar.py",
+    "sha256_original": "dc9d8cc88a46878ad1cde8de9023ec2cf093d7d569a84e33d4ecf183429b0162"
+  },
+  "systems/holiday/challenges.py": {
+    "ast_logic_sha256": "4d34d1bf70628a1b50dac526da293d7b549eb7de08c3659ebb0090fa08e234b1",
+    "def_count": 4,
+    "old": "systems/v11100_holiday_challenges.py",
+    "sha256_original": "212a0ad1f1be474611a8de269a5b22730b518bdab55c90032d7c78a4e0597a7c"
+  },
+  "systems/holiday/combat.py": {
+    "ast_logic_sha256": "cd79a083c148750101a7c8960227d4fb9af80302464e6d706fd4ea2fa0777615",
+    "def_count": 1,
+    "old": "systems/v11100_holiday_combat.py",
+    "sha256_original": "6686ac3cc23a1a69647b0e34166e25e7103502a7de16e549a594bc041cb521ee"
+  },
+  "systems/holiday/events.py": {
+    "ast_logic_sha256": "59d2026e829fba642361284462583490c528caff2098e7f9a470aa60537b5097",
+    "def_count": 3,
+    "old": "systems/v11100_holiday_events.py",
+    "sha256_original": "8cb2b41f899e494cb8b986a26b5afc940ec8fe0119357bc4a56712f6b7b13172"
+  },
+  "systems/holiday/prizes.py": {
+    "ast_logic_sha256": "b282e23242b9e40b4c81af61e7207da2a605cfb7b11efef6b53707293f05465b",
+    "def_count": 2,
+    "old": "systems/v11100_holiday_prizes.py",
+    "sha256_original": "87c3708d87a81c0be5791863966f841b016c0bb6a39f50768c4f8df0c497d98a"
+  },
+  "systems/holiday/schedule.py": {
+    "ast_logic_sha256": "827b6db6167dced26ece93bb4e5e1977c31d9323b433398569923486a32b303a",
+    "def_count": 3,
+    "old": "systems/v11100_holiday_schedule.py",
+    "sha256_original": "38c3ad9002fe8c08f75b5c6641d003258b706b1aba47d3415f9bb1856130d449"
+  },
+  "systems/magitek/magicite.py": {
+    "ast_logic_sha256": "c16844e3be8a9a886b27f8f391b229cb702b2b1d38bdb5c4adb16cc89808fb97",
+    "def_count": 9,
+    "old": "systems/magitek_magicite_v107.py",
+    "sha256_original": "1440ad7130c028d986fa0e8d7aa05da5880185dbdfdf233258abe814b5c7003b"
+  },
+  "systems/magitek/rules.py": {
+    "ast_logic_sha256": "27ca5b1c593e3e9854d6fe48414492b2b6390b4cf0cb1b9a872ab30e152925f4",
+    "def_count": 12,
+    "old": "systems/magitek_rules_v107.py",
+    "sha256_original": "0a55eecb7083b461684e47bb877f4a6c3ee063879e5ac3e82ec80277a2bb7ecc"
+  },
+  "systems/magitek/runtime.py": {
+    "ast_logic_sha256": "24874a04161e656687f3dcca873a19b56785f1a69d0e4120a9b376f3cf8d4077",
+    "def_count": 4,
+    "old": "systems/magitek_runtime_v107.py",
+    "sha256_original": "97e600d0b6c2a13cd64818fa51faf1c8100bf514c8d2e13066601ef96145187e"
+  },
+  "systems/magitek/support.py": {
+    "ast_logic_sha256": "8f9586d92871ae48b7c7fff23be3b2b7779b3b282d90165096911e7751b3b4ca",
+    "def_count": 10,
+    "old": "systems/magitek_support_v107.py",
+    "sha256_original": "9e7e71cc8697f01247dfeba34d3063223ae583cbe3a27f6cf5f660aefde792d6"
+  },
+  "world/holiday_expareas.py": {
+    "ast_logic_sha256": "25b4b4b72f2c7d919ab0dbb45a2b1921f5edc5d1481637727c5c40d7c7de691e",
+    "def_count": 1,
+    "old": "world/v11100_holiday_expareas.py",
+    "sha256_original": "1ead30034e0fad2b8b875e75c64661763e6faf53f5e2fa3045f14bf2914716b4"
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "seed": "ad1ace729fae8e6dff0b03d37c572ea3267a1c0a3e743f72",
+  "random_seed": 112,
+  "catalogs": {
+    "ALCHEMY_RECIPES": {
+      "entries": 42,
+      "sha256": "3a193ea828e95e8c48f69c0c8cb30cee40ca847eb31b9bb659e5a7a2ac2f0854"
+    },
+    "CLASSES": {
+      "entries": 38,
+      "sha256": "d2e7767ab1d50aeed141f9bf65d5e28f6b0d2ec864455cf287363b99e1de2f5b"
+    },
+    "CLASS_SKILLS": {
+      "entries": 38,
+      "sha256": "7ff16bec71df36ce795e8a2a8191f9371200deae837dd7e02f4e47368d8b0996"
+    },
+    "COOK_RECIPES": {
+      "entries": 51,
+      "sha256": "9eac276d538e7a0d67ae0607e220ee0f261d04fcfa0e2cb175366a7faf26465c"
+    },
+    "CRAFT_RECIPES": {
+      "entries": 958,
+      "sha256": "cdc68c02326fd7cedbd30fe95cae5e455560b6dc8456f8fd3169b14defb02da9"
+    },
+    "HELP_TOPIC_ALIASES": {
+      "entries": 828,
+      "sha256": "2be0b16881530341539cc135b8fd9325d74d0afe091861f8bdf4f20359c3c450"
+    },
+    "ITEMS": {
+      "entries": 203100,
+      "sha256": "7ca43db62b6d4583f149fc95176e7d7f4e5dfd5bbb80015cbb46bb9a7a2e2283"
+    },
+    "JEWELCRAFT_RECIPES": {
+      "entries": 180,
+      "sha256": "f70cb08543ddcdfb65f0a7dd6daae5733b3576eef95ad67edbce052ed4e3d358"
+    },
+    "MOB_TEMPLATES": {
+      "entries": 18040,
+      "sha256": "68a4ebac12eb7a7ddf639586ebeb470717670a32da8ea24686affed851c57916"
+    },
+    "NPCS": {
+      "entries": 1266,
+      "sha256": "eff1f54f83c3580a845fe6064a28c7aae2b2c713780c63be5e86896a35ea527a"
+    },
+    "QUESTS": {
+      "entries": 15136,
+      "sha256": "0d072c9efb07f9dcbde1f4879d0477d6a4b36ca9b40d4eec56d5e9a36f15d518"
+    },
+    "RACES": {
+      "entries": 38,
+      "sha256": "e772d5ce08b69ae9079e8437d589c8dd9f3e3aab3a9b9f3eadbda6f237868fff"
+    },
+    "ROOMS": {
+      "entries": 7209,
+      "sha256": "8da833ab4d9f6be9a01175887c32d05863a20397b05faf227f4420891e655581"
+    },
+    "TECH_CRAFT_RECIPES": {
+      "entries": 9,
+      "sha256": "2e6a52b795640732028253ce374620bfe6a46277e0d28e22ac561c083b43d780"
+    },
+    "TECH_SALVAGE_RECIPES": {
+      "entries": 8,
+      "sha256": "baf4ffa85ddb0160c1fdf99289aeb0fe000aca16dea3b461fa54726202d14d05"
+    },
+    "V03014_RECIPE_TEXT_AUDIT": {
+      "entries": 2,
+      "sha256": "0b76a5fe9debdd031a168769f72d4c26e468cfd9f6d6c8049b9a7389c7ca57f7"
+    },
+    "V03026_WOOD_RECIPES": {
+      "entries": 5,
+      "sha256": "aa3db73c7f60c204780c495732eae15cd7cbbe3cd52f80a35440874ba63836f6"
+    },
+    "V03053_CRAFT_RECIPES": {
+      "entries": 80,
+      "sha256": "ac87bbec437d3a4f0fa87b5fea64d03ba1d6a74893a24dc134f6a6ca2957ecb4"
+    },
+    "V1215_ENCHANT_RECIPES": {
+      "entries": 55,
+      "sha256": "3a808ebba9789b81baed4b13be0d7a70dd0728c3516fb78cb7d582f2e4ff60c7"
+    },
+    "HELP_TOPICS": {
+      "entries": 442,
+      "sha256": "8a011c7e4dac62dac3514dbe121a7dc29cacc80b67406aa26600b2a5b1316de4"
+    },
+    "MOB_SPAWNS": {
+      "entries": 8065,
+      "sha256": "e281b2e98f40cf28c1061080439be65c08f54e1c2c24044af098b48739f6c8a4"
+    },
+    "GUIDE_DESTINATION_ALIASES": {
+      "entries": 862,
+      "sha256": "724369ad7d8eb8f91ff88682b428dca5141cdc0b46feeeb840b10a00bff134fe"
+    },
+    "EXPLORATION_ZONE_ROOMS": {
+      "entries": 446,
+      "sha256": "ae6c42ffc71d1ece39a6b81b6e3d16087d6946138eea19b19875f0e1c1975080"
+    },
+    "TRACKED_EXPLORATION_ZONES": {
+      "entries": 207,
+      "sha256": "f2873b41d069b80f2d54dc9aab824eaaab192c604bd0b49d2d7fd8bbc21c6640"
+    },
+    "EXPLORATION_REWARD_ITEMS": {
+      "entries": 420,
+      "sha256": "098985813c56299daf74ad125a61082d232fccb89576c3349dc3a9c259dd9c36"
+    },
+    "ALL_EXPLORATION_ROOMS": {
+      "entries": 5854,
+      "sha256": "a7710fc5594e8c22f4a55dbce184dd75530b6c977de5396aff6637e245e1afb4"
+    },
+    "BOSS_COLLECTION_CATALOG": {
+      "entries": 259,
+      "sha256": "fdc39754f3df4f64f9168b06a25f66afb69bcd6b6da78fbc13d194f499257200"
+    },
+    "EQUIPMENT_COLLECTION_CATALOG": {
+      "entries": 197399,
+      "sha256": "c1baefbe9111cc95900fa7a43fe90cde612f6461297f9ec7ec13976f16dae26a"
+    },
+    "UNIQUE_ITEM_COLLECTION_CATALOG": {
+      "entries": 215,
+      "sha256": "057e1bc058de8192e164ef55068614b9714cabb42a997b7539f734408e8192ab"
+    },
+    "SHOPS": {
+      "entries": 98,
+      "sha256": "b6485921042bdbdefe3c5a2e7478da9f45acf22d2e6fb6f6f62598f7376730be"
+    },
+    "SHOP_SELLERS": {
+      "entries": 98,
+      "sha256": "c9ea5c209581968359b6a4162339cc99b1388cef640496d89ff236bd96b21f69"
+    },
+    "ACHIEVEMENT_TRACKS": {
+      "entries": 13,
+      "sha256": "d95c569ece411c0a1f5b94845758a70dc38583d3ab34c79ee2e8624220780533"
+    },
+    "EXP_AREAS": {
+      "entries": 157,
+      "sha256": "fe8c06cd2765908564c4c04f05d7e75912cfb9c5d39defd4dbe8490975ce7b6e"
+    }
+  },
+  "normalization": "Typed tuples/sets/dict keys, sorted dictionary keys; callable qualname/defaults; no time fields removed."
+}

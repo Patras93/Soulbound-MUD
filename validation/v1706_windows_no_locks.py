@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+"""Runtime fake-server and static safeguards; no real Windows processes killed."""
+from pathlib import Path
+import os
+import subprocess
+import sys
+import tempfile
+import shutil
+import json
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def run_regression():
+    checks=0
+    for name in ('START_Soulbound.bat','STOP_Soulbound.bat',
+                 'Start-Soulbound-Windows.bat',
+                 'uruchom_w_tle.py','windows_launcher_state.py'):
+        assert (ROOT/name).is_file(), name
+        checks+=1
+    assert not (ROOT/'START_Soulbound_UKRYTY.vbs').exists(), 'VBS must not be shipped'
+    checks+=1
+    assert 'cwd=str(ROOT)' in (ROOT/'uruchom_w_tle.py').read_text(encoding='utf-8')
+    checks+=1
+    assert "process_alive(int(pidinfo['pid']))" in (ROOT/'stop_soulbound_windows.py').read_text(encoding='utf-8')
+    checks+=1
+    assert 'stop_soulbound_windows.py' in (ROOT/'aktualizuj_soulbound.py').read_text(encoding='utf-8')
+    checks+=1
+    # Isolated launch exercising the original host and its process marker.
+    with tempfile.TemporaryDirectory(prefix='soulbound1706-') as folder:
+        base=Path(folder)
+        shutil.copy2(ROOT/'host_windows.py',base/'host_windows.py')
+        shutil.copy2(ROOT/'windows_runtime_state.py',base/'windows_runtime_state.py')
+        (base/'soulbound_backup_windows.py').write_text("def create_backup(kind):\n    return 'fake-' + kind\n",encoding='utf-8')
+        (base/'server.py').write_text('print("TEST LAUNCH",flush=True)\n',encoding='utf-8')
+        # Run the fake launcher with private paths even when FAST PREDEPLOY
+        # itself uses its own SOULBOUND_LOG_DIR / backup directory.
+        child_env = dict(os.environ)
+        child_env['SOULBOUND_LOG_DIR'] = str(base/'logs')
+        child_env['SOULBOUND_BACKUP_DIR'] = str(base/'backup')
+        proc = subprocess.run([sys.executable,str(base/'host_windows.py')], cwd=base,
+             env=child_env, stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=25)
+        assert proc.returncode==0,proc.stderr
+        checks+=1
+        assert not (base/'logs'/'soulbound_launcher.json').exists()
+        checks+=1
+        assert 'TEST LAUNCH' in (base/'logs'/'serwer.log').read_text(encoding='utf-8')
+        checks+=1
+    # Normal and error exit must still work without an attached console.
+    from validation.v1705_windows_clean_stop import run_regression as old_regression
+    assert old_regression()==8
+    checks+=1
+    return checks
+
+if __name__=='__main__':
+    print(f'WINDOWS NO FOLDER LOCK v1.70.6: {run_regression()} checks PASS')

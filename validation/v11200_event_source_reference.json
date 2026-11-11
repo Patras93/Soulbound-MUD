@@ -1,0 +1,14 @@
+{
+  "systems/global_events/clock.py": "40064c46e8106500b60c0a410f80e1c9f3a4226c2ed67a607288c2b8b93fa84e",
+  "systems/global_events/combat.py": "0599e8a2025a1da7da53f6986720ac1132e6f41c727a6285d96535bb88eca0e1",
+  "systems/global_events/listener.py": "7734a25ed907ee47e47409a416491685e0e49fceb82fad73b6e4d3abe89c4859",
+  "systems/global_events/rewards.py": "4bf7799492912b0142e76223747587149bb0a9d10bd54eea1f60e989dde38854",
+  "systems/global_events/status.py": "4b3a708f70efcda888f7ed1e07a406fab4a08dbaac28e696a9527a6b3a9197ea",
+  "systems/global_events/storage.py": "1c394f016fa4e6e3b5b6786414877a7974d166ed3d4136617926869c10a1a147",
+  "world/events/__init__.py": "b44af8bf3828175c24f66a80e30a14b62db7a0b620a257c45600061666ae88b8",
+  "world/events/echo_imion.py": "1b5b8518fdba7ba652bc70677d2db6ad4fe1599587da8174aed99f40776ce9ba",
+  "world/events/przebudzenie_kontynentu.py": "0da3ebf3866ba72206eb95a281fdf1a2ec57c308dcde911a1b707fdbb44fcb48",
+  "world/events/registry.py": "b1907beef35860c73f37f5750fb9dea5c03794abfb5fc23195b18ff453591f88",
+  "world/events/wielka_migracja.py": "b6cb3cc332ede70b8b2451c33c34b8582f9fa97ef589caea10dacf75f05c14eb",
+  "world/events/zanik_pradow.py": "a326c4ee57d6e4186a050fd40606d964194f68d42580d085e59a06ec43d0ca6e"
+}
