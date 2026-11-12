@@ -940,7 +940,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('zip_path', nargs='?', help='Opcjonalna pelna sciezka do nowego ZIP.')
     parser.add_argument('--yes', action='store_true', help='Potwierdz aktualizacje bez pytania (dla testow).')
     parser.add_argument('--no-start', action='store_true', help='Nie uruchamiaj serwera po aktualizacji.')
-    parser.add_argument('--fresh', action='store_true', help='Zainstaluj v112 do NOWEGO katalogu (bez uruchamiania starej wersji).')
+    parser.add_argument('--fresh', action='store_true', help='Tylko historyczny tryb v112; nowsze wersje aktualizuja kod w miejscu.')
     args = parser.parse_args(argv)
     try:
         root = ROOT
@@ -951,7 +951,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Nowa wersja: v{new_ver}', flush=True)
         print(f'Paczka: {new_zip}', flush=True)
         require_v104_official_predeploy(root, new_zip, new_ver)
-        print('Pelny backup, nowa gra w osobnym katalogu. Stary silnik pozostanie nietkniety.',flush=True)
+        print('Pelny backup i bezpieczna podmiana kodu W TYM SAMYM folderze gry; SQLite i EQ pozostaja nietkniete.',flush=True)
         if not args.yes:
             if input('Wpisz TAK, aby zaktualizowac: ').strip().upper() != 'TAK':
                 print('Anulowano, nie dokonano zmian.', flush=True)

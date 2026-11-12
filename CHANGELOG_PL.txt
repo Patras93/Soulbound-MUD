@@ -1,3 +1,30 @@
+SOULBOUND MUD v113.00.11 — POWROT DO JEDNEGO KATALOGU WINDOWS
+12 listopada 2026
+STATUS: NIE WDRAZAC PRZED NOWYM WINDOWS PREDEPLOY DLA TEGO DOKLADNEGO ZIP
+
+- Przywrocono instalacje w C:\Soulbound-MUD zamiast zakladania
+  C:\Soulbound-MUD_V..._NOWA, z zachowaniem wszystkich prywatnych danych.
+- Nie zmieniono zadnych mechanik gry ani struktury SQLite i EQ.
+- Przed STOP: pelny PREDEPLOY 60/60 PLUS, SHA256, kontrola stagingu
+  i uruchomienie aktywatora w oddzielnym interpreterze.
+- Automatyczny, uwierzytelniony STOP i kontrola portu 4000.
+- Pelna kopia starego kodu i zapisow poza katalogiem gry, kontrola
+  wiernosci prywatnych plikow oraz SQLite/WAL.
+- Podmiana jedynie plikow wydania w tym samym katalogu. Po zmianie
+  ponowna kontrola VERSION, podpisanego manifestu oraz plikow prywatnych.
+- Gdy instalacja lub kontrola po podmianie zawiedzie, przywracany jest
+  poprzedni kod z backupu; EQ/DB nigdy nie sa nadpisywane kodem ZIP.
+- Po sukcesie start tego samego katalogu. Archiwa i bazy w NOWE_WERSJE
+  i SOULBOUND_PREDEPLOY nie sa runtime dependency.
+- Rozbudowano testy regresji o proby aktualizacji w miejscu i rollback.
+- Obecna oddzielna paczka Linux v113.00.10 nie jest zmieniana.
+
+UWAGA: kopie baz z ewentualnie uruchamianych dwoch oddzielnych
+instalacji nie synchronizuja sie. Przed wdrozeniem sprawdz, ktora
+instalacja ma najnowszy rzeczywisty zapis graczy.
+
+--- HISTORIA POPRZEDNICH ZMIAN ---
+
 SOULBOUND MUD v113.00.8 — NAPRAWA AKTYWACJI KANDYDATA PO PREDEPLOY
 12 listopada 2026
 STATUS: NIE WDRAZAC BEZ NOWEGO WINDOWS PREDEPLOY DLA TEGO ZIP-a

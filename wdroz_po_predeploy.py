@@ -61,7 +61,7 @@ def main():
         print(f'SERWER: v{current}; TESTOWANA WERSJA: v{ver}',flush=True)
         print(f'ZIP: {z}',flush=True)
         print(f'Testy PASS: {s.get("finished_at")}',flush=True)
-        print('Stary silnik pozostanie nietkniety; backup zapisow i NOWY katalog gry.',flush=True)
+        print('Pelny backup; aktualizacja kodu w dotychczasowym katalogu. Baza i EQ pozostana na miejscu.',flush=True)
         print('SQLite zostanie skopiowane do nowego katalogu z WAL; stare zapisy pozostana nietkniete.',flush=True)
         print('Zmienione pliki kodu gry: '+str(s.get('changed_game_file_count','brak raportu')),flush=True)
         print('Upewnij sie, ze gracze zakonczyli gre.',flush=True)

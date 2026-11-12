@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from systems.current_fresh_install import target_for,carry_saved_data,publish_clean
+from systems.current_fresh_install import carry_saved_data
 
 
 def validate_approval(root, archive_path, version, digest, installed):
@@ -125,8 +125,47 @@ def ensure_stopped_for_upgrade(root: Path) -> None:
         raise UpdateError('Port 4000 nadal zajety po sprawdzeniu STOP. Nie dotykam danych ani obcego procesu.')
 
 
+def publish_in_place(stage: Path, root: Path, backup: Path, protected_predicate) -> None:
+    """Install approved code at the original path and roll back on ANY failure.
+
+    The BAT invoking the updater has cwd=root on Windows, so renaming the
+    entire live directory is unsafe (WinError 32). Only release files are
+    replaced; live SQLite, WAL, player data and local settings are untouched.
+    """
+    from aktualizuj_soulbound import (UpdateError, install_stage,
+        _restore_prior_code_after_v108_cutover_failure, file_version)
+    stage, root, backup = map(Path, (stage,root,backup))
+    if stage.is_symlink() or root.is_symlink() or backup.is_symlink():
+        raise UpdateError('Dowiazanie symboliczne w sciezce aktualizacji')
+    if not verify_stage(stage):
+        raise UpdateError('Kandydat nie przeszedl weryfikacji przed podmiana')
+    files={source.relative_to(stage) for source in stage.rglob('*') if source.is_file()}
+    if not files:
+        raise UpdateError('Nie ma plikow nowej wersji do instalacji')
+    installed_version=(stage/'VERSION').read_text(encoding='utf-8-sig').strip()
+    try:
+        install_stage(root,stage,backup)
+        if (root/'VERSION').read_text(encoding='utf-8-sig').strip()!=installed_version:
+            raise UpdateError('VERSION nie zgadza sie po podmianie w starym folderze')
+        if file_version(root/'core/bootstrap_economy_professions.py')!=installed_version:
+            raise UpdateError('Kod i VERSION rozne po podmianie')
+        if not verify_stage(root):
+            raise UpdateError('Manifest aktywacji nie zgadza sie po podmianie w starym folderze')
+        # Check protected original bytes AGAIN after code replacement.
+        verify_private_backup(root,backup,protected_predicate)
+    except BaseException as cause:
+        try:
+            _restore_prior_code_after_v108_cutover_failure(root,backup,files)
+            verify_private_backup(root,backup,protected_predicate)
+        except BaseException as rollback_error:
+            raise UpdateError('UWAGA: blad podczas przywracania kodu; zachowaj backup '
+                              +str(backup)+'; przyczyna: '+str(rollback_error)) from cause
+        raise UpdateError('Podmiana kodu nieudana. Przywrocono stara wersje z backupu: '
+                          +str(cause)) from cause
+
+
 def update(root, archive_path, new_version, mapping, *,restart=True):
-    """Install into NEW folder; full backup, committed SQLite snapshot, no old code imports."""
+    """Replace code IN PLACE after backup and full candidate verification; keep player data."""
     import shutil
     import tempfile
     import zipfile
@@ -160,15 +199,13 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
         raise UpdateError('Numer wersji zainstalowanej gry jest niespojny')
     digest=sha256_file(archive_path)
     validate_approval(root,archive_path,new_version,digest,current)
-    target=target_for(root,new_version)
-    if target.exists() or target.is_symlink():raise UpdateError('Katalog docelowy juz istnieje')
     date=datetime.now().strftime('%Y%m%d_%H%M%S')
     backup=root.parent/('Soulbound_BACKUP_'+date)
     ix=0
     while backup.exists():
         ix+=1;backup=root.parent/('Soulbound_BACKUP_'+date+'_'+str(ix))
     stage=Path(tempfile.mkdtemp(prefix='.Soulbound_universal_',dir=root.parent))
-    published=False
+    installed=False
     try:
         # Candidate contains full offline tests but production only gets runtime.
         # Reviewed, release-neutral production selection; all 60/60 and
@@ -199,14 +236,23 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
             raise UpdateError('Nie znaleziono danych graczy w kopii bezpieczenstwa')
         report=carry_saved_data(backup,stage,protected)
         if not verify_stage(stage):raise UpdateError('Manifest zmieniony po kopiowaniu zapisow')
-        publish_clean(stage,target,verify_stage)
-        published=True
-        print('NOWA WERSJA: '+new_version+'; nowy katalog: '+str(target),flush=True)
-        print('Bazy: '+str(report['sqlite_files'])+'; tabele: '+str(report['tables_checked']),flush=True)
+        # Never create Soulbound-MUD_V..._NOWA. The existing path is stable.
+        publish_in_place(stage,root,backup,protected)
+        installed=True
+        print('AKTUALIZACJA W MIEJSCU PASS: v'+new_version+'; katalog: '+str(root),flush=True)
+        print('Dane graczy nietkniete; zbadane bazy: '+str(report['sqlite_files'])+
+              '; tabele: '+str(report['tables_checked']),flush=True)
+        print('Pelny backup starszego kodu i danych: '+str(backup),flush=True)
         if restart and os.name=='nt':
-            subprocess.Popen([os.environ.get('COMSPEC','cmd.exe'),'/d','/c',str(target/'START_Soulbound.bat')],cwd=target)
+            try:
+                subprocess.Popen([os.environ.get('COMSPEC','cmd.exe'),'/d','/c',
+                                  str(root/'START_Soulbound.bat')],cwd=root)
+                print('Uruchomiono Soulbound z dotychczasowego katalogu.',flush=True)
+            except OSError as exc:
+                print('UWAGA: kod zainstalowano, ale restart sie nie powiodl: '+str(exc),flush=True)
         return backup
     except (OSError,FreshInstallError,subprocess.TimeoutExpired) as exc:
         raise UpdateError('Bezpieczna aktualizacja przerwana: '+str(exc)) from exc
     finally:
-        if not published:shutil.rmtree(stage,ignore_errors=True)
+        # Source ZIP is still in NOWE_WERSJE. Stage always was an isolated copy.
+        shutil.rmtree(stage,ignore_errors=True)

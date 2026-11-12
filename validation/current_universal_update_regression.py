@@ -12,7 +12,7 @@ import inspect
 import zipfile as zipmod
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from systems.universal_release_update import validate_approval, ensure_stopped_for_upgrade, activate_candidate, verify_stage, update
+from systems.universal_release_update import validate_approval, ensure_stopped_for_upgrade, activate_candidate, verify_stage, update, publish_in_place
 import systems.universal_release_update as release_update
 from systems.current_fresh_install import target_for,_sqlite_snapshot
 from aktualizuj_soulbound import UpdateError
@@ -98,12 +98,13 @@ def check():
         reapprove=src.index('validate_approval(root,archive_path,new_version,digest,current)',stop)
         backup=src.index('backup_existing(root,backup)')
         transfer=src.index('report=carry_saved_data(backup,stage,protected)')
-        publish=src.index('publish_clean(stage,target,verify_stage)')
+        publish=src.index('publish_in_place(stage,root,backup,protected)')
         assert preflight < stop < rehash < reapprove < backup < transfer < publish
         n+=1
         # Unapproved version or altered archive must block before any STOP.
         assert src.index('validate_approval(root,archive_path,new_version,digest,current)') < src.index('stage_release(archive_path,stage,production)') < stop
         assert "if port_open(4000):raise UpdateError('Port 4000 zajety" not in src
+        assert 'target_for(root,new_version)' not in src and 'publish_clean(stage,target' not in src
         n+=1
         # REAL subprocess activation of an isolated, synthetic candidate,
         # using precisely the implementation invoked by update() before STOP.
@@ -143,6 +144,57 @@ def check():
         assert not verify_stage(fixture);n+=1
         target.write_bytes(data)
         assert verify_stage(fixture);n+=1
+
+        # FULL in-place code replacement with a real SQLite/BLOB fixture.
+        # The old root path never changes; private saves stay byte-identical.
+        from aktualizuj_soulbound import backup_existing, protected
+        inroot=Path(td)/'old_game';inroot.mkdir()
+        (inroot/'core').mkdir()
+        (inroot/'core/bootstrap_economy_professions.py').write_text('VERSION = load_version()\n')
+        (inroot/'VERSION').write_text('112.00.0\n')
+        (inroot/'server.py').write_text('OLD SERVER\n')
+        (inroot/'soulbound_world_seed.txt').write_text('SECRET-SEED')
+        with closing(sqlite3.connect(inroot/'soulbound.db')) as db:
+            db.execute('CREATE TABLE eq(id INTEGER PRIMARY KEY, raw BLOB)')
+            db.execute('INSERT INTO eq VALUES (5, ?)',(b'\x00\xffSAVED-EQ',))
+            db.commit()
+        protected_before={p.relative_to(inroot):hashlib.sha256(p.read_bytes()).digest()
+                          for p in inroot.rglob('*') if p.is_file() and protected(p.relative_to(inroot))}
+        bak=Path(td)/'old_backup';backup_existing(inroot,bak)
+        stage2=Path(td)/'new_code';stage2.mkdir()
+        (stage2/'core').mkdir()
+        (stage2/'core/bootstrap_economy_professions.py').write_text('VERSION = load_version()\n')
+        (stage2/'VERSION').write_text('113.00.0\n')
+        (stage2/'server.py').write_text('NEW SERVER\n')
+        (stage2/'new_module.py').write_text('NEW MODULE\n')
+        (stage2/'LIVE_CONTENT').mkdir()
+        (stage2/'LIVE_CONTENT/release_current.json').write_text('{"proof": 1}')
+        def check_stage(p):
+            return (Path(p)/'VERSION').read_text().strip()=='113.00.0'
+        with patch.object(release_update,'verify_stage',side_effect=check_stage):
+            publish_in_place(stage2,inroot,bak,protected)
+        assert inroot.is_dir() and (inroot/'VERSION').read_text().strip()=='113.00.0';n+=1
+        assert (inroot/'server.py').read_text()=='NEW SERVER\n' and (inroot/'new_module.py').is_file();n+=1
+        assert not any(p.name.startswith('old_game_V') for p in Path(td).iterdir());n+=1
+        assert protected_before=={p.relative_to(inroot):hashlib.sha256(p.read_bytes()).digest()
+                                  for p in inroot.rglob('*') if p.is_file() and protected(p.relative_to(inroot))};n+=1
+        with closing(sqlite3.connect(inroot/'soulbound.db')) as db:
+            assert db.execute('SELECT raw FROM eq WHERE id=5').fetchone()[0]==b'\x00\xffSAVED-EQ';n+=1
+
+        # If post-install verification fails, every code file is restored
+        # from the exact full backup, without erasing or migrating player data.
+        failure_root=Path(td)/'old_game_fail'
+        from shutil import copytree
+        copytree(bak,failure_root)
+        pre_data=hashlib.sha256((failure_root/'soulbound.db').read_bytes()).digest()
+        with patch.object(release_update,'verify_stage',side_effect=lambda p: p==stage2):
+            try:publish_in_place(stage2,failure_root,bak,protected)
+            except UpdateError: n+=1
+            else:raise AssertionError('Brak rollback po falszywym manifest verification')
+        assert (failure_root/'VERSION').read_text().strip()=='112.00.0';n+=1
+        assert (failure_root/'server.py').read_text()=='OLD SERVER\n';n+=1
+        assert not (failure_root/'new_module.py').exists() and not (failure_root/'LIVE_CONTENT/release_current.json').exists();n+=1
+        assert hashlib.sha256((failure_root/'soulbound.db').read_bytes()).digest()==pre_data;n+=1
     print('CURRENT UNIVERSAL UPDATE: '+str(n)+' checks PASS')
 
 if __name__=='__main__':check()
