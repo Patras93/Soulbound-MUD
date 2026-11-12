@@ -30,7 +30,8 @@ def run():
     from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
     from systems.v10700_profession_work import process, product_id
     from storage.database import Database
-    from systems.content_registry import QUESTS,ROOMS,NPCS,ITEMS,MOB_TEMPLATES
+    from systems.content_registry import QUESTS,NPCS,ITEMS,MOB_TEMPLATES
+    from data.rooms import ROOMS
     checks=0
     def check(cond,why):
         nonlocal checks

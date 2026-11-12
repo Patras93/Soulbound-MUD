@@ -16,12 +16,13 @@ HISTORICAL = {
     'systems.v10700_activation', 'systems.v10800_activation',
     'systems.v10900_activation', 'systems.v10900_staging_guard',
     'systems.v11000_activation', 'systems.v11100_holiday_activation',
+    'systems.v11200_activation',
 }
 
 
 def check():
     from systems import runtime_activation as current
-    from systems import v11200_activation as implementation
+    from systems import universal_activation as implementation
     checks = 0
     # Every nonhistorical gameplay module must authorize through the current
     # release; offline historical fixtures remain outside this assertion.
@@ -44,19 +45,19 @@ def check():
     checks += 1
     required = set(current.REQUIRED)
     assert 'systems/runtime_activation.py' in required
-    assert 'systems/v11200_activation.py' in required
+    assert 'systems/universal_activation.py' in required
     assert not {m.replace('.', '/') + '.py' for m in HISTORICAL}.intersection(required)
     checks += 3
     from aktualizuj_soulbound import (
-        V112_HISTORICAL_ACTIVATION_FILES, v111_live_release_mapping,
+        V112_HISTORICAL_ACTIVATION_FILES, production_release_mapping,
     )
     from validation.v11200_closed_runtime_gate import inspect_files, source_files
     all_files = source_files(ROOT)
-    installed = {p.as_posix() for p in v111_live_release_mapping(
+    installed = {p.as_posix() for p in production_release_mapping(
         {Path(p): None for p in all_files})}
     assert not V112_HISTORICAL_ACTIVATION_FILES.intersection(installed)
     closure = inspect_files(all_files, installed, required_files={
-        'server.py', 'systems/runtime_activation.py', 'systems/v11200_activation.py'})
+        'server.py', 'systems/runtime_activation.py', 'systems/universal_activation.py'})
     assert closure['missing_import_count'] == 0, closure['missing_imports'][:10]
     checks += 2
     source = (ROOT / 'server/mud_server.py').read_text(encoding='utf-8-sig')
@@ -65,9 +66,9 @@ def check():
     assert '_ver108' not in source and '_ver109' not in source and '_ver110' not in source
     assert 'v107_eq_production_cutover' in source, 'player ledger safety guard was lost'
     checks += 4
-    with tempfile.TemporaryDirectory(prefix='sb112_current_activation_') as folder:
+    with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-stage-') as folder:
         database = Path(folder) / 'isolated.sqlite'
-        clean = {'SOULBOUND_V112_STAGING': '1', 'SOULBOUND_HOST': '127.0.0.1',
+        clean = {'SOULBOUND_UNIVERSAL_STAGING': '1', 'SOULBOUND_HOST': '127.0.0.1',
                  'SOULBOUND_PORT': '49123', 'SOULBOUND_DB': str(database)}
         with patch.object(implementation, 'production_approved', return_value=False):
             with patch.dict(os.environ, clean, clear=True):
@@ -76,7 +77,7 @@ def check():
                 checks += 2
                 for change in ({'SOULBOUND_HOST': '0.0.0.0'},
                                {'SOULBOUND_PORT': '4000'},
-                               {'SOULBOUND_V112_STAGING': '0'},
+                               {'SOULBOUND_UNIVERSAL_STAGING': '0'},
                                {'SOULBOUND_DB': str(ROOT / 'soulbound.db')}):
                     with patch.dict(os.environ, change):
                         assert not current.enabled(), change
@@ -87,7 +88,7 @@ def check():
                         else:
                             raise AssertionError(('unsafe staging authorized', change))
             old_flags = dict(clean)
-            old_flags.pop('SOULBOUND_V112_STAGING')
+            old_flags.pop('SOULBOUND_UNIVERSAL_STAGING')
             old_flags.update({f'SOULBOUND_V{v}_STAGING': '1'
                               for v in (106, 107, 108, 109, 110, 111)})
             with patch.dict(os.environ, old_flags, clear=True):
@@ -98,6 +99,43 @@ def check():
             assert not implementation.verify(Path(folder))
             checks += 1
         assert not database.exists(), 'regression touched a SQLite database'
+        checks += 1
+    # End-to-end authorization contract for the nested private TCP arena.
+    # No database is created; the sandbox disappears after the test.
+    from arena_real_izolowana import _private_env
+    with tempfile.TemporaryDirectory(prefix='Soulbound_UOSS_REAL_') as sandbox:
+        clone = Path(sandbox) / 'gra'
+        clone.mkdir()
+        own_db = clone / 'soulbound.db'
+        parent = {'SOULBOUND_UNIVERSAL_STAGING':'1',
+                  'SOULBOUND_HOST':'127.0.0.1','SOULBOUND_PORT':'49129'}
+        with patch.object(implementation, 'ROOT', clone), patch.object(implementation, 'production_approved', return_value=False):
+            with patch.dict(os.environ, parent, clear=True):
+                child = _private_env(clone, 49131)
+                assert child.get('SOULBOUND_UNIVERSAL_STAGING')=='1'
+                checks += 1
+                with patch.dict(os.environ, child, clear=True):
+                    assert current.authorized_mode(own_db)=='test'
+                    checks += 1
+                    for bad_db in (clone/'other.db',Path(sandbox)/'soulbound.db', ROOT/'soulbound.db'):
+                        assert not implementation._test_database(bad_db), bad_db
+                        checks += 1
+                    for bad_env in ({'SOULBOUND_UNIVERSAL_STAGING':'0'},
+                                    {'SOULBOUND_HOST':'0.0.0.0'},
+                                    {'SOULBOUND_PORT':'4000'}):
+                        with patch.dict(os.environ, bad_env):
+                            assert not implementation._test_database(own_db), bad_env
+                            checks += 1
+            with patch.dict(os.environ, {'SOULBOUND_UNIVERSAL_STAGING':'0'}, clear=True):
+                child = _private_env(clone, 49131)
+                assert 'SOULBOUND_UNIVERSAL_STAGING' not in child
+                checks += 1
+            # Even with staging permission, a clone in any other fixture
+            # directory cannot masquerade as the production database.
+            with patch.dict(os.environ, parent, clear=True):
+                assert 'SOULBOUND_UNIVERSAL_STAGING' not in _private_env(Path(sandbox), 49131)
+                checks += 1
+        assert not own_db.exists()
         checks += 1
     print(f'CURRENT ACTIVATION INDEPENDENCE: {checks} checks PASS')
     return checks

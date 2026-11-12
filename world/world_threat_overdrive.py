@@ -182,6 +182,12 @@ def v0190_apply_combat_template_v0384(template):
 
 v0190_apply_combat_template = v0190_apply_combat_template_v0384
 v0190_apply_combat_template._world_threat_overdrive_v0384 = True
+# Publish this stage into the shared rule registry; the later v0.38.6
+# wrapper explicitly composes on this function and replaces the slot again.
+# Without this publication audit v0.38.4 inspected the old tower function,
+# and any users of the shared rule between these layers saw stale combat.
+from core.runtime_rules import register_rule as _register_current_rule
+_register_current_rule('v0190_apply_combat_template', v0190_apply_combat_template)
 
 
 def _v0384_rebind_spawned_mob(world, mob):

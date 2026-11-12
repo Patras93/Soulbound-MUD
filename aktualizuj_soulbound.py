@@ -78,6 +78,7 @@ V112_HISTORICAL_ACTIVATION_FILES = frozenset({
     'systems/v10700_activation.py', 'systems/v10800_activation.py',
     'systems/v10900_activation.py', 'systems/v10900_staging_guard.py',
     'systems/v11000_activation.py', 'systems/v11100_holiday_activation.py',
+    'systems/v11200_activation.py',
     'systems/v10800_predeploy_isolation.py',
 })
 
@@ -163,7 +164,7 @@ V112_OBSOLETE_RUNTIME_GLUE_FILES = frozenset({
 })
 
 
-def v111_live_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Path, zipfile.ZipInfo]:
+def production_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Path, zipfile.ZipInfo]:
     """Only install code needed on a running host; never reduce ZIP PREDEPLOY."""
     from core.runtime_manifest import FULL_AUDIT_ONLY_MODULES
     offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
@@ -193,6 +194,10 @@ def v111_live_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Path
     return result
 
 
+# Compatibility alias for archived regression fixtures only.
+v111_live_release_mapping = production_release_mapping
+
+
 PROTECTED_FILENAMES = {'.env', 'soulbound_control.json', 'soulbound_world_seed.txt', 'admin_level_caps.json', 'shop_progression_v7003.json', 'heritage_v7100.json', 'custom_races_v7600.json', 'custom_classes_v7700.json', 'era_v10300.json'}
 
 
@@ -205,19 +210,42 @@ def version_tuple(s: str) -> tuple[int, int, int]:
 
 
 def file_version(p: Path) -> str:
-    m = VERSION_PATTERN.search(p.read_text(encoding='utf-8-sig'))
-    if not m:
-        raise UpdateError(f'Brak numeru VERSION w pliku: {p}')
-    return m.group(1)
+    source=p.read_text(encoding='utf-8-sig')
+    match=VERSION_PATTERN.search(source)
+    source_version=match.group(1) if match else None
+    if source_version is None:
+        # Future releases contain only this stable declaration and one VERSION.
+        if not re.search(r'(?m)^VERSION\s*=\s*load_version\(\)\s*$',source):
+            raise UpdateError(f'Brak rozpoznanej deklaracji VERSION w {p}')
+        source_version=(p.resolve().parent.parent/'VERSION').read_text(encoding='utf-8-sig').strip()
+    if not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2}', source_version):
+        raise UpdateError('Nieprawidlowy numer wersji')
+    version_file=p.resolve().parent.parent/'VERSION'
+    if version_file.is_file() and version_file.read_text(encoding='utf-8-sig').strip()!=source_version:
+        raise UpdateError('Niespojna wersja kodu i VERSION')
+    return source_version
 
 
 def protected(relative: Path) -> bool:
-    name = relative.name.lower()
+    """Return true only for persistent player data copied by backup_existing.
+
+    The full source-code backup explicitly excludes logs, caches, .git and
+    release ZIPs.  Marking those ignored files as protected made the verifier
+    reject an otherwise complete backup whenever server logs were present.
+    Never transfer runtime process state or ignored directories as saves.
+    """
+    relative = Path(relative)
+    if any(part.casefold() in SKIP_PARTS for part in relative.parts):
+        return False
+    name = relative.name.casefold()
+    if name in {'soulbound_control.json', 'soulbound_supervisor.json',
+                'soulbound_launcher.json', 'last_result.json'}:
+        return False
+    if relative.suffix.casefold() == '.zip':
+        return False
     return (name.endswith(SQLITE_SUFFIXES)
             or name in PROTECTED_FILENAMES
-            or name.endswith(('.pem', '.key', '.pfx'))
-            or any(part.lower() in SKIP_PARTS for part in relative.parts)
-            or relative.suffix.lower() == '.zip')
+            or name.endswith(('.pem', '.key', '.pfx')))
 
 
 def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
@@ -262,9 +290,17 @@ def read_archive_version(archive: zipfile.ZipFile, mapping: dict[Path,zipfile.Zi
     info = mapping[Path('core/bootstrap_economy_professions.py')]
     txt = archive.read(info).decode('utf-8-sig')
     m = VERSION_PATTERN.search(txt)
-    if not m:
-        raise UpdateError('Nie znaleziono VERSION w nowej paczce.')
-    return m.group(1)
+    if m:
+        return m.group(1)  # Historical static declarations.
+    if not re.search(r'(?m)^VERSION\s*=\s*load_version\(\)\s*$',txt) or Path('core/release_version.py') not in mapping:
+        raise UpdateError('Nie znaleziono wspieranego kontraktu VERSION w ZIP.')
+    entry=mapping.get(Path('VERSION'))
+    if entry is None:
+        raise UpdateError('Paczka nie zawiera VERSION')
+    version=archive.read(entry).decode('utf-8-sig').strip()
+    if not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2}',version):
+        raise UpdateError('Bledny numer wersji w ZIP')
+    return version
 
 
 def find_release(root: Path, selected: Path | None, current_version: str) -> tuple[Path, str]:
@@ -363,6 +399,11 @@ def v112_base_preflight(root: Path) -> str:
 
 
 def require_v104_official_predeploy(root: Path, archive_path: Path, new_version: str) -> None:
+    if version_tuple(new_version) > (112, 0, 0):
+        from systems.universal_release_update import validate_approval
+        validate_approval(root,archive_path,new_version,sha256_file(archive_path),
+                          file_version(root/'core/bootstrap_economy_professions.py'))
+        return
     """Never stop the live server for a v104+ ZIP without a matching 60/60 PASS.
 
     Guard even --yes and direct run_update() callers. The official PREDEPLOY
@@ -660,7 +701,7 @@ def v112_certified_boot_rehearsal(root: Path, staged_root: Path, *, timeout=240)
     """
     import sqlite3
     from contextlib import closing
-    from systems.v11200_activation import verify
+    from systems.runtime_activation import verify
     if not verify(staged_root):
         raise UpdateError('v112: test kopii graczy nie ma podpisanego kodu stagingu.')
     with tempfile.TemporaryDirectory(prefix='sb112_production_copy_boot_') as scratch:
@@ -747,8 +788,15 @@ def sha256_file(file: Path) -> str:
 
 
 def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True, fresh: bool = True) -> Path:
-    if new_version != '112.00.0':
-        raise UpdateError('Biezacy aktualizator v112 nie instaluje starszych wydan.')
+    if version_tuple(new_version) > (112, 0, 0):
+        from systems.universal_release_update import update
+        with zipfile.ZipFile(archive_path) as archive:
+            mapping = archive_mapping(archive)
+            if read_archive_version(archive, mapping) != new_version or archive.testzip():
+                raise UpdateError('Niepoprawna nowa paczka ZIP')
+        return update(root, archive_path, new_version, mapping, restart=restart)
+    if version_tuple(new_version) < (112,0,0):
+        raise UpdateError('Nie obsluguje starszych wersji')
     # Critical: protect direct callers and --yes alike, before shutdown/backup.
     require_v104_official_predeploy(root, archive_path, new_version)
     # Pre-validate ZIP *before* touching running server.
@@ -770,7 +818,7 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
     # Prior installed historical audits are retired separately only if their
     # unchanged SHA matches the previously certified installation manifest.
     if new_version in ('111.00.0','112.00.0'):
-        mapping = v111_live_release_mapping(mapping)
+        mapping = production_release_mapping(mapping)
     parent = root.parent
     name = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup = parent / f'Soulbound_BACKUP_{name}'
@@ -783,7 +831,7 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
         stage_release(archive_path, stage, mapping)
         # The only activation contract allowed to install this code is v112.
         state=json.loads((root.parent/'Soulbound_PREDEPLOY'/'last_result.json').read_text(encoding='utf-8'))
-        from systems.v11200_activation import activation_manifest,verify
+        from systems.runtime_activation import activation_manifest,verify
         marker=stage/'LIVE_CONTENT'/'release_current.json'
         marker.parent.mkdir(parents=True,exist_ok=True)
         marker.write_text(json.dumps(activation_manifest(state,archive_path,stage,mapping),
@@ -845,7 +893,7 @@ def run_update(root: Path, archive_path: Path, new_version: str, *, restart: boo
         try:
             install_stage(root,stage,backup)
             installed=True
-            from systems.v11200_activation import verify
+            from systems.runtime_activation import verify
             if (file_version(root/'core/bootstrap_economy_professions.py')!=new_version
                  or not verify(root)):
                 raise UpdateError('v112: zainstalowany kod nie zgadza sie z manifestem.')
@@ -903,7 +951,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'Nowa wersja: v{new_ver}', flush=True)
         print(f'Paczka: {new_zip}', flush=True)
         require_v104_official_predeploy(root, new_zip, new_ver)
-        print('V112: zapisze pelny backup, a nowa gre utworze w osobnym katalogu. Stary silnik pozostanie nietkniety.',flush=True)
+        print('Pelny backup, nowa gra w osobnym katalogu. Stary silnik pozostanie nietkniety.',flush=True)
         if not args.yes:
             if input('Wpisz TAK, aby zaktualizowac: ').strip().upper() != 'TAK':
                 print('Anulowano, nie dokonano zmian.', flush=True)

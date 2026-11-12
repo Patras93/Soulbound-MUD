@@ -1687,3 +1687,9 @@ LATEST_CHANGES = [
     "v112.00.0: aktualne questy w world/quests; historyczne ID i funkcje gry pozostają niezmienione.",
     "v112.00.0: odrębne zatwierdzanie 60/60 PLUS, kontrola EQ i bezpieczna aktualizacja z v111.",
 ] + LATEST_CHANGES
+
+
+# One canonical release identity, shared with commands, TCP and NVDA changes.
+# Historical LATEST_CHANGES entries remain as an archive, not the live title.
+from core.bootstrap_economy_professions import VERSION as _CURRENT_RELEASE_VERSION
+LATEST_CHANGES_TITLE = 'Soulbound v' + _CURRENT_RELEASE_VERSION + ' — Aktualna wersja gry'

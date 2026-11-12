@@ -133,6 +133,19 @@ def _private_env(folder, port):
         'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8',
         'PYTHONUNBUFFERED': '1',
     })
+    # A second-generation private arena spawned by the universal PREDEPLOY
+    # must inherit its current staging capability, not v110/v111 flags.
+    # Only TEMP/Soulbound_UOSS_REAL_*/gra is eligible; the actual server
+    # independently validates its SQLite path, loopback address and port.
+    try:
+        _rel = Path(folder).resolve().relative_to(Path(tempfile.gettempdir()).resolve())
+        _uoss_clone = (len(_rel.parts) == 2
+                       and _rel.parts[0].casefold().startswith('soulbound_uoss_real_')
+                       and _rel.parts[1].casefold() == 'gra')
+    except (ValueError, OSError):
+        _uoss_clone = False
+    if _uoss_clone and os.environ.get('SOULBOUND_UNIVERSAL_STAGING') == '1':
+        env['SOULBOUND_UNIVERSAL_STAGING'] = '1'
     # The normal credential sanitization above strips every SOULBOUND_ key.
     # Restore only this narrow test marker if the *parent audit* was actually
     # authorized. Runtime still independently checks path/DB/port/loopback.

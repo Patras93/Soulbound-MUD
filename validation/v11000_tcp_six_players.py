@@ -47,6 +47,8 @@ def guarded_child_env(directory, port):
                 'SOULBOUND_FULL_AUDIT', 'SOULBOUND_HISTORICAL_AUDITS',
                 'SOULBOUND_ADMIN_ACCOUNTS'):
         env.pop(key, None)
+    if tuple(map(int,(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip().split('.'))) > (112,0,0):
+        env['SOULBOUND_UNIVERSAL_STAGING']='1'
     env.update(SOULBOUND_DB=str(db_path), SOULBOUND_PORT=str(port),
                SOULBOUND_HOST='127.0.0.1', SOULBOUND_TCP_TEST_CHILD='1',
                SOULBOUND_WORLD_SEED_FILE=str(work / 'test_seed.txt'),

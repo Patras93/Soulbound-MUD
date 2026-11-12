@@ -1,33 +1,56 @@
-# Soulbound v112 — samodzielny bieżący silnik
+# Soulbound v113.00.8 — poprawka aktywacji po PREDEPLOY
 
-Ta wersja nie wymaga instalacji, aktywatorów ani plików wykonywalnych starszych wydań. Wszystkie 158 modułów startowych mają jawne zależności. Funkcje i metody są zwykłym kodem Python, bez klonowania FunctionType i wstrzykiwania wspólnych globali. Nazwy starych ID przedmiotów, questów, tabel i mechanik pozostają dla zachowania zawartości oraz zgodności danych.
+Wersja pelna. NIE WDRAZAC przed nowym pelnym Windows PREDEPLOY 60/60 PLUS,
+dodatkowymi bramkami i testami uniwersalnymi dla TEGO ZIP-a.
+Wersja v113.00.7 przerwala wdrozenie przed automatycznym STOP i backupem,
+poniewaz kod aktywacji kandydata zawieral SyntaxError. Poprawiono
+aktywacje i dodano rzeczywisty test procesu. Zachowano automatyczny STOP,
+bezpieczny backup SQLite i wybrane dwie stale komendy BAT.
+Szczegoly i wyniki w CHANGELOG_PL.txt.
 
-## Nowa instalacja Windows
+---
 
-Uruchom `INSTALUJ_SAMODZIELNY.bat` w katalogu źródeł. Domyślnym celem jest nowy katalog `Soulbound-Samodzielny` obok źródeł. Możesz też podać nieistniejący katalog:
+# Soulbound v113.00.5 — pełne źródła, paczka robocza
 
-```powershell
-python -m systems.current_install install --target "C:\Gry\Soulbound-Samodzielny"
-```
+**NIE WDRAŻAĆ** przed Windows PREDEPLOY 60/60 PLUS wraz z bramkami dodatkowymi. 
+Poprawka izoluje historyczny test NPC/Elora w osobnym procesie i nie wymaga
+żadnych poprzednich wersji gry ani aktywatorów. Szczegóły: `CHANGELOG_PL.txt`.
+Po pełnym PASS używać wyłącznie stałych `PREDEPLOY_NOWEJ_WERSJI.bat`
+i `WDROZ_PO_PREDEPLOY.bat`, z potwierdzeniem `WDRAZAM`.
+Po wdrożeniu gra musi być samowystarczalna bez katalogu PREDEPLOY.
 
-Instalator wykonuje obowiązkowe testy bieżących źródeł, rzeczywisty test sześciu klientów i restartu, porównanie 33 katalogów z materiałem sprzed przebudowy oraz inicjalizację nowej pustej bazy. Kopiuje aktualny runtime wraz z zasobami binarnymi i bazą stref czasowych. Zapisuje manifest integralności SHA256 i wyników walidacji. Nie korzysta z zaświadczenia poprzedniej wersji, starego instalatora ani starej bazy. Istniejący katalog celu jest odrzucany przed wykonaniem instalacji.
+---
 
-Następnie w nowym katalogu uruchom `START_Soulbound.bat` lub `python server.py`. Zwykły port gry to 4000. Same źródła bez manifestu instalacji nie uzyskują automatycznej zgody na bazę produkcyjną. Flaga staging nie zastępuje instalacji.
+# Soulbound MUD v113.00.1 — pełne źródła
 
-## Istniejące zapisy
+Paczka robocza. **NIE WDRAŻAĆ** bez wyniku Windows PREDEPLOY 60/60 PLUS na izolowanej kopii zapisów.
 
-Nowy instalator tworzy wyłącznie pustą grę. Nie służy do nadpisywania serwera ani przenoszenia zapisów graczy. Historyczne narzędzia aktualizacji i ich zabezpieczenia pozostawiono w pełnych źródłach jako osobną ścieżkę. Bieżąca gra nie importuje dawnych aktywatorów ani dawnych binderów. Nie należy zastępować istniejącej bazy pustą bazą z nowej instalacji.
+Gra i instalator korzystają z jednego pliku `VERSION`. Główne mechaniki używają wspólnego `systems/runtime_activation.py`. Aktualizacje nowych wydań korzystają z dwóch stałych BAT: `PREDEPLOY_NOWEJ_WERSJI.bat` i `WDROZ_PO_PREDEPLOY.bat`.
 
-## Testy i architektura
+Nie kopiować starych modułów gry do nowej wersji. Postacie i ekwipunek są przenoszone wyłącznie z zatwierdzonej kopii danych SQLite/WAL i ustawień. Istniejąca instalacja pozostaje bez zmian.
 
-`python -m systems.current_install validate` uruchamia bramki bez publikowania nowego katalogu. Instalacja powtarza walidację, sprawdza SHA256 przed i po testach i odmawia kontynuowania po zmianie źródeł.
+Pełny opis zmian i faktycznie wykonanych testów: `CHANGELOG_PL.txt`.
 
-Kolejność finalizacji świata jest jawna: specjalne połączenia aren są domykane po topologii, a końcowy balans waluty po wszystkich warstwach świata. HELP ma jawne katalogi fazy autorskiej i fazy gry. Trzynaście nadpisywanych reguł ma wąski interfejs kompozycji `core/runtime_rules.py`; żaden katalog ani dowolna zmienna nie trafiają do tej usługi.
+Kontynuacja audytu: naprawiono konflikt backupu z katalogiem logs oraz wykonano testy 14/14 PASS i dwa cykle TCP sześciu graczy. Bieżący ZIP jest pełną paczką źródeł, nie aktualizacją produkcyjną. Po stronie użytkownika nie należy jeszcze uruchamiać WDROZ_PO_PREDEPLOY.bat bez zatwierdzonego Windows 60/60 PLUS.
 
-Pełne źródła zawierają także historyczne testy offline. Do nowej instalacji nie są kopiowane aktywatory v107–v111 ani 74 pliki dawnego łączenia kodu. Ich obecność w archiwum źródeł nie jest wymogiem uruchomienia aktualnej gry.
 
-Dockerfile przygotowuje samodzielną grę w osobnym etapie za pomocą tego samego instalatora, bez obrazu starszej wersji. Testy tej dostawy wykonano na Windows z Python 3.14; budowa obrazu Linux wymaga odrębnego sprawdzenia w środowisku Docker.
+## Kontrola po logu Windows v113 — ważne
 
-## Porządek w archiwum źródeł
+Oryginalna paczka v113 miała wynik Windows **49/60 PASS** i **11 FAIL**.
+Niniejsza paczka zawiera poprawki. Na odizolowanej **syntetycznej** bazie
+poprawione etapy 9/19/24/25/26/31/49/50/60 przeszły 9/9 PASS; dodatkowe
+bramki v105 zostały przetestowane osobno. Nie jest to dowód certyfikacji
+Windows na prawdziwych zapisach. **Nie wdrażaj** przed nowym PREDEPLOY.
 
-Niewykorzystywane skrypty `sprawdz_v104_zbiorczo.py` i `_debug_boot_local.py` przeniesiono do osobnego archiwum `SOULBOUND_V112_ARCHIWUM_NARZEDZI_20261111.zip`. Nie są potrzebne grze ani instalacji. Pozostałe materiały regresyjne i narzędzia aktualizacji zachowano ze względu na ich odwołania w testach. Szczegóły: `PORZADEK_ZRODEL.md` na najwyższym poziomie ZIP-a.
+Stałe dwa BAT pozostają uniwersalne. Nie kopiuj ani nie uruchamiaj
+historycznych instalatorów, nie usuwaj katalogu PREDEPLOY przed wdrożeniem.
+
+
+## Poprawka 113.00.1
+Poprzedni Windows PREDEPLOY v113.00.0: 58/60 PASS, 2 FAIL. Naprawiono kwalifikację Over Cap bossa powyżej poziomu 800 oraz bezpieczną autoryzację dodatkowej izolowanej areny TCP. Pakiet nadal **NIE WDRAŻAĆ** do czasu nowego 60/60 PLUS PASS. Szczegóły i wyniki w `CHANGELOG_PL.txt`.
+
+
+## Poprawka 113.00.2
+Poprzedni Windows PREDEPLOY: 58/60 PASS; niedozwolony wyjątek w Over Cap
+oraz przycinanie tool_tier do poziomu 800. Te dwa problemy poprawiono.
+NIE WDRAŻAĆ do czasu nowego rzeczywistego Windows 60/60 PLUS PASS.

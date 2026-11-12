@@ -125,6 +125,28 @@ def v107_gate_proof(version, completed):
             (len(completed)==1 and completed[0][1]==0))
 
 
+
+def future_release_proof(version, completed):
+    """A future release inherits EQ safety through current, executed gates.
+
+    Historical v107-v112 scripts are version-locked and cannot be required
+    as installers or approval sources for v113+.  Instead require ALL three
+    new gates, including read-only verification of real physical equipment.
+    No individual PASS, synthetic fixture, or missing gate can approve a release.
+    """
+    try:
+        number=tuple(int(part) for part in version.split('.'))
+    except (ValueError,TypeError,AttributeError):return False
+    if len(number)!=3:return False
+    if number <= (112,0,0):return True
+    expected=('UNIWERSALNE TESTY NOWEGO WYDANIA',
+              'FIZYCZNE EQ NA KOPII BAZY',
+              'SZESC GRACZY TCP, QUESTY I RESTART')
+    return (len(completed)==len(expected) and
+            all(row[0]==name and type(row[1]) is int and row[1]==0
+                for name,row in zip(expected,completed)))
+
+
 def source_db_for_gate():
     """Discover actual existing SQLite for read-only migration verification.
 
@@ -217,6 +239,10 @@ def stage_env(temp):
             env['SOULBOUND_V111_STAGING']='1'
         if (ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()=='112.00.0':
             env['SOULBOUND_V112_STAGING']='1' 
+    # All later releases reuse the same isolated PREDEPLOY contract.
+    # They must not require an old version-specific staging activator.
+    if tuple(map(int,(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip().split('.'))) > (112,0,0):
+        env['SOULBOUND_UNIVERSAL_STAGING']='1'
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('127.0.0.1', 0))
         env['SOULBOUND_PORT'] = str(sock.getsockname()[1])
@@ -635,6 +661,32 @@ def main():
                      (len(v110_extra)==4 and all(ret==0 for _,ret in v110_extra)))
         if not v110_proof:
             say('FAIL: brak osobnych bramek v110 i porównania danych SQLite')
+        future_extra=[]
+        if tuple(map(int,actual_version.split('.'))) > (112,0,0):
+            # Future releases inherit v107 EQ safety, but the old 33-slot
+            # launcher contains fixed v107-v112 version assumptions. Require
+            # the current 60 PLUS, v105 checks, the read-only physical-EQ
+            # verification, six live TCP players and version-neutral suite
+            # instead. ALL of these must PASS; no old launcher is executed.
+            if (len(status)==60 and all(code==0 for _,code in status)
+                and plus_proof and extra_proof):
+                future_extra=run_parallel_stages((
+                    ('UNIWERSALNE TESTY NOWEGO WYDANIA',
+                     'validation/current_universal_release_suite.py',1200),
+                    ('FIZYCZNE EQ NA KOPII BAZY',
+                     'validation/v10800_v107_equipment_compat_gate.py',1200),
+                    ('SZESC GRACZY TCP, QUESTY I RESTART',
+                     'validation/v11000_tcp_six_players.py',900),
+                ),say,phase='UNIVERSAL',max_workers=3)
+            else:
+                say('FAIL: uniwersalne bramki nie ruszyly: 60 PLUS albo historyczne regresje FAIL')
+            for title,ret in future_extra:
+                say(('PASS' if ret==0 else 'FAIL')+' - '+title+' (kod '+str(ret)+')')
+        future_proof=future_release_proof(actual_version,future_extra)
+        if tuple(map(int,actual_version.split('.'))) > (112,0,0):
+            # The full current physical-EQ gate is mandatory inheritance
+            # evidence for v107 equipment; no old version-locked launcher.
+            v107_proof = future_proof
         v111_extra=[]
         v112_extra=[]
         if actual_version == '112.00.0':
@@ -675,7 +727,7 @@ def main():
                      (len(v112_extra)==3 and all(ret==0 for _,ret in v112_extra)))
         good = (len(status) == len(STAGES) and all(ret == 0 for _,ret in status)
                 and plus_proof and extra_proof and v106_proof and v107_proof
-                and v108_additional_proof and v109_proof and v110_proof and v111_proof and v112_proof)
+                and v108_additional_proof and v109_proof and v110_proof and v111_proof and v112_proof and future_proof)
         if good and actual_version == '108.00.0':
             say('V108 RELEASE GATES PASS')
         if good and actual_version == '109.00.0':
@@ -686,6 +738,8 @@ def main():
             say('V111 RELEASE GATES PASS')
         if good and actual_version == '112.00.0':
             say('V112 RELEASE GATES PASS')
+        if good and tuple(map(int,actual_version.split('.'))) > (112,0,0):
+            say('SOULBOUND RELEASE GATES PASS')
         if not plus_proof: say('FAIL: Brak dowodu wykonania regresji PLUS')
         say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 60 ETAPOW PLUS' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))

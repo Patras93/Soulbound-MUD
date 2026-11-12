@@ -28,8 +28,12 @@ def audit_orc_summons_v1301(rooms, mobs, spawns, npcs, quests):
     template = mobs['v1300_orc_throne_boss']
     boss = ws.MobState('test-orc-king', 'v1300_orc_throne', 'v1300_orc_throne_boss', hp=template['max_hp'], engaged_by='Tester')
     check(boss_companion_due_v1281(boss, template, opening=True), 'opening due')
-    original_catalog = ws.MOB_TEMPLATES
-    ws.MOB_TEMPLATES = dict(mobs)
+    # The live World reads MOB_TEMPLATES directly from data.mobs, not from
+    # the retired alias in world.world_state. Patch only the disposable test
+    # catalog and restore it before returning: no global boss summons leak.
+    from unittest.mock import patch
+    catalog_patch = patch('data.mobs.MOB_TEMPLATES', dict(mobs))
+    test_catalog = catalog_patch.__enter__()
     try:
         world = ws.World.__new__(ws.World)
         world.mobs = {boss.key: boss}
@@ -52,9 +56,9 @@ def audit_orc_summons_v1301(rooms, mobs, spawns, npcs, quests):
             world.spawn_boss_companion_v1281(boss)
         adds = [m for m in world.mobs.values() if getattr(m, 'monster_ai_parent_v1160', None) == boss.key]
         check(len(adds) == 20, '20 simultaneous guards')
-        check(len({ws.MOB_TEMPLATES[a.template_id].get('boss_guardian_role_v12811') for a in adds}) == 5, 'five roles')
+        check(len({test_catalog[a.template_id].get('boss_guardian_role_v12811') for a in adds}) == 5, 'five roles')
         uoss = dict(template, uoss_unique_superboss_key='black_rabite')
         check(not boss_companion_due_v1281(boss, uoss, opening=True), 'preserve UOSS special script')
     finally:
-        ws.MOB_TEMPLATES = original_catalog
+        catalog_patch.__exit__(None, None, None)
     return {'checks': checks, 'error_count': len(errors), 'errors': errors}

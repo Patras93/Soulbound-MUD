@@ -37,4 +37,23 @@ def combat_overcap_v2009(template, player_level):
         return False
     # A lvl-950 boss is no longer "hard enough" for an uncapped lvl-1000
     # character merely because the old eligibility check stopped at 800.
-    return v0190_mob_stage(template) >= max(1, int(player_level or 1))
+    # The historical stage helper clamps combat stages to the old authored
+    # level ceiling (800). Do not apply that ceiling to an explicitly
+    # generated boss above level 800: unlimited players must still have an
+    # eligible high-level opponent. Other legacy mob staging is unchanged.
+    try:
+        stage = v0190_mob_stage(template)
+    except (TypeError, ValueError, OverflowError):
+        # Malformed boss metadata cannot elevate an enemy to Over Cap.
+        # Reject the bonus explicitly; never crash the reward path.
+        return False
+    if template.get('generator_level') is not None:
+        try:
+            stage = max(stage, max(1, int(template['generator_level'])))
+        except (TypeError, ValueError, OverflowError):
+            # An invalid optional generator_level is not evidence of a stronger
+            # boss. Use the normal authored stage rather than granting bonus
+            # EXP based on malformed metadata. This is an intentional,
+            # conservative fallback, not a silently ignored exception.
+            return stage >= max(1, int(player_level or 1))
+    return stage >= max(1, int(player_level or 1))

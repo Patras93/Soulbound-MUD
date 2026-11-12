@@ -147,7 +147,9 @@ def child():
     assert db_path.parent.name.startswith('sb112_tcp6_')
     assert db_path.name=='current_six.sqlite'
     assert os.environ['SOULBOUND_HOST']=='127.0.0.1'
-    assert os.environ['SOULBOUND_V112_STAGING']=='1'
+    version=tuple(map(int,(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip().split('.')))
+    flag='SOULBOUND_UNIVERSAL_STAGING' if version > (112,0,0) else 'SOULBOUND_V112_STAGING'
+    assert os.environ.get(flag)=='1', 'Private TCP staging flag missing'
     import server
     from storage.database import Database
     from core.classes_skills import CLASSES,RACES
@@ -177,9 +179,14 @@ def main():
             for key in list(env):
                 if (key.startswith('SOULBOUND_') or key in ('PORT','RAILWAY_TCP_APPLICATION_PORT','DATABASE_URL','RAILWAY_VOLUME_MOUNT_PATH')):
                     env.pop(key,None)
-            env.update(SOULBOUND_DB=str(database),SOULBOUND_V112_STAGING='1',SOULBOUND_HOST='127.0.0.1',
+            candidate_version=tuple(map(int,(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip().split('.')))
+            env.update(SOULBOUND_DB=str(database),SOULBOUND_HOST='127.0.0.1',
                        SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='6',SOULBOUND_WORLD_SEED_FILE=str(home/'seed.txt'),
                        PYTHONPATH=str(ROOT),PYTHONUTF8='1',PYTHONIOENCODING='utf-8',PYTHONDONTWRITEBYTECODE='1')
+            if candidate_version > (112,0,0):
+                env['SOULBOUND_UNIVERSAL_STAGING']='1'
+            else:
+                env['SOULBOUND_V112_STAGING']='1'
             log=home/f'cycle{cycle}.log'
             with log.open('w',encoding='utf8') as output:
                 proc=subprocess.Popen([sys.executable,'-u',str(Path(__file__).resolve()),'--child'],

@@ -104,11 +104,6 @@ async def character_creator(self):
                 self.master_account_id, name, race, cls, name_cases, gender=gender
             )
         except ValueError as exc:
-            if str(exc) == "character_limit":
-                await self.send(
-                    "Na jednym koncie można mieć maksymalnie 14 postaci."
-                )
-                return False
             if str(exc) == "dryad_female_only":
                 await self.send(
                     "Nie można utworzyć tej postaci: Driadą może być wyłącznie kobieta."
@@ -125,8 +120,7 @@ async def character_creator(self):
         self.refresh_guild_bonus_v0926()
         self.server.db.apply_shared_wallet_to_character(self.character)
         await self.send(
-            f"Utworzono postać {self.character.name}. Płeć: {self.character.gender}. W slocie {slot} z "
-            f"{MAX_CHARACTERS_PER_ACCOUNT}."
+            f"Utworzono postać {self.character.name}. Płeć: {self.character.gender}. Slot {slot}."
         )
         if _guild_after_create.get("status") in ("joined", "already") and slot > 1:
             _grow = self.server.db.clan_membership(self.account_id)

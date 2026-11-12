@@ -38,9 +38,16 @@ def run():
     import os
     from pathlib import Path
     v110_runtime = (Path(__file__).resolve().parents[1]/'VERSION').read_text(encoding='utf-8-sig').strip() in ('110.00.0', '111.00.0')
-    extended = os.environ.get('SOULBOUND_V106_STAGING') == '1' or (v110_runtime and v110_authorized())
-    cap = 6000 if extended else 3000
-    ok(SOUL_MAX_TIER == cap, 'tier cap from authenticated v110/v106 environment: '+str(SOUL_MAX_TIER))
+    from systems.universal_activation import enabled as universal_enabled
+    if universal_enabled():
+        # Future releases may raise the Soul cap. Preserve every legacy tier,
+        # with at least the 6000 tiers already guaranteed by modern gameplay.
+        cap = SOUL_MAX_TIER
+        ok(cap >= 6000, 'universal Soul cap cannot regress: '+str(cap))
+    else:
+        extended = os.environ.get('SOULBOUND_V106_STAGING') == '1' or (v110_runtime and v110_authorized())
+        cap = 6000 if extended else 3000
+        ok(SOUL_MAX_TIER == cap, 'tier cap from authenticated legacy environment: '+str(SOUL_MAX_TIER))
     ok(len(SOUL_TIER_THRESHOLDS) == cap, 'threshold count '+str(cap))
     ok(SOUL_TIER_THRESHOLDS[0] == 1, 'historical Tier 1')
     for newer_tier in range(3001, cap+1):

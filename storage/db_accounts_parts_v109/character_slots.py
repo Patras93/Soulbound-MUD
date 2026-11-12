@@ -4,16 +4,19 @@ from .dependencies import *
 
 class CharacterSlotsV109Mixin:
     def _next_character_slot(self, master_account_id):
-        used = {
-            int(r["slot"]) for r in self.conn.execute(
-                "SELECT slot FROM account_characters WHERE master_account_id=?",
-                (master_account_id,),
-            ).fetchall()
-        }
-        for slot in range(1, MAX_CHARACTERS_PER_ACCOUNT + 1):
-            if slot not in used:
-                return slot
-        return None
+        # Liczba postaci nie ma gornego limitu. Przydziel pierwszy wolny
+        # dodatni numer, takze jesli zwolnil sie po usunieciu postaci.
+        next_slot = 1
+        for row in self.conn.execute(
+            "SELECT slot FROM account_characters WHERE master_account_id=? ORDER BY slot",
+            (master_account_id,),
+        ):
+            used_slot = int(row["slot"])
+            if used_slot > next_slot:
+                break
+            if used_slot == next_slot:
+                next_slot += 1
+        return next_slot
 
     def _create_hidden_character_account(self, master_account_id, slot):
         # Profil jest wyłącznie technicznym kluczem danych postaci. Nie można

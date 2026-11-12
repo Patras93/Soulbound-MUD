@@ -8,7 +8,6 @@ import re
 from core.bootstrap_economy_professions import (
     HISTORY_BUFFER_DEFAULT_SHOW,
     HISTORY_BUFFER_LIMIT,
-    MAX_CHARACTERS_PER_ACCOUNT,
     VERSION,
     currency_reading_text,
 )
@@ -444,7 +443,7 @@ class SessionIOAuthCharacterMixin:
                 await self.send("3. Wyjdź")
                 await self.send("4. Odzyskaj hasło (jednorazowy kod)")
                 await self.send(
-                    f"Jedno konto może mieć do {MAX_CHARACTERS_PER_ACCOUNT} postaci."
+                    "Na jednym koncie możesz tworzyć dowolną liczbę postaci."
                 )
                 cmd = await self.ask("Wybierz opcję: ")
                 if cmd is None:
@@ -578,7 +577,7 @@ class SessionIOAuthCharacterMixin:
             )
             count = len(rows)
             await self.send(
-                f"POSTACIE NA KONCIE: {count}/{MAX_CHARACTERS_PER_ACCOUNT}"
+                f"POSTACIE NA KONCIE: {count}"
             )
             if not rows:
                 await self.send("Brak utworzonych postaci.")
@@ -671,7 +670,7 @@ class SessionIOAuthCharacterMixin:
                     self.character.room_id = "square"
                 await self.send(
                     f"Wybrano postać: {self.character.name}. "
-                    f"Slot {selected['slot']} z {MAX_CHARACTERS_PER_ACCOUNT}."
+                    f"Slot {selected['slot']}."
                 )
                 return True
 
@@ -757,7 +756,7 @@ class SessionIOAuthCharacterMixin:
                 return rows
             for index, row in enumerate(rows, 1):
                 await self.send(
-                    f"{index}. {row['username']} — postacie {int(row['character_count'] or 0)}/{MAX_CHARACTERS_PER_ACCOUNT}."
+                    f"{index}. {row['username']} — postacie {int(row['character_count'] or 0)}."
                 )
             return rows
 
@@ -815,7 +814,7 @@ class SessionIOAuthCharacterMixin:
             master_id = int(target["id"])
             rows = list(self.server.db.characters_for_master(master_id))
             await self.send(
-                f"KONTO {target['username']}: {len(rows)}/{MAX_CHARACTERS_PER_ACCOUNT} postaci."
+                f"KONTO {target['username']}: {len(rows)} postaci."
             )
             if not rows:
                 await self.send("Brak postaci na tym koncie.")
@@ -942,7 +941,7 @@ class SessionIOAuthCharacterMixin:
             await self.send(f"ADMIN: serwerowy wipe zakończony. Usunięto postaci: {removed}. Konta zachowane.")
 
     async def admin_character_menu_v0301(self):
-            """Ukryte menu właściciela dostępne nawet przy 0/14 postaci."""
+            """Ukryte menu właściciela dostępne nawet przy braku postaci."""
             if not self.is_admin():
                 await self.send("Nieprawidłowa opcja.")
                 return
@@ -1005,7 +1004,7 @@ class SessionIOAuthCharacterMixin:
                 if self.is_admin():
                     await self.send("6. Administrator")
                 await self.send(
-                    f"Postacie na koncie: {count}/{MAX_CHARACTERS_PER_ACCOUNT}."
+                    f"Postacie na koncie: {count}."
                 )
 
                 raw = await self.ask("Wybierz opcję: ")
@@ -1022,11 +1021,6 @@ class SessionIOAuthCharacterMixin:
                     continue
 
                 if choice in ("2", "new", "nowa", "nowa postac", "stworz", "stworz postac", "create"):
-                    if count >= MAX_CHARACTERS_PER_ACCOUNT:
-                        await self.send(
-                            f"Osiągnięto limit {MAX_CHARACTERS_PER_ACCOUNT} postaci na koncie."
-                        )
-                        continue
                     return await self.character_creator()
 
                 if choice in ("3", "lista", "list", "postacie", "pokaz postacie"):
@@ -1107,7 +1101,7 @@ class SessionIOAuthCharacterMixin:
             else:
                 await self.send("Kod nie został wygenerowany. Po zalogowaniu wpisz: konto kod.")
             await self.send(
-                f"Na tym koncie możesz utworzyć maksymalnie {MAX_CHARACTERS_PER_ACCOUNT} postaci."
+                "Na tym koncie możesz utworzyć dowolną liczbę postaci."
             )
             return await self.character_selection_flow()
 
@@ -1270,11 +1264,6 @@ class SessionIOAuthCharacterMixin:
                     self.master_account_id, name, race, cls, name_cases, gender=gender
                 )
             except ValueError as exc:
-                if str(exc) == "character_limit":
-                    await self.send(
-                        "Na jednym koncie można mieć maksymalnie 14 postaci."
-                    )
-                    return False
                 if str(exc) == "dryad_female_only":
                     await self.send(
                         "Nie można utworzyć tej postaci: Driadą może być wyłącznie kobieta."
@@ -1291,8 +1280,7 @@ class SessionIOAuthCharacterMixin:
             self.refresh_guild_bonus_v0926()
             self.server.db.apply_shared_wallet_to_character(self.character)
             await self.send(
-                f"Utworzono postać {self.character.name}. Płeć: {self.character.gender}. W slocie {slot} z "
-                f"{MAX_CHARACTERS_PER_ACCOUNT}."
+                f"Utworzono postać {self.character.name}. Płeć: {self.character.gender}. Slot {slot}."
             )
             if _guild_after_create.get("status") in ("joined", "already") and slot > 1:
                 _grow = self.server.db.clan_membership(self.account_id)

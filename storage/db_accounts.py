@@ -7,7 +7,7 @@ import hashlib
 import hmac
 
 from core.bootstrap_economy_professions import (
-    MAX_CHARACTERS_PER_ACCOUNT, STARTING_GOLD, STARTING_MITHRIL, STARTING_SILVER,
+    STARTING_GOLD, STARTING_MITHRIL, STARTING_SILVER,
     normalize_currency_values,
 )
 from core.classes_skills import class_starting_stats_for
@@ -186,13 +186,7 @@ class DatabaseAccountsMixin(
 
 
     def create_character_for_master(self, master_account_id, name, race, cls, name_cases, gender="nieokreślona"):
-        if self.character_count_for_master(master_account_id) >= MAX_CHARACTERS_PER_ACCOUNT:
-            raise ValueError("character_limit")
-
         slot = self._next_character_slot(master_account_id)
-        if slot is None:
-            raise ValueError("character_limit")
-
         existing_master_character = self.character_for_account(master_account_id)
         master_link = self.conn.execute(
             "SELECT 1 FROM account_characters WHERE character_account_id=?",

@@ -63,17 +63,23 @@ def run_regression():
     # Never infer activation solely from VERSION: offline tests MUST NOT
     # fabricate a production marker or bypass the install guard.
     major=int(VERSION.split('.',1)[0])
-    if major>=110:
-        from systems.v10700_activation import enabled as v107_active
-        from systems.v11000_activation import enabled as v110_active
-        # Staging is allowed only for an isolated test DB, not VERSION alone.
-        expected_classes=38 if v110_active() else 30 if v107_active() else 22
-    elif major>=107:
-        from systems.v10700_activation import enabled as v107_active
-        expected_classes=30 if v107_active() else 22
+    from systems.universal_activation import enabled as universal_enabled
+    if universal_enabled():
+        # The current, staged or approved catalog contains all 38 historical
+        # class definitions; future releases may add classes, never drop them.
+        assert len(server.CLASS_SKILLS) >= 38, (VERSION, len(server.CLASS_SKILLS), 'expected at least 38')
     else:
-        expected_classes=22 if major>=9 else 14
-    assert len(server.CLASS_SKILLS)==expected_classes,(VERSION,len(server.CLASS_SKILLS),expected_classes)
+        # Legacy pre-universal releases retain their original activation rules.
+        if major>=110:
+            from systems.v10700_activation import enabled as v107_active
+            from systems.v11000_activation import enabled as v110_active
+            expected_classes=38 if v110_active() else 30 if v107_active() else 22
+        elif major>=107:
+            from systems.v10700_activation import enabled as v107_active
+            expected_classes=30 if v107_active() else 22
+        else:
+            expected_classes=22 if major>=9 else 14
+        assert len(server.CLASS_SKILLS)==expected_classes,(VERSION,len(server.CLASS_SKILLS),expected_classes)
     counts+=1
     assert (len(server.QUESTS) >= 6745 if int(VERSION.split('.',1)[0]) >= 23 else len(server.QUESTS) == (expected_quest_total_v1100() if int(VERSION.split('.',1)[0]) >= 11 else 6585 if int(VERSION.split('.',1)[0]) == 10 else 6573 if int(VERSION.split('.',1)[0]) == 9 else 5605 if int(VERSION.split('.',1)[0]) == 8 else 3925 if int(VERSION.split('.',1)[0]) == 7 else 3861 if VERSION == '6.00.1' else 2901 if int(VERSION.split('.',1)[0]) in (5,6) else 2701))
     counts+=1

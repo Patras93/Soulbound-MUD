@@ -19,8 +19,10 @@ def main():
         for key in ('SOULBOUND_DB','SOULBOUND_HOST','SOULBOUND_PORT','PORT','RAILWAY_TCP_APPLICATION_PORT'):
             os.environ.pop(key,None)
         os.environ.update(SOULBOUND_DB=str(Path(td)/'new.sqlite'),
-            SOULBOUND_HOST='127.0.0.1',SOULBOUND_V112_STAGING='1')
-        if (ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()=='112.00.0':
+            SOULBOUND_HOST='127.0.0.1')
+        if tuple(map(int,(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip().split('.'))) > (112,0,0):
+            os.environ['SOULBOUND_UNIVERSAL_STAGING']='1'
+        else:
             os.environ['SOULBOUND_V112_STAGING']='1'
         with socket.socket() as preflight:
             preflight.bind(('127.0.0.1',0))

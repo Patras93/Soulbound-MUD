@@ -16,6 +16,18 @@ from validation.v4100_large_modularization import SPLIT_SYMBOLS
 def read_factored_legacy_source_v410(file):
     file = Path(file)
     source = file.read_text(encoding='utf-8')
+    # Most current modules are direct authored Python, no longer a binder
+    # facade. Validate every reviewed method AST against the original v113
+    # source archive; only the remaining facade below needs reconstruction.
+    if '_sb410_bind(' not in source:
+        from validation.current_native_source_contract import EXPECTED,verify_native_file
+        reviewed_rel=file.parent.name+'/'+file.name
+        if reviewed_rel in EXPECTED:
+            verify_native_file(file,source)
+        elif any(rel==reviewed_rel for rel,_,_,_ in SPLIT_SYMBOLS.values()):
+            raise AssertionError(('unreviewed migrated native module',reviewed_rel))
+        # Ordinary modules never contained historical refactoring stubs.
+        return source
     path = str(file.resolve()).replace('\\','/')
     fragments = {}
     for symbol, (oldrel, newrel, required_hash, _) in SPLIT_SYMBOLS.items():

@@ -97,7 +97,7 @@ def run():
         assert "'--yes','--fresh'" in deploy
         checks+=1
         bat=(ROOT/'WDROZ_PO_PREDEPLOY.bat').read_text('utf8')
-        assert "'VERSION','systems/v11200_activation.py'" in bat
+        assert "'VERSION','systems/runtime_activation.py'" in bat
         checks+=1
         updater=(ROOT/'aktualizuj_soulbound.py').read_text('utf8')
         tree=ast.parse(updater)

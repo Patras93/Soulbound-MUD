@@ -62,7 +62,7 @@ def plan_recipe_ingredients(db, account_id, recipe, container_for_item):
     for iid in distinct_order:
         if count >= distinct_count:
             break
-        if available(iid) > amounts[iid]:
+        if available(iid) > amounts.get(iid, 0):
             assert add(iid, 1)
             count += 1
     if count != distinct_count:
@@ -75,7 +75,7 @@ def plan_recipe_ingredients(db, account_id, recipe, container_for_item):
     for iid in pooled_pool:
         if left <= 0:
             break
-        take = min(left, max(0, available(iid) - amounts[iid]))
+        take = min(left, max(0, available(iid) - amounts.get(iid, 0)))
         if take:
             assert add(iid, take)
             left -= take

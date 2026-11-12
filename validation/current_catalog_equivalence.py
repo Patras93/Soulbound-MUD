@@ -45,25 +45,46 @@ def normalize(value, stack=None):
     raise TypeError('Unsupported catalog value: '+type(value).__module__+'.'+type(value).__qualname__)
 
 
+def normalized_catalog(name,value,version):
+    """Ignore only the dynamic version number in HELP topic 'wersja'.
+
+    All other help entries remain hash-checked against the reviewed baseline.
+    """
+    clean=normalize(value)
+    if name!='HELP_TOPICS':
+        return clean
+    assert isinstance(clean,dict) and isinstance(clean.get('wersja'),list)
+    topic=clean['wersja']
+    assert topic and isinstance(topic[0],str)
+    exact=f'Aktualna wersja gameplay HELP: Soulbound v{version}.'
+    assert topic[0]==exact, 'Unexpected version-help layout'
+    topic[0]='Aktualna wersja gameplay HELP: Soulbound v<AKTUALNA>.'
+    return clean
+
+
 def worker():
     sys.path.insert(0,str(ROOT))
     expected=json.loads(FIXTURE.read_text('utf8'))
     for key in list(os.environ):
         if key.startswith(('SOULBOUND_','RAILWAY_')) or key=='PORT':os.environ.pop(key,None)
-    with tempfile.TemporaryDirectory(prefix='sb112_catalog_contract_') as directory:
+    with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-stage-') as directory:
         with socket.socket() as probe:
             probe.bind(('127.0.0.1',0));port=probe.getsockname()[1]
-        os.environ.update(SOULBOUND_V112_STAGING='1',SOULBOUND_HOST='127.0.0.1',SOULBOUND_PORT=str(port),
+        os.environ.update(SOULBOUND_UNIVERSAL_STAGING='1',SOULBOUND_HOST='127.0.0.1',SOULBOUND_PORT=str(port),
             SOULBOUND_DB=str(Path(directory)/'catalog.sqlite'),SOULBOUND_WORLD_SEED=expected['seed'],
             SOULBOUND_WORLD_SEED_FILE=str(Path(directory)/'seed.txt'))
         random.seed(expected['random_seed'])
         import server
         try:
+            mismatches=[]
             for name,reference in expected['catalogs'].items():
                 value=getattr(server,name)
-                actual=hashlib.sha256(encoded(normalize(value)).encode('utf8')).hexdigest()
-                assert len(value)==reference['entries'], (name,'catalog size changed')
-                assert actual==reference['sha256'], (name,'catalog content changed',actual,reference['sha256'])
+                actual=hashlib.sha256(encoded(normalized_catalog(name,value,server.VERSION)).encode('utf8')).hexdigest()
+                if len(value)!=reference['entries'] or actual!=reference['sha256']:
+                    mismatches.append((name,len(value),reference['entries'],actual,reference['sha256']))
+            for issue in mismatches:
+                print('CATALOG BASELINE MISMATCH: '+repr(issue),flush=True)
+            assert not mismatches, 'Changed catalogs require reviewed new baseline'
             print('CURRENT CATALOG EQUIVALENCE: 33/33 PASS; authored gameplay, HELP, exploration, spawns and shops preserved',flush=True)
         finally:server._BOOT_SOCKET.close()
     return 0

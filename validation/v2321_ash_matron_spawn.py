@@ -41,7 +41,7 @@ def run_regression(runtime=None):
     # Isolate the genuine constructor to the boss spawn. Building all ~20k
     # unrelated world mobs here would make FAST/FULL unnecessarily slow.
     from unittest.mock import patch
-    with patch("world.world_state.MOB_SPAWNS", [(expected_room, matron)]):
+    with patch("systems.content_registry.MOB_SPAWNS", [(expected_room, matron)]):
         world = World()  # Genuine MobState spawn loop, no live network or SQLite.
     found = [mob for mob in world.mobs.values()
              if mob.home_room_id == expected_room and (

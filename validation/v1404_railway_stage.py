@@ -52,6 +52,27 @@ def run_railway_stage_regression_v1404():
         invalid_import = run_docker_generator_guard_v1403(p)
         assert any('imported by' in e for e in invalid_import["errors"]), invalid_import
         tests += 1
+        # Current universal multi-stage build uses the verified installer
+        # instead of a version-specific historical cleanup line.
+        modern = """FROM python:3.12-slim AS verified
+WORKDIR /candidate
+COPY . /candidate
+RUN python -m systems.current_install install --target /app
+FROM python:3.12-slim
+WORKDIR /app
+COPY --from=verified /app /app
+"""
+        (p / "core" / "accidental_import.py").unlink()
+        (p / "Dockerfile").write_text(modern, encoding="utf-8")
+        (p / ".dockerignore").write_text("core/generator_core.py\n",encoding="utf-8")
+        current=run_docker_generator_guard_v1403(p)
+        assert current["checks"]==5 and not current["errors"],current
+        tests+=1
+        (p / "Dockerfile").write_text(modern.replace(
+            'COPY --from=verified /app /app', 'COPY . /app'),encoding="utf-8")
+        unsafe=run_docker_generator_guard_v1403(p)
+        assert unsafe["errors"],unsafe
+        tests+=1
     return {"tests": tests, "errors": []}
 
 

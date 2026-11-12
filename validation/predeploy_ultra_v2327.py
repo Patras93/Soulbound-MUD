@@ -213,7 +213,7 @@ def case_twenty_tcp():
                 env.pop(key,None)
         env.update(SOULBOUND_DB=str(root/'stress.db'), SOULBOUND_HOST='127.0.0.1',
             SOULBOUND_PORT=str(port),SOULBOUND_MAX_CLIENTS='5',
-            SOULBOUND_V112_STAGING='1',
+            SOULBOUND_UNIVERSAL_STAGING='1',
             SOULBOUND_WORLD_SEED_FILE=str(root/'stress.seed'),
             PYTHONDONTWRITEBYTECODE='1',PYTHONUNBUFFERED='1',PYTHONUTF8='1')
         # Current release authorizes only this private disposable fixture;

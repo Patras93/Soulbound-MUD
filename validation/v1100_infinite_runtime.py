@@ -8,7 +8,10 @@ checking catalog placeholders. Run late in PLUS gate on disposable data.
 
 def run_regression():
     import server  # all legacy systems and late installers are loaded
-    from world.world_state import World, ROOMS, MOB_SPAWNS, MOB_TEMPLATES
+    from world.world_state import World
+    from data.rooms import ROOMS
+    from data.mobs import MOB_TEMPLATES
+    from systems.content_registry import MOB_SPAWNS
     from systems.eternal_glory.infinite import (
         ENDLESS, identity, floor_id, gate_id,
     )

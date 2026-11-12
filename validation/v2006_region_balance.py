@@ -3,6 +3,7 @@
 from __future__ import annotations
 import ast
 import copy
+from unittest.mock import patch
 from pathlib import Path
 
 from core import balance_math
@@ -114,7 +115,8 @@ def run_regression():
                              ('bandit_inner_camp','bandit',37)]:
         base = v0190_apply_combat_template(copy.deepcopy(MOB_TEMPLATES[mob]))
         templates[mob] = base
-        spawned = world._terrain_scaled_template_v0362(room, mob)
+        with patch('data.mobs.MOB_TEMPLATES', templates):
+            spawned = world._terrain_scaled_template_v0362(room, mob)
         stage = templates[spawned]['generator_level']
         assert stage <= limit, (room, mob, stage)
         assert stage >= ROOMS[room]['generator_level'], (room, mob, stage)

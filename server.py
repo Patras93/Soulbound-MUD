@@ -55,6 +55,7 @@ print(f"Soulbound bootstrap port open: {_BOOT_SOCKET.getsockname()}", flush=True
 # project source text into its own globals.
 RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 
+
 # v39: Historical legacy modules still export older LATEST_CHANGES_TITLE and
 # overwrite the first release title during compatibility assembly. Restore the
 # canonical release identity *after* assembly, without re-executing catalogs or
@@ -536,44 +537,6 @@ from systems.combat_xp_repair_v11346 import COMBAT_XP_ZERO_AUDIT_V11346
 if COMBAT_XP_ZERO_AUDIT_V11346["error_count"]:
     raise RuntimeError("Combat XP zero audit failed: " + "; ".join(COMBAT_XP_ZERO_AUDIT_V11346["errors"]))
 
-# Run the exhaustive gate against the FINAL assembled runtime, after all
-# compatibility layers and cumulative milestone guards have finished.
-if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on"):
-    # Historical v0.33.6 audit is retained as a diagnostic snapshot. It still
-    # encodes legacy assumptions (globally unique display names, old split-
-    # currency normalization) that are not release-blocking in current Soulbound.
-    FULL_GAME_PREDEPLOY_AUDIT_V0336 = full_game_predeploy_audit_v0336()
-    # The original v0.33.6 audit had an exact 14-job catalog assertion.
-    # In v6, validate the full 22-job extension explicitly instead of
-    # weakening/rewriting its hash-locked legacy function. All other
-    # original failures still remain release-blocking.
-    if str(VERSION).startswith(('6.', '7.', '8.', '9.', '10.', '11.')):
-        from systems.new_professions import PROFESSIONS as _v600_professions
-        _v600_legacy_names = {
-            'Wędkarstwo', 'Górnictwo', 'Drwalstwo', 'Zielarstwo',
-            'Gotowanie', 'Alchemia', 'Kowalstwo', 'Jubilerstwo',
-            'Krawiectwo', 'Garbarstwo', 'Stolarstwo', 'Zaklinanie',
-            'Archeologia', 'Kartografia',
-        }
-        assert set(PROFESSION_RANK_NAMES) == _v600_legacy_names | set(_v600_professions), (
-            'Legacy or new profession catalog changed unexpectedly',
-            sorted(set(PROFESSION_RANK_NAMES) ^ (_v600_legacy_names | set(_v600_professions))))
-        _v600_legacy_ext = [e for e in FULL_GAME_PREDEPLOY_AUDIT_V0336['errors']
-                            if e[0] == 'profession_catalog_mismatch'
-                            and set(e[1]) == _v600_legacy_names | set(_v600_professions)
-                            and set(e[2]) == _v600_legacy_names]
-        if len(_v600_legacy_ext) == 1:
-            FULL_GAME_PREDEPLOY_AUDIT_V0336['catalog_extension_v600'] = '14 old + 8 new verified'
-            FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'] = [
-                e for e in FULL_GAME_PREDEPLOY_AUDIT_V0336['errors']
-                if e not in _v600_legacy_ext]
-            FULL_GAME_PREDEPLOY_AUDIT_V0336['error_count'] = len(FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'])
-else:
-    FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
-        "version": "0.70.0", "skipped_at_runtime": True,
-        "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
-        "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
-    }
 
 # v0.71.5: compact only after the complete runtime and optional full audit are valid.
 # predeploy_full can defer this once so it audits the authoring structure first.
@@ -719,7 +682,7 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 # This is experimental staging and NOT a deployable production configuration.
 import os as _sb_v107_server_env
 if _sb107_runtime_enabled():
-    if VERSION in ('110.00.0', '111.00.0', '112.00.0'):
+    if tuple(map(int,VERSION.split('.'))) >= (110,0,0):
         # Native loader can replace sys.modules after a pre-bootstrap import.
         from core.archetypes.runtime_catalogue import canonical_classes_skills
         _sb_v107_catalogue = canonical_classes_skills()
@@ -731,12 +694,12 @@ if _sb107_runtime_enabled():
     V107_MAGITEK_ADDED = _sb_v107_catalogue.V107_MAGITEK_ADDED
     from core.archetypes.chaos import install as _sb_v107_install_new_archetypes
     V107_ARCHETYPES_BUILD = _sb_v107_install_new_archetypes(vars(_sb_v107_catalogue))
-    if VERSION in ('110.00.0', '111.00.0', '112.00.0'):
+    if tuple(map(int,VERSION.split('.'))) >= (110,0,0):
         from core.archetypes.expansion import install as _sb110_install_archetypes
         V110_ARCHETYPES_BUILD = _sb110_install_archetypes(vars(_sb_v107_catalogue))
     from systems.equipment_crafting import install_magitek_guild_v107 as _sb_v107_guild
     V107_MAGITEK_GUILD_QUESTS = _sb_v107_guild()
-    if VERSION in ('110.00.0', '111.00.0', '112.00.0'):
+    if tuple(map(int,VERSION.split('.'))) >= (110,0,0):
         from systems.equipment_crafting import install_successor_guild_v110
         V110_GUILD_QUEST_CLASS_COUNT = install_successor_guild_v110()
 
@@ -862,7 +825,7 @@ HELP_TOPICS['twierdzaportal'] = [
 HELP_TOPIC_ALIASES['gigantportal'] = 'twierdzaportal'
 HELP_TOPIC_ALIASES['portalfortress'] = 'twierdzaportal'
 
-if VERSION in ('110.00.0', '111.00.0', '112.00.0'):
+if tuple(map(int,VERSION.split('.'))) >= (110,0,0):
     HELP_TOPICS['krainy110'] = [
         'v110: 12 nowych krain, 360 lokacji, 40 bossów, 700 questów.',
         'Nowa kraina zaczyna się na wschód od ostatniego regionu Horyzontów v109.',
@@ -871,9 +834,36 @@ if VERSION in ('110.00.0', '111.00.0', '112.00.0'):
         'Brak rajdów i blokad poziomu. Drużyna do sześciu prawdziwych graczy.',
     ]
     HELP_TOPIC_ALIASES['nowekrainy110'] = 'krainy110'
-    LATEST_CHANGES_TITLE = 'Soulbound v112.00.0 — Samowystarczalny Świat (wersja robocza)'
+    LATEST_CHANGES_TITLE = f'Soulbound v{VERSION} — Aktualna wersja gry'
     LATEST_CHANGES = ['v110: osobne moduły 12 krain, 700 questów, 40 bossów, 8 klas, 8 ras i 8 profesji.',
                       'v110: wydarzenia globalne 3.0, nowy bezpieczny kontrakt uruchamiania.']+LATEST_CHANGES
+
+# The server performs additional authored content registration below native
+# composition. Evaluate public teacher HELP and the complete audit only AFTER
+# that registration; otherwise those checks see incomplete catalogs.
+from systems.current_teacher_help import publish_teacher_help as _publish_teacher_help
+TEACHER_HELP_COUNT = _publish_teacher_help(globals())
+assert TEACHER_HELP_COUNT == 8
+
+# Run the exhaustive gate against the FINAL assembled runtime, after all
+# compatibility layers and cumulative milestone guards have finished.
+if os.environ.get("SOULBOUND_FULL_AUDIT", "").strip().lower() in ("1", "true", "yes", "on"):
+    # Use the fully assembled CURRENT runtime. The legacy admin/audits.py
+    # is deliberately absent from the production composition; importing its
+    # version-specific implementation would both break boot and inspect
+    # obsolete class/job assumptions rather than the real current catalogs.
+    from systems.current_full_runtime_audit import audit_loaded_world
+    FULL_GAME_PREDEPLOY_AUDIT_V0336 = audit_loaded_world(globals())
+    if FULL_GAME_PREDEPLOY_AUDIT_V0336['error_count']:
+        raise RuntimeError('Current full world audit failed: '+repr(
+            FULL_GAME_PREDEPLOY_AUDIT_V0336['errors'][:25]))
+else:
+    FULL_GAME_PREDEPLOY_AUDIT_V0336 = {
+        "version": "0.70.0", "skipped_at_runtime": True,
+        "error_count": 0, "warning_count": 0, "errors": [], "warnings": [],
+        "reason": "Run before deploy with SOULBOUND_FULL_AUDIT=1; skipped during normal server startup.",
+    }
+
 
 if __name__ == '__main__':
     main()

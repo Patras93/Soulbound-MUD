@@ -83,7 +83,7 @@ async def choose_existing_character(self):
                 self.character.room_id = "square"
             await self.send(
                 f"Wybrano postać: {self.character.name}. "
-                f"Slot {selected['slot']} z {MAX_CHARACTERS_PER_ACCOUNT}."
+                f"Slot {selected['slot']}."
             )
             return True
 
@@ -171,7 +171,7 @@ async def send_admin_account_list_v0301(self):
             return rows
         for index, row in enumerate(rows, 1):
             await self.send(
-                f"{index}. {row['username']} — postacie {int(row['character_count'] or 0)}/{MAX_CHARACTERS_PER_ACCOUNT}."
+                f"{index}. {row['username']} — postacie {int(row['character_count'] or 0)}."
             )
         return rows
 
@@ -232,7 +232,7 @@ async def admin_show_account_characters_v0301(self):
         master_id = int(target["id"])
         rows = list(self.server.db.characters_for_master(master_id))
         await self.send(
-            f"KONTO {target['username']}: {len(rows)}/{MAX_CHARACTERS_PER_ACCOUNT} postaci."
+            f"KONTO {target['username']}: {len(rows)} postaci."
         )
         if not rows:
             await self.send("Brak postaci na tym koncie.")
@@ -363,7 +363,7 @@ async def admin_wipe_all_v0301(self):
 
 
 async def admin_character_menu_v0301(self):
-        """Ukryte menu właściciela dostępne nawet przy 0/14 postaci."""
+        """Ukryte menu właściciela dostępne nawet przy braku postaci."""
         if not self.is_admin():
             await self.send("Nieprawidłowa opcja.")
             return
@@ -427,7 +427,7 @@ async def character_selection_flow(self):
             if self.is_admin():
                 await self.send("6. Administrator")
             await self.send(
-                f"Postacie na koncie: {count}/{MAX_CHARACTERS_PER_ACCOUNT}."
+                f"Postacie na koncie: {count}."
             )
 
             raw = await self.ask("Wybierz opcję: ")
@@ -444,11 +444,6 @@ async def character_selection_flow(self):
                 continue
 
             if choice in ("2", "new", "nowa", "nowa postac", "stworz", "stworz postac", "create"):
-                if count >= MAX_CHARACTERS_PER_ACCOUNT:
-                    await self.send(
-                        f"Osiągnięto limit {MAX_CHARACTERS_PER_ACCOUNT} postaci na koncie."
-                    )
-                    continue
                 return await self.character_creator()
 
             if choice in ("3", "lista", "list", "postacie", "pokaz postacie"):
@@ -530,7 +525,7 @@ async def do_new_account(self):
         else:
             await self.send("Kod nie został wygenerowany. Po zalogowaniu wpisz: konto kod.")
         await self.send(
-            f"Na tym koncie możesz utworzyć maksymalnie {MAX_CHARACTERS_PER_ACCOUNT} postaci."
+            "Na tym koncie możesz utworzyć dowolną liczbę postaci."
         )
         return await self.character_selection_flow()
 

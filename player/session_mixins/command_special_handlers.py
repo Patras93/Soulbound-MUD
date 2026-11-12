@@ -60,8 +60,8 @@ class SessionCommandSpecialHandlersMixin:
         """Eight persistent Soulbound 107 professions with consumed materials."""
         from core.archetypes.chaos import PROFESSION_SPECS
         from systems.profession_generations.chaos import process
-        from systems.v11200_activation import enabled as v112_enabled
-        if not v112_enabled():
+        from systems.runtime_activation import enabled as current_enabled
+        if not current_enabled():
             await self.send('Profesje Chaosu są dostępne dopiero w v107.')
             return
         if self.account_id is None or self.character is None:
@@ -96,10 +96,10 @@ class SessionCommandSpecialHandlersMixin:
 
     async def command_profesja110(self, args):
         """Profesje v110, odizolowane od komend i transakcji v107."""
-        from systems.v11200_activation import enabled as v112_enabled
+        from systems.runtime_activation import enabled as current_enabled
         from core.archetypes.expansion import PROFESSION_SPECS
         from systems.profession_generations.expansion import process
-        if not v112_enabled():
+        if not current_enabled():
             await self.send('Profesje v110 niedostępne przed zatwierdzonym wydaniem.')
             return
         if self.account_id is None or self.character is None:

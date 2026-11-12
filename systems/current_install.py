@@ -21,11 +21,12 @@ import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '112.00.0'
+from systems.universal_activation import current_version
+VERSION = current_version(ROOT)
 QUALITY_GATE = 'STANDALONE-CURRENT-1'
 MARKER = 'LIVE_CONTENT/release_current.json'
 VALIDATORS = (
-    'validation.v11200_release_suite',
+    'validation.current_universal_release_suite',
     'validation.current_explicit_runtime_regression',
     'validation.current_six_client_tcp',
     'validation.current_catalog_equivalence',
@@ -37,6 +38,7 @@ OLD_AUTH = {
     'systems/v10900_activation.py', 'systems/v10900_staging_guard.py',
     'systems/v11000_activation.py', 'systems/v11100_holiday_activation.py',
     'systems/v10800_predeploy_isolation.py',
+    'systems/v11200_activation.py',
 }
 EXCLUDED_PARTS = {'__pycache__', '.git', 'logs', 'backups', 'LIVE_CONTENT',
                   'NOWE_WERSJE', '.pytest_cache'}
@@ -139,8 +141,8 @@ def installed_sources(root, files):
     # This is the CURRENT installer selection function, not code from an old
     # installed release. Share its reviewed production subset so offline
     # fixtures and obsolete activators are not published in the new game.
-    from aktualizuj_soulbound import v111_live_release_mapping
-    selected = v111_live_release_mapping({Path(rel): None for rel in files})
+    from aktualizuj_soulbound import production_release_mapping
+    selected = production_release_mapping({Path(rel): None for rel in files})
     return {rel.as_posix(): files[rel.as_posix()] for rel in selected}
 
 
@@ -158,7 +160,7 @@ def copy_sources(root, destination, files):
 
 
 def _bootstrap(root, output):
-    with tempfile.TemporaryDirectory(prefix='sb112_current_install_') as folder:
+    with tempfile.TemporaryDirectory(prefix='sb_current_install_') as folder:
         database = Path(folder).resolve() / 'new.sqlite'
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 0))
@@ -166,7 +168,7 @@ def _bootstrap(root, output):
         if port == 4000:
             raise InstallError('Private bootstrap selected production port')
         env = _clean_env(root)
-        env.update(SOULBOUND_V112_STAGING='1', SOULBOUND_HOST='127.0.0.1',
+        env.update(SOULBOUND_UNIVERSAL_STAGING='1', SOULBOUND_HOST='127.0.0.1',
                    SOULBOUND_PORT=str(port), SOULBOUND_DB=str(database))
         result = _execute(root, BOOTSTRAP, ('--database', str(database)), env, timeout=600)
         if output.exists() or output.is_symlink():
@@ -199,7 +201,7 @@ def verify_marker(root, data):
                or not _valid_digest(c.get('source_sha256')) for c in checks):
             return False
         files = data.get('files')
-        from systems.v11200_activation import REQUIRED
+        from systems.runtime_activation import REQUIRED
         if not isinstance(files, dict) or not set(REQUIRED) <= set(files):
             return False
         if BOOTSTRAP.replace('.', '/') + '.py' not in files:

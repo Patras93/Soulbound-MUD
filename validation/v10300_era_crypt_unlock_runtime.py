@@ -14,9 +14,12 @@ def run():
     from player.session import Session
     from core.classes_skills import CLASSES, RACES
     from core.progression_600 import SOUL_TIER_THRESHOLDS
-    from systems.content_registry import QUESTS, MOB_TEMPLATES, ROOMS
-    # The world runtime binds historical native definitions to their globals.
-    from world.dynamic_content import create_infinite_crypt_floor_definition
+    from systems.content_registry import QUESTS, MOB_TEMPLATES
+    from data.rooms import ROOMS
+    # The live engine resolves the *final* crypt builder through its explicit
+    # gameplay rule registry. Older source-module imports bypass that builder.
+    from core.runtime_rules import get_rule
+    create_infinite_crypt_floor_definition = get_rule('create_infinite_crypt_floor_definition')
     checks=0
     def check(value,label):
         nonlocal checks

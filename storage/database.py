@@ -193,7 +193,7 @@ class Database(
         from systems.world_invasions_v10400 import create_schema as _v104_invasions_schema
         _v104_invasions_schema(self.conn)
         from core.bootstrap_economy_professions import VERSION as _release_version
-        if _release_version in ('110.00.0', '111.00.0','112.00.0'):
+        if tuple(map(int,_release_version.split('.'))) >= (110,0,0):
             from systems.global_events.storage import create_schema as _v110_event_schema
             _v110_event_schema(self.conn)
             # v110: created once at startup; no DDL in player work commands.

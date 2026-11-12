@@ -19,8 +19,15 @@ def main():
     # RAILWAY_TCP_APPLICATION_PORT which take precedence over SOULBOUND_PORT.
     # Never open the production listener or use production player data from
     # this directly executed historical audit.
-    from validation.v11100_private_fast_gate import isolated_predeploy_env
-    with tempfile.TemporaryDirectory(prefix="sb104_tcp_lab_") as directory:
+    from pathlib import Path as _PathFull
+    _version=(_PathFull(__file__).resolve().parent/'VERSION').read_text(encoding='utf-8-sig').strip()
+    if tuple(map(int,_version.split('.'))) > (112,0,0):
+        from validation.current_private_predeploy import isolated_predeploy_env
+        _temp_prefix='sbcurrent_fast_'
+    else:
+        from validation.v11100_private_fast_gate import isolated_predeploy_env
+        _temp_prefix='sb104_tcp_lab_'
+    with tempfile.TemporaryDirectory(prefix=_temp_prefix) as directory:
         with socket.socket() as probe:
             probe.bind(("127.0.0.1", 0))
             _private_port = probe.getsockname()[1]
@@ -359,12 +366,12 @@ def main():
             if stability['error_count']:
                 raise SystemExit(1)
             print(
-                "LEGACY FULL GAME AUDIT v0.33.6: "
-                f"{full['error_count']} advisory findings, "
+                "CURRENT FULL GAME CATALOG AUDIT: "
+                f"{full['error_count']} errors, "
                 f"{full.get('warning_count', 0)} warnings"
             )
             for error in full.get("errors", ())[:100]:
-                print(f"LEGACY ADVISORY: {error}")
+                print(f"CATALOG ERROR: {error}")
 
             # v1.13.30 — audit audytów. Runtime modules may expose diagnostics
             # without raising during production startup. Full predeploy collects every
@@ -2034,7 +2041,7 @@ print(f"ERA 103 DEEP/KRYPTY/WIEZE + ADMIN DRAFT: {_era103_dungeon()} checks PASS
 # v103 ETAP 5: actual NPC offer list, numbered quest accept/turn-in,
 # independent story/class/raid/profession chains and Elor Tier 81+ NVDA guard.
 # All actions execute against a private temporary SQLite only.
-from validation.v10300_era_npc_dialogue_runtime import run as _era103_npc_real
+from validation.v10300_era_npc_dialogue_runtime import run_isolated as _era103_npc_real
 print(f"ERA 103 NPC/QUEST LIST/ACCEPT/ODDAJ: {_era103_npc_real()} checks PASS", flush=True)
 
 # v103 ETAP 4: real SQLite craft/reward/crypt and all boss phase events.

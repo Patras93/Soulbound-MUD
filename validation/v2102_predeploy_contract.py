@@ -18,14 +18,34 @@ def run_regression():
     # module, importing the Windows gate in this self-test fails even though
     # running from the complete Windows source tree succeeds.
     docker_source = (ROOT / 'Dockerfile').read_text(encoding='utf-8')
-    copy_gate = 'COPY testuj_soulbound_windows.py /app/testuj_soulbound_windows.py'
-    build_gate = 'RUN python /app/predeploy_check.py'
-    assert copy_gate in docker_source.splitlines(), 'Dockerfile does not COPY the quality gate into Railway'
-    checks += 1
-    assert docker_source.index(copy_gate) < docker_source.index(build_gate), 'The quality gate must exist before predeploy starts'
-    checks += 1
-    assert '/app/testuj_soulbound_windows.py' in docker_source[docker_source.index(build_gate):], 'Remove the build-only gate after tests'
-    checks += 1
+    # Native multi-stage Docker builds test the full source candidate and
+    # copy only the independently validated installation to the final image.
+    # The historical COPY-each-file Dockerfile is supported only for old tags.
+    native_install='RUN python -m systems.current_install install --target /app'
+    if native_install in docker_source:
+        from systems.current_install import VALIDATORS
+        assert 'COPY . /candidate' in docker_source.splitlines() and (
+            docker_source.index('COPY . /candidate') < docker_source.index(native_install)
+        ), 'Docker candidate must contain complete sources before validation'
+        checks += 1
+        assert ('validation.current_universal_release_suite' in VALIDATORS
+                and 'validation.current_catalog_equivalence' in VALIDATORS
+                and (ROOT/'testuj_soulbound_windows.py').is_file()), (
+            'Universal release and Windows 60 PLUS gate source must exist')
+        checks += 1
+        assert ('COPY --from=verified /app /app' in docker_source
+                and 'COPY . /app' not in docker_source), (
+            'Final image must copy only an independently validated install')
+        checks += 1
+    else:
+        copy_gate = 'COPY testuj_soulbound_windows.py /app/testuj_soulbound_windows.py'
+        build_gate = 'RUN python /app/predeploy_check.py'
+        assert copy_gate in docker_source.splitlines(), 'Dockerfile does not COPY the quality gate into Railway'
+        checks += 1
+        assert docker_source.index(copy_gate) < docker_source.index(build_gate), 'Quality gate must exist before predeploy'
+        checks += 1
+        assert '/app/testuj_soulbound_windows.py' in docker_source[docker_source.index(build_gate):], 'Remove build-only gate after tests'
+        checks += 1
     with tempfile.TemporaryDirectory(prefix='sb-gate-selftest-') as directory:
         temp = Path(directory)
         saved_env = {k: os.environ.get(k) for k in ('RAILWAY_VOLUME_MOUNT_PATH', 'SOULBOUND_ADMIN_ACCOUNTS')}

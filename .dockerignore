@@ -13,3 +13,4 @@ LIVE_CONTENT
 *.key
 *.pfx
 soulbound_control.json
+core/generator_core.py

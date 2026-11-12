@@ -304,7 +304,7 @@ async def login_flow(self):
             await self.send("3. Wyjdź")
             await self.send("4. Odzyskaj hasło (jednorazowy kod)")
             await self.send(
-                f"Jedno konto może mieć do {MAX_CHARACTERS_PER_ACCOUNT} postaci."
+                "Na jednym koncie możesz tworzyć dowolną liczbę postaci."
             )
             cmd = await self.ask("Wybierz opcję: ")
             if cmd is None:
@@ -432,7 +432,7 @@ async def send_character_list(self):
         )
         count = len(rows)
         await self.send(
-            f"POSTACIE NA KONCIE: {count}/{MAX_CHARACTERS_PER_ACCOUNT}"
+            f"POSTACIE NA KONCIE: {count}"
         )
         if not rows:
             await self.send("Brak utworzonych postaci.")

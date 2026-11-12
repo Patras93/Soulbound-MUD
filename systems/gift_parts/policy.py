@@ -3,11 +3,11 @@ from __future__ import annotations
 import datetime as dt
 
 def enabled():
-    """v112 only: no historical staging flags or old activators can issue gifts."""
+    """Approved current release only; no historical activation code."""
     from core.bootstrap_economy_professions import VERSION
-    if VERSION != '112.00.0':
+    if tuple(map(int,VERSION.split('.'))) < (112,0,0):
         return False
-    from systems.v11200_activation import enabled as release_enabled
+    from systems.runtime_activation import enabled as release_enabled
     return bool(release_enabled())
 
 def gift_kind(day):

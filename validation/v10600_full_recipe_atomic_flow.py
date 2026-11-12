@@ -128,6 +128,26 @@ def run():
               'pooled_ingredient_count':1}
         ck(plan_recipe_ingredients(db,1,rare,s.recipe_container_for_item)[0]=={'ore':6,'gem':1},
            'distinct picks non-pooled species to preserve rare pooled material')
+        # Unchosen pooled/distinct candidates must NOT become zero-quantity
+        # ingredient entries: the atomic guard correctly rejects qty <= 0.
+        optional={'ingredients':{'ore':2},
+                  'distinct_ingredient_pool':['ore','gem'],
+                  'distinct_ingredient_count':1,
+                  'pooled_ingredient_pool':['gem','ore'],
+                  'pooled_ingredient_count':1}
+        optional_plan=plan_recipe_ingredients(db,1,optional,s.recipe_container_for_item)
+        ck(optional_plan[0]=={'ore':3,'gem':1},
+           'unused distinct candidate is not a zero-quantity ingredient')
+        ck(all(v>0 for v in optional_plan[0].values()),
+           'planner emits only strictly positive ingredient quantities')
+        # A candidate that is unavailable must also not appear as a zero entry.
+        unavailable={'ingredients':{'ore':1},
+                     'pooled_ingredient_pool':['nonexistent','gem'],
+                     'pooled_ingredient_count':1}
+        unavailable_plan=plan_recipe_ingredients(db,1,unavailable,s.recipe_container_for_item)
+        ck(unavailable_plan[0]=={'ore':1,'gem':1},
+           'unavailable pooled choice is omitted from final plan')
+        ck(snap(raw)==before,'optional pool planning does not change data')
         ck(db.craft_item_atomic_v106(1,plan[0],'helm',2,containers=plan[1]) is True,
            'actual physical-gear production consumes all categories together')
         ck(db.item_qty(1,'helm')==2,'crafted count equals output inventory')

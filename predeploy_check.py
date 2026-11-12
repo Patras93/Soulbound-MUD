@@ -16,10 +16,16 @@ import traceback
 # server.py, which binds a TCP port immediately. Fence the entire process
 # before the first gameplay/storage import. Production startup never runs this.
 if __name__ == '__main__':
-    from validation.v11100_private_fast_gate import enable_isolated_fast_predeploy
+    from pathlib import Path as _PathFast
+    _candidate_fast_version=(_PathFast(__file__).resolve().parent/'VERSION').read_text(encoding='utf-8-sig').strip()
+    if tuple(map(int,_candidate_fast_version.split('.'))) > (112,0,0):
+        from validation.current_private_predeploy import (enable_isolated_fast_predeploy,
+                                                          authorize_private_lab)
+    else:
+        from validation.v11100_private_fast_gate import (enable_isolated_fast_predeploy,
+                                                        authorize_private_lab)
     _v104_predeploy_temporary_lab, _v104_predeploy_port = enable_isolated_fast_predeploy()
-    from validation.v11100_private_fast_gate import authorize_private_lab as _v111_private_lab
-    _v111_private_lab(_v104_predeploy_temporary_lab.name, _v104_predeploy_port)
+    authorize_private_lab(_v104_predeploy_temporary_lab.name, _v104_predeploy_port)
     print(f'FAST PREDEPLOY: prywatny localhost port {_v104_predeploy_port}; tymczasowa baza; bez produkcji', flush=True)
 
 # Railway/admin tools import the database facade directly. Keep this as an
@@ -377,32 +383,22 @@ _content_registry_release_source_v11331 = (
     _root / "systems/content_registry.py"
 ).read_text(encoding="utf-8")
 
-_runtime_version_match_v11331 = re.search(
-    r'^VERSION\s*=\s*"([^"]+)"',
-    _bootstrap_release_source_v11331,
-    flags=re.MULTILINE,
-)
-# Human-readable changelog is deliberately not an identity authority.
-_latest_title_version_matches_v11331 = re.findall(
-    r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)',
-    _content_registry_release_source_v11331,
-    flags=re.MULTILINE,
-)
+# Runtime, source and HELP all use the same canonical VERSION file. A
+# future release changes only VERSION; no literal version regex is valid.
+from core.release_version import load_version as _load_release_v11331
+from core.bootstrap_economy_professions import VERSION as _runtime_release_v11331
+from systems.content_registry import LATEST_CHANGES_TITLE as _release_title_v11331
 _release_versions_v11331 = {
-    "runtime": (
-        _runtime_version_match_v11331.group(1)
-        if _runtime_version_match_v11331 else ""
-    ),
+    "runtime": _runtime_release_v11331,
     "root_version": _root_release_source_v11331,
     "latest_changes": (
-        _latest_title_version_matches_v11331[-1]
-        if _latest_title_version_matches_v11331 else ""
+        _release_title_v11331[len("Soulbound v"):].split()[0]
+        if _release_title_v11331.startswith("Soulbound v") else ""
     ),
 }
-if (
-    not all(_release_versions_v11331.values())
-    or len(set(_release_versions_v11331.values())) != 1
-):
+if (_load_release_v11331() != _root_release_source_v11331
+        or not all(_release_versions_v11331.values())
+        or len(set(_release_versions_v11331.values())) != 1):
     _semantic_errors.append(
         "release version sync regression: " + repr(_release_versions_v11331)
     )
@@ -1020,15 +1016,17 @@ for _tool_id in (
             f"starter tool authored price regression: {_tool_id} != 1200"
         )
 
-# Canonical code version must agree with VERSION; documentation is independent.
+# Canonical runtime identity must be supplied by the version loader, not
+# duplicated as a literal string inside the bootstrap source.
 _bootstrap_source = (_root / "core/bootstrap_economy_professions.py").read_text(encoding="utf-8")
 _release_source = (_root / "VERSION").read_text(encoding="utf-8-sig").strip()
-_version_match = re.search(r'^VERSION\s*=\s*"([^"]+)"', _bootstrap_source, re.MULTILINE)
-if not _version_match:
-    _semantic_errors.append("release identity: missing canonical VERSION in bootstrap")
-elif _version_match.group(1) != _release_source:
+from core.release_version import load_version as _canonical_release_version
+from core.bootstrap_economy_professions import VERSION as _bootstrap_version_current
+if 'VERSION = load_version()' not in _bootstrap_source:
+    _semantic_errors.append("release identity: bootstrap bypasses canonical VERSION loader")
+if _bootstrap_version_current != _canonical_release_version() or _bootstrap_version_current != _release_source:
     _semantic_errors.append(
-        f"release identity mismatch: VERSION={_release_source} vs bootstrap={_version_match.group(1)}"
+        f"release identity mismatch: VERSION={_release_source} vs bootstrap={_bootstrap_version_current}"
     )
 _forbidden_ap_runtime = {
     "player/session_mixins/combat_skills.py": (
@@ -2461,21 +2459,22 @@ if (
 _native_runtime_source_v11330 = (_root / "core/native_runtime.py").read_text(
     encoding="utf-8"
 )
+# The current runtime is a fixed explicit module manifest. Production boot
+# must never switch its loader to historical/audit-only modules, regardless
+# of developer environment flags. The full audits run only in PREDEPLOY.
 for _needle in (
-    '"SOULBOUND_HISTORICAL_AUDITS"',
-    'active_modules = (FULL_RUNTIME_MODULES if historical_audits_enabled else',
-    'AUDIT_RUNTIME_MODULES if full_audit_enabled else',
-    'RUNTIME_MODULES)',
+    'active_modules=tuple(RUNTIME_MODULES)',
+    'for relative in active_modules:',
+    'undeclared=[rel for rel in active_modules if rel not in EXPLICIT_RUNTIME_EXPORTS]',
+    "'historical_audits_enabled':False",
 ):
     if _needle not in _native_runtime_source_v11330:
         _semantic_errors.append(
-            "startup safety regression: full semantic audit is coupled to historical runtime modules"
+            "startup safety regression: current runtime escaped explicit module isolation"
         )
-
-
-
-
-
+if 'active_modules = (FULL_RUNTIME_MODULES' in _native_runtime_source_v11330 or (
+        'active_modules = (AUDIT_RUNTIME_MODULES' in _native_runtime_source_v11330):
+    _semantic_errors.append("startup safety regression: historical audits coupled to live runtime")
 
 
 _economy_source_v11330 = (_root / "systems/economy_income_balance.py").read_text(
@@ -3444,7 +3443,8 @@ for _source_path_v11342 in _root.rglob("*.py"):
         # required level and source key; any other grant_xp stays an error.
         if (_name_v11342 == 'grant_xp'
                 and _source_path_v11342.relative_to(_root).as_posix()
-                    == 'systems/v10700_profession_work.py'
+                    in ('systems/v10700_profession_work.py',
+                        'systems/profession_generations/chaos.py')
                 and isinstance(_func_v11342, ast.Name)
                 and {'content_level', 'content_key'} <= {
                     kw.arg for kw in _node_v11342.keywords}):
@@ -4103,7 +4103,7 @@ print(f"RAILWAY GENERATOR GUARD v1.40.3: {_docker_guard_v1403['checks']} checks 
 # v1.40.4: reproduce Railway /app without .dockerignore, incl. negative tests.
 from validation.v1404_railway_stage import run_railway_stage_regression_v1404 as _run_railway_stage_regression_v1404
 _stage_v1404 = _run_railway_stage_regression_v1404()
-assert not _stage_v1404['errors'] and _stage_v1404['tests'] == 5
+assert not _stage_v1404['errors'] and _stage_v1404['tests'] == 7
 print("RAILWAY STAGE v1.40.4: 5 source/image/negative checks PASS")
 
 # v1.40.5: wounded mobs recover gradually after flee and never heal during fight.
@@ -5326,7 +5326,7 @@ print(f"ERA 103 DEEP/KRYPTY/WIEZE + ADMIN DRAFT: {_era103_dungeon()} checks PASS
 # v103 ETAP 5: actual NPC offer list, numbered quest accept/turn-in,
 # independent story/class/raid/profession chains and Elor Tier 81+ NVDA guard.
 # All actions execute against a private temporary SQLite only.
-from validation.v10300_era_npc_dialogue_runtime import run as _era103_npc_real
+from validation.v10300_era_npc_dialogue_runtime import run_isolated as _era103_npc_real
 print(f"ERA 103 NPC/QUEST LIST/ACCEPT/ODDAJ: {_era103_npc_real()} checks PASS", flush=True)
 
 # v103 ETAP 4: real SQLite craft/reward/crypt and all boss phase events.

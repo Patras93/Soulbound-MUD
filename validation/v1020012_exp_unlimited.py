@@ -65,7 +65,9 @@ def run():
     with patch('core.progression_resources.CHARACTER_MAX_LEVEL', 2000):
         assert not combat_overcap_v2009({'boss':True,'generator_level':950},1000)
         assert combat_overcap_v2009({'boss':True,'generator_level':1050},1000)
-    checks += 2
+        assert not combat_overcap_v2009({'boss':False,'generator_level':1050},1000)
+        assert combat_overcap_v2009({'boss':True,'generator_level':2000},1800)
+    checks += 4
     # EXP Bank remains per-award, 1:1 repayment and TEXT storage for overcap.
     class TempBank(DatabaseExperienceBankV2011Mixin):
         def __init__(self,conn):self.conn=conn

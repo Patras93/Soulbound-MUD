@@ -98,7 +98,8 @@ def stage_candidate(archive,folder,mode):
                 raise RuntimeError('Manifest moze utworzyc tylko instalator po PREDEPLOY.')
             validated.append((item,parts[1:]))
         for required in ('predeploy_nowej_wersji.py','wdroz_po_predeploy.py','aktualizuj_soulbound.py',
-                         'VERSION','systems/v11200_activation.py'):
+                         'VERSION','systems/runtime_activation.py',
+                         'systems/universal_release_update.py','systems/current_fresh_install.py'):
             if required.casefold() not in seen:
                 raise RuntimeError('ZIP nie zawiera uniwersalnego mechanizmu: '+required)
         corrupted=z.testzip()

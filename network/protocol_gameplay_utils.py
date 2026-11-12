@@ -109,7 +109,7 @@ HELP_TOPICS["boss_chests"] = [
 HELP_TOPICS["admin_owner"] = [
     "Komendy administracyjne są owner-only i wymagają nazwy konta na serwerowej whitelist SOULBOUND_ADMIN_ACCOUNTS.",
     "v0.30.1: w MENU POSTACI admin widzi ukrytą opcję 6 Administrator; zwykłe konta nie widzą tej pozycji wcale.",
-    "Panel działa także przy 0/14 postaci: lista kont, postacie konta, wipe własnego lub wskazanego konta, usunięcie jednej postaci i wipe wszystkich postaci serwera.",
+    "Panel działa także przy pustym koncie: lista kont, postacie konta, wipe własnego lub wskazanego konta, usunięcie jednej postaci i wipe wszystkich postaci serwera.",
     "admin help / administrator pomoc - lista opcji właściciela podczas gry postacią.",
     "v35.00.5: admin god on/off/status - awaryjna nieśmiertelność właściciela w tej sesji.",
     "v35.00.5: admin cios grom/nawalnica/wyrok [cel] - specjalne ciosy właściciela; tylko na żywe potwory w pokoju.",

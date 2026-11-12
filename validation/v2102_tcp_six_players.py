@@ -50,7 +50,7 @@ def guarded_child_env(directory, port):
     env.update(SOULBOUND_DB=str(db_path), SOULBOUND_PORT=str(port),
                SOULBOUND_HOST='127.0.0.1', SOULBOUND_TCP_TEST_CHILD='1',
                SOULBOUND_WORLD_SEED_FILE=str(work / 'test_seed.txt'),
-               SOULBOUND_MAX_CLIENTS='5', PYTHONUTF8='1',
+               SOULBOUND_MAX_CLIENTS='5', SOULBOUND_UNIVERSAL_STAGING='1', PYTHONUTF8='1',
                PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1',
                PYTHONDONTWRITEBYTECODE='1')
     return env, db_path

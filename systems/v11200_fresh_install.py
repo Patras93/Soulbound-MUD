@@ -11,6 +11,7 @@ from pathlib import Path
 import os
 import shutil
 import sqlite3
+from systems.current_sqlite_integrity import verify_equal
 
 SKIP_PROCESS_STATE = frozenset({'soulbound_control.json','soulbound_supervisor.json',
                                  'soulbound_launcher.json','last_result.json'})
@@ -43,7 +44,12 @@ def _sqlite_snapshot(source: Path, dest: Path) -> int:
                 old.backup(new,pages=256,sleep=0.1)
                 if new.execute('PRAGMA integrity_check').fetchone()!=('ok',):
                     raise FreshInstallError('Niepoprawna integralnosc nowej kopii SQLite')
-                # Row counts across every table: exact absence/presence, no dropped objects.
+                # Full deterministic schema+row+BLOB verification (not just row counts).
+                try:
+                    verify_equal(old, new)
+                except ValueError as exc:
+                    raise FreshInstallError(str(exc)) from exc
+                # Preserve table-count metrics for update reports.
                 names=[row[0] for row in old.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
                 fresh=[row[0] for row in new.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
                 if names!=fresh:raise FreshInstallError('Zmiana schematu tabel w nowej kopii')

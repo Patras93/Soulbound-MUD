@@ -143,9 +143,15 @@ def run_progression_from50_regression_v1407():
     exec(compile(ast.fix_missing_locations(ast.Module(body=[asc_func], type_ignores=[])),
                  '<ascension-req>', 'exec'), namespace)
     ascension = namespace['v0210_ascension_xp_to_next']
+    from unittest.mock import patch as _patch
     for rank in (0, 10, 48, 49, 50, 99, 150, 799, 999):
         historical = 1000000 + (rank + 1) * 1000
-        check(ascension(rank) == v4210_required_xp(scale_player_requirement_v1407(historical, rank + 1), "ascension", rank + 1),
+        # The actual method imports its own curve: mock ONLY the isolated
+        # reference curve so the assertion checks the intended formula.
+        with _patch('core.progression_resources.v0190_log_curve',
+                    side_effect=lambda level, _: 1000000 + level * 1000):
+            observed=ascension(rank)
+        check(observed == v4210_required_xp(scale_player_requirement_v1407(historical, rank + 1), "ascension", rank + 1),
               f'ascension rank{rank}: changed only XP requirement')
     check(ascension(1000) == 0, 'ascension retains rank 1000 cap')
 

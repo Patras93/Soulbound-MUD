@@ -38,7 +38,8 @@ from world import topology_generator as world_topology_generator_v0281
 from world import dynamic_world_generator as dynamic_world_v029
 from world import logic_validator as world_logic_validator_v030
 
-VERSION = "112.00.0"
+from core.release_version import load_version
+VERSION = load_version()
 GLOBAL_SKILL_BUFF_DURATION_SECONDS = 30
 HISTORY_BUFFER_LIMIT = 100
 HISTORY_BUFFER_DEFAULT_SHOW = 20
@@ -77,7 +78,8 @@ ADMIN_ACCOUNT_NAMES = {
     for name in os.environ.get("SOULBOUND_ADMIN_ACCOUNTS", "").split(",")
     if name.strip()
 }
-MAX_CHARACTERS_PER_ACCOUNT = 14
+# Wersja 113: brak limitu liczby postaci na konto. Zachowano staly symbol dla API.
+MAX_CHARACTERS_PER_ACCOUNT = None
 
 HOST = os.getenv("SOULBOUND_HOST", "0.0.0.0")
 _RAILWAY_TCP_PORT = os.getenv("RAILWAY_TCP_APPLICATION_PORT", "").strip()
@@ -272,7 +274,9 @@ def v0250_instance_floor_profile(kind, floor):
     )
     return {"motif": rng.choice(motifs), "layout": rng.choice(layouts)}
 
-MAX_CLIENTS = int(os.getenv("SOULBOUND_MAX_CLIENTS", "100"))
+# Maximum of six real player sessions, independent of any override that a
+# deployment platform or an obsolete Dockerfile might still supply.
+MAX_CLIENTS = max(1, min(6, int(os.getenv("SOULBOUND_MAX_CLIENTS", "6"))))
 PBKDF2_ROUNDS = 210_000
 
 STAT_GROWTH_THRESHOLD = 100
@@ -1301,8 +1305,10 @@ for _tool_type, _stem in _V11343_TOOL_STEMS.items():
 
 def tool_tier(level):
     from core.progression_600 import TOOL_TIER_THRESHOLDS
-    from core.progression_600 import TOOL_MAX_LEVEL  # canonical current dependency
-    level = max(1, min(TOOL_MAX_LEVEL, int(level)))
+    # TOOL_MAX_LEVEL defines the authored historical 1..800 catalogue, not a
+    # hard limit for progression beyond it. Clamping here made the endless
+    # tiers unreachable after level 800 and failed the real Windows audit.
+    level = max(1, int(level or 1))
     if level > 800:
         from core.endless_tiers_v10300 import tool_tier_v10300
         return tool_tier_v10300(level, TOOL_MAX_TIER)

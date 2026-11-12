@@ -8,6 +8,7 @@ is imported or executed. Existing accounts/items or ledgers are never converted.
 from __future__ import annotations
 from datetime import datetime, timezone
 import sqlite3
+from pathlib import Path
 
 SCHEMA = (
     """CREATE TABLE v106_item_instances (
@@ -58,6 +59,8 @@ def initialize_empty_ledger(conn):
             raise ValueError('Refusing existing player data in ' + table)
     if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
         raise ValueError('Current empty database failed integrity_check')
+    from systems.universal_activation import current_version
+    version = current_version(Path(__file__).resolve().parents[1])
     stamp = datetime.now(timezone.utc).isoformat()
     conn.execute('SAVEPOINT current_new_install')
     try:
@@ -68,7 +71,7 @@ def initialize_empty_ledger(conn):
         conn.execute('INSERT INTO v107_eq_production_cutover VALUES(?,?,?)',
                      ('107.00.0', 'current_empty_install', stamp))
         conn.execute('INSERT INTO current_install_origin VALUES(?,?,?)',
-                     ('112.00.0', stamp, 'new_empty_database'))
+                     (version, stamp, 'new_empty_database'))
         conn.execute('RELEASE SAVEPOINT current_new_install')
         conn.commit()
     except BaseException:
@@ -76,5 +79,5 @@ def initialize_empty_ledger(conn):
         conn.execute('RELEASE SAVEPOINT current_new_install')
         conn.rollback()
         raise
-    return {'version': '112.00.0', 'origin': 'new_empty_database',
+    return {'version': version, 'origin': 'new_empty_database',
             'physical_tables': 4}

@@ -17,9 +17,9 @@ def run():
         count+=1
     ck(VERSION == root.joinpath('VERSION').read_text(encoding='utf-8').strip(), 'VERSION / runtime')
     ck(root.joinpath('VERSION').read_text(encoding='utf-8-sig').strip() == VERSION, 'canonical root version identity')
-    registry=root.joinpath('systems/content_registry.py').read_text(encoding='utf-8')
-    titles=re.findall(r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)',registry,re.M)
-    ck(bool(titles) and titles[-1] == VERSION, 'canonical content registry release identity')
+    from systems.content_registry import LATEST_CHANGES_TITLE
+    ck(LATEST_CHANGES_TITLE.startswith('Soulbound v' + VERSION + ' '),
+       'canonical content registry release identity')
     from validation.release_contracts import release_valid
     ck(release_valid(VERSION, '96.00.4'), 'minimum v96.00.4 release')
     banner=('SOULBOUND ONLINE v'+VERSION).encode('ascii')

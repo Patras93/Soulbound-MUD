@@ -20,11 +20,19 @@ def run():
     release=(base/'VERSION').read_text(encoding='utf-8').strip()
     ok(tuple(map(int, release.split('.'))) >= (103,0,0),'minimum Era v103')
     bootstrap=(base/'core/bootstrap_economy_professions.py').read_text(encoding='utf-8')
-    ok(re.search(r'^VERSION\s*=\s*"'+re.escape(release)+r'"',bootstrap,re.M),'bootstrap version')
+    # Current versions read VERSION at runtime; a literal release string here
+    # would make every subsequent edition fail the historical v103 audit.
+    ok('from core.release_version import load_version' in bootstrap
+       and re.search(r'^VERSION\s*=\s*load_version\(\)', bootstrap, re.M),
+       'bootstrap canonical version loader')
     ok((base/'VERSION').read_text(encoding='utf-8-sig').strip()==release,'canonical version')
     registry=(base/'systems/content_registry.py').read_text(encoding='utf-8')
     titles=re.findall(r'^LATEST_CHANGES_TITLE\s*=\s*"Soulbound v([^\s]+)',registry,re.M)
-    ok(titles and titles[-1]==release,'registry version')
+    # The last title is composed from the canonical VERSION rather than a
+    # historical hard-coded title. Preserve archived LATEST_CHANGES entries.
+    ok('from core.bootstrap_economy_professions import VERSION as _CURRENT_RELEASE_VERSION' in registry
+       and re.search(r"^LATEST_CHANGES_TITLE\s*=\s*'Soulbound v'\s*\+\s*_CURRENT_RELEASE_VERSION\b", registry, re.M),
+       'registry canonical version title')
     ok('LATEST_CHANGES_TITLE' in registry and 'Soulbound v' in registry,'live release history registry available')
     updater=(base/'aktualizuj_soulbound.py').read_text(encoding='utf-8')
     ok("'era_v10300.json'" in updater,'era admin config survives upgrade')

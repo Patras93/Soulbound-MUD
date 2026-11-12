@@ -539,20 +539,22 @@ HELP_TOPICS['quest'] = list(HELP_TOPICS.get('quest', ())) + [
 
 
 
-# v105: milestone requirements take precedence over historical help.
+# The current milestone HELP reflects the active Soul Tier catalogue.
+# Keep the authored Elor milestone rules, but never freeze a former release cap.
+from core.progression_600 import SOUL_MAX_TIER as _SOUL_HELP_MAX_TIER
 _SOUL_HELP_V105 = [
-    'Soul Tier do 3000. Od Tieru 2 Soul Level = Tier razy 10. Tier 1 to start.',
-    'Obowiązkowa Próba Duszy jest WYŁĄCZNIE co 10 Tierów: 10, 20, 30, aż do 3000.',
+    f'Soul Tier do {_SOUL_HELP_MAX_TIER}. Od Tieru 2 Soul Level = Tier razy 10. Tier 1 to start.',
+    f'Obowiązkowa Próba Duszy jest WYŁĄCZNIE co 10 Tierów: 10, 20, 30, aż do {_SOUL_HELP_MAX_TIER}.',
     'Kapłan Elor w Świątyni Odrodzenia: quest list Kapłan Elor; quest list Elor 1001.',
     'Każda strona pokazuje najwyżej dziesięć kolejnych wymaganych Prób. Numeracja przyjmij i quest info dotyczy ostatniej listy.',
     'T11–T19 nie wymagają osobnego questa. unlock odblokowuje jeden Tier; unlock max kilka Tierów do następnej Próby.',
-    'Domyślny limit Soul Level 800 można zwiększyć komendą admin live limity ustaw dusza 30000 POTWIERDZAM.',
+    f'Domyślny limit Soul Level 800 można zwiększyć komendą admin live limity ustaw dusza {_SOUL_HELP_MAX_TIER * 10} POTWIERDZAM.',
     'Nie zmieniaj limitów innych graczy bez kontroli ich obecnych ustawień. Historyczne Próby pozostają w bazie.',
-    'v105: od Soul Tier 1100 możesz wybrać żywioł komendą bronduszy zywiol piorun, potem bronduszy impuls.',
+    'Od Soul Tier 1100 możesz wybrać żywioł komendą bronduszy zywiol piorun, potem bronduszy impuls.',
 ]
 for _topic in ('dusza','soul200','soul_tier45_krypta200','proby_duszy'):
     HELP_TOPICS[_topic]=list(_SOUL_HELP_V105)
-HELP_TOPICS['questy']=list(HELP_TOPICS.get('questy',()))+["v105 Próby co 10 Tierów: quest list Elor 1001; do T3000."]
+HELP_TOPICS['questy']=list(HELP_TOPICS.get('questy',()))+[f"Próby co 10 Tierów: quest list Elor 1001; do T{_SOUL_HELP_MAX_TIER}."]
 HELP_TOPICS['bronduszy'] = [
     'Broń Duszy v105: wybór żywiołu od Soul Tier 1100; nie usuwa form reliktowych.',
     'Dostępne: ogień, lód, piorun, mrok, światło, woda.',

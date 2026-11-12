@@ -6,7 +6,7 @@ Magicite catalogue. Four cores/costs/formulas below are NEW Soulbound prototype
 adaptations, not claimed UOSS facts. No Eidolon Echo. Never active in v106.
 """
 from __future__ import annotations
-from systems.v11200_activation import enabled as _sb112_runtime_enabled
+from systems.runtime_activation import enabled as _runtime_enabled
 
 import os
 import time
@@ -24,8 +24,8 @@ TRAINER_ROOM = 'guild_arcane_chamber'
 
 
 def _require_stage():
-    if not _sb112_runtime_enabled():
-        raise RuntimeError('Magicite wymaga zatwierdzonej v112 lub odizolowanego testu v112')
+    if not _runtime_enabled():
+        raise RuntimeError('Magicite wymaga zatwierdzonej instalacji lub izolowanego testu')
 
 
 def ensure_magicite_schema(db):

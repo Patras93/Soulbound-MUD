@@ -8,13 +8,15 @@ from __future__ import annotations
 
 def run_regression():
     import server
-    from systems.content_registry import MOB_TEMPLATES, ROOMS
+    from data.mobs import MOB_TEMPLATES
+    from data.rooms import ROOMS
     from world.global_difficulty_overdrive import v0190_apply_combat_template, v0190_combat_reward
     from world.economy_quests import (
         create_infinite_crypt_floor_definition,
         create_infinite_giant_fortress_floor_definition,
-        create_infinite_magitek_floor_definition,
     )
+    # Current Magitek definition is wrapped by the active quest/target layer.
+    from world.magitek_hourly_quests import create_infinite_magitek_floor_definition
     from world.magitek_infinite import magitek_floor_stage
     from systems.dungeon_experience_v1285 import dungeon_recipient_xp_v1286
 

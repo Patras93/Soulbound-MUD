@@ -55,11 +55,8 @@ def version_tuple(s):
 
 
 def installed_version():
-    verfile = ROOT / 'core' / 'bootstrap_economy_professions.py'
-    m = VERSION.search(verfile.read_text(encoding='utf-8-sig'))
-    if not m:
-        raise ValueError('Brak numeru wersji aktualnej gry')
-    return m.group(1)
+    from aktualizuj_soulbound import file_version
+    return file_version(ROOT / 'core' / 'bootstrap_economy_professions.py')
 
 
 def pick_zip(selected):
@@ -114,7 +111,17 @@ def inspect_zip(zippath):
                 raise ValueError('Brak wymaganego pliku: '+need)
         body = z.read(mapping['core/bootstrap_economy_professions.py'][1]).decode('utf-8-sig')
         version_match=VERSION.search(body)
-        ver=version_match.group(1) if version_match else None
+        if version_match:
+            ver=version_match.group(1)
+        elif (re.search(r'(?m)^VERSION\s*=\s*load_version\(\)\s*$',body)
+              and 'core/release_version.py' in mapping):
+            # Never execute code inside an untrusted candidate to learn version.
+            version_info=mapping.get('version')
+            ver=z.read(version_info[1]).decode('utf-8-sig').strip() if version_info else None
+            if ver is not None and not re.fullmatch(r'[0-9]+(?:\.[0-9]+){2}',ver):
+                raise ValueError('Nieprawidlowy numer VERSION w ZIP')
+        else:
+            ver=None
         if ver != m.group(1):
             raise ValueError(f'Numer wersji pliku gry {ver} nie zgadza sie z ZIP v{m.group(1)}')
         # Both version markers must agree. Historically an RC archive could
@@ -133,6 +140,14 @@ def inspect_zip(zippath):
                 if required_v108.casefold() not in mapping:
                     raise ValueError('v108: brak produkcyjnej bramki '+required_v108+
                                      '; stare 60/60 nie wystarcza')
+        if version_tuple(ver) > (112,0,0):
+            for stable in ('systems/runtime_activation.py',
+                           'systems/universal_release_update.py',
+                           'systems/current_fresh_install.py'):
+                if stable not in mapping:
+                    raise ValueError('Brak uniwersalnego mechanizmu: '+stable)
+            if 'live_content/release_current.json' in mapping:
+                raise ValueError('Manifest produkcyjny musi wygenerowac instalator')
         if ver == '112.00.0':
             for required_v112 in ('systems/v11200_activation.py',
                   'validation/v11200_release_suite.py',
@@ -314,13 +329,15 @@ def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
                    SOULBOUND_V110_STAGING='1')
         if ver in ('111.00.0','112.00.0'):env['SOULBOUND_V111_STAGING']='1'
         if ver=='112.00.0':env['SOULBOUND_V112_STAGING']='1' 
+    if version_tuple(ver) > (112,0,0):
+        env['SOULBOUND_UNIVERSAL_STAGING']='1'
     with tempfile.TemporaryDirectory(prefix=prefix) as frozen_dir:
         snapshot = create_detached_source_snapshot(
             live, Path(frozen_dir)/'SOURCE_COMMITTED_SNAPSHOT.sqlite')
         # v112 runs only on a detached source snapshot. Earlier release
         # rebuild tools are not part of the current PREDEPLOY runtime.
-        if ver != '112.00.0':
-            raise ValueError('Bieżący PREDEPLOY obsluguje tylko v112.00.0')
+        if version_tuple(ver) < (112,0,0):
+            raise ValueError('PREDEPLOY nie instaluje starszych wersji')
         env['SOULBOUND_ULTRA_SOURCE_DB'] = str(snapshot)
         env['SOULBOUND_DB'] = str(snapshot)  # no fallthrough to production
         env['SOULBOUND_HOST'] = '127.0.0.1'
@@ -369,6 +386,8 @@ def verified_staged_pass(code, staged_log, version):
         basic = basic and 'V111 RELEASE GATES PASS' in log
     elif version == '112.00.0':
         basic = basic and 'V112 RELEASE GATES PASS' in log
+    if version_tuple(version) > (112,0,0):
+        basic = basic and 'SOULBOUND RELEASE GATES PASS' in log
     return basic
 
 
@@ -384,12 +403,15 @@ def main(argv=None):
         active=installed_version()
         if version_tuple(version) < version_tuple(active):
             raise ValueError(f'Nowa paczka v{version} jest starsza od dzialajacej v{active}.')
-        # Fail BEFORE an expensive 60-stage run if the local broken v111
-        # installation has no trustworthy physical EQ ledger.  Never inspect
-        # or require its historical v106 rollback file or prior approval.
+        # Recovery route to v112 accepts both v110 and v111 only after a
+        # read-only EQ/SQLite audit. Do not allow v112 -> v112 or pretend this
+        # candidate-specific upgrade path supports future v113 releases.
+        if version_tuple(version) > (112,0,0):
+            if version_tuple(version) <= version_tuple(active):
+                raise ValueError('Wymagane nowsze wydanie')
         if version == '112.00.0':
-            if active != '111.00.0':
-                raise ValueError('V112: wymagana baza gry v111.00.0.')
+            if active not in ('110.00.0', '111.00.0'):
+                raise ValueError('V112: odzyskiwanie wymaga gry v110.00.0 lub v111.00.0.')
             from aktualizuj_soulbound import v112_base_preflight
             v112_base_preflight(ROOT)
         checksum=sha256(zip_path)
@@ -448,6 +470,8 @@ def main(argv=None):
             state['v111_release_gates_pass'] = bool(verified)
         if version == '112.00.0':
             state['v112_release_gates_pass'] = bool(verified)
+        if version_tuple(version) > (112,0,0):
+            state['release_gates_pass'] = bool(verified)
         save_state(state)
         print('\nWYNIK PREDEPLOY: '+state['status'],flush=True)
         print('Produkcja nietknieta. '+('Mozna rozwazyc WDROZ_PO_PREDEPLOY.bat.' if verified

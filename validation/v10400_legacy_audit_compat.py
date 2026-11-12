@@ -280,6 +280,22 @@ def accepted_legacy_reports(ns, *, version="104.00.3"):
     expected['FULL_RELEASE_INTEGRITY_AUDIT_V03025'] = ['v0.30.22 release gate regressed']
     allowed = set()
     required_names = NAMES + (('FULL_GAME_PREDEPLOY_AUDIT_V0336',) if current >= (105, 0, 0) else ())
+    # Current native runtime runs only its declared audit modules. Some
+    # preserved reports are still exported by normal gameplay providers;
+    # validate each of these against the exact old expected findings. The
+    # retired report providers are not imported or marked PASS by their
+    # absence; the clean full CURRENT audit is mandatory instead.
+    observed_legacy = {name for name in NAMES if isinstance(ns.get(name),dict)}
+    native = ns.get('FULL_GAME_PREDEPLOY_AUDIT_V0336')
+    native_current = (isinstance(native,dict) and native.get('error_count')==0
+                      and not native.get('errors') and int(native.get('checks',0))>0)
+    if native_current:
+        required_names = tuple(name for name in NAMES if name in observed_legacy)
+    else:
+        required_names = NAMES + (('FULL_GAME_PREDEPLOY_AUDIT_V0336',)
+                                  if current >= (105,0,0) else ())
+    # Missing current native proof re-enables the strict historical report
+    # requirements, never an unconditional exception for absent audits.
     for name in required_names:
         report = ns.get(name)
         if not isinstance(report,dict):

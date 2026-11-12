@@ -1150,6 +1150,13 @@ EXPLICIT_RUNTIME_EXPORTS["player/session_mixins/quest_turnin.py"] = ("SessionQue
 # above are retained only as offline source history.
 from core.current_runtime_exports import CURRENT_RUNTIME_EXPORTS
 EXPLICIT_RUNTIME_EXPORTS.update(CURRENT_RUNTIME_EXPORTS)
+# Historical compatibility records cease being implicit as soon as their
+# modules are explicitly owned. Keeping them in the legacy lane falsely
+# reports missing review; do not re-add them to runtime or import old code.
+LEGACY_COMPATIBILITY_ALLOWLIST = tuple(
+    rel for rel in LEGACY_COMPATIBILITY_ALLOWLIST
+    if rel in RUNTIME_MODULES and rel not in EXPLICIT_RUNTIME_EXPORTS
+)
 
 # Explicit late composition steps replace historical re-execution of modules
 # that had been imported earlier as providers of pure helper functions.

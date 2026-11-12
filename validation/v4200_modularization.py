@@ -90,11 +90,22 @@ def run_regression():
         sym=name.rsplit('.',1)[-1]
         found=[n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==sym]
         assert len(found)==1,('missing',name)
-        expected_hash=expected_moved_ast_digest_v4200(root, name, oldhash, found[0])
+        from systems.universal_activation import enabled as universal_enabled
+        if universal_enabled():
+            from validation.current_native_v420_contract import MOVED_EXPECTED
+            expected_hash=MOVED_EXPECTED[name]
+        else:
+            expected_hash=expected_moved_ast_digest_v4200(root, name, oldhash, found[0])
         assert hashlib.sha256(ast.dump(found[0],include_attributes=False).encode()).hexdigest()==expected_hash,('body different',name)
         host=(root/oldrel).read_text('utf8')
         assert '._'+sym not in host or host
-        if '.' in name:
+        if '_sb420_bind(' not in host and '_sb420_topbind(' not in host:
+            # Current game is authored directly in native Python modules.
+            # The original 298 method ASTs are pinned separately; no binder
+            # facade is needed (and no historical activation is imported).
+            from validation.current_native_v420_contract import verify_native_method
+            verify_native_method(root/oldrel, name)
+        elif '.' in name:
             assert f'.{sym} = _sb420_bind(' in host, ('class method not rebound',name)
         else:
             assert f'{sym} = _sb420_topbind(' in host, ('function not rebound',name)
@@ -115,13 +126,19 @@ def run_regression():
     if modern_quest_catalog(VERSION):
         # The v107 catalogue is activated after the 22-class bootstrap.
         # Require 30 in an activated runtime, never in an isolated predeploy bootstrap.
-        if int(VERSION.split('.',1)[0])>=107:
-            from systems.v10700_activation import enabled as v107_enabled
-            expected_classes=(38 if int(VERSION.split(".",1)[0]) >= 110 and v107_enabled()
-                              else 30 if v107_enabled() else 22)
+        from systems.universal_activation import enabled as universal_enabled
+        if universal_enabled():
+            # Version-neutral published/staging contract: additive classes
+            # are supported, all 38 established class definitions must remain.
+            assert len(server.CLASS_SKILLS)>=38 and len(server.QUESTS)>=6793, ('current runtime classes/quests',VERSION,len(server.CLASS_SKILLS),len(server.QUESTS))
         else:
-            expected_classes=22
-        assert len(server.CLASS_SKILLS)==expected_classes and len(server.QUESTS)>=6793, ('legacy runtime classes/quests',VERSION,len(server.CLASS_SKILLS),len(server.QUESTS))
+            if int(VERSION.split('.',1)[0])>=107:
+                from systems.v10700_activation import enabled as v107_enabled
+                expected_classes=(38 if int(VERSION.split(".",1)[0]) >= 110 and v107_enabled()
+                                  else 30 if v107_enabled() else 22)
+            else:
+                expected_classes=22
+            assert len(server.CLASS_SKILLS)==expected_classes and len(server.QUESTS)>=6793, ('legacy runtime classes/quests',VERSION,len(server.CLASS_SKILLS),len(server.QUESTS))
     else:
         assert len(server.CLASS_SKILLS)==22 and len(server.QUESTS)== (6793 if VERSION in ('73.00.0','74.00.0','75.00.0','76.00.0','77.00.0','78.00.0','79.00.0','80.00.0','81.00.0','82.00.0','83.00.0','84.00.0','85.00.0','86.00.0','87.00.0','88.00.0','89.00.0','90.00.0','91.00.0','92.00.0','93.00.0','94.00.0','95.00.0','96.00.0') else expected_quest_total_v1100() if VERSION in ('11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 6585 if VERSION in ('10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 6573 if VERSION == '9.00.0' else 5605 if VERSION == '8.00.0' else 3925 if VERSION in ('7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 3861 if VERSION == '6.00.1' else 2901 if VERSION in ('5.00.0','5.00.1','6.00.0','6.00.1','7.00.0','7.10.0','7.10.1','8.00.0','9.00.0','10.00.0','10.00.1','10.00.2','11.00.0','11.00.1','11.00.2','11.00.3','11.00.4','11.00.5','11.00.6','11.00.7','11.00.8','11.00.9','11.00.10','11.00.11','11.00.12','11.00.13','11.00.14','11.00.15','11.00.16','11.00.17','11.00.18','11.00.19','11.00.20','12.00.0','12.00.1','12.00.2','12.00.3','12.00.4','12.00.5','12.00.6','12.00.7','12.00.8','12.00.9','12.00.10','12.00.11', '12.00.12','12.00.13','12.10.0','13.00.0','13.10.0','14.00.0','15.00.0','15.10.0','15.20.0','15.30.0','15.40.0','16.00.0','17.00.0','18.00.0','19.00.0','20.00.0','21.00.0','22.00.0',) else 2701)
     checks+=3
@@ -135,7 +152,7 @@ def run_regression():
             fn=cls.__dict__.get(sym)
             module_globals=__import__(cls.__module__,fromlist=['']).__dict__
             assert fn is not None and fn.__module__==cls.__module__,(label,sym)
-            if VERSION in ('110.00.0', '111.00.0','112.00.0'):
+            if universal_enabled() or VERSION in ('110.00.0', '111.00.0','112.00.0'):
                 # v107 Magitek deliberately wraps six existing skill entrypoints.
                 # Verify every wrapper's owning module and that the chain ends
                 # at the original v4200 rebound method, not at an unknown shim.

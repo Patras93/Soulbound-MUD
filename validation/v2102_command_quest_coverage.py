@@ -24,7 +24,7 @@ if __name__ == '__main__':
     # production database, network address or port from the parent process.
     # All v107/v109/v110 staging attestations must still be supplied by the
     # parent PREDEPLOY runner; this test cannot grant them to itself.
-    _debug_test_directory = tempfile.TemporaryDirectory(prefix='sb110_catalogue_')
+    _debug_test_directory = tempfile.TemporaryDirectory(prefix='soulbound-catalogue-')
     _db = Path(_debug_test_directory.name, 'db.sqlite').resolve()
     os.environ['SOULBOUND_DB'] = str(_db)
     os.environ['SOULBOUND_HOST'] = '127.0.0.1'
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         _sock.bind(('127.0.0.1', 0))
         _test_port = _sock.getsockname()[1]
     os.environ['SOULBOUND_PORT'] = str(_test_port)
-    from systems.v11000_activation import authorized_mode
+    from systems.runtime_activation import authorized_mode
     assert authorized_mode(str(_db)) == 'test', 'Test catalog isolation not authorized'
     import server  # Assembles dynamic world catalogs before their modules are imported.
 

@@ -72,7 +72,8 @@ def load_native_runtime(root: Path, namespace: MutableMapping[str,object])->dict
     from core.runtime_rules import rule_owners
     rules=rule_owners()
     if len(rules)!=13:raise RuntimeError('Incomplete current gameplay rules: '+repr(rules))
-    state={'version':'112-current','module_count':len(active_modules),'modules':active_modules,
+    from core.release_version import load_version
+    state={'version':load_version(),'module_count':len(active_modules),'modules':active_modules,
            'native_module_names':tuple(module_name_for_path(p) for p in active_modules),
            'override_symbol_count':sum(len(v)>1 for v in owners.values()),
            'session_method_collision_count':sum(len(v)>1 for v in method_owners.values()),

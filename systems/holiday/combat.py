@@ -7,7 +7,7 @@ nalicza wyzwania i automatycznie wydaje gotowe nagrody, bez komend odbioru.
 from __future__ import annotations
 from uuid import uuid4
 
-from systems.v11200_activation import enabled
+from systems.runtime_activation import enabled
 from systems.holiday.challenges import record_kill
 from systems.holiday.prizes import claim
 
