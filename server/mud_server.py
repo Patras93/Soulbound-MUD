@@ -236,7 +236,27 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
 
     @measure_async("party.combat_broadcast", report_every=100)
     async def party_combat_broadcast(self, actor, message, detail="normal"):
-        """NVDA-friendly combat feed for other party members in the same room."""
+        """NVDA-friendly combat feed for other party members in the same room.
+
+        The original, hash-protected combat engine signals Jammer expiration
+        on the mob's final skipped action. Promote *that one transition* into
+        an essential notice for the fighting player and nearby party members.
+        Regular skipped turns keep their existing combat-log verbosity.
+        """
+        jammer_end_suffix = (
+            " jest zatrzymany przez Jammer i pomija akcję. Stop się kończy."
+        )
+        if isinstance(message, str) and message.endswith(jammer_end_suffix):
+            mob_name = message[:-len(jammer_end_suffix)]
+            if mob_name and actor is not None and not actor.closed and actor.character:
+                notice = f"Jammer na {mob_name} zakończył działanie."
+                # The regular party broadcast deliberately excludes the actor;
+                # an expiration must be audible to the actor even when solo.
+                await actor.send_combat(notice, "essential")
+                return await self.party_nearby_broadcast(
+                    actor, notice, exclude=[actor], detail="essential",
+                    history_category="combat",
+                )
         return await self.party_nearby_broadcast(
             actor, message, exclude=[actor], detail=detail, history_category="combat"
         )

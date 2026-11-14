@@ -1,3 +1,80 @@
+SOULBOUND MUD v113.00.17 — KONIEC JAMMERA: KOMUNIKAT NVDA (WINDOWS)
+14 listopada 2026
+STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Gdy efekt Jammer Stop faktycznie spada do zera po ostatniej
+  zatrzymanej akcji potwora, gra mówi krótko:
+  „Jammer na [nazwa potwora] zakończył działanie.”
+- Komunikat ważny (essential) słyszy walczący gracz nawet solo oraz
+  każdy obecny członek jego drużyny w tym samym pokoju.
+- Bez duplikatów, bez komunikatów dla obcych i drużyny poza pokojem.
+  Nie powtarza informacji w każdej turze; nie sygnalizuje końca przy
+  oporze bossa, nieudanym rzuceniu ani podczas aktywnego Stop.
+- Bez zmiany czasu działania, many, AoE, odporności bossów, EXP Banku,
+  questów, danych SQLite, chronionych metod v4.20 lub wdrożenia.
+- Zachowane wszystkie poprawki v113.00.16 (upiór / Over Cap / drużyna).
+
+--- POPRZEDNIE ZMIANY ---
+
+SOULBOUND MUD v113.00.16 — UPIORY, OVER CAP EXP BANK, JAMMER PARTY (WINDOWS)
+14 listopada 2026
+STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Upiór Krypty Velsal (`crypt_floor_mob_2`) zalicza teraz zadania
+  wymagające `crypt_wraith`, także w wariantach tego moba. Zmiana obejmuje
+  WYŁĄCZNIE alias celu przy rozliczaniu zabójstwa; zachowano wymagany
+  licznik, dotychczasowe nagrody i trwałość SQLite.
+- Event Over Cap: dodatkowa regresja rzeczywistego EXP Bank SQLite
+  sprawdza wypłaty i nadwyżkę przed eventem, w godzinie :30–:45,
+  po zakończeniu oraz po ponownym otwarciu bazy; limit pojedynczej
+  nagrody x2, bez ponownego podwajania samego doświadczenia.
+  Oryginalny algorytm wypłaty jest zachowany — nie modyfikujemy
+  skali Multi Cap ani dotychczasowej ekonomii EXP bez dowodu usterki.
+- Jammer: dokładnie jedna krótka wiadomość o realnie wykonanym użyciu
+  trafia do innych członków drużyny w tej samej lokacji. Poza party i
+  poza lokacją brak wiadomości; caster zachowuje swoje szczegóły.
+- Dodano celowane testy izolowane, bez zmiany struktury bazy.
+- Brak automatycznych wdrożeń; działający serwer i GitHub nietknięte.
+
+--- POPRZEDNIE ZMIANY ---
+
+SOULBOUND MUD v113.00.15 — JAMMER BEZ LOGIC BOMB, OCHRONA v4.20 (WINDOWS)
+14 listopada 2026
+STATUS: NIE WDRAZAC PRZED NOWYM WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Usunieto przyczyne FAIL poprzedniej wersji: metoda use_class_skill
+  jest bajtowo identyczna z v113.00.13 i zachowuje historyczny kontrakt v4.20.
+- Nowa obsluga Jammera znajduje sie w odrebnym handlerze, wywolywanym
+  przez istniejaca warstwe Magitek; inne umiejetnosci uzywaja starej sciezki.
+- Jammer dziala bez Logic Bomb, bez podania celu; Stop nakladany niezaleznie.
+- Support jako bron/dusza plus aoe on: wszyscy kwalifikujacy sie przeciwnicy.
+  AoE off lub brak Support: jeden cel wybrany automatycznie.
+- Odpornosc bossow, prawo do walki, mana, cooldown i nieprzedluzanie Stop
+  zostaly zachowane. Brak poprawnych celow nie pobiera many.
+- Baza, EQ, postacie i gameplay poza Jammerem bez zmian.
+- Aktualizacja wyłącznie w C:\Soulbound-MUD po pełnym PREDEPLOY.
+
+--- POPRZEDNIE ZMIANY ---
+
+SOULBOUND MUD v113.00.14 — JAMMER BEZ LOGIC BOMB, SUPPORT ZACHOWANY (WINDOWS)
+14 listopada 2026
+STATUS: NIE WDRAZAC PRZED NOWYM WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Jammer Meca działa samodzielnie: nie wymaga wcześniejszego Logic Bomb ani
+  stanu Paralyze. Wybiera przeciwników automatycznie, bez podawania nazwy.
+- ZACHOWANO własną broń/duszę Support i przełącznik aoe on/off:
+  Support z AoE ON -> Jammer próbuje zatrzymać wszystkie kwalifikujące się
+  potwory w tej samej lokacji; AoE OFF -> automatycznie jeden cel.
+  Bez Support -> automatycznie jeden cel, zgodnie ze źródłowym UOSS.
+- Bossowie i minibossowie zachowują odporność; nie omija bram walki.
+- Nie przedłuża aktywnego Stop i nie pobiera many przy braku możliwego celu.
+- Nie kradnie aggro innych graczy. Inne efekty Support, Logic Bomb,
+  koszty many, inne skille, dusze i klasa Mec pozostają bez zmian.
+- Pełna gra; bezpieczna aktualizacja w C:\Soulbound-MUD; brak zmian schematu SQLite.
+- Produkcja i GitHub nietknięte.
+
+--- HISTORIA POPRZEDNICH ZMIAN ---
+
 SOULBOUND MUD v113.00.13 — DRUZYNA I ADMIN LIVE SKALOWANIE OFF (WINDOWS)
 14 listopada 2026
 STATUS: NIE WDRAZAC PRZED PELNYM WINDOWS PREDEPLOY TEGO DOKLADNEGO ZIP

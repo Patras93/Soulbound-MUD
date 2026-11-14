@@ -107,6 +107,14 @@ def install(combat_mixin):
     @wraps(baseline_cast)
     async def magitek_cast(self, raw):
         skill, target_text = self.find_skill_from_input(raw)
+        # The original class-skill native method is protected by the v4.20
+        # checksum contract. Jammer's independent UOSS Stop is a dedicated,
+        # explicit Mec dispatch before the unchanged native fallback.
+        if (skill and skill.get('mec_authored')
+                and skill.get('mec_special') == 'jammer'
+                and getattr(getattr(self, 'character', None), 'class_name', None) == 'Mec'):
+            from systems.current_jammer_auto import cast_jammer
+            return await cast_jammer(self, skill, target_text)
         if not _is_magitek(self,skill):
             return await baseline_cast(self,raw)
         slug=skill['v107_skill']
