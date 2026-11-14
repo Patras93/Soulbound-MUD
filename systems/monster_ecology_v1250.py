@@ -88,6 +88,9 @@ def adaptive_skills_v1250(mob, template, owner_power, base_damage):
 
 def adaptive_defense_v1250(mob, template, now=None):
     """Temporary guard scales with encounter threat, with long cooldown."""
+    from systems.adaptive_switch_v102006 import enabled
+    if not enabled():
+        return ''
     if (not mob or not mob.alive or any(template.get(f) for f in PROTECTED_FLAGS)
         or template.get('training_dummy')): return ''
     turn = max(0, int(getattr(mob, 'combat_turn', 0) or 0))
@@ -103,6 +106,9 @@ def adaptive_defense_v1250(mob, template, now=None):
 def adaptive_cadence_v1250(mobs, templates, normal_interval):
     """Faster enemy responses only when the party hugely outscales the baseline."""
     baseline = max(.45, float(normal_interval or 1.0))
+    from systems.adaptive_switch_v102006 import enabled
+    if not enabled():
+        return baseline
     for mob in mobs:
         template = templates.get(getattr(mob, 'template_id', ''), {})
         if any(template.get(f) for f in PROTECTED_FLAGS): continue

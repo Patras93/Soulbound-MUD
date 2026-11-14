@@ -288,6 +288,13 @@ class SessionMovementMixin:
             """
             if self.closed or not self.character:
                 return False
+            # A leader must finish the previous party step before another
+            # direction is accepted.  Otherwise a queued command can observe
+            # followers still walking and silently leave them behind.
+            if getattr(self, "moving", False):
+                await self.send("Ruch drużyny jeszcze trwa. Poczekaj na zakończenie kroku.")
+                return False
+            self._party_follow_blocked_v1130012 = False
             old = self.character.room_id
             if old == target:
                 return True
@@ -306,11 +313,16 @@ class SessionMovementMixin:
             # Zbierz followerów PRZED ruchem lidera. Tylko lider uruchamia follow,
             # więc ruch członka nie wywoła rekurencyjnego łańcucha.
             party_followers = []
+            # Remember every member who started with the leader, including
+            # busy members. They cannot be forced through a restricted exit,
+            # but a failed follow must never stay silent.
+            party_start_members = []
             party_key = self.party_key() if self.account_id is not None else None
             if party_key == self.account_id:
                 for member in self.server.party_sessions(self.account_id, same_room=old):
                     if member is self or not member.character or member.closed:
                         continue
+                    party_start_members.append(member)
                     if member.moving or member.guiding:
                         continue
                     party_followers.append(member)
@@ -439,16 +451,52 @@ class SessionMovementMixin:
                             self._mercenary_guide_announced_v12210 = True
                 if show_room:
                     await self.look()
-                return True
             finally:
-                self.moving = False
-                if follow_tasks:
-                    await asyncio.gather(*follow_tasks, return_exceptions=True)
-                    # v1.11.23: followerzy zapisali pozycje w jednej transakcji;
-                    # jeden commit po całym kroku zamiast osobnego fsync dla każdego.
-                    self.server.db.conn.commit()
+                try:
+                    # Keep moving=True for the ENTIRE party step, including
+                    # follower tasks and their SQLite commit.  Clearing it
+                    # before gather() let the leader accept a second step
+                    # while members were still in the previous room.
+                    if follow_tasks:
+                        await asyncio.gather(*follow_tasks, return_exceptions=True)
+                        # v1.11.23: one commit for all followers' positions.
+                        self.server.db.conn.commit()
+                    lagging_members = [
+                        member for member in party_start_members
+                        if member.character and not member.closed
+                        and member.character.room_id != target
+                    ]
+                    if lagging_members:
+                        self._party_follow_blocked_v1130012 = True
+                        lagging = sorted({
+                            member.character.name for member in lagging_members
+                        }, key=str.casefold)
+                        if not self.closed:
+                            await self.send(
+                                "Drużyna: zostali w tyle: " + ", ".join(lagging)
+                                + ". Sprawdź walkę, prowadzenie lub blokadę przejścia."
+                            )
+                        for member in lagging_members:
+                            if not member.closed:
+                                await member.send(
+                                    "Nie nadążasz za liderem. Sprawdź blokadę przejścia lub zakończ ruch."
+                                )
+                finally:
+                    self.moving = False
+            # The historically protected guide_to() already stops on False.
+            # Signal that a guided multi-step route must stop after this
+            # completed step if any follower stayed behind; never pretend
+            # the whole party arrived, and never teleport past a blocked exit.
+            if guided and self._party_follow_blocked_v1130012:
+                if not self.closed:
+                    await self.send("Prowadzenie wstrzymane: członek drużyny został w tyle.")
+                return False
+            return True
 
     async def move(self, direction, preserve_auto_mining=False):
+            if getattr(self, "moving", False):
+                await self.send("Trwa poprzedni krok. Poczekaj na zakończenie ruchu drużyny.")
+                return
             if self.resting or self.rest_task:
                 await self.stop_rest(
                     announce=True, reason="ruszasz się"

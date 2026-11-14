@@ -226,6 +226,52 @@ def _money_snapshot(response: str) -> tuple[int, int, int]:
     return tuple(int(n) for n in matches[0])
 
 
+async def verify_party_walk_six(clients):
+    """Exercise real six-session follow over reversible ordinary exits.
+
+    Every client stays authenticated.  Only the leader sends movement
+    directions; inspect all six actual server-side room positions through the
+    normal TCP party status (not a synthetic teleport or a roster count).
+    """
+    lead = clients[0]
+    names = [client.name for client in clients]
+    checks = 0
+
+    async def expect_all_in(room, *, timeout=28):
+        deadline = time.monotonic() + timeout
+        last = ''
+        while time.monotonic() < deadline:
+            answer = await lead.command('druzyna status', quiet=.25)
+            answer, missing = await read_complete_party_roster(
+                lead, answer, names, timeout=7)
+            if missing:
+                raise AssertionError('Six-player movement roster lost: ' + repr(missing))
+            expected = [
+                bool(re.search(rf'(?im)^\s*\d+\.\s+{re.escape(name)}\.\s+'
+                               rf'Lokacja:\s+{re.escape(room)}\.', answer.replace('\r', '')))
+                for name in names
+            ]
+            if all(expected):
+                return
+            last = answer[-700:]
+            await asyncio.sleep(.2)
+        raise AssertionError('Party follow left member behind in '+room+': '+last)
+
+    await expect_all_in('Świątynia Odrodzenia')
+    checks += 6
+    for _ in range(3):
+        for direction, destination in (('east', 'Plac Dusz'),
+                                       ('west', 'Świątynia Odrodzenia')):
+            answer = await lead.command(direction, quiet=.4)
+            if 'Nie możesz iść' in answer or 'Wystąpił błąd' in answer:
+                raise AssertionError('Leader route refused: '+answer[-250:])
+            await expect_all_in(destination)
+            checks += 6
+    print(f'TCP SIX PARTY FOLLOW: {checks} actual room checks PASS (6 players x 3 reversible loops)',
+          flush=True)
+    return checks
+
+
 async def exercise(names, port, *, after_restart=False, routes=None):
     clients = [TcpPlayer(account, name, port) for account, name in names]
     checks = 0
@@ -324,6 +370,10 @@ async def exercise(names, port, *, after_restart=False, routes=None):
         if any('drużyn' not in item.lower() and 'druzyn' not in item.lower() for item in results):
             raise AssertionError('Party status did not arrive on all clients')
         checks += PLAYERS
+        # v113.00.12: verify that no follower stays behind when a leader
+        # rapidly traverses normal passages. The group returns to the temple
+        # before the existing NPC and real combat journey starts.
+        checks += await verify_party_walk_six(clients)
         print('TCP SIX: all 6 party members verified; begin NPC story and real combat', flush=True)
         # v2.32.0: invoke the actual NPC dialogue, player command router,
         # basement navigation, combat and quest progress on private TCP.

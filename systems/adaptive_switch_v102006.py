@@ -102,7 +102,16 @@ async def command(session, tail):
     choice = action == 'on'
     was = enabled()
     if was == choice:
-        await session.send('ADMIN LIVE SKALOWANIE: juz '+('WLACZONE.' if choice else 'WYLACZONE.'))
+        if choice:
+            await session.send('ADMIN LIVE SKALOWANIE: juz WLACZONE.')
+        else:
+            # Idempotent OFF is an operational command, not only a preference.
+            # Stale world encounters must be normalized even if the persisted
+            # switch was already disabled (e.g. after an interrupted battle).
+            normalized = reset_world(session.server)
+            await session.send('ADMIN LIVE SKALOWANIE: WYLACZONE. '
+                               f'Sprawdzono aktywne potwory, usunieto dodatkowe skalowanie: {normalized}. '
+                               'Bazowe statystyki potworow pozostaja bez zmian.')
         return True
     try:
         _store(choice)

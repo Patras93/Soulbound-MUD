@@ -27,6 +27,7 @@ GATES=(
     'validation/current_activation_independence_regression.py',
     'validation/current_staging_environment_regression.py',
     'validation/current_tool_tier_after_800_regression.py',
+    'validation/current_party_follow_regression.py',
     'validation/current_only_server_smoke.py',
 )
 

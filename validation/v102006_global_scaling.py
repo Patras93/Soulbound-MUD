@@ -10,7 +10,7 @@ from unittest.mock import patch
 from data.mobs import MOB_TEMPLATES
 from player.session_mixins.combat_damage import SessionCombatDamageMixin
 from systems import adaptive_switch_v102006 as switch
-from systems.monster_ecology_v1250 import adaptive_skills_v1250
+from systems.monster_ecology_v1250 import adaptive_skills_v1250, adaptive_defense_v1250, adaptive_cadence_v1250
 from systems.team_learning_v1260 import enemy_team_pressure_v1260
 from validation.v3600_admin_guardian2 import Fake
 from validation.v2005_beginner_encounters import _CharacterSession
@@ -57,7 +57,23 @@ def run():
             check(mob.adaptive_reward_multiplier_v11330==1., 'adaptive rewards reset')
             check('WYLACZONE' in asyncio.run(call(admin,'status')), 'OFF status')
             check('Uzycie' in asyncio.run(call(admin,'blah')), 'invalid arg')
-            check('WYLACZONE' in asyncio.run(call(admin,'off')), 'idempotent OFF')
+            # Regression: a second OFF must actively remove stale world scaling
+            # rather than merely answering 'already off'.
+            mob.hp = scaled // 4
+            mob.adaptive_max_hp_v11330 = scaled
+            mob.adaptive_party_dps_v11330 = 50000.
+            check('usunieto dodatkowe skalowanie: 1' in asyncio.run(call(admin,'off')),
+                  'idempotent OFF cleans stale encounter')
+            check(mob.adaptive_max_hp_v11330 == 0 and mob.adaptive_party_dps_v11330 == 0.0,
+                  'idempotent OFF cleared both HP and DPS')
+            # An unregistered encounter must likewise ignore combat AI escalation
+            # under global OFF (no reliance on reset_world having seen it).
+            rogue = SimpleNamespace(alive=True, template_id='bandit', combat_turn=7,
+                adaptive_party_dps_v11330=50000., monster_ai_guard_until_v1160=0)
+            check(adaptive_defense_v1250(rogue, {'damage':1,'name':'Test'},now=100) == '',
+                  'OFF suppresses adaptive guard independently of world reset')
+            check(adaptive_cadence_v1250([rogue], {'bandit':{'damage':1}}, 1.0) == 1.0,
+                  'OFF suppresses adaptive faster cadence independently of world reset')
             check(admin.server.db.logged and admin.server.db.logged[-1][-1]=='off', 'admin action logged')
             # OFF applies to new encounters, with no additional HP or DPS.
             fresh=SimpleNamespace(alive=True,template_id='bandit',hp=base,adaptive_max_hp_v11330=0)
@@ -77,6 +93,11 @@ def run():
             check(switch.enabled() is False,'restart loads OFF')
             check('WLACZONE' in asyncio.run(call(admin,'on')),'admin ON succeeds')
             check(switch.enabled() is True,'ON in memory')
+            rogue.monster_ai_guard_until_v1160=0
+            check(bool(adaptive_defense_v1250(rogue, {'damage':1,'name':'Test'},now=100)),
+                  'ON restores adaptive guard for future fights')
+            check(adaptive_cadence_v1250([rogue], {'bandit':{'damage':1}}, 1.0) < 1.0,
+                  'ON restores adaptive cadence for future fights')
             # Re-enable scaling for a subsequent encounter without restart.
             class CombatStub(SessionCombatDamageMixin):
                 character=SimpleNamespace(character_level=100)

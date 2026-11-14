@@ -1,3 +1,69 @@
+SOULBOUND MUD v113.00.13 — DRUZYNA I ADMIN LIVE SKALOWANIE OFF (WINDOWS)
+14 listopada 2026
+STATUS: NIE WDRAZAC PRZED PELNYM WINDOWS PREDEPLOY TEGO DOKLADNEGO ZIP
+
+PRZYCZYNA FAIL v113.00.12:
+- Windows: 58/60 PLUS. Szybki PREDEPLOY i pelny audyt zatrzymala
+  historyczna kontrola nienaruszalnosci metody SessionGuideNavigationMixin.guide_to
+  w validation/current_native_v420_contract.py.
+- Zmiana chronionej metody sluzyla zatrzymaniu prowadzacych po rozdzieleniu
+  druzyny; nie zmieniano bazy ani zapisow graczy.
+
+NAPRAWA:
+- Przywrocono oryginalna, historycznie zgodna metode guide_to() bez
+  zmiany odcisku AST ani oslabiania kontroli v4.20.
+- Ruch lidera nadal czeka na podazajacych; przy zablokowanym czlonku
+  wysyla powiadomienie i zgłasza prowadzeniu przerwanie po tym kroku.
+- Zachowane przejscia indywidualne: bez teleportacji, obchodzenia walki,
+  blokad lub bram.
+- Rozszerzono regresje o nienaruszalnosc historycznej metody i wykrycie
+  wstrzymania prowadzenia. Jeden katalog C:\Soulbound-MUD bez zmian.
+- ADMIN LIVE SKALOWANIE OFF: ponowne OFF ponownie oczyszcza potwory,
+  nawet gdy przelacznik byl juz WYLACZONY; nie zostawia starych mnoznikow HP/DPS.
+- Ochrona pozostalych dwoch elementow Adaptive Combat: tymczasowej obrony
+  i szybszego tempa AI. Te mechanizmy teraz rowniez natychmiast honoruja OFF,
+  nawet dla potworow nieuwzglednionych w reset_world.
+- Komunikat OFF podaje liczbe skorygowanych potworow; bez zmiany
+  statystyk bazowych lokacji/bossow. Testy OFF/ON, stan trwaly i restart.
+- Brak migracji SQLite, zmian EQ, questow lub dodawania mechanik gry.
+
+WYMAGANE: nowy pelny Windows PREDEPLOY (60/60 PLUS, v105, EQ, uniwersalne,
+6 graczy TCP i zapis SQLite). Produkcja i GitHub pozostaja nietkniete.
+
+--- HISTORIA POPRZEDNICH ZMIAN ---
+
+SOULBOUND MUD v113.00.12 — STABILNOSC PODAZANIA DRUZYNY (WINDOWS)
+14 listopada 2026
+STATUS: NIE WDRAZAC PRZED NOWYM WINDOWS PREDEPLOY TEGO DOKLADNEGO ZIP
+
+NAPRAWA BUGU (BEZ NOWYCH FUNKCJI):
+- Usunieto wyscig podczas chodzenia lidera: status "moving" jest teraz
+  zwalniany dopiero po zakonczeniu wszystkich krokow podazajacych czlonkow
+  oraz wspolnym zapisie pozycji do SQLite.
+- Dodatkowy kierunek w trakcie kroku nie moze wyprzedzic druzyny;
+  zamiast tego lider dostaje krotki komunikat, ze krok nadal trwa.
+- Druzyna sprawdza, kto rzeczywiscie dotarl do docelowej lokacji.
+  Gdy czlonek ma indywidualna blokade, jest w walce lub prowadzi
+  wlasna trase, lider otrzymuje imienna informacje, a czlonek
+  krotka wiadomosc o pozostaniu w tyle.
+- Automatyczne prowadzenie wieloetapowe zatrzymuje sie po wykryciu
+  pozostawionego czlonka, zamiast pogarszac rozdzielenie grupy.
+- Nie ma teleportowania przez blokady, bossow ani bramy; kazdy
+  czlonek wykonuje zwykla metode ruchu i zachowuje swoje prawa wejscia.
+- Zachowany jeden katalog instalacyjny C:\Soulbound-MUD z v113.00.11.
+- Bez zmian schematu bazy, statystyk, questow i ekwipunku.
+
+TESTY:
+- Nowa deterministyczna regresja z szescioma sesjami i wolniejszymi
+  czlonkami: dwukrotny ruch, blokady, zajete podazanie, brak teleportu.
+- Uniwersalne bramki rozszerzono do 16 (nowy test jest obowiazkowy).
+- Test TCP szesciu zalogowanych graczy zawiera teraz trzy prawdziwe
+  przejscia tam i z powrotem (6 krokow), z kontrola lokacji calej druzyny.
+- PREDEPLOY 60/60 PLUS, testy v105, EQ i TCP na prawdziwym Windows
+  musza ponownie przejsc PASS dla sumy SHA256 tego ZIP-a.
+
+--- HISTORIA POPRZEDNICH ZMIAN ---
+
 SOULBOUND MUD v113.00.11 — POWROT DO JEDNEGO KATALOGU WINDOWS
 12 listopada 2026
 STATUS: NIE WDRAZAC PRZED NOWYM WINDOWS PREDEPLOY DLA TEGO DOKLADNEGO ZIP
