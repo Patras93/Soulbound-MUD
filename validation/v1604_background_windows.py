@@ -33,7 +33,7 @@ def run_regression():
         'default calls visible BAT': 'call "%~dp0Start-Soulbound-Windows.bat"' in launcher,
         'no WScript dependency': 'wscript' not in launcher.lower() and not (ROOT/'START_Soulbound_UKRYTY.vbs').exists(),
         'launcher returns real exit code': 'exit /b !errorlevel!' in launcher,
-        'autostart uses cmd': 'Soulbound_Autostart.cmd' in (ROOT/'windows_autostart.py').read_text(encoding='utf-8'),
+        'autostart uses pythonw registry, keeps only legacy CMD recognition': all(word in (ROOT/'windows_autostart.py').read_text(encoding='utf-8') for word in ('Soulbound_Autostart.cmd', 'pythonw.exe', 'RUN_KEY', 'migrate_if_enabled')),
         'visible starter exits': _visible_starter_preserves_exit_code(visible),
         'detached Python': 'DETACHED_PROCESS' in bg and 'CREATE_NO_WINDOW' in bg,
         'safe STOP': 'stop_soulbound_windows.py' in stop and 'taskkill' not in stop.lower(),

@@ -1,3 +1,44 @@
+SOULBOUND MUD v113.00.18 — PELNA PACZKA LINUX (15 listopada 2026)
+STATUS: KANDYDAT; NIE WDRAŻAĆ PRZED LINUX PREDEPLOY 60/60 PLUS.
+
+- Kod gameplay, questów, zapisów, EXP Bank, Over Cap i Jammera
+  identyczny z kompletną wersją Windows 113.00.18. Bez przenoszenia
+  starego silnika Linux v113.00.10 do gry: tylko uniwersalne narzędzia instalacji.
+- Wsparcie Linux: PREDEPLOY_NOWEJ_WERSJI.sh, WDROZ_PO_PREDEPLOY.sh,
+  START, STOP, STATUS, systemd --user; port 4000; limit 6 graczy.
+- Bez Windows BAT/CMD/VBS/PowerShell w ZIP ani w instalacji.
+  Historczne kontrolki BAT generowane tylko w izolowanym TEMP na test Linux.
+  Moduły zgodności Windows w Pythonie pozostały do regresji i jawnych
+  zależności wspólnego silnika; nie uruchamiają autostartu Windows na Linux.
+- Autoryzacja wydania Linux i manifesty wymagają Linux PREDEPLOY
+  dla konkretnego SHA256 ZIP i zgodnej kopii bazy SQLite, nie Windows PASS.
+- Zaktualizowano próg bramki uniwersalnej z 15/15 do 20/20 dla v113.00.18.
+- Bez ingerencji w produkcję Windows ani serwer kolegi; bez jego kont i EQ.
+- Przenoszenie bazy przez spójny SQLite snapshot; instalacja z kopią,
+  poprawność danych sprawdzana przed i po. TeamTalk pozostaje nietknięty.
+
+--- HISTORIA WSPÓLNEGO SILNIKA Z WINDOWS ---
+
+SOULBOUND MUD v113.00.18 — AUTOMATYCZNY START WINDOWS BEZ OKNA CMD
+15 listopada 2026
+STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Po zalogowaniu do Windows Soulbound może startować całkowicie w tle,
+  bez widocznego okna konsoli. Autostart uruchamia bezpośrednio pythonw.exe
+  przez wpis bieżącego użytkownika w HKCU\...\Run.
+- Jeśli autostart był wcześniej włączony, zatwierdzona aktualizacja
+  automatycznie zastępuje jego własny stary wpis CMD/VBS wpisem niewidocznym.
+  Jeżeli autostart był wyłączony, aktualizacja NIE włącza go samodzielnie.
+- Nadal istnieje AUTOSTART_WLACZ_Soulbound.bat / AUTOSTART_WYLACZ_Soulbound.bat,
+  a serwer zatrzymuje się wyłącznie świadomie przez STOP_Soulbound.bat.
+- Nie zamykamy procesów obcych, nie używamy Task Scheduler ani WScript.
+  Program pozostaje pod opieką dotychczasowego watchdog; logi pozostają
+  w logs/serwer.log, logs/watchdog.log oraz logs/bledy.log.
+- Brak zmian w mechanice gry, SQLite, nagrodach, questach, Over Cap i Jammerze.
+- Zachowana pełna kompatybilność z v113.00.17. Produkcja i GitHub nietknięte.
+
+--- POPRZEDNIE ZMIANY ---
+
 SOULBOUND MUD v113.00.17 — KONIEC JAMMERA: KOMUNIKAT NVDA (WINDOWS)
 14 listopada 2026
 STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
