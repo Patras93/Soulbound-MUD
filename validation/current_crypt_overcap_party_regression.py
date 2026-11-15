@@ -34,8 +34,24 @@ def run():
     check('crypt_floor_mob_2' in MOB_TEMPLATES, 'real floor-two crypt mob exists')
     check('crypt_wraith' in quest_kill_targets_v0389('crypt_floor_mob_2', MOB_TEMPLATES['crypt_floor_mob_2']),
           'real wraith grants quest target alias')
-    check('crypt_wraith' not in quest_kill_targets_v0389('crypt_floor_mob_3', MOB_TEMPLATES['crypt_floor_mob_3']),
-          'other floor mobs are not broadly treated as wraiths')
+    # Every *named wraith* deeper in the infinite crypt counts, but no
+    # unrelated floor mob, natural guardian or boss. No broad crypt alias.
+    for floor in (2, 10, 18, 26, 34, 42, 50, 82, 98, 194):
+        tid = f'crypt_floor_mob_{floor}'
+        template = MOB_TEMPLATES[tid]
+        check(template['name'].startswith('Upiór Krypty '), f'floor {floor} really is a wraith')
+        check('crypt_wraith' in quest_kill_targets_v0389(tid, template),
+              f'deep crypt wraith floor {floor} counts for original quest')
+    for floor in (1, 3, 9, 11, 19, 25, 33, 41, 51, 97):
+        tid = f'crypt_floor_mob_{floor}'
+        check('crypt_wraith' not in quest_kill_targets_v0389(tid, MOB_TEMPLATES[tid]),
+              f'non-wraith floor {floor} not credited')
+    check('crypt_wraith' in quest_kill_targets_v0389(
+          'generated_wraith_variant', {'base_template':'crypt_floor_mob_18'}),
+          'generated deep floor variant credits the original quest target')
+    for wrong in ('crypt_elite_guardian_10', 'crypt_boss_10'):
+        check('crypt_wraith' not in quest_kill_targets_v0389(wrong, MOB_TEMPLATES[wrong]),
+              'guardian and boss excluded from the wraith quest')
     # Test the exact atomic kill-to-quest SQL path used by combat_rewards.py.
     raw=sqlite3.connect(':memory:')
     raw.row_factory=sqlite3.Row
@@ -58,6 +74,15 @@ def run():
           'quest cannot overcount after completion')
     check(conn.execute('SELECT progress FROM quests WHERE account_id=102').fetchone()[0]==0,
           'another account not credited')
+    # Second independent player kills deeper floor wraiths, not just floor 2.
+    for expected, floor in enumerate((10, 18, 26, 34, 42), 1):
+        tid = f'crypt_floor_mob_{floor}'
+        aliases = quest_kill_targets_v0389(tid, MOB_TEMPLATES[tid])
+        simple, _ = settle_kill_quest_progress_v10400(db, 102, tid, aliases=aliases)
+        check(simple == [('soul_tier_05_trial', expected)],
+              f'deeper floor {floor} increments the same SQLite soul quest once')
+    check(conn.execute('SELECT progress FROM quests WHERE account_id=102').fetchone()[0] == 5,
+          'deeper wraiths finish the same quest with correct SQL state')
     conn.commit();conn.close()
 
     from systems.experience_bank_v2011 import banked_experience_v2011
@@ -247,6 +272,15 @@ def run():
     check(caster.messages and caster.messages[0][0]==end,
           'solo player receives end notice without being in any party')
     check(not ally.messages,'solo player does not leak announcement to former party')
-    print(f'CURRENT CRYPT/OVER CAP/JAMMER PARTY/END: {checks}/{checks} PASS')
+    # The universal release suite has 20 stable gates. Run the corpse/ground
+    # lifecycle in this existing gameplay gate without weakening that contract.
+    import unittest
+    from validation.current_corpse_ground_lifecycle_regression import TestGroundLifecycle
+    ground = unittest.TestLoader().loadTestsFromTestCase(TestGroundLifecycle)
+    result = unittest.TestResult()
+    ground.run(result)
+    check(result.wasSuccessful() and result.testsRun == ground.countTestCases() and result.testsRun >= 8,
+          'dead mobs, body decay, persistent ground drops, no duplicate pickup')
+    print(f'CURRENT CRYPT/OVER CAP/JAMMER PARTY/END/GROUND: {checks}/{checks} PASS + {result.testsRun} ground lifecycle tests')
 
 if __name__=='__main__':run()

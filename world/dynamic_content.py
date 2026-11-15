@@ -2472,11 +2472,20 @@ def quest_kill_targets_v0389(template_id, template=None):
     for value in (template_id, canonical_id, base_id, canonical_base_id):
         if value:
             targets.append(str(value))
-    # One quest-only alias: the real second-floor Upior Krypty Velsal is
-    # an eligible crypt_wraith. Do not mutate mob stats, loot or quest data.
-    # The base ID also permits the corresponding generated elite/rare variants.
-    if "crypt_floor_mob_2" in (template_id, canonical_id, base_id, canonical_base_id):
-        targets.append("crypt_wraith")
+    # Regular Upior Krypty occurs every eight floors (2, 10, 18, ...),
+    # not only on floor 2. Credit the actual named wraith at every depth,
+    # including its generated rare/elite/base-template variants. Do not
+    # credit skeletons, guardians or the unrelated crypt bosses.
+    # Preserve the historical quest target crypt_wraith for old SQLite saves.
+    for candidate in (template_id, canonical_id, base_id, canonical_base_id):
+        match = re.fullmatch(r"crypt_floor_mob_([1-9]\d*)", str(candidate))
+        if not match:
+            continue
+        actual = MOB_TEMPLATES.get(candidate, {})
+        if (int(actual.get("crypt_floor", 0) or 0) == int(match.group(1))
+                and str(actual.get("name", "")).startswith("Upiór Krypty ")):
+            targets.append("crypt_wraith")
+            break
     for source in (template, canonical_template, base_template):
         primary = source.get("quest_target")
         if primary:

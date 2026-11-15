@@ -139,6 +139,8 @@ COMMAND_REGISTRY = {
     'corpse': ('show_corpses', (COMMAND_TEXT,), {}),
     'lootcorpse': ('loot_corpse', (COMMAND_TEXT,), {}),
     'getcorpseitem': ('get_from_corpse', (COMMAND_TEXT,), {}),
+    'groundloot': ('show_ground_loot', (COMMAND_TEXT,), {}),
+    'groundtake': ('take_ground_loot', (COMMAND_TEXT,), {}),
     'cryptinfo': ('show_crypt_info', (), {}),
     'astralinfo': ('show_astral_info', (), {}),
     'astralportal': ('use_astral_portal', (COMMAND_TEXT,), {}),
@@ -509,6 +511,10 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
     )
 
 COMMAND_CATALOG.add_alias('prezent', 'adwent', source='player/session_mixins/command_registry.py')
+for _alias in ('ziemia', 'ground'):
+    COMMAND_CATALOG.add_alias(_alias, 'groundloot', source='player/session_mixins/command_registry.py')
+for _alias in ('podnies', 'podnieś', 'pickup'):
+    COMMAND_CATALOG.add_alias(_alias, 'groundtake', source='player/session_mixins/command_registry.py')
 
 for _alias in ("lowcy", "łowcy", "tablicalowcow", "hunterboard"):
     COMMAND_CATALOG.add_alias(_alias, "hunters1225", source="player/session_mixins/command_registry.py")

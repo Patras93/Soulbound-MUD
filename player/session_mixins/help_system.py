@@ -205,6 +205,8 @@ class SessionHelpSystemMixin(HelpHistoryV109Mixin, HelpSkillsV109Mixin):
                 "k <mob> / attack / atakuj / zabij / kill <mob> - szybki atak na wskazanego przeciwnika",
                 "ciało / zwloki / corpse - pokaż ciała i ich ekwipunek",
                 "przeszukaj ciało / loot - zabierz ekwipunek z ciała moba",
+                "ciało pozostaje 10 minut; potem jego EQ leży na ziemi 30 minut",
+                "ziemia - lista przedmiotów na ziemi; podnies numer lub wez nazwa - zabierz",
                 "flee / uciekaj - ucieczka",
                 "unlock / odklucz / odblokuj - skrzynia bossowa z kluczem; unlock soul / odklucz dusza - odblokuj gotowy Soul Tier",
                 "save / zapisz - zapis",
