@@ -281,6 +281,9 @@ def run():
     ground.run(result)
     check(result.wasSuccessful() and result.testsRun == ground.countTestCases() and result.testsRun >= 8,
           'dead mobs, body decay, persistent ground drops, no duplicate pickup')
+    from validation.current_party_teleport_leader_regression import run as teleport_check
+    reunion = teleport_check()
+    check(reunion >= 33, 'teleport to leader: party check, fights, side rooms, boss gates')
     print(f'CURRENT CRYPT/OVER CAP/JAMMER PARTY/END/GROUND: {checks}/{checks} PASS + {result.testsRun} ground lifecycle tests')
 
 if __name__=='__main__':run()

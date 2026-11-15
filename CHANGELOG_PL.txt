@@ -1,3 +1,148 @@
+SOULBOUND MUD v113.00.21 — PILNA NAPRAWA STARTU PO v113.00.20 (15.11.2026)
+STATUS: NIE WDRAŻAĆ bez nowego Windows PREDEPLOY 60/60 PLUS dokładnie tego ZIP-u.
+
+PRZYCZYNA: po wdrożeniu v113.00.20 serwer zatrzymywał się przy
+systems/help_atlas_v1602.py:147 z AssertionError. Ostatnia warstwa HELP
+żądała 800 na każdej osi rozwoju, lecz prawidłowy produkcyjny Admin Live
+potrafi mieć limity własne lub „bez limitu” (również po migracji v107).
+Wstępne testy na domyślnych limitach 800 błędnie pomijały tę sytuację.
+
+POPRAWKA:
+- Ostatnia warstwa HELP przyjmuje rzeczywiste aktywne limity Admin Live,
+  bez przymusowego resetu poziomów i bez zmieniania mechaniki EXP.
+- Tematy progresja800/progresja600, multiclass, klasy, profesje, narzędzia,
+  Soul i powiązane helpy wyświetlają rzeczywiste limity; zachowano stare aliasy.
+- Weryfikacja niepoprawnych limitów pozostaje włączona (jawny błąd).
+- Test HELP obejmuje teraz produkcyjne „bez limitu”, wartości niestandardowe,
+  limity mieszane oraz celowo uszkodzony stan; bez dotykania prawdziwej bazy.
+- Cała mechanika v113.00.20 pozostaje: 0,10 sekundy na krok,
+  drużyna i teleport do lidera, wydajność, pełne helpy i atlasy.
+- Zmieniono VERSION na 113.00.21, ponieważ bezpieczny aktualizator
+  odrzuca instalację wersji równej już wdrożonej v113.00.20.
+- Brak zmian bazy, ekwipunku, klas, skilli, profesji, limitów i serwera TCP.
+
+--- HISTORIA WYDAŃ ---
+
+POPRAWKA v113.00.20 — WINDOWS PREDEPLOY FAST HELP / 0,10 S (15.11.2026)
+STATUS: NIE WDRAŻAĆ bez nowego Windows 60/60 PLUS na tym dokładnym ZIP-ie.
+
+- Poprzedni PREDEPLOY 17:51:20 zakończył się FAIL w bramce 1:
+  trzy historyczne, sztywne oczekiwania na napisy o 14 narzędziach
+  w player/session_mixins/help_system.py. Aktualna pomoc celowo pokazuje
+  liczbę profesji/narzędzi z bieżącego rejestru, zamiast dawnych 14.
+- Zachowano 0,10 s na krok (ręczny, prowadzenie, podążanie i schody).
+- Szybki audyt weryfikuje odtąd obecność aktywnego katalogu HELP,
+  liczników z rejestru, Archeologii, Kartografii i końcowego wiązania
+  pomocy; nie uznaje braku tych elementów za poprawny.
+- Rozszerzono regresję HELP o testy celowo uszkodzonych kontraktów.
+- Historyczny test powiadomień najemników v1.22.10 wykonuje teraz
+  prawdziwy party_movement_barrier_v1130020 razem z rzeczywistym ruchem;
+  nie pomija ochrony drużyny ani nie stosuje sztucznego mocka bariery.
+- Brak zmian gameplay, bazy, EQ i komend graczy.
+- Poprzednie kody 99/125 wynikały z fail-fast bramki 1, a nie z
+  niezależnych potwierdzonych awarii kolejnych etapów.
+- Numer wydania pozostaje v113.00.20; zmiana archiwum wymaga ponownego
+  PREDEPLOY i nie dziedziczy poprzednich wyników.
+
+SOULBOUND v113.00.20 — TEMPO 0,10 SEKUNDY NA KROK (15.11.2026)
+STATUS: NIE WDRAZAC bez pelnego PREDEPLOY 60/60 PLUS dokladnie tej paczki.
+- Kazdy krok: 0,10 s nominalnego czasu ruchu, rowniez gora/dol i krypta.
+- Identyczny czas dla ruchu recznego, prowadzenia lidera i podazania druzyny.
+- Usunieto 15% kary na schodach oraz dawne 0,35/0,70 s.
+- Stale tempo niezalezne od historycznych zmiennych srodowiskowych.
+- Zachowano blokady walki, bossow, synchronizacje 1–6 graczy i SQLite.
+- Dodatkowa szybka regresja tempa we wstepnej bramce PREDEPLOY.
+- Jest to opoznienie ruchu, nie gwarancja czasu odpowiedzi serwera: operacje
+  SQLite, potwory i wysylanie komunikatow nadal moga go wydluzyc.
+
+--- WCZESNIEJSZY CHANGELOG ---
+SOULBOUND v113.00.20 — KOREKTA BRAMKI SZYBKIEGO PREDEPLOY (15.11.2026)
+STATUS: NIE WDRAŻAĆ przed pełnym Windows PREDEPLOY 60/60 PLUS dla NOWEGO ZIP.
+- Naprawiono dwie nieklasyfikowane puste obsługi wyjątku w regresjach
+  teleportu do lidera i transakcji SQLite. Testy teraz jawnie potwierdzają
+  dokładną przyczynę oczekiwanego błędu i jego wystąpienie, zachowując
+  weryfikację cofnięcia zapisu i lokalizacji postaci.
+- Wstępny test PREDEPLOY sprawdza teraz wszystkie pliki .py pod kątem
+  nieklasyfikowanych pustych bloków except PRZED kosztownymi 60 bramkami.
+- Pełny historyczny audyt i wszystkie 60 etapów PLUS pozostają obowiązkowe.
+- Nie zmieniono mechaniki gry, bazy, ochrony EQ ani pomiarów wydajności.
+- Naprawa dotyczy wyłącznie testów i szybkiego weryfikatora źródeł.
+
+--- WCZEŚNIEJSZY CHANGELOG ---
+SOULBOUND MUD v113.00.20 — PRZYŚPIESZENIE WALKI, DRUŻYNY I DIAGNOSTYKA (15.11.2026)
+STATUS: KANDYDAT TESTOWY, NIE WDRAŻAĆ bez pełnego Windows PREDEPLOY 60/60 PLUS.
+
+- Znaleziono realny koszt: produkcyjne obliczanie HP, many i parametrów
+  umiejętności wielokrotnie skanowało pełny katalog ponad 203 000 przedmiotów
+  w poszukiwaniu relikwii Broni Duszy. Zastąpiono je krótkotrwałym indeksem
+  identyfikatorów relikwii (automatyczne odświeżanie max 0,5 s).
+- Indeks natychmiast unieważnia się po kontrolowanych zmianach katalogu ITEMS;
+  aktualny typ i parametry relikwii są zawsze odczytywane z bieżącego słownika.
+- Przynależność do postaci, posiadanie i poziom są nadal sprawdzane z aktualnej
+  bazy SQLite, bez pamięci podręcznej uprawnień ani zmian w gospodarce.
+- Obliczanie max HP i many ponownie wykorzystuje bonusy EQ tylko w ramach
+  pojedynczego, synchronicznego odczytu. Nie przechowuje cache między
+  komendami, użyciami umiejętności, ruchami ani zmianą wyposażenia.
+- Diagnostyka: wolne komendy otrzymują [PERF DETAIL] z czasem całości,
+  użyciem CPU całego procesu, liczbą i czasem zapytań SQLite oraz commitów.
+  Bez argumentów komend, loginów, haseł, tekstu zapytań czy danych graczy.
+- Ruch ręczny i każdy krok prowadzenia raportuje opóźnienia powyżej 250 ms;
+  watchdog raportuje [PERF LOOP LAG] gdy pętla serwera blokuje się >= 250 ms.
+- Diagnostyka nie wyłącza autoryzacji, nie omija bram bossa, nie zmienia
+  timerów walki ani nie modyfikuje rzeczywistych zapisów graczy.
+- Regression: porównanie indeksu z pełnym katalogiem 203k przedmiotów,
+  unieważnianie indeksu, zapis/rollback SQLite i krótkotrwały cache EQ.
+- ZACHOWANE wszystkie poprawki v113.00.20: szybkie prowadzenie drużyny,
+  teleport do lidera, atlas 38 profesji, aktualny help multiclass i atlasy.
+
+--- WCZEŚNIEJSZY CHANGELOG v113.00.20 ---
+SOULBOUND MUD v113.00.20 — AKTUALIZACJA HELP I ATLASÓW (Windows/Linux)
+15 listopada 2026 | KANDYDAT TESTOWY — NIE WDRAŻAĆ bez 60/60 PLUS
+- Usunięto nieaktualne opisy multiklasowości: JEDNA stała klasa główna,
+  bez dodawania, przełączania i premii od archiwalnych klas.
+- Pełny runtime v113.00.20 ma 38 klas i 38 profesji. Help pobiera liczbę
+  z aktywnych katalogów, a nie z historycznych limitów 14/22.
+- Atlas profesji pokazuje kompletny aktualny katalog (38 zawodów),
+  nowe osiem profesji ma własne narzędzia, czynności i komendy; późniejsze
+  profesje są dostępne po nazwie z ich typem narzędzia i liczbą zadań.
+- Poprawiono pomoc: multiclass, klasy, profesje, atlas, umiejętności,
+  rasy, zakładanie EQ, sklepy klasowe, kodex, tempo, narzędzia,
+  nawigacja, krypta, drużyny, teleport to leader, ziemia i listę komend.
+- Usunięto stare limity 600 w opisach aktualnej progresji do 800,
+  pozostawiając historyczne odnośniki do dawnych wersji.
+- Test bieżącej pomocy i atlasów działa we wstępnej kontroli PREDEPLOY.
+- Bez zmian w zasadach gry, danych SQLite, 60 bramkach PLUS i zapisach.
+- Pełny Windows PREDEPLOY 60/60 PLUS obowiązkowy przed wdrożeniem.
+
+SOULBOUND MUD v113.00.20 — DRUŻYNA PODCZAS SZYBKIEGO PROWADZENIA
+15 listopada 2026 | KANDYDAT TESTOWY — NIE WDRAŻAĆ bez 60/60 PLUS
+
+- Naprawiono gubienie członków drużyny przy szybkim `walk krypta dol`,
+  `walk krypta dool`, `prowadz`, zwykłym ruchu i zmianach pięter.
+- Gdy członek drużyny w tym samym pokoju jeszcze walczy, idzie,
+  jest powalony lub prowadzi własną trasę, lider NIE wykona kroku.
+  Komunikat po polsku podaje imię i przyczynę wstrzymania.
+- Gdy indywidualna blokada zatrzyma członka podczas kroku, prowadzenie
+  zostaje zatrzymane; przy kolejnej próbie lider nie może oddalić się
+  jeszcze bardziej od rozdzielonej drużyny w Krypcie.
+- Można wrócić realnymi przejściami w stronę pozostawionego gracza;
+  po ponownym zebraniu drużyna normalnie rusza dalej.
+- Dodatkowa, dobrowolna komenda ratunkowa `teleport to leader` / `tp lider`.
+  Członek drużyny może dołączyć do lidera między zwykłymi piętrami
+  tej samej Krypty (także z bocznego korytarza).
+- Teleport nie działa w walce, podczas ruchu, z obcej krainy ani do
+  ukrytych pomieszczeń; nie omija niezaliczonych bram bossów co 10 pięter.
+- Testy rzeczywistych metod teleportu sprawdzają 6 graczy, odrzucanie
+  nielegalnego celu, zapis pozycji i cofnięcie jej po błędzie bazy.
+- Standardowy ruch i prowadzenie nie teleportują graczy automatycznie.
+- Nowy szybki test regresji sześciu prawdziwych sesji symulowanych
+  (walka/ruch/prowadzenie, rozdzielenie, powrót i ponowne zejście)
+  uruchamiany przed drogim PREDEPLOY 60/60 PLUS.
+- Mechanika identyczna w pakietach Windows i Linux; runtime i testy
+  zachowują jedną niezależną architekturę, bez skryptów per-wersja.
+- GitHub i działająca produkcja v113.00.19 nietknięte.
+
+--- WCZEŚNIEJSZY CHANGELOG ---
 SOULBOUND v113.00.19 — POPRAWKA PREDEPLOY WINDOWS/LINUX (15.11.2026)
 STATUS: NIE WDRAŻAĆ przed pełnym Windows PREDEPLOY 60/60 PLUS dla tej paczki.
 - Naprawiono wykrywanie systemu w funkcji dostępnej pamięci: platforma

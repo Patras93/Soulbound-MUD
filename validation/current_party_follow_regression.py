@@ -144,14 +144,14 @@ async def check_all():
     assert any('Blokada przejścia' in m for m in actors[5].messages)
     checks += 1
 
-    # A member already moving or independently guiding is skipped, but not
-    # silently; the leader must stop a guided route after that step.
+    # A member independently guiding MUST stop the leader before the step,
+    # instead of letting the leader get one room ahead and losing the party.
     server, actors = party()
     actors[3].guiding = True
     assert not await actors[0].walk_room_transition('east', 'middle', guided=True, show_room=True)
-    assert actors[3].character.room_id == 'start' and actors[0]._party_follow_blocked_v1130012
+    assert all(actor.character.room_id == 'start' for actor in actors)
     checks += 1
-    assert any('Testtcp4' in msg for msg in actors[0].messages)
+    assert any('Testtcp4' in msg and 'prowadzenie' in msg for msg in actors[0].messages)
     checks += 1
     # No other account should be dropped after a correctly completed step.
     server, actors = party()

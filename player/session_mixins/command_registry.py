@@ -227,6 +227,7 @@ COMMAND_REGISTRY = {
     'inspectprivacy': ('inspect_privacy_v03051', (COMMAND_TEXT,), {}),
     'tell': ('tell', (COMMAND_TEXT,), {}),
     'reply': ('reply_private_v0928', (COMMAND_TEXT,), {}),
+    'teleportleader': ('teleport_to_party_leader', (COMMAND_TEXT,), {}),
     'party': ('handle_party', (COMMAND_TEXT,), {}),
     'partyinvite': ('party_invite', (COMMAND_TEXT,), {}),
     'partyaccept': ('party_accept', (), {}),
@@ -510,6 +511,8 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
         help_topic=_canonical, kind="session",
     )
 
+for _alias in ('teleport', 'tp', 'teleportdolidera', 'tpdolidera'):
+    COMMAND_CATALOG.add_alias(_alias, 'teleportleader', source='player/session_mixins/command_registry.py')
 COMMAND_CATALOG.add_alias('prezent', 'adwent', source='player/session_mixins/command_registry.py')
 for _alias in ('ziemia', 'ground'):
     COMMAND_CATALOG.add_alias(_alias, 'groundloot', source='player/session_mixins/command_registry.py')

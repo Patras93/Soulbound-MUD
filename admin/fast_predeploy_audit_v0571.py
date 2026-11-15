@@ -46,6 +46,28 @@ def _assignment_dict_key_count(path: Path, variable: str) -> int:
     return 0
 
 
+
+def _current_profession_help_contract_errors_v11320(help_source: str, truth_source: str) -> list[str]:
+    """Check active dynamic profession HELP without requiring old 14-tool prose.
+
+    Pure source contract: safe in the fast audit without bootstrapping the full
+    game. The full runtime/atlas HELP is additionally exercised by the existing
+    current_help_atlas_regression and universal tests.
+    """
+    contracts = (
+        ("active HELP catalogue binding", "HELP_TOPICS = _current_help_catalogs()[0]", help_source),
+        ("active HELP dispatcher", "async def show_help(", help_source),
+        ("dynamic profession registry", "profession_count = len(set(TOOL_PROFESSION_MAP.values()))", truth_source),
+        ("dynamic profession HELP count", 'f"Soulbound ma {profession_count} profesji', truth_source),
+        ("current profession topic", 'HELP_TOPICS["profesje"]', truth_source),
+        ("Archeologia and Kartografia in public HELP", "Eksploracja: Archeologia i Kartografia.", truth_source),
+        ("Archeologia HELP topic", 'HELP_TOPICS["archeologia"]', truth_source),
+        ("Kartografia HELP topic", 'HELP_TOPICS["kartografia"]', truth_source),
+        ("final HELP binding to registry", "COMMAND_CATALOG.bind_help(HELP_TOPICS, HELP_TOPIC_ALIASES)", truth_source),
+    )
+    return [f"current profession HELP contract missing: {label}"
+            for label, token, source in contracts if token not in source]
+
 def fast_predeploy_audit_v0571():
     errors: list[str] = []
     warnings: list[str] = []
@@ -368,10 +390,14 @@ def fast_predeploy_audit_v0571():
         if "len(PROFESSIONS_V0580)*PROFESSION_MAX_LEVEL" not in completion_source:
             errors.append("completion profession denominator is not fixed to all 14 professions")
 
+        # Current public HELP is assembled from the live profession registry.
+        # The historical v1.10.6 guard expected literal "14 tools" phrases in
+        # help_system.py. That text was removed correctly when the catalog grew.
+        # Verify the actual contemporary binding, dynamic count and both
+        # exploration professions instead of requiring obsolete player text.
         help_source = (ROOT / "player" / "session_mixins" / "help_system.py").read_text(encoding="utf-8")
-        for token in ("Archeologia, Kartografia", "wszystkich 14 narzędzi", "Tierów wszystkich 14 narzędzi"):
-            if token not in help_source:
-                errors.append(f"current 14/14 help contract missing: {token}")
+        truth_source = (ROOT / "admin" / "help_truth_current.py").read_text(encoding="utf-8")
+        errors.extend(_current_profession_help_contract_errors_v11320(help_source, truth_source))
 
         progress_source = (ROOT / "player" / "session_mixins" / "progress_titles.py").read_text(encoding="utf-8")
         if "COURIER_REPUTATION_MAX_V0530" not in progress_source:

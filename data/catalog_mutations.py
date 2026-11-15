@@ -27,6 +27,8 @@ KNOWN_CATALOGS = frozenset({
 CATALOG_MUTATION_LOG = deque(maxlen=5000)
 CATALOG_MUTATION_COUNTS: Counter[tuple[str, str, str]] = Counter()
 CATALOG_LAST_WRITER: dict[tuple[str, Any], str] = {}
+# Invalidate the live relic index after controlled item catalog changes.
+ITEMS_GENERATION_V11320 = 0
 
 
 def _caller_module() -> str:
@@ -61,6 +63,9 @@ def _record(name: str, key: Any, action: str, *, owner: str | None = None, path=
     name = _validate_catalog_name(name)
     owner = str(owner or _caller_module())
     root_key = key
+    if name == "ITEMS":
+        global ITEMS_GENERATION_V11320
+        ITEMS_GENERATION_V11320 += 1
     CATALOG_MUTATION_COUNTS[(owner, name, action)] += 1
     CATALOG_LAST_WRITER[(name, root_key)] = owner
     CATALOG_MUTATION_LOG.append({

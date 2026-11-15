@@ -112,15 +112,10 @@ class SessionEquipmentStatsMixin:
                 return list(cache["relic_rows"])
             level=int(getattr(self.character,"character_level",1) or 1)
             rows=[]
-            # This full ITEMS scan was executed up to seven times per DPS
-            # forecast/member and several more times per real Soul Weapon hit.
-            # The 1-second catalog index is enabled ONLY in staging v106.
-            import os as _v106_relic_os
-            if _v106_relic_os.environ.get('SOULBOUND_V106_STAGING')=='1':
-                from systems.v106_relic_catalog_index import soul_weapon_relic_catalog_v106
-                candidates=soul_weapon_relic_catalog_v106(ITEMS)
-            else:
-                candidates=ITEMS.items()
+            # Production-safe item ID index. Never cache ownership, levels,
+            # activation choice or an item's mutable/current dict.
+            from systems.relic_runtime_index_v11320 import relic_candidates_v11320
+            candidates = relic_candidates_v11320(ITEMS)
             for item_id,item in candidates:
                 if item.get("type")!="soul_weapon_relic":
                     continue

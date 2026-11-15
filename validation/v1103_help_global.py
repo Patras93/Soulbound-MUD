@@ -49,7 +49,7 @@ def run_regression():
             if act.prof==prof:
                 ck(f'profesja praca {prof} {act.code}' in '\n'.join(rows), f'{prof}: {act.code}')
     rows=asyncio.run(_help('klasy'))
-    ck('22 grywalne' in '\n'.join(rows), 'help klasy uses canonical topic, not multiclass')
+    ck(f'{len(server.CLASSES)} grywaln' in '\n'.join(rows), 'help klasy uses current live class count, not multiclass')
     ck(rows[0] == 'POMOC: KLASY', 'help klasy canonical title')
     for text in ('KUPIECTWO','kupiectwo','kupiec','handel','kupi-ectwo'):
         rows=asyncio.run(_help(text))
