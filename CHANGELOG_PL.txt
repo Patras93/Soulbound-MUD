@@ -1,3 +1,18 @@
+SOULBOUND MUD v113.00.22 — NAPRAWA PROWADZENIA CZŁONKA DRUŻYNY (15.11.2026)
+STATUS: NIE WDRAŻAĆ przed nowym PREDEPLOY Windows 60/60 PLUS na dokładnym ZIP-ie.
+
+- Usunięto AttributeError [GUIDE ERROR] przy `walk` / `prowadz`, gdy
+  postać nie ma jeszcze znacznika rozdzielenia drużyny.
+- Brak znacznika oznacza brak blokady; nadal zatrzymujemy prowadzenie, jeśli
+  istnieje rzeczywista informacja o zgubionym członku drużyny.
+- Test regresji odtwarzał awarię na sesji członka drużyny oraz bada gracza
+  bez drużyny; nie dotyka bazy produkcyjnej.
+- Zachowano krok 0,10 s, teleport do lidera, ochronę bossów i SQLite.
+- Wersja 113.00.22 umożliwia bezpieczną aktualizację ponad wdrożoną 113.00.21.
+- Nie dokonano zmian stanu postaci, kont ani danych EQ.
+
+--- HISTORIA WYDAŃ ---
+
 SOULBOUND MUD v113.00.21 — PILNA NAPRAWA STARTU PO v113.00.20 (15.11.2026)
 STATUS: NIE WDRAŻAĆ bez nowego Windows PREDEPLOY 60/60 PLUS dokładnie tego ZIP-u.
 
