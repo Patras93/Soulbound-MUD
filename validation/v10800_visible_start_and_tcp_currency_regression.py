@@ -8,9 +8,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import os
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 
 
 def run():
@@ -31,35 +33,11 @@ def run():
     assert "launcher = root / 'START_Soulbound.bat'" in updater
     checks += 1
 
-    import windows_autostart as autostart
-    with TemporaryDirectory(prefix='sb108_visible_start_') as temp:
-        home = Path(temp)
-        project = home/'DummyGame'
-        project.mkdir()
-        (project/'START_Soulbound.bat').write_text('@echo off\n',encoding='utf-8')
-        appdata = home/'fake_appdata'
-        with patch.dict(os.environ, {'APPDATA':str(appdata)}), patch.object(autostart,'ROOT',project):
-            target = autostart.install()
-            assert target.name.endswith('.cmd') and target.is_file()
-            checks += 1
-            assert autostart._cmd_owned(target)
-            checks += 1
-            # Existing v107 autostart for THIS install may migrate to CMD.
-            old = autostart.legacy_startup_file()
-            old.write_text('Option Explicit\r\npath = "'+str(project/'START_Soulbound_UKRYTY.vbs')+'"\r\n',encoding='utf-16')
-            autostart.install()
-            assert not old.exists() and target.exists()
-            checks += 1
-            # Other-install file must never be silently removed.
-            old.write_text('path = "C:\\OtherGame\\START_Soulbound_UKRYTY.vbs"',encoding='utf-16')
-            with unittest.TestCase().assertRaises(RuntimeError):
-                autostart.install()
-            assert old.exists()
-            checks += 1
-            old.unlink()
-            autostart.uninstall()
-            assert not target.exists()
-            checks += 1
+    # v113+ replacement for earlier CMD-based autostart contract:
+    # synthetic HKCU Run proves a totally hidden login start, and verifies
+    # ownership of legacy CMD/VBS entries without touching the real registry.
+    from validation.current_windows_autostart_background_regression import run_regression
+    checks += run_regression()
 
     from validation.v2102_tcp_six_players import _money_snapshot
     clean='Masz 1 mithril, 12 złota, 9 srebra.\r\nTo jedno wspólne saldo.\r\n'

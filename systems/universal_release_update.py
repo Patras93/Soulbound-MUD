@@ -243,6 +243,18 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
         print('Dane graczy nietkniete; zbadane bazy: '+str(report['sqlite_files'])+
               '; tabele: '+str(report['tables_checked']),flush=True)
         print('Pelny backup starszego kodu i danych: '+str(backup),flush=True)
+        # On Windows, migrate ONLY an already enabled autostart from the old
+        # visible Startup CMD to HKCU Run + pythonw (no startup console).
+        # This is post-publication, never from an isolated PREDEPLOY clone.
+        if os.name == 'nt':
+            try:
+                from windows_autostart import migrate_if_enabled
+                migrated = migrate_if_enabled()
+                if migrated:
+                    print('AUTOSTART: od teraz Soulbound rusza w tle bez okna CMD.',flush=True)
+            except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+                print('UWAGA: autostart nie zostal przeniesiony: '+str(exc)+
+                      '. Mozna uzyc AUTOSTART_WLACZ_Soulbound.bat.',flush=True)
         if restart and os.name=='nt':
             try:
                 subprocess.Popen([os.environ.get('COMSPEC','cmd.exe'),'/d','/c',

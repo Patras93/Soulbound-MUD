@@ -1,3 +1,23 @@
+SOULBOUND MUD v113.00.18 — AUTOMATYCZNY START WINDOWS BEZ OKNA CMD
+15 listopada 2026
+STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
+
+- Po zalogowaniu do Windows Soulbound może startować całkowicie w tle,
+  bez widocznego okna konsoli. Autostart uruchamia bezpośrednio pythonw.exe
+  przez wpis bieżącego użytkownika w HKCU\...\Run.
+- Jeśli autostart był wcześniej włączony, zatwierdzona aktualizacja
+  automatycznie zastępuje jego własny stary wpis CMD/VBS wpisem niewidocznym.
+  Jeżeli autostart był wyłączony, aktualizacja NIE włącza go samodzielnie.
+- Nadal istnieje AUTOSTART_WLACZ_Soulbound.bat / AUTOSTART_WYLACZ_Soulbound.bat,
+  a serwer zatrzymuje się wyłącznie świadomie przez STOP_Soulbound.bat.
+- Nie zamykamy procesów obcych, nie używamy Task Scheduler ani WScript.
+  Program pozostaje pod opieką dotychczasowego watchdog; logi pozostają
+  w logs/serwer.log, logs/watchdog.log oraz logs/bledy.log.
+- Brak zmian w mechanice gry, SQLite, nagrodach, questach, Over Cap i Jammerze.
+- Zachowana pełna kompatybilność z v113.00.17. Produkcja i GitHub nietknięte.
+
+--- POPRZEDNIE ZMIANY ---
+
 SOULBOUND MUD v113.00.17 — KONIEC JAMMERA: KOMUNIKAT NVDA (WINDOWS)
 14 listopada 2026
 STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.
