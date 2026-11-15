@@ -33,6 +33,16 @@ class CorpseState:
     expires_at: float
 
 
+@dataclass
+class GroundLootState:
+    key: str
+    room_id: str
+    item_id: str
+    mob_name: str
+    created_at: float
+    expires_at: float
+
+
 from typing import Optional  # canonical current dependency
 @dataclass
 class MobState:
@@ -213,6 +223,8 @@ class World:
         self.mobs = {}
         self.corpses = {}
         self.corpse_counter = 0
+        self.ground_loot = {}
+        self.ground_loot_counter = 0
         self.treasure_chest_opened_at = {}
         # Boss chest visibility can recover after an actual boss respawn or restart.
         self.boss_chest_world_started_v1288 = time.time()
@@ -1312,9 +1324,28 @@ class World:
         for mob_key in expired_keys:
             self.mobs.pop(mob_key, None)
 
+        # A corpse is transient, but uncollected equipment must survive its
+        # decay on the ground for a second, independent lifetime. Preserve the
+        # real corpse expiry as the drop birth date, even after an idle tick.
+        from core.bootstrap_economy_professions import GROUND_LOOT_LIFETIME_SECONDS
         for corpse_key, corpse in tuple(self.corpses.items()):
             if corpse.expires_at <= now:
                 self.corpses.pop(corpse_key, None)
+                for item_id in corpse.items:
+                    self.ground_loot_counter += 1
+                    key = f"ground:{self.ground_loot_counter}"
+                    born = float(corpse.expires_at)
+                    drop = GroundLootState(
+                        key=key, room_id=corpse.room_id, item_id=item_id,
+                        mob_name=corpse.mob_name, created_at=born,
+                        expires_at=born + GROUND_LOOT_LIFETIME_SECONDS,
+                    )
+                    if drop.expires_at > now:
+                        self.ground_loot[key] = drop
+                corpse.items.clear()
+        for key, drop in tuple(self.ground_loot.items()):
+            if drop.expires_at <= now:
+                self.ground_loot.pop(key, None)
 
         self._last_refresh_at = now
         self._last_live_counts = live_counts
@@ -1499,6 +1530,11 @@ class World:
         from world.equipment_help import class_equipment_drop_chance, class_equipment_drop_pool  # explicit current dependency
         from core.runtime_rules import get_rule as _current_rule
         boss_key_for_template = _current_rule('boss_key_for_template')
+        # Combat has already marked the defeated mob dead; prune the cached
+        # live-room index at corpse creation without touching the protected
+        # legacy combat reward method or its quest/party settlement.
+        if not mob.alive:
+            self.hide_defeated_mob(mob)
         template=MOB_TEMPLATES[mob.template_id]
         if template.get("leave_corpse", True) is False: return None
         pool=list(template.get("corpse_equipment_pool",()))
@@ -1623,6 +1659,50 @@ class World:
     def room_corpses(self, room_id):
         self.refresh()
         return [c for c in self.corpses.values() if c.room_id==room_id]
+
+    def room_ground_loot(self, room_id):
+        """Drops visible after a corpse decays, before ground expiry."""
+        self.refresh()
+        return [item for item in self.ground_loot.values() if item.room_id == room_id]
+
+    def find_ground_loot(self, room_id, query):
+        """Match item names, numbered entries and duplicates in one room."""
+        from data.items import ITEMS
+        from storage.db_shared import normalize_lookup_text
+        import re
+        drops = self.room_ground_loot(room_id)
+        raw = str(query or '').strip()
+        wanted = normalize_lookup_text(raw)
+        if not wanted:
+            return drops[0] if len(drops) == 1 else None
+        if wanted.isdecimal():
+            n = int(wanted)
+            return drops[n - 1] if 1 <= n <= len(drops) else None
+        match = re.match(r'^(\d+)\s*[.]?\s*(.+)$', wanted)
+        number = 1
+        if match:
+            number = int(match.group(1))
+            wanted = match.group(2).strip()
+        found = [drop for drop in drops if wanted == normalize_lookup_text(
+            ITEMS.get(drop.item_id, {}).get('name', drop.item_id))]
+        if not found:
+            found = [drop for drop in drops if wanted in normalize_lookup_text(
+                ITEMS.get(drop.item_id, {}).get('name', drop.item_id))]
+        return found[number - 1] if 1 <= number <= len(found) else None
+
+    def hide_defeated_mob(self, mob):
+        """Immediately remove a killed encounter from cached live-room views."""
+        mob.alive = False
+        mob.hp = 0
+        rows = self._last_live_by_room.get(mob.room_id)
+        if rows and mob in rows:
+            remaining = tuple(row for row in rows if row is not mob)
+            if remaining:
+                self._last_live_by_room[mob.room_id] = remaining
+            else:
+                self._last_live_by_room.pop(mob.room_id, None)
+            self._last_live_counts[mob.room_id] = len(remaining)
+        self._last_refresh_at = 0.0
 
     def find_corpse(self, room_id, query=""):
         """Znajdź ciało po nazwie albo stabilnym indeksie z listy w pokoju.

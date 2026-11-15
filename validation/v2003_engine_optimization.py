@@ -111,6 +111,9 @@ def run_regression():
     world = object.__new__(World)
     world.mobs = {}
     world.corpses = {}
+    # This fixture bypasses World.__init__: mirror transient loot state too.
+    world.ground_loot = {}
+    world.ground_loot_counter = 0
     world._last_refresh_at = 0.0
     world._refresh_min_interval = .25
     world._last_live_counts = {}

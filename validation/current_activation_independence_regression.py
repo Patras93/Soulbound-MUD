@@ -56,6 +56,9 @@ def check():
     installed = {p.as_posix() for p in production_release_mapping(
         {Path(p): None for p in all_files})}
     assert not V112_HISTORICAL_ACTIVATION_FILES.intersection(installed)
+    assert 'predeploy_fast_gate.py' not in installed, 'offline test launcher leaked into production'
+    assert (ROOT / 'predeploy_fast_gate.py').is_file(), 'missing mandatory offline preflight'
+    checks += 2
     closure = inspect_files(all_files, installed, required_files={
         'server.py', 'systems/runtime_activation.py', 'systems/universal_activation.py'})
     assert closure['missing_import_count'] == 0, closure['missing_imports'][:10]

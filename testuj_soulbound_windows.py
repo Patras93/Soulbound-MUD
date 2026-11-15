@@ -249,7 +249,7 @@ def stage_env(temp):
     return env
 
 
-def run_stage(path, env, deadline, say, *, root=None):
+def run_stage(path, env, deadline, say, *, root=None, stop_event=None):
     """Run one gate with a hard deadline and a spool file, never stdout PIPE.
 
     Some historical tests launch subprocesses that inherit stdout.  A reader
@@ -272,12 +272,25 @@ def run_stage(path, env, deadline, say, *, root=None):
                 stdout=output, stderr=subprocess.STDOUT,
             )
             timed_out = False
-            try:
-                code = proc.wait(timeout=deadline)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                code = 124
-                kill_owned_process(proc)
+            cancelled = False
+            limit = time.monotonic() + deadline
+            while True:
+                if stop_event is not None and stop_event.is_set():
+                    cancelled = True
+                    code = 125  # Aborted after a different blocking FAIL.
+                    kill_owned_process(proc)
+                    break
+                remaining = limit - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    code = 124
+                    kill_owned_process(proc)
+                    break
+                try:
+                    code = proc.wait(timeout=min(0.5, remaining))
+                    break
+                except subprocess.TimeoutExpired:
+                    continue
             # Read *after* the direct PID ends; descendants cannot keep the
             # audit blocked merely by holding their inherited stdout open.
             output.seek(0)
@@ -285,18 +298,88 @@ def run_stage(path, env, deadline, say, *, root=None):
                 say(line.decode('utf-8', errors='replace').rstrip('\r\n'))
             if timed_out:
                 say(f'FAIL: Przekroczony limit czasu {deadline} sekund. Proces zakonczony.')
+            if cancelled:
+                say('POMINIETO: inny test zglosil blokujacy FAIL; proces tej proby zakonczony.')
             return code
     finally:
         if proc is not None and proc.poll() is None:
             kill_owned_process(proc)
 
 
-# Separate disposable source trees prevent concurrent tests from sharing file
-# output, ports, generated seeds or game-state artifacts. Release checks and
-# their numeric count are unchanged; only their schedule is shortened.
-# Limit simultaneous heavy Python processes while scaling to 16-thread hosts.
-# Ryzen 7 / 16 threads -> four independent candidate copies and workers.
-PARALLEL_WORKERS = max(1, min(4, (os.cpu_count() or 2) // 2))
+# One independent candidate/SQLite per worker; each mandatory gate is run once.
+# A 16-thread Ryzen runs up to eight simultaneous isolated stage processes.
+# Never blindly fill all logical threads: protect RAM and leave CPU for Windows,
+# NVDA, TCP child servers, the live Soulbound server and the filesystem cache.
+MAX_PARALLEL_WORKERS = 8
+_MIB = 1024 * 1024
+
+
+def available_predeploy_memory_bytes():
+    """Current available RAM, not total installed RAM; no third-party packages."""
+    if sys.platform == 'win32':
+        import ctypes
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [
+                ('dwLength', ctypes.c_ulong), ('dwMemoryLoad', ctypes.c_ulong),
+                ('ullTotalPhys', ctypes.c_ulonglong), ('ullAvailPhys', ctypes.c_ulonglong),
+                ('ullTotalPageFile', ctypes.c_ulonglong), ('ullAvailPageFile', ctypes.c_ulonglong),
+                ('ullTotalVirtual', ctypes.c_ulonglong), ('ullAvailVirtual', ctypes.c_ulonglong),
+                ('ullAvailExtendedVirtual', ctypes.c_ulonglong),
+            ]
+        status = MEMORYSTATUSEX()
+        status.dwLength = ctypes.sizeof(status)
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
+            return int(status.ullAvailPhys)
+        return None
+    if sys.platform.startswith('linux'):
+        try:
+            with open('/proc/meminfo', encoding='ascii') as info:
+                memory = next(int(line.split()[1]) * 1024 for line in info
+                              if line.startswith('MemAvailable:'))
+        except (OSError, ValueError, StopIteration):
+            return None
+        # Respect cgroup v2 when available. A v1/non-cgroup host has no
+        # memory.max and uses MemAvailable; an unreadable v2 cgroup fails
+        # closed (unknown RAM => at most four parallel workers).
+        cgroup_root = Path('/sys/fs/cgroup')
+        try:
+            max_text = (cgroup_root / 'memory.max').read_text(encoding='ascii').strip()
+        except FileNotFoundError:
+            return memory
+        except (OSError, ValueError):
+            return None
+        if max_text == 'max':
+            return memory
+        try:
+            current = int((cgroup_root / 'memory.current').read_text(encoding='ascii').strip())
+            cgroup_limit = int(max_text)
+        except (OSError, ValueError):
+            return None
+        return min(memory, max(0, cgroup_limit - current))
+    return None
+
+
+def recommended_predeploy_workers(logical_threads=None, available_bytes=None):
+    """Limit concurrent full candidates by threads AND available physical RAM.
+
+    A worker may spawn further Python/TCP subprocesses; budget 768 MiB per
+    worker and keep 2 GiB free for the OS, live game and screen reader.
+    Unknown available RAM fails safe to four workers, never assumes 16 GiB.
+    """
+    if logical_threads is None:
+        logical_threads = os.cpu_count() or 2
+    if available_bytes is None:
+        available_bytes = available_predeploy_memory_bytes()
+    cpu_limit = min(MAX_PARALLEL_WORKERS, max(1, int(logical_threads) // 2))
+    if available_bytes is None:
+        return min(cpu_limit, 4)
+    memory_budget = max(0, int(available_bytes) - 2048 * _MIB)
+    memory_limit = max(1, memory_budget // (768 * _MIB))
+    return min(cpu_limit, memory_limit)
+
+
+AVAILABLE_RAM_AT_START = available_predeploy_memory_bytes()
+PARALLEL_WORKERS = recommended_predeploy_workers(available_bytes=AVAILABLE_RAM_AT_START)
 
 
 def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
@@ -321,6 +404,7 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
         pending.put(index)
     results = [None] * len(stages)
     report_lock = threading.Lock()
+    abort = threading.Event()  # first hard FAIL stops queued and running stages
     # The authenticated five-player combat gate was starved on Windows while
     # the 1500-second exhaustive Python audit used the other worker. It must
     # still run as a real, mandatory TCP/SQLite gate, but only AFTER the heavy
@@ -345,12 +429,22 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                 except queue.Empty:
                     return
                 title, script, deadline = stages[index]
+                if abort.is_set():
+                    results[index] = (title, 125)
+                    pending.task_done()
+                    continue
                 began = time.monotonic()
                 output_lines = []
                 try:
                     if phase == 'ETAP' and title == '5 KLIENTOW TCP + RESTART':
-                        if not full_audit_done.wait(timeout=2250):
-                            raise TimeoutError('TCP: pelny audyt nie zakonczyl pracy w limicie izolacji')
+                        until = time.monotonic() + 2250
+                        while not full_audit_done.wait(timeout=0.25):
+                            if abort.is_set():
+                                raise RuntimeError('Przerwano TCP: poprzedni etap FAIL')
+                            if time.monotonic() >= until:
+                                raise TimeoutError('TCP: pelny audyt nie zakonczyl pracy w limicie izolacji')
+                    if abort.is_set():
+                        raise RuntimeError('Przerwano: poprzedni etap FAIL')
                     with report_lock:
                         say(f'\nSTART: {phase} {index + 1}/{len(stages)}: {title} [{script}]')
                     if not (root / script.split()[0]).is_file():
@@ -363,7 +457,7 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                             env = stage_env(scratch)
                             if staging_v106 and 'KOPII' not in title:
                                 env['SOULBOUND_V106_STAGING'] = '1'
-                            code = run_stage(script, env, deadline, output_lines.append, root=root)
+                            code = run_stage(script, env, deadline, output_lines.append, root=root, stop_event=abort)
                 except BaseException as exc:
                     code = 99
                     output_lines.append('BLAD TESTERA: ' + type(exc).__name__ + ': ' + str(exc))
@@ -376,6 +470,8 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                     say(f'KONIEC: {title} | {"PASS" if code == 0 else "FAIL"} | '
                         f'kod {code} | czas {elapsed:.1f} s')
                 results[index] = (title, code)
+                if code not in (0, 125):
+                    abort.set()
                 if phase == 'ETAP' and title == 'PELNY AUDYT':
                     full_audit_done.set()
                 pending.task_done()
@@ -386,6 +482,8 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                 job.result()
     if any(result is None for result in results):
         raise RuntimeError('PREDEPLOY: zabraklo wyniku jednego z etapow.')
+    if abort.is_set():
+        say('PREDEPLOY PRZERWANY PO FAIL: pominięte etapy mają kod 125; nie ma zgody na wdrożenie.')
     return results
 
 
@@ -516,7 +614,20 @@ def main():
             say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ, brak wymaganej bazy SQLite')
             say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
             return 2
-        say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; wszystkie 60 testow bez pomijania.')
+        say('KONTROLA WSTEPNA: 298 metod AST, silnik, ciala, EQ, upiory przed 60 etapami.')
+        with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-fastgate-') as preflight_dir:
+            env = stage_env(preflight_dir)
+            code = run_stage('predeploy_fast_gate.py', env, 180, say)
+        if code != 0:
+            say('KONTROLA WSTEPNA FAIL: 60 etapow nie rozpoczeto. Bez STOP i bez wdrozenia.')
+            say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ')
+            say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
+            return 1
+        ram_msg = ('nieznany' if AVAILABLE_RAM_AT_START is None else
+                   f'{AVAILABLE_RAM_AT_START / (1024 ** 3):.1f} GiB')
+        say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; '
+            f'{os.cpu_count() or 2} watkow CPU, wolny RAM {ram_msg}; '
+            '60/60 PLUS bez pomijania, przerwanie po pierwszym FAIL.')
         try:
             status = run_parallel_stages(STAGES, say)
         except KeyboardInterrupt:

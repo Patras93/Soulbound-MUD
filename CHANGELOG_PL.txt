@@ -1,3 +1,91 @@
+SOULBOUND v113.00.19 — POPRAWKA PREDEPLOY WINDOWS/LINUX (15.11.2026)
+STATUS: NIE WDRAŻAĆ przed pełnym Windows PREDEPLOY 60/60 PLUS dla tej paczki.
+- Naprawiono wykrywanie systemu w funkcji dostępnej pamięci: platforma
+  Windows rozpoznawana jest po sys.platform == win32. Pozwala to
+  testowi niezawodnie symulować przypadki Linux także na Windows.
+- Usunięto przedwczesny FAIL z 11:54:29 (assert dostępnej pamięci Linux).
+- Wstępny test 20/20 PASS na kopiach Windows i Linux w środowisku testowym.
+- Bez zmian w mechanice gry, bazie SQLite, 60 bramkach PLUS, liczbie
+  procesów (maks. 8) ani zabezpieczeniach aktualizacji.
+- Nie zmieniono produkcji ani gałęzi GitHub.
+
+--- WCZEŚNIEJSZE ZMIANY v113.00.19 ---
+SOULBOUND v113.00.19 — NAPRAWA AUDYTU PREDEPLOY 8 PROCESÓW (15.11.2026)
+STATUS: NIE WDRAŻAĆ przed pełnym PREDEPLOY 60/60 PLUS na komputerze Windows.
+- Naprawiono jedyny błąd audytu: pusta obsługa wyjątku przy odczycie
+  limitu RAM kontenera Linux. Gdy odczyt cgroup jest niewiarygodny,
+  testy używają bezpiecznego limitu maksymalnie 4 kopii.
+- Gdy cgroup v2 nie istnieje, używane jest MemAvailable z /proc/meminfo.
+- Nowa szybka kontrola AST przed startem 60 etapów odrzuca
+  nieklasyfikowane puste obsługi wyjątków w harmonogramie testów.
+  Pełny audyt pozostałego kodu odbywa się w etapie 1/60.
+- Test regresji zasobów sprawdza teraz także brak cgroup, brak
+  uprawnień i błędne wartości pamięci, bez potrzeby Linux na Windows.
+- Wszystkie 60 bramek PLUS, niezależność baz, aktywacja,
+  mechanika ciał, EQ, questy i Jammer pozostają niezmienione.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v113.00.19 — OPTYMALIZACJA RÓWNOLEGŁEGO PREDEPLOY
+15 listopada 2026 | KANDYDAT — NIE WDRAŻAĆ BEZ PEŁNEGO 60/60 PLUS.
+- Ryzen 7 5700X / 16 wątków: do 8 izolowanych kopii testowych zamiast 4,
+  jeśli faktycznie dostępny RAM wystarcza (zabezpieczenie 2 GiB na system
+  oraz 768 MiB na pracownika). Na mniejszych maszynach dobór automatyczny.
+- Odpytywana jest dostępna, a nie wyłącznie całkowita pamięć RAM;
+  przy braku pomiaru obowiązuje bezpieczny limit 4 procesów.
+- Windows i Linux używają identycznych reguł harmonogramu; Linux
+  dodatkowo respektuje ograniczenie pamięci w kontenerze cgroup v2.
+- Wciąż wykonuje się WSZYSTKIE 60 etapów PLUS i trzy bramki v105
+  oraz trzy uniwersalne; wszystkie testy otrzymują własne kopie kodu,
+  bazę SQLite i port localhost. Fail-fast oraz log NVDA pozostają.
+- Wprowadzono test doboru CPU/RAM i jednoczesnego działania 8 kopii,
+  uruchamiany przed długim audytem; zaktualizowano historyczną regresję.
+- Bardzo długich audytów (20–24 min) nie pomijamy i nie zastępujemy
+  wynikiem innego testu: zwiększenie liczby procesów nie gwarantuje
+  proporcjonalnego skrócenia czasu całości.
+- Zachowane: QUEST UPIRY, JAMMER, OVER CAP, CIAŁA I EQ NA ZIEMI.
+- GitHub i produkcja nie zostały zmienione.
+
+--- DOTYCHCZASOWE ZMIANY ---
+SOULBOUND MUD v113.00.19 — POPRAWKA BRAMKI NIEZALEŻNOŚCI AKTYWACJI
+15 listopada 2026 | STATUS: KANDYDAT, NIE WDRAŻAĆ BEZ 60/60 PLUS
+- Naprawa: predeploy_fast_gate.py pozostaje w pełnej paczce testowej, ale
+  nie jest kopiowany do produkcyjnego runtime, bo importuje validation/.
+- Test niezależności aktywacji sprawdza teraz, że szybka bramka nie
+  trafia do instalowanych plików; mechanika gry i SQLite bez zmian.
+- Nadal obowiązuje pełny PREDEPLOY 60/60 PLUS oraz bramki uniwersalne.
+- Windows/Linux: osobne paczki, ten sam kod gry.
+
+SOULBOUND MUD v113.00.19 - POPRAWKA PREDEPLOY 60 PLUS (WINDOWS I LINUX)
+15 listopada 2026
+STATUS: KANDYDAT TESTOWY - NIE WDRAZAC PRZED PELNYM PREDEPLOY NA SYSTEMIE DOCELOWYM.
+
+- Naprawiono historyczny test silnika v2.00.3: sztuczny swiat inicjalizuje ground_loot oraz ground_loot_counter tak jak prawdziwy konstruktor World.
+- Ochrona zgodnosci: wstepna kontrola 298 historycznie chronionych metod AST przed uruchomieniem dlugich testow.
+- Widok rzeczy na ziemi przeniesiono do osobnej nakladki w Session.look, zachowujac niezmieniona chroniona metode SessionPerceptionMapsMixin.look.
+- Dodano szybka kontrole silnika, rozkladu cial, EQ na ziemi, upiorow krypty, Over Cap i Jammera PRZED kosztownym Windows 60/60 PLUS.
+- Pierwszy blokujacy FAIL powoduje przerwanie pozostalych testow, zatrzymanie wlasnych procesow testowych i status NIE WDRAZAJ.
+- Przy poprawnym wydaniu nadal wykonywane jest pelne 60/60 PLUS, trzy bramki v105 i trzy bramki uniwersalne.
+- Zachowane wszystkie funkcje poprzedniej kandydackiej v113.00.19 (cialo 10 minut, ziemia 30 minut, upiory z glebszych pieter), bez zmian w bazie gry.
+
+--- WCZESNIEJSZY CHANGELOG ---
+SOULBOUND MUD v113.00.19 — MARTWE MOBY, ROZKŁAD CIAŁ I EQ NA ZIEMI
+15 listopada 2026
+STATUS: KANDYDAT TESTOWY — WYMAGANY NATYWNY PREDEPLOY 60/60 PLUS PRZED WDROŻENIEM
+
+- Quest duszy z 5 Upiorami Krypty zalicza również Upiory Krypty na głębszych piętrach: 2, 10, 18, 26, ... wraz z ich wariantami. Nie liczy innych mobów, strażników ani bossów.
+- Pokonany mob od razu znika z żywej listy i pamięci podręcznej lokacji; nie można go ponownie zaatakować do respawnu.
+- Ciało nadal istnieje przez 10 minut i można je przeszukać; bossowy klucz pozostaje na ciele.
+- Gdy ciało się rozłoży, nieodebrane przedmioty przechodzą na ziemię w tym samym pokoju.
+- Przedmioty leżą na ziemi jeszcze 30 minut i dopiero potem znikają, nie automatycznie w momencie rozkładu ciała.
+- Polecenia: ziemia, podnies 1, podnies nazwa, wez nazwa, wez wszystko.
+- Zachowano dotychczasowe polecenia przeszukaj 2.cialo i wez miecz z 2.cialo.
+- Ciało, łup na ziemi i martwy mob mają osobne stany; odnowienie moba nie usuwa łupu.
+- Mechanika identyczna w wydaniu Windows i Linux; pliki platformowe w osobnych ZIP.
+- Bez modyfikowania produkcyjnej bazy SQLite; ciało i przedmioty na ziemi są stanem świata w pamięci (jak przed aktualizacją).
+
+UWAGA: wydanie nie zostało jeszcze zatwierdzone przez pełny PREDEPLOY na komputerze Windows ani serwerze Linux.
+
+--- POPRZEDNI CHANGELOG ---
 SOULBOUND MUD v113.00.18 — AUTOMATYCZNY START WINDOWS BEZ OKNA CMD
 15 listopada 2026
 STATUS: KANDYDAT — NIE WDRAŻAĆ PRZED WINDOWS PREDEPLOY 60/60 PLUS.

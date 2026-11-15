@@ -71,6 +71,11 @@ V111_CANDIDATE_ONLY_ROOT_FILES = frozenset({
     'audyt_v107_windows_przed_predeploy.py', 'sprawdz_v104_zbiorczo.py',
 })
 
+# Mandatory PREDEPLOY-only launchers live in the full release ZIP, never in
+# the installed runtime. Their validation imports are intentionally absent
+# from the live code subset. This contract is version-neutral.
+CURRENT_PREDEPLOY_ONLY_ROOT_FILES = frozenset({'predeploy_fast_gate.py'})
+
 
 # Current runtime uses systems.runtime_activation only. Historical activators
 # remain in the full candidate exclusively for offline regression fixtures.
@@ -189,6 +194,8 @@ def production_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Pat
         if len(parts)==3 and parts[0:2]==('world','quests_v110'):
             continue
         if len(parts)==1 and parts[0] in V111_CANDIDATE_ONLY_ROOT_FILES:
+            continue
+        if len(parts)==1 and parts[0] in CURRENT_PREDEPLOY_ONLY_ROOT_FILES:
             continue
         result[rel]=info
     return result

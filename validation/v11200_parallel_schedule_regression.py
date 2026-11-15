@@ -15,7 +15,7 @@ import testuj_soulbound_windows as tested
 
 def run():
     checks=0
-    assert 1 <= tested.PARALLEL_WORKERS <= 4;checks+=1
+    assert 1 <= tested.PARALLEL_WORKERS <= 8;checks+=1
     with tempfile.TemporaryDirectory(prefix='sb112_parallel_contract_') as td:
         root=Path(td)/'candidate';root.mkdir()
         (root/'VERSION').write_text('112.00.0\n',encoding='utf-8')
@@ -23,7 +23,7 @@ def run():
             (root/script).write_text('pass\n',encoding='utf-8')
         events=[]
         lock=threading.Lock()
-        def run_one(script,env,deadline,output,root):
+        def run_one(script,env,deadline,output,root,stop_event=None):
             started=time.monotonic()
             with lock:events.append(('start',script,started,str(root)))
             time.sleep(0.11)
@@ -50,7 +50,29 @@ def run():
                    ('KRÓTKI TEST','fast.py',60))
             results=tested.run_parallel_stages(order,msgs.append,phase='ETAP',max_workers=1)
             assert [name for name,_ in results]==[x[0] for x in order];checks+=1
-            assert [e[1] for e in events if e[0]=='start']==['heavy.py','fast.py','tcp.py'];checks+=1
-    print(f'V112 PREDEPLOY RÓWNOLEGŁY: {checks}/9 PASS')
+            # After the heavy audit fails, the waiting TCP gate must NOT run.
+            assert [e[1] for e in events if e[0]=='start']==['heavy.py'];checks+=1
+            assert results[1][1]==125 and any('POMINI' in m or 'PRZERWANY' in m for m in msgs);checks+=1
+        # Real subprocesses: first FAIL must cancel active work and prevent
+        # queued stages from running or writing any marker file.
+        import os
+        with (patch.object(tested, 'ROOT', root),
+              patch.object(tested, 'stage_env', return_value=os.environ.copy())):
+            marker=Path(td)/'should_not_run.txt'
+            (root/'bad.py').write_text('raise SystemExit(7)\n',encoding='utf-8')
+            (root/'slow.py').write_text('import time\ntime.sleep(15)\n',encoding='utf-8')
+            (root/'later.py').write_text(
+                f'from pathlib import Path\nPath({str(marker)!r}).write_text("ran")\n',
+                encoding='utf-8')
+            began=time.monotonic()
+            results=tested.run_parallel_stages((('FAIL','bad.py',15),
+                                                ('SLOW','slow.py',20),
+                                                ('LATE','later.py',15)),
+                                               msgs.append,phase='V112',max_workers=2)
+            assert results[0][1]==7; checks+=1
+            assert all(code!=0 for _,code in results[1:]); checks+=1
+            assert not marker.exists(); checks+=1
+            assert time.monotonic()-began < 8; checks+=1
+    print(f'V112 PREDEPLOY RÓWNOLEGŁY: {checks}/{checks} PASS')
 
 if __name__=='__main__':run()

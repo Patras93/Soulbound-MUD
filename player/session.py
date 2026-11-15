@@ -118,7 +118,17 @@ class Session(
     SessionCommandLoopMixin
 ):
     """Player session composed from focused subsystem mixins."""
-    pass
+
+    async def look(self, query=""):
+        """Add ground-drop information after the immutable native room view.
+
+        This additive wrapper preserves the audited historical
+        SessionPerceptionMapsMixin.look AST and all its early returns.
+        """
+        await SessionPerceptionMapsMixin.look(self, query)
+        if not str(query or "").strip() and self.character:
+            if self.server.world.room_ground_loot(self.character.room_id):
+                await self.show_ground_loot()
 
 # v12.00.8: game-mechanics-preserving sound events layered above audited methods.
 from systems.sound_events_v1208 import install_sound_hooks_v1208 as _sound_install_v1208

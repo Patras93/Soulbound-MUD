@@ -503,6 +503,62 @@ class SessionCollectionLootRecordsMixin:
                     + ", ".join(quick) + "."
                 )
 
+    async def show_ground_loot(self, query=""):
+            from data.items import ITEMS
+            drops = self.server.world.room_ground_loot(self.character.room_id)
+            if not drops:
+                await self.send('Nie ma tutaj przedmiotów na ziemi.')
+                return
+            if query.strip():
+                selected = self.server.world.find_ground_loot(self.character.room_id, query)
+                if selected is None:
+                    await self.send('Nie ma takiego przedmiotu na ziemi.')
+                    return
+                drops = [selected]
+            await self.send('Na ziemi: ' + ', '.join(
+                f"{n}. {ITEMS.get(d.item_id, {}).get('name', d.item_id)}"
+                for n, d in enumerate(drops, 1)
+            ) + '. Podnieś: podnies numer lub wez nazwa przedmiotu.')
+
+    async def take_ground_loot(self, query=""):
+            from data.items import ITEMS
+            raw = str(query or '').strip()
+            if not raw:
+                await self.show_ground_loot()
+                return
+            if raw.lower() in ('wszystko', 'all'):
+                drops = list(self.server.world.room_ground_loot(self.character.room_id))
+                if not drops:
+                    await self.send('Nie ma niczego na ziemi.')
+                    return
+            else:
+                chosen = self.server.world.find_ground_loot(self.character.room_id, raw)
+                drops = [chosen] if chosen else []
+            if not drops:
+                await self.send('Nie ma takiego przedmiotu na ziemi.')
+                return
+            collected = []
+            for drop in drops:
+                if drop.key not in self.server.world.ground_loot:
+                    continue
+                item_id = drop.item_id
+                if item_id not in ITEMS:
+                    continue
+                # Award before removing; there is no await until both complete,
+                # preventing a second session from claiming the same object.
+                self.server.db.add_item(self.account_id, item_id, 1)
+                self.server.world.ground_loot.pop(drop.key, None)
+                collected.append((drop, item_id))
+            if not collected:
+                await self.send('Przedmioty zniknęły lub zostały już zabrane.')
+                return
+            for drop, item_id in collected:
+                await self.record_item_collection(item_id, source=drop.mob_name, announce=True)
+            visible = [ITEMS[item_id]['name'] for _, item_id in collected
+                       if self.loot_message_allowed(item_id)]
+            await self.send('Podnosisz z ziemi: ' +
+                            (', '.join(visible) if visible else 'przedmioty ukryte filtrem') + '.')
+
     async def get_from_corpse(self, args=""):
             """Zabierz jeden przedmiot albo wszystko z wybranego ciała.
 
@@ -523,9 +579,9 @@ class SessionCollectionLootRecordsMixin:
 
             parts = re.split(r"\s+(?:from|z|ze)\s+", raw, maxsplit=1, flags=re.IGNORECASE)
             if len(parts) != 2:
-                await self.send(
-                    "Podaj źródło. Przykład: get miecz from 2.corpse albo wez miecz z 2.cialo."
-                )
+                # The old get/wez commands targeted a corpse only. Without a
+                # source, treat the argument as a ground-item name or number.
+                await self.take_ground_loot(raw)
                 return
             item_query, corpse_query = parts[0].strip(), parts[1].strip()
             corpse = self.server.world.find_corpse(self.character.room_id, corpse_query)
