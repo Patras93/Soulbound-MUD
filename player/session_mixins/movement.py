@@ -646,7 +646,7 @@ class SessionMovementMixin:
             # Signal that a guided multi-step route must stop after this
             # completed step if any follower stayed behind; never pretend
             # the whole party arrived, and never teleport past a blocked exit.
-            if guided and self._party_follow_blocked_v1130012:
+            if guided and bool(getattr(self, "_party_follow_blocked_v1130012", False)):
                 if not self.closed:
                     await self.send("Prowadzenie wstrzymane: członek drużyny został w tyle.")
                 return False

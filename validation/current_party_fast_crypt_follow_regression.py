@@ -114,6 +114,30 @@ async def run_cases():
     assert actors[4].character.room_id == 'crypt_floor_2_r02'
     checks += 1
 
+    # v113.00.22: reproduce production [GUIDE ERROR] on a follower who
+    # starts his OWN guided route. Only leaders initialize the split-state
+    # latch inside party_movement_barrier_v1130020; absent means not blocked.
+    server, actors = party()
+    member = actors[1]
+    assert not hasattr(member, '_party_follow_blocked_v1130012')
+    checks += 1
+    assert await member.walk_room_transition('east', 'middle', guided=True, show_room=True)
+    assert member.character.room_id == 'middle'
+    checks += 1
+    assert not getattr(member, '_party_follow_blocked_v1130012', False)
+    checks += 1
+
+    # The same successful guide is valid for a character without a party.
+    server, actors = party()
+    solo = actors[0]
+    solo.party_key = MethodType(lambda _self: None, solo)
+    assert not hasattr(solo, '_party_follow_blocked_v1130012')
+    assert await solo.walk_room_transition('east', 'middle', guided=True, show_room=True)
+    assert solo.character.room_id == 'middle'
+    checks += 1
+    assert not getattr(solo, '_party_follow_blocked_v1130012', False)
+    checks += 1
+
     print(f'FAST CRYPT PARTY FOLLOW: {checks}/{checks} PASS', flush=True)
     return checks
 
