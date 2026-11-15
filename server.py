@@ -838,6 +838,9 @@ if tuple(map(int,VERSION.split('.'))) >= (110,0,0):
     LATEST_CHANGES = ['v110: osobne moduły 12 krain, 700 questów, 40 bossów, 8 klas, 8 ras i 8 profesji.',
                       'v110: wydarzenia globalne 3.0, nowy bezpieczny kontrakt uruchamiania.']+LATEST_CHANGES
 
+from systems.help_atlas_v1602 import refresh_current_help_v11320 as _refresh_help_v11320
+CURRENT_HELP_V11320 = _refresh_help_v11320(HELP_TOPICS, HELP_TOPIC_ALIASES)
+
 # The server performs additional authored content registration below native
 # composition. Evaluate public teacher HELP and the complete audit only AFTER
 # that registration; otherwise those checks see incomplete catalogs.

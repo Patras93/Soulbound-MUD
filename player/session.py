@@ -119,6 +119,97 @@ class Session(
 ):
     """Player session composed from focused subsystem mixins."""
 
+    async def show_profession_atlas_v1602(self, query=""):
+        """Complete live profession atlas; original historical 14 remain unchanged."""
+        from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+        from core.progression_600 import PROFESSION_MAX_LEVEL, TOOL_MAX_LEVEL
+        from systems.new_professions import PROFESSIONS, BASE_ACTIONS
+        from player.session_mixins.atlas_codex import SessionAtlasCodexMixin
+        from systems.profession_quest_expansion import PROFESSION_QUEST_SPECS_V0700
+        from data.quests import QUESTS
+        all_names = sorted(set(TOOL_PROFESSION_MAP.values()), key=str.casefold)
+        lookup = self.normalize_description_query(query or "")
+        if lookup in ("", "lista", "wszystkie", "all"):
+            await self.send(f"ATLAS PROFESJI: liczba zawodów {len(all_names)}. Profesje i narzędzia: poziomy 1-{PROFESSION_MAX_LEVEL}.")
+            for start in range(0, len(all_names), 8):
+                await self.send("Profesje: " + "; ".join(all_names[start:start+8]) + ".")
+            await self.send("Szczegóły: atlas profesje <nazwa>. Pozostałe działy: atlas odkrycia, ryby, rudy, drewno, geody, zioła.")
+            return
+        for name, (tool_type, tool_id, tool_name) in PROFESSIONS.items():
+            if lookup in (self.normalize_description_query(name),
+                          self.normalize_description_query(name).replace(' ', '_')):
+                await self.send(f"ATLAS PROFESJI: {name}. Poziom 1-{PROFESSION_MAX_LEVEL}. Narzędzie: {tool_name}, do {TOOL_MAX_LEVEL}.")
+                await self.send(f"Komendy: profesja status {name}; profesja czynnosci {name}; profesja kup {name}.")
+                actions = [a for a in BASE_ACTIONS if a.prof == name]
+                for a in actions:
+                    await self.send(f"pracuj {name} {a.code} [próg] — {a.title}, teren: {a.region}, od poziomu {a.min_level}.")
+                await self.send(f"Zlecenia: profesja zamowienie {name}; profesja oddaj {name}. Progi: 1, 25, 75, 150, 300, 500, 700.")
+                await self.send(f"Powiązane zadania w katalogu: {sum(1 for q in QUESTS.values() if q.get('required_profession') == name or q.get('reward_profession') == name)}.")
+                return
+        from systems.profession_quest_expansion import PROFESSION_QUEST_SPECS_V0700
+        historical = {self.normalize_description_query(spec[0])
+                      for spec in PROFESSION_QUEST_SPECS_V0700}
+        for tool_type, name in TOOL_PROFESSION_MAP.items():
+            if lookup == self.normalize_description_query(name) and lookup not in historical:
+                await self.send(f"ATLAS PROFESJI: {name}. Profesja 1-{PROFESSION_MAX_LEVEL}; narzędzie 1-{TOOL_MAX_LEVEL}.")
+                await self.send(f"Typ narzędzia: {tool_type}. Postęp: profesje info / narzedzia info.")
+                await self.send(f"Zadania powiązane: {sum(1 for q in QUESTS.values() if q.get('required_profession') == name or q.get('reward_profession') == name)}. Szczegóły: quest i help {name}.")
+                return
+        await SessionAtlasCodexMixin.show_profession_atlas_v1602(self, query)
+
+    async def show_atlas(self, query=""):
+        """Accurate dynamic profession index, with legacy resource atlas."""
+        from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+        from player.session_mixins.atlas_codex import SessionAtlasCodexMixin
+        q = self.normalize_description_query(query or "")
+        if not q:
+            await self.send(f"ATLAS. Odkrycia świata, profesje ({len(set(TOOL_PROFESSION_MAP.values()))}), ryby, drewno, rudy, geody i zioła.")
+            await self.send("atlas profesje — aktualny katalog zawodów; atlas profesje <nazwa> — opis; atlas odkrycia — postępy świata.")
+            await self.send("atlas ryby / rzeka / jezioro / morze / ocean; atlas drewno / rudy / geody / zioła; atlas <nazwa surowca>.")
+            return
+        from systems.profession_quest_expansion import PROFESSION_QUEST_SPECS_V0700
+        historical = {name for name, *_ in PROFESSION_QUEST_SPECS_V0700}
+        for name in TOOL_PROFESSION_MAP.values():
+            if name not in historical and q == self.normalize_description_query(name):
+                await self.show_profession_atlas_v1602(name)
+                return
+        await SessionAtlasCodexMixin.show_atlas(self, query)
+
+    def max_hp(self):
+        """Single-call snapshot removes duplicate EQ/SQLite lookups.
+
+        Do not hold the cache across await, combat actions or separate calls:
+        upgrading/removing equipment must take effect on the very next call.
+        """
+        key = '_read_only_equipment_cache_v1262'
+        if key in self.__dict__:
+            return super().max_hp()
+        self.__dict__[key] = {}
+        try:
+            return super().max_hp()
+        finally:
+            self.__dict__.pop(key, None)
+
+    def max_mana(self):
+        """Use a fresh read-only equipment snapshot for this calculation only."""
+        key = '_read_only_equipment_cache_v1262'
+        if key in self.__dict__:
+            return super().max_mana()
+        self.__dict__[key] = {}
+        try:
+            return super().max_mana()
+        finally:
+            self.__dict__.pop(key, None)
+
+    async def move(self, direction, preserve_auto_mining=False):
+        """Measure manual and guide steps without changing travel permission."""
+        from core.perf_diagnostics_v11320 import begin, finish
+        scope, token = begin('move')
+        try:
+            return await super().move(direction, preserve_auto_mining=preserve_auto_mining)
+        finally:
+            finish(scope, token, minimum=0.25)
+
     async def look(self, query=""):
         """Add ground-drop information after the immutable native room view.
 

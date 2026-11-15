@@ -150,6 +150,8 @@ class SessionCommandLoopMixin:
                 await self.move(direction)
                 continue
 
+            from core.perf_diagnostics_v11320 import begin as _perf_begin_v11320, finish as _perf_finish_v11320
+            _perf_scope_v11320, _perf_token_v11320 = _perf_begin_v11320(command or token)
             _perf_started_v0718 = time.perf_counter()
             self._perf_intentional_wait_v102009 = 0.0
             # v1.26.2: cache immutable EQ readouts only for the duration of a
@@ -163,6 +165,7 @@ class SessionCommandLoopMixin:
             finally:
                 if _read_only_stats_v1262:
                     self.__dict__.pop("_read_only_equipment_cache_v1262", None)
+                _perf_finish_v11320(_perf_scope_v11320, _perf_token_v11320)
             _perf_elapsed_v0718 = time.perf_counter() - _perf_started_v0718
             # Deliberate recipe timers and character-menu input are not engine work.
             _perf_wait_v102009 = min(_perf_elapsed_v0718, max(0.0, float(

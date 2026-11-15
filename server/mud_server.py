@@ -541,6 +541,21 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
             await session.close()
             self.sessions.discard(session)
 
+    async def performance_watchdog_v11320(self):
+        """Observe event-loop starvation without touching gameplay or DB."""
+        loop = asyncio.get_running_loop()
+        interval = 0.5
+        expected = loop.time() + interval
+        last_report = -1e12
+        while True:
+            await asyncio.sleep(interval)
+            now = loop.time()
+            lag = max(0.0, now - expected)
+            expected = now + interval
+            if lag >= 0.25 and now - last_report >= 10.0:
+                print(f'[PERF LOOP LAG] blokada petli={lag:.3f}s (bez danych graczy)', flush=True)
+                last_report = now
+
     async def run(self):
         from core.bootstrap_economy_professions import DB_PATH, HOST, MAX_CLIENTS, PORT, PORT_SOURCE, VERSION
         import asyncio  # canonical current dependency
@@ -567,6 +582,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         from systems.windows_control_v1603 import start_control_v1603
         stop_event = asyncio.Event()
         control = await start_control_v1603(stop_event)
+        latency_task = asyncio.create_task(self.performance_watchdog_v11320())
         wander_task = asyncio.create_task(self.mob_wander_loop())
         xp_event_task = asyncio.create_task(self.double_xp_event_loop())
         try:
@@ -605,9 +621,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         finally:
             if control is not None:
                 await control.close()
-            for task in (wander_task, xp_event_task):
+            for task in (wander_task, xp_event_task, latency_task):
                 task.cancel()
-            for task in (wander_task, xp_event_task):
+            for task in (wander_task, xp_event_task, latency_task):
                 try:
                     await task
                 except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal server shutdown task cancellation

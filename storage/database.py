@@ -88,6 +88,31 @@ class _DeferredCommitConnection:
             self._connection.execute(statement)
         return None
 
+    def execute(self, *args, **kwargs):
+        # Only measure SQL while a user command owns this asyncio context.
+        # Preserve the exact sqlite3 cursor, exceptions and transaction scope.
+        from core.perf_diagnostics_v11320 import current, note_sql
+        scope = current()
+        if scope is None:
+            return self._connection.execute(*args, **kwargs)
+        from time import perf_counter
+        started = perf_counter()
+        try:
+            return self._connection.execute(*args, **kwargs)
+        finally:
+            note_sql(perf_counter() - started)
+
+    def executemany(self, *args, **kwargs):
+        from core.perf_diagnostics_v11320 import current, note_sql
+        if current() is None:
+            return self._connection.executemany(*args, **kwargs)
+        from time import perf_counter
+        started = perf_counter()
+        try:
+            return self._connection.executemany(*args, **kwargs)
+        finally:
+            note_sql(perf_counter() - started)
+
     def __getattr__(self, name):
         return getattr(self._connection, name)
 
@@ -101,13 +126,22 @@ class _DeferredCommitConnection:
         if self._defer_depth > 0:
             self._commit_pending = True
             return
-        self._connection.commit()
+        from core.perf_diagnostics_v11320 import current, note_sql
+        if current() is None:
+            self._connection.commit()
+            return
+        from time import perf_counter
+        started = perf_counter()
+        try:
+            self._connection.commit()
+        finally:
+            note_sql(perf_counter() - started, commit=True)
 
     def flush_deferred_commit(self):
         if self._defer_depth:
             return
         if self._commit_pending:
-            self._connection.commit()
+            self.commit()
             self._commit_pending = False
 
     @contextmanager

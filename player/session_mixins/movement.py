@@ -273,10 +273,168 @@ class SessionMovementMixin:
             await self.send(f'{label}: jesteś w {ROOMS.get(self.character.room_id, {}).get("name", self.character.room_id)}.')
 
     def movement_delay(self, direction, guided=False):
-            base = GUIDE_STEP_DELAY if guided else WALK_STEP_DELAY
-            if direction in ("up", "down"):
-                base *= 1.15
-            return max(0.05, float(base))
+            # Jeden krok = 0,10 s: reczny, prowadzenie i ruch po schodach.
+            # Czas SQLite/wiadomosci moze osobno zwiekszyc realny czas.
+            return GUIDE_STEP_DELAY if guided else WALK_STEP_DELAY
+
+    async def teleport_to_party_leader(self, raw=""):
+            """Voluntary reunion, limited to ordinary crypt floors already unlocked.
+
+            Never summons arbitrary accounts, skips a personal boss gate,
+            travels to private side rooms, or moves anyone during combat.
+            """
+            requested = " ".join(str(raw or "").casefold().split())
+            if requested not in ("", "to leader", "leader", "do lidera", "lider", "lidera"):
+                await self.send("Użycie: teleport to leader lub tp lider.")
+                return False
+            if self.closed or not self.character or self.account_id is None:
+                return False
+            key = self.party_key()
+            if key is None or key == self.account_id:
+                await self.send("Tylko członek drużyny może teleportować się do lidera.")
+                return False
+            leader = self.server.session_by_account(key)
+            if (not leader or leader.closed or not leader.character
+                    or leader.party_key() != key):
+                await self.send("Lider drużyny jest niedostępny.")
+                return False
+            if (self.combat_mob_key or self.moving or self.guiding
+                    or getattr(self, 'current_hp', 0) <= 0 or self.is_downed_v0371()):
+                await self.send("Teleport niedostępny podczas walki, ruchu lub po powaleniu.")
+                return False
+            if (leader.combat_mob_key or leader.moving or leader.guiding
+                    or getattr(leader, 'current_hp', 0) <= 0 or leader.is_downed_v0371()):
+                await self.send("Lider jest zajęty walką lub ruchem. Teleportuj się po jego zatrzymaniu.")
+                return False
+            old = str(self.character.room_id)
+            target = str(leader.character.room_id)
+            if old == target:
+                await self.send("Jesteś już przy liderze.")
+                return True
+            # This is a recovery mechanism for fast crypt guidance, not a
+            # general remote travel system. Only standard public floors.
+            def crypt_location(room, *, allow_side_room=False):
+                suffix = r'(?:_r\d+)?' if allow_side_room else ''
+                match = re.fullmatch(r'(crypt|mythic_crypt)_floor_([1-9]\d*)' + suffix, room)
+                if not match:
+                    return None
+                family, number = match.group(1), int(match.group(2))
+                parsed = (crypt_floor_number(room) if family == 'crypt'
+                          else mythic_crypt_floor_number(room))
+                return (family, number) if parsed == number else None
+            source = crypt_location(old, allow_side_room=True)
+            destination = crypt_location(target)
+            if source is None or destination is None or source[0] != destination[0]:
+                await self.send("Teleport do lidera działa tylko pomiędzy zwykłymi piętrami tej samej Krypty. Bez sekretnych komnat.")
+                return False
+            family, start_floor = source
+            target_floor = destination[1]
+            # Crossing down from each tenth floor normally requires a boss
+            # clear from THIS player's account; being in the party is not a
+            # substitute for it. Never teleport through an uncleared gate.
+            if target_floor > start_floor:
+                for boss_floor in range(((start_floor + 9) // 10) * 10, target_floor, 10):
+                    if not self.server.db.boss_floor_cleared(self.account_id, family, boss_floor):
+                        await self.send(
+                            f"Teleport zablokowany: najpierw zalicz bramę bossa na piętrze {boss_floor}."
+                        )
+                        return False
+            # Recheck membership/leader destination immediately before save;
+            # no await between this guard and the actual room assignment.
+            if (self.party_key() != key or leader.closed or leader.character.room_id != target
+                    or self.combat_mob_key or self.moving or self.guiding):
+                await self.send("Drużyna lub położenie lidera zmieniły się. Spróbuj ponownie.")
+                return False
+            self.previous_room_id = old
+            self.character.room_id = target
+            try:
+                self.server.db.save_character(self.character)
+            except Exception:
+                self.character.room_id = old
+                self.previous_room_id = None
+                raise
+            await self.server.broadcast_room(old, f"{self.character.name} teleportuje się do lidera.", exclude=self)
+            await self.server.broadcast_room(target, f"{self.character.name} dołącza do drużyny teleportem.", exclude=self)
+            await self.send(f"Teleport do lidera {leader.character.name}: {ROOMS.get(target, {}).get('name', target)}.")
+            await leader.send(f"{self.character.name} wrócił do drużyny teleportem.")
+            await self.look()
+            return True
+
+    async def party_movement_barrier_v1130020(self, target):
+            """Do not let rapid dungeon navigation strand an online teammate.
+
+            A busy follower is stopped BEFORE the leader takes a step.  If a
+            follower became blocked DURING the previous step, keep the stop
+            latched until the party actually regroups.  No teleport, gate
+            bypass or forced combat cancellation is performed.
+            """
+            if self.account_id is None or self.party_key() != self.account_id:
+                return True
+            room_id = self.character.room_id
+            members = [member for member in self.server.party_sessions(self.account_id)
+                       if member is not self and member.character and not member.closed]
+            here = [member for member in members if member.character.room_id == room_id]
+            busy = []
+            for member in here:
+                reasons = []
+                if getattr(member, 'combat_mob_key', None):
+                    reasons.append('walka')
+                if getattr(member, 'moving', False):
+                    reasons.append('ruch')
+                if getattr(member, 'guiding', False):
+                    reasons.append('prowadzenie')
+                if getattr(member, 'current_hp', 1) <= 0:
+                    reasons.append('powalony')
+                if reasons:
+                    busy.append(f"{member.character.name} ({'/'.join(reasons)})")
+            if busy:
+                await self.send('Drużyna czeka: ' + ', '.join(sorted(busy))
+                                + '. Zakończcie walkę lub ruch przed kolejnym krokiem.')
+                return False
+
+            # Detect a separated crypt team even after a manual command or a
+            # reconnection.  Members outside the crypt are not automatically
+            # teleported into a dungeon or used to block independent visits.
+            old_crypt = crypt_floor_number(room_id) is not None
+            old_mythic = mythic_crypt_floor_number(room_id) is not None
+            was_split = bool(getattr(self, '_party_follow_blocked_v1130012', False))
+            separated = []
+            for member in members:
+                member_room = member.character.room_id
+                if member_room == room_id:
+                    continue
+                same_crypt = old_crypt and crypt_floor_number(member_room) is not None
+                same_mythic = old_mythic and mythic_crypt_floor_number(member_room) is not None
+                if was_split or same_crypt or same_mythic:
+                    label = ROOMS.get(member_room, {}).get('name', str(member_room))
+                    separated.append(f'{member.character.name} ({label})')
+            if separated:
+                self._party_follow_blocked_v1130012 = True
+                # Recovery MUST be possible. Allow only a step that goes
+                # directly toward a lost member; a generic stop on all moves
+                # would trap the leader forever in the next crypt room.
+                closer = False
+                for member in members:
+                    member_room = member.character.room_id
+                    if member_room == room_id:
+                        continue
+                    if target == member_room:
+                        closer = True
+                        break
+                    shortest = getattr(self, 'shortest_path', None)
+                    if callable(shortest):
+                        path = shortest(room_id, member_room)
+                        if path and path[0][1] == target:
+                            closer = True
+                            break
+                if closer:
+                    await self.send('Drużyna rozdzielona. Wracasz po członka drużyny.')
+                    return True
+                await self.send('Drużyna rozdzielona: ' + ', '.join(sorted(separated))
+                                + '. Dalsze zejście wstrzymane. Zawróć do członka drużyny.')
+                return False
+            self._party_follow_blocked_v1130012 = False
+            return True
 
     async def walk_room_transition(self, direction, target, guided=False, show_room=False):
             """Wykonuje pojedynczy krok z krótkim czasem marszu zamiast teleportu.
@@ -294,7 +452,8 @@ class SessionMovementMixin:
             if getattr(self, "moving", False):
                 await self.send("Ruch drużyny jeszcze trwa. Poczekaj na zakończenie kroku.")
                 return False
-            self._party_follow_blocked_v1130012 = False
+            if not await self.party_movement_barrier_v1130020(target):
+                return False
             old = self.character.room_id
             if old == target:
                 return True

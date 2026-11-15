@@ -100,8 +100,11 @@ DIRECTION_WALK_LABELS = {
     "up": "w górę",
     "down": "w dół",
 }
-WALK_STEP_DELAY = float(os.getenv("SOULBOUND_WALK_STEP_DELAY", "0.70"))
-GUIDE_STEP_DELAY = float(os.getenv("SOULBOUND_GUIDE_STEP_DELAY", "0.35"))
+# v113.00.20: jeden krok co 0,10 s, tak samo prowadzenie i podazanie.
+# Tempo jest stale (takze na schodach). Nie spowalnia go stara
+# konfiguracja srodowiskowa z poprzednich instalacji.
+WALK_STEP_DELAY = 0.10
+GUIDE_STEP_DELAY = 0.10
 
 GUIDE_DESTINATION_ALIASES = {
     # v102.00.13: every ordinary Deep Dungeon route ends at the elevator.

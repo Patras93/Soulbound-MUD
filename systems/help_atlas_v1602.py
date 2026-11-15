@@ -126,3 +126,203 @@ def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
     })
     return {'version':'1.60.2','topics':len(topics),'profession_count':len(names),
             'old_cap_lines_replaced':replaced}
+
+
+
+def refresh_current_help_v11320(topics, aliases):
+    """Actual current command/help contracts, applied after every historical overlay.
+
+    Pure in-place data repair; do not change class rules, equipment or database.
+    Historical topic keys remain valid for old users and bookmarks.
+    """
+    # The early 1.60.2 installer still validates authored 800 defaults.
+    # This final overlay runs *after* Admin Live loads persisted limits and
+    # after the v107 default-unlimited migration.  Never reject legitimate
+    # production caps just because they differ from the authoring baseline.
+    from core.live_level_caps_v5200 import current as current_live_caps
+    live_caps = current_live_caps()
+    axes = ('postac', 'bieglosc', 'dusza', 'bron_duszy',
+            'skille', 'profesje', 'narzedzia')
+    if not all((live_caps.get(axis) is None or
+                (type(live_caps[axis]) is int and 1 <= live_caps[axis] <= 10_000_000))
+               for axis in axes):
+        raise RuntimeError('HELP: niepoprawne aktywne limity Admin Live')
+
+    def cap_text(axis):
+        value = live_caps[axis]
+        return 'bez limitu' if value is None else str(value)
+    from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP
+    from core.classes_skills import CLASSES
+    from systems.new_professions import PROFESSIONS as NEW_PROFESSIONS
+    professions = sorted(set(TOOL_PROFESSION_MAP.values()))
+    assert len(professions) >= 16 and len(NEW_PROFESSIONS) == 8
+    assert len(CLASSES) >= 22
+    topics['progresja800'] = [
+        ('Aktualne limity Admin Live: postać '+cap_text('postac')+
+         ', Biegłość klasy '+cap_text('bieglosc')+
+         ', Soul '+cap_text('dusza')+
+         ', Broń Duszy '+cap_text('bron_duszy')+
+         ', skille '+cap_text('skille')+
+         ', profesje '+cap_text('profesje')+
+         ', narzędzia '+cap_text('narzedzia')+'.'),
+        'Komenda admin live limity pokazuje bieżące wartości. Bez limitu oznacza brak twardego limitu poziomu, nie darmowe poziomy.',
+        'Statystyki podstawowe nie mają twardego limitu. Postęp sprawdzisz w score, staty info, dusza info, profesje info i narzedzia info.',
+    ]
+    # Historical help keys remain valid, but show the current values.
+    topics['progresja600'] = list(topics['progresja800'])
+    topics['multiclass'] = [
+        f'W aktualnej grze postać ma JEDNĄ klasę główną, wybraną przy tworzeniu. Dostępnych klas: {len(CLASSES)}.',
+        f'multiclass lub klasy pokazuje klasę główną i Biegłość (limit: {cap_text("bieglosc")}).',
+        'multiclass add/remove/switch są wyłączone. Nie da się dodać ani przełączyć drugiej aktywnej klasy.',
+        'Historia starszych klas i ich poziomy pozostają w zapisie SQLite, ale nie dają dodatkowych skilli, pasywów ani EXP.',
+        'Multi Cap klasy liczy tylko bieżącą klasę. Profesje i narzędzia rozwijają się niezależnie.',
+        f'Nauczyciele i wyposażenie klasowe wymagają klasy głównej; help klasy — aktualny katalog {len(CLASSES)} klas.'
+    ]
+    topics['klasy'] = [
+        f'Soulbound ma {len(CLASSES)} grywalnych klas. Jedną klasę główną wybiera się na stałe w kreatorze postaci.',
+        'Do nowych klas należą: Paladyn, Samuraj, Korsarz, Gladiator, Chronomanta, Iluzjonista, Bard i Szaman.',
+        f'Biegłość aktywnej klasy: limit {cap_text("bieglosc")}. Pomoc umiejętności: help skill <nazwa>; spis: kodeksklasowy wszystkie.',
+        'multiclass pokazuje aktywną klasę. Dodawanie i przełączanie klas jest wyłączone; historyczny zapis innych klas pozostaje bez bonusów.',
+        'classguild / guildquest — zadania i mistrzostwo klasowe. Nauczyciel uczy umiejętności tylko dla aktywnej klasy.',
+        'W kreatorze możesz wrócić do wyboru rasy poleceniem 0, wroc lub rasy.'
+    ]
+    topics['atlas'] = [
+        f'atlas — działy świata i surowców. atlas profesje — katalog wszystkich profesji ({len(professions)}).',
+        'atlas profesje <nazwa> — aktualna specjalizacja, narzędzie, czynności i zadania (w tym osiem nowych profesji).',
+        'atlas odkrycia [regiony|miasta|wyspy|lochy|platformy|ruiny|superbossy|sekrety] — postępy odkrywania.',
+        'atlas ryby / atlas rzeka / atlas jezioro / atlas morze / atlas ocean — ryby według rodzaju wody.',
+        'atlas rudy / atlas geody / atlas drewno / atlas zioła — wymagania narzędzi i surowce.',
+        'atlas <nazwa surowca> — miejsca, progi narzędzia i dostępność w bieżącym katalogu.',
+        'Komendy atlasu nie teleportują i nie zmieniają zapisów postaci.'
+    ]
+    topics['profesje'] = [
+        f'W grze jest {len(professions)} profesji i {len(TOOL_PROFESSION_MAP)} narzędzi. Limit profesji: {cap_text("profesje")}; narzędzi: {cap_text("narzedzia")}.',
+        'Osiem nowszych: Łowiectwo, Rolnictwo, Hodowla zwierząt, Okrętownictwo, Murarstwo, Inżynieria, Kupiectwo, Żeglarstwo.',
+        'atlas profesje — kompletny katalog; atlas profesje <nazwa> — opis jednej profesji.',
+        'profesje info i narzedzia info — poziomy i EXP. Nowe czynności: profesja czynnosci <nazwa>, pracuj <nazwa> <czynność> [próg].',
+        'Każda profesja i odpowiadające narzędzie mają oddzielne EXP i poziomy; zadania i receptury zależą od konkretnych wymagań.'
+    ]
+    topics['kodeks_klasowy'] = [
+        f'kodeksklasowy wszystkie / classcodex all — aktualny katalog {len(CLASSES)} klas i ich umiejętności.',
+        'kodeksklasowy <klasa> — umiejętności, wymagana Biegłość, nauczyciel i koszty.',
+        'kodeksklasowy moje — umiejętności bieżącej klasy głównej; inne klasy nie są aktywne.',
+        'Przy tworzeniu postaci wybierasz jedną klasę, której nie można potem przełączać.'
+    ]
+    topics['bizuteria_klasowa'] = [
+        'Klasowe pierścienie i naszyjniki istnieją dla klas, które mają je w aktualnym katalogu wyposażenia.',
+        'Korzystanie z przedmiotu wymaga zgodności z JEDNĄ aktywną klasą postaci, nie z historyczną multiklasą.',
+        'Załóż pierścień / załóż naszyjnik; szczegóły przedmiotu: opis <nazwa> i porownaj <nazwa>.',
+        'Gniazda i klejnoty są osobne dla każdego noszonego elementu.'
+    ]
+    if 'sklepy_klasowe' in topics:
+        topics['sklepy_klasowe'] = [s for s in topics['sklepy_klasowe']
+                                  if 'Multiclass działa' not in s]
+        topics['sklepy_klasowe'][0] = f'Klasowe sklepy wyposażenia: {len(CLASSES)} klas dostępnych w aktualnym świecie.'
+        topics['sklepy_klasowe'].append(
+            'Obecnie można używać wyłącznie wyposażenia JEDNEJ klasy głównej; archiwalne klasy nie odblokowują innych sklepów ani EQ.')
+    topics['przypisane'] = [
+        'Broń Duszy i poziomy narzędzi pozostają przypisane do konkretnej postaci.',
+        f'W grze jest {len(TOOL_PROFESSION_MAP)} profesjonalnych narzędzi, po jednym na profesję.',
+        f'Każde narzędzie kupuje się raz; rozwija własny level i EXP (limit: {cap_text("narzedzia")}).',
+        'Nie można przekazywać poziomów narzędzi pomiędzy postaciami.'
+    ]
+    topics['tempo_profesji'] = [
+        f'Wszystkie {len(professions)} profesje mają limit {cap_text("profesje")}.',
+        'Czas konkretnej czynności i wymagania materiałowe zależą od jej profesji i poziomu.',
+        'Nowe osiem profesji ma osobne czynności, koszty i progi; zobacz profesja czynnosci <nazwa>.',
+        'Narzędzia rozwijają się niezależnie i mogą wpływać na jakość, zbiór i skuteczność działania.'
+    ]
+    for key in ('narzedzia200','wolniejszy_xp_narzedzi'):
+        if key in topics:
+            topics[key] = [
+                f'Aktualny limit narzędzi: {cap_text("narzedzia")}. Nazwa tematu jest historyczna; stare progi pozostają etapami progresji.',
+                'Poziom i aktualny wymagany EXP sprawdzaj przez narzedzia info / tools; progi i premie wynikają z rzeczywistego narzędzia.',
+                'Atlas profesje oraz atlas <nazwa surowca> pokazują potrzebne narzędzia i wymagania.'
+            ]
+    topics['soul200'] = [
+        f'Soul ma limit {cap_text("dusza")}, a Biegłość Broni Duszy {cap_text("bron_duszy")}; nazwa help soul200 pozostała dla kompatybilności.',
+        'Próby Soul Tier i wymagania bossów pozostają w aktualnych systemach. Postęp: dusza info.',
+        'Każdy awans Soul Level zapewnia rozwój Broni Duszy zgodnie z obecną progresją.'
+    ]
+    topics['endgame_profesje'] = [
+        f'Limit profesji: {cap_text("profesje")}; narzędzi: {cap_text("narzedzia")}. Starsze surowce i receptury nadal mają swoje progi.',
+        'Wędka: atlas ryby; Kilof: atlas rudy / atlas geody; Piła: atlas drewno; Sierp: atlas zioła.',
+        'Receptury <profesja> pokazują aktualne wymagania profesji, narzędzia i materiałów.'
+    ]
+    if 'gotowanie_rozbudowane' in topics:
+        topics['gotowanie_rozbudowane'] = [
+            f'Gotowanie — limit: {cap_text("profesje")}; Nóż Kucharski — limit: {cap_text("narzedzia")}. Starsze progi receptur są zachowane.',
+            'gotuj lista / receptury gotowanie — aktualne receptury i wymagania.',
+            'Gotuj <nazwa> — przygotowanie potraw z właściwych magazynów i inventory.',
+            'Poziom Gotowania wpływa na czas; Nóż rozwija się osobno i wpływa na wykonanie.'
+        ]
+    for key in ('nawigacja','krypta','druzyny','walk'):
+        old = list(topics.get(key, ()))
+        if key == 'krypta':
+            old = [s for s in old if 'prowadz krypta prowadzi tylko' not in s]
+            old.extend([
+                'walk krypta dol / walk krypta dool prowadzi do następnego zejścia, z ochroną prowadzonej drużyny.',
+                'Zabite moby znikają z listy żywych; ciało pozostaje do 10 minut, nieodebrane EQ leży potem na ziemi do 30 minut.',
+                'ziemia — zobacz łup; podnies <nr|nazwa> / wez <nazwa> — podnieś przedmiot.',
+                'Upiory Krypty z głębszych pięter także zaliczają zadanie wymagające upiorów.'
+            ])
+        else:
+            old.append('Podczas szybkiego prowadzenia lider nie przechodzi dalej, gdy członek drużyny walczy lub pozostaje w poprzedniej lokacji.')
+            old.append('Zgubiony członek drużyny: teleport to leader / tp lider — ręczny powrót do lidera, poza walką i bez omijania bram bossów.')
+        topics[key] = old
+    topics['teleport_to_leader'] = [
+        'teleport to leader / tp lider — gracz w drużynie przenosi się do swojego lidera.',
+        'Nie działa w walce ani przez niezaliczoną bramę bossa. Nie przemieszcza automatycznie pozostałych graczy.',
+        'Przy szybkim marszu lider zatrzymuje się, gdy ktoś został z tyłu. Po zebraniu drużyny można wznowić prowadzenie.'
+    ]
+    topics['ziemia'] = [
+        'Zabity mob znika z listy żywych. Jego ciało można przeszukać przez 10 minut.',
+        'Po rozkładzie ciała nieodebrane przedmioty leżą na ziemi przez następne 30 minut.',
+        'ziemia — lista; podnies <numer|nazwa>; wez <nazwa> lub wez wszystko — podnoszenie.',
+        'przeszukaj <numer>.cialo — zawartość ciała; klucze bossów pozostają na ciele.'
+    ]
+    # Correct only present-tense claims. Historical 14-/22-class milestones
+    # (quests from older eras, dated patch notes) retain their real history.
+    from core.classes_skills import RACES
+    replacements = {
+        '14 klas': f'{len(CLASSES)} klas',
+        '22 klas': f'{len(CLASSES)} klas',
+        '14 grywalnych ras': f'{len(RACES)} grywalnych ras',
+        '22 ras': f'{len(RACES)} ras',
+        '22 profesji': f'{len(professions)} profesji',
+    }
+    for key in ('podstawy','rasy','umiejetnosci','skille','zadania klasowe',
+                'zadanieklasowe','class quests','sety_klasowe','cyborg',
+                'rasa_czlowiek','rasa_ogr','rasa_elf','rasa_krasnolud',
+                'rasa_ork','rasa_niziolek','rasa_mroczny_elf','rasa_gnom',
+                'rasa_smok','rasa_troll','rasa_diable','rasa_aasimar',
+                'rasa_driada','rasa_cyborg','rasa_wampir','rasa_wilkolak',
+                'rasa_minotaur','rasa_tryton','rasa_feniksjanin','rasa_dzin',
+                'rasa_kitsune','rasa_krysztalowiec'):
+        if key not in topics:
+            continue
+        fresh=[]
+        for sentence in topics[key]:
+            for old,new in replacements.items():
+                sentence=sentence.replace(old,new)
+            fresh.append(sentence)
+        topics[key]=fresh
+    if 'mana_stats_eq' in topics:
+        topics['mana_stats_eq'] = [sentence.replace(
+            'Klasa magiczna albo multiclass magiczny', 'Postać klasy magicznej')
+            for sentence in topics['mana_stats_eq']]
+    if 'naturalne_uzyj' in topics:
+        topics['naturalne_uzyj'] = [sentence.replace(
+            'w multiclassie', 'dla aktywnej klasy')
+            for sentence in topics['naturalne_uzyj']]
+    topics['tempo_profesji'] = [sentence.replace(
+        f'Wszystkie {len(professions)} profesje',
+        f'Wszystkie {len(professions)} profesji')
+        for sentence in topics['tempo_profesji']]
+    aliases.update({'multiklasa':'multiclass', 'multiklasowosc':'multiclass',
+                    'teleport to leader':'teleport_to_leader', 'tp lider':'teleport_to_leader',
+                    'tp leader':'teleport_to_leader', 'zagubiony':'teleport_to_leader',
+                    'ziemia':'ziemia', 'podnies':'ziemia', 'podnieś':'ziemia',
+                    'atlasy':'atlas'})
+    return {'professions': len(professions), 'classes': len(CLASSES),
+            'topics': len(topics)}

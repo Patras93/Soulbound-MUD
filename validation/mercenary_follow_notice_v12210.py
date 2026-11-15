@@ -29,6 +29,8 @@ def validate_mercenary_follow_notice_v12210():
     tree = ast.parse(movement)
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "SessionMovementMixin")
     move = next(node for node in cls.body if isinstance(node, ast.AsyncFunctionDef) and node.name == "walk_room_transition")
+    barrier = next(node for node in cls.body if isinstance(node, ast.AsyncFunctionDef)
+                   and node.name == "party_movement_barrier_v1130020")
     guide = _sb420_view(root / "player/session_mixins/guide_navigation.py")
     check("self._mercenary_guide_announced_v12210 = False" in guide)
     # Test the actual movement method against a tiny fake room, session and DB.
@@ -48,7 +50,10 @@ def validate_mercenary_follow_notice_v12210():
               ROOMS=room_catalog, DIRECTION_WALK_LABELS={"north":"na północ"},
               COURIER_CITY_ROOM_TO_NAME_V0530={}, MERCENARIES=MERCENARIES,
               mercenary_follow_notice_v12210=mercenary_follow_notice_v12210)
-    exec(compile(ast.fix_missing_locations(ast.Module(body=[move], type_ignores=[])),
+    # Extract the real movement barrier as well. This fake Session has no
+    # player-party membership, so the real guard permits independent movement.
+    # Stubbing the barrier would silently stop testing its integration.
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[barrier, move], type_ignores=[])),
                  "player/session_mixins/movement.py", "exec"), ns)
 
     class Db:
@@ -70,6 +75,7 @@ def validate_mercenary_follow_notice_v12210():
     server = SimpleNamespace(db=db, world=World(), broadcast_room=broadcast)
     class Session:
         walk_room_transition = ns["walk_room_transition"]
+        party_movement_barrier_v1130020 = ns["party_movement_barrier_v1130020"]
         def __init__(self):
             self.server = server
             self.account_id = 1
@@ -77,6 +83,7 @@ def validate_mercenary_follow_notice_v12210():
             self.closed = False
             self.moving = False
             self._party_follow_batch_save_v11123 = False
+            self._party_follow_blocked_v1130012 = False
             self.messages = []
         def party_key(self):
             return None
