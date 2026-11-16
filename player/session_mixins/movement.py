@@ -550,9 +550,14 @@ class SessionMovementMixin:
                     )
                 else:
                     await self.send(f"{'Płyniesz' if sailing_v1000 else 'Idziesz'} {label}. Cel: {target_name}.")
-                    await self.server.broadcast_room(
-                        old, f"{self.character.name} {'odpływa' if sailing_v1000 else 'rusza'} {label}.", exclude=self
-                    )
+                    # v113.00.28: followers still see their own movement, but
+                    # should not broadcast five duplicate exits per leader step.
+                    # The leader broadcasts normally. The existing batch marker
+                    # is set only around validated follower transitions.
+                    if not getattr(self, "_party_follow_batch_save_v11123", False):
+                        await self.server.broadcast_room(
+                            old, f"{self.character.name} {'odpływa' if sailing_v1000 else 'rusza'} {label}.", exclude=self
+                        )
                 await asyncio.sleep(self.movement_delay(direction, guided=guided))
                 if self.closed:
                     return False
@@ -587,9 +592,10 @@ class SessionMovementMixin:
                 city_name_v0530 = COURIER_CITY_ROOM_TO_NAME_V0530.get(str(target))
                 if city_name_v0530 and self.account_id is not None:
                     self.server.db.record_courier_city_visit_v0530(self.account_id, city_name_v0530)
-                await self.server.broadcast_room(
-                    target, f"{self.character.name} {'przypływa' if sailing_v1000 else 'przychodzi'}.", exclude=self
-                )
+                if not getattr(self, "_party_follow_batch_save_v11123", False):
+                    await self.server.broadcast_room(
+                        target, f"{self.character.name} {'przypływa' if sailing_v1000 else 'przychodzi'}.", exclude=self
+                    )
                 if entry_label_v03812:
                     await self.send(f"WEJŚCIE: {target_name}.")
                 else:
@@ -654,8 +660,22 @@ class SessionMovementMixin:
 
     async def move(self, direction, preserve_auto_mining=False):
             if getattr(self, "moving", False):
-                await self.send("Trwa poprzedni krok. Poczekaj na zakończenie ruchu drużyny.")
-                return
+                # v113.00.28: real player commands can arrive before the
+                # previous 0.1s party step has committed. Briefly await the
+                # step instead of discarding their next direction. No busy
+                # polling, unbounded command queue or change to movement speed.
+                # Test fixtures without runtime state retain the original guard.
+                if (hasattr(self, "resting") and self.account_id is not None
+                        and self.party_key() == self.account_id
+                        and not getattr(self, "guiding", False)
+                        and not getattr(self, "_party_follow_batch_save_v11123", False)):
+                    for _ in range(30):
+                        if not self.moving or self.closed:
+                            break
+                        await asyncio.sleep(0.01)
+                if getattr(self, "moving", False) or self.closed:
+                    await self.send("Trwa poprzedni krok. Poczekaj na zakończenie ruchu drużyny.")
+                    return
             if self.resting or self.rest_task:
                 await self.stop_rest(
                     announce=True, reason="ruszasz się"

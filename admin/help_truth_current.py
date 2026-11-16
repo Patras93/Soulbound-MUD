@@ -91,6 +91,14 @@ def _normalize_help_line_v11328(line, slot_count, topic=""):
         ):
             text = text.replace(old, new)
 
+    # v113.00.25: do not present catalogued 400/600/800 levels as a hard
+    # gameplay maximum. These are historical milestones, not final ceilings.
+    if topic_key in progression_topics or any(k in text.casefold() for k in axis_markers):
+        text = re.sub(r"(?i)\b1\s*[-–]\s*800\b", "od poziomu 1, dalszy rozwój bez stałego końca", text)
+        text = re.sub(r"(?i)\b1\s*[-–]\s*(?:400|600)\b", "od poziomu 1, dalszy rozwój bez stałego końca", text)
+        text = re.sub(r"(?i)\b(?:domyślny\s+)?limit\s+(?:soul\s+)?level(?:u|a)?\s+(?:to\s+)?800\b", "historyczny próg Soul Level 800 (rozwój trwa dalej)", text)
+        text = re.sub(r"(?i)\b(?:40|60|80)\s+tier(?:ów|y)?\b", "kolejne Tiery rozwijane dalej", text)
+
     for old_slots in (13, 14, 15, 16):
         text = re.sub(
             rf"\b{old_slots}\s+logicznych",
@@ -147,17 +155,33 @@ def refresh_help_truth_current_v11328():
 
     HELP_TOPICS["podstawy"] = [
         f"Soulbound ma obecnie {class_count} klas, {race_count} ras i {profession_count} profesji.",
-        "Główne osie progresji postaci rozwijają się 1-800; bazowe statystyki postaci nie mają twardego limitu.",
+        "Główne osie progresji rozwijają się dalej po historycznym poziomie 800; poziom 800 nie jest końcem gry.",
         "Najważniejsze komendy: help, look/l, exits, hp, score, staty, dusza, eq, quest, profesje, atlas, prowadz/walk, con i k/atakuj.",
         "Generator uzupełnia brakujące/proceduralne wartości; ręcznie authored treść ma pierwszeństwo i nie jest globalnie nadpisywana tylko dlatego, że istnieje Generator.",
         "Soulbound jest projektowany jako długoterminowy grind bez klasycznego końca po jednym zestawie EQ: sklep, crafting, dropy, lochy i bossowie mają różne role.",
     ]
 
+    HELP_TOPICS["aliasy"] = [
+        "alias 1 use cosmic rave — zapisuje własny skrót na koncie.",
+        "Samo 1 wykonuje skrót poza menu. Wyborów numerycznych menu aliasy nie przechwytują.",
+        "alias lista — pokazuje skróty. alias usuń 1 — usuwa skrót.",
+        "Dostępne są polskie i angielskie nazwy komend. Alias nie może nadpisywać istniejącej komendy.",
+    ]
+    HELP_TOPIC_ALIASES["aliases"] = "aliasy"
+    HELP_TOPIC_ALIASES["alias"] = "aliasy"
+    HELP_TOPICS["expbank"] = [
+        "EXP Bank przechowuje dotychczasowe saldo bez automatycznego wykorzystania.",
+        "expbank — pokazuje salda wszystkich dziedzin. expbank odbierz — pobiera EXP na życzenie do limitu jednej wypłaty.",
+        "Nowo zdobywane EXP nie jest przenoszone do starego banku. Over Cap wydarzenia nie ogranicza wypłaty nowego EXP.",
+        "Double Cap silnych bossów podwaja zwykły limit pojedynczej nagrody, nie jej wartość.",
+    ]
+    HELP_TOPIC_ALIASES["xpbank"] = "expbank"
+
     HELP_TOPICS["progresja800"] = [
-        "Character Level, Biegłość każdej z 14 klas, Soul Level, Soul Weapon Mastery, Skill Level, profesje i narzędzia rozwijają się od 1 do 800.",
-        "Bazowe statystyki postaci rozwijają się bez twardego limitu. Soul Tier rozwija się do 80.",
-        "Po osiągnięciu Biegłości 800 nadwyżka Class XP może rozwijać Wzniesienie danej klasy (rangi 0-1000), bez resetu.",
-        "Nieskończone lochy mogą dalej skalować trudność, niezależnie od poziomu 800 postaci.",
+        "Postać, klasy, Soul Level, Broń Duszy, umiejętności, profesje i narzędzia mogą rozwijać się dalej po historycznym poziomie 800, bez końcowego poziomu gry.",
+        "Bazowe statystyki rozwijają się bez twardego limitu. Soul Tiery są kontynuowane powyżej dawnego Tieru 80.",
+        "Biegłość 800 to historyczny próg. Dalszy rozwój klasy i Wzniesienia zależy od aktywnej konfiguracji, bez resetu postępu.",
+        "Nieskończone lochy mogą dalej skalować trudność wraz z rozwojem postaci.",
         "score, level/lvl, xp, staty info, dusza info i profesje info pokazują bieżący postęp z gry.",
     ]
     # Dawne nazwy tematów zostają, ale nie publikują nieaktualnych limitów.
@@ -202,7 +226,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["umiejetnosci"] = [
-        f"Każda z {class_count} klas ma własny katalog umiejętności, a nauczony skill ma osobny Skill Level 1-800.",
+        f"Każda z {class_count} klas ma własny katalog umiejętności, a nauczony skill ma osobny, dalszy rozwój Skill Level powyżej 800.",
         "Zwykłe skille klasowe nie mają cooldownu ponownego użycia; wyjątki są jawnie opisanymi specjalnymi mechanikami.",
         "Pasywki po nauczeniu działają automatycznie i nie zajmują slotów auto-kolejki.",
         "help skill <nazwa> pokazuje klasę, wymaganie, Manę, target, skalowanie, właściwości, Skill Level oraz specjalny timer, jeśli naprawdę istnieje.",
@@ -219,7 +243,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["dusza"] = [
-        "Broń Duszy ma Soul Level 1-800, do 80 Soul Tierów i osobną Soul Weapon Mastery 1-800.",
+        "Broń Duszy ma dalszy rozwój Soul Level, Soul Tierów i osobnej biegłości także ponad historycznymi progami 800 i Tier 80.",
         "Soul Weapon Mastery rozwija zwykły autoatak; skille klasowe rozwijają własny Skill Level.",
         "Liczba trafień autoataku wynika z końcowej Szybkości, a Haste zwiększa serię dodatkowo.",
         "dusza info pokazuje Soul XP, Tier, Próby i następny cel.",
@@ -227,7 +251,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["profesje"] = [
-        f"Soulbound ma {profession_count} profesji 1-800 i tyle samo przypisanych narzędzi; narzędzie kupuje się tylko raz na postać.",
+        f"Soulbound ma {profession_count} profesji z bezlimitowym rozwojem poziomów i przypisane narzędzia; narzędzie kupuje się tylko raz na postać.",
         "Zbieractwo: Wędkarstwo, Górnictwo, Drwalstwo i Zielarstwo. Rzemiosła: Gotowanie, Alchemia, Kowalstwo, Jubilerstwo, Krawiectwo, Garbarstwo, Stolarstwo i Zaklinanie. Eksploracja: Archeologia i Kartografia.",
         "zamowienia / zamówienia obsługuje wszystkie profesje; zlecenia odnawiają się niezależnie zgodnie z ich godzinnym cooldownem.",
         "Czasy aktywności są authored, a nie losowane przez Generator. help tempo_profesji pokazuje bieżące czasy bazowe i minimalne.",
@@ -350,7 +374,7 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["materialy_eq"] = [
-        f"Materiałowe corpse-drop EQ obejmuje aktualną siatkę {slot_count} logicznych typów; Biegłość klasy rośnie do 800, a konkretne EQ ma własny próg wymagania.",
+        f"Materiałowe corpse-drop EQ obejmuje aktualną siatkę {slot_count} logicznych typów; Biegłość klasy rozwija się ponad 800, a konkretne EQ ma własny próg wymagania.",
         "Każdy wariant ma source_progression_stage równy required_mastery i własną tożsamość dropu z moba.",
         "Materiał, losowy wariant, statystyki, properties, rarity i sockety tworzą osobny build; nie jest to kopia sklepu ani craftu.",
         "eq info / porownaj pokazują realny roll konkretnego przedmiotu.",
@@ -387,7 +411,7 @@ def refresh_help_truth_current_v11328():
         "statek pokazuje/rozwija Kadłub, Żagle, Ładownię i Nawigację; zegluj / sail obsługuje ruch po sektorach.",
         "handel morski pokazuje oferty; handel morski wez <nr>, handel morski oddaj, handel morski porzuc obsługują kontrakt. Zmiana wód/objazd nie zeruje aktywnego handlu, dopóki pozostajesz na morzu.",
         "Lider może przekazać przyjęty handel obecnym członkom drużyny zgodnie z aktualną logiką party.",
-        "Połów głębinowy używa zwykłego Wędkarstwa/Wędki 1-800, nie jest osobną profesją.",
+        "Połów głębinowy używa zwykłego Wędkarstwa i Wędki, które rozwijają się dalej powyżej 800; nie jest osobną profesją.",
     ]
 
     HELP_TOPICS["superbossy"] = [
@@ -400,20 +424,20 @@ def refresh_help_truth_current_v11328():
     ]
 
     HELP_TOPICS["archeologia"] = [
-        "Archeologia jest profesją 1-800. Pędzel Archeologa kupujesz tylko raz na postać.",
+        "Archeologia rozwija się ponad 800. Pędzel Archeologa kupujesz tylko raz na postać.",
         "W odpowiednich ruinach/kryptach/świątyniach/archiwach użyj wykop; archeologia kolekcja pokazuje znaleziska.",
         "Pierwsze odkrycie konkretnego znaleziska ma premię XP i wysoką wartość kolekcjonerską.",
         "Archeologia ma odnawialne zlecenia i zamówienia; szczegóły pokazuje bieżący NPC/quest runtime.",
     ]
 
     HELP_TOPICS["kartografia"] = [
-        "Kartografia jest profesją 1-800. Kompas Mierniczy kupujesz tylko raz na postać.",
+        "Kartografia rozwija się ponad 800. Kompas Mierniczy kupujesz tylko raz na postać.",
         "mapuj mierzy odwiedzaną lokację; pierwszy pomiar dopisuje ją do Atlasu Kartografa i daje premię odkrywcy.",
         "Kartografia ma odnawialne zlecenia i zamówienia; atlas odkrycia pokazuje długoterminową eksplorację świata.",
     ]
 
     HELP_TOPICS["multiclass"] = [
-        f"W Soulbound można rozwijać wszystkie {class_count} klas; każda ma własną Biegłość 1-800 i osobny Class XP.",
+        f"W Soulbound można rozwijać wszystkie {class_count} klas; każda ma własną, dalszą Biegłość ponad 800 i osobny Class XP.",
         "Każda aktywna klasa otrzymuje pełną własną nagrodę Class XP (do Multi Cap), nie ułamek wspólnej puli.",
         "Zmiana aktywnych klas nie resetuje wyuczonych skilli ani zdobytej Biegłości.",
         "Fizyczne i magiczne wyposażenie zyskuje uzupełniające bonusy MultiClass EQ. Zobacz: help ekwipunek.",
@@ -629,7 +653,7 @@ def help_freshness_audit_v11328():
         errors.append("stale public HELP rows: " + ", ".join(stale_rows[:40]))
 
     expected = {
-        "podstawy": ("authored", "1-800"),
+        "podstawy": ("authored", "poziom 800 nie jest końcem gry"),
         "walka": ("nie mają cooldownu", "charakterystyczne"),
         "aoe": ("aoe on", "drużyn"),
         "profesje": ("4-8%", "x1.75"),

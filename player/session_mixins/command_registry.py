@@ -435,7 +435,7 @@ COMMAND_REGISTRY.update({
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
     "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
-    "help", "look", "party", "partychat", "say", "tell", "reply", "who",
+    "help", "look", "party", "partychat", "say", "tell", "reply", "who", "gossip", "newbie", "channels",
     "where", "hp", "score", "records", "chronicle", "selfrespawn", "treasures", "tasks",
     "historybuffer", "lifetime", "ep", "deathrecap", "combatrecap", "navigation2", "career2", "greatworld",
 }

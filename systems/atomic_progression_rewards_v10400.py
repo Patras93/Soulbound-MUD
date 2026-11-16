@@ -19,9 +19,11 @@ def _check(db, character, account_id):
         raise TypeError('Wymagana obsługa odroczonego COMMIT SQLite.')
 
 
-def _atomic(db, marker, operation, rollback):
+def _atomic(db, account_id, marker, operation, rollback):
     """Operacja nie może popełnić osobnego COMMIT między bankiem a postacią."""
     conn = db.conn
+    from systems.sound_events_v1208 import (sound_reward_queue_checkpoint_v11329, sound_reward_queue_rollback_v11329)
+    audio_checkpoint = sound_reward_queue_checkpoint_v11329(db, account_id)
     with conn.deferred_commits():
         conn.execute('SAVEPOINT ' + marker)
         try:
@@ -34,6 +36,7 @@ def _atomic(db, marker, operation, rollback):
                 conn.execute('RELEASE SAVEPOINT ' + marker)
             finally:
                 rollback()
+                sound_reward_queue_rollback_v11329(db, account_id, audio_checkpoint)
             raise
 
 
@@ -51,7 +54,7 @@ def award_soul_xp_atomic_v10400(db, character, account_id, amount, *,
         return paid, notes
     def undo():
         character.soul_level, character.soul_xp, character.soul_tier = old
-    return _atomic(db, 'v104_live_soul_atomic', run, undo)
+    return _atomic(db, account_id, 'v104_live_soul_atomic', run, undo)
 
 
 def award_stats_xp_atomic_v10400(db, character, account_id, amount, *,
@@ -93,7 +96,7 @@ def award_stats_xp_atomic_v10400(db, character, account_id, amount, *,
     def undo():
         for field, value in old.items():
             setattr(character, field, value)
-    return _atomic(db, 'v104_live_stats_atomic', run, undo)
+    return _atomic(db, account_id, 'v104_live_stats_atomic', run, undo)
 
 
 def award_class_xp_atomic_v10400(db, account_id, class_name, amount, level, *,
@@ -109,7 +112,7 @@ def award_class_xp_atomic_v10400(db, account_id, class_name, amount, level, *,
         result = db.add_class_mastery_xp(account_id, class_name, paid,
                                          single_level_cap=single_level_cap)
         return paid, result
-    return _atomic(db, 'v104_live_class_atomic', run, lambda: None)
+    return _atomic(db, account_id, 'v104_live_class_atomic', run, lambda: None)
 
 
 def award_class_xp_batch_atomic_v10400(db, account_id, class_levels, amount, *,
@@ -137,4 +140,4 @@ def award_class_xp_batch_atomic_v10400(db, account_id, class_levels, amount, *,
             db, account_id, name, amount, level,
             overcap=overcap, single_level_cap=single_level_cap
         ) for name, level in pairs]
-    return _atomic(db, 'v104_live_class_batch_atomic', run, lambda: None)
+    return _atomic(db, account_id, 'v104_live_class_batch_atomic', run, lambda: None)

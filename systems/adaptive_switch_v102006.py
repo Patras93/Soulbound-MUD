@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Global administrator control of encounter-local player/party scaling.
+"""Global administrator control of Adaptive Combat.
 
-The default is ON to preserve existing installations until the administrator
-explicitly switches it OFF. The stored choice persists in LIVE_CONTENT across
-server restarts; this file is not shipped with the release archive.
+Release v113.00.27 defaults to OFF, including legacy schema-1 ON settings.
+A fresh, explicit administrator ON writes schema 2 and is still supported;
+team skills, loot-sharing and aggro are independent of Adaptive Combat.
 """
 from __future__ import annotations
 import json
@@ -20,12 +20,13 @@ def enabled():
     if _ENABLED is None:
         if CONFIG_PATH.is_file():
             doc = json.loads(CONFIG_PATH.read_text(encoding='utf-8'))
-            if (type(doc) is not dict or doc.get('schema') != 1
+            if (type(doc) is not dict or doc.get('schema') not in (1, 2)
                     or type(doc.get('enabled')) is not bool):
                 raise ValueError('Niepoprawne ustawienie Adaptive Combat w LIVE_CONTENT.')
-            _ENABLED = doc['enabled']
+            # A legacy ON setting cannot silently bring back unwanted party scaling.
+            _ENABLED = doc['enabled'] if doc['schema'] == 2 else False
         else:
-            _ENABLED = True  # Historical behavior until explicitly disabled.
+            _ENABLED = False  # Fresh installations do not scale by party size.
     return _ENABLED
 
 
@@ -38,7 +39,7 @@ def _store(choice):
     fd, temp = tempfile.mkstemp(prefix='.combat_global_', suffix='.tmp', dir=CONFIG_PATH.parent)
     try:
         with os.fdopen(fd, 'w', encoding='utf-8') as stream:
-            json.dump({'schema': 1, 'enabled': choice}, stream, ensure_ascii=False)
+            json.dump({'schema': 2, 'enabled': choice}, stream, ensure_ascii=False)
             stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())

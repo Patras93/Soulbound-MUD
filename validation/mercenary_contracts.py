@@ -35,14 +35,13 @@ def mercenary_contract_audit_v1170():
         checks+=1
     check(mercenary_role('Elira')=='kaplan', 'hiring by name')
     check(mercenary_role('Kapłanka')=='kaplan', 'hiring by class')
-    # The tavern contracts are the 22 historical templates, not one automatic
-    # hire for every class introduced in subsequent releases (v107/v110).
-    # Verify that none of those old contracts disappears as the roster grows.
+    # The 22 historical templates remain immutable; v107/v110 additions cover
+    # the other 16 classes. Verify both catalogues without touching old contracts.
     newer = {MAGITEK_CLASS} | {row[0] for row in V107_CLASS_SPECS} | {row[0] for row in V110_CLASS_SPECS}
     historical = {row[0] for row in CLASSES} - newer
     check(len(historical)==22, 'all 22 historical classes preserved')
-    check(len(MERCENARIES)==22, '22 historical permanent hire templates')
-    check({s['class'] for s in MERCENARIES.values()}==historical, 'historical class coverage intact')
+    check(len(MERCENARIES)==38, '38 hireable classes in one persistent catalog')
+    check({s['class'] for s in MERCENARIES.values()}==historical | newer, 'all classes hired; historical intact')
     check(MERCENARIES['paladyn']['name']=='Seren' and MERCENARIES['paladyn']['role']=='Paladyn', 'historical Paladin contract preserved')
     check(len({s['name'].casefold() for s in MERCENARIES.values()})==len(MERCENARIES), 'unique hire names')
     check(mercenary_role('Łowca')=='lucznik' and mercenary_role('Łucznik')=='lucznik' and mercenary_role('Riven')=='lucznik', 'old archer contracts remain valid')

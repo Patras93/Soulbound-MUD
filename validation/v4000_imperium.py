@@ -112,10 +112,10 @@ def run_regression(server=None):
         kind,tool_id,label=engine.recipe_tool_info(CRAFT_RECIPES if rid in CRAFT_RECIPES else V03053_CRAFT_RECIPES, recipe)
         ck(kind==recipe['tool_type'] and tool_id in items and bool(label),f'unusable existing tool {rid}')
     ck(len(PROFESSION_QUEST_SPECS_V0700)==14,'changed profession roster')
-    ck(len(SPECIALISTS)==22, '22 mercenary tactical profiles required')
+    ck(len(SPECIALISTS)==38, '38 mercenary tactical profiles required')
     ck(not (FINISHERS & BREAKERS or FINISHERS & GUARDIANS or BREAKERS & GUARDIANS),
        'tactical role families must be disjoint')
-    ck(set(SPECIALISTS)==set(FINISHERS|BREAKERS|GUARDIANS), 'all 22 combat roles require tactics')
+    ck(set(SPECIALISTS)==set(FINISHERS|BREAKERS|GUARDIANS), 'all 38 combat roles require tactics')
     for role in SPECIALISTS:
         for boss in (True,False):
             for fraction in (1.0,.75,.49,.24):

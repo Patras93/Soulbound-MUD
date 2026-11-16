@@ -107,8 +107,12 @@ def run_regression():
     high_zone_template = dict(normal, recommended_level=50)
     novice = _CharacterSession(8, 1000)
     scary = SimpleNamespace(template_id="bandit", adaptive_party_size_v11330=1)
-    assert novice.adaptive_enemy_damage_multiplier_v11330(scary, high_zone_template) > 1.56
-    count += 1
+    from unittest.mock import patch
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=False):
+        assert novice.adaptive_enemy_damage_multiplier_v11330(scary, high_zone_template) == 1.0
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=True):
+        assert novice.adaptive_enemy_damage_multiplier_v11330(scary, high_zone_template) > 1.56
+    count += 2
     # Raw authored damage must not be artificially weakened, even at level 1.
     player = _CharacterSession(8, 80)
     mob = SimpleNamespace(template_id="bandit", adaptive_party_size_v11330=1)
@@ -141,8 +145,11 @@ def run_regression():
     # Experienced players' adaptive floor remains unchanged.
     player = _CharacterSession(100, 1000)
     mob = SimpleNamespace(template_id="bandit", adaptive_party_size_v11330=1)
-    assert player.adaptive_enemy_damage_multiplier_v11330(mob, normal) > 7.0
-    count += 1
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=False):
+        assert player.adaptive_enemy_damage_multiplier_v11330(mob, normal) == 1.0
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=True):
+        assert player.adaptive_enemy_damage_multiplier_v11330(mob, normal) > 7.0
+    count += 2
     return count
 
 

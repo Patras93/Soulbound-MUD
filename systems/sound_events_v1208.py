@@ -40,6 +40,80 @@ def _enqueue(db, account_id, event_name, **fields):
     queue.append(_event(event_name, **fields))
 
 
+def record_paid_exp_event_v11329(db, account_id, paid, cap, *, kind='character'):
+    """One marker for a successful real payout, never for a bank deposit/read.
+
+    An unlimited active v108 event can pay above the current effective cap;
+    that is the only OVER_CAP_REWARD case. A clipped payout is FULL_CAP,
+    not a fictitious overflow or EXP_BANK deposit.
+    """
+    paid = int(paid or 0)
+    cap = int(cap or 0)
+    if paid <= 0 or cap <= 0 or account_id is None:
+        return None
+    if paid > cap:
+        name = 'OVER_CAP_REWARD'
+    elif paid >= cap:
+        name = 'FULL_CAP'
+    elif paid * 2 >= cap:
+        name = 'HALF_CAP'
+    else:
+        return None
+    _enqueue(db, account_id, name, cap=cap, kind=kind)
+    return name
+
+
+async def _watch_hourly_overcap_v11329(server):
+    """One start signal per real :30--:45 window, not triggered by look/score.
+
+    It runs while live sessions exist and does not write SQLite. Audio errors
+    cannot change the clock, rewards or combat.
+    """
+    import asyncio
+    import time
+    from systems.v10800_seasonal_events import overcap_event_state
+    last_window = getattr(server, '_sound_hourly_overcap_last_window_v11329', None)
+    while True:
+        now = time.time()
+        state = overcap_event_state(now)
+        window = int(now // 3600)
+        if state['active'] and window != last_window:
+            last_window = window
+            server._sound_hourly_overcap_last_window_v11329 = window
+            for listener in tuple(server.sessions):
+                if (getattr(listener, 'character', None) is not None
+                        and not getattr(listener, 'closed', True)):
+                    try:
+                        await getattr(listener, '_sound_direct_send_v11329', listener.send)(
+                            _event('OVER_CAP_START'), history_store=False)
+                    except (OSError, ConnectionError, RuntimeError) as exc:
+                        # Audio transport failure is logged, never silently hidden.
+                        print('SOUND_EVENT OVER_CAP_START send failed: '
+                              + type(exc).__name__ + ': ' + str(exc), flush=True)
+                        continue
+        if not any(getattr(s, 'character', None) is not None
+                   and not getattr(s, 'closed', True) for s in tuple(server.sessions)):
+            return
+        await asyncio.sleep(1.0)
+
+
+def sound_reward_queue_checkpoint_v11329(db, account_id):
+    """Capture optional audio queue before an atomic reward SAVEPOINT."""
+    if account_id is None:
+        return None
+    queue = getattr(db, '_sound_events_v1208', None)
+    return len(queue.get(int(account_id), ())) if queue is not None else 0
+
+
+def sound_reward_queue_rollback_v11329(db, account_id, checkpoint):
+    """A failed SQLite reward must never leave a fake cap notification."""
+    if checkpoint is None or account_id is None:
+        return
+    queues = getattr(db, '_sound_events_v1208', None)
+    if queues is not None:
+        del queues.get(int(account_id), [])[checkpoint:]
+
+
 def _active_mobs(session):
     """Current active enemies only, addressed by instance key (AoE safe)."""
     char = getattr(session, 'character', None)
@@ -164,12 +238,33 @@ def install_sound_hooks_v1208(session_class):
         bank_class._sound_hooks_installed_v1208 = True
 
     old_send = session_class.send
+    session_class._sound_direct_send_v11329 = old_send
+    # Read-only commands may show information, but must not flush a previously
+    # queued sound marker merely because the player typed score/look/status.
+    old_dispatch = getattr(session_class, 'dispatch_registered_command', None)
+    if callable(old_dispatch):
+        async def dispatch_registered_command(self, command, args):
+            prior = getattr(self, '_sound_readonly_command_v11329', False)
+            if str(command or '').casefold() in {
+                'score', 'look', 'expbank', 'stats', 'status', 'help',
+                'eventxp', 'channels', 'who', 'inventory', 'equipment'
+            } and (str(command).casefold() != 'expbank' or
+                   str(args or '').strip().casefold() not in {'odbierz', 'claim'}):
+                self._sound_readonly_command_v11329 = True
+            try:
+                return await old_dispatch(self, command, args)
+            finally:
+                self._sound_readonly_command_v11329 = prior
+        session_class.dispatch_registered_command = dispatch_registered_command
+
     async def send(self, text='', combat_detail=None, history_category=None, history_store=True):
         # Normal informational commands cannot *create* events; only drain the
         # queue already written by a real rewarded action.
         aid = getattr(self, 'account_id', None)
         queue = getattr(self.server.db, '_sound_events_v1208', {}) if aid is not None else {}
-        pending = queue.pop(int(aid), []) if aid is not None else []
+        pending = (queue.pop(int(aid), [])
+                   if aid is not None and not getattr(self, '_sound_readonly_command_v11329', False)
+                   else [])
         for message in pending:
             await old_send(self, message, history_store=False)
         return await old_send(self, text, combat_detail=combat_detail,
@@ -224,6 +319,11 @@ def install_sound_hooks_v1208(session_class):
     async def enter_world(self):
         result = await old_enter(self)
         if getattr(self, 'character', None) and not getattr(self, 'closed', False):
+            import asyncio
+            task = getattr(self.server, '_sound_hourly_overcap_task_v11329', None)
+            if task is None or task.done():
+                self.server._sound_hourly_overcap_task_v11329 = asyncio.create_task(
+                    _watch_hourly_overcap_v11329(self.server))
             await broadcast_presence(self, 'PLAYER_LOGIN', self.character.name)
         return result
     session_class.enter_world = enter_world

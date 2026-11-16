@@ -16,6 +16,9 @@ from player.session_mixins.command_registry import command_state_safe, resolve_s
 
 class SessionCommandLoopMixin:
     async def command_loop(self):
+        # Enable only for a running, authenticated game server. Historical
+        # offline fixtures keep their old allocator contract for migration tests.
+        self.server.db._manual_bank_only_v11325 = True
         while not self.closed:
             # Cichy prompt dla NVDA: klient po prostu czeka na kolejną linię.
             raw = await self.read_line()
@@ -71,6 +74,13 @@ class SessionCommandLoopMixin:
                 if raw.strip() in {str(i) for i in range(1, 11)}:
                     await self.command_mine_v0490(raw.strip())
                     continue
+
+            # v113.00.25: menu numeryczne i wybór kierunku kopalni wygrywają
+            # z prywatnymi aliasami użytkownika. Rozwijamy polecenie tylko raz.
+            from systems.player_aliases import process_alias_input
+            _alias_handled, raw = await process_alias_input(self, raw)
+            if _alias_handled:
+                continue
 
             # Naturalne nazwy wejść do instancji są pre-parserem świata, nie
             # aliasami komend; mogą zawierać więcej niż jeden wyraz.
@@ -131,7 +141,7 @@ class SessionCommandLoopMixin:
                     remaining = max(0, int(round(self.party_downed_until_v0371 - time.time())))
                     await self.send(
                         f"Jesteś powalony. Pozostało około {remaining} s na wskrzeszenie. "
-                        "Czekaj na członka drużyny albo wpisz odrodz."
+                        "Poproś o pomoc: gossip <tekst> lub newbie <tekst>; możesz też wpisać odrodz."
                     )
                     continue
 

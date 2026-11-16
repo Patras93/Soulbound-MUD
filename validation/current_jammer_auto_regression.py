@@ -35,10 +35,10 @@ def run():
 
     # With Support equipped, AoE ON expands into a real room-wide Stop.
     targets,immune,already=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=True)
-    check([m.key for m in targets]==['w','r'],'support expands to all eligible')
-    check(immune==2,'all boss classes immune')
+    check([m.key for m in targets]==['w','r','b','m'],'support expands to all eligible incl bosses')
+    check(immune==0,'bosses no longer immune')
     check(already==1,'stopped counted, no refresh')
-    check(len(set(x.key for x in targets))==2,'duplicate mob suppressed')
+    check(len(set(x.key for x in targets))==4,'duplicate mob suppressed')
     check(all(x.alive for x in targets),'no dead targets')
     check(all(x.key!='s' for x in targets),'active stop excluded')
 
@@ -46,16 +46,16 @@ def run():
         targets,immune,already=select_jammer_targets(room,templates,support_weapon=support,
                                                        aoe_enabled=aoe,preferred_key='r')
         check([m.key for m in targets]==['r'],f'single selected support={support} aoe={aoe}')
-        check(immune==2,'boss immunity in single mode')
+        check(immune==0,'bosses permitted in single mode')
         check(already==1,'already stopped in single mode')
     targets,_,_=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=True,preferred_key='r')
-    check([m.key for m in targets]==['w','r'],'support AoE ignores locked single target')
+    check([m.key for m in targets]==['w','r','b','m'],'support AoE ignores locked single target')
     targets,_,_=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=False,preferred_key='missing')
     check([m.key for m in targets]==['w'],'single auto chooses available first')
     targets,_,_=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=False,preferred_key='s')
     check([m.key for m in targets]==['w'],'single skips already stopped target')
     targets,_,_=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=False,preferred_key='b')
-    check([m.key for m in targets]==['w'],'single skips immune preferred boss')
+    check([m.key for m in targets]==['b'],'single can select preferred boss')
 
     # No Logic Bomb/paralysis token is set anywhere in the fixtures.
     check(not any(hasattr(m,'v1200_logic_paralyze_token') for m in room),'no Logic Bomb prerequisite')
@@ -63,14 +63,33 @@ def run():
     targets,_,_=select_jammer_targets([wolf,robot],templates,support_weapon=True,aoe_enabled=True)
     check(len(targets)==2,'ordinary monsters without prior Paralyze still targeted')
     targets,immune,already=select_jammer_targets([boss,mini,stopped,dead],templates,support_weapon=True,aoe_enabled=True)
-    check(targets==[],'no legal target returns empty')
-    check(immune==2 and already==1,'no legal target diagnostic')
+    check([m.key for m in targets]==['b','m'],'bosses remain legal even if others unavailable')
+    check(immune==0 and already==1,'already stopped diagnostic')
     targets,_,_=select_jammer_targets([wolf,robot],templates,support_weapon=True,aoe_enabled=True,
                                         allowed=lambda mob,template: mob.key!='w')
     check([m.key for m in targets]==['r'],'superboss/story access gate respected')
     targets,_,_=select_jammer_targets([make('x',tid='absent')],templates,support_weapon=True,aoe_enabled=True)
     check(targets==[],'unknown mob is not legal target')
 
+    targets,immune,already=select_jammer_targets([boss,mini],templates,support_weapon=True,aoe_enabled=True,allowed=lambda mob,template:mob.key!='m')
+    check([m.key for m in targets]==['b'] and immune==0,'story/engagement gate still excludes protected miniboss')
+    # Room filter is defense in depth against an out-of-date world index.
+    in_room=make('local')
+    in_room.room_id='fight_room'
+    elsewhere=make('remote',tid='boss')
+    elsewhere.room_id='other_room'
+    targets,_,_=select_jammer_targets([elsewhere,in_room],templates,
+                                        support_weapon=True,aoe_enabled=True,
+                                        room_id='fight_room')
+    check([m.key for m in targets]==['local'],'room-scoped Support AoE only')
+    targets,_,_=select_jammer_targets([elsewhere],templates,
+                                        support_weapon=True,aoe_enabled=True,
+                                        room_id='fight_room')
+    check(targets==[],'remote boss cannot be selected')
+    targets,_,_=select_jammer_targets([elsewhere,in_room],templates,
+                                        support_weapon=False,aoe_enabled=False,
+                                        preferred_key='remote',room_id='fight_room')
+    check([m.key for m in targets]==['local'],'remote preferred key ignored')
     # The v4.20 historical source contract must be retained byte-for-byte.
     from validation.current_native_v420_contract import verify_native_method
     check(verify_native_method(ROOT/'player/session_mixins/combat_skills.py',

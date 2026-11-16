@@ -162,11 +162,16 @@ def _extract(archive, mapping, destination):
 def _read_gate_proof(log):
     content=Path(log).read_text(encoding='utf-8',errors='replace')
     needed=('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS',
-            'SOULBOUND RELEASE GATES PASS','PLUS CHECKS PASS',
-            'UNIVERSAL RELEASE SAFETY: 20/20 PASS',
+            'SOULBOUND RELEASE GATES PASS', 'PLUS CHECKS PASS',
             'TCP 6 GRACZY: PASS',
             'PASS - FIZYCZNE EQ NA KOPII BAZY (kod 0)')
-    return all(token in content for token in needed)
+    # The universal suite grew from 20 to 24 mandatory gates. Its output
+    # reports the exact executed total. Never accept the obsolete 20/20
+    # proof, a partial PASS, or a fake summary with mismatched counts.
+    match=re.search(r'(?m)^UNIVERSAL RELEASE SAFETY: ([0-9]+)/([0-9]+) PASS\s*$',content)
+    return (all(token in content for token in needed) and match is not None
+            and int(match.group(1))==int(match.group(2))
+            and int(match.group(2))>=24)
 
 
 def predeploy(archive, database, approval, *, stage_hooks=None):
@@ -248,7 +253,7 @@ def predeploy(archive, database, approval, *, stage_hooks=None):
                          finished_at=datetime.now(timezone.utc).isoformat(),
                          log_sha256=digest(log_path))
             save_json(approval,state)
-            print('LINUX PREDEPLOY: 60/60 PLUS + v105 3/3 + universal 20/20 + Linux PASS',flush=True)
+            print('LINUX PREDEPLOY: 60/60 PLUS + v105 3/3 + aktualne uniwersalne bramki + Linux PASS',flush=True)
     except (Exception,KeyboardInterrupt) as exc:
         state.update(status='FAIL',completed_stages=0,returncode=1,
                      release_gates_pass=False,error=str(exc),finished_at=datetime.now(timezone.utc).isoformat())

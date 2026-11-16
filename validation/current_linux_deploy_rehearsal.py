@@ -40,7 +40,7 @@ def main():
         log=root/'synthetic-PREDEPLOY.log'
         log.write_text('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS\n'
             'SOULBOUND RELEASE GATES PASS\nPLUS CHECKS PASS\n'
-            'UNIVERSAL RELEASE SAFETY: 20/20 PASS\nTCP 6 GRACZY: PASS\n'
+            'UNIVERSAL RELEASE SAFETY: 24/24 PASS\nTCP 6 GRACZY: PASS\n'
             'PASS - FIZYCZNE EQ NA KOPII BAZY (kod 0)\n'
             'LINUX CONTRACT EXIT validation/current_linux_release_regression.py 0\n'
             'LINUX CONTRACT EXIT validation/current_linux_deploy_rehearsal.py 0\n',

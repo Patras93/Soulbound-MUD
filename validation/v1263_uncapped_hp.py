@@ -4,6 +4,7 @@ import ast
 import math
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from systems.adaptive_combat import (
     adaptive_target_max_hp_v11330,
@@ -74,39 +75,42 @@ def audit_v1263():
         def adaptive_party_dps_v1261(self, members):
             return self.dps
 
-    fighter = Session(10**25)
-    enemy = SimpleNamespace(key="monster", template_id="test", room_id="room", hp=1000, alive=True)
-    high = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(high["max_hp"] == 8 * 10**25, "real mob HP > old ceiling")
-    check(enemy.hp == high["max_hp"], "full health when first upscaled")
-    check(high["reward_multiplier"] > 1, "real mob gets larger reward factor")
-    fighter.dps = 10**3
-    enemy.hp = high["max_hp"] // 4
-    low = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(low["max_hp"] == 8000, "handoff adapts down after battle")
-    check(enemy.hp == 2000, "handoff retains exactly 25% health")
-    fighter.dps = 10**25
-    fighter.combat_mob_key = enemy.key
-    fighter.server.sessions = [fighter]
-    extended = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(extended["max_hp"] == 8 * 10**25, "active encounter expands")
-    fighter.dps = 10**3
-    ongoing = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(ongoing["max_hp"] == extended["max_hp"], "active encounter cannot shrink")
+    # Historical scaling math: override only this isolated test process.
+    # Production remains OFF; do not write LIVE_CONTENT or change gameplay.
+    with patch("systems.adaptive_switch_v102006.enabled", return_value=True):
+        fighter = Session(10**25)
+        enemy = SimpleNamespace(key="monster", template_id="test", room_id="room", hp=1000, alive=True)
+        high = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(high["max_hp"] == 8 * 10**25, "real mob HP > old ceiling")
+        check(enemy.hp == high["max_hp"], "full health when first upscaled")
+        check(high["reward_multiplier"] > 1, "real mob gets larger reward factor")
+        fighter.dps = 10**3
+        enemy.hp = high["max_hp"] // 4
+        low = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(low["max_hp"] == 8000, "handoff adapts down after battle")
+        check(enemy.hp == 2000, "handoff retains exactly 25% health")
+        fighter.dps = 10**25
+        fighter.combat_mob_key = enemy.key
+        fighter.server.sessions = [fighter]
+        extended = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(extended["max_hp"] == 8 * 10**25, "active encounter expands")
+        fighter.dps = 10**3
+        ongoing = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(ongoing["max_hp"] == extended["max_hp"], "active encounter cannot shrink")
 
-    # Arithmetic with huge ints must not overflow in the display ratio or HP handoff.
-    fighter.server.sessions = []
-    fighter.combat_mob_key = None
-    fighter.dps = 10**400
-    giant = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(giant["max_hp"] == 8 * 10**400, "real method accepts huge integer DPS")
-    check(math.isfinite(enemy.adaptive_hp_multiplier_v11330), "diagnostic multiplier finite")
-    check(math.isfinite(enemy.adaptive_party_dps_v11330), "diagnostic DPS finite")
-    enemy.hp = giant["max_hp"] // 2
-    fighter.dps = 1000
-    smaller = fighter.apply_adaptive_mob_scale_v11330(enemy)
-    check(smaller["max_hp"] == 8000 and enemy.hp == 4000,
-          "exact halving without float overflow")
+        # Arithmetic with huge ints must not overflow in the display ratio or HP handoff.
+        fighter.server.sessions = []
+        fighter.combat_mob_key = None
+        fighter.dps = 10**400
+        giant = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(giant["max_hp"] == 8 * 10**400, "real method accepts huge integer DPS")
+        check(math.isfinite(enemy.adaptive_hp_multiplier_v11330), "diagnostic multiplier finite")
+        check(math.isfinite(enemy.adaptive_party_dps_v11330), "diagnostic DPS finite")
+        enemy.hp = giant["max_hp"] // 2
+        fighter.dps = 1000
+        smaller = fighter.apply_adaptive_mob_scale_v11330(enemy)
+        check(smaller["max_hp"] == 8000 and enemy.hp == 4000,
+              "exact halving without float overflow")
     # Large HP must not crash common monster healing or superboss phases.
     from systems.monster_ecology_v1250 import ecology_turn_v1250
     from systems.monster_ai import monster_ai_execute_v1160

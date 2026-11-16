@@ -79,7 +79,7 @@ def audit_combat_balance_fast_v1173():
             "per_class": summaries, "errors": errors, "error_count": len(errors)}
 
 
-def audit_combat_balance_runtime_v1173(items, catalog):
+def _audit_combat_balance_runtime_with_adaptive_on_v11329(items, catalog):
     """Exercise actual SessionCombatDamageMixin via disposable representative combatants."""
     from data.mobs import MOB_TEMPLATES
     from player.session_mixins.combat_damage import SessionCombatDamageMixin
@@ -167,6 +167,13 @@ def audit_combat_balance_runtime_v1173(items, catalog):
         result[class_name] = report
     return {"version": "1.17.3", "checks": checks, "classes": len(result),
             "per_class": result, "errors": errors, "error_count": len(errors)}
+
+
+def audit_combat_balance_runtime_v1173(items, catalog):
+    """Test legacy adaptive ON explicitly without changing global gameplay OFF."""
+    from unittest.mock import patch
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=True):
+        return _audit_combat_balance_runtime_with_adaptive_on_v11329(items, catalog)
 
 
 def audit_party_support_runtime_v1173():

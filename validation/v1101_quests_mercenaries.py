@@ -41,12 +41,12 @@ def run_regression(runtime=None):
        'all 22 historical playable classes retained')
     ck(playable <= set(GUILD_CLASS_QUEST_POOLS), 'guild offers for all 22 historical classes')
     ck(GUILD_CLASS_QUEST_AUDIT_V1120['error_count']==0, 'complete guild quest audit')
-    ck(len(MERCENARIES)==22, '22 hireable roles')
-    ck({row['class'] for row in MERCENARIES.values()}==playable, 'all playable classes matched')
+    ck(len(MERCENARIES)==38, '38 hireable roles, 22 original')
+    ck(playable <= {row['class'] for row in MERCENARIES.values()}, 'original 22 classes matched')
     ck(set(SPECIALISTS)==set(MERCENARIES), 'each mercenary has a real AI profile')
     from systems.companion_tactics_v4000 import FINISHERS, BREAKERS, GUARDIANS, tactical_response
     ck(not (FINISHERS & BREAKERS or FINISHERS & GUARDIANS or BREAKERS & GUARDIANS), 'no conflicting tactics')
-    ck(set(SPECIALISTS)==set(FINISHERS|BREAKERS|GUARDIANS), 'all 22 roles have tactical category')
+    ck(set(SPECIALISTS)==set(FINISHERS|BREAKERS|GUARDIANS), 'all 38 roles have tactical category')
     for role in SPECIALISTS:
         ck(sum(role in group for group in (FINISHERS,BREAKERS,GUARDIANS))==1, 'exactly one tactic per hireable: '+role)
         ck(tactical_response(role, True, 100, 1000, 2)[0] >= 1.0, 'all tactics remain additive: '+role)
@@ -183,4 +183,4 @@ def run_regression(runtime=None):
 
 
 if __name__=='__main__':
-    print('QUESTY 22 KLAS I 22 NAJEMNIKOW:',run_regression(),'kontroli PASS')
+    print('QUESTY 22 KLAS HISTORYCZNYCH I 38 NAJEMNIKOW:',run_regression(),'kontroli PASS')
