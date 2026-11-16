@@ -1,3 +1,38 @@
+SOULBOUND MUD v113.00.24 — POPRAWKA BLOKADY WDROZENIA / WinError 32 (16.11.2026)
+STATUS: NIE WDRAZAC bez nowego PREDEPLOY 60/60 PLUS na dokladnej paczce ZIP.
+
+- Naprawiono krytyczny blad: po aktualizacji serwer byl uruchamiany z TEMP/Soulbound_Generic_Bridge,
+  zamiast z docelowego C:\Soulbound-MUD. Przyczyna: import uruchom_w_tle z katalogu kandydata.
+- Wznawianie uruchamia teraz w oddzielnym, zakonczonym procesie skrypt z faktycznego katalogu gry;
+  nadzorca oraz baza pozostaja w miejscu produkcyjnym, bez pojawiania sie nowego CMD.
+- Migracja istniejacego autostartu uzywa modulu z instalacji, nie tymczasowego archiwum.
+- Sprzatanie izolowanego Generic_Bridge jest odseparowane od wyniku wdrozenia. Nawet Windows
+  blokujacy chwile katalog tymczasowy nie podmieni wyniku aktualizatora na WinError 32;
+  problem porzadkowania zostanie jednoznacznie oznaczony ostrzezeniem.
+- Dodano regresje dla prawidlowego katalogu uruchomienia i blokady sprzatania WinError 32.
+- Zachowano tempo ruchu 0,1 s, prowadzenie druzyny, teleport, pomoce i wszystkie dane postaci.
+- Nie zmieniono plikow bazy danych, administracyjnych limitow ani GitHub.
+
+--- HISTORIA WYDAN ---
+
+SOULBOUND MUD v113.00.23 — START W TLE BEZ WIDOCZNEGO CMD (16.11.2026)
+STATUS: NIE WDRAŻAĆ przed nowym natywnym PREDEPLOY Windows 60/60 PLUS.
+
+- Po aktualizacji na Windows serwer jest uruchamiany bezpośrednio przez
+  sprawdzony uruchamiacz pythonw.exe, bez wywołania cmd.exe i START_Soulbound.bat.
+- Jeśli istnieje stary, należący do tej samej instalacji wpis
+  Soulbound_Autostart.cmd lub Soulbound_Autostart.vbs, uruchamiacz automatycznie
+  przenosi go do niewidocznego autostartu HKCU Run i pythonw.exe.
+- Nie usuwa innych wpisów autostartu, nie zmienia konfiguracji innego programu,
+  nie włącza autostartu, jeśli użytkownik go wyłączył.
+- START_Soulbound.bat przy ręcznym dwukliku nadal może krótko pokazać CMD:
+  jest to ograniczenie BAT Windows, nie konsola działającego serwera.
+- Zachowano watchdog, kontrolowany STOP, kopie bezpieczeństwa, port 4000,
+  bazę i postacie oraz wszystkie funkcje i testy v113.00.22.
+- Rozszerzono regresję autostartu o restart bez CMD i obsługę błędu startu.
+
+--- HISTORIA WYDAŃ ---
+
 SOULBOUND MUD v113.00.22 — NAPRAWA PROWADZENIA CZŁONKA DRUŻYNY (15.11.2026)
 STATUS: NIE WDRAŻAĆ przed nowym PREDEPLOY Windows 60/60 PLUS na dokładnym ZIP-ie.
 

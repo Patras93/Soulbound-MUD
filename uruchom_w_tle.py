@@ -58,6 +58,21 @@ def _already_running() -> bool:
         return False
 
 
+def _repair_legacy_autostart() -> bool:
+    """Migrate only this game's obsolete Startup CMD/VBS if still present.
+
+    This also repairs an old visible Startup entry on its first invocation,
+    without enabling autostart when the user has disabled it and without
+    touching other applications or scheduled tasks.
+    """
+    if os.name != 'nt':
+        return False
+    from windows_autostart import startup_file, legacy_startup_file, migrate_if_enabled
+    if not (startup_file().is_file() or legacy_startup_file().is_file()):
+        return False
+    return migrate_if_enabled()
+
+
 def main() -> int:
     if os.name != 'nt':
         _log('Uruchamianie w tle tym skrotem jest przeznaczone dla Windows.', error=True)
@@ -69,6 +84,13 @@ def main() -> int:
         _log('Brakuje plikow serwera. Rozpakuj kompletna paczke.', error=True)
         return 2
     try:
+        # A pre-v113.00.18 Startup CMD can still flash on login. Once it runs,
+        # migrate this *owned* entry to HKCU Run / pythonw for future logins.
+        try:
+            if _repair_legacy_autostart():
+                _log('AUTOSTART: stary widoczny wpis CMD zamieniony na pythonw.exe.')
+        except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
+            _log(f'UWAGA AUTOSTARTU: {type(exc).__name__}: {exc}', error=True)
         if _already_running():
             _log('Soulbound jest juz uruchomiony w tym folderze. Druga kopia nie zostanie wlaczona.')
             return 0
