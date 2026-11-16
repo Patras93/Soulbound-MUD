@@ -3380,6 +3380,62 @@ _manual_bank_contract_v11325 = (
 if not _manual_bank_contract_v11325:
     _semantic_errors.append('v11325 manual bank claim credit AST contract invalid')
 
+# v113.00.33: two NEW, independently tested reward gateways intentionally
+# mutate already Multi-Cap-bounded XP.  The old v1.13.42 allowlist predates
+# these gateways. Keep its restriction, but explicitly certify the EXACT AST
+# of each paid-reward method instead of whitelisting either whole module.
+# The immutable method fingerprints cover all SQLite recipient checks, Multi
+# Cap calls and reward computations. Any edit, including an extra XP write,
+# invalidates the exemption and blocks PREDEPLOY until independently audited.
+_v11333_reward_gateways = (
+    (
+        'systems/achievement_rewards_v11331.py',
+        'award_achievement_experience_v11331',
+        '5064e1f686ea6808a800bd1cef29c0d82391d48a4ea105fab9e997c0e8d002ab',
+        {'add_soul_weapon_mastery_xp': 1},
+    ),
+    (
+        'player/session_mixins/skills_combat.py',
+        'grant_skill_use_xp',
+        '869e022a294fed043377c32e34ec04e010b097bb9de37880aad17bf1c35efb80',
+        {'add_skill_xp': 2},
+    ),
+)
+_v11333_verified_direct_reward_calls = set()
+for _path_v11333, _method_v11333, _sha_v11333, _expected_v11333 in _v11333_reward_gateways:
+    _tree_v11333 = ast.parse((_root / _path_v11333).read_text(encoding='utf-8'))
+    _matches_v11333 = [
+        n for n in ast.walk(_tree_v11333)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and n.name == _method_v11333
+    ]
+    if len(_matches_v11333) != 1:
+        _semantic_errors.append('v11333 reward gateway missing/ambiguous: ' + _path_v11333)
+        continue
+    _method_node_v11333 = _matches_v11333[0]
+    _actual_hash_v11333 = _hashlib_manual_bank_v11325.sha256(
+        ast.dump(_method_node_v11333, include_attributes=False).encode()
+    ).hexdigest()
+    _counts_v11333 = {name: 0 for name in _expected_v11333}
+    _call_locations_v11333 = []
+    for _call_v11333 in ast.walk(_method_node_v11333):
+        if not isinstance(_call_v11333, ast.Call):
+            continue
+        _target_v11333 = _call_v11333.func
+        _name_v11333 = (
+            _target_v11333.attr if isinstance(_target_v11333, ast.Attribute)
+            else _target_v11333.id if isinstance(_target_v11333, ast.Name)
+            else ''
+        )
+        if _name_v11333 in _counts_v11333:
+            _counts_v11333[_name_v11333] += 1
+            _call_locations_v11333.append((_path_v11333, _name_v11333,
+                                             _call_v11333.lineno))
+    if _actual_hash_v11333 != _sha_v11333 or _counts_v11333 != _expected_v11333:
+        _semantic_errors.append('v11333 reward gateway AST changed: ' + _path_v11333)
+        continue
+    _v11333_verified_direct_reward_calls.update(_call_locations_v11333)
+
 _direct_xp_bypasses_v11342 = []
 for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
@@ -3418,7 +3474,12 @@ for _source_path_v11342 in _root.rglob("*.py"):
                     and fn.lineno <= _node_v11342.lineno <= fn.end_lineno
                     for fn in _manual_bank_credit_v11325)
         )
+        _audited_paid_reward_v11333 = (
+            _relative_v11342, _name_v11342,
+            getattr(_node_v11342, 'lineno', None)
+        ) in _v11333_verified_direct_reward_calls
         if (not _manual_bank_redeem_v11325
+                and not _audited_paid_reward_v11333
                 and _relative_v11342 not in _direct_xp_gateway_allow_v11342[_name_v11342]):
             _direct_xp_bypasses_v11342.append(
                 f"{_name_v11342}@{_relative_v11342}:"

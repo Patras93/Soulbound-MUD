@@ -123,13 +123,24 @@ def run_regression():
         mob = SimpleNamespace(template_id='bandit', room_id='test',
                               hp=75, adaptive_party_size_v11330=1)
         template = {'max_hp':75, 'rank':'normal', 'damage':9}
-        check(player.adaptive_enemy_damage_multiplier_v11330(mob, template) > 1.56,
-              'real low level monster attack does not hide behind novice cap')
+        from systems.adaptive_switch_v102006 import enabled as adaptive_enabled
         preview = forecast_fn(player, mob, template)
-        check(preview['max_hp'] > 75 * 8,
-              'consider forecasts higher HP from higher-level room')
-        check(preview['enemy_hit'] > 13,
-              'consider forecasts high-level enemy danger')
+        if adaptive_enabled():
+            check(player.adaptive_enemy_damage_multiplier_v11330(mob, template) > 1.56,
+                  'real low level monster attack does not hide behind novice cap')
+            check(preview['max_hp'] > 75 * 8,
+                  'consider forecasts higher HP from higher-level room')
+            check(preview['enemy_hit'] > 13,
+                  'consider forecasts high-level enemy danger')
+        else:
+            # v113.00.27 intentionally disabled adaptive scaling by default.
+            # Verify the OFF behavior instead of assuming old ON state.
+            check(player.adaptive_enemy_damage_multiplier_v11330(mob, template) == 1.0,
+                  'adaptive OFF keeps unscaled incoming hit')
+            check(preview['max_hp'] == 75,
+                  'adaptive OFF keeps original mob HP')
+            check(preview['enemy_hit'] >= 0,
+                  'adaptive OFF still provides consider forecast')
     finally:
         if original is None:
             room_table.pop('test', None)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Mercenaries 4.0: native class identities, situational moves and party combos.
 
-All 22 profiles are inherent, not purchased skills or a second XP track.
+All 38 profiles are inherent, not purchased skills or a second XP track.
 They inherit actual owner damage; this module only ADDS situational effects.
 No database writes, background work, damage ceiling, or manual skill commands.
 """
@@ -28,7 +28,24 @@ SPECIALISTS = {
     'chronomanta': ('Władca Czasu', 'wykorzystuje rytm starcia', 'Impuls Czasu', 'Spowolnienie Przeciwnika', 'Pętla Eonów'),
     'iluzjonista': ('Tkacz Luster', 'zmienia układ starcia', 'Lustrzany Rozbłysk', 'Zasłona Mirażu', 'Burza Zwierciadeł'),
     'bard': ('Pieśniarz Chwały', 'prowadzi drużynę dźwiękiem', 'Akord Burzy', 'Pieśń Natarcia', 'Symfonia Gwiazd'),
-    'szaman': ('Głos Przodków', 'łączy żywioły z duchami', 'Gniew Przodków', 'Totem Burzy', 'Zew Duchów'),
+    'szaman': ('Głos Przodków', 'łączy żywioły z duchami', 'Gniew Przodków', 'Totem Burzy', 'Zew Duchów'),    # Additional 16 classes have native techniques and independent tactical memory.
+    'magitek': ('Rezonans Magicite', 'łączy rdzeń magiczny z ostrzałem i osłoną', 'Impuls Rdzenia Magiteka', 'Synteza Żywiołów', 'Rdzeń Astralny'),
+    'chronotechnik': ('Architekt Czasu', 'rozrywa rytm ataku wroga i zamyka pętlę czasu', 'Pęknięcie Sekundy', 'Fala Eonów', 'Wyrok Czasu'),
+    'runiczny_obronca': ('Żywa Pieczęć', 'broni rannego sojusznika tarczą run i kontratakuje', 'Cięcie Runiczne', 'Fala Straży', 'Runiczna Kontra'),
+    'wladca_burz': ('Serce Sztormu', 'przeszywa odporność bossa kolejnymi wyładowaniami', 'Piorun Burzy', 'Gniew Niebios', 'Oko Cyklonu'),
+    'lowca_anomalii': ('Tropiciel Zakłóceń', 'odnajduje pęknięcia obrony i kończy walkę precyzyjnie', 'Cios Zakłócenia', 'Polowanie na Cienie', 'Werdykt Anomalii'),
+    'tkacz_dusz': ('Opiekun Więzi', 'uderza echem i wzmacnia życiową więź sojuszników', 'Szpon Echa', 'Fala Wspomnień', 'Żniwa Wspomnień'),
+    'alchemik_bitewny': ('Mistrz Reakcji', 'łączy wybuchy substancji w gwałtowną reakcję', 'Wybuch Destylatu', 'Toksyczna Chmura', 'Reakcja Łańcuchowa'),
+    'wedrowiec_pustki': ('Ostrze Próżni', 'tnie osłony i wykorzystuje słabość przeciwnika', 'Rozcięcie Pustki', 'Fala Bezczasowa', 'Wyłom Pustki'),
+    'wirtuoz_echa': ('Dyrygent Rezonansu', 'wykorzystuje rytm rezonansu dla wsparcia natarcia', 'Fala Rezonansu', 'Rozbrzmienie Duszy', 'Finał Rezonansu'),
+    'fantomowy_szermierz': ('Szermierz Odbić', 'zwodzi przeciwnika i uderza z odbicia', 'Cięcie Zwierciadła', 'Taniec Odbić', 'Fantomowy Finał'),
+    'szeptacz_bestii': ('Opiekunka Stada', 'łączy natarcie bestii z leczeniem rannych', 'Szept Pazurów', 'Chór Stworzeń', 'Dziki Zew'),
+    'paladyn_zmierzchu': ('Strażnik Zmierzchu', 'łączy przysięgę ochrony z kontratakiem', 'Przysięga Ostrza', 'Krąg Ochrony', 'Ostatni Świt'),
+    'kartograf_przestrzeni': ('Nawigator Wymiarów', 'wyznacza słabe punkty w wymiarach', 'Cięcie Współrzędnych', 'Burza Wektorów', 'Zamknięta Przestrzeń'),
+    'straznik_przyplywow': ('Bastion Pływów', 'osłania towarzyszy i odpiera wroga siłą przypływu', 'Uderzenie Pływów', 'Morski Wir', 'Sztormowa Kontra'),
+    'egzekutor_pieczeci': ('Sędzia Pieczęci', 'przebija ochronne znaki w finałowej fazie walki', 'Znak Wyroku', 'Deszcz Pieczęci', 'Egzekucja Znaku'),
+    'zarowy_zniwiarz': ('Żniwiarz Popiołu', 'uderza płomiennym ostrzem, gdy przeciwnik słabnie', 'Żarowe Żniwa', 'Burza Popiołu', 'Ostatni Popiół'),
+
 }
 
 
@@ -99,19 +116,24 @@ def specialist_support_on_strike_v1240(role, weakest, damage, major_threat, heal
         return ''
     hp_max = max(1, int(weakest.max_hp()))
     hp_now = max(0, int(weakest.current_hp))
-    if role in ('nekromanta', 'kaplan', 'druid', 'paladyn') and not healing_blocked and hp_now < hp_max:
-        frac = {'nekromanta': .02, 'kaplan': .04, 'druid': .035, 'paladyn': .02}[role]
+    if role in ('nekromanta', 'kaplan', 'druid', 'paladyn', 'tkacz_dusz',
+                'szeptacz_bestii', 'paladyn_zmierzchu') and not healing_blocked and hp_now < hp_max:
+        frac = {'nekromanta': .02, 'kaplan': .04, 'druid': .035, 'paladyn': .02, 'tkacz_dusz': .03,
+                'szeptacz_bestii': .03, 'paladyn_zmierzchu': .02}[role]
         # Lifesteal uses actual DAMAGE, never the estimated potential hit.
         recovery = min(hp_max - hp_now, max(1, int(hp_max * frac)), max(0, int(damage)))
         if recovery > 0:
             weakest.current_hp += recovery
             return f"Regeneracja {weakest.character.name}: +{recovery} HP."
-    if role in ('wojownik', 'straznik', 'mnich', 'psionik', 'inzynier', 'mec'):
+    if role in ('wojownik', 'straznik', 'mnich', 'psionik', 'inzynier', 'mec',
+                'runiczny_obronca', 'paladyn_zmierzchu', 'straznik_przyplywow'):
         # For serious threats, shield a weak ally even if another hit consumed
         # their previous guard; if the guard already exists, don't overwrite it.
         if hp_now < hp_max * (.95 if major_threat else .82) and int(getattr(weakest, 'skill_guard', 0)) <= 0:
             frac = {'wojownik': .05, 'straznik': .08, 'mnich': .035,
-                    'psionik': .06, 'inzynier': .06, 'mec': .035}[role]
+                    'psionik': .06, 'inzynier': .06, 'mec': .035,
+                    'runiczny_obronca': .08, 'paladyn_zmierzchu': .06,
+                    'straznik_przyplywow': .08}[role]
             value = max(1, int(hp_max * frac))
             weakest.skill_guard += value
             return f"Awaryjna osłona {weakest.character.name}: {value}."
@@ -130,7 +152,23 @@ _MERC_VOICES_V1270 = {
  'samuraj':'Honor prowadzi ostrze.', 'korsarz':'Sztorm nam sprzyja.',
  'gladiator':'Arena czeka na zwycięzcę.', 'chronomanta':'Czas jest po naszej stronie.',
  'iluzjonista':'Spójrz za zasłonę.', 'bard':'Niech zabrzmi pieśń!',
- 'szaman':'Duchy są z nami.'}
+ 'szaman':'Duchy są z nami.',
+ 'magitek':'Rdzeń gotowy!',
+ 'chronotechnik':'Sekunda wystarczy.',
+ 'runiczny_obronca':'Runy nas osłonią.',
+ 'wladca_burz':'Burza już tu jest.',
+ 'lowca_anomalii':'Wykryłem anomalię.',
+ 'tkacz_dusz':'Łączę nasze dusze.',
+ 'alchemik_bitewny':'Mieszanka gotowa.',
+ 'wedrowiec_pustki':'Pustka mnie prowadzi.',
+ 'wirtuoz_echa':'Słyszysz ten rezonans?',
+ 'fantomowy_szermierz':'Traf tylko moje odbicie.',
+ 'szeptacz_bestii':'Stado jest z nami.',
+ 'paladyn_zmierzchu':'Przysięga zmierzchu trwa.',
+ 'kartograf_przestrzeni':'Wyznaczyłam słaby punkt.',
+ 'straznik_przyplywow':'Przypływ nas osłania.',
+ 'egzekutor_pieczeci':'Pieczęć gotowa.',
+ 'zarowy_zniwiarz':'Żar nie gaśnie.'}
 
 def mercenary_voice_v1270(role, sequence, combo='', boss=False):
     """Deterministic, low-noise flavor every 6th strike (boss: every 4th)."""
@@ -154,7 +192,23 @@ PREFERRED_COMBOS_V1270 = {
     frozenset(('samuraj','gladiator')): ('Honor Areny', 1.10),
     frozenset(('korsarz','bard')): ('Pieśń Sztormu', 1.10),
     frozenset(('chronomanta','iluzjonista')): ('Zakrzywienie Zwierciadeł', 1.11),
-    frozenset(('szaman','druid')): ('Szept Pradawnego Lasu', 1.10),
+    frozenset(('szaman','druid')): ('Szept Pradawnego Lasu', 1.10),    frozenset(('magitek','inzynier')): ('Rdzeń i Przeciążenie', 1.11),
+    frozenset(('chronotechnik','chronomanta')): ('Pętla Dwóch Czasów', 1.11),
+    frozenset(('runiczny_obronca','straznik')): ('Podwójny Bastion', 1.09),
+    frozenset(('wladca_burz','szaman')): ('Dwa Gromy', 1.12),
+    frozenset(('lowca_anomalii','lucznik')): ('Łowcy Pęknięć', 1.1),
+    frozenset(('tkacz_dusz','kaplan')): ('Splot Ocalenia', 1.1),
+    frozenset(('alchemik_bitewny','mag')): ('Alchemia Żywiołów', 1.11),
+    frozenset(('wedrowiec_pustki','lotrzyk')): ('Ostrza Próżni', 1.1),
+    frozenset(('wirtuoz_echa','bard')): ('Duet Rezonansu', 1.11),
+    frozenset(('fantomowy_szermierz','samuraj')): ('Lustrzany Pojedynek', 1.1),
+    frozenset(('szeptacz_bestii','druid')): ('Przymierze Stada', 1.1),
+    frozenset(('paladyn_zmierzchu','paladyn')): ('Przysięga Dwóch Świtów', 1.09),
+    frozenset(('kartograf_przestrzeni','psionik')): ('Mapa Umysłów', 1.1),
+    frozenset(('straznik_przyplywow','korsarz')): ('Tarcza Sztormu', 1.1),
+    frozenset(('egzekutor_pieczeci','czarownik')): ('Pieczęć Klątwy', 1.11),
+    frozenset(('zarowy_zniwiarz','berserker')): ('Ogień Furii', 1.11),
+
 }
 
 def mercenary_preferred_combo_v1270(role, others):

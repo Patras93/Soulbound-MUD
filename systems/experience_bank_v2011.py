@@ -47,8 +47,14 @@ def banked_experience_v2011(db, account_id, amount, kind, level, *,
         fresh = number(amount if amount is not None else 0)
         if getattr(db, '_v108_live_event_caps', False) is True and overcap_event_state()['active']:
             # Over Cap EVENT is unlimited; boss double-cap is a different rule.
-            return fresh
-        return min(fresh, cap)
+            paid = fresh
+        else:
+            paid = min(fresh, cap)
+        # v113.00.29: the old bank allocator is intentionally bypassed here.
+        # Observe the actual payout only; never create EXP_BANK on fresh XP.
+        from systems.sound_events_v1208 import record_paid_exp_event_v11329
+        record_paid_exp_event_v11329(db, account_id, paid, cap, kind=kind)
+        return paid
     allocator = getattr(db, 'allocate_experience_bank_v2011', None)
     if allocator is None:
         raise RuntimeError('EXP Bank v2.00.11: SQLite schema not initialized')

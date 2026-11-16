@@ -42,16 +42,23 @@ def audit_v1250():
     chk('leczy' in ecology_turn_v1250(world,mage,{'name':'Mag','max_hp':100,'damage_type':'magic'},now=100),'mage heals')
     protected=mob()
     chk(ecology_turn_v1250(world,protected,{'name':'Smok','uoss_superboss':True},now=100)=='', 'authored boss protected')
-    chk(adaptive_skills_v1250(mob(), {'name':'wilk','damage':10}, 1000, 10) > adaptive_skills_v1250(mob(), {'name':'wilk','damage':10}, 10, 10),'adaptive attack')
-    chk(adaptive_skills_v1250(mob(), {'uoss_superboss':True}, 1000, 10)==1,'boss rules preserved')
-    adept=mob(turn=7)
-    adept.adaptive_party_dps_v11330=20000
-    chk('obronną' in adaptive_defense_v1250(adept,{'damage':100},now=100),'adaptive defense')
-    chk(adaptive_defense_v1250(adept,{'damage':100},now=100)=='','defense cooldown')
-    chk(adaptive_cadence_v1250([adept], {'a':{'damage':100}}, 2) < 2,'adapt speed')
-    novice=mob()
-    novice.adaptive_party_dps_v11330=300
-    chk(adaptive_cadence_v1250([novice], {'a':{'damage':100}}, 2) == 2,'novice pace protected')
+    # v113.00.27 disables adaptive scaling by default. Keep testing its
+    # historically supported ON mechanics inside this isolated test only.
+    from unittest.mock import patch
+    with patch('systems.adaptive_switch_v102006.enabled',return_value=False):
+        chk(adaptive_skills_v1250(mob(), {'name':'wilk','damage':10}, 1000, 10)==1.0,
+            'adaptive disabled remains disabled')
+    with patch('systems.adaptive_switch_v102006.enabled',return_value=True):
+        chk(adaptive_skills_v1250(mob(), {'name':'wilk','damage':10}, 1000, 10) > adaptive_skills_v1250(mob(), {'name':'wilk','damage':10}, 10, 10),'adaptive attack')
+        chk(adaptive_skills_v1250(mob(), {'uoss_superboss':True}, 1000, 10)==1,'boss rules preserved')
+        adept=mob(turn=7)
+        adept.adaptive_party_dps_v11330=20000
+        chk('obronną' in adaptive_defense_v1250(adept,{'damage':100},now=100),'adaptive defense')
+        chk(adaptive_defense_v1250(adept,{'damage':100},now=100)=='','defense cooldown')
+        chk(adaptive_cadence_v1250([adept], {'a':{'damage':100}}, 2) < 2,'adapt speed')
+        novice=mob()
+        novice.adaptive_party_dps_v11330=300
+        chk(adaptive_cadence_v1250([novice], {'a':{'damage':100}}, 2) == 2,'novice pace protected')
     ordinary={'name':'Goblin','max_hp':100,'damage':10}
     class Rng:
         def __init__(self,value):self.value=value

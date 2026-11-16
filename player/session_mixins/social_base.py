@@ -290,7 +290,7 @@ class SessionBaseSocialMixin:
                 await session.send(text, history_category="chat")
 
     async def show_channels_v03050(self):
-            await self.send("KANAŁY: gossip <tekst> — rozmowy ogólne; newbie <tekst> — pytania i pomoc dla nowych graczy; trade <tekst> — handel. Lokalnie: say. Prywatnie: tell. Drużyna: pc. Gildia: gildia czat <tekst>.")
+            await self.send("KANAŁY: gossip <tekst> — rozmowy ogólne i prośby o pomoc (także po śmierci); newbie <tekst> — pytania i pomoc (także po śmierci); trade <tekst> — handel. Lokalnie: say. Prywatnie: tell. Drużyna: pc. Gildia: gildia czat <tekst>.")
 
     def mentor_progress_v03050(self, account_id=None):
             aid = int(account_id if account_id is not None else self.account_id)

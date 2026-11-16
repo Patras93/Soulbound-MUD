@@ -5,6 +5,7 @@ import asyncio
 import math
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 from data.rooms import ROOMS
 from systems.v106_combat_encounter_level import effective_encounter_level_v106
 from systems.adaptive_combat import adaptive_target_max_hp_v11330, adaptive_reward_multiplier_v11330, adaptive_combat_rank_v11330
@@ -66,57 +67,60 @@ def audit_v1261():
     weak = Player(2, 20, 10)
     server.party_sessions = lambda aid, same_room=None: [solo] if aid == 1 else [weak]
     mob = SimpleNamespace(key='mobA', template_id='v1261_goblin', room_id='testroom', hp=1000, alive=True)
-    start = solo.apply_adaptive_mob_scale_v11330(mob)
-    check(start['party_dps'] > 0, 'baseline party dps')
-    check(start['max_hp'] >= 8000, 'solo normal HP target')
-    db.hires[1] = ('wojownik', 'mag', 'kaplan')
-    if hasattr(solo, '_adaptive_mercenary_dps_cache_v1261'): del solo._adaptive_mercenary_dps_cache_v1261
-    with_hires = solo.apply_adaptive_mob_scale_v11330(mob)
-    check(with_hires['max_hp'] == start['max_hp'], 'hires must NOT inflate mob HP')
-    check(with_hires['party_dps'] == start['party_dps'], 'hires must NOT change player party DPS')
-    check(with_hires['party_size'] == 1, 'hires do not occupy player party slots')
-    check(db.calls == 0, 'combat scaling never queries mercenary contracts')
-    solo.apply_adaptive_mob_scale_v11330(mob)
-    check(db.calls == 0, 'repeated combat scaling never queries hired allies')
-    check(with_hires['reward_multiplier'] == start['reward_multiplier'], 'hires must NOT inflate adaptive rewards')
-    mob.hp = with_hires['max_hp'] // 2
-    server.sessions = [solo]
-    solo.combat_mob_key = mob.key
-    in_fight = weak.apply_adaptive_mob_scale_v11330(mob)
-    check(in_fight['max_hp'] == with_hires['max_hp'], 'cannot reduce HP of an active encounter')
-    check(mob.hp == with_hires['max_hp'] // 2, 'active HP not healed or reduced')
-    server.sessions = [weak]
-    weak.combat_mob_key = None
-    solo.combat_mob_key = None
-    next_fight = weak.apply_adaptive_mob_scale_v11330(mob)
-    check(next_fight['max_hp'] < with_hires['max_hp'], 'later low level player gets own scaled HP')
-    check(0 < mob.hp <= next_fight['max_hp'], 'smaller HP is valid')
-    check(0.45 <= mob.hp / next_fight['max_hp'] <= .55, 'HP fraction preserved on handoff')
-    check(next_fight['rank'] == 'normal', 'normal rank preserved')
+    # Historical scaling math: override only this isolated test process.
+    # Production remains OFF; do not write LIVE_CONTENT or change gameplay.
+    with patch("systems.adaptive_switch_v102006.enabled", return_value=True):
+        start = solo.apply_adaptive_mob_scale_v11330(mob)
+        check(start['party_dps'] > 0, 'baseline party dps')
+        check(start['max_hp'] >= 8000, 'solo normal HP target')
+        db.hires[1] = ('wojownik', 'mag', 'kaplan')
+        if hasattr(solo, '_adaptive_mercenary_dps_cache_v1261'): del solo._adaptive_mercenary_dps_cache_v1261
+        with_hires = solo.apply_adaptive_mob_scale_v11330(mob)
+        check(with_hires['max_hp'] == start['max_hp'], 'hires must NOT inflate mob HP')
+        check(with_hires['party_dps'] == start['party_dps'], 'hires must NOT change player party DPS')
+        check(with_hires['party_size'] == 1, 'hires do not occupy player party slots')
+        check(db.calls == 0, 'combat scaling never queries mercenary contracts')
+        solo.apply_adaptive_mob_scale_v11330(mob)
+        check(db.calls == 0, 'repeated combat scaling never queries hired allies')
+        check(with_hires['reward_multiplier'] == start['reward_multiplier'], 'hires must NOT inflate adaptive rewards')
+        mob.hp = with_hires['max_hp'] // 2
+        server.sessions = [solo]
+        solo.combat_mob_key = mob.key
+        in_fight = weak.apply_adaptive_mob_scale_v11330(mob)
+        check(in_fight['max_hp'] == with_hires['max_hp'], 'cannot reduce HP of an active encounter')
+        check(mob.hp == with_hires['max_hp'] // 2, 'active HP not healed or reduced')
+        server.sessions = [weak]
+        weak.combat_mob_key = None
+        solo.combat_mob_key = None
+        next_fight = weak.apply_adaptive_mob_scale_v11330(mob)
+        check(next_fight['max_hp'] < with_hires['max_hp'], 'later low level player gets own scaled HP')
+        check(0 < mob.hp <= next_fight['max_hp'], 'smaller HP is valid')
+        check(0.45 <= mob.hp / next_fight['max_hp'] <= .55, 'HP fraction preserved on handoff')
+        check(next_fight['rank'] == 'normal', 'normal rank preserved')
 
-    party2 = Player(3, 200, 100)
-    db.hires[3] = ('mag', 'wojownik', 'druid')
-    server.party_sessions = lambda aid, same_room=None: [solo, party2] if aid == 1 else [weak]
-    party_mob = SimpleNamespace(key='mobB', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
-    multi = solo.apply_adaptive_mob_scale_v11330(party_mob)
-    check(multi['party_size'] == 2, 'two players count as two party members')
-    check(multi['party_dps'] > with_hires['party_dps'], 'only real party players count')
-    check(multi['rank'] == 'boss', 'boss type not overwritten')
-    # All four human players contribute DPS; twelve hired allies do NOT scale enemies.
-    party3, party4 = Player(4, 500, 600), Player(5, 100, 60)
-    db.hires[4] = ('mag', 'wojownik', 'druid')
-    db.hires[5] = ('berserker', 'lucznik', 'paladyn')
-    server.party_sessions = lambda aid, same_room=None: [solo, party2, party3, party4] if aid == 1 else [weak]
-    fresh = SimpleNamespace(key='mobC', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
-    combined = solo.apply_adaptive_mob_scale_v11330(fresh)
-    check(combined['party_size'] == 4, 'four human players counted')
-    check(combined['party_dps'] > multi['party_dps'], 'four actual players increase expected throughput')
-    check(combined['max_hp'] > multi['max_hp'], 'boss HP keeps pace with full group')
-    check(all(db.mercenary_contracts(i) for i in (1, 3, 4, 5)), 'all four owners keep three hire contracts')
-    check(adaptive_reward_multiplier_v11330(1000, 1000) == 1, 'base reward unchanged')
-    check(adaptive_reward_multiplier_v11330(1000, 1000000) > 3, 'old 3x ceiling removed')
-    check(adaptive_reward_multiplier_v11330(1000, 100000000) > adaptive_reward_multiplier_v11330(1000, 1000000), 'higher workload pays better')
-    check(adaptive_reward_multiplier_v11330(1000, 1000000) < 10, 'no economic runaway at 1000x HP')
+        party2 = Player(3, 200, 100)
+        db.hires[3] = ('mag', 'wojownik', 'druid')
+        server.party_sessions = lambda aid, same_room=None: [solo, party2] if aid == 1 else [weak]
+        party_mob = SimpleNamespace(key='mobB', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
+        multi = solo.apply_adaptive_mob_scale_v11330(party_mob)
+        check(multi['party_size'] == 2, 'two players count as two party members')
+        check(multi['party_dps'] > with_hires['party_dps'], 'only real party players count')
+        check(multi['rank'] == 'boss', 'boss type not overwritten')
+        # All four human players contribute DPS; twelve hired allies do NOT scale enemies.
+        party3, party4 = Player(4, 500, 600), Player(5, 100, 60)
+        db.hires[4] = ('mag', 'wojownik', 'druid')
+        db.hires[5] = ('berserker', 'lucznik', 'paladyn')
+        server.party_sessions = lambda aid, same_room=None: [solo, party2, party3, party4] if aid == 1 else [weak]
+        fresh = SimpleNamespace(key='mobC', template_id='v1261_boss', room_id='testroom', hp=10000, alive=True)
+        combined = solo.apply_adaptive_mob_scale_v11330(fresh)
+        check(combined['party_size'] == 4, 'four human players counted')
+        check(combined['party_dps'] > multi['party_dps'], 'four actual players increase expected throughput')
+        check(combined['max_hp'] > multi['max_hp'], 'boss HP keeps pace with full group')
+        check(all(db.mercenary_contracts(i) for i in (1, 3, 4, 5)), 'all four owners keep three hire contracts')
+        check(adaptive_reward_multiplier_v11330(1000, 1000) == 1, 'base reward unchanged')
+        check(adaptive_reward_multiplier_v11330(1000, 1000000) > 3, 'old 3x ceiling removed')
+        check(adaptive_reward_multiplier_v11330(1000, 100000000) > adaptive_reward_multiplier_v11330(1000, 1000000), 'higher workload pays better')
+        check(adaptive_reward_multiplier_v11330(1000, 1000000) < 10, 'no economic runaway at 1000x HP')
 
     # Call actual async implementation with fake inventory, without connecting DB.
     Smelt = _mixin('player/session_mixins/crafting_expansion.py', 'SessionCraftingExpansionV03114Mixin', {

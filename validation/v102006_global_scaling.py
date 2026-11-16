@@ -28,7 +28,7 @@ def run():
         with tempfile.TemporaryDirectory(prefix='sb-adaptive-') as tmp:
             switch.CONFIG_PATH = Path(tmp) / 'LIVE_CONTENT' / 'adaptive.json'
             switch._ENABLED = None
-            check(switch.enabled() is True, 'legacy mode ON before first decision')
+            check(switch.enabled() is False, 'default scaling OFF')
             check(not switch.CONFIG_PATH.exists(), 'status does not write')
             admin=Fake();guest=Fake(False,admin.server.db)
             guest.server=admin.server
@@ -44,13 +44,13 @@ def run():
             async def call(session, command):
                 await session.admin_command('live skalowanie '+command)
                 return session.messages[-1]
-            check('WLACZONE' in asyncio.run(call(admin,'status')), 'ON status')
+            check('WYLACZONE' in asyncio.run(call(admin,'status')), 'OFF status by default')
             check('Nieznana' in asyncio.run(call(guest,'off')), 'unauthorized OFF denied')
-            check(switch.enabled(), 'non-admin cannot modify state')
+            check(switch.enabled() is False, 'non-admin cannot modify default OFF')
             check('WYLACZONE' in asyncio.run(call(admin,'off')), 'admin OFF succeeds')
             check(switch.enabled() is False, 'disabled without restart')
-            check(switch.CONFIG_PATH.exists(), 'choice stored')
-            check(json.loads(switch.CONFIG_PATH.read_text('utf-8')) == {'schema':1,'enabled':False}, 'durable format')
+            check(not switch.CONFIG_PATH.exists(), 'default OFF needs no file')
+            check(not switch.CONFIG_PATH.exists(), 'default OFF without persistence')
             check(mob.adaptive_max_hp_v11330==0, 'existing encounter de-scaled')
             check(mob.hp==max(1,(base+1)//2), 'fraction of prior damage preserved')
             check(mob.adaptive_party_dps_v11330==0, 'party DPS reset')
@@ -74,7 +74,7 @@ def run():
                   'OFF suppresses adaptive guard independently of world reset')
             check(adaptive_cadence_v1250([rogue], {'bandit':{'damage':1}}, 1.0) == 1.0,
                   'OFF suppresses adaptive faster cadence independently of world reset')
-            check(admin.server.db.logged and admin.server.db.logged[-1][-1]=='off', 'admin action logged')
+            check(not admin.server.db.logged, 'idempotent default OFF needs no audit write')
             # OFF applies to new encounters, with no additional HP or DPS.
             fresh=SimpleNamespace(alive=True,template_id='bandit',hp=base,adaptive_max_hp_v11330=0)
             dummy=SimpleNamespace(character=SimpleNamespace(character_level=1000))
@@ -90,7 +90,7 @@ def run():
             check(adaptive_skills_v1250(mob,mob_template,1000000,10)==1.0, 'no adaptive ecology multiplier')
             check(enemy_team_pressure_v1260(mob,mob_template)==1.0, 'no hit-count adaptive escalation')
             switch._ENABLED=None
-            check(switch.enabled() is False,'restart loads OFF')
+            check(switch.enabled() is False,'restart uses default OFF')
             check('WLACZONE' in asyncio.run(call(admin,'on')),'admin ON succeeds')
             check(switch.enabled() is True,'ON in memory')
             rogue.monster_ai_guard_until_v1160=0
@@ -115,6 +115,16 @@ def run():
                 await admin.admin_live_v1204('pomoc 77')
                 return admin.messages[-1]
             check('POMOC 77' in asyncio.run(help77()), 'NVDA help page 77')
+            # Legacy schema-1 ON installations migrate to OFF without writing
+            # production state during a read. Only a new admin ON can opt in.
+            switch.CONFIG_PATH.write_text('{"schema":1,"enabled":true}', 'utf-8')
+            switch._ENABLED=None
+            check(switch.enabled() is False, 'legacy ON ignored after upgrade')
+            check(json.loads(switch.CONFIG_PATH.read_text('utf-8'))['enabled'] is True,
+                  'migration read leaves legacy file intact')
+            check('WLACZONE' in asyncio.run(call(admin,'on')), 'explicit opt-in works')
+            check(json.loads(switch.CONFIG_PATH.read_text('utf-8')) == {'schema':2,'enabled':True},
+                  'explicit opt-in writes current schema')
             # Invalid persisted data must fail visibly instead of silently enabling.
             switch.CONFIG_PATH.write_text('{"schema":1,"enabled":"off"}','utf-8')
             switch._ENABLED=None

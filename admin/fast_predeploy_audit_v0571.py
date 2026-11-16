@@ -155,72 +155,89 @@ def fast_predeploy_audit_v0571():
         errors.append(f"runtime manifest duplicate: {rel}")
     errors.extend(f"Python syntax failure: {item}" for item in syntax_errors)
 
-    # 2c. v1.10.7: compile every Python source in the repository, not only
-    # modules that participate in the production runtime manifest. This catches
-    # broken admin/validation/history files before they reach a release.
+    # 2c. Verify *every* Python source without re-reading/re-parsing the same
+    # tree in three independent sweeps. No result is cached between runs:
+    # this pass scans each file from the current candidate on every PREDEPLOY.
+    # Store only one AST at a time, avoiding excessive Windows memory use.
     all_python_files = sorted(
         path for path in ROOT.rglob("*.py")
         if "__pycache__" not in path.parts
     )
     all_source_syntax_errors = []
-    for path in all_python_files:
-        try:
-            compile(path.read_text(encoding="utf-8"), str(path), "exec")
-        except Exception as exc:
-            rel = path.relative_to(ROOT).as_posix()
-            all_source_syntax_errors.append(
-                f"{rel}: {type(exc).__name__}: {exc}"
-            )
-    errors.extend(
-        f"Repository Python syntax failure: {item}"
-        for item in all_source_syntax_errors
-    )
-
     duplicate_literal_keys = []
     swallowed_exception_sites = []
     intentional_swallowed_exception_sites = []
     todo_sites = []
+    runtime_module_symbols: dict[str, list[str]] = {}
+    runtime_rel_names = set(RUNTIME_MODULES)
     for path in all_python_files:
         rel = path.relative_to(ROOT).as_posix()
         source = path.read_text(encoding="utf-8")
         try:
+            # CPython compilation also detects invalid control flow which
+            # ast.parse alone does not catch (e.g. a top-level 'return').
+            compile(source, str(path), "exec")
+        except Exception as exc:
+            all_source_syntax_errors.append(
+                f"{rel}: {type(exc).__name__}: {exc}"
+            )
+        try:
             tree = ast.parse(source, filename=str(path))
         except Exception:
-            continue
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Dict):
-                seen_keys = set()
-                for key in node.keys:
-                    if isinstance(key, ast.Constant) and isinstance(key.value, (str, int, float, bytes)):
-                        marker = (type(key.value).__name__, key.value)
-                        if marker in seen_keys:
-                            duplicate_literal_keys.append(f"{rel}:{getattr(key, 'lineno', '?')}: {key.value!r}")
-                        seen_keys.add(marker)
-            if isinstance(node, ast.ExceptHandler):
-                body = list(node.body or ())
-                if len(body) == 1 and isinstance(body[0], ast.Pass):
-                    exc_name = "bare except"
-                    if node.type is not None:
-                        try:
-                            exc_name = ast.unparse(node.type)
-                        except Exception:
-                            exc_name = "except"
-                    site = f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
-                    handler_line = source.splitlines()[max(0, int(getattr(node, "lineno", 1)) - 1)]
-                    if "AUDIT_INTENTIONAL_PASS" in handler_line:
-                        intentional_swallowed_exception_sites.append(site)
-                    else:
-                        swallowed_exception_sites.append(site)
-        try:
-            for token in tokenize.generate_tokens(io.StringIO(source).readline):
-                if token.type != tokenize.COMMENT:
-                    continue
-                upper = token.string.upper()
-                if "TODO" in upper or "FIXME" in upper:
-                    todo_sites.append(f"{rel}:{token.start[0]}: {token.string.strip()}")
-        except (tokenize.TokenError, IndentationError):  # AUDIT_INTENTIONAL_PASS: syntax failures are reported separately
-            pass
-
+            tree = None  # Syntax failure was already reported above.
+        if tree is not None:
+            # Identical top-level override-order check, but reuse this AST.
+            if rel in runtime_rel_names:
+                runtime_module_symbols[rel] = [
+                    node.name for node in tree.body
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                ]
+            source_lines = None
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Dict):
+                    seen_keys = set()
+                    for key in node.keys:
+                        if isinstance(key, ast.Constant) and isinstance(key.value, (str, int, float, bytes)):
+                            marker = (type(key.value).__name__, key.value)
+                            if marker in seen_keys:
+                                duplicate_literal_keys.append(f"{rel}:{getattr(key, 'lineno', '?')}: {key.value!r}")
+                            seen_keys.add(marker)
+                if isinstance(node, ast.ExceptHandler):
+                    body = list(node.body or ())
+                    if len(body) == 1 and isinstance(body[0], ast.Pass):
+                        exc_name = "bare except"
+                        if node.type is not None:
+                            try:
+                                exc_name = ast.unparse(node.type)
+                            except Exception:
+                                exc_name = "except"
+                        site = f"{rel}:{getattr(node, 'lineno', '?')}: {exc_name}: pass"
+                        if source_lines is None:
+                            source_lines = source.splitlines()
+                        handler_line = source_lines[max(0, int(getattr(node, "lineno", 1)) - 1)]
+                        if "AUDIT_INTENTIONAL_PASS" in handler_line:
+                            intentional_swallowed_exception_sites.append(site)
+                        else:
+                            swallowed_exception_sites.append(site)
+        # Scanning every token in 1800 files is expensive (millions of tokens).
+        # A case-insensitive substring filter cannot miss these markers;
+        # tokenize matching sources to distinguish comments from strings.
+        # to reject mentions in strings and match comments precisely.
+        upper_source = source.upper()
+        if "TODO" in upper_source or "FIXME" in upper_source:
+            try:
+                for token in tokenize.generate_tokens(io.StringIO(source).readline):
+                    if token.type != tokenize.COMMENT:
+                        continue
+                    upper = token.string.upper()
+                    if "TODO" in upper or "FIXME" in upper:
+                        todo_sites.append(f"{rel}:{token.start[0]}: {token.string.strip()}")
+            except (tokenize.TokenError, IndentationError):  # AUDIT_INTENTIONAL_PASS: syntax failures are reported separately
+                pass
+    errors.extend(
+        f"Repository Python syntax failure: {item}"
+        for item in all_source_syntax_errors
+    )
     for item in duplicate_literal_keys:
         warnings.append(f"duplicate literal dict key: {item}")
     for item in swallowed_exception_sites[:200]:
@@ -228,22 +245,12 @@ def fast_predeploy_audit_v0571():
     for item in todo_sites[:200]:
         warnings.append(f"source TODO/FIXME: {item}")
 
-    # 2a. Mirror native_runtime's top-level symbol ownership guard without
-    # executing the full world. This catches deployment crashes such as v0.58.2
-    # defining the same helper function name in two audit modules.
+    # 2a. Assemble symbols in manifest order, not sorted filename order.
+    # This preserves the exact override semantics of the original audit.
     symbol_owners: dict[str, list[str]] = {}
     for rel in RUNTIME_MODULES:
-        path = ROOT / rel
-        if not path.is_file():
-            continue
-        try:
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        except Exception:
-            continue  # syntax failure is already reported above
-        for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                symbol_owners.setdefault(node.name, []).append(rel)
-
+        for symbol in runtime_module_symbols.get(rel, ()):
+            symbol_owners.setdefault(symbol, []).append(rel)
     unexpected_symbol_overrides = []
     expected_order_mismatches = []
     for symbol, owners in sorted(symbol_owners.items()):

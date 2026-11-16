@@ -4,7 +4,7 @@ import time
 from core.large_number_math import decimal_value, rounded_product
 
 # Prices in gold, 100 silver per gold. Roles remain distinct by design.
-# Each of the 22 playable classes has one hireable mercenary.
+# Every playable class (22 historical + 16 later) has one hireable mercenary.
 # Paladin retains the same contract key, NPC name and original statistics.
 # The historical key `lucznik` is retained for existing contracts in SQLite.
 MERCENARIES = {
@@ -29,7 +29,24 @@ MERCENARIES = {
     "chronomanta": {"name": "Erys",   "role": "Chronomanta","class": "Chronomanta","cost": 245, "power": 1.14, "attack_type": "magic",    "ability": "Impuls Czasu"},
     "iluzjonista": {"name": "Nyra",   "role": "Iluzjonista","class": "Iluzjonista","cost": 230, "power": 1.12, "attack_type": "magic",    "ability": "Lustrzany Rozbłysk"},
     "bard":       {"name": "Lyrian", "role": "Bard",       "class": "Bard",      "cost": 220, "power": 1.10, "attack_type": "magic",    "ability": "Akord Burzy"},
-    "szaman":     {"name": "Thara",  "role": "Szaman",     "class": "Szaman",    "cost": 235, "power": 1.13, "attack_type": "magic",    "ability": "Gniew Przodków"},
+    "szaman":     {"name": "Thara",  "role": "Szaman",     "class": "Szaman",    "cost": 235, "power": 1.13, "attack_type": "magic",    "ability": "Gniew Przodków"},    # v113.00.33: additions only. The 22 historical contract IDs remain unchanged.
+    'magitek': {"name": 'Kaela', "role": 'Magitek', "class": 'Magitek', "cost": 255, "power": 1.17, "attack_type": 'magic', "ability": 'Impuls Rdzenia Magiteka'},
+    'chronotechnik': {"name": 'Aion', "role": 'Chronotechnik', "class": 'Chronotechnik', "cost": 250, "power": 1.14, "attack_type": 'magic', "ability": 'Pęknięcie Sekundy'},
+    'runiczny_obronca': {"name": 'Runar', "role": 'Runiczny Obrońca', "class": 'Runiczny Obrońca', "cost": 235, "power": 1.00, "attack_type": 'physical', "ability": 'Cięcie Runiczne'},
+    'wladca_burz': {"name": 'Voltar', "role": 'Władca Burz', "class": 'Władca Burz', "cost": 265, "power": 1.22, "attack_type": 'magic', "ability": 'Piorun Burzy'},
+    'lowca_anomalii': {"name": 'Sira', "role": 'Łowca Anomalii', "class": 'Łowca Anomalii', "cost": 225, "power": 1.13, "attack_type": 'physical', "ability": 'Cios Zakłócenia'},
+    'tkacz_dusz': {"name": 'Luneth', "role": 'Tkacz Dusz', "class": 'Tkacz Dusz', "cost": 255, "power": 1.08, "attack_type": 'magic', "ability": 'Szpon Echa'},
+    'alchemik_bitewny': {"name": 'Cyran', "role": 'Alchemik Bitewny', "class": 'Alchemik Bitewny', "cost": 235, "power": 1.18, "attack_type": 'magic', "ability": 'Wybuch Destylatu'},
+    'wedrowiec_pustki': {"name": 'Nox', "role": 'Wędrowiec Pustki', "class": 'Wędrowiec Pustki', "cost": 250, "power": 1.17, "attack_type": 'physical', "ability": 'Rozcięcie Pustki'},
+    'wirtuoz_echa': {"name": 'Avelia', "role": 'Wirtuoz Echa', "class": 'Wirtuoz Echa', "cost": 245, "power": 1.14, "attack_type": 'magic', "ability": 'Fala Rezonansu'},
+    'fantomowy_szermierz': {"name": 'Rhael', "role": 'Fantomowy Szermierz', "class": 'Fantomowy Szermierz', "cost": 245, "power": 1.18, "attack_type": 'physical', "ability": 'Cięcie Zwierciadła'},
+    'szeptacz_bestii': {"name": 'Nayla', "role": 'Szeptacz Bestii', "class": 'Szeptacz Bestii', "cost": 240, "power": 1.10, "attack_type": 'magic', "ability": 'Szept Pazurów'},
+    'paladyn_zmierzchu': {"name": 'Thoren', "role": 'Paladyn Zmierzchu', "class": 'Paladyn Zmierzchu', "cost": 265, "power": 1.05, "attack_type": 'physical', "ability": 'Przysięga Ostrza'},
+    'kartograf_przestrzeni': {"name": 'Vela', "role": 'Kartograf Przestrzeni', "class": 'Kartograf Przestrzeni', "cost": 260, "power": 1.15, "attack_type": 'magic', "ability": 'Cięcie Współrzędnych'},
+    'straznik_przyplywow': {"name": 'Marven', "role": 'Strażnik Przypływów', "class": 'Strażnik Przypływów', "cost": 235, "power": 1.02, "attack_type": 'physical', "ability": 'Uderzenie Pływów'},
+    'egzekutor_pieczeci': {"name": 'Oria', "role": 'Egzekutor Pieczęci', "class": 'Egzekutor Pieczęci', "cost": 260, "power": 1.20, "attack_type": 'magic', "ability": 'Znak Wyroku'},
+    'zarowy_zniwiarz': {"name": 'Ignar', "role": 'Żarowy Żniwiarz', "class": 'Żarowy Żniwiarz', "cost": 260, "power": 1.22, "attack_type": 'physical', "ability": 'Żarowe Żniwa'},
+
 }
 
 # v1.21.2: contracts are permanent (0 is also the persisted sentinel).
@@ -182,10 +199,14 @@ def mercenary_follow_notice_v12210(names):
 # v1.22.11: documentation of REAL combat actions; no skill control interface.
 _MERCENARY_HEAL_V12211 = {
     "kaplan": (70, 18), "druid": (60, 13), "paladyn": (70, 11),
+    "tkacz_dusz": (100, 3), "szeptacz_bestii": (100, 3),
+    "paladyn_zmierzchu": (100, 2),
 }
 _MERCENARY_GUARD_V12211 = {
     "wojownik": 9, "paladyn": 6, "straznik": 13,
     "psionik": 8, "inzynier": 10,
+    "runiczny_obronca": 8, "paladyn_zmierzchu": 6,
+    "straznik_przyplywow": 8,
 }
 
 

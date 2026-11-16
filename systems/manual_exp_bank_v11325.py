@@ -121,6 +121,9 @@ async def redeem_exp_bank(session):
             char.__dict__.update(snapshot)
             raise
         if success:
+            # Send only after savepoint success; no EXP_BANK deposit event.
+            from systems.sound_events_v1208 import record_paid_exp_event_v11329
+            record_paid_exp_event_v11329(db, account, amount, limit, kind=kind)
             redeemed.append((kind,key,amount))
         else:
             blocked.append(kind+' '+key)

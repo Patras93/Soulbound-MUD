@@ -102,15 +102,15 @@ async def scenarios():
     check(result is None,'cast returns normally')
     check(wolf.v11196_jammer_stop_rounds>0,'wolf stopped without Logic Bomb')
     check(robot.v11196_jammer_stop_rounds>0,'robot stopped without Logic Bomb')
-    check(getattr(boss,'v11196_jammer_stop_rounds')==0,'boss immune')
+    check(getattr(boss,'v11196_jammer_stop_rounds')>0,'boss receives real Stop')
     check(foreign.v11196_jammer_stop_rounds==0,'foreign engagement remains protected')
     check(game.current_mana==60,'Support costs 40 mana')
     check(game.xp==1,'grants skill XP')
     check(game.realtime==1,'starts normal realtime combat')
     check(game.baseline_calls==0,'actual wrapper intercepted before protected native')
-    check(game.adaptive==['wolf','robot'],'adaptive scaling on eligible targets')
-    check(game.assists==['wolf','robot'],'party combat begins on both targets')
-    check(len(game.party_sent)==1 and '2 zatrzymanych' in game.party_sent[0],
+    check(game.adaptive==['wolf','robot','boss'],'adaptive hook on eligible targets')
+    check(game.assists==['wolf','robot','boss'],'party combat begins on eligible targets')
+    check(len(game.party_sent)==1 and '3 zatrzymanych' in game.party_sent[0],
           'one brief party announcement for AoE Jammer')
     check(any('Support weapon obejmuje wszystkich' in s for s in game.sent),'Support summary')
     check(not any(hasattr(m,'v11196_logic_bomb_rounds') for m in (wolf,robot)),
@@ -155,8 +155,13 @@ async def scenarios():
     check(a.v11196_jammer_stop_rounds>0,'after resisted cast Jammer can retry')
     check(g.current_mana==60,'second attempted cast costs mana')
 
-    # Boss only, foreign engagement only, or no mobs: no mana or XP spent.
-    for candidates in ([mob('boss','test_jammer_boss')],[mob('foreign')],[]):
+    # A lone boss is a valid target; private engagements are not.
+    single_boss=mob('boss_only','test_jammer_boss')
+    g=Game([single_boss],support=False)
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer')
+    check(single_boss.v11196_jammer_stop_rounds>0,'Jammer succeeds against lone boss')
+    check(g.current_mana==80 and g.xp==1,'boss Stop costs normal mana and grants real skill XP')
+    for candidates in ([mob('foreign')],[]):
         g=Game(candidates,support=True)
         await g.use_class_skill('Jammer')
         check(g.current_mana==100,'no legal targets: unchanged mana')
@@ -182,6 +187,55 @@ async def scenarios():
     check(g.baseline_calls==1,'baseline actually invoked once')
 
     # Two active players both in same room but foreign engaged target excluded.
+    # A stale world cache can contain mobs from other rooms. AoE and boss
+    # targeting must never apply Stop/engagement/EXP outside the fight room.
+    local_wolf=mob('local_wolf')
+    remote_boss=mob('remote_boss', 'test_jammer_boss', room_id='other_room')
+    remote_wolf=mob('remote_wolf', room_id='other_room')
+    g=Game([remote_boss,local_wolf,remote_wolf],support=True,aoe=True)
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer')
+    check(local_wolf.v11196_jammer_stop_rounds>0,'current room combat target stopped')
+    check(remote_boss.v11196_jammer_stop_rounds==0,'remote boss never stopped')
+    check(remote_wolf.v11196_jammer_stop_rounds==0,'remote normal mob never stopped')
+    check(g.assists==['local_wolf'],'assistance only for current room')
+    check(g.adaptive==['local_wolf'],'no remote mob scale/engagement updates')
+    check(g.current_mana==60 and g.xp==1,'valid local cast gets normal cost and XP')
+    g=Game([remote_boss,remote_wolf],support=True,aoe=True)
+    await g.use_class_skill('Jammer')
+    check(g.current_mana==100 and g.xp==0,'remote-only targets cannot spend mana or give XP')
+    check(remote_boss.v11196_jammer_stop_rounds==0,'remote-only boss untouched')
+
+    # The caster can move during an awaited auto-task shutdown. No mana or
+    # target flags may change in that case.
+    moving=mob('moving')
+    g=Game([moving],support=True,aoe=True)
+    g.auto_fishing=True
+    async def move_while_stopping(*,announce):
+        g.character.room_id='next_room'
+        g.auto_fishing=False
+    g.stop_auto_fishing=move_while_stopping
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer')
+    check(moving.v11196_jammer_stop_rounds==0,'movement cancels remote Stop')
+    check(g.current_mana==100 and g.xp==0,'movement before cast costs no mana or XP')
+    check(not g.adaptive and not g.assists,'movement does not start foreign-room combat')
+
+    # Move after the first hit, during an awaited reply. Other targets and
+    # the caster's combat target must not leak to the next location.
+    left,right=mob('left'),mob('right',tid='test_jammer_boss')
+    g=Game([left,right],support=True,aoe=True)
+    original_send=g.send
+    async def move_on_stop_message(message):
+        await original_send(message)
+        if 'zostaje jednorazowo wyłączony' in message:
+            g.character.room_id='adjacent_room'
+    g.send=move_on_stop_message
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer')
+    check(left.v11196_jammer_stop_rounds>0,'first same-room hit is valid')
+    check(right.v11196_jammer_stop_rounds==0,'second target skipped after movement')
+    check(g.combat_mob_key is None and g.realtime==0,
+          'next-room session never resumes previous room combat')
+
+
     check(all('parali' not in x.casefold() for x in game.sent),'no Logic Bomb guidance')
 
 if __name__=='__main__':

@@ -141,7 +141,7 @@ class SessionCommandLoopMixin:
                     remaining = max(0, int(round(self.party_downed_until_v0371 - time.time())))
                     await self.send(
                         f"Jesteś powalony. Pozostało około {remaining} s na wskrzeszenie. "
-                        "Czekaj na członka drużyny albo wpisz odrodz."
+                        "Poproś o pomoc: gossip <tekst> lub newbie <tekst>; możesz też wpisać odrodz."
                     )
                     continue
 

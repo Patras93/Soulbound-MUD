@@ -120,12 +120,18 @@ def audit_v1260():
     ck(craft_chain_bonus_v1260('masterwork',4,[100]*4,0)=='legendary','craft can promote masterwork')
 
     mob=SimpleNamespace(player_hits=50,combat_turn=10)
-    ck(enemy_team_pressure_v1260(mob,{'name':'Wilk'})>1,'monster never responds')
-    ck(enemy_team_pressure_v1260(mob,{'name':'Wilk'})<=1.21,'monster counterattack excessive')
-    ck(enemy_team_pressure_v1260(SimpleNamespace(player_hits=7,combat_turn=2),{})==1,
-       'weak party punished')
-    ck(enemy_team_pressure_v1260(mob,{'boss':True})==1,'hand-authored boss changed')
-    ck(enemy_team_pressure_v1260(mob,{'uoss_superboss':True})==1,'superboss changed')
+    # v113.00.27: OFF is the production default, test legacy ON separately.
+    from unittest.mock import patch
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=False):
+        ck(enemy_team_pressure_v1260(mob,{'name':'Wilk'})==1,
+           'adaptive OFF must not boost monster attacks')
+    with patch('systems.adaptive_switch_v102006.enabled', return_value=True):
+        ck(enemy_team_pressure_v1260(mob,{'name':'Wilk'})>1,'monster never responds when explicitly ON')
+        ck(enemy_team_pressure_v1260(mob,{'name':'Wilk'})<=1.21,'monster counterattack excessive')
+        ck(enemy_team_pressure_v1260(SimpleNamespace(player_hits=7,combat_turn=2),{})==1,
+           'weak party punished')
+        ck(enemy_team_pressure_v1260(mob,{'boss':True})==1,'hand-authored boss changed')
+        ck(enemy_team_pressure_v1260(mob,{'uoss_superboss':True})==1,'superboss changed')
 
     quotes=market_quotes_v1260(now=26000)
     ck(len(quotes)==6,'missing resource category quotes')

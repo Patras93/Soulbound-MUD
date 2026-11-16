@@ -174,16 +174,7 @@ def production_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Pat
     from core.runtime_manifest import FULL_AUDIT_ONLY_MODULES
     offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
     result={}
-    linux_only_runtime = frozenset({
-        'status_soulbound_windows.py', 'host_windows.py',
-        'stop_soulbound_windows.py', 'soulbound_backup_windows.py',
-        'supervisor_windows.py', 'uruchom_w_tle.py', 'start_windows_bootstrap.py',
-    }) if sys.platform=='linux' else frozenset()
     for rel,info in mapping.items():
-        if rel.suffix.lower() in ('.bat','.cmd','.vbs','.ps1') and sys.platform=='linux':
-            continue
-        if rel.as_posix() in linux_only_runtime:
-            continue
         parts=rel.parts
         if (rel.as_posix() in offline_admin_audits
                 or rel.as_posix() in V112_HISTORICAL_ACTIVATION_FILES
@@ -295,14 +286,7 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
             continue
         mapping[relative] = item
     essential = {'server.py', 'core/bootstrap_economy_professions.py',
-                 'predeploy_check.py'}
-    linux_entrypoints = {'PREDEPLOY_NOWEJ_WERSJI.sh','WDROZ_PO_PREDEPLOY.sh',
-                         'START_Soulbound.sh','STOP_Soulbound.sh',
-                         'systems/linux_release.py'}
-    if linux_entrypoints.issubset({p.as_posix() for p in mapping}):
-        essential |= linux_entrypoints
-    else:
-        essential |= {'START_Soulbound.bat','STOP_Soulbound.bat'}
+                 'START_Soulbound.bat', 'STOP_Soulbound.bat', 'predeploy_check.py'}
     missing = essential.difference(str(x).replace('\\', '/') for x in mapping)
     if missing:
         raise UpdateError('ZIP nie jest kompletna paczka Soulbound. Brakuje: '+', '.join(sorted(missing)))

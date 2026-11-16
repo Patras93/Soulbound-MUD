@@ -410,6 +410,10 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
     # still run as a real, mandatory TCP/SQLite gate, but only AFTER the heavy
     # audit has released CPU. No stages or assertions are skipped.
     full_audit_done = threading.Event()
+    # v113.00.30: return to real concurrent progression. A Windows 11
+    # measurement found that limiting all non-audit stages to two slots while
+    # the long audits run INCREASED overall PREDEPLOY from ~29 to ~36 minutes.
+    # The RAM-aware max_workers cap remains in force. No stage is skipped.
 
     with tempfile.TemporaryDirectory(prefix='soulbound-predeploy-workers-') as root_temp:
         roots = []
@@ -502,6 +506,7 @@ def main():
 
         say('SOULBOUND v3.31.5 - PREDEPLOY 5 GRACZY ULTIMATE 60 PLUS')
         say('Start: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
+        overall_started = time.monotonic()
         say('Python: '+sys.version.splitlines()[0])
         say('System: '+platform.platform())
         say('Folder gry: '+str(ROOT))
@@ -623,8 +628,31 @@ def main():
             say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ')
             say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
             return 1
+        # Run the current-version universal checks BEFORE the expensive legacy
+        # 60 PLUS gates. A missing import/new release regression must fail fast;
+        # successful preflight is retained as the exact required first future
+        # gate and is NOT run again after the 60. EQ and authenticated TCP
+        # remain mandatory after the legacy gate. No PASS is issued early.
+        universal_preflight = None
+        if tuple(map(int, candidate_version.split('.'))) > (112, 0, 0):
+            say('PRZED 60 PLUS: 25 aktualnych bramek uniwersalnych (fail-fast).')
+            with tempfile.TemporaryDirectory(prefix='soulbound-universal-preflight-') as quick_dir:
+                quick_env = stage_env(quick_dir)
+                quick_code = run_stage('validation/current_universal_release_suite.py',
+                                       quick_env, 1200, say)
+            universal_preflight = ('UNIWERSALNE TESTY NOWEGO WYDANIA', quick_code)
+            if quick_code != 0:
+                say('UNIWERSALNE BRAMKI FAIL: nie uruchamiam kosztownego 60 PLUS.')
+                say('WYNIK KONCOWY: FAIL - NIE WDRAZAJ, test uniwersalny nie przeszedl')
+                say('Log do przeslania: ' + str(LOG))
+                say('Koniec: ' + dt.datetime.now().astimezone().isoformat(timespec='seconds'))
+                return 1
+            say('UNIWERSALNE BRAMKI PRZED 60 PLUS: PASS; test nie bedzie powtarzany.')
         ram_msg = ('nieznany' if AVAILABLE_RAM_AT_START is None else
                    f'{AVAILABLE_RAM_AT_START / (1024 ** 3):.1f} GiB')
+        say('PLAN CPU: pelne rownolegle etapy w granicach CPU/RAM; '
+            'bez blokowania szesciu pracownikow na czas dwoch audytow. '
+            'Obowiazkowe wszystkie 60 etapow.')
         say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; '
             f'{os.cpu_count() or 2} watkow CPU, wolny RAM {ram_msg}; '
             '60/60 PLUS bez pomijania, przerwanie po pierwszym FAIL.')
@@ -637,17 +665,31 @@ def main():
             say('BLAD TESTERA: '+type(exc).__name__+': '+str(exc))
             say(traceback.format_exc().strip())
             status.append(('BLAD TESTERA', 99))
-        # v105: additional mandatory checks are run on this exact staged
-        # candidate, after historical 60 stages, but BEFORE final PASS.
-        # They do not change the 60-stage historical count. Real player DB is
-        # only opened by mode=ro; mutation rehearsal runs on a TEMP backup.
+        # All mandatory v105 / EQ / authenticated TCP checks operate on
+        # mutually isolated worker roots, scratch SQLite and localhost ports.
+        # Starting the five v113+ checks together removes an unnecessary
+        # sequential barrier without skipping a single assertion or changing
+        # the final fail-closed proof. Historical versions keep their lanes.
         v105_extra=[]
+        future_post60=[]
+        candidate_number = tuple(map(int, candidate_version.split('.')))
+        v105_stages=(
+            ('V105 KATALOGI I BALANS', 'validation/v10500_release_predeploy.py', 420),
+            ('V105 MIGRACJA PRAWDZIWEJ BAZY TYLKO KOPIA', 'validation/v10500_windows_migration_gate.py', 240),
+            ('V105 BOSSOWIE TCP 5 KLIENTOW / QUEST I NAGRODY', 'validation/v10500_tcp_boss_rewards.py', 900),
+        )
+        future_stages=(
+            ('FIZYCZNE EQ NA KOPII BAZY', 'validation/v10800_v107_equipment_compat_gate.py',1200),
+            ('SZESC GRACZY TCP, QUESTY I RESTART', 'validation/v11000_tcp_six_players.py',900),
+        )
         if len(status)==60 and all(code==0 for _,code in status):
-            v105_extra=run_parallel_stages((
-                ('V105 KATALOGI I BALANS', 'validation/v10500_release_predeploy.py', 420),
-                ('V105 MIGRACJA PRAWDZIWEJ BAZY TYLKO KOPIA', 'validation/v10500_windows_migration_gate.py', 240),
-                ('V105 BOSSOWIE TCP 5 KLIENTOW / QUEST I NAGRODY', 'validation/v10500_tcp_boss_rewards.py', 900),
-            ), say, phase='V105')
+            if candidate_number > (112,0,0):
+                additional=run_parallel_stages(v105_stages+future_stages,
+                                               say, phase='DODATKOWE', max_workers=5)
+                v105_extra=additional[:3]
+                future_post60=additional[3:]
+            else:
+                v105_extra=run_parallel_stages(v105_stages, say, phase='V105')
         # v106: Mandatory release-candidate checks. The 60 legacy stages run
         # with the historical defaults and cannot validate new staging-only v106.
         # Never advertise 60/60 PASS without exercising real v106 gameplay.
@@ -780,15 +822,11 @@ def main():
             # verification, six live TCP players and version-neutral suite
             # instead. ALL of these must PASS; no old launcher is executed.
             if (len(status)==60 and all(code==0 for _,code in status)
-                and plus_proof and extra_proof):
-                future_extra=run_parallel_stages((
-                    ('UNIWERSALNE TESTY NOWEGO WYDANIA',
-                     'validation/current_universal_release_suite.py',1200),
-                    ('FIZYCZNE EQ NA KOPII BAZY',
-                     'validation/v10800_v107_equipment_compat_gate.py',1200),
-                    ('SZESC GRACZY TCP, QUESTY I RESTART',
-                     'validation/v11000_tcp_six_players.py',900),
-                ),say,phase='UNIVERSAL',max_workers=3)
+                and plus_proof and extra_proof and universal_preflight is not None
+                and universal_preflight[1] == 0):
+                # All five post-60 checks were already executed together.
+                # Read the *actual* individual results, never manufacture PASS.
+                future_extra=[universal_preflight, *future_post60]
             else:
                 say('FAIL: uniwersalne bramki nie ruszyly: 60 PLUS albo historyczne regresje FAIL')
             for title,ret in future_extra:
@@ -854,6 +892,7 @@ def main():
         if not plus_proof: say('FAIL: Brak dowodu wykonania regresji PLUS')
         say('WYNIK KONCOWY: '+('PASS - WSZYSTKIE 60 ETAPOW PLUS' if good else
                                 'FAIL - NIE WDRAZAJ, popraw bledy wskazane wyzej'))
+        say(f'CZAS TESTOW BEZ PRZYGOTOWANIA ZIP: {time.monotonic()-overall_started:.1f} s')
         say('Log do przeslania: '+str(LOG))
         say('Koniec: '+dt.datetime.now().astimezone().isoformat(timespec='seconds'))
         return 0 if good else 1

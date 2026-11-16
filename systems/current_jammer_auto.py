@@ -2,14 +2,15 @@
 """Independent Jammer Stop target selection, retaining UOSS Support expansion.
 
 The Support Soul Weapon + the ordinary AoE toggle enable room-wide Stop.
-Jammer itself needs no Logic Bomb or prior Paralyze. Boss immunities, access
-checks and already-active Stop remain mandatory.
+Jammer itself needs no Logic Bomb or prior Paralyze. Bosses may be
+stopped, but only in the caster's current combat room; story/UOSS access,
+engagements and already-active Stop remain guarded.
 """
-from systems.boss_companions_v1281 import boss_jammer_immune_v1281
 
 
 def select_jammer_targets(room_mobs, templates, *, support_weapon=False,
-                          aoe_enabled=True, preferred_key=None, allowed=None):
+                          aoe_enabled=True, preferred_key=None, allowed=None,
+                          room_id=None):
     eligible = []
     immune = 0
     already = 0
@@ -17,15 +18,16 @@ def select_jammer_targets(room_mobs, templates, *, support_weapon=False,
     for mob in room_mobs:
         if not mob or not getattr(mob, 'alive', False):
             continue
+        # The room index is the first boundary, but an explicit check also
+        # rejects stale/foreign-room instances returned by a faulty cache.
+        if room_id is not None and getattr(mob, 'room_id', None) != room_id:
+            continue
         key = getattr(mob, 'key', None)
         if key in seen:
             continue
         seen.add(key)
         template = templates.get(mob.template_id)
         if template is None or (allowed is not None and not allowed(mob, template)):
-            continue
-        if boss_jammer_immune_v1281(template):
-            immune += 1
             continue
         if max(0, int(getattr(mob, 'v11196_jammer_stop_rounds', 0) or 0)):
             already += 1
@@ -85,20 +87,24 @@ async def cast_jammer(session, skill, unused_target_text=''):
 
     support_effect = bool(session.mec_support_effect_v11149())
     aoe_enabled = bool(session.offensive_aoe_enabled_v11120())
+    cast_room_id = session.character.room_id
     session.server.world.refresh()
-    room_mobs = list(session.server.world.room_mobs(session.character.room_id))
+    room_mobs = list(session.server.world.room_mobs(cast_room_id))
     def attackable(mob, template):
+        if (session.character.room_id != cast_room_id
+                or getattr(mob, 'room_id', None) != cast_room_id):
+            return False
         okay, _ = superboss_attack_gate_v11137(session, template)
         return bool(okay and session.server.engagement_allowed(session, mob))
     targets, immune_count, stopped_count = select_jammer_targets(
         room_mobs, MOB_TEMPLATES, support_weapon=support_effect,
         aoe_enabled=aoe_enabled, preferred_key=session.combat_mob_key,
-        allowed=attackable,
+        allowed=attackable, room_id=cast_room_id,
     )
     if not targets:
         await session.send(
             f"Jammer: brak dostępnych przeciwników do zatrzymania. "
-            f"Odpornych bossów: {immune_count}; już zatrzymanych: {stopped_count}. "
+            f"Już zatrzymanych: {stopped_count}. "
             "Mana bez zmian."
         )
         return
@@ -106,7 +112,8 @@ async def cast_jammer(session, skill, unused_target_text=''):
     # Resolve the entire eligible set before paying mana. Refuse to turn a
     # protected/foreign engagement into a new target after any side effects.
     for target in targets:
-        if (not target.alive or target.room_id != session.character.room_id
+        if (not target.alive or target.room_id != cast_room_id
+                or session.character.room_id != cast_room_id
                 or not attackable(target, MOB_TEMPLATES[target.template_id])):
             await session.send('Jammer: zmienił się stan przeciwników. Mana bez zmian.')
             return
@@ -119,6 +126,14 @@ async def cast_jammer(session, skill, unused_target_text=''):
     if session.auto_woodcutting or session.auto_woodcutting_task:
         await session.stop_auto_woodcutting(announce=False)
         await session.send('Auto-Drwalstwo wyłączone z powodu walki.')
+    # Auto-activity shutdown awaits can move the character or let a target
+    # leave; verify the full set again before any mana/engagement side effect.
+    for target in targets:
+        if (not target.alive or session.character.room_id != cast_room_id
+                or target.room_id != cast_room_id
+                or not attackable(target, MOB_TEMPLATES[target.template_id])):
+            await session.send('Jammer: cel opuścił aktualną lokację. Mana bez zmian.')
+            return
     for target in targets:
         session.server.sanitize_mob_engagement(target)
         session.apply_adaptive_mob_scale_v11330(target)
@@ -143,6 +158,11 @@ async def cast_jammer(session, skill, unused_target_text=''):
                   max(0, int(round((will_ratio**0.50)-1.0))))
     hits = misses = 0
     for target in targets:
+        # An async message/assist from a preceding target may have changed
+        # rooms; never apply Stop to mobs from another location.
+        if (session.character.room_id != cast_room_id
+                or not target.alive or target.room_id != cast_room_id):
+            continue
         template = MOB_TEMPLATES[target.template_id]
         machine = bool(template.get('machine') or
                        str(template.get('creature_type','')).casefold() == 'machine')
@@ -167,8 +187,7 @@ async def cast_jammer(session, skill, unused_target_text=''):
             target.engaged_by = session.character.name
         await session.server.auto_assist_party_combat(session, target)
     await session.send(
-        f"Jammer: {hits} celów zatrzymanych, {misses} oparło się, "
-        f"{immune_count} Super Bossów odpornych na Stop."
+        f"Jammer: {hits} celów zatrzymanych, {misses} oparło się."
         + (' Support weapon obejmuje wszystkich przeciwników.' if support_effect and aoe_enabled
            else (' AoE jest wyłączone — Support Effect pozostaje na jednym celu.'
                  if support_effect and not aoe_enabled else ''))
@@ -179,11 +198,16 @@ async def cast_jammer(session, skill, unused_target_text=''):
     await session.server.party_combat_broadcast(
         session,
         f"{session.character.name} używa Jammera: "
-        f"{hits} zatrzymanych, {misses} oparło się, "
-        f"{immune_count} odpornych.",
+        f"{hits} zatrzymanych, {misses} oparło się.",
         detail='essential',
     )
     await session.grant_skill_use_xp(skill)
+    # A move during a per-target message or party broadcast must not leave
+    # the next-room session targeting a monster from the previous room.
+    if session.character.room_id != cast_room_id:
+        return
     preferred = next((target for target in targets if target.key == session.combat_mob_key), targets[0])
+    if not preferred.alive or preferred.room_id != cast_room_id:
+        return
     session.combat_mob_key = preferred.key
     await session.ensure_realtime_combat()

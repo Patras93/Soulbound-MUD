@@ -7,11 +7,14 @@ No global world scan; caller supplies the active target and current turn.
 from __future__ import annotations
 
 FINISHERS = frozenset(('lotrzyk','berserker','lucznik','nekromanta','wojownik',
-                         'samuraj','gladiator'))
+                         'samuraj','gladiator',
+                         'lowca_anomalii', 'wedrowiec_pustki', 'fantomowy_szermierz', 'zarowy_zniwiarz'))
 BREAKERS = frozenset(('mag','czarownik','psionik','inzynier','mec',
-                         'korsarz','chronomanta','iluzjonista'))
+                         'korsarz','chronomanta','iluzjonista',
+                         'magitek', 'chronotechnik', 'wladca_burz', 'alchemik_bitewny', 'wirtuoz_echa', 'kartograf_przestrzeni', 'egzekutor_pieczeci'))
 GUARDIANS = frozenset(('straznik','paladyn','kaplan','druid','mnich',
-                          'bard','szaman'))
+                          'bard','szaman',
+                         'runiczny_obronca', 'tkacz_dusz', 'szeptacz_bestii', 'paladyn_zmierzchu', 'straznik_przyplywow'))
 
 
 def tactical_response(role, boss, hp, hp_max, sequence):
