@@ -164,6 +164,36 @@ def publish_in_place(stage: Path, root: Path, backup: Path, protected_predicate)
                           +str(cause)) from cause
 
 
+def restart_windows_without_console(launcher=None, *, installed_root=None) -> int:
+    """Launch from the INSTALLED root, never from temporary Generic_Bridge.
+
+    A release-owned updater executes in an isolated extracted copy. Importing
+    uruchom_w_tle in that interpreter makes its __file__/ROOT point to TEMP.
+    That spawns a watchdog from TEMP, locking the bridge (WinError 32) and
+    potentially starting the wrong game directory. Use the installed script.
+
+    The optional callable is only a dependency injection for isolated tests.
+    """
+    if launcher is not None:
+        return int(launcher())
+    if installed_root is None:
+        raise RuntimeError('Brak katalogu instalacji dla startu Soulbound.')
+    installed_root = Path(installed_root).resolve(strict=True)
+    installed_script = installed_root / 'uruchom_w_tle.py'
+    if not installed_script.is_file() or installed_script.is_symlink():
+        raise RuntimeError('Brak zaufanego uruchamiacza w katalogu instalacji: '
+                           + str(installed_script))
+    environment = os.environ.copy()
+    environment['SOULBOUND_LIVE_ROOT'] = str(installed_root)
+    environment['PYTHONDONTWRITEBYTECODE'] = '1'
+    completed = subprocess.run(
+        [sys.executable, '-u', str(installed_script)],
+        cwd=str(installed_root), env=environment, stdin=subprocess.DEVNULL,
+        timeout=40, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+    )
+    return int(completed.returncode)
+
+
 def update(root, archive_path, new_version, mapping, *,restart=True):
     """Replace code IN PLACE after backup and full candidate verification; keep player data."""
     import shutil
@@ -248,8 +278,20 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
         # This is post-publication, never from an isolated PREDEPLOY clone.
         if os.name == 'nt':
             try:
-                from windows_autostart import migrate_if_enabled
-                migrated = migrate_if_enabled()
+                # Import from the installed root. The updater interpreter
+                # runs out of the temporary bridge and must not migrate Startup
+                # entries using TEMP as its ownership root.
+                import importlib.util
+                active_autostart = root / 'windows_autostart.py'
+                if not active_autostart.is_file() or active_autostart.is_symlink():
+                    raise RuntimeError('Brak autostartu w zainstalowanym kodzie')
+                spec = importlib.util.spec_from_file_location(
+                    '_soulbound_installed_autostart', active_autostart)
+                if spec is None or spec.loader is None:
+                    raise RuntimeError('Nie mozna zaladowac zainstalowanego autostartu')
+                live_autostart = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(live_autostart)
+                migrated = live_autostart.migrate_if_enabled()
                 if migrated:
                     print('AUTOSTART: od teraz Soulbound rusza w tle bez okna CMD.',flush=True)
             except (OSError, RuntimeError, ValueError, UnicodeError) as exc:
@@ -257,11 +299,15 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
                       '. Mozna uzyc AUTOSTART_WLACZ_Soulbound.bat.',flush=True)
         if restart and os.name=='nt':
             try:
-                subprocess.Popen([os.environ.get('COMSPEC','cmd.exe'),'/d','/c',
-                                  str(root/'START_Soulbound.bat')],cwd=root)
-                print('Uruchomiono Soulbound z dotychczasowego katalogu.',flush=True)
-            except OSError as exc:
-                print('UWAGA: kod zainstalowano, ale restart sie nie powiodl: '+str(exc),flush=True)
+                code = restart_windows_without_console(installed_root=root)
+                if code:
+                    print('UWAGA: kod zainstalowano, ale uruchamiacz w tle zwrocil kod '
+                          + str(code) + '. Sprawdz logs\\start.log.', flush=True)
+                else:
+                    print('Uruchomiono Soulbound w tle bez okna CMD.', flush=True)
+            except (OSError, RuntimeError, ValueError) as exc:
+                print('UWAGA: kod zainstalowano, ale start w tle sie nie powiodl: '
+                      +str(exc),flush=True)
         return backup
     except (OSError,FreshInstallError,subprocess.TimeoutExpired) as exc:
         raise UpdateError('Bezpieczna aktualizacja przerwana: '+str(exc)) from exc

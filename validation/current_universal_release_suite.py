@@ -29,6 +29,7 @@ GATES=(
     'validation/current_tool_tier_after_800_regression.py',
     'validation/current_party_follow_regression.py',
     'validation/current_windows_autostart_background_regression.py',
+    'validation/current_bridge_cleanup_regression.py',
     'validation/current_jammer_auto_regression.py',
     'validation/current_jammer_cast_regression.py',
     'validation/current_crypt_overcap_party_regression.py',

@@ -122,8 +122,11 @@ def main():
         raise RuntimeError('Brak instalacji Soulbound w folderze BAT.')
     file=candidate(root,mode)
     print('SOULBOUND: '+mode.upper()+'; ZIP: '+str(file),flush=True)
-    with tempfile.TemporaryDirectory(prefix='Soulbound_Generic_Bridge_') as scratch:
-        staged=Path(scratch)/'Soulbound-MUD'
+    # The child must not leave any process with cwd in Generic_Bridge.
+    # Cleanup failure must NEVER overwrite the real installer exit code.
+    scratch=Path(tempfile.mkdtemp(prefix='Soulbound_Generic_Bridge_'))
+    try:
+        staged=scratch/'Soulbound-MUD'
         stage_candidate(file,staged,mode)
         if mode=='deploy':
             # Approval source unchanged since our preceding verification.
@@ -137,7 +140,15 @@ def main():
         env['PYTHONDONTWRITEBYTECODE']='1'
         entry=staged/('predeploy_nowej_wersji.py' if mode=='predeploy' else 'wdroz_po_predeploy.py')
         args=[str(file)] if mode=='predeploy' else []
-        return subprocess.call([sys.executable,'-u',str(entry),*args],cwd=str(staged),env=env)
+        result=subprocess.call([sys.executable,'-u',str(entry),*args],cwd=str(staged),env=env)
+        print('WYNIK WLASCIWEGO PROCESU '+mode.upper()+': '+str(result),flush=True)
+        return result
+    finally:
+        try:
+            shutil.rmtree(scratch)
+        except OSError as error:
+            print('UWAGA: tylko sprzatanie katalogu tymczasowego nie powiodlo sie: '
+                  +str(error)+'; katalog: '+str(scratch),file=sys.stderr,flush=True)
 
 
 if __name__=='__main__':

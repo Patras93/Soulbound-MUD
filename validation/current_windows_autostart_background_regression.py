@@ -133,6 +133,29 @@ def run_regression():
     launch = (ROOT/'uruchom_w_tle.py').read_text(encoding='utf-8')
     assert all(x in launch for x in ('DETACHED_PROCESS','CREATE_NO_WINDOW','pythonw.exe'))
     checks += 1
+    # The real Windows release updater may not start a visible CMD/BAT again.
+    # Execute the generic relaunch helper with synthetic launchers: no Windows
+    # process is spawned, no registry is modified, and no production DB is read.
+    from systems.universal_release_update import restart_windows_without_console
+    invoked = []
+    assert restart_windows_without_console(lambda: invoked.append('pythonw') or 0) == 0
+    assert invoked == ['pythonw']
+    assert restart_windows_without_console(lambda: 2) == 2
+    checks += 3
+    update = (ROOT/'systems/universal_release_update.py').read_text(encoding='utf-8')
+    assert 'code = restart_windows_without_console(installed_root=root)' in update
+    assert "subprocess.Popen([os.environ.get('COMSPEC','cmd.exe')" not in update
+    checks += 2
+    import uruchom_w_tle as background
+    with patch.object(background.os, 'name', 'nt'):
+        with patch.object(background, '_repair_legacy_autostart', wraps=lambda: False) as probe:
+            assert not background._repair_legacy_autostart()
+            assert probe.call_count == 1
+    checks += 1
+    # The launcher probes ONLY legacy Startup entries; a manual foreground BAT
+    # is still technically visible if deliberately double-clicked.
+    assert 'migrate_if_enabled()' in launch and 'startup_file().is_file()' in launch
+    checks += 1
     return checks
 
 if __name__ == '__main__':
