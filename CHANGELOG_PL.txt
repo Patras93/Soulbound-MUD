@@ -813,3 +813,14 @@ WYNIKI REGRESJI LOKALNYCH DLA v113.00.2:
 - Testy opierają się na izolowanych danych, NIE zastępują Windows 60/60 PLUS.
 - Rozległa lokalna seria `predeploy_check.py` została uruchomiona, ale
   nie ukończona; NIE przedstawiamy jej jako zaliczonej.
+
+Soulbound v113.00.25 — PRACE TESTOWE, NIE WDRAŻAĆ
+- Konta: trwałe własne aliasy, wybór z menu ma pierwszeństwo.
+- Odświeżenie widocznych opisów rozwoju bez fikcyjnych końcowych poziomów; ekonomia i przeliczniki walut bez zmian.
+
+- W sesji LIVE: ręczna wypłata starego EXP Bank, nowe nagrody nie ruszają banku; Over Cap wydarzenia omija limit nagrody, Double Cap zachowuje próg x2.
+
+
+v113.00.25 – POPRAWKA BRAMKI EXP BANK: Odbiór już zgromadzonego doświadczenia traktowany jako wydanie środków ze starego salda, nie nowa nagroda EXP. Dokładny AST funkcji wypłaty podlega kontroli nienaruszalności. Wszelkie inne obejścia centralnej bramki EXP pozostają blokowane. Produkcja i GitHub bez zmian.
+
+Test historycznej modularizacji opisów v4.00.5: 12 świadomie zaktualizowanych haseł, hash pełnego katalogu po zmianie; osobny hash nadal zabezpiecza pozostałe 15 niezmienionych opisów. Bramka 52 testów w lokalnym FAST PASS.

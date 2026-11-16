@@ -3361,6 +3361,25 @@ for _sb420_method, (_sb420_old, _sb420_new, _, _) in _sb420_ledger_allow.items()
             if _sb420_old in _oldset:
                 _oldset.add(_sb420_new)
 
+# v113.00.25: manual redemption only replays XP earned and saved earlier.
+# Never allow a generic new-XP gateway bypass. Its transactional debit and
+# recipient checks are protected by the exact AST of this credited function.
+import hashlib as _hashlib_manual_bank_v11325
+_manual_bank_source_v11325 = _root / 'systems/manual_exp_bank_v11325.py'
+_manual_bank_tree_v11325 = ast.parse(_manual_bank_source_v11325.read_text(encoding='utf-8'))
+_manual_bank_credit_v11325 = [
+    node for node in _manual_bank_tree_v11325.body
+    if isinstance(node, ast.FunctionDef) and node.name == '_credit'
+]
+_manual_bank_contract_v11325 = (
+    len(_manual_bank_credit_v11325) == 1
+    and _hashlib_manual_bank_v11325.sha256(
+        ast.dump(_manual_bank_credit_v11325[0], include_attributes=False).encode()
+    ).hexdigest() == 'f5fd6a58ffadc7e0cc36bdb04aaf3a63bd981109d1182810e14abaddc8fac227'
+)
+if not _manual_bank_contract_v11325:
+    _semantic_errors.append('v11325 manual bank claim credit AST contract invalid')
+
 _direct_xp_bypasses_v11342 = []
 for _source_path_v11342 in _root.rglob("*.py"):
     if any(part in {".git", "__pycache__"} for part in _source_path_v11342.parts):
@@ -3388,7 +3407,19 @@ for _source_path_v11342 in _root.rglob("*.py"):
         )
         if _name_v11342 not in _direct_xp_gateway_allow_v11342:
             continue
-        if _relative_v11342 not in _direct_xp_gateway_allow_v11342[_name_v11342]:
+        _manual_bank_redeem_v11325 = (
+            _manual_bank_contract_v11325
+            and _relative_v11342 == 'systems/manual_exp_bank_v11325.py'
+            and _name_v11342 in {
+                'add_character_xp', 'add_soul_xp',
+                'add_class_mastery_xp', 'add_skill_xp',
+            }
+            and any(isinstance(fn, ast.FunctionDef) and fn.name == '_credit'
+                    and fn.lineno <= _node_v11342.lineno <= fn.end_lineno
+                    for fn in _manual_bank_credit_v11325)
+        )
+        if (not _manual_bank_redeem_v11325
+                and _relative_v11342 not in _direct_xp_gateway_allow_v11342[_name_v11342]):
             _direct_xp_bypasses_v11342.append(
                 f"{_name_v11342}@{_relative_v11342}:"
                 f"{getattr(_node_v11342,'lineno','?')}"

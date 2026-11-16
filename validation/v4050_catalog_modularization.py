@@ -12,7 +12,7 @@ EXPECTED = {'HELP_TOPICS': 'f3a849fa4acd34c131f9ef5fe7e7c5c229accbcd3b94c8b9f2f6
  'MOB_DESCRIPTIONS': '5350de94ecfdee76cf92107c45929caa7299c3a789e1584cd009c061b45c4483',
  'NPC_DESCRIPTIONS': '298e36a628f90b4649b8b1941b0bc4ef800faa7964a0e949ef3c0fa03300877a',
  'STAT_DESCRIPTIONS': '7bdb95931b321fa88904eee0514c68ae3463f79ddb4433218968404fe4a8fe9d',
- 'SYSTEM_DESCRIPTIONS': '9c92e2d7f3fd3ead40efa15b6b1425266cfc5d726f8b0cba9b657a22fa178f60'}
+ 'SYSTEM_DESCRIPTIONS': 'f23b19973813547ff84353c16f1055ee4f76d0f28f0076a0f08aa2668bdb5a6b'}
 EXPECTED_COUNTS = {'HELP_TOPICS': 118,
  'HELP_TOPIC_ALIASES': 202,
  'MOB_DESCRIPTIONS': 34,
@@ -53,7 +53,17 @@ def run_regression():
     sys_descriptions=descriptions.make_system_descriptions_v405()
     assert _hash({k:v for k,v in npcs.items() if k!='priest_elor'}) == '6ccf86c65ac7d30bd860d0fea30d65a275fd817747193506f0066e1a5da13e79'
     soul_keys=('bron duszy','broń duszy','proby duszy','próby duszy','soul weapon','soul trials')
-    assert _hash({k:v for k,v in sys_descriptions.items() if k not in soul_keys}) == '425873beda1c450d9196fd39af58a844635dfa62c2bb05411a80cf5b564f3099'
+    # v113.00.25 intentionally rewrites 12 descriptions to remove obsolete hard
+    # level ceilings and correct the mithril conversion. Protect all 15 other
+    # historical entries with their independently verified v113.00.24 hash.
+    updated_v11325 = {
+        'wędkarstwo', 'wedkarstwo', 'fishing', 'górnictwo', 'gornictwo',
+        'mining', 'jubilerstwo', 'jewelcrafting', 'broń duszy',
+        'bron duszy', 'soul weapon', 'mithril',
+    }
+    assert _hash({k:v for k,v in sys_descriptions.items() if k not in updated_v11325}) == '2bf64fe0ff68ebb9a55ba898b4066b7d7dce3a5c042f74ac2ed50d500a334841'
+    assert all('1-400' not in sys_descriptions[k] for k in updated_v11325)
+    assert '1 000 mithril' not in sys_descriptions['mithril']
     assert '2–1000' in npcs['priest_elor'] and 'quest list Elor 81' in npcs['priest_elor']
     assert '1000' in sys_descriptions['broń duszy'] and 'Elora' in sys_descriptions['próby duszy']
     counts+=4

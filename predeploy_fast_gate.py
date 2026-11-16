@@ -42,6 +42,9 @@ def run():
             verify_native_method(ROOT / relative, method)
             protected += 1
     print(f'KONTROLA WSTEPNA: chronione historyczne metody AST PASS ({protected})',flush=True)
+    from validation.current_v11325_item_description_contract import run as item_description_test
+    item_description_test()
+    print('KONTROLA WSTEPNA: opisy przedmiotow i zgodnosc AST PASS',flush=True)
     # Fail in seconds if CPU/RAM selection or 8-worker isolation regresses.
     from validation.current_predeploy_parallel_resources_regression import run as parallel_test
     parallel_test()

@@ -20,7 +20,7 @@ EXPECTED = {'network/protocol_gameplay_utils.py': {'_boss_floor_chest_spec': 'b9
                                           'SessionAtlasCodexMixin.codex_relic_ids': 'f0d97c2ef140059da627ff238f205070ea0b72912a9a1a4f000da95177c42c60',
                                           'SessionAtlasCodexMixin.describe_target': '638aa530b030065892c7e2041ecf6d438d4b2750a4e423da2c8e52b16c15437e',
                                           'SessionAtlasCodexMixin.find_description_entry': '91408ceeeb8c2565474420b5535e251bb692dc3dd3799b15c0ed025fbdb0a9e2',
-                                          'SessionAtlasCodexMixin.format_item_description': 'c9e99da184b944a814688c179c2b55a2513496dedf07169ff3ac4d673eb0731b',
+                                          'SessionAtlasCodexMixin.format_item_description': '0edeb5cb731f2000f14d70313a0725e873f47352140828abbb1c745db79c8fe0',
                                           'SessionAtlasCodexMixin.item_runtime_description': '09b3c173ced411bba2d139e0489952805832511b8accefc1a306b83913d2307f',
                                           'SessionAtlasCodexMixin.room_special_features': 'c1f24474c63221d0fe664336dc1651f6fee873f00c124d16046ff95c81fcad84',
                                           'SessionAtlasCodexMixin.send_atlas_group_with_levels': '3fa6aa39bed3b98501e290272e76fdedaf642143b85cb4025367011f01bc388e',

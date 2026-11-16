@@ -148,7 +148,7 @@ def run_regression():
         code=(root/'admin/help_truth_current.py').read_text(encoding='utf-8')
         for marker in ('HELP_TOPICS["progresja800"]','HELP_TOPICS["multiclass"]',
                        'HELP_TOPICS["wzniesienie"]','HELP_TOPICS["worldtier"]',
-                       'Biegłości 800','Skill Level 1-800','nie mają limitu'):
+                       'Biegłości 800','Skill Level powyżej 800','nie mają limitu'):
             check(marker in code, 'current help marker '+marker)
         classsrc=(root/'player/session_mixins/class_progression.py').read_text(encoding='utf-8')
         check('Biegłość {CLASS_MASTERY_MAX_LEVEL}' in classsrc,

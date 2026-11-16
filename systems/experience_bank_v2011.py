@@ -39,6 +39,16 @@ def banked_experience_v2011(db, account_id, amount, kind, level, *,
                 from core.progression_resources import soul_xp_to_next
                 if soul_xp_to_next(level) <= 0:
                     cap = 0
+    # v113.00.25 (live sessions only): old bank balances are held until
+    # an explicit "expbank odbierz". Do not silently transfer fresh XP into
+    # the bank, nor draw down past balances on subsequent kills.
+    if getattr(db, '_manual_bank_only_v11325', False):
+        from core.big_numbers_v10400 import number
+        fresh = number(amount if amount is not None else 0)
+        if getattr(db, '_v108_live_event_caps', False) is True and overcap_event_state()['active']:
+            # Over Cap EVENT is unlimited; boss double-cap is a different rule.
+            return fresh
+        return min(fresh, cap)
     allocator = getattr(db, 'allocate_experience_bank_v2011', None)
     if allocator is None:
         raise RuntimeError('EXP Bank v2.00.11: SQLite schema not initialized')

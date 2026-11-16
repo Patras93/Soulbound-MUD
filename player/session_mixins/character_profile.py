@@ -175,17 +175,21 @@ class SessionCharacterProfileMixin:
             )
             await self.send(
                 "Doublecap silnego bossa: do " + str(cap * 2)
-                + " EXP na nagrodę. Nadwyżki trafiają do EXP Banku. "
+                + " EXP na nagrodę. Nowe nagrody nie zmieniają salda starego banku. "
                   "Multi Cap nie podnosi sam nagród ani progów awansu."
             )
 
     async def show_exp_bank_v2011(self, raw=""):
             """Persistent balances per character, Soul, class, skill, stat, profession and tool."""
+            if str(raw or '').strip().casefold() in ('odbierz','withdraw','claim'):
+                from systems.manual_exp_bank_v11325 import redeem_exp_bank
+                await redeem_exp_bank(self)
+                return
             rows = self.server.db.experience_bank_rows_v2011(self.account_id)
             entries = [(kind, key, amount) for kind, key, amount in rows if amount > 0]
-            await self.send("EXP BANK — niewypłacone doświadczenie po przekroczeniu capu.")
+            await self.send("EXP BANK — zachowane saldo doświadczenia z wcześniejszych nagród.")
             if not entries:
-                await self.send("EXP Bank: pusty. Nadwyżki nie są gromadzone.")
+                await self.send("EXP Bank jest pusty.")
             else:
                 labels = {'character': 'Postać', 'soul': 'Dusza', 'class': 'Klasa',
                           'stat': 'Statystyka', 'profession': 'Profesja',
@@ -198,9 +202,8 @@ class SessionCharacterProfileMixin:
                     f"{labels.get(kind, kind)} {amount}"
                     for kind, amount in sorted(totals.items())) + ".")
             await self.send(
-                "Nadwyżka zapisuje się automatycznie. Gdy kolejna nagroda jest "
-                "mniejsza od aktualnego capu, wolne miejsce uzupełnia EXP Bank. "
-                "Wypłata wraz z bieżącą nagrodą nigdy nie przekracza jej capu."
+                "Nowe nagrody nie pobierają EXP z banku ani nie odkładają do niego nadwyżek. "
+                "Wpisz expbank odbierz, aby ręcznie wypłacić saldo. Wypłata nigdy nie przekracza bieżącego limitu jednej operacji."
             )
 
     async def show_score(self):

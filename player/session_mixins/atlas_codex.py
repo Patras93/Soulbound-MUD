@@ -62,7 +62,12 @@ class SessionAtlasCodexMixin:
             from systems.dungeons_regions import CRYPT_AFFIXES  # explicit current dependency
             from systems.equipment_crafting import CLASS_SET_STAT_NAMES, jewelry_socket_capacity  # explicit current dependency
             from systems.items_resources import MATERIAL_PROPERTY_NAMES  # explicit current dependency
-            parts = [f"{item['name']}. Typ: {item.get('type', 'przedmiot')}.", self.item_runtime_description(item_id, item)]
+            item_type = item.get('type', 'przedmiot')
+            type_labels = {'tool':'narzędzie', 'armor':'pancerz', 'weapon':'broń',
+                           'craft_material':'materiał rzemieślniczy',
+                           'consumable':'przedmiot użytkowy', 'material':'materiał'}
+            pretty_type = type_labels.get(item_type, item_type)
+            parts = [f"{item['name']}. Typ: {pretty_type}.", self.item_runtime_description(item_id, item)]
 
             if item.get("type") == "armor":
                 parts.append(
@@ -131,8 +136,9 @@ class SessionAtlasCodexMixin:
                         f"{item['crypt_set_tier']}."
                     )
             elif item.get("type") == "tool":
-                tool = "Wędka" if item.get("tool_type") == "fishing" else "Kilof"
-                parts.append(f"Narzędzie profesji: {tool}. Ma własny poziom 1-600 i osobny XP.")
+                # The actual item name has already been read out above. Avoid
+                # repeating it and never falsely call every non-fishing tool a Kilof.
+                parts.append("Narzędzie rozwija niezależny poziom, Tier i XP, także powyżej historycznego poziomu 800.")
             elif "heal" in item:
                 parts.append(f"Leczenie: {item['heal']} HP.")
             elif "soul_xp" in item:
