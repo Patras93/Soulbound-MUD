@@ -1,3 +1,32 @@
+
+V113.00.34 — PREDEPLOY TCP bez oczekiwania na pełny audyt (aktualizacja paczki kandydata)
+- Usunięto wyłącznie zbędne oczekiwanie 5-klientowego etapu TCP na zakończenie pełnego audytu. Oba etapy używają oddzielnych kopii kodu, baz i portów localhost.
+- Wszystkie 60 etapów PLUS pozostają obowiązkowe, żadna asercja nie jest pomijana; FAIL testu TCP nadal blokuje wydanie.
+- Rozszerzono regresję harmonogramu o test rzeczywistego nakładania się etapów i o negatywny test FAIL TCP.
+- Nie zmieniano mechaniki gry, katalogów skilli najemników, SQLite, kontraktów, EXP ani zapisów postaci.
+- Oczekiwana oszczędność dotyczy tylko końcowego oczekiwania TCP (około 2 minuty); pełnego wyniku czasowego Windows jeszcze nie potwierdzono.
+
+Soulbound MUD v113.00.34 — PRAWDZIWE SKILLE WSZYSTKICH 38 NAJEMNIKOW
+
+1. Kazdy z 38 najemnikow uzywa w walce prawdziwych, ofensywnych skilli swojej
+   klasy z kanonicznego katalogu gry, zgodnych z poziomem wlasciciela.
+   Rotacja obejmuje WSZYSTKIE odblokowane ataki, nie tylko trzy techniki
+   zastepcze ani arbitralnie wybrany podzbior umiejetnosci.
+2. Mec Vex: przy odpowiednim poziomie uruchamia wlasny V-MAX; Cosmic Rave
+   podczas V-MAX wykonuje piec trafien w obrebie jednej akcji najemnika.
+3. Ataki obszarowe trafiaja tylko aktywnie walczacych przeciwnikow z biezacej
+   lokacji; brak auto-agro i trafiania cudzej walki. Zgon i nagroda obslugiwane
+   przez dotychczasowa sciezke gry.
+4. Istniejace leczenie, oslanianie, taktyki, koszty i zapis kontraktow nie
+   zostaly zmienione. Kontrolne, pasywne i inne nieofensywne skille NIE sa
+   sztucznie odgrywane bez faktycznej mechaniki.
+5. Nowy modul systems/mercenary_class_skills_v11334.py oraz regresja
+   validation/current_mercenary_arsenal_v11334_regression.py; jeden maly
+   punkt podlaczenia do istniejacej walki i do listy bramek uniwersalnych.
+6. Standardowy PREDEPLOY 60/60 PLUS i LIVE pozostaje obowiazkowy. NIE WDRAZAC
+   bez pelnego PASS. Produkcyjna SQLite, GitHub i Soundpack bez zmian.
+
+--- POPRZEDNIE WYDANIE ---
 Soulbound MUD v113.00.33 — KOREKTA KONTRAKTÓW XP PREDEPLOY (Windows / Linux)
 
 - Naprawa blokującego FAIL v1.13.42 direct XP gateway bypasses w pełnym PREDEPLOY.
@@ -74,3 +103,24 @@ SOULBOUND MUD v113.00.31 — OSIAGNIECIA EXP I JAMMER TYLKO W BIEZACEJ LOKACJI
 5. Dziedziczy optymalizacje PREDEPLOY v113.00.30 oraz naprawy v113.00.29, bez zmian dzialajacego serwera i produkcyjnych zapisow.
 
 STATUS: DO PREDEPLOY, NIE WDRAZAC przed pelnym Windows 60/60 PLUS oraz LIVE.
+
+
+Soulbound MUD v113.00.34 — RZECZYWISTY ARSENAŁ NAJEMNIKÓW (DO PREDEPLOY)
+- Wszystkich 38 najemników wybiera odblokowane zdolności ofensywne z istniejącego, autorytatywnego katalogu swojej klasy, zamiast stale trzech fikcyjnych nazw.
+- Mec Vex od 130. poziomu może sam uruchamiać swój V-MAX i używać Cosmic Rave w wersji pięciu uderzeń, losując cel po każdym trafieniu. Od 110. poziomu Cosmic Rave istnieje też bez V-MAX.
+- Ataki obszarowe najemników obejmują wyłącznie wrogów już walczących z właścicielem lub jego drużyną w tym samym pokoju. Brak auto-agro i uderzeń przez lokacje.
+- Każdy cios przechodzi normalną obronę bossa i odporności żywiołowe, zabójstwa korzystają z istniejącej ścieżki nagród, a moc wielu trafień jest dzielona w ramach jednego działania najemnika.
+- Nowy moduł systems/mercenary_class_skills_v11334.py, tylko jeden minimalny mostek w obsłudze walki; bez zmian w kontraktach i SQLite, EXP właściciela, sprzęcie, Jammerze ani 60 bramkach PLUS.
+- Wersja wymaga pełnego Windows PREDEPLOY. Nie wdrażać bez PASS 60/60 PLUS.
+
+
+HOTFIX PREDEPLOY v113.00.34 - izolowane audyty historyczne rownolegle (2026-11-17)
+- Zmieniono wylacznie testy PREDEPLOY i harmonogram wewnetrznych odizolowanych bramek. Gameplay, konta, postacie, SQLite i najemnicy pozostaja bez zmian.
+- W szybkiej historycznej bramce predeploy_check.py: 26 niezaleznych, izolowanych podprocesow testowych (wczesniej wywolywanych sekwencyjnie) trafia do dwupracownikowej kolejki z obowiazkowym wynikiem kazdego testu.
+- W pelnym historycznym audycie predeploy_full.py: 36 niezaleznych, izolowanych podprocesow testowych trafia do analogicznej kolejki. Dlugie kontrole wspolnego runtime pozostaja sekwencyjne, bo moga wzajemnie modyfikowac stan.
+- Kazdy osobny podproces testowy ma prywatny TEMP, lokalny port i baze SQLite. Odrzucono odziedziczone zmienne produkcyjnej bazy, portu i sekretow; tryb pelnego audytu zachowany.
+- Dzieci testowe zachowuja pierwotne polecenia, sprawdzanie kodu wyjscia, obowiazkowe markery wynikow, asercje i timeouty. Nie pomijamy historycznych kontrol; blad dowolnego zadania jest blokujacym FAIL.
+- Nowy test current_predeploy_historical_parallel_regression.py: kolejka, izolacja, brak bramki 4000, prawidlowe raportowanie, negatywna proba FAIL. Dodatkowo uruchamiany w bramce wstepnej i zestawie uniwersalnym.
+- Maksymalnie dwa dodatkowe procesy izolowane na kazdy audyt naraz, by nie przeciążyć komputera. Ostateczny wynik czasu nalezy zmierzyc na Windows; nie gwarantujemy 10 minut.
+- Wymagany nadal PREDEPLOY 60/60 PLUS, bramki uniwersalne, LIVE/TCP, migracja SQLite i EQ. NIE WDRAZAC PRZED PELNYM PASS.
+- POPRAWKA TESTU: uniwersalna bramka v113.00.34 arsenal najemnikow ustawia katalog gry na sys.path przy bezposrednim uruchomieniu, bez zmian w mechanice skilli.

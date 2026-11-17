@@ -263,6 +263,7 @@ class SessionMercenaryTavernsMixin:
         from systems.mercenary_memory_v1250 import (
             memory_choice_v1250, memory_effect_v1250, memory_learn_v1250,
         )
+        from systems.mercenary_class_skills_v11334 import pick_skill, execute_attack
         from systems.mercenary_specialists_v1240 import (
             specialist_attack_v1240, specialist_support_on_strike_v1240,
             mercenary_voice_v1270, mercenary_preferred_combo_v1270,
@@ -367,6 +368,11 @@ class SessionMercenaryTavernsMixin:
                 # Preferred role pairs cooperate automatically; no micromanagement.
                 duo_name_v1270, duo_mult_v1270 = mercenary_preferred_combo_v1270(
                     role, (other for other in roles if other != role))
+                # v113.00.34: real, level-gated class attacks from the live
+                # catalogue. The old three-move memory still supplies its
+                # damage adaptation without restricting the actual spell list.
+                class_skill, vmax_started, vmax_active = pick_skill(
+                    self, role, merc_level, now, major_threat)
                 # No arbitrary 42%, damage ceiling or downgrade for support roles.
                 power = max(1, int(power_base * max(1.0, float(spec["power"]))
                                    * mercenary_attack_multiplier(merc_level, tactic)
@@ -377,22 +383,27 @@ class SessionMercenaryTavernsMixin:
                 from systems.eternal_glory.companions import companion_coordination_v1100
                 power = max(power, int(power * companion_coordination_v1100(
                     target_template, hired_count=len(roles))))
-                template = MOB_TEMPLATES.get(mob.template_id, {})
-                power = await self.apply_boss_defense(mob, power)
-                # Same world-tier damage rule used by the owner's normal hits.
-                tier_fn = getattr(self, "v0210_adjust_player_damage", None)
-                if callable(tier_fn):
-                    power = tier_fn(power)
-                power, _ = v0314_adjust_damage_vs_template(template, power, "magic" if magic else "physical", spec["role"])
-                # No percent-of-enemy-HP cap. Clamp ONLY to real remaining HP and
-                # finish through the existing kill pipeline, including party credit.
+                # Class-specific damage, AoE and V-MAX Cosmic Rave stay inside
+                # the CURRENT combat room and use a single action's power.
+                # Native boss defense and elemental modifiers are applied to
+                # every struck enemy, with the original kill/credit pipeline.
+                chosen_skill = class_skill or {
+                    'id': 'mercenary_fallback', 'name': specialist_technique,
+                    'kind': 'damage', 'unlock': 1}
                 hp_before_memory_v1250 = max(0, int(mob.hp))
-                damage = min(hp_before_memory_v1250, max(1, int(power)))
+                total_damage, primary_damage, defeated_mobs, number_of_hits = (
+                    await execute_attack(self, mob, power, chosen_skill, role, vmax_active))
                 memory_learn_v1250(self, memory_key_v1250, memory_idx_v1250,
-                                   damage, power_base, hp_before_memory_v1250)
-                mob.hp -= damage
-                technique = specialist_technique
-                message = f"{name} używa {technique}: {damage} obrażeń. {max(0, mob.hp)} HP przeciwnika."
+                                   primary_damage, power_base, hp_before_memory_v1250)
+                damage = total_damage
+                technique = chosen_skill['name']
+                vmax_prefix = 'V-MAX. ' if vmax_started else ''
+                vmax_note = ' V-MAX, 5 trafień.' if (role == 'mec' and
+                    chosen_skill.get('mec_special') == 'cosmic_rave' and vmax_active) else ''
+                message = (f"{name}: {vmax_prefix}{technique}: {damage} obrażeń"
+                           f" ({number_of_hits} trafień).{vmax_note}")
+                if mob.hp <= 0:
+                    message += " 0 HP przeciwnika."
                 if chain_reaction:
                     message += f" {chain_reaction}."
                 if duo_name_v1270 and int(getattr(mob, 'combat_turn', 0) or 0) % 4 == 0:
@@ -411,7 +422,7 @@ class SessionMercenaryTavernsMixin:
                 if support_text:
                     message += f" {support_text}"
                 experience_action = True
-                defeated_by_mercenary = mob.hp <= 0
+                defeated_by_mercenary = bool(defeated_mobs)
             if message:
                 # Tactics are freely selectable from level 1. Every mercenary keeps
                 # their own role ability; this small extra effect is player-configured.
@@ -431,6 +442,7 @@ class SessionMercenaryTavernsMixin:
                 await self.send_combat(message, detail="essential")
                 await self.server.party_combat_broadcast(self, message, detail="essential")
                 if defeated_by_mercenary:
-                    await self.mob_defeated(mob)
+                    for fallen in defeated_mobs:
+                        await self.mob_defeated(fallen)
                 # v1.22.8: no separate mercenary leveling or per-action SQLite writes.
                 # The hire follows the owner's level immediately, even after reconnect.

@@ -30,6 +30,7 @@ GATES=(
     'validation/current_v11325_bank_alias_regression.py',
     'validation/current_v11329_sound_cap_regression.py',
     'validation/current_predeploy_cpu_priority_regression.py',
+    'validation/current_predeploy_historical_parallel_regression.py',
     'validation/current_downed_channels_regression.py',
     'validation/current_party_follow_regression.py',
     'validation/current_windows_autostart_background_regression.py',
@@ -39,6 +40,7 @@ GATES=(
     'validation/current_achievement_xp_v11331_regression.py',
     'validation/current_skill_exp_v11332_regression.py',
     'validation/current_v11333_mercenary_38_regression.py',
+    'validation/current_mercenary_arsenal_v11334_regression.py',
     'validation/current_crypt_overcap_party_regression.py',
     'validation/current_only_server_smoke.py',
 )
