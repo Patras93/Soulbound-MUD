@@ -48,6 +48,8 @@ def run():
     # Fail in seconds if CPU/RAM selection or 8-worker isolation regresses.
     from validation.current_predeploy_parallel_resources_regression import run as parallel_test
     parallel_test()
+    from validation.current_predeploy_historical_parallel_regression import run_regression as historic_parallel_test
+    historic_parallel_test()
     # This exact regression previously raised AttributeError: ground_loot.
     engine_checks=engine_test()
     print(f'KONTROLA WSTEPNA: silnik i odswiezanie swiata PASS ({engine_checks})',flush=True)

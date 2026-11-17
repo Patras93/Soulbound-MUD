@@ -397,19 +397,19 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
     pending = queue.Queue()
     indices = list(range(len(stages)))
     if phase == 'ETAP':
-        # Do not occupy one worker waiting for the exhaustive audit to finish.
-        # Preserve each stage index for audit results and its complete log.
+        # Run the five-player TCP proof after independent short stages, but in
+        # parallel with any still-running audit. Preserve all stage indices.
         indices.sort(key=lambda index: stages[index][0] == '5 KLIENTOW TCP + RESTART')
     for index in indices:
         pending.put(index)
     results = [None] * len(stages)
     report_lock = threading.Lock()
     abort = threading.Event()  # first hard FAIL stops queued and running stages
-    # The authenticated five-player combat gate was starved on Windows while
-    # the 1500-second exhaustive Python audit used the other worker. It must
-    # still run as a real, mandatory TCP/SQLite gate, but only AFTER the heavy
-    # audit has released CPU. No stages or assertions are skipped.
-    full_audit_done = threading.Event()
+    # The five-client TCP gate uses an isolated worker copy, its own temporary
+    # SQLite and localhost port. Queue it after the other short stages, but do
+    # not wait for the unrelated full audit to finish: that old barrier added
+    # the whole TCP runtime to the critical path for no shared-state reason.
+    # Completion remains mandatory and any failure still invalidates 60/60.
     # v113.00.30: return to real concurrent progression. A Windows 11
     # measurement found that limiting all non-audit stages to two slots while
     # the long audits run INCREASED overall PREDEPLOY from ~29 to ~36 minutes.
@@ -440,13 +440,6 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                 began = time.monotonic()
                 output_lines = []
                 try:
-                    if phase == 'ETAP' and title == '5 KLIENTOW TCP + RESTART':
-                        until = time.monotonic() + 2250
-                        while not full_audit_done.wait(timeout=0.25):
-                            if abort.is_set():
-                                raise RuntimeError('Przerwano TCP: poprzedni etap FAIL')
-                            if time.monotonic() >= until:
-                                raise TimeoutError('TCP: pelny audyt nie zakonczyl pracy w limicie izolacji')
                     if abort.is_set():
                         raise RuntimeError('Przerwano: poprzedni etap FAIL')
                     with report_lock:
@@ -476,8 +469,6 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                 results[index] = (title, code)
                 if code not in (0, 125):
                     abort.set()
-                if phase == 'ETAP' and title == 'PELNY AUDYT':
-                    full_audit_done.set()
                 pending.task_done()
 
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix='sb-predeploy') as executor:
@@ -650,9 +641,9 @@ def main():
             say('UNIWERSALNE BRAMKI PRZED 60 PLUS: PASS; test nie bedzie powtarzany.')
         ram_msg = ('nieznany' if AVAILABLE_RAM_AT_START is None else
                    f'{AVAILABLE_RAM_AT_START / (1024 ** 3):.1f} GiB')
-        say('PLAN CPU: pelne rownolegle etapy w granicach CPU/RAM; '
-            'bez blokowania szesciu pracownikow na czas dwoch audytow. '
-            'Obowiazkowe wszystkie 60 etapow.')
+        say('PLAN CPU: 60/60 PLUS w izolowanych kopiach; test 5 TCP '
+            'rownolegle z koncowka pelnego audytu, bez czekania na niego. '
+            'Obowiazkowe wszystkie etapy, bez pomijania.')
         say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; '
             f'{os.cpu_count() or 2} watkow CPU, wolny RAM {ram_msg}; '
             '60/60 PLUS bez pomijania, przerwanie po pierwszym FAIL.')

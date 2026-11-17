@@ -88,6 +88,51 @@ def run_regression():
             assert result==(0 if failing is None else 1), ('release proof not fail-closed', failing, result)
             assert len(recorded)==2 and len(recorded[0])==60 and len(recorded[1])==5
             checks+=1
+    # Regression for the old 24-minute full-audit -> TCP scheduling barrier.
+    # Synthetic source and mocked process launch: never opens ports or touches
+    # a real database. The 5-client stage MUST finish while FULL is still busy.
+    with TemporaryDirectory(prefix='sb-predeploy-tcp-overlap-') as directory:
+        source = Path(directory) / 'source'
+        source.mkdir()
+        (source / 'VERSION').write_text('113.00.34', encoding='utf-8')
+        for filename in ('fast.py', 'full.py', 'short.py', 'tcp.py'):
+            (source / filename).write_text('pass\n', encoding='utf-8')
+        gates = [
+            ('SZYBKI PREDEPLOY', 'fast.py', 4),
+            ('PELNY AUDYT', 'full.py', 4),
+            *[(f'KONTROLA {i}', 'short.py', 4) for i in range(10)],
+            ('5 KLIENTOW TCP + RESTART', 'tcp.py', 4),
+        ]
+        audit_finished = set()
+        tcp_was_parallel = []
+        def simulate_stage(script, env, deadline, say, *, root=None, stop_event=None):
+            if script == 'full.py':
+                time.sleep(0.30)
+                audit_finished.add('full')
+            elif script == 'fast.py':
+                time.sleep(0.30)
+                audit_finished.add('fast')
+            elif script == 'tcp.py':
+                tcp_was_parallel.append('full' not in audit_finished)
+            else:
+                time.sleep(0.012)
+            return 0
+        with patch.object(runner, 'ROOT', source), patch.object(runner, 'run_stage', simulate_stage):
+            results = runner.run_parallel_stages(gates, lambda text: None, max_workers=4)
+        assert len(results) == len(gates) and all(code == 0 for _, code in results)
+        checks += 1
+        assert tcp_was_parallel == [True], 'TCP improperly waited for completion of full audit'
+        checks += 1
+        # A failing 5-client gate cannot be hidden behind both passing audits.
+        def fail_tcp(script, env, deadline, say, *, root=None, stop_event=None):
+            if script == 'full.py':
+                time.sleep(0.15)
+            return 7 if script == 'tcp.py' else 0
+        with patch.object(runner, 'ROOT', source), patch.object(runner, 'run_stage', fail_tcp):
+            failed = runner.run_parallel_stages(gates, lambda text: None, max_workers=4)
+        assert len(failed) == len(gates) and dict(failed)['5 KLIENTOW TCP + RESTART'] == 7
+        assert any(code != 0 for _, code in failed), 'TCP FAIL hidden'
+        checks += 1
     print(f'PREDEPLOY PARALLEL THROUGHPUT: {checks}/{checks} PASS')
     return checks
 
