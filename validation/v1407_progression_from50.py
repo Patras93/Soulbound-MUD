@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""v114: audit historical 1..100 and unlimited XP continuation after 100.
+"""v114.00.4: audit historic v113 Soul XP and unlimited growth beyond 800.
 
-Keep the genuine old v1.40.7 checks for unaffected axes, but verify the
-actual published v114 Soul curve and character/class continuum independently.
-No production state or saved SQLite data is changed by this regression.
+Maintain the original 57k independent regression checks, verifying published
+Soul XP 1..800 against the v113 formula instead of the staged v106 curve.
+The character/class continuation remains independent and unchanged.
+No production state or saved SQLite data is modified.
 """
 from __future__ import annotations
 
@@ -66,12 +67,24 @@ def run_progression_from50_regression_v1407():
           "all other player axes start at 50")
     from core.balance_math import axis_gain
     from core.live_level_caps_v5200 import cap
-    from systems.soul_xp_early_v10600 import requirement as soul_early
-    from systems.soul_xp_bridge_v10600 import requirement as soul_bridge
-    from systems.soul_xp_curve_v10600 import requirement as soul_era
-    from systems.soul_xp_unbounded_v114 import requirement as soul_unbounded
     from systems.soul_xp_bands_v10402 import requirement as soul_bands
     from config.balance import SOUL_XP_REQUIREMENT_MULTIPLIER as soul_multiplier
+
+    def soul_v113_requirement(level):
+        """Independent authored v113 reference, NOT the v114 runtime method."""
+        legacy_base = max(1, int(round(v0190_requirement('soul', level) * soul_multiplier)))
+        terminal_base = max(1, int(round(v0190_requirement('soul', 599) * soul_multiplier)))
+        historic = late_game_xp_requirement(level, legacy_base, terminal_base)
+        authored = v4210_required_xp(
+            scale_player_requirement_v1407(historic, level), 'soul', level)
+        return soul_bands(level, authored)
+
+    soul_800_v113 = soul_v113_requirement(800)
+
+    def soul_post_800_reference(level):
+        """Independently verify monotonic v113-anchored v114 continuation."""
+        return soul_800_v113 + (level - 800) * max(1, soul_800_v113 // 100_000)
+
 
     reqs = {
         'character': (character_xp_to_next, 'character', 4),
@@ -106,12 +119,13 @@ def run_progression_from50_regression_v1407():
                     i, historical, int(round(old(axis, 599) * multiple)))
 
             if name == 'soul':
-                # Actual v114 normal gameplay uses the former v106 early
-                # reward-based Soul curve without requiring a staging flag.
-                expected = soul_bands(i, soul_early(i, soul_multiplier))
+                # v114.00.3 restored v113's production threshold for 1..800.
+                # Compare against an independently calculated v113 reference,
+                # never against the v106 staging-only experimental curve.
+                expected = soul_v113_requirement(i)
                 check(required == expected,
-                      f'soul level{i}: v114 published early requirement')
-                check(required > 0, f'soul level{i}: achievable XP')
+                      f'soul level{i}: v113 production requirement preserved')
+                check(required > 0, f'soul level{i}: valid nonzero XP')
             elif name in ('character', 'class') and i > 100:
                 # Independently validate the 500-award-unit continuation.
                 expected = historical_at_100[name] + 500 * (
@@ -143,21 +157,23 @@ def run_progression_from50_regression_v1407():
                   f'{name}: no cap or SQLite saturation at level {level}')
             check(func(level + 1) >= func(level),
                   f'{name}: keeps growing at level {level}')
-    # Boundary probes for all Soul XP eras and the newly unbounded bridge.
-    for level in (799, 800, 801, 9999, 10000, 29999, 30000,
-                  59999, 60000, 60001, 100000):
-        if level < 800:
-            expected = soul_bands(level, soul_early(level, soul_multiplier))
-        elif level < 30000:
-            expected = soul_bands(level, soul_bridge(level, soul_multiplier))
-        elif level < 60000:
-            expected = soul_era(level, soul_multiplier)
-        else:
-            expected = soul_unbounded(level, soul_multiplier)
+    # Guard the formerly broken v114 switch and every legacy/staging boundary.
+    # 1..800 is byte-equivalent to v113 production, 801+ continues from its
+    # historic level-800 anchor, never dropping to the tiny staged v106 curve.
+    for level in (1, 20, 40, 80, 100, 240, 500, 501, 799, 800,
+                  801, 9999, 10000, 29999, 30000, 59999, 60000, 60001, 100000):
+        expected = (soul_v113_requirement(level) if level <= 800
+                    else soul_post_800_reference(level))
         check(soul_xp_to_next(level) == expected,
-              f'soul level{level}: correct boundary formula')
+              f'soul level{level}: v113 production / post-800 continuation')
         check(soul_xp_to_next(level) > 0,
               f'soul level{level}: XP remains attainable')
+    check(soul_xp_to_next(240) == 1_066_673_281_000,
+          'Soul Level 240: independent v113 known-good threshold')
+    check(soul_xp_to_next(240) > 15_646_770_816,
+          'Soul Level 240: one actual 15.6bn reward cannot skip a tier')
+    check(soul_xp_to_next(801) > soul_xp_to_next(800),
+          'Soul Level 801 must not drop below v113 level-800 requirement')
 
     for kind in PROFESSION_XP_REQUIREMENT_MULTIPLIERS:
         previous = 0

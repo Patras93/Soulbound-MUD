@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
+set "PYTHONDONTWRITEBYTECODE=1"
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 set "PYTHONUTF8=1"

@@ -125,6 +125,21 @@ def sync(config):
         ACTIVE[category].clear()
         ACTIVE[category].update(copy.deepcopy(config[category]))
 
+def uoss_phase_multiplier(mob,template):
+    """Original v113 phase multiplier for authored published UOSS rules."""
+    row=ACTIVE['uoss'].get(template.get('uoss_unique_superboss_key',''))
+    if not row:return 1.0
+    hp=max(0,int(getattr(mob,'hp',getattr(mob,'current_hp',0)) or 0))
+    maximum=max(1,int(getattr(mob,'max_hp',0) or template.get('max_hp',1)))
+    turns=int(getattr(mob,'_olc32_attack_turn',0))+1
+    mob._olc32_attack_turn=turns
+    active=None
+    for phase in row['phases']:
+        if hp*100<=maximum*phase['below_hp']:
+            active=phase
+    return active['damage_percent']/100.0 if active and turns%active['interval']==0 else 1.0
+
+
 def crafting_bonus(recipe_id,room_id,quantity):
     """Called once after the original yield calculation, never on ingredients."""
     quantity=max(0,int(quantity))

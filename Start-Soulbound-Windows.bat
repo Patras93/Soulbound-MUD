@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
+set "PYTHONDONTWRITEBYTECODE=1"
 rem No long-running CMD. uruchom_w_tle.py launches start_windows_bootstrap.py detached.
 set "ROOT=%~dp0"
 set "PYTHONUTF8=1"

@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
+set "PYTHONDONTWRITEBYTECODE=1"
 rem Work from TEMP so even an open STOP window cannot lock Soulbound folder.
 set "ROOT=%~dp0"
 set "PYTHONUTF8=1"

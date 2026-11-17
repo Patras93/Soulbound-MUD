@@ -132,6 +132,16 @@ def sync(rules):
         ACTIVE[domain].clear()
         ACTIVE[domain].update(copy.deepcopy(rules[domain]))
 
+def boss_pressure(mob,template):
+    """Retain v113 published boss-attack pacing; neutral unless configured."""
+    row=ACTIVE['uoss'].get(template.get('uoss_unique_superboss_key',''))
+    if not row or int(getattr(mob,'hp',0))<=0:return 1.0
+    count=int(getattr(mob,'_olc34_attacks',0))+1
+    mob._olc34_attacks=count
+    stacks=min(row['max_stacks'],count//row['every'])
+    return (row['stack_percent']/100.0)**stacks
+
+
 def profession_find(owner,recipe_id):
     """Deterministic exploration material after N successful recipes."""
     row=ACTIVE['professions'].get(recipe_id)

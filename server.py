@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """Soulbound runtime bootstrap. Canonical release version lives in core/bootstrap_economy_professions.py."""
+import sys
+sys.dont_write_bytecode = True  # v114.00.6: no __pycache__ even with direct/systemd start
 from systems.runtime_activation import enabled as _sb107_runtime_enabled
 from pathlib import Path
 import os

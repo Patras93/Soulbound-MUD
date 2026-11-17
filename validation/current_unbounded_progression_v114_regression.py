@@ -7,6 +7,10 @@ def run():
     from player.character import Character
     from core.progression_policy_v114 import install_deploy_policy
     from core.live_level_caps_v5200 import cap
+    # Tier 6000 catalogue was loaded with STAGING=1 by the PREDEPLOY runner,
+    # but gameplay XP must be checked in the normal production policy.
+    import os
+    os.environ['SOULBOUND_V106_STAGING']='0'
     values=install_deploy_policy()
     axes=('postac','bieglosc','dusza','bron_duszy','skille','profesje','narzedzia','gildia','eq')
     assert all(values[k] is None for k in axes)
@@ -29,22 +33,20 @@ def run():
     from core.bootstrap_economy_professions import profession_max_level,tool_max_level
     assert profession_max_level('Górnictwo')>801
     assert tool_max_level('mining')>801
-    # The 60000 boundary must remain playable. The historical fallback
-    # silently hit 9e18 XP, which was practically impossible to earn.
-    from systems.soul_xp_curve_v10600 import requirement as _old_soul
+    # v114.00.3: 1..800 must match normal production v113 rather than
+    # accidentally activating the v106 STAGING-only fast curve.
     from config.balance import SOUL_XP_REQUIREMENT_MULTIPLIER as _soul_mul
-    from systems.soul_xp_unbounded_v114 import requirement as _new_soul
-    from systems.soul_xp_early_v10600 import requirement as _soul_early
-    from systems.soul_xp_bridge_v10600 import requirement as _soul_bridge
-    assert soul_xp_to_next(1)==_soul_early(1,_soul_mul)
-    assert soul_xp_to_next(799)==_soul_early(799,_soul_mul)
-    assert soul_xp_to_next(800)==_soul_bridge(800,_soul_mul)
-    assert soul_xp_to_next(29_999)==_soul_bridge(29_999,_soul_mul)
-    assert soul_xp_to_next(30_000)==_old_soul(30_000,_soul_mul)
-    assert soul_xp_to_next(59_999)==_old_soul(59_999,_soul_mul)
-    assert soul_xp_to_next(60_000)==_new_soul(60_000,_soul_mul)
-    assert 0 < soul_xp_to_next(800)-soul_xp_to_next(799) < 100_000
-    assert soul_xp_to_next(60_000)-_old_soul(59_999,_soul_mul)==int(round(2000*_soul_mul))
+    from core.progression_resources import _late_game_axis_requirement
+    from systems.soul_xp_bands_v10402 import requirement as _historic_band
+    from systems.soul_xp_unbounded_v114 import historical_continuation_v11403
+    for level in range(1,801):
+        historic=_historic_band(level,_late_game_axis_requirement('soul',level,_soul_mul))
+        assert soul_xp_to_next(level)==historic, (level,soul_xp_to_next(level),historic)
+    assert soul_xp_to_next(240)==1_066_673_281_000
+    assert soul_xp_to_next(240)>15_646_770_816
+    assert soul_xp_to_next(801)==historical_continuation_v11403(801,soul_xp_to_next(800))
+    assert soul_xp_to_next(801)>soul_xp_to_next(800)
+    assert soul_xp_to_next(60_001)>soul_xp_to_next(60_000)>soul_xp_to_next(801)
     assert 0<soul_xp_to_next(1_000_000)<9_000_000_000_000_000_000
     soul=object.__new__(Character)
     soul.soul_level=60_000
@@ -64,6 +66,6 @@ def run():
     assert soul.soul_xp==9_223_372_036_854_775_804
     from core import live_level_caps_v5200 as stable
     assert not any(hasattr(stable, name) for name in ('change','change_all','reset','reset_all','load'))
-    return 'PASS: all 9 unlimited, +10 EQ, 5 XP curves >=801, Soul XP 1->60000 continuous, Soul 60000->60001, int64 guarded, level 800->801, edit locked'
+    return 'PASS: 9 unlimited axes, EQ +10; Soul XP 1..800 equals v113, level 240 restored, 801+ continuous, 60000->60001, int64 guarded, character 800->801'
 
 if __name__=='__main__':print(run())
