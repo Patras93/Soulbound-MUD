@@ -301,7 +301,7 @@ class SessionSocialExpansionMixin:
         _soul_title=soul_tier_title_for_class(_soul_tier, str(row['class_name']))
         await self.send(f"Broń Duszy: {row['soul_weapon']}; "
                         f"Soul Level {int(row['soul_level'])}/{current_cap_label('dusza')}; "
-                        f"Soul Tier {_soul_tier}/{SOUL_MAX_TIER} — {_soul_title}; "
+                        f"Soul Tier {_soul_tier}/bez limitu — {_soul_title}; "
                         f"Soul Weapon Mastery {int(row['soul_weapon_mastery_level'])}/{current_cap_label('bron_duszy')}.")
         await self.send(
             "Statystyki: "

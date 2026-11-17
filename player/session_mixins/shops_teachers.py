@@ -48,7 +48,7 @@ class SessionShopsTeachersMixin:
                         for item_id in stock:
                             if item_id in ITEMS and item_id not in offers:
                                 offers.append(item_id)
-                from systems.admin_live_shop_progression_v7003 import append_progression_offer
+                from systems.published_shops_v7003 import append_progression_offer
                 return append_progression_offer(room_id, offers)
 
             selected = list(class_names)
@@ -91,7 +91,7 @@ class SessionShopsTeachersMixin:
                     continue
                 if item_id not in offers:
                     offers.append(item_id)
-            from systems.admin_live_shop_progression_v7003 import append_progression_offer
+            from systems.published_shops_v7003 import append_progression_offer
             return append_progression_offer(room_id, offers)
 
     def shop_offer_lock_text(self, item_id, item):
@@ -145,9 +145,9 @@ class SessionShopsTeachersMixin:
 
     def shop_offer_effective_money_silver(self, item):
             base = self.shop_item_base_value_silver(item)
-            from systems.live_olc26_world import shop_price
-            from systems.live_olc27_master import shop_room_price
-            from systems.live_olc29_creation import trade_price
+            from systems.published_26_world import shop_price
+            from systems.published_27_master import shop_room_price
+            from systems.published_29_creation import trade_price
             return trade_price(self.character.room_id, shop_room_price(self.character.room_id,
                 shop_price(max(0, base - self.shop_offer_unit_cashback_silver(item)))), 'buy')
 
@@ -423,7 +423,7 @@ class SessionShopsTeachersMixin:
                 await self.profesje6_command('kup ' + _PROF6_TOOL_PROF_BY_ITEM[item_id])
                 return
 
-            from systems.live_olc24_revolution import ACTIVE
+            from systems.published_24_revolution import ACTIVE
             _v24_bound_tools={profile['tool_item_id'] for profile in ACTIVE['professions'].values()}
             _legacy_bound_tool = item.get("type") == "tool" and (is_character_bound_item(item_id) or item_id in _v24_bound_tools)
             if _legacy_bound_tool:
@@ -588,7 +588,7 @@ class SessionShopsTeachersMixin:
             )
 
     async def teacher_lesson(self, npc, only_available=False):
-            from systems.admin_live_classes_v7700 import inherited_parent
+            from systems.published_classes_v7700 import inherited_parent
             if (self.character and inherited_parent(self.character.class_name) == npc.get('teacher_class')):
                 npc=dict(npc, teacher_class=self.character.class_name)
             class_name = npc["teacher_class"]

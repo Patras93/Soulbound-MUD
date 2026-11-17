@@ -72,7 +72,7 @@ def plan_for_class(class_name, *, owner_hp, owner_max, ally_needs_heal=False,
     an offensive strike instead of wasting the turn on redundant support.
     """
     name,role,bonus = CLASS_AI[class_name]
-    from systems.live_olc23_state import SUMMON_TACTICS
+    from systems.published_23_state import SUMMON_TACTICS
     tactics = SUMMON_TACTICS.get(class_name, {})
     guard_threshold = tactics.get('guard_threshold_percent',80)/100.0
     execute_threshold = tactics.get('execute_threshold_percent',35)/100.0

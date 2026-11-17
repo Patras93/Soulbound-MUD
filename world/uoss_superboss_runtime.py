@@ -53,7 +53,7 @@ def _superboss_clear_age_seconds_v11157(db, account_id, boss_key):
 
 def superboss_lockout_remaining_v11157(db, account_id, boss_key):
     age = _superboss_clear_age_seconds_v11157(db, account_id, boss_key)
-    from systems.live_olc24_revolution import uoss_lockout_hours
+    from systems.published_24_revolution import uoss_lockout_hours
     lockout = int(uoss_lockout_hours(boss_key))*3600
     if age is None or age >= lockout:
         return 0

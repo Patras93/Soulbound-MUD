@@ -79,7 +79,14 @@ def _credit(session, kind, key, amount):
     return True
 
 
-async def redeem_exp_bank(session):
+async def redeem_exp_bank(session, *, all_balances=False):
+    """Redeem one normal capped claim, or the full saved balance of every usable axis.
+
+    The full mode is an explicit user action, not a normal XP reward: it is
+    not artificially limited by the *per-new-award* Multi Cap or the old
+    1-billion claim chunk.  SQLite account isolation, per-axis SAVEPOINTs,
+    tier locks and exact balance comparisons still apply.
+    """
     db, account, char = session.server.db, session.account_id, session.character
     if account is None or char is None:
         await session.send('Najpierw wybierz postać.')
@@ -96,7 +103,7 @@ async def redeem_exp_bank(session):
         if not limit or limit<1:
             blocked.append(kind+' '+key)
             continue
-        amount=min(balance,int(limit),MAX_SAFE_AWARD)
+        amount=balance if all_balances else min(balance,int(limit),MAX_SAFE_AWARD)
         if amount<=0:
             continue
         snapshot=copy.deepcopy(char.__dict__)
@@ -116,6 +123,15 @@ async def redeem_exp_bank(session):
                     db.conn.execute('ROLLBACK TO SAVEPOINT bank_claim_v11325')
                     db.conn.execute('RELEASE SAVEPOINT bank_claim_v11325')
                     raise
+        except (OverflowError, ValueError) as exc:
+            char.__dict__.clear()
+            char.__dict__.update(snapshot)
+            if not all_balances:
+                raise
+            # A legacy numeric field cannot always store the full TEXT-bank
+            # amount. Never debit a single unit unless progress was saved.
+            blocked.append(kind+' '+key+' (nie mieści się w zapisie: '+str(exc)+')')
+            continue
         except BaseException:
             char.__dict__.clear()
             char.__dict__.update(snapshot)
@@ -128,8 +144,8 @@ async def redeem_exp_bank(session):
         else:
             blocked.append(kind+' '+key)
     if redeemed:
-        await session.send('EXP Bank: wypłacono ' + '; '.join(f'{kind} {key}: {amount}' for kind,key,amount in redeemed) + ' EXP.')
+        await session.send(('EXP Bank — wypłata całego dostępnego salda: ' if all_balances else 'EXP Bank: wypłacono ') + '; '.join(f'{kind} {key}: {amount}' for kind,key,amount in redeemed) + ' EXP.')
     if blocked:
-        await session.send('Nie wypłacono (zablokowany poziom lub nieaktywna ścieżka): ' + '; '.join(blocked) + '.')
+        await session.send('Pozostało w banku (nieaktywna ścieżka, blokada poziomu lub limit techniczny): ' + '; '.join(blocked) + '.')
     if not redeemed and not blocked:
         await session.send('Nie ma EXP do wypłaty.')

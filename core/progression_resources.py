@@ -579,6 +579,17 @@ def character_xp_to_next(level):
     level=max(1,min(runtime_max,int(level)))
     if level >= runtime_max:
         return 0
+    # v114 release policy: above level 100 use an achievable, monotonic
+    # reward-anchored continuation rather than the historic 9e18 plateau.
+    # The old authored curve remains the exact source for 1..100 and for
+    # isolated predeploy fixtures that have not installed v114 policy.
+    from core.live_level_caps_v5200 import cap as _v114_axis_cap
+    if level > 100 and _v114_axis_cap("postac") is None:
+        from systems.progression_xp_unbounded_v114 import requirement as _v114_requirement
+        historic_at_100 = _late_game_axis_requirement(
+            "character", 100, CHARACTER_XP_REQUIREMENT_MULTIPLIER
+        )
+        return _v114_requirement("character", level, historic_at_100)
     return _late_game_axis_requirement(
         "character", level, CHARACTER_XP_REQUIREMENT_MULTIPLIER
     )
@@ -589,6 +600,17 @@ def class_mastery_xp_to_next(level):
     level = max(1, min(runtime_max, int(level)))
     if level >= runtime_max:
         return 0
+    # v114 release policy: above level 100 use an achievable, monotonic
+    # reward-anchored continuation rather than the historic 9e18 plateau.
+    # The old authored curve remains the exact source for 1..100 and for
+    # isolated predeploy fixtures that have not installed v114 policy.
+    from core.live_level_caps_v5200 import cap as _v114_axis_cap
+    if level > 100 and _v114_axis_cap("bieglosc") is None:
+        from systems.progression_xp_unbounded_v114 import requirement as _v114_requirement
+        historic_at_100 = _late_game_axis_requirement(
+            "class", 100, CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER
+        )
+        return _v114_requirement("class", level, historic_at_100)
     return _late_game_axis_requirement(
         "class", level, CLASS_MASTERY_XP_REQUIREMENT_MULTIPLIER
     )
@@ -603,7 +625,13 @@ def soul_xp_to_next(level):
     # potworów; pomost 800..29999 i nowa era 30000..59999. Żadna ze
     # zmian nie dotyczy produkcyjnej krzywej bez flagi staging.
     import os as _v106_os
-    if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1':
+    # v114 deploy policy: apply the already-authored and tested v106 Soul XP
+    # bridge in normal gameplay after the post-bootstrap unlimited policy is
+    # active. This needs NO SOULBOUND_V106_STAGING flag in production. The full
+    # v106 early curve is continuous with its 800+ bridge and 30000+ era.
+    from core.live_level_caps_v5200 import cap as _v114_cap
+    _v114_soul_deployed = _v114_cap('dusza') is None
+    if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1' or _v114_soul_deployed:
         if 1 <= level < 800:
             from systems.soul_xp_early_v10600 import requirement as _v106_early
             from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
@@ -617,6 +645,9 @@ def soul_xp_to_next(level):
         if 30000 <= level < 60000:
             from systems.soul_xp_curve_v10600 import requirement as _v106_requirement
             return _v106_requirement(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
+    if level >= 60_000:
+        from systems.soul_xp_unbounded_v114 import requirement as _v114_soul_requirement
+        return _v114_soul_requirement(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
     authored = _late_game_axis_requirement(
         "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
     )

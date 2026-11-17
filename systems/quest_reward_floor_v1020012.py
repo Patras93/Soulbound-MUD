@@ -12,7 +12,7 @@ from core.progression_resources import (
 from systems.quest_combat_salvage_v102007 import (
     class_xp_at_turnin, soul_xp_at_turnin,
 )
-from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900
+from systems.published_quest_fields_v1209 import STAT_XP_FIELDS_V3900
 
 BASE_QUEST_XP_MIN = 200_000
 
@@ -26,7 +26,7 @@ def quest_xp_plan(quest_id, quest):
 
     Important: 0 mastery on a noncombat quest, 0 Soul on a profession quest,
     and absent profession/tool tracks stay 0. Three salvage combat-loot jobs
-    still need explicit mastery/Soul authorization through Admin Live.
+    still need explicit mastery/Soul authorization through dawny edytor.
     Explicit OLC XP fields are not changed on disk; the runtime floor applies
     to relevant channels even when their older authored amount was 0.
     """

@@ -4,7 +4,7 @@
 Od Soul Level 800 do 9999 mnożnik 1000 * level, następnie łagodniejsze
 przejście 10000–29999 do istniejącej krzywej v106 dla 30000.
 
-Nie zmienia nagród, zapisów postaci ani ustawień Admin Live. Na poziomach
+Nie zmienia nagród, zapisów postaci ani ustawień dawny edytor. Na poziomach
 800–10000 zachowuje istniejące procenty pasm Soul Level z v104.
 Wartości 1–799 są obsługiwane w soul_xp_early_v10600.
 To nie jest dowód rzeczywistego tempa progresji po Multi Cap.

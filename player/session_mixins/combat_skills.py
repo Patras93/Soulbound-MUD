@@ -369,10 +369,10 @@ class SessionCombatSkillsMixin:
         multiplier *= self.equipment_damage_multiplier(resolved_type)
         multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
         multiplier *= party_synergy_damage_multiplier_v11338(self, resolved_type)
-        from systems.live_olc28_expansion import skill_damage_multiplier
-        from systems.live_olc32_finale import skill_combo
-        from systems.live_olc33_mechanics import skill_alternation
-        from systems.live_olc34_integration import skill_chain
+        from systems.published_28_expansion import skill_damage_multiplier
+        from systems.published_32_finale import skill_combo
+        from systems.published_33_mechanics import skill_alternation
+        from systems.published_34_integration import skill_chain
         skill_id=skill.get('id','')
         multiplier=skill_damage_multiplier(multiplier)
         multiplier=skill_combo(self,skill_id,multiplier)
@@ -2705,7 +2705,7 @@ class SessionCombatSkillsMixin:
                         critical=False
                 else:
                     # v83: a single tested source primitive shared with the detached
-                    # Admin Live arena. Do not change Mec, execute or advanced paths.
+                    # dawny edytor arena. Do not change Mec, execute or advanced paths.
                     if kind == "damage" and not skill.get("mec_authored"):
                         from systems.uoss_plain_skill_shared_v8300 import plain_skill_damage_roll
                         damage, critical = plain_skill_damage_roll(self, core_power, multiplier)
@@ -2874,7 +2874,7 @@ class SessionCombatSkillsMixin:
 
 # OLC 16: optional on-hit status adapter for selected edited/created skills.
 # Historical method body and its AST fingerprint remain completely unchanged.
-from systems.live_olc19_status_skills import cast_with_olc_status_v1900 as _olc19_cast
+from systems.published_19_status_skills import cast_with_olc_status_v1900 as _olc19_cast
 _OLC19_HISTORICAL_CAST = SessionCombatSkillsMixin.use_class_skill
 from functools import wraps as _olc19_wraps
 @_olc19_wraps(_OLC19_HISTORICAL_CAST)

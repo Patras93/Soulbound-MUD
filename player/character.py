@@ -44,6 +44,11 @@ from core.progression_600 import (
     SOUL_TIER_GUARDIAN_REDUCTION,
     SOUL_TIER_POWER_BONUSES,
     SOUL_TIER_THRESHOLDS,
+    soul_tier_required_level,
+    soul_tier_power_bonus,
+    soul_tier_class_bonus,
+    soul_tier_dodge_bonus,
+    soul_tier_guardian_reduction,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
 )
 from core.progression_resources import (
@@ -277,7 +282,7 @@ class Character:
         return self.class_passive_text_for(self.class_name)
 
     def _class_archetype_v7700(self):
-        from systems.admin_live_classes_v7700 import inherited_parent
+        from systems.published_classes_v7700 import inherited_parent
         return inherited_parent(self.class_name) or self.class_name
 
     def class_physical_damage_multiplier(self):
@@ -450,24 +455,24 @@ class Character:
         return progression_soul_xp_to_next(self.soul_level)
 
     def soul_milestone_specialization_bonus(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         active = [t for t in SOUL_MILESTONE_TIERS if tier >= t]
         return SOUL_MILESTONE_SPECIALIZATION_BONUS[max(active)] if active else 0
 
     def soul_milestone_dodge_bonus(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         active = [t for t in SOUL_MILESTONE_TIERS if tier >= t]
         return SOUL_MILESTONE_DODGE_BONUS[max(active)] if active else 0.0
 
     def soul_milestone_guardian_reduction(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         active = [t for t in SOUL_MILESTONE_TIERS if tier >= t]
         return SOUL_MILESTONE_GUARDIAN_REDUCTION[max(active)] if active else 0
 
     def soul_weapon_bonus_percent(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         return (
-            SOUL_TIER_CLASS_BONUS_PERCENT[tier - 1]
+            soul_tier_class_bonus(tier)
             + self.soul_milestone_specialization_bonus()
         )
 
@@ -477,17 +482,17 @@ class Character:
         return max(0, (self.soul_weapon_bonus_percent() + 1) // 2)
 
     def soul_weapon_dodge_bonus(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         return min(
             0.05,
-            SOUL_TIER_DODGE_BONUS[tier - 1]
+            soul_tier_dodge_bonus(tier)
             + self.soul_milestone_dodge_bonus()
         )
 
     def soul_weapon_guardian_reduction_percent(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
+        tier = max(1, int(self.soul_tier))
         return (
-            SOUL_TIER_GUARDIAN_REDUCTION[tier - 1]
+            soul_tier_guardian_reduction(tier)
             + self.soul_milestone_guardian_reduction()
         )
 
@@ -533,8 +538,8 @@ class Character:
         return f"+{percent} procent do specjalizacji klasy głównej"
 
     def soul_power(self):
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
-        tier_bonus = SOUL_TIER_POWER_BONUSES[tier - 1]
+        tier = max(1, int(self.soul_tier))
+        tier_bonus = soul_tier_power_bonus(tier)
         level = max(1, min(SOUL_MAX_LEVEL, int(self.soul_level)))
         # 1-200 zachowuje dawny +1 mocy/level. 201-600 daje +1 mocy
         # co 2 levele, więc cap 600 jest dalszym wzrostem, nie x2 power creepem.
@@ -542,10 +547,8 @@ class Character:
         return self.weapon_base + level_bonus + tier_bonus
 
     def can_unlock(self):
-        if self.soul_tier >= SOUL_MAX_TIER:
-            return None
         next_tier = int(self.soul_tier) + 1
-        needed_level = SOUL_TIER_THRESHOLDS[next_tier - 1]
+        needed_level = soul_tier_required_level(next_tier)
         if self.soul_level >= needed_level:
             return next_tier
         return None
@@ -677,15 +680,12 @@ class Character:
         postać zapisana powyżej bieżącego capu po prostu nie dostaje dalszego
         Soul XP, dopóki nie odblokuje brakujących Tierów.
         """
-        tier = max(1, min(SOUL_MAX_TIER, int(self.soul_tier)))
-        if tier >= SOUL_MAX_TIER:
-            return SOUL_MAX_LEVEL
-        return int(SOUL_TIER_THRESHOLDS[tier])
+        tier = max(1, int(self.soul_tier))
+        return soul_tier_required_level(tier + 1)
 
     def soul_progress_is_tier_locked(self):
         return (
-            int(self.soul_tier) < SOUL_MAX_TIER
-            and int(self.soul_level) >= self.soul_level_cap_for_current_tier()
+            int(self.soul_level) >= self.soul_level_cap_for_current_tier()
         )
 
     def add_soul_xp(self, amount, single_level_cap=False):
@@ -701,7 +701,7 @@ class Character:
         # sama nadwyżka nie pozwala przekroczyć bramki.
         cap_level = self.soul_level_cap_for_current_tier()
         if self.soul_progress_is_tier_locked():
-            next_tier = min(SOUL_MAX_TIER, int(self.soul_tier) + 1)
+            next_tier = int(self.soul_tier) + 1
             base = max(0, int(amount or 0))
             racial = max(0, scale_multiplier_xp_v10400(base, self.racial_soul_xp_multiplier()))
             guild_pct = max(0, int(getattr(self, '_guild_bonus_percent', 0) or 0))
@@ -713,8 +713,10 @@ class Character:
             self.soul_xp += awarded
             return [
                 f"Soul XP +{awarded} odłożone przy Soul Level {cap_level}; "
-                f"w puli {self.soul_xp}. Odblokuj Tier {next_tier} po Probie Broni Duszy "
-                "komenda unlock."
+                f"w puli {self.soul_xp}. "
+                + (f"Odblokuj Tier {next_tier} po Próbie Broni Duszy komendą unlock."
+                   if next_tier in SOUL_TRIAL_QUEST_IDS and next_tier % 10 == 0
+                   else f"Odblokuj Tier {next_tier} komendą unlock.")
             ]
 
         base_amount = max(0, int(amount))
@@ -737,13 +739,17 @@ class Character:
                 messages.append(
                     f"Bonus Gildii +{_guild_pct}%: +{amount-racial_amount} Soul XP."
                 )
+        # SQLite integer overflow must fail before changing the in-memory
+        # character. The tier-locked branch is protected by the same guard.
+        if int(self.soul_xp) + amount > 9_223_372_036_854_775_807:
+            raise OverflowError('Soul XP przekracza techniczny zakres zapisu SQLite; nie zmieniono puli.')
         self.soul_xp += amount
         while self.soul_level < SOUL_MAX_LEVEL:
             cap_level = self.soul_level_cap_for_current_tier()
             if self.soul_level >= cap_level:
                 # Zachowujemy niewykorzystany Soul XP w istniejącym polu
                 # soul_xp; zapis i backup działają bez migracji bazy.
-                next_tier = min(SOUL_MAX_TIER, int(self.soul_tier) + 1)
+                next_tier = int(self.soul_tier) + 1
                 messages.append(
                     f"Soul Level zatrzymuje się na {cap_level}. "
                     f"Soul XP {self.soul_xp} odlozone do odblokowania Tieru {next_tier}."
@@ -756,6 +762,8 @@ class Character:
             self.soul_level += 1
             messages.append(f"Broń Duszy osiąga Soul Level {self.soul_level}.")
             tier = _SOUL_TIER_AT_EXACT_LEVEL.get(int(self.soul_level))
+            if tier is None and int(self.soul_level) > SOUL_TIER_THRESHOLDS[-1] and int(self.soul_level) % 10 == 0:
+                tier = int(self.soul_level) // 10
             if tier is not None and tier > 1:
                 if tier in SOUL_TRIAL_QUEST_IDS:
                     messages.append(

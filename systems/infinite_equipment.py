@@ -31,7 +31,7 @@ _SOURCE_LABELS = {
     "forge": "Rzemioslo Mistrzow",
     "world": "Potwory i Bossowie Swiata",
     "quest": "Nagroda wysokopoziomowego questa",
-    "shop": "Oferta sklepu kontrolowana przez Admin Live",
+    "shop": "Opublikowana oferta sklepu",
 }
 _GRADE_LABELS = {
     "r": "zwykly",

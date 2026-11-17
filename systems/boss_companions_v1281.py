@@ -28,7 +28,7 @@ def boss_companion_due_v1281(mob, template, opening=False):
     if not (any(template.get(marker) for marker in _BOSS_MARKERS)
             or template.get('elite_legend_rank_v1250')):
         return False
-    from systems.live_olc4_boss_phases import eligible_boss
+    from systems.published_4_boss_phases import eligible_boss
     if eligible_boss(template):
         threshold = template.get('olc_boss_guardian_hp_threshold')
         if type(threshold) is int and 1 <= threshold <= 100:
@@ -44,7 +44,7 @@ def boss_companion_due_v1281(mob, template, opening=False):
     interval = int(template.get("olc_boss_guardian_interval", 3) or 3)
     interval = interval if 2 <= interval <= 12 else 3
     if eligible_boss(template):
-        from systems.live_olc21_phase_strategy import phase_setting
+        from systems.published_21_phase_strategy import phase_setting
         interval = phase_setting(template, getattr(mob, 'v1230_boss_phase', 0),
                                  'olc_boss_phase_guardian_intervals', interval)
     return (turn >= interval and turn % interval == 0
@@ -95,9 +95,9 @@ def boss_guardian_role_v12811(template, boss_mob, sequence):
     """Rotate summon combat roles; later HP phases change the lineup."""
     stage = max(0, min(3, int(getattr(boss_mob, 'v1230_boss_phase', 0) or 0)))
     custom = template.get('olc_boss_guardian_roles')
-    from systems.live_olc4_boss_phases import eligible_boss
+    from systems.published_4_boss_phases import eligible_boss
     if eligible_boss(template):
-        from systems.live_olc20_phase_tactics import boss_stage_cycle, ROLES
+        from systems.published_20_phase_tactics import boss_stage_cycle, ROLES
         phase_roles = boss_stage_cycle(template, getattr(boss_mob, 'v1230_boss_phase', 0),
                                        'olc_boss_guardian_phase_roles', ROLES)
         if phase_roles is not None:

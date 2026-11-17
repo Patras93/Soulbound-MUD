@@ -93,7 +93,7 @@ class SessionQuestProgressMixin:
             )
 
     def multi_objective_status_v1800(self, quest_id):
-        from systems.live_olc18_multi_objective import objective_status
+        from systems.published_18_multi_objective import objective_status
         quest = QUESTS[quest_id]
         return objective_status(
             self.server.db, self.account_id, quest_id, quest.get('objectives', {}),

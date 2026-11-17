@@ -2,7 +2,7 @@
 """v106 staging: real Soul Level as *threat-comparison* level in new realms.
 
 This never changes character_level, abilities, actual damage, XP, equipment,
-Admin Live limits or monster authored HP. For all historical v105 fights,
+dawny edytor limits or monster authored HP. For all historical v105 fights,
 non-v106 rooms, missing context, or production, returns historical level.
 """
 from __future__ import annotations

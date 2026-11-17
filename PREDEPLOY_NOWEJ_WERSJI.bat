@@ -94,7 +94,7 @@ def stage_candidate(archive,folder,mode):
             if relative.lower().endswith(('.db','.sqlite','.sqlite3','.db-wal','.db-shm',
                                           '.sqlite-wal','.sqlite-shm','.sqlite3-wal','.sqlite3-shm')):
                 raise RuntimeError('ZIP zawiera baze: '+relative)
-            if relative.casefold()=='live_content/release_current.json':
+            if relative.casefold() in ('live_content/release_current.json','config/release_current.json'):
                 raise RuntimeError('Manifest moze utworzyc tylko instalator po PREDEPLOY.')
             validated.append((item,parts[1:]))
         for required in ('predeploy_nowej_wersji.py','wdroz_po_predeploy.py','aktualizuj_soulbound.py',

@@ -20,10 +20,10 @@ class SkySummonCombatV109Mixin:
                 'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
               if r['summon_type'] in SUMMONS and self._v1700_class(SUMMONS[r['summon_type']][1])]
         if not pets:return False
-        from systems.live_olc27_master import summon_may_intercept
+        from systems.published_27_master import summon_may_intercept
         pets=[r for r in pets if summon_may_intercept(r['summon_type'],r['hp'],r['max_hp'])]
         if not pets:return False
-        from systems.live_olc26_world import summon_intercept_chance, summon_incoming_damage
+        from systems.published_26_world import summon_intercept_chance, summon_incoming_damage
         guarding = any(r['stance']=='bron' for r in pets)
         # An active summoned protector contributes its authored intercept chance.
         chance = max(summon_intercept_chance(r['summon_type'],guarding) for r in pets)
@@ -184,15 +184,15 @@ class SkySummonCombatV109Mixin:
             formation_bonus,formation_guard=self._v1800_form_bonus()
             workshop_bonus=(1+min(.28,.008*_workshop))
             amount=max(1,int(caster_power*factor*stance_factor*formation_bonus*_v1800_team_bonus*(1+mastery*.07)*workshop_bonus))
-            from systems.live_olc24_revolution import summon_factor
+            from systems.published_24_revolution import summon_factor
             amount=max(1,int(amount*summon_factor(row['summon_type'],'damage_percent')/100))
-            from systems.live_olc28_expansion import summon_outgoing
+            from systems.published_28_expansion import summon_outgoing
             amount=summon_outgoing(row['summon_type'],amount)
-            from systems.live_olc32_finale import summon_combo
+            from systems.published_32_finale import summon_combo
             amount=summon_combo(self, row['summon_type'], amount)
-            from systems.live_olc34_integration import summon_finisher
+            from systems.published_34_integration import summon_finisher
             amount=summon_finisher(row['summon_type'],mob,amount)
-            from systems.live_olc33_mechanics import summon_support
+            from systems.published_33_mechanics import summon_support
             _heal33=summon_support(self,row['summon_type'])
             if _heal33:
                 await self.send(f'Przywołanie {name} leczy cię o {_heal33} HP.')

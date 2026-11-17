@@ -2273,7 +2273,7 @@ async def use_class_skill(self, raw):
                     critical=False
             else:
                 # v83: a single tested source primitive shared with the detached
-                # Admin Live arena. Do not change Mec, execute or advanced paths.
+                # dawny edytor arena. Do not change Mec, execute or advanced paths.
                 if kind == "damage" and not skill.get("mec_authored"):
                     from systems.uoss_plain_skill_shared_v8300 import plain_skill_damage_roll
                     damage, critical = plain_skill_damage_roll(self, core_power, multiplier)

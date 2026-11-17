@@ -171,7 +171,8 @@ def refresh_help_truth_current_v11328():
     HELP_TOPIC_ALIASES["alias"] = "aliasy"
     HELP_TOPICS["expbank"] = [
         "EXP Bank przechowuje dotychczasowe saldo bez automatycznego wykorzystania.",
-        "expbank — pokazuje salda wszystkich dziedzin. expbank odbierz — pobiera EXP na życzenie do limitu jednej wypłaty.",
+        "expbank — pokazuje salda wszystkich dziedzin. expbank odbierz — wypłata do Multi Cap.",
+        "expbank odbierz wszystko — wypłaca całe dostępne EXP ze wszystkich dziedzin, bez limitu nagrody. Soul Tier i bezpieczny zapis nadal obowiązują.",
         "Nowo zdobywane EXP nie jest przenoszone do starego banku. Over Cap wydarzenia nie ogranicza wypłaty nowego EXP.",
         "Double Cap silnych bossów podwaja zwykły limit pojedynczej nagrody, nie jej wartość.",
     ]
@@ -584,8 +585,8 @@ HELP_TOPICS['bronduszy'] = [
     'Dostępne: ogień, lód, piorun, mrok, światło, woda.',
     'bronduszy status; bronduszy zywiol piorun; bronduszy impuls.',
     'Żywioł daje niewielką premię do trafień Bronią Duszy, większą przy słabości celu.',
-    'Impuls wzmacnia następne trafienie Bronią Duszy; domyślny czas odnowienia 90 sekund. Admin Live może zmieniać ten parametr.',
-    'Od Tieru 1200: bronduszy oslona — domyślnie +15% Obrony i Obrony Magicznej na 30 sekund, odnowienie 180 s. Admin Live może zmieniać te wartości.',
+    'Impuls wzmacnia następne trafienie Bronią Duszy; domyślny czas odnowienia 90 sekund. Parametr zmieniany wyłącznie w aktualizacjach gry.',
+    'Od Tieru 1200: bronduszy oslona — domyślnie +15% Obrony i Obrony Magicznej na 30 sekund, odnowienie 180 s. Wartości zmieniane wyłącznie w aktualizacjach gry.',
 ]
 HELP_TOPIC_ALIASES['bronzywiol'] = 'bronduszy'
 

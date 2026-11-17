@@ -62,9 +62,9 @@ def run():
         def quest_completed(self,*_):return True
     fake={}
     for modname,member,value in (
-        ('systems.live_olc29_creation','quest_choice_text',lambda *_:''),
-        ('systems.live_olc26_world','conflicting_quests',lambda *_:()),
-        ('systems.live_olc17_quest_dependencies','quest_requirements',lambda *_:()),
+        ('systems.published_29_creation','quest_choice_text',lambda *_:''),
+        ('systems.published_26_world','conflicting_quests',lambda *_:()),
+        ('systems.published_17_quest_dependencies','quest_requirements',lambda *_:()),
     ):
         module=types.ModuleType(modname)
         setattr(module,member,value)

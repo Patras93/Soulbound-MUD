@@ -2,7 +2,7 @@
 """Runtime Soul Level XP requirement bands for v104.00.2.
 
 Default 100 percent is byte-for-byte compatible with the previously authored
-requirements. Admin Live publishes only one validated, server-wide band table,
+requirements. dawny edytor publishes only one validated, server-wide band table,
 never individual player progression or historical Soul Tier unlock gates.
 """
 

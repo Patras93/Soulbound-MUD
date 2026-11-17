@@ -185,14 +185,14 @@ class SessionQuestCommandsMixin:
                 factor=market_factor_v1300(q['v1300_market_contract'],q.get('v1300_market_category','ore'))
                 quest_coins=max(1,int(quest_coins*factor))
                 await self.send(f'Popyt lokalnego rynku: x{factor:.3f}. Wypłata kontraktu: {quest_coins} srebra.')
-            from systems.live_olc28_expansion import quest_coins as _olc28_quest_coins
+            from systems.published_28_expansion import quest_coins as _olc28_quest_coins
             quest_coins=_olc28_quest_coins(quest_coins)
             quest_bonus_coins_v11324 = quest_completion_bonus_v11324(
                 q, quest_coins, random.random()
             )
             self.character.silver += quest_coins + quest_bonus_coins_v11324
             quest_character_xp=reward_plan['character']
-            from systems.live_olc27_master import quest_character_xp as _quest_xp_v27
+            from systems.published_27_master import quest_character_xp as _quest_xp_v27
             quest_character_xp=_quest_xp_v27(quest_character_xp)
             for _msg in self.add_character_xp_with_event(
                 quest_character_xp,
@@ -200,7 +200,7 @@ class SessionQuestCommandsMixin:
                 content_scaled=True,
             ):
                 await self.send(_msg)
-            from systems.live_olc32_finale import quest_bonus_items
+            from systems.published_32_finale import quest_bonus_items
             _quest_reward_items32 = dict(q.get("reward_items") or {})
             for _id32, _qty32 in quest_bonus_items(quest_id).items():
                 _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32
@@ -216,7 +216,7 @@ class SessionQuestCommandsMixin:
                 )
             reward_guild_class = str(q.get("reward_guild_class") or "").strip()
             reward_guild_rep = int(q.get("reward_guild_reputation", 0) or 0)
-            from systems.live_olc33_mechanics import quest_guild_reward
+            from systems.published_33_mechanics import quest_guild_reward
             _guild33=quest_guild_reward(quest_id)
             if _guild33:
                 # Preserve the original award. An authored branch contributes separately.
@@ -237,7 +237,7 @@ class SessionQuestCommandsMixin:
                     str(q.get("reward_faction_v016")), int(q.get("reward_faction_amount_v016", 0) or 0),
                     reason=f"quest:{quest_id}",
                 )
-            from systems.live_olc34_integration import quest_faction_reward
+            from systems.published_34_integration import quest_faction_reward
             _faction34=quest_faction_reward(quest_id)
             if _faction34:
                 await self.add_faction_reputation_v016(
@@ -252,7 +252,7 @@ class SessionQuestCommandsMixin:
                 )
             await self.send(f"Zadanie ukończone: {q['name']}.")
             # v30: opublikowane przez OLC zakonczenie wybranej galezi.
-            from systems.live_olc29_creation import quest_ending_text
+            from systems.published_29_creation import quest_ending_text
             _ending30 = quest_ending_text(quest_id)
             if _ending30:
                 await self.send(f'Zakonczenie fabularne: {_ending30}')
@@ -299,7 +299,7 @@ class SessionQuestCommandsMixin:
                     + currency_reading_text(quest_bonus_coins_v11324, 0, 0)
                     + "."
                 )
-            from systems.live_olc32_finale import quest_bonus_items
+            from systems.published_32_finale import quest_bonus_items
             _quest_reward_items32 = dict(q.get("reward_items") or {})
             for _id32, _qty32 in quest_bonus_items(quest_id).items():
                 _quest_reward_items32[_id32] = _quest_reward_items32.get(_id32,0) + _qty32

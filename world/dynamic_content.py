@@ -2721,9 +2721,9 @@ if (_sb106_os.environ.get('SOULBOUND_V106_STAGING') == '1' or
     EXP_AREAS = EXP_AREAS + V10600_STAGING_BUILD['areas']
 
 
-# v104 Admin Live: tylko istniejące wpisy v10400 i bezpieczne pola liczbowe.
-from systems.admin_live_era_v10400 import apply as _sb10400_overrides_apply
-V10400_ADMIN_OVERRIDES_APPLIED = _sb10400_overrides_apply({
+# v104 dawny edytor: tylko istniejące wpisy v10400 i bezpieczne pola liczbowe.
+from systems.published_era_overrides_v10400 import apply as _sb10400_overrides_apply
+V10400_PUBLISHED_OVERRIDES_APPLIED = _sb10400_overrides_apply({
     'rooms':ROOMS,'mobs':MOB_TEMPLATES,'quests':QUESTS,'items':ITEMS,
     'recipes':CRAFT_RECIPES,
 })

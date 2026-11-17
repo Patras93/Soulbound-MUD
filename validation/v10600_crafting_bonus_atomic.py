@@ -12,8 +12,8 @@ ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
 from validation.v10600_full_recipe_atomic_flow import make_db,CraftSession
 from systems.equipment_crafting_rewards_v10600 import preview_resources
-from systems.live_olc33_mechanics import ACTIVE as OLC33
-from systems.live_olc34_integration import ACTIVE as OLC34
+from systems.published_33_mechanics import ACTIVE as OLC33
+from systems.published_34_integration import ACTIVE as OLC34
 from player.session_mixins import crafting as c
 
 
@@ -51,9 +51,9 @@ def run():
                                    'helm':{'name':'Hełm','type':'armor'},
                                    'hammer':{'name':'Młot'}}),
             patch('systems.endless_crafting_v5500.endless_crafted_equipment_v5500',lambda iid,*a:iid),
-            patch('systems.live_olc28_expansion.craft_yield',lambda prof,qty:qty),
-            patch('systems.live_olc32_finale.crafting_bonus',lambda *args:args[-1]),
-            patch('systems.live_olc35_finale.city_craft_bonus',lambda *args:args[-1]),
+            patch('systems.published_28_expansion.craft_yield',lambda prof,qty:qty),
+            patch('systems.published_32_finale.crafting_bonus',lambda *args:args[-1]),
+            patch('systems.published_35_finale.city_craft_bonus',lambda *args:args[-1]),
             patch.dict(OLC33['professions'],{
                 'bonus_helm_test':{'byproduct':'gem','amount':2,'every':2}},clear=False),
             patch.dict(OLC34['professions'],{

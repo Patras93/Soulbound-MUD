@@ -141,7 +141,7 @@ SYSTEM_DESCRIPTIONS = make_system_descriptions_v405()
 
 
 LATEST_CHANGES_TITLE = "Soulbound v44.00.0 - Admin Guardian 10.0: odizolowane RNG i scenariusze UOSS (PREDEPLOY)"
-LATEST_CHANGES_TITLE = "Soulbound v48.00.0 - Admin Live: 18 typow questow i porownania druzyn (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v48.00.0 - dawny edytor: 18 typow questow i porownania druzyn (PREDEPLOY)"
 LATEST_CHANGES = [
     "v39.00.3: poprawiono przestarzaly Dockerfile COPY pliku world_seed, bez dolaczania world_seed do ZIP; v39.00.2: usunieto trzy przyczyny FAIL szybkiego PREDEPLOY bez zmian w nagrodach graczy; v39.00.1: poprawiony PREDEPLOY, integralnosc kodu nagrod 6 statystyk i katalogu 6793 questow; v39.00.0: niezalezny bazowy EXP szesciu statystyk questow (fallback do reward_stat_xp), admin guardian5: katalog i nagrody questow, diagnostyka questow, faz bossow UOSS (odczyt, nie symulacja realnej walki), raport OLC. Bezpieczne DRAFT i PREDEPLOY.",
     "v37.00.0: admin guardian3 pomoc; arena tury liczbowe, kraina 4-20 pokoi DRAFT + mob/NPC/sklep/quest, quest kontrola/odwracalna korekta licznika offline, balans w turach, fala potworow, role raport, historia; nie ma pelnej walki AI/UOSS ani auto-publikacji.",
@@ -1496,66 +1496,66 @@ HELP_TOPICS['druid'] = [
 HELP_TOPICS['call'] = list(HELP_TOPICS['druid'])
 HELP_TOPICS['order'] = list(HELP_TOPICS['druid'])
 
-LATEST_CHANGES_TITLE = "Soulbound v58.00.0 - Admin Live: bonusowe EQ skrzyn i kontrola nagrod questow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v58.00.0 - dawny edytor: bonusowe EQ skrzyn i kontrola nagrod questow (PREDEPLOY)"
 
 # v59: update only canonical latest version, preserving history.
-LATEST_CHANGES_TITLE = "Soulbound v59.00.0 - Admin Live: EQ swiata ponad 800 i korekty zaleznosci questow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v59.00.0 - dawny edytor: EQ swiata ponad 800 i korekty zaleznosci questow (PREDEPLOY)"
 LATEST_CHANGES = ["v59.00.0: realne EQ z potworow swiata ponad 800 (tylko juz wylosowany zwykly loot, bez ruszania UOSS); admin live eq swiat; questy zamien plan/zatwierdz/cofnij, transakcje DRAFT z walidatorem i kontrola cykli."] + [x for x in LATEST_CHANGES if not str(x).startswith("v59.00.0:")]
 
 # v60: author-approved ID corrections only, with OLC DRAFT validation.
-LATEST_CHANGES_TITLE = "Soulbound v60.00.0 - Admin Live: zamiana ID nagrod i celow questow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v60.00.0 - dawny edytor: zamiana ID nagrod i celow questow (PREDEPLOY)"
 LATEST_CHANGES = ["v60.00.0: admin live questy id karta/znajdz/plan/zatwierdz/cofnij. Naprawa przedmiotow w nagrodach lub celow kill/collect, 1-8 questow, tylko DRAFT i bez zgadywania ID."] + [x for x in LATEST_CHANGES if not str(x).startswith("v60.00.0:")]
 
 # v61: bounded owner-only repairs of quest references in OLC DRAFT.
-LATEST_CHANGES_TITLE = "Soulbound v61.00.0 - Admin Live: naprawy referencji questow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v61.00.0 - dawny edytor: naprawy referencji questow (PREDEPLOY)"
 LATEST_CHANGES = ["v61.00.0: questy ref karta/znajdz/plan/zatwierdz/cofnij. Naprawa NPC, surowcow oraz celow kill/collect/talk w wielocelowych questach, max 8, tylko DRAFT."] + [x for x in LATEST_CHANGES if not str(x).startswith('v61.00.0:')]
 
 # v62 consolidated release title. Production combat engine remains unchanged.
-LATEST_CHANGES_TITLE = "Soulbound v62.00.0 - Admin Live: pakiet questow, nagrody EQ i 22 klasy (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v62.00.0 - dawny edytor: pakiet questow, nagrody EQ i 22 klasy (PREDEPLOY)"
 LATEST_CHANGES = ["v62.00.0: questy pakiet plan/zatwierdz/cofnij, eq quest ID ID, arena skille poziom; Rezonans Glebi z jawnych questow ponad 800. Wszystkie zmiany questow tylko w DRAFT."] + [x for x in LATEST_CHANGES if not str(x).startswith('v62.00.0:')]
 
 # v63: only a cap-aware admin lab and validated OLC scalar bundles.
-LATEST_CHANGES_TITLE = "Soulbound v63.00.0 - Admin Live: pakiety questow i testy poziomow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v63.00.0 - dawny edytor: pakiety questow i testy poziomow (PREDEPLOY)"
 LATEST_CHANGES = ["v63.00.0: questy pakiet plan pole ID POLE WARTOSC; arena klasy porownaj TURY STRONA BIEGLOSC; pomoc 18; zadne automatyczne publikowanie."] + [x for x in LATEST_CHANGES if not str(x).startswith('v63.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v64.00.0 - Admin Live: atomowe questy i liczniki (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v64.00.0 - dawny edytor: atomowe questy i liczniki (PREDEPLOY)"
 LATEST_CHANGES = ["v64.00.0: pakiet pole objectives/resource_targets JSON ; dopasuj ID. Walidacja dopiero calego DRAFT, bez automatycznej publikacji."] + [x for x in LATEST_CHANGES if not str(x).startswith('v64.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v65.00.0 - Admin Live: EQ i odpornosci UOSS (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v65.00.0 - dawny edytor: EQ i odpornosci UOSS (PREDEPLOY)"
 LATEST_CHANGES = ["v65.00.0: admin live arena uoss status NAZWA; ekwipunek; pasywy. Prawdziwe funkcje statusow na prywatnych kopiach."] + [x for x in LATEST_CHANGES if not str(x).startswith('v65.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v66.00.0 - Admin Live: akcje pomocnikow UOSS (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v66.00.0 - dawny edytor: akcje pomocnikow UOSS (PREDEPLOY)"
 LATEST_CHANGES = ["v66.00.0: admin live arena uoss pomocnik - wybor akcji ze zrodla UOSS na kopii."] + [x for x in LATEST_CHANGES if not str(x).startswith('v66.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v67.00.0 - Admin Live: skutki wsparcia UOSS (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v67.00.0 - dawny edytor: skutki wsparcia UOSS (PREDEPLOY)"
 LATEST_CHANGES = ["v67.00.0: admin live arena uoss pomocnik skutki [ILE] [HP MANA]."] + [x for x in LATEST_CHANGES if not str(x).startswith('v67.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v68.00.0 - Admin Live: wsparcie druzyny UOSS (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v68.00.0 - dawny edytor: wsparcie druzyny UOSS (PREDEPLOY)"
 LATEST_CHANGES = ["v68.00.0: admin live arena uoss druzyna wsparcie [TURY] [HP MANA]."] + [x for x in LATEST_CHANGES if not str(x).startswith('v68.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v69.00.0 - Admin Live: centrum komend NVDA (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v69.00.0 - dawny edytor: centrum komend NVDA (PREDEPLOY)"
 LATEST_CHANGES = ["v69.00.0: centrum komend NVDA."] + [x for x in LATEST_CHANGES if not str(x).startswith('v69.00.0:')]
 
-LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - Admin Live: poprawki PREDEPLOY (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - dawny edytor: poprawki PREDEPLOY (PREDEPLOY)"
 LATEST_CHANGES = ["v70.00.0: odbior wydania i bramki PREDEPLOY."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.0:')]
 
 # v70.00.1: terminal release note for current distribution.
-LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - Admin Live: poprawki bramek PREDEPLOY (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v70.00.1 - dawny edytor: poprawki bramek PREDEPLOY (PREDEPLOY)"
 LATEST_CHANGES = ["v70.00.1: naprawiono audyty wydania, EXP, EQ i liczniki questow."] + [x for x in LATEST_CHANGES if not str(x).startswith("v70.00.1:")]
 
-# v70.00.2: cumulative release notes for Admin Live three-area acceptance.
-LATEST_CHANGES_TITLE = "Soulbound v70.00.2 - Admin Live: UOSS, EQ, questy (PREDEPLOY)"
+# v70.00.2: cumulative release notes for dawny edytor three-area acceptance.
+LATEST_CHANGES_TITLE = "Soulbound v70.00.2 - dawny edytor: UOSS, EQ, questy (PREDEPLOY)"
 LATEST_CHANGES = ["v70.00.2: uoss reguly, eq pokrycie, questy automaty z DRAFT/undo."] + [x for x in LATEST_CHANGES if not str(x).startswith('v70.00.2:')]
 
 # v70.00.3: safe editor extensions; no changes to player EXP or SQL schemas.
-LATEST_CHANGES_TITLE = "Soulbound v71.00.0 - Admin Live: Osiem obszarow (PREDEPLOY)"
+LATEST_CHANGES_TITLE = "Soulbound v71.00.0 - dawny edytor: Osiem obszarow (PREDEPLOY)"
 LATEST_CHANGES = ["v71.00.0: audyt UOSS, typy i cykle questow, do 8 EQ/sklep, atomowe skille/fazy bossow, rasy i klasy, limity i offline postacie."] + [x for x in LATEST_CHANGES if not str(x).startswith('v71.00.0:')]
 
 # Authoritative player-facing release label for PREDEPLOY and /changes.
 LATEST_CHANGES_TITLE = "Soulbound v96.00.4 - naprawa testu TCP i zgodnosci wersji"
 
 # v97 default release identity, also used by /changes before server warm-up.
-LATEST_CHANGES_TITLE = "Soulbound v97.00.0 - Admin Live: postacie, plecak, superbossy"
+LATEST_CHANGES_TITLE = "Soulbound v97.00.0 - dawny edytor: postacie, plecak, superbossy"
 LATEST_CHANGES = [
     "v97.00.0: admin live pomoc 55 - 8 postaci offline, 24 statystyki, 16 stosow plecaka, SQLite CAS i cofanie.",
     "v97.00.0: admin live pomoc 56 - pakiet profili faz, leczenia, furii i skalowania UOSS, tylko DRAFT.",
@@ -1570,7 +1570,7 @@ LATEST_CHANGES = [
 ] + LATEST_CHANGES
 
 # v99 release identity and source-backed scope of five new admin live editors.
-LATEST_CHANGES_TITLE = "Soulbound v99.00.0 - Piec rozszerzen Admin Live: skille, questy, arena, postacie online, UOSS"
+LATEST_CHANGES_TITLE = "Soulbound v99.00.0 - Piec rozszerzen dawny edytor: skille, questy, arena, postacie online, UOSS"
 LATEST_CHANGES = [
     "v99.00.0: pomoc 60 - kreator deklaratywnych nowych skilli zgodny z produkcyjnym silnikiem.",
     "v99.00.0: pomoc 61 - Quest Doctor naprawy edytowalnych pol, pelna walidacja i bezpieczny DRAFT.",
@@ -1580,7 +1580,7 @@ LATEST_CHANGES = [
 ] + LATEST_CHANGES
 
 # Canonical cumulative release identity v100.
-LATEST_CHANGES_TITLE = "Soulbound v100.00.0 - Admin Live Ultimate: 5 bezpiecznych rozszerzen"
+LATEST_CHANGES_TITLE = "Soulbound v100.00.0 - Historyczne narzędzia: 5 bezpiecznych rozszerzen"
 LATEST_CHANGES = [
     'v100.00.0: pomoc 65 - skill kreator wzorzec, DRAFT i cofanie.',
     'v100.00.0: pomoc 66 - questy doktor analiza i audyt NPC/zaleznosci.',
@@ -1590,7 +1590,7 @@ LATEST_CHANGES = [
 ] + LATEST_CHANGES
 
 # Cumulative release identity v101.00.0; historical log is retained.
-LATEST_CHANGES_TITLE = "Soulbound v101.00.0 - Admin Live: mechaniki, rozwoj online, arena LAB"
+LATEST_CHANGES_TITLE = "Soulbound v101.00.0 - dawny edytor: mechaniki, rozwoj online, arena LAB"
 LATEST_CHANGES = [
     "v101.00.0: pomoc 70 - wlasne kompozycje efektow bossow, DRAFT i publikacja OLC.",
     "v101.00.0: pomoc 71 - atomowe korekty levelu+EXP postaci online, SQLite i pamiec.",
@@ -1603,7 +1603,7 @@ LATEST_CHANGES = [
 LATEST_CHANGES_TITLE = "Soulbound v102.00.13 - Deep Winda + Multi Cap x2"
 LATEST_CHANGES = [
     "v102.00.13: walk deep / deep dungeon / floor 0 prowadzi bezpiecznie do windy, a trasa dla pieter Deep Dungeon nie omija eksploracji i blokad bossa.",
-    "v102.00.13: bazowy Multi Cap EXP jest 2x wyzszy dla wszystkich osi, bonusy Admin Live nadal dzialaja, Half CAP / Overcap / bank EXP zachowane.",
+    "v102.00.13: bazowy Multi Cap EXP jest 2x wyzszy dla wszystkich osi, bonusy dawny edytor nadal dzialaja, Half CAP / Overcap / bank EXP zachowane.",
     "v102.00.12: zapisane limity poziomow wczytywane przy kazdym starcie v52+; brak resetu na 800 po aktualizacji.",
     "v102.00.12: wymagania EXP i fallback CAP rosna rowniez ponad 800; Multi Cap, Half CAP, Overcap i EXP Bank pozostaja aktywne.",
     "v102.00.12: questy daja co najmniej 200 000 bazowego EXP postaci/statystyk oraz w odpowiednich osiach biegłości, Duszy, profesji i narzędzi; wyzsze nagrody pozostaja.",
@@ -1613,16 +1613,16 @@ LATEST_CHANGES = [
     "v102.00.10: naprawiono NameError przy przyjmowaniu questow, gdy pomiar trwa ponad 250 ms.",
     "v102.00.9: wspolne katalogi ID dla kazdej walidacji OLC; mniej alokacji w hurtowych zmianach questow.",
     "v102.00.9: rozdzielono celowe oczekiwanie craft i quit od wolnych operacji; fazy questaccept w logu.",
-    "v102.00.8: Admin Live expprogi - hurtowa zmiana dodatnich nagrod ponizej progu, tylko DRAFT z walidacja.",
-    "v102.00.7: trzy zlecenia na lupy z walki - reczny EXP Bieglosci i Duszy przez Admin Live; bez zmian monet i celow.",
+    "v102.00.8: dawny edytor expprogi - hurtowa zmiana dodatnich nagrod ponizej progu, tylko DRAFT z walidacja.",
+    "v102.00.7: trzy zlecenia na lupy z walki - reczny EXP Bieglosci i Duszy przez dawny edytor; bez zmian monet i celow.",
     "v102.00.6: admin live skalowanie off/on/status - globalny, zapisany przelacznik Adaptive Combat.",
     "v102.00.5: instalator i pierwsze uruchomienie przenosza stare README do kopii poza gra.",
-    "v102.00.4: jeden poradnik Admin Live zamiast 8 README; zadnej zmiany mechaniki gry.",
-    "v102.00.3: weryfikatory predeploy wymagaja wszystkich 52 kontroli Admin Live v102, bez zmiany logiki gry.",
+    "v102.00.4: jeden poradnik dawny edytor zamiast 8 README; zadnej zmiany mechaniki gry.",
+    "v102.00.3: weryfikatory predeploy wymagaja wszystkich 52 kontroli dawny edytor v102, bez zmiany logiki gry.",
     "v102.00.2: bezpieczne rozlaczenie tunelu, zgodny audyt OLC5 oraz regresja.",
     "v102.00.1: synchronizacja numeru wersji w CHANGELOG, banerze Telnet i /changes.",
     "v102.00.1: weryfikacja kontrolnego hasha metody walki; bez zmian logiki najemnikow.",
-    "v102.00.0: pomoc 74-76, tunel realnej areny, deklaratywne efekty i audyt Admin Live.",
+    "v102.00.0: pomoc 74-76, tunel realnej areny, deklaratywne efekty i audyt dawny edytor.",
 ] + LATEST_CHANGES
 
 # Final v103.00.0 release identity: Era Bez Granic. Historical notes remain available.
@@ -1631,7 +1631,7 @@ LATEST_CHANGES = [
     "v103.00.0: 11 krain 801-5000, 165 nowych pokojow, 33 NPC i 385 nowych zadan.",
     "v103.00.0: 11 rajdow z 33 bossami i czterema fazami HP; questy klasowe, fabularne i profesyjne.",
     "v103.00.0: Soul Tiery 81-500, nowe proby, rangi profesji i narzedzi ponad 800, tytuly i osiagniecia.",
-    "v103.00.0: EXP wysokich pieter Deep Dungeon, krypt i wiez, checkpointy i Admin Live Era z DRAFT, sprawdzaniem, publikacja i cofnieciem.",
+    "v103.00.0: EXP wysokich pieter Deep Dungeon, krypt i wiez, checkpointy i dawny edytor Era z DRAFT, sprawdzaniem, publikacja i cofnieciem.",
     "v103.00.0: poprawiona dostepnosc questow NPC, krotsze komunikaty NVDA, izolowane testy realnych rajdow TCP i ochrony bazy.",
     "v103.00.0: Multi Cap x2, EXP Bank, no level cap i zachowanie ustawien skalowania pozostaja bez zmian.",
 ] + LATEST_CHANGES

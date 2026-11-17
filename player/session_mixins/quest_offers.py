@@ -88,8 +88,8 @@ class SessionQuestOffersMixin:
                     remaining=until_active(quest_id)
                     minutes=(remaining+59)//60
                     reasons.append(f'wydarzenie Chaosu nieaktywne, kolejna rotacja za {minutes} min')
-            from systems.live_olc29_creation import quest_choice_text
-            from systems.live_olc26_world import conflicting_quests
+            from systems.published_29_creation import quest_choice_text
+            from systems.published_26_world import conflicting_quests
             for alternative in conflicting_quests(quest_id):
                 row = self.server.db.quest(self.account_id, alternative)
                 if row and row['status'] in ('active','completed'):
@@ -109,7 +109,7 @@ class SessionQuestOffersMixin:
                     + previous.get("name", required_quest)
                 )
 
-            from systems.live_olc17_quest_dependencies import quest_requirements
+            from systems.published_17_quest_dependencies import quest_requirements
             for prerequisite in quest_requirements(quest):
                 if prerequisite == required_quest:
                     continue
@@ -964,7 +964,7 @@ class SessionQuestOffersMixin:
                 requirements.append(
                     "ukończ quest " + QUESTS.get(required_quest, {}).get("name", required_quest)
                 )
-            from systems.live_olc17_quest_dependencies import quest_requirements
+            from systems.published_17_quest_dependencies import quest_requirements
             for requirement in quest_requirements(quest):
                 if requirement != required_quest:
                     requirements.append("ukończ quest " + QUESTS.get(requirement, {}).get("name", requirement))
@@ -1001,7 +1001,7 @@ class SessionQuestOffersMixin:
             if len(set(stat_rewards.values())) == 1:
                 reward_parts.append(f"EXP każdej statystyki {next(iter(stat_rewards.values()))}")
             else:
-                from systems.live_quest_olc_v1209 import STAT_XP_FIELDS_V3900
+                from systems.published_quest_fields_v1209 import STAT_XP_FIELDS_V3900
                 stat_labels = {'strength':'Siła', 'dexterity':'Zręczność',
                                'constitution':'Kondycja', 'intelligence':'Inteligencja',
                                'willpower':'Wola', 'charisma':'Charyzma'}

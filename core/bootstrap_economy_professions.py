@@ -435,10 +435,10 @@ def soul_weapon_trait_for_tier(tier, class_name=None):
     from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_TRAITS_BY_CLASS  # explicit current dependency
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
-    # Additional Admin Live classes inherit the real soul trait table of their
+    # Additional dawny edytor classes inherit the real soul trait table of their
     # combat archetype instead of silently using the Wojownik fallback.
     if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
-        from systems.admin_live_classes_v7700 import inherited_parent
+        from systems.published_classes_v7700 import inherited_parent
         class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     return rows.get(tier)
@@ -447,10 +447,10 @@ def soul_weapon_trait_totals(tier, class_name=None):
     from core.progression_600 import SOUL_MAX_TIER, SOUL_TIER_TRAITS_BY_CLASS  # explicit current dependency
     tier = max(1, min(SOUL_MAX_TIER, int(tier)))
     class_name = class_name or "Wojownik"
-    # Additional Admin Live classes inherit the real soul trait table of their
+    # Additional dawny edytor classes inherit the real soul trait table of their
     # combat archetype instead of silently using the Wojownik fallback.
     if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
-        from systems.admin_live_classes_v7700 import inherited_parent
+        from systems.published_classes_v7700 import inherited_parent
         class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     totals = {

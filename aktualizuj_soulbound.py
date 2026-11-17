@@ -174,7 +174,16 @@ def production_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Pat
     from core.runtime_manifest import FULL_AUDIT_ONLY_MODULES
     offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
     result={}
+    linux_only_runtime = frozenset({
+        'status_soulbound_windows.py', 'host_windows.py',
+        'stop_soulbound_windows.py', 'soulbound_backup_windows.py',
+        'supervisor_windows.py', 'uruchom_w_tle.py', 'start_windows_bootstrap.py',
+    }) if sys.platform=='linux' else frozenset()
     for rel,info in mapping.items():
+        if rel.suffix.lower() in ('.bat','.cmd','.vbs','.ps1') and sys.platform=='linux':
+            continue
+        if rel.as_posix() in linux_only_runtime:
+            continue
         parts=rel.parts
         if (rel.as_posix() in offline_admin_audits
                 or rel.as_posix() in V112_HISTORICAL_ACTIVATION_FILES
@@ -278,7 +287,7 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
         if k in seen:
             raise UpdateError(f'Powtarzajaca sie nazwa w ZIP: {relative}')
         seen.add(k)
-        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json', 'live_content/v109_release_activation.json', 'live_content/release_current.json'):
+        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json', 'live_content/v109_release_activation.json', 'live_content/release_current.json', 'config/release_current.json'):
             raise UpdateError('Znaczniki zatwierdzenia v107/v108 moze utworzyc tylko instalator.')
         if protected(relative):
             if relative.name.lower().endswith(SQLITE_SUFFIXES):
@@ -286,7 +295,14 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
             continue
         mapping[relative] = item
     essential = {'server.py', 'core/bootstrap_economy_professions.py',
-                 'START_Soulbound.bat', 'STOP_Soulbound.bat', 'predeploy_check.py'}
+                 'predeploy_check.py'}
+    linux_entrypoints = {'PREDEPLOY_NOWEJ_WERSJI.sh','WDROZ_PO_PREDEPLOY.sh',
+                         'START_Soulbound.sh','STOP_Soulbound.sh',
+                         'systems/linux_release.py'}
+    if linux_entrypoints.issubset({p.as_posix() for p in mapping}):
+        essential |= linux_entrypoints
+    else:
+        essential |= {'START_Soulbound.bat','STOP_Soulbound.bat'}
     missing = essential.difference(str(x).replace('\\', '/') for x in mapping)
     if missing:
         raise UpdateError('ZIP nie jest kompletna paczka Soulbound. Brakuje: '+', '.join(sorted(missing)))
@@ -590,7 +606,8 @@ def retire_certified_v111_test_files(root: Path, stage: Path, backup: Path) -> i
     """
     if not (stage/'VERSION').is_file() or (stage/'VERSION').read_text(encoding='utf-8-sig').strip() not in ('111.00.0','112.00.0'):
         return 0
-    old_manifest=backup/'LIVE_CONTENT/release_current.json'
+    old_manifest=backup/'config/release_current.json'
+    if not old_manifest.is_file():old_manifest=backup/'LIVE_CONTENT/release_current.json'
     if not old_manifest.is_file():
         print('V111 porządki: brak poprzedniego manifestu; starych testów nie kasuję.', flush=True)
         return 0
@@ -693,7 +710,7 @@ def _restore_prior_code_after_v108_cutover_failure(root: Path, backup: Path, sta
     # Do not leave it behind when reverting to the previous release.
     for generated in (Path('LIVE_CONTENT/v108_release_activation.json'),
                       Path('LIVE_CONTENT/v109_release_activation.json'),
-                      Path('LIVE_CONTENT/release_current.json')):
+                      Path('LIVE_CONTENT/release_current.json'),Path('config/release_current.json')):
         if not (backup/generated).exists():
             (root/generated).unlink(missing_ok=True)
 

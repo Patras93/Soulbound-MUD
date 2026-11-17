@@ -15,7 +15,11 @@ def run_profession_xp_regression_v1401():
         profession_late_requirement_points_v1401,
         profession_xp_requirement_v1401,
     )
-    from core.bootstrap_economy_professions import PROFESSION_XP_GAIN_MULTIPLIER
+    from player.character import Character  # initialize native catalogs before policy
+    from core.progression_policy_v114 import install_deploy_policy
+    from core.live_level_caps_v5200 import cap
+    install_deploy_policy()
+    from core.bootstrap_economy_professions import profession_max_level, PROFESSION_XP_GAIN_MULTIPLIER
     from core.profession_timing import TOOL_ACTION_MIN_SECONDS, profession_action_seconds
     from core.progression_resources import v0190_requirement
     # The standalone math test must not bootstrap mutable world catalogues:
@@ -39,7 +43,8 @@ def run_profession_xp_regression_v1401():
     def next_level_xp(level, profession):
         base = v0190_requirement('profession', level)
         return (session.profession_xp_to_next(level, profession)
-                if session else (0 if level >= 800 else profession_xp_requirement_v1401(base, profession, level)))
+                if session else (0 if level >= profession_max_level(profession) else
+                                 profession_xp_requirement_v1401(base, profession, level)))
     check(set(PROFESSIONS_V1370) == set(PROFESSION_XP_REQUIREMENT_MULTIPLIERS),
           '14 existing professions unchanged')
     check(PROFESSION_XP_GAIN_MULTIPLIER == 4, 'EXP gains multiplier preserved')
@@ -51,7 +56,8 @@ def run_profession_xp_regression_v1401():
           'endgame requirement x500')
     check(profession_late_requirement_points_v1401(49) == 10000, 'level49 unchanged')
     check(profession_late_requirement_points_v1401(50) > 10000, 'level50 grows')
-    check(next_level_xp(800, 'Wędkarstwo') == 0, 'level800 capped')
+    check(cap('profesje') is None, 'v114: professions have no configured cap')
+    check(next_level_xp(800, 'Wędkarstwo') > 0, 'level800 can advance')
 
     for profession in PROFESSIONS_V1370:
         prior_requirement = 0
@@ -71,8 +77,14 @@ def run_profession_xp_regression_v1401():
             check(new > original,
                   f'{profession} level{level}: v3.31.0 requirement larger at every level')
             prior_requirement, prior_growth = new, growth
-        check(next_level_xp(800, profession) == 0,
-              f'{profession}: cap 800')
+        check(profession_max_level(profession) > 60000,
+              f'{profession}: no hard cap at 800')
+        for level in (800, 801, 1000, 5000, 60000):
+            actual = next_level_xp(level, profession)
+            expected = profession_xp_requirement_v1401(
+                v0190_requirement('profession', level), profession, level)
+            check(actual == expected and actual > 0,
+                  f'{profession}: real requirement beyond 800 at {level}')
         for level, points in PROFESSION_LATE_GAME_REQUIREMENT_POINTS_V1401:
             check(profession_late_requirement_points_v1401(level) == points,
                   f'{profession}: anchor {level}')

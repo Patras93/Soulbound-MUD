@@ -163,7 +163,7 @@ class World:
         # bossa, ale redukuje jego generator_level do 800. Przywracamy
         # WYŁĄCZNIE specjalnie oznaczony, autorski poziom unikatowego
         # bossa v106 po każdym pierwszym spawnie i respawnie. Bez zmiany
-        # logiki v105, obrażeń, HP, nagród, drużyn ani limitów Admin Live.
+        # logiki v105, obrażeń, HP, nagród, drużyn ani limitów dawny edytor.
         from data.mobs import MOB_TEMPLATES  # canonical current dependency
         from data.rooms import ROOMS  # canonical current dependency
         if (str(room_id).startswith("v10600_")
@@ -915,9 +915,9 @@ class World:
         mob.v029_expires_at=float(event['expires_at'])
         self.mobs[key]=mob
         # OLC33: a bounded wave of real ephemeral mobs shares the event slot.
-        from systems.live_olc33_mechanics import spawn_guardians
+        from systems.published_33_mechanics import spawn_guardians
         spawn_guardians(event,room_id,self.mobs,MOB_TEMPLATES,MobState)
-        from systems.live_olc34_integration import spawn_reinforcements
+        from systems.published_34_integration import spawn_reinforcements
         spawn_reinforcements(event,room_id,self.mobs,MOB_TEMPLATES,MobState)
         self._last_refresh_at=0.0
         return True

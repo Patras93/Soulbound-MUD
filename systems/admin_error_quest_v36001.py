@@ -113,7 +113,7 @@ async def handle_error_quest_command(s, parts):
             raise ValueError('Zgloszenie oznaczone jako naprawione. Najpierw diagnoza; brak zapisu.')
         if not _is_quest_incident(row):
             raise ValueError('To nie jest blad z obszaru questow. Brak bezpiecznej automatycznej poprawki.')
-        from systems.admin_guardian2_v3600 import _quest_repair, _quest_data
+        from systems.quest_incident_repair import _quest_repair, _quest_data
         nick,qid=parts[3:5]
         # The repair function rechecks the actual account, offline state, and
         # exact progress before any mutation; nothing inferred from report ID.

@@ -101,7 +101,9 @@ def run():
         asyncio.run(redeem_exp_bank(sess))
     assert character.character_xp==80
     conn.close()
-    return 11+result
+    # Mandatory all-balances regression runs in the same universal gate.
+    from validation.current_expbank_all_v114_regression import run as full_claim_regression
+    return 11+result+full_claim_regression()
 
 if __name__=='__main__':
     print('CURRENT EXP BANK & ALIAS V11325:',run(),'PASS')

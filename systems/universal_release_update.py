@@ -94,7 +94,8 @@ with ZipFile(sys.argv[2]) as z:
            if i.filename.startswith('Soulbound-MUD/') and not i.is_dir()}
   mapping={p:i for p,i in mapping.items() if (root/p).is_file()}
 manifest=activation_manifest(state,Path(sys.argv[2]),root,mapping)
-marker=root/'LIVE_CONTENT'/'release_current.json';marker.parent.mkdir(parents=True,exist_ok=True)
+from systems.runtime_activation import MARKER
+marker=root/MARKER;marker.parent.mkdir(parents=True,exist_ok=True)
 marker.write_text(json.dumps(manifest,sort_keys=True,indent=2)+chr(10),encoding='utf-8')
 sys.exit(0 if verify(root) else 35)
 """
@@ -153,6 +154,9 @@ def publish_in_place(stage: Path, root: Path, backup: Path, protected_predicate)
             raise UpdateError('Manifest aktywacji nie zgadza sie po podmianie w starym folderze')
         # Check protected original bytes AGAIN after code replacement.
         verify_private_backup(root,backup,protected_predicate)
+        from systems.current_retire_live_content import retire
+        removed=retire(root,backup)
+        if removed:print(f'Usunieto LIVE_CONTENT po pelnym backupie ({removed} plikow).',flush=True)
     except BaseException as cause:
         try:
             _restore_prior_code_after_v108_cutover_failure(root,backup,files)

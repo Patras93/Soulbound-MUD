@@ -27,16 +27,18 @@ def material_factor(key):
 def reward_xp_v1203(previous, required, level, content_level, *, tool=False, content_key=None):
     """A meaningful fraction of a level for a *suitable* real material.
 
-    Up to 800; ~75..155 successful challenging profession actions / level,
+    Beyond 800: successful level-tagged actions continue to award XP;
     ~85..165 tool actions. Using low-level copper or common fish at level 799
     gets much less, so progression still rewards unlocking harder work.
     """
     old=max(0,int(previous or 0))
     if old==0 or content_level is None:
         return old
-    skill=max(1,min(800,int(level or 1)))
-    stage=max(1,min(800,int(content_level or 1)))
-    if skill>=800:return old
+    skill=max(1,int(level or 1))
+    stage=max(1,int(content_level or 1))
+    # Level 800 keeps its authored milestone behaviour. Higher levels MUST
+    # receive level-appropriate rewards, rather than silently stopping.
+    if skill==800:return old
     needed=max(0,int(required or 0))
     if not needed:return old
     # No free high-tier rewards for trivial gathering. The maximum effective
@@ -66,13 +68,13 @@ def quest_reward_floor_v1203(previous, required, level, quest, *, tool=False):
     old=max(0,int(previous or 0))
     if old==0 or not isinstance(quest,dict):
         return old
-    level=max(1,min(800,int(level or 1)))
-    if level>=800:
+    level=max(1,int(level or 1))
+    if level==800:
         return old
     needed=max(0,int(required or 0))
     if not needed:return old
-    stage=max(1,min(800,int(quest.get('min_profession_level')
-                                  or quest.get('generator_level') or 1)))
+    stage=max(1,int(quest.get('min_profession_level')
+                                  or quest.get('generator_level') or 1))
     # Some legacy quest levels are only recommendations, not an access lock.
     # A fresh apprentice must not gain artificially large EXP by accepting an
     # unlevelled endgame quest through an unlocked NPC dialogue.

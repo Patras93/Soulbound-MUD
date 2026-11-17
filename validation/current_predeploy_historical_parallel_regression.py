@@ -80,24 +80,23 @@ def run_regression():
         private_historical_subprocess_run([sys.executable,'-c','pass'])
     assert calls[-1][1]['env']['SOULBOUND_FULL_AUDIT']=='1'
     count+=1
-    # The real auditors must register ALL known isolated historical child
-    # gates and call the strict batch exactly once, not just pass a mock test.
-    import ast
-    for filename, minimum in (('predeploy_check.py', 26), ('predeploy_full.py', 36)):
-        tree=ast.parse((ROOT / filename).read_text(encoding='utf-8'))
-        queued=[n for n in ast.walk(tree) if isinstance(n, ast.Call)
-                and isinstance(n.func, ast.Attribute)
-                and isinstance(n.func.value, ast.Name)
-                and n.func.value.id=='_sb_parallel_historical' and n.func.attr=='add']
-        ran=[n for n in ast.walk(tree) if isinstance(n, ast.Call)
-             and isinstance(n.func, ast.Attribute)
-             and isinstance(n.func.value, ast.Name)
-             and n.func.value.id=='_sb_parallel_historical' and n.func.attr=='run']
-        assert len(queued)>=minimum and len(ran)==1, (filename, len(queued), len(ran))
-        methods=[n for n in ast.walk(tree) if isinstance(n,ast.Call)
-                 and isinstance(n.func,ast.Name)
-                 and n.func.id=='_sb_private_historical_run']
-        assert len(methods)>=minimum, (filename,'missing isolated child environment')
+    # v114: historical retired runtime editor checks are retired, NOT passed by a
+    # fake historical callback. The replacement code must enumerate the real
+    # current gameplay suites and retain their mandatory subprocess exit codes.
+    for filename, expected in (
+        ('predeploy_check.py', ('validation.v11400_soul_infinite_regression',
+                                'validation.current_published_readonly_regression')),
+        ('predeploy_full.py', ('validation/current_only_server_smoke.py',
+                               'validation/current_jammer_cast_regression.py')),
+    ):
+        content=(ROOT/filename).read_text(encoding='utf-8')
+        import ast
+        tree=ast.parse(content)
+        assert '_sb_parallel_historical' not in content, filename
+        assert 'returncode' in content and 'raise AssertionError' in content, filename
+        assert all(name in content for name in expected), filename
+        assert any(isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
+                   and n.func.attr=='run' for n in ast.walk(tree)), filename
         count+=1
     print(f'HISTORICAL PREDEPLOY ISOLATION: {count}/{count} PASS')
     return count

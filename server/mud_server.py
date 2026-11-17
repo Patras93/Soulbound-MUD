@@ -49,11 +49,11 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         if _runtime_mode == 'production':
             self.db._v108_live_event_caps = True
         # v71: restore conservative character-creator profiles in place.
-        from systems.admin_live_heritage_v7100 import restore as _restore_heritage_v7100
+        from systems.published_heritage_v7100 import restore as _restore_heritage_v7100
         _restore_heritage_v7100()
-        from systems.admin_live_races_v7600 import restore as _restore_custom_races
+        from systems.published_races_v7600 import restore as _restore_custom_races
         _restore_custom_races()
-        from systems.admin_live_classes_v7700 import restore as _restore_custom_classes
+        from systems.published_classes_v7700 import restore as _restore_custom_classes
         _restore_custom_classes()
         # v0.42.0: one central event bus decouples combat/gathering producers
         # from quest, bounty, chronicle and progression consumers.
@@ -83,8 +83,8 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         # v1.25.0: deploy/restart must NOT collapse the mine or teleport miners.
         self.mine_startup_state = self.db.mine_startup_status()
         # v12.00.4: restore additive live rooms/mobs/exits BEFORE World() spawns.
-        from systems.live_content_v1204 import LiveContentV1204
-        self.live_content_v1204 = LiveContentV1204(self.db)
+        from systems.published_world_content import PublishedWorldContent
+        self.published_world_content = PublishedWorldContent(self.db)
         self.world = World()
         self.sessions = set()
         self.parties = {}

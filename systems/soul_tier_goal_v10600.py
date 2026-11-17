@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """v106: odczytowy komunikat o realnym limicie Duszy.
 
-Nie podnosi limitów i nie zapisuje konfiguracji Admin Live. Działa tylko po
+Nie podnosi limitów i nie zapisuje konfiguracji dawny edytor. Działa tylko po
 jawnej aktywacji testowego v106, z zachowaniem ustawień właściciela.
 """
 from __future__ import annotations
@@ -36,7 +36,7 @@ def readiness(soul_tier, soul_level, configured_cap, thresholds):
 
 
 def current_warning(character, thresholds):
-    """Odczytuje bieżące limity Admin Live, nie zmienia plików ani sesji."""
+    """Odczytuje bieżącą politykę rozwoju, nie zmienia plików ani sesji."""
     from core.live_level_caps_v5200 import cap
     result = readiness(character.soul_tier, character.soul_level, cap('dusza'), thresholds)
     return result['message'] if result else ''

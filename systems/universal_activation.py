@@ -13,16 +13,33 @@ from pathlib import Path
 from functools import lru_cache
 
 ROOT=Path(__file__).resolve().parents[1]
-MARKER='LIVE_CONTENT/release_current.json'
-REQUIRED=(
+MARKER='config/release_current.json'
+# Historical Windows activation contracts are retained for Windows-only
+# regression fixtures. Linux release manifests MUST NOT depend on BAT files.
+REQUIRED_COMMON=(
     'VERSION','server.py','core/bootstrap_economy_professions.py',
     'core/release_version.py',
     'systems/runtime_activation.py','systems/universal_activation.py',
     'systems/universal_release_update.py','systems/current_fresh_install.py',
     'aktualizuj_soulbound.py','predeploy_nowej_wersji.py','wdroz_po_predeploy.py',
+)
+REQUIRED_WINDOWS=(
     'PREDEPLOY_NOWEJ_WERSJI.bat','WDROZ_PO_PREDEPLOY.bat',
     'START_Soulbound.bat','STOP_Soulbound.bat',
 )
+REQUIRED_LINUX=(
+    'systems/linux_release.py',
+    'PREDEPLOY_NOWEJ_WERSJI.sh','WDROZ_PO_PREDEPLOY.sh',
+    'START_Soulbound.sh','STOP_Soulbound.sh','STATUS_Soulbound.sh',
+    'INSTALUJ_USLUGE_LINUX.sh',
+)
+# Keep REQUIRED as Windows-only legacy alias for historical tests.
+REQUIRED=REQUIRED_COMMON+REQUIRED_WINDOWS
+
+def required_for(platform):
+    if platform=='linux':return REQUIRED_COMMON+REQUIRED_LINUX
+    if platform=='windows':return REQUIRED
+    raise ValueError('Nieznana platforma aktywacji')
 
 def current_version(root=ROOT):
     version=(Path(root)/'VERSION').read_text(encoding='utf-8-sig').strip()
@@ -60,10 +77,10 @@ def verify(root):
         if (not isinstance(data,dict) or type(data.get('schema')) is not int
             or data['schema']!=1 or data.get('version')!=version
             or data.get('status')!='PASS' or data.get('quality_gate')!='ULTIMATE-60-PLUS'
-            or data.get('source_gate')!='WINDOWS_PREDEPLOY_APPROVED'
+            or data.get('source_gate') not in ('WINDOWS_PREDEPLOY_APPROVED', 'LINUX_PREDEPLOY_APPROVED')
             or not _digest(data.get('archive_sha256'))):return False
         files=data.get('files')
-        if not isinstance(files,dict) or not set(REQUIRED).issubset(files):return False
+        if not isinstance(files,dict) or not set(required_for('linux' if data.get('source_gate')=='LINUX_PREDEPLOY_APPROVED' else 'windows')).issubset(files):return False
         for rel,expected in files.items():
             if not _safe_rel(rel) or not _digest(expected):return False
             if rel.casefold()=='changelog_pl.txt':continue
@@ -93,10 +110,16 @@ def activation_manifest(state,archive_path,stage,mapping):
             raise ValueError('Brak pliku aktywacji: '+rel)
         if rel.casefold()=='changelog_pl.txt':continue
         hashes[rel]=sha(file)
-    if not set(REQUIRED).issubset(hashes):
+    linux=state.get('platform')=='linux'
+    if not set(required_for('linux' if linux else 'windows')).issubset(hashes):
         raise ValueError('Niekompletna uniwersalna instalacja')
+    if linux and (state.get('linux_contract_pass') is not True
+                  or state.get('installed_at_test')!='LINUX_FIRST_OR_UPGRADE'
+                  or not _digest(state.get('db_fingerprint'))):
+        raise ValueError('Niepelny PREDEPLOY Linux lub brak tozsamosci bazy')
     return {'schema':1,'version':version,'status':'PASS',
-            'quality_gate':'ULTIMATE-60-PLUS','source_gate':'WINDOWS_PREDEPLOY_APPROVED',
+            'quality_gate':'ULTIMATE-60-PLUS',
+            'source_gate':('LINUX_PREDEPLOY_APPROVED' if linux else 'WINDOWS_PREDEPLOY_APPROVED'),
             'archive_sha256':state['sha256'],'files':dict(sorted(hashes.items()))}
 
 @lru_cache(maxsize=1)

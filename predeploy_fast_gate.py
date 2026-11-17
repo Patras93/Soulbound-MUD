@@ -42,6 +42,8 @@ def run():
             verify_native_method(ROOT / relative, method)
             protected += 1
     print(f'KONTROLA WSTEPNA: chronione historyczne metody AST PASS ({protected})',flush=True)
+    from validation.current_v114_published_native_contract_regression import run as published_native_test
+    published_native_test()
     from validation.current_v11325_item_description_contract import run as item_description_test
     item_description_test()
     print('KONTROLA WSTEPNA: opisy przedmiotow i zgodnosc AST PASS',flush=True)
@@ -68,9 +70,39 @@ def run():
     from validation.current_party_fast_crypt_follow_regression import run as crypt_follow_test
     crypt_follow_test()
     print('KONTROLA WSTEPNA: szybkie prowadzenie druzyny PASS',flush=True)
-    from validation.current_help_atlas_regression import run as help_test
-    help_test()
+    # The help atlas tests create a full catalogue and may get stuck when
+    # sharing the warmed-up engine process. A clean isolated Python process
+    # checks the same authored atlas contract without leaking runtime state.
+    import subprocess as _sb_subprocess
+    import sys as _sb_sys
+    help_result = _sb_subprocess.run(
+        [_sb_sys.executable, '-u', '-m', 'validation.current_help_atlas_regression'],
+        cwd=ROOT, capture_output=True, text=True, timeout=45, check=False)
+    if help_result.returncode or 'CURRENT HELP/ATLAS:' not in help_result.stdout or 'PASS' not in help_result.stdout:
+        raise AssertionError('Atlas help fail: '+(help_result.stdout + help_result.stderr)[-1500:])
     print('KONTROLA WSTEPNA: pomoc i atlasy PASS',flush=True)
+    # v114: run isolated progression regressions as fail-closed checks before
+    # the expensive 60 historical gates. The Tier test needs the preserved
+    # v106 T6000 authored catalogue, but no production records or services.
+    import os
+    import subprocess
+    import sys as _sys
+    env=dict(os.environ)
+    env['SOULBOUND_V106_STAGING']='1'
+    for module in ('validation.v11400_soul_infinite_regression',
+                   'validation.current_unbounded_progression_v114_regression',
+                   'validation.v11400_xp_late_continuation_regression',
+                   'validation.current_saved_content_compatibility_regression',
+                   'validation.current_published_nonempty_startup_regression',
+                   'validation.current_published_readonly_regression',
+                   'validation.current_expbank_all_v114_regression',
+                   'validation.current_retire_live_content_regression'):
+        command=[_sys.executable, '-u', '-m', 'unittest', module, '-q'] if module.endswith('soul_infinite_regression') else [_sys.executable, '-u', '-m', module]
+        result=subprocess.run(command, cwd=ROOT, env=env, capture_output=True,
+                              text=True, timeout=60, check=False)
+        if result.returncode:
+            raise AssertionError('v114 regression FAIL '+module+': '+(result.stdout+result.stderr)[-2000:])
+        print('KONTROLA WSTEPNA v114: '+module+' PASS '+(result.stdout+result.stderr)[-240:].strip(),flush=True)
     return True
 
 

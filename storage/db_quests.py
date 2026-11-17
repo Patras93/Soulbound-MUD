@@ -88,7 +88,7 @@ class DatabaseQuestMixin:
 
     def increment_multi_objective_v1800(self, account_id, kind, target, amount=1, aliases=()):
         """Credit a real kill or NPC conversation once per quest and event."""
-        from systems.live_olc18_multi_objective import objective_key
+        from systems.published_18_multi_objective import objective_key
         if kind not in ('kill', 'talk') or type(amount) is not int or amount <= 0:
             return []
         candidates = set(aliases) | {target} if kind == 'kill' else {target}

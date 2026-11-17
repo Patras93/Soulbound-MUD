@@ -982,7 +982,7 @@ CURRENT_RUNTIME_EXPORTS = {'core/bootstrap_economy_professions.py': ('ADMIN_ACCO
                               'V0923_ENDGAME_REGIONS',
                               'V10300_ERA_BUILD',
                               'V10300_RAIDS_BUILD',
-                              'V10400_ADMIN_OVERRIDES_APPLIED',
+                              'V10400_PUBLISHED_OVERRIDES_APPLIED',
                               'V10400_CONTRACTS_BUILD',
                               'V10400_EQUIPMENT_BUILD',
                               'V10400_RAIDS_BUILD',

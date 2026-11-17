@@ -2,7 +2,7 @@
 """v102.00.7: explicit combat-loot exception for three exact-ID enemy-loot quests.
 
 Does not reclassify quests, alter objectives, automatically award new EXP or
-change their monetary rewards. Only deliberate Admin Live XP overrides pay out.
+change their monetary rewards. Only deliberate dawny edytor XP overrides pay out.
 """
 # Restrict the exception to actual existing quest IDs, not a mutable display
 # title or quest-list number ("53" is NOT a quest ID).

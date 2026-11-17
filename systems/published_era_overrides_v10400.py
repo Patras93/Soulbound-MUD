@@ -1,0 +1,209 @@
+"""Read-only loading of published historical content. No runtime editor."""
+from __future__ import annotations
+from systems.runtime_activation import enabled as _sb107_runtime_enabled
+from copy import deepcopy
+import json
+import os
+from pathlib import Path
+import re
+import sqlite3
+from tempfile import NamedTemporaryFile
+from systems.published_4_boss_phases import validate_boss_phases
+from systems import soul_xp_bands_v10402 as soul_bands
+PATH = Path(__file__).resolve().parent.parent / 'config' / 'era_v10400_overrides.json'
+MAX_SQLITE = (1 << 63) - 1
+FIELDS = {
+    'mob': {'max_hp': (1, MAX_SQLITE), 'damage': (1, MAX_SQLITE),
+            'gold': (0, MAX_SQLITE), 'silver': (0, MAX_SQLITE),
+            'mithril': (0, MAX_SQLITE), 'class_xp_reward': (0, MAX_SQLITE),
+            'soul_reward': (0, MAX_SQLITE), 'stat_reward': (0, MAX_SQLITE)},
+    'quest': {'needed': (1, 100000), 'reward_gold': (0, MAX_SQLITE),
+              'reward_mithril': (0, MAX_SQLITE),
+              'reward_stat_progress': (0, MAX_SQLITE)},
+    'item': {'defense': (0, MAX_SQLITE), 'affix_amount': (0, MAX_SQLITE)},
+    'recipe': {'min_profession_level': (1, 10**9), 'quantity': (1, 100000)},
+    'room': {'recommended_mastery': (1, 10**9), 'generator_level': (1, 10**9)},
+    'raid_phase': {
+        f'p{phase}_{field}': bounds
+        for phase in range(1, 5)
+        for field, bounds in (
+            ('hp_percent', (1, 99)), ('attack_pct', (118, 300)),
+            ('duration_seconds', (1, 120))
+        )
+    },
+    'soul_trial': {'needed': (1, 25), 'reward_silver': (0, MAX_SQLITE),
+                   'reward_gold': (0, MAX_SQLITE), 'reward_mithril': (0, MAX_SQLITE)},
+    'soul_xp_band': {'required_pct': (25, 400)},
+    # v105 scoped runtime coefficients; do not edit unlock requirements or player records.
+    'soul_power': {'passive_pct': (0, 30), 'weakness_pct': (0, 50),
+                   'impulse_pct': (0, 100), 'impulse_cooldown': (30, 600),
+                   'shield_pct': (0, 50), 'shield_seconds': (5, 120),
+                   'shield_cooldown': (30, 600)},
+    'eq_evolution': {'stat_pct': (25, 400), 'defense_pct': (25, 400)},
+}
+_REGISTRY_NAMES = {'mob': 'mobs', 'quest': 'quests', 'item': 'items',
+                   'recipe': 'recipes', 'room': 'rooms',
+                   'raid_phase': 'mobs', 'soul_trial': 'quests',
+    'soul_power': 'soul_power', 'eq_evolution': 'eq_evolution'}
+_RAID_ID = re.compile(r'v10400_raid_(1[2-9]|2[0-5])_boss_([123])\Z')
+_RAID_V106_ID = re.compile(r'v10600_raid_(2[6-9]|3[0-5])_boss_([123])\Z')
+def _v106_staging():
+    return (os.environ.get('SOULBOUND_V106_STAGING') == '1' or
+            _sb107_runtime_enabled())
+_TRIAL_ID = re.compile(r'soul_tier_([0-9]+)_trial\Z')
+_PHASE_FIELD = re.compile(r'p([1-4])_(hp_percent|attack_pct|duration_seconds)\Z')
+Draft = None
+Baseline = None
+State = None
+def _empty():
+    return {'schema': 1, 'rev': 0, 'active': {}, 'previous': None, 'base': {}}
+def _parse_key(key):
+    if not isinstance(key, str) or len(key) > 150:
+        raise ValueError('Nieprawidłowy klucz zmiany')
+    parts = key.split('|')
+    if len(parts) != 3:
+        raise ValueError('Nieprawidłowy klucz zmiany')
+    kind, identifier, field = parts
+    if kind not in FIELDS or field not in FIELDS[kind]:
+        raise ValueError('Pole spoza bezpiecznej listy v104')
+    if kind == 'soul_xp_band':
+        if identifier not in soul_bands.BANDS:
+            raise ValueError('Nieznane pasmo Soul Level')
+    elif kind == 'raid_phase':
+        if _sb107_runtime_enabled():
+            raise ValueError('V107: nie można edytować faz wycofanych rajdów')
+        if not (_RAID_ID.fullmatch(identifier) or
+                _v106_staging() and _RAID_V106_ID.fullmatch(identifier)):
+            raise ValueError('Edytowalne fazy rajdów 12–25; w testowym v106 także 26–35')
+    elif kind in ('soul_power', 'eq_evolution'):
+        if identifier != {'soul_power': 'v10500_bron_duszy',
+                          'eq_evolution': 'v10500_ewolucja_eq'}[kind]:
+            raise ValueError('Nieznany moduł ustawień v105')
+    elif kind == 'soul_trial':
+        match = _TRIAL_ID.fullmatch(identifier)
+        tier = int(match.group(1)) if match else 0
+        old = 501 <= tier <= 3000 and (tier <= 1000 or tier % 10 == 0)
+        new = _v106_staging() and 3010 <= tier <= 6000 and tier % 10 == 0
+        if not (old or new):
+            raise ValueError('Próby: T501–3000; testowe v106 T3010–6000 co 10 Tierów')
+    elif not (identifier.startswith(('v10400_', 'v10500_')) or
+              _v106_staging() and identifier.startswith('v10600_')) or len(identifier) > 100:
+        raise ValueError('Pole spoza katalogów v104/v105 lub testowego v106')
+    return kind, identifier, field
+def _validate(data):
+    if (not isinstance(data, dict) or set(data) != {'schema', 'rev', 'active', 'previous', 'base'}
+            or type(data['schema']) is not int or data['schema'] != 1):
+        raise ValueError('Nieprawidłowy format override v104')
+    if type(data['rev']) is not int or not 0 <= data['rev'] < 10**9:
+        raise ValueError('Nieprawidłowa rewizja')
+    for rows in (data['active'], data['previous'], data['base']):
+        if rows is None:
+            continue
+        if type(rows) is not dict or len(rows) > 3000:
+            raise ValueError('Niepoprawny lub za duży zestaw zmian')
+        for key, val in rows.items():
+            kind, _, field = _parse_key(key)
+            lo, hi = FIELDS[kind][field]
+            if type(val) is not int or not lo <= val <= hi:
+                raise ValueError('Wartość poza dozwolonym zakresem')
+    return data
+def _load():
+    global State
+    # Read on every command so another server process cannot silently reuse a
+    # cached revision after an external publication.
+    State = _validate(json.loads(PATH.read_text(encoding='utf-8'))) if PATH.exists() else _empty()
+    return State
+def _registry(kind, registries):
+    # Read/write the actual live coefficients using the same DRAFT/CAS/revert
+    # journal as every v104/v105 content edit. Never mirror values in a separate file.
+    if kind == 'soul_power':
+        from systems.soul_weapon_elements_v10500 import LIVE_TUNING
+        return LIVE_TUNING
+    if kind == 'eq_evolution':
+        from systems.equipment_evolution_v10500 import LIVE_TUNING
+        return LIVE_TUNING
+    return registries[_REGISTRY_NAMES[kind]]
+def _target(key, registries):
+    kind, identifier, field = _parse_key(key)
+    if kind == 'soul_xp_band':
+        return {'required_pct': soul_bands.current_percent(identifier)}
+    obj = _registry(kind, registries).get(identifier)
+    if not isinstance(obj, dict):
+        raise ValueError('Brak obiektu w rejestrze: ' + identifier)
+    if kind == 'raid_phase':
+        phases = obj.get('olc_boss_phases')
+        if (not obj.get('boss') or not isinstance(phases, list)
+                or len(phases) != 4 or not _PHASE_FIELD.fullmatch(field)):
+            raise ValueError('Brak czterech zwykłych faz bossa rajdowego')
+        idx, attribute = _PHASE_FIELD.fullmatch(field).groups()
+        if not isinstance(phases[int(idx)-1], dict):
+            raise ValueError('Nieprawidłowa faza rajdu')
+        native = 'attack_multiplier' if attribute == 'attack_pct' else attribute
+        if native not in phases[int(idx)-1]:
+            raise ValueError('Brak parametru fazy rajdu')
+    else:
+        if field not in obj:
+            raise ValueError('Nie ma takiego pola w rejestrze v104')
+        if kind == 'soul_trial':
+            tier = int(_TRIAL_ID.fullmatch(identifier).group(1))
+            if (obj.get('unlocks_soul_tier') != tier
+                    or obj.get('required_soul_level') != tier * 10
+                    or obj.get('kind') != 'kill'):
+                raise ValueError('Nieprawidłowa Próba Soul Tier — ochrona odblokowania')
+    return obj
+def _read_value(obj, kind, field):
+    if kind != 'raid_phase':
+        return obj[field]
+    idx, attr = _PHASE_FIELD.fullmatch(field).groups()
+    phase = obj['olc_boss_phases'][int(idx)-1]
+    if attr == 'attack_pct':
+        return round(float(phase['attack_multiplier']) * 100)
+    return phase[attr]
+def _set_value(obj, kind, field, value):
+    if kind != 'raid_phase':
+        obj[field] = value
+        return
+    idx, attr = _PHASE_FIELD.fullmatch(field).groups()
+    if attr == 'attack_pct':
+        obj['olc_boss_phases'][int(idx)-1]['attack_multiplier'] = round(value / 100, 2)
+    else:
+        obj['olc_boss_phases'][int(idx)-1][attr] = value
+def _preflight(registries, base, active):
+    """Build a complete validated copy first; no partial live registry edits."""
+    staged = {}
+    for changes in (base, active):
+        for key, value in changes.items():
+            kind, ident, field = _parse_key(key)
+            if (kind, ident) not in staged:
+                staged[kind, ident] = deepcopy(_target(key, registries))
+            _set_value(staged[kind, ident], kind, field, value)
+    for (kind, ident), obj in staged.items():
+        if kind == 'soul_power' and obj['shield_seconds'] > obj['shield_cooldown']:
+            raise ValueError('Czas działania Osłony nie może przekraczać odnowienia.')
+        if kind == 'raid_phase':
+            validate_boss_phases(obj, obj['olc_boss_phases'])
+    return staged
+def apply(registries):
+    data = _load()
+    staged = _preflight(registries, data['base'], data['active'])
+    # Prepare the entire rate table BEFORE touching live registries. Values are
+    # validated in _preflight, and no player is modified.
+    rates = {name: 100 for name in soul_bands.BANDS}
+    for (kind, ident), fresh in staged.items():
+        if kind == 'soul_xp_band':
+            rates[ident] = fresh['required_pct']
+    for (kind, ident), fresh in staged.items():
+        if kind == 'soul_xp_band':
+            continue
+        original = _registry(kind, registries)[ident]
+        if kind == 'raid_phase':
+            # Preserve identity of the boss template used by combat handlers.
+            original['olc_boss_phases'][:] = fresh['olc_boss_phases']
+        else:
+            for key in (data['base'], data['active']):
+                for full in key:
+                    k, obj_id, field = _parse_key(full)
+                    if (k, obj_id) == (kind, ident):
+                        original[field] = fresh[field]
+    soul_bands.update_rates(rates)
+    return len(data['active'])

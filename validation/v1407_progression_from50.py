@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""v1.40.7: XP requirements grow after level 50; XP awards/saves do not change."""
+"""v114: audit historical 1..100 and unlimited XP continuation after 100.
+
+Keep the genuine old v1.40.7 checks for unaffected axes, but verify the
+actual published v114 Soul curve and character/class continuum independently.
+No production state or saved SQLite data is changed by this regression.
+"""
 from __future__ import annotations
 
 import ast
@@ -59,33 +64,100 @@ def run_progression_from50_regression_v1407():
           "professions start at 50")
     check(PLAYER_EXTRA_REQUIREMENT_POINTS_V1407[0] == (49, 10000),
           "all other player axes start at 50")
+    from core.balance_math import axis_gain
+    from core.live_level_caps_v5200 import cap
+    from systems.soul_xp_early_v10600 import requirement as soul_early
+    from systems.soul_xp_bridge_v10600 import requirement as soul_bridge
+    from systems.soul_xp_curve_v10600 import requirement as soul_era
+    from systems.soul_xp_unbounded_v114 import requirement as soul_unbounded
+    from systems.soul_xp_bands_v10402 import requirement as soul_bands
+    from config.balance import SOUL_XP_REQUIREMENT_MULTIPLIER as soul_multiplier
+
+    reqs = {
+        'character': (character_xp_to_next, 'character', 4),
+        'class': (class_mastery_xp_to_next, 'class', 3),
+        'soul': (soul_xp_to_next, 'soul', 3),
+        'skill': (skill_xp_to_next, 'skill', 1),
+        'weapon': (soul_weapon_mastery_xp_to_next, 'skill', 3),
+    }
+    for name in ('postac','bieglosc','dusza','bron_duszy','skille'):
+        check(cap(name) is None, f'{name}: v114 unlimited release policy')
+
+    historical_at_100 = {}
+    for name, (func, axis, multiple) in reqs.items():
+        if name in ('character','class'):
+            legacy_base = int(round(v0190_requirement(axis, 100) * multiple))
+            last_base = int(round(v0190_requirement(axis, 599) * multiple))
+            historical_at_100[name] = v4210_required_xp(
+                scale_player_requirement_v1407(
+                    late_game_xp_requirement(100, legacy_base, last_base), 100),
+                name, 100)
+            check(func(100) == historical_at_100[name],
+                  f'{name}: unchanged historical XP at level100')
+
+    previous = dict.fromkeys(reqs, 0)
     for i in range(1, 800):
         old = v0190_requirement
-        reqs = {
-            'character': (character_xp_to_next, 'character', 4),
-            'class': (class_mastery_xp_to_next, 'class', 3),
-            'soul': (soul_xp_to_next, 'soul', 3),
-            'skill': (skill_xp_to_next, 'skill', 1),
-            'weapon': (soul_weapon_mastery_xp_to_next, 'skill', 3),
-        }
         for name, (func, axis, multiple) in reqs.items():
             required = func(i)
             historical = int(round(old(axis, i) * multiple))
             if axis in ('character', 'class', 'soul'):
                 historical = late_game_xp_requirement(
-                    i, historical, int(round(old(axis, 599) * multiple))
-                )
-            check(required == v4210_required_xp(scale_player_requirement_v1407(historical, i), name, i),
-                  f'{name} level{i}: authoritative formula')
-            check(required > historical,
-                  f'{name} level{i}: v3.31.0 harder on every level')
-            check(required <= func(i + 1) if i < 799 else required > 0,
-                  f'{name} level{i}: requirements grow')
+                    i, historical, int(round(old(axis, 599) * multiple)))
+
+            if name == 'soul':
+                # Actual v114 normal gameplay uses the former v106 early
+                # reward-based Soul curve without requiring a staging flag.
+                expected = soul_bands(i, soul_early(i, soul_multiplier))
+                check(required == expected,
+                      f'soul level{i}: v114 published early requirement')
+                check(required > 0, f'soul level{i}: achievable XP')
+            elif name in ('character', 'class') and i > 100:
+                # Independently validate the 500-award-unit continuation.
+                expected = historical_at_100[name] + 500 * (
+                    axis_gain(axis, i) - axis_gain(axis, 100))
+                check(required == expected,
+                      f'{name} level{i}: published continuation vs awards')
+                check(required >= historical_at_100[name],
+                      f'{name} level{i}: not below level100 anchor')
+            else:
+                expected = v4210_required_xp(
+                    scale_player_requirement_v1407(historical, i), name, i)
+                check(required == expected,
+                      f'{name} level{i}: preserved historical formula')
+                check(required > historical,
+                      f'{name} level{i}: scaled requirement preserved')
+            check(required > 0 and required <= 9_000_000_000_000_000_000,
+                  f'{name} level{i}: SQLite-safe nonzero threshold')
+            if i > 1:
+                check(required >= previous[name],
+                      f'{name} level{i}: requirements do not decrease')
+            previous[name] = required
         check(profession_late_requirement_points_v1401(i) == 10000 if i < 50
               else profession_late_requirement_points_v1401(i) > 10000,
               f'profession multiplier: level{i}')
+
     for name, (func, _, _) in reqs.items():
-        check(func(800) == 0, f'{name}: level 800 still maximum')
+        for level in (800, 801, 1000, 2000, 5000):
+            check(0 < func(level) < 9_000_000_000_000_000_000,
+                  f'{name}: no cap or SQLite saturation at level {level}')
+            check(func(level + 1) >= func(level),
+                  f'{name}: keeps growing at level {level}')
+    # Boundary probes for all Soul XP eras and the newly unbounded bridge.
+    for level in (799, 800, 801, 9999, 10000, 29999, 30000,
+                  59999, 60000, 60001, 100000):
+        if level < 800:
+            expected = soul_bands(level, soul_early(level, soul_multiplier))
+        elif level < 30000:
+            expected = soul_bands(level, soul_bridge(level, soul_multiplier))
+        elif level < 60000:
+            expected = soul_era(level, soul_multiplier)
+        else:
+            expected = soul_unbounded(level, soul_multiplier)
+        check(soul_xp_to_next(level) == expected,
+              f'soul level{level}: correct boundary formula')
+        check(soul_xp_to_next(level) > 0,
+              f'soul level{level}: XP remains attainable')
 
     for kind in PROFESSION_XP_REQUIREMENT_MULTIPLIERS:
         previous = 0

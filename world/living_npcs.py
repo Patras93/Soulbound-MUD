@@ -255,7 +255,7 @@ def _hourly_mob_spawn_index_v107():
     """Build the exact original ordinary-mob index once per reconciliation.
 
     No persistent cache: the second bootstrap pass can add spawns and must see
-    the updated registry, including after Admin Live catalog changes.
+    the updated registry, including after dawny edytor catalog changes.
     """
     mobs_by_room = {}
     for room_id, mob_id in tuple(getattr(content_registry, "MOB_SPAWNS", ()) or ()):

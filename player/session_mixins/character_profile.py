@@ -21,6 +21,7 @@ from core.progression_600 import (
     SOUL_MAX_LEVEL,
     SOUL_MAX_TIER,
     SOUL_TIER_THRESHOLDS,
+    soul_tier_required_level,
     SOUL_WEAPON_MASTERY_MAX_LEVEL,
     soul_tier_title_for_class,
     soul_weapon_trait_for_tier_v11193,
@@ -181,7 +182,13 @@ class SessionCharacterProfileMixin:
 
     async def show_exp_bank_v2011(self, raw=""):
             """Persistent balances per character, Soul, class, skill, stat, profession and tool."""
-            if str(raw or '').strip().casefold() in ('odbierz','withdraw','claim'):
+            action = ' '.join(str(raw or '').strip().casefold().split())
+            if action in ('odbierz wszystko', 'wyplac wszystko', 'wypłać wszystko',
+                          'withdraw all', 'claim all'):
+                from systems.manual_exp_bank_v11325 import redeem_exp_bank
+                await redeem_exp_bank(self, all_balances=True)
+                return
+            if action in ('odbierz','withdraw','claim'):
                 from systems.manual_exp_bank_v11325 import redeem_exp_bank
                 await redeem_exp_bank(self)
                 return
@@ -203,7 +210,10 @@ class SessionCharacterProfileMixin:
                     for kind, amount in sorted(totals.items())) + ".")
             await self.send(
                 "Nowe nagrody nie pobierają EXP z banku ani nie odkładają do niego nadwyżek. "
-                "Wpisz expbank odbierz, aby ręcznie wypłacić saldo. Wypłata nigdy nie przekracza bieżącego limitu jednej operacji."
+                "expbank odbierz — wypłata do Multi Cap. "
+                "expbank odbierz wszystko — wypłata całego dostępnego salda każdej dziedziny, "
+                "bez limitu pojedynczej nagrody. Zablokowane lub technicznie "
+                "niemożliwe do zapisania EXP pozostaje w banku."
             )
 
     async def show_score(self):
@@ -247,9 +257,9 @@ class SessionCharacterProfileMixin:
                 if c.soul_progress_is_tier_locked():
                     await self.send(
                         f"Soul XP zablokowany do odblokowania Soul Tier "
-                        f"{min(SOUL_MAX_TIER, int(c.soul_tier) + 1)}."
+                        f"{int(c.soul_tier) + 1}."
                     )
-            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
+            await self.send(f"Soul Tier: {c.soul_tier}/bez limitu — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{current_cap_label('bron_duszy')}. XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next() if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL else 0}.")
             await self.send(f"HP: {self.current_hp} z {self.max_hp()}.")
             await self.send(f"Mana: {self.current_mana} z {self.max_mana()}.")
@@ -283,7 +293,7 @@ class SessionCharacterProfileMixin:
                     self.combat_power_explanation_v110016()
                 )
             await self.send(
-                f"Limity Admin Live: postać {current_cap_label('postac')}; "
+                f"Rozwój postaci: postać {current_cap_label('postac')}; "
                 f"biegłość klas {current_cap_label('bieglosc')}; "
                 f"Dusza {current_cap_label('dusza')}; "
                 f"Broń Duszy {current_cap_label('bron_duszy')}. "
@@ -406,23 +416,11 @@ class SessionCharacterProfileMixin:
 
     def soul_next_goal_text(self):
             c = self.character
-            if c.soul_level >= SOUL_MAX_LEVEL and c.soul_tier >= SOUL_MAX_TIER:
-                return "Soul Level i Tier są maksymalne."
-
-            if c.soul_tier >= SOUL_MAX_TIER:
-                return f"Tier jest maksymalny. Rozwijaj Soul do {SOUL_MAX_LEVEL}."
-
             next_tier = c.soul_tier + 1
             next_title = soul_tier_title_for_class(next_tier, c.class_name)
-            needed = SOUL_TIER_THRESHOLDS[next_tier - 1]
+            needed = soul_tier_required_level(next_tier)
             if c.soul_level < needed:
                 goal = f"Następny cel: Soul {needed} dla Tieru {next_tier} — {next_title}."
-                import os as _v106_os
-                if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1':
-                    from systems.soul_tier_goal_v10600 import current_warning
-                    warning = current_warning(c, SOUL_TIER_THRESHOLDS)
-                    if warning:
-                        return goal + ' ' + warning
                 return goal
 
             quest_id = SOUL_TRIAL_QUEST_IDS.get(next_tier)
@@ -448,7 +446,7 @@ class SessionCharacterProfileMixin:
                 await self.send("DUSZA")
                 await self.send(f"Broń Duszy: {c.soul_weapon}.")
                 await self.send(f"Soul Level: {c.soul_level}/{current_cap_label('dusza')}.")
-                await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
+                await self.send(f"Soul Tier: {c.soul_tier}/bez limitu — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
                 await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
                 if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                     await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}.")
@@ -459,7 +457,7 @@ class SessionCharacterProfileMixin:
                     if c.soul_progress_is_tier_locked():
                         await self.send(
                             f"Soul XP: ZABLOKOWANY na Soul Poziom {c.soul_level}. "
-                            f"Najpierw odblokuj Tier {min(SOUL_MAX_TIER, c.soul_tier + 1)}."
+                            f"Najpierw odblokuj Tier {c.soul_tier + 1}."
                         )
                     else:
                         await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
@@ -477,7 +475,7 @@ class SessionCharacterProfileMixin:
             await self.send(f"Skille klasowe odblokowuje Biegłość właściwej klasy, rozwijająca się do {CLASS_MASTERY_MAX_LEVEL}. Soul Level rozwija Broń Duszy osobno.")
             await self.send(f"Broń Duszy: {c.soul_weapon}.")
             await self.send(f"Soul Level: {c.soul_level}/{current_cap_label('dusza')}.")
-            await self.send(f"Soul Tier: {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
+            await self.send(f"Soul Tier: {c.soul_tier}/bez limitu — {soul_tier_title_for_class(c.soul_tier, c.class_name)}.")
             await self.send(f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}.")
             if c.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
                 await self.send(f"Mastery XP: {c.soul_weapon_mastery_xp} z {c.soul_weapon_mastery_xp_to_next()}. XP wpada tylko za zwykłe trafienia Bronią Duszy.")
@@ -495,7 +493,7 @@ class SessionCharacterProfileMixin:
                 if c.soul_progress_is_tier_locked():
                     await self.send(
                         f"Soul XP: ZABLOKOWANY na Soul Poziom {c.soul_level}. "
-                        f"Najpierw odblokuj Tier {min(SOUL_MAX_TIER, c.soul_tier + 1)}."
+                        f"Najpierw odblokuj Tier {c.soul_tier + 1}."
                     )
                 else:
                     await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
@@ -514,19 +512,19 @@ class SessionCharacterProfileMixin:
                 f"+{totals['boss_damage_percent']:.1f}% obrażeń przeciw bossom; {totals['mana_restore_percent']:.1f}% obrażeń zwracane jako Mana."
             )
             await self.send("Progi Soul: wymagany Soul Level = docelowy Tier razy 10, od T2. T1 jest startowy.")
-            await self.send(f"Próby u Kapłana Elora tylko co 10 Tierów: T10, T20, T30 aż do T{SOUL_MAX_TIER}.")
+            await self.send(f"Próby u Kapłana Elora co 10 Tierów do T{SOUL_MAX_TIER}. Dalej: rozwój według Soul Level bez nowych Prób.")
             await self.send("Po ukończeniu Próby wpisz unlock, aby odblokować przygotowany Tier.")
             # v103: nie wypowiadaj 499 szczegółowych wierszy przez NVDA.
             # Pokaz tylko najbliższe proby wokół obecnego Tieru; pozostałe
             # poziomy nie są ukryte, a admin live era soul NUMER je pokazuje.
             first_tier = max(2, int(c.soul_tier) - 2)
-            last_tier = min(SOUL_MAX_TIER, int(c.soul_tier) + 8)
+            last_tier = int(c.soul_tier) + 8
             await self.send(f"Najbliższe Próby: Tiery {first_tier}–{last_tier}."
-                            f" Łącznie dostępnych Tierów: {SOUL_MAX_TIER}.")
+                            " Rozwój bez limitu.")
             for tier in range(first_tier, last_tier + 1):
                 quest_id = SOUL_TRIAL_QUEST_IDS.get(tier) if tier % 10 == 0 else None
                 quest = QUESTS.get(quest_id, {}) if quest_id else {}
-                required_soul = SOUL_TIER_THRESHOLDS[tier - 1]
+                required_soul = soul_tier_required_level(tier)
                 row = self.server.db.quest(self.account_id, quest_id) if quest_id else None
                 if c.soul_tier >= tier:
                     state = "Tier odblokowany"

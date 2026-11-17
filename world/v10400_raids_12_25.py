@@ -7,9 +7,9 @@ Nie nadpisuje rajdów v103 ani systemu nagród; każdy boss ma unikatowe ID.
 from __future__ import annotations
 
 from world.v10400_krainy_5001_10000 import REGIONS
-from systems.live_olc4_boss_phases import validate_boss_phases
-from systems.live_olc20_phase_tactics import validate_stage_map, ELEMENTS, ROLES
-from systems.live_olc21_phase_strategy import validate_phase_strategy
+from systems.published_4_boss_phases import validate_boss_phases
+from systems.published_20_phase_tactics import validate_stage_map, ELEMENTS, ROLES
+from systems.published_21_phase_strategy import validate_phase_strategy
 
 # RAID_ID, region slug, entrance room number, NPC number, name, mechanic, elemental cycle
 # Two different quest-givers host the paired raids in four first regions.

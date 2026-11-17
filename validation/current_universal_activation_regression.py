@@ -21,7 +21,7 @@ version=sys.argv[2]
 state=json.loads(Path(sys.argv[3]).read_text())
 mapping={Path(p.relative_to(root)):None for p in root.rglob('*') if p.is_file() and p.name!='state.json'}
 manifest=activation_manifest(state,source,root,mapping)
-marker=root/'LIVE_CONTENT'/'release_current.json';marker.parent.mkdir(exist_ok=True)
+marker=root/'config'/'release_current.json';marker.parent.mkdir(exist_ok=True)
 marker.write_text(json.dumps(manifest))
 assert verify(root)
 (root/'server.py').write_text('tampered')

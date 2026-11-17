@@ -125,7 +125,7 @@ def check():
                       zip=str(archive))
         fixture_state.write_text(json.dumps(approval),encoding='utf8')
         activate_candidate(fixture,fixture_state,archive)
-        manifest_path=fixture/'LIVE_CONTENT/release_current.json'
+        manifest_path=fixture/'config/release_current.json'
         manifest=json.loads(manifest_path.read_text(encoding='utf8'))
         assert manifest['version']==version and manifest['schema']==1;n+=1
         assert set(REQUIRED).issubset(manifest['files']) and verify_stage(fixture);n+=1
@@ -167,8 +167,8 @@ def check():
         (stage2/'VERSION').write_text('113.00.0\n')
         (stage2/'server.py').write_text('NEW SERVER\n')
         (stage2/'new_module.py').write_text('NEW MODULE\n')
-        (stage2/'LIVE_CONTENT').mkdir()
-        (stage2/'LIVE_CONTENT/release_current.json').write_text('{"proof": 1}')
+        (stage2/'config').mkdir()
+        (stage2/'config/release_current.json').write_text('{"proof": 1}')
         def check_stage(p):
             return (Path(p)/'VERSION').read_text().strip()=='113.00.0'
         with patch.object(release_update,'verify_stage',side_effect=check_stage):
@@ -193,7 +193,7 @@ def check():
             else:raise AssertionError('Brak rollback po falszywym manifest verification')
         assert (failure_root/'VERSION').read_text().strip()=='112.00.0';n+=1
         assert (failure_root/'server.py').read_text()=='OLD SERVER\n';n+=1
-        assert not (failure_root/'new_module.py').exists() and not (failure_root/'LIVE_CONTENT/release_current.json').exists();n+=1
+        assert not (failure_root/'new_module.py').exists() and not (failure_root/'config/release_current.json').exists();n+=1
         assert hashlib.sha256((failure_root/'soulbound.db').read_bytes()).digest()==pre_data;n+=1
     print('CURRENT UNIVERSAL UPDATE: '+str(n)+' checks PASS')
 

@@ -4,7 +4,7 @@
 Oś nagród ``balance_math.axis_gain('soul', level)`` pochodzi z v105 i
 nie jest zmieniana. Wymaganie Soul Level 800 pochodzi z istniejącego
 pomostu v106. Wyłącznie progi XP w jawnie włączonym trybie v106 są inne.
-Nie dotyka Soul Tier, tabel SQLite, limitów Admin Live ani historii graczy.
+Nie dotyka Soul Tier, tabel SQLite, limitów dawny edytor ani historii graczy.
 """
 from __future__ import annotations
 

@@ -208,10 +208,10 @@ def _run_until_stopped(child, stop_file=None, parent_pid=None):
         if result is not None:
             return result
         if stop_file is not None and stop_file.exists():
-            print('ADMIN LIVE: otrzymano polecenie zatrzymania prywatnej areny.', flush=True)
+            print('TESTOWA ARENA: otrzymano polecenie zatrzymania prywatnej areny.', flush=True)
             return 0
         if parent_pid is not None and not _process_alive(parent_pid):
-            print('ADMIN LIVE: glowny serwer zakonczyl prace; zamykam prywatna arene.', flush=True)
+            print('TESTOWA ARENA: glowny serwer zakonczyl prace; zamykam prywatna arene.', flush=True)
             return 0
         time.sleep(0.25)
 

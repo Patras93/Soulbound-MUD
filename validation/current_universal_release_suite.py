@@ -12,6 +12,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 ROOT=Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
 GATES=(
     'validation/current_explicit_runtime_regression.py',
     'validation/test_native_session_dependencies.py',
@@ -44,6 +45,10 @@ GATES=(
     'validation/current_crypt_overcap_party_regression.py',
     'validation/current_only_server_smoke.py',
 )
+
+from systems.current_release_gate_contract import UNIVERSAL_REQUIRED_GATES
+if len(GATES) != UNIVERSAL_REQUIRED_GATES:
+    raise RuntimeError('Outdated universal release proof contract')
 
 def run(rel):
     import tempfile

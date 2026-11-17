@@ -58,7 +58,7 @@ def audit_race_balance_v1177(*, runtime=False):
             errors.append(description)
 
     race_names = [r[0] for r in RACES]
-    from systems.admin_live_races_v7600 import current as custom_races
+    from systems.published_races_v7600 import current as custom_races
     from core.archetypes.chaos import (RACE_SPECS as V107_RACES,
                                             CLASS_SPECS as V107_CLASSES)
     from core.archetypes.expansion import (RACE_SPECS as V110_RACES,

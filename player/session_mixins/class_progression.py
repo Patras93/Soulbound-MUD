@@ -149,7 +149,7 @@ class SessionClassProgressionMixin:
             return True
 
     def teacher_here_for_active_class(self):
-            from systems.admin_live_classes_v7700 import inherited_parent
+            from systems.published_classes_v7700 import inherited_parent
             active = set(self.active_class_names())
             parent_map = {inherited_parent(name): name for name in active if inherited_parent(name)}
             for npc_id, npc in NPCS.items():

@@ -146,7 +146,7 @@ def inspect_zip(zippath):
                            'systems/current_fresh_install.py'):
                 if stable not in mapping:
                     raise ValueError('Brak uniwersalnego mechanizmu: '+stable)
-            if 'live_content/release_current.json' in mapping:
+            if 'live_content/release_current.json' in mapping or 'config/release_current.json' in mapping:
                 raise ValueError('Manifest produkcyjny musi wygenerowac instalator')
         if ver == '112.00.0':
             for required_v112 in ('systems/v11200_activation.py',
@@ -157,7 +157,7 @@ def inspect_zip(zippath):
                   'validation/v11200_profession_ownership_regression.py'):
                 if required_v112.casefold() not in mapping:
                     raise ValueError('v112: brak obowiązkowej bramki '+required_v112)
-            if 'live_content/release_current.json' in mapping:
+            if 'live_content/release_current.json' in mapping or 'config/release_current.json' in mapping:
                 raise ValueError('v112: manifest może wystawić tylko instalator po PASS')
         if ver == '111.00.0':
             for required_v111 in ('systems/v11100_holiday_activation.py',
@@ -166,7 +166,7 @@ def inspect_zip(zippath):
                   'validation/v11100_release_activation_regression.py'):
                 if required_v111.casefold() not in mapping:
                     raise ValueError('v111: brak obowiązkowej bramki '+required_v111)
-            if 'live_content/release_current.json' in mapping:
+            if 'live_content/release_current.json' in mapping or 'config/release_current.json' in mapping:
                 raise ValueError('v111: manifest może wystawić tylko instalator po PASS')
         if ver == '110.00.0':
             for needed in ('systems/v11000_activation.py',
@@ -176,7 +176,7 @@ def inspect_zip(zippath):
                            'validation/v11000_release_readiness.py'):
                 if needed.casefold() not in mapping:
                     raise ValueError('v110: brak niezależnej bramki '+needed)
-            if 'live_content/release_current.json' in mapping:
+            if 'live_content/release_current.json' in mapping or 'config/release_current.json' in mapping:
                 raise ValueError('v110: manifest wydania generuje tylko instalator po PASS')
         if ver == '109.00.0':
             for needed in ('systems/v10900_activation.py', 'systems/v10900_gifts.py',

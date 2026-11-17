@@ -55,12 +55,12 @@ def reward_xp_v10300(template, axis, base):
     kind, floor = dungeon_identity(template)
     if not kind or floor <= 800:
         return base
-    from systems.admin_live_era_settings_v10300 import active_bonus_pct
+    from systems.published_era_settings_v10300 import active_bonus_pct
     try:
         pct = effective_pct(kind, floor, active_bonus_pct(kind))
     except (OSError, ValueError):
         # Corrupt admin config must never abort combat or quest kill credit.
-        # Admin Live exposes the file error; the safe fallback is old XP.
+        # dawny edytor exposes the file error; the safe fallback is old XP.
         return base
     return min(V019_SAFE_INT, (base * pct + 50) // 100)
 
