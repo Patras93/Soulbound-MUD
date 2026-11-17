@@ -42,47 +42,19 @@ def run():
     assert 'SessionAtlasCodexMixin.show_profession_atlas_v1602(self, query)' in source; checks += 1
     assert 'name not in historical' in source; checks += 1
     assert len(PROFESSIONS)==8 and len(BASE_ACTIONS)>=8; checks += 1
-    # Regression of the real v113.00.20 production boot crash. The game
-    # loads persisted Admin Live limits and can migrate 800 defaults to
-    # None (unlimited) *before* refreshing final HELP. The isolated authoring
-    # preflight used to test only the 800 baseline and missed this crash.
-    from unittest.mock import patch
+    # Test the current immutable development policy on every progression axis.
     from core import live_level_caps_v5200 as level_caps
-    axes = ('postac', 'bieglosc', 'dusza', 'bron_duszy',
-            'skille', 'profesje', 'narzedzia')
-    for scenario, caps, needles in (
-        ('v107_unlimited', {key: None for key in axes},
-         ('postać', 'bez limitu', 'narzędzia')),
-        ('custom_admin_live', {'postac': 1234, 'bieglosc': 2100, 'dusza': 1500,
-                               'bron_duszy': 2000, 'skille': 2222,
-                               'profesje': 3333, 'narzedzia': 4444},
-         ('1234', '2100', '3333', '4444')),
-        ('mixed_settings', {'postac': 800, 'bieglosc': None, 'dusza': 1500,
-                            'bron_duszy': 800, 'skille': None,
-                            'profesje': 800, 'narzedzia': 1200},
-         ('800', '1500', '1200', 'bez limitu')),
-    ):
-        with patch.dict(level_caps._state, caps):
-            instance_topics = make_help_topics_v405()
-            instance_aliases = make_help_topic_aliases_v405()
-            result = refresh_current_help_v11320(instance_topics, instance_aliases)
-            assert result['classes'] == len(CLASSES), scenario; checks += 1
-            progressive = ' '.join(instance_topics['progresja800'])
-            for token in needles:
-                assert token in progressive, (scenario, token); checks += 1
-            assert instance_topics['progresja600'] == instance_topics['progresja800'], scenario; checks += 1
-            assert instance_topics['multiclass'] and instance_topics['klasy']; checks += 1
-            assert 'bez limitu' in progressive if scenario == 'v107_unlimited' else True; checks += 1
-            assert str(caps['narzedzia']) in progressive or caps['narzedzia'] is None; checks += 1
-        # No live cap files, accounts, gameplay or database are modified.
-    # Invalid runtime caps must still fail explicitly, never be silently ignored.
-    with patch.dict(level_caps._state, {'postac': 0}):
-        try:
-            refresh_current_help_v11320(make_help_topics_v405(), make_help_topic_aliases_v405())
-        except RuntimeError as exc:
-            assert 'niepoprawne aktywne limity' in str(exc); checks += 1
-        else:
-            raise AssertionError('Nie wykryto błędnych limitów w HELP')
+    assert all(level_caps.cap(key) is None for key in level_caps.PROGRESSION_KEYS); checks += 1
+    assert level_caps.cap('ulepszenia_eq') == 10; checks += 1
+    dynamic_topics = make_help_topics_v405()
+    current = refresh_current_help_v11320(dynamic_topics, make_help_topic_aliases_v405())
+    assert current['classes'] == len(CLASSES); checks += 1
+    active = ' '.join(dynamic_topics['progresja800'])
+    assert 'bez limitu' in active; checks += 1
+    assert dynamic_topics['progresja600'] == dynamic_topics['progresja800']; checks += 1
+    for key in level_caps.PROGRESSION_KEYS:
+        assert level_caps.can_grow(key, 800) and level_caps.can_grow(key, 60000)
+        checks += 1
     # The fast PREDEPLOY must validate real dynamic HELP, not the retired
     # literal 14-tool wording, and must still detect missing public HELP links.
     from admin.fast_predeploy_audit_v0571 import _current_profession_help_contract_errors_v11320

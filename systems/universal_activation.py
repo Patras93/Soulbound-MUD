@@ -13,7 +13,7 @@ from pathlib import Path
 from functools import lru_cache
 
 ROOT=Path(__file__).resolve().parents[1]
-MARKER='LIVE_CONTENT/release_current.json'
+MARKER='config/release_current.json'
 # Historical Windows activation contracts are retained for Windows-only
 # regression fixtures. Linux release manifests MUST NOT depend on BAT files.
 REQUIRED_COMMON=(

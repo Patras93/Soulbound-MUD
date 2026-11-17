@@ -67,7 +67,7 @@ SOUL_MAX_LEVEL = PROGRESSION_MAX_LEVEL
 # Era Bez Granic: zachowane tablice i identyfikatory 1-80; kolejne Tiery
 # maja prawdziwy próg Soul Level co 10 punktów, do zakresu v104: 10000.
 # Rozbudowa 501–1000 bez zmian 1–500; domyślny cap Soul Level 800
-# nadal zależy od ustawień Admin Live (dusza bezlimitu lub >=10000).
+# nadal zależy od ustawień dawny edytor (dusza bezlimitu lub >=10000).
 # Nie nadpisuj ustawień administratora przy starcie serwera.
 SOUL_TIER_THRESHOLDS = tuple([1] + [tier*10 for tier in range(2, 3001)])
 SOUL_MAX_TIER = len(SOUL_TIER_THRESHOLDS)
@@ -141,26 +141,72 @@ for _class_name, _profile in _SOUL_TRAIT_CLASS_PROFILES.items():
         }
     SOUL_TIER_TRAITS_BY_CLASS[_class_name] = _rows
 
+def soul_tier_required_level(tier):
+    """Soul Level gate for any future tier, preserving 1..6000 verbatim."""
+    tier = int(tier)
+    if tier < 1:
+        raise ValueError('Soul Tier must be positive')
+    if tier <= len(SOUL_TIER_THRESHOLDS):
+        return int(SOUL_TIER_THRESHOLDS[tier - 1])
+    return tier * 10
+
+
+def soul_tier_power_bonus(tier):
+    tier = max(1, int(tier))
+    if tier <= len(SOUL_TIER_POWER_BONUSES):
+        return SOUL_TIER_POWER_BONUSES[tier - 1]
+    return 222 + (tier - 81) * 2
+
+
+def soul_tier_class_bonus(tier):
+    tier = max(1, int(tier))
+    if tier <= len(SOUL_TIER_CLASS_BONUS_PERCENT):
+        return SOUL_TIER_CLASS_BONUS_PERCENT[tier - 1]
+    return 61 + (tier - 81) // 5
+
+
+def soul_tier_dodge_bonus(tier):
+    tier = max(1, int(tier))
+    if tier <= len(SOUL_TIER_DODGE_BONUS):
+        return SOUL_TIER_DODGE_BONUS[tier - 1]
+    return 0.05
+
+
+def soul_tier_guardian_reduction(tier):
+    tier = max(1, int(tier))
+    if tier <= len(SOUL_TIER_GUARDIAN_REDUCTION):
+        return SOUL_TIER_GUARDIAN_REDUCTION[tier - 1]
+    return min(65, 49 + (tier - 81) // 20)
+
+
 def soul_weapon_trait_for_tier_v11193(tier, class_name=None):
-    """Cechy Broni Duszy 1–1000, włącznie z klasami Admin Live."""
-    tier = max(1, min(SOUL_MAX_TIER, int(tier)))
+    """Cechy Broni Duszy 1–1000, włącznie z klasami dawny edytor."""
+    tier = max(1, int(tier))
     class_name = class_name or "Wojownik"
-    # Additional Admin Live classes inherit the real soul trait table of their
-    # combat archetype instead of silently using the Wojownik fallback.
     if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
-        from systems.admin_live_classes_v7700 import inherited_parent
+        # Legacy custom classes still require their saved archetype mapping.
+        from systems.published_classes_v7700 import inherited_parent
         class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
-    return rows.get(tier)
+    if tier <= SOUL_MAX_TIER:
+        return rows.get(tier)
+    # Beyond the historical table, one trait is constructed on demand.
+    profile = _SOUL_TRAIT_CLASS_PROFILES.get(class_name) or _SOUL_TRAIT_CLASS_PROFILES['Wojownik']
+    cycle = profile['cycle']
+    effect, value = cycle[(tier - 1) % len(cycle)]
+    base_name = (f"Forma Wiecznej Duszy {tier // 100}"
+                 if tier >= 1100 and tier % 100 == 0
+                 else f"Przekroczenie Duszy {tier}")
+    return {'name': f"{base_name} {profile['theme']}",
+            'effect': effect, 'value': float(value),
+            'description': _SOUL_TRAIT_EFFECT_DESCRIPTIONS[effect](float(value))}
 
 def soul_weapon_trait_totals_v11193(tier, class_name=None):
     """Wszystkie efekty Broni Duszy do bieżącego Tieru 1–1000."""
-    tier = max(1, min(SOUL_MAX_TIER, int(tier)))
+    tier = max(1, int(tier))
     class_name = class_name or "Wojownik"
-    # Additional Admin Live classes inherit the real soul trait table of their
-    # combat archetype instead of silently using the Wojownik fallback.
     if class_name not in SOUL_TIER_TRAITS_BY_CLASS:
-        from systems.admin_live_classes_v7700 import inherited_parent
+        from systems.published_classes_v7700 import inherited_parent
         class_name = inherited_parent(class_name) or class_name
     rows = SOUL_TIER_TRAITS_BY_CLASS.get(class_name) or SOUL_TIER_TRAITS_BY_CLASS["Wojownik"]
     totals = {
@@ -168,9 +214,20 @@ def soul_weapon_trait_totals_v11193(tier, class_name=None):
         "lifesteal_percent": 0.0, "execute_damage_percent": 0.0,
         "mana_restore_percent": 0.0, "boss_damage_percent": 0.0,
     }
-    for _t in range(1, tier + 1):
+    for _t in range(1, min(tier, SOUL_MAX_TIER) + 1):
         row = rows[_t]
         totals[row["effect"]] += float(row["value"])
+    if tier > SOUL_MAX_TIER:
+        profile = _SOUL_TRAIT_CLASS_PROFILES.get(class_name) or _SOUL_TRAIT_CLASS_PROFILES['Wojownik']
+        cycle = profile['cycle']
+        count = tier - SOUL_MAX_TIER
+        start = SOUL_MAX_TIER % len(cycle)
+        rounds, tail = divmod(count, len(cycle))
+        for effect, value in cycle:
+            totals[effect] += float(value) * rounds
+        for i in range(tail):
+            effect, value = cycle[(start + i) % len(cycle)]
+            totals[effect] += float(value)
     return totals
 
 def soul_tier_title_for_class(tier, class_name=None):

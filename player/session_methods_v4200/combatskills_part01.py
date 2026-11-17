@@ -327,10 +327,10 @@ def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None)
     multiplier *= self.equipment_damage_multiplier(resolved_type)
     multiplier *= self.skill_buff_multiplier(target_type=resolved_type)
     multiplier *= party_synergy_damage_multiplier_v11338(self, resolved_type)
-    from systems.live_olc28_expansion import skill_damage_multiplier
-    from systems.live_olc32_finale import skill_combo
-    from systems.live_olc33_mechanics import skill_alternation
-    from systems.live_olc34_integration import skill_chain
+    from systems.published_28_expansion import skill_damage_multiplier
+    from systems.published_32_finale import skill_combo
+    from systems.published_33_mechanics import skill_alternation
+    from systems.published_34_integration import skill_chain
     skill_id=skill.get('id','')
     multiplier=skill_damage_multiplier(multiplier)
     multiplier=skill_combo(self,skill_id,multiplier)

@@ -394,7 +394,7 @@ class SessionQuestNpcMixin:
             if (isinstance(scripted_dialogue, dict)
                     and self.quest_completed(scripted_dialogue.get('quest_id', ''))):
                 dialogue = scripted_dialogue['text']
-            from systems.live_olc17_quest_dependencies import multi_dialogue_text
+            from systems.published_17_quest_dependencies import multi_dialogue_text
             multi_line = multi_dialogue_text(npc, self.quest_completed)
             if multi_line is not None:
                 dialogue = multi_line

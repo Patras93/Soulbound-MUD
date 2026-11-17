@@ -1100,7 +1100,7 @@ class SessionForgeGuildsMixin(
             if not row: await self.send("Nie należysz do Gildii."); return
             cid=int(row["clan_id"]); rank=str(row["rank"]); self.server.db.ensure_guild_default_roles_v0926(cid)
             if action in ('wojna','war'):
-                from systems.live_olc35_finale import war_status, start_war, war_config
+                from systems.published_35_finale import war_status, start_war, war_config
                 import time as _time35
                 state=war_status(conn,cid); now=int(_time35.time())
                 if normalize_lookup_text(rest) in ('start','rozpocznij','rozpocznij potwierdz'):
@@ -1121,7 +1121,7 @@ class SessionForgeGuildsMixin(
                 await self.send('Komendy: gildia wojna; gildia wojna start (lider).')
                 return
             if action in ('miasto','city'):
-                from systems.live_olc35_finale import city_level, city_upgrade, city_config, city_bonus
+                from systems.published_35_finale import city_level, city_upgrade, city_config, city_bonus
                 opts=('warsztat','spichlerz','straznica')
                 sub=rest.split(); cfg=city_config()
                 if len(sub)==2 and normalize_lookup_text(sub[0])=='rozbuduj':

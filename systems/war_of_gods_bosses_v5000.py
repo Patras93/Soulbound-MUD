@@ -33,7 +33,7 @@ def unique_phase(mob, template, now=None):
     thresholds, names, multipliers, elements = PROFILES[int(idx)]
     custom = template.get('olc_ancient_phases')
     if custom is not None:
-        from systems.live_olc22_empire import validate_ancient
+        from systems.published_22_empire import validate_ancient
         try:
             validate_ancient(custom)
         except (ValueError,TypeError):

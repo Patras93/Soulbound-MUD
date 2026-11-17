@@ -1135,19 +1135,19 @@ class SessionCombatRealtimeMixin:
                                             (_elemental_attack_v11339 or {}).get("label") or ""
                                         ),
                                     }
-                                    from systems.live_olc27_master import uoss_desperation_factor
-                                    from systems.live_olc26_world import uoss_berserk_factor
-                                    from systems.live_olc29_creation import boss_pulse_factor
-                                    from systems.live_olc28_expansion import boss_finisher_factor
-                                    from systems.live_olc33_mechanics import uoss_restore
+                                    from systems.published_27_master import uoss_desperation_factor
+                                    from systems.published_26_world import uoss_berserk_factor
+                                    from systems.published_29_creation import boss_pulse_factor
+                                    from systems.published_28_expansion import boss_finisher_factor
+                                    from systems.published_33_mechanics import uoss_restore
                                     uoss_restore(enemy_mob, _enemy_template)
-                                    from systems.live_olc35_finale import boss_action
+                                    from systems.published_35_finale import boss_action
                                     _olc35_attack_factor = boss_action(enemy_mob, _enemy_template)
                                     _enemy_action_mult_v11324 = (
                                         _olc35_attack_factor
                                         * boss_pulse_factor(enemy_mob, _enemy_template)
-                                        * __import__("systems.live_olc34_integration",fromlist=["boss_pressure"]).boss_pressure(enemy_mob,_enemy_template)
-                                        * __import__('systems.live_olc32_finale',fromlist=['uoss_phase_multiplier']).uoss_phase_multiplier(enemy_mob, _enemy_template)
+                                        * __import__("systems.published_34_integration",fromlist=["boss_pressure"]).boss_pressure(enemy_mob,_enemy_template)
+                                        * __import__('systems.published_32_finale',fromlist=['uoss_phase_multiplier']).uoss_phase_multiplier(enemy_mob, _enemy_template)
                                         * boss_finisher_factor(_enemy_template, target_session.current_hp, target_session.max_hp())
                                         * uoss_berserk_factor(enemy_mob, _enemy_template)
                                         * uoss_desperation_factor(enemy_mob, _enemy_template)

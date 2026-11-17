@@ -1,3 +1,157 @@
+SOULBOUND v114.00.2 — AWARYJNY HOTFIX STARTU OPUBLIKOWANEGO ŚWIATA — 17.11.2026
+
+- Naprawiono AttributeError: PublishedWorldContent nie miał pola _undo podczas
+  rozruchu gry z rzeczywistymi, niepustymi opublikowanymi zmianami świata
+  zapisanymi w live_content_v1204 w bazie SQLite.
+- Inicjalizacja dziennika pamięci następuje PRZED przywracaniem świata. Nie
+  zmieniono opublikowanych ustawień, kont, ekwipunku, EXP ani schematu bazy.
+- Nowa regresja odtwarzała dokładnie wyjątek wersji v114.00.1 przed poprawką;
+  po poprawce sprawdza niepuste edycje potworów i lokacji, ich instalację,
+  brak zapisów do SQLite i brak funkcji edytora. Test jest obowiązkowy we
+  wstępnej kontroli oraz w bieżących 60 etapach PREDEPLOY.
+- Admin Live oraz katalog LIVE_CONTENT NIE WRACAJĄ; EXP Bank i rozwój bez limitów
+  pozostają bez zmian.
+- Wersja v114.00.2 MUSI otrzymać odrębny komplet Windows PREDEPLOY 60/60 PLUS
+  na kopii prawdziwej bazy. Nie wdrażać nowej paczki na podstawie PASS v114.00.1.
+- GitHub i serwer produkcyjny nie są zmieniane podczas przygotowania paczki.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.1 — USUNIĘCIE LIVE_CONTENT — 17.11.2026
+
+- Gra oraz bieżące aktywatory NIE korzystają już z LIVE_CONTENT.
+- Znacznik zatwierdzonego wydania zapisuje się w istniejącym katalogu
+  config/release_current.json (generuje go wyłącznie instalator po PASS).
+- Opublikowane historyczne konfiguracje klas, ras, sklepów, dziedzictwa,
+  ustawień Ery, override v104 i Adaptive Combat są odczytywane z config/.
+- Aktualizacja zachowuje stare ustawienia: pełna kopia kodu, kont, bazy SQLite,
+  EQ i całego LIVE_CONTENT, sprawdzenie SHA256, przeniesienie znanych JSON do
+  config/; usunięcie LIVE_CONTENT dopiero po bezpiecznym zatwierdzeniu.
+- Nieznane przestarzałe pliki pozostają w pełnym folderze backupowym, nie są
+  automatycznie odczytywane jako nowe ustawienia rozgrywki.
+- Kolizje plików, niespójna kopia lub dowiązania blokują czyszczenie.
+- Admin Live, jego komendy i edytor NIE wracają. Dodatkowy test migracji.
+- Dotychczasowa komenda expbank odbierz wszystko pozostaje aktywna.
+- WAŻNE: nowa wersja wymaga własnego 60/60 PLUS na prawdziwej kopii bazy
+  na Windows. Poprzedni PASS v114.00.0 nie zatwierdza v114.00.1.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.0 — EXP BANK: WYPŁAĆ WSZYSTKO — 17.11.2026
+
+- Dodano `expbank odbierz wszystko` (również `expbank wyplac wszystko`,
+  `expbank wypłać wszystko` i `expbank withdraw all`).
+- Jedno wywołanie pobiera całe dostępne, zapisane saldo każdej kategorii
+  (postać, Soul, klasy, skille, statystyki, profesje, narzędzia).
+- Wypłata całości nie jest ograniczana Multi Cap pojedynczej nagrody
+  ani dawnym limitem 1 000 000 000 na pojedyncze odbierz.
+- Zachowano `expbank odbierz` jako wcześniejszą, limitowaną wypłatę.
+- Nieaktywnych ścieżek i nieobsługiwanych przez techniczny zapis wartości
+  nie kasuje się z banku; transakcja danego salda jest wycofywana.
+- Dane kont i postaci nie są modyfikowane przez aktualizację kodu.
+- Zmiana po PASS 60/60 PLUS z 19:19:42 wymaga NOWEGO PREDEPLOY na Windows.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.0 — NAPRAWA ETAPU 31/60 PREDEPLOY — 17.11.2026
+
+- Naprawiono FAIL z logu 17.11.2026 18:48:16 w bramce
+  PROGRESJA 50+: 4280 przestarzałych oczekiwań poziomu Soul i limitu 800.
+- Test historycznej progresji 1..100 postaci/klas nadal pilnuje
+  dotychczasowych wartości; od 101 weryfikuje rzeczywistą kontynuację
+  EXP v114 z niezależnym punktem odniesienia do autorskich nagród.
+- Soul XP jest sprawdzany dla krzywej v106 w obecnej rozgrywce v114,
+  z kontrolami granic 799/800, 29999/30000 i 59999/60000
+  oraz dalszym wzrostem po poziomie 100000.
+- Testy profesji i narzędzi nie uznają już poziomu 800 za maksimum;
+  po założeniu niezmiennej polityki wydania sprawdzają poziomy 800,
+  801, 1000, 5000 i 60000 w rzeczywistej funkcji wymagań EXP.
+- Lokalny test etapu 31: 57258 kontroli PASS; etapu 32: 4881 PASS;
+  etapu 33: 45006 PASS; etapu 34: 44867 PASS.
+- Nie zmieniano runtime, krzywych EXP gry, wartości XP, bazy SQLite,
+  poziomów postaci, Admin Live ani żadnej funkcji rozgrywki.
+- Lokalnie NIE POTWIERDZONO 60/60 PLUS na rzeczywistym Windows;
+  wersja testowa NIE WDRAŻAĆ przed kompletnym PASS.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.0 — POPRAWKA KANDYDATA PREDEPLOY AST — 17.11.2026
+
+- Naprawiono FAIL z logu 2026-11-17 18:27:24: trzy chronione metody gry
+  (pętla walki, mnożnik obrażeń skilli, EXP profesji) używają po
+  usunięciu edytora modułów published_* zamiast live_olc*.
+- Zachowano wszystkie oryginalne SHA256 metod v113 w kontrakcie AST.
+  Wyłącznie 14 zatwierdzonych importów jest normalizowanych do porównania;
+  inne zmiany nadal powodują FAIL. Nie pominięto żadnej z 298 metod.
+- Dodano negatywne testy bezpieczeństwa kontraktu do wstępnego PREDEPLOY.
+- Wydanie nadal NIE WDRAŻAĆ do uzyskania pełnego Windows 60/60 PLUS
+  na prawdziwej kopii SQLite. Produkcyjna baza i GitHub bez zmian.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND MUD v114.00.0 — USUNIĘCIE EDYTORA RUNTIME, ROZWÓJ BEZ LIMITÓW — 17.11.2026
+
+1. Usunięto edytor działający podczas rozgrywki, jego symulatory i kontrolery,
+   stare polecenia zmiany limitów oraz 114 nieaktualnych testów dawnych edytorów.
+   W pakiecie brak plików o nazwach admin_live, admin_guardian i live_olc.
+2. Zachowano wyłącznie odczyt wcześniej opublikowanych ras, klas, zmian świata,
+   sklepów i ustawień z historycznych identyfikatorów JSON/SQLite. Nie dokonano
+   migracji produkcyjnej bazy ani usuwania historycznych danych postaci.
+3. PREDEPLOY używa aktualnych testów gry; nie wykonuje historycznych poleceń
+   ani symulacji edytowania świata przez administratora. Sprawdza integralność
+   oraz bieżącą politykę rozwoju.
+4. Rozwój postaci, klas, Soul i Tier, skilli, statystyk, profesji i narzędzi:
+   bez ustawianych przez administratora limitów; ulepszanie EQ pozostaje do +10.
+   Soul Tier >6000, EXP ponad 800 i Soul Level ponad 60000 podlegają regresjom.
+5. Weryfikacja w izolacji: szybki PREDEPLOY 13/13 PASS, audyt mechaniki 14/14 PASS;
+   pełne 60/60 PLUS na kopii rzeczywistej bazy nadal NIE ZOSTAŁO POTWIERDZONE.
+6. Wspólna mechanika Windows/Linux i samodzielne archiwa w jednej paczce.
+   Gra produkcyjna i GitHub pozostają nienaruszone.
+
+STATUS: DO PRAWDZIWEGO PREDEPLOY NA KOPII BAZY. NIE WDRAŻAĆ.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.0 — KANDYDAT DO PREDEPLOY — NIE WDRAŻAĆ
+17 listopada 2026
+
+- Rozwój na dziewięciu osiach bez administracyjnych limitów poziomów.
+- Usunięcie komendy i edytora Admin Live z aktywnej gry.
+- Soul Tier powyżej 6000 i Soul Level powyżej 60000.
+- Dalszy rozwój klasy/postaci po 800 bez technicznego plateau EXP.
+- Naprawa nagród EXP profesji i narzędzi od poziomu 801 wzwyż,
+  bez darmowego EXP i bez zmian historycznego zachowania na poziomie 800.
+- Audyty bieżącego gameplayu zastąpiły wywołania usuniętego edytora.
+- Zgodne źródła Windows/Linux oraz ostrzejsze potwierdzenie bramek Linux.
+- Nie zmieniono bazy postaci ani produkcji; utrzymano ulepszanie EQ +10.
+
+TESTY KANDYDATA: 13/13 szybkie, 14/14 mechanika, 30/30 uniwersalne,
+52/52 profesje/narzędzia, Linux 36/36 i syntetyczna instalacja 15/15 PASS.
+Nie potwierdzono jeszcze rzeczywistego 60/60 PLUS ani Windows LIVE.
+
+WYMAGANE PRZED WDROŻENIEM: rzeczywiste 60/60 PLUS, testy LIVE,
+klon własnej SQLite wraz z EQ, sprawdzenie Windows i Linux.
+Powyższe NIE SĄ jeszcze zaliczone.
+
+--- ARCHIWUM WCZEŚNIEJSZEGO KODU ROBOCZEGO ---
+
+SOULBOUND v114 — ROZSZERZENIE KODU ROBOCZEGO, NIE WDRAŻAĆ (17.11.2026)
+
+- Dodano kontrolowaną kontynuację EXP postaci i wszystkich klas powyżej poziomu 100 w polityce bez limitu. Poprzednia krzywa dochodziła około poziomu 2000 do 9e18 XP, więc brak limitu liczbowego nie oznaczał faktycznie osiągalnego postępu.
+- Progi 1..100 pozostają historyczne; stare testy bootstrap/legacy zachowują historyczną krzywą. Nowa polityka XP jest aktywowana tylko po zakończonym składaniu świata, bez Admin Live i bez zapisu nowych ustawień.
+- Próg 2000, 5000, 60000 i 1000000 jest rosnący i nie nasyca się do SQLite SAFE_INT; awans postaci 1999→2000 przetestowany. Gdy matematyka przekracza zakres SQLite, funkcja zgłasza błąd zamiast milczącego zatrzymania.
+- W historycznym slocie v96.00.2 zastąpiono niedziałający już test komendy Admin Live 23 rzeczywistymi kontrolami odrzucania, uprawnień i braku modyfikacji draft/active/SQLite.
+- Wstępny PREDEPLOY PASS, regresja v3.31.0 52923 PASS. Pełne 60/60 PLUS nie jest potwierdzone. Około 60 dawnych regresji zakłada działanie usuniętych poleceń i wymaga osobnej adaptacji. Wersja NIE NADAJE SIĘ DO WDROŻENIA.
+
+--- Stan wcześniejszej pracy v114 ---
+
+SOULBOUND v114 — PRACE W TOKU, NIE WDRAŻAĆ (17.11.2026)
+
+- Odłączono Admin Live (interaktywne polecenie i edytor) od sesji graczy; zachowano bezpieczne polecenia administracyjne i historyczne zależności rozgrywki.
+- Dziewięć osi rozwoju ma politykę bez ustawianego limitu; ulepszanie ekwipunku zachowuje +10.
+- Soul Tier powyżej 6000: poziomy i bonusy wyliczane na żądanie, unlock / unlock multi, z zachowaniem prób 1–6000.
+- Soul XP 1–59999: włączono wcześniej przygotowane krzywe v106 w normalnym runtime bez flag staging; XP 60000+: nowa kontynuacja arytmetyczna bez historycznej ściany 9e18.
+- Zabezpieczono pulę Soul XP przed przepełnieniem SQLite int64; testy przekroczenia Soul Level 60000 i 800 poziomu postaci PASS.
+- Test uruchomienia serwera na localhost z osobną bazą PASS (7204 lokacje). Wstępny PREDEPLOY PASS; pełne 60/60 PLUS NIE UKOŃCZONE.
+- BLOCKER: historyczne testy polecenia Admin Live wymagają adaptacji do usuniętego interfejsu. Inne osie XP nadal mogą osiągać techniczne maksimum 9e18.
+- Nie uruchamiać WDROZ_PO_PREDEPLOY; VERSION pozostaje historyczną 113.00.34 do czasu pełnej certyfikacji wydania.
+
+--- Historia poprzednich wersji ---
+
 
 V113.00.34 — PREDEPLOY TCP bez oczekiwania na pełny audyt (aktualizacja paczki kandydata)
 - Usunięto wyłącznie zbędne oczekiwanie 5-klientowego etapu TCP na zakończenie pełnego audytu. Oba etapy używają oddzielnych kopii kodu, baz i portów localhost.

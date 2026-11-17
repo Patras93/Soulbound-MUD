@@ -44,7 +44,7 @@ def _normalized_room_search_text_v107(value: str) -> str:
     """Pure spelling normalization cached by *text*, never by Session/user.
 
     Region guides repeatedly normalize the same thousands of zone names during
-    XP updates; this cache cannot become stale when an Admin Live name changes,
+    XP updates; this cache cannot become stale when an dawny edytor name changes,
     because a changed input string yields its own fresh result.
     """
     text = value.strip().lower()

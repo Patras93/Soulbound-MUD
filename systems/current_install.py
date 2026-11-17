@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 from systems.universal_activation import current_version
 VERSION = current_version(ROOT)
 QUALITY_GATE = 'STANDALONE-CURRENT-1'
-MARKER = 'LIVE_CONTENT/release_current.json'
+MARKER = 'config/release_current.json'
 VALIDATORS = (
     'validation.current_universal_release_suite',
     'validation.current_explicit_runtime_regression',
@@ -51,7 +51,8 @@ PRIVATE_NAMES = {'.env', 'soulbound_control.json', 'admin_level_caps.json',
                  'heritage_v7100.json', 'custom_races_v7600.json',
                  'custom_classes_v7700.json', 'era_v10300.json',
                  'shop_progression_v7003.json', 'credentials.json', 'token.json',
-    'id_rsa', 'id_ed25519'}
+    'id_rsa', 'id_ed25519', 'release_current.json',
+    'era_v10400_overrides.json', 'adaptive_combat_global_v102006.json'}
 
 
 class InstallError(RuntimeError):

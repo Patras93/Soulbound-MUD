@@ -82,9 +82,9 @@ def tactical_element_v1230(mob, template, current_profile=None):
     # Declarative OLC v13 optional frequency; default old behaviour (4).
     interval = template.get('olc_boss_tactic_interval', 4)
     interval = interval if type(interval) is int and 2 <= interval <= 12 else 4
-    from systems.live_olc4_boss_phases import eligible_boss
+    from systems.published_4_boss_phases import eligible_boss
     if eligible_boss(template):
-        from systems.live_olc21_phase_strategy import phase_setting
+        from systems.published_21_phase_strategy import phase_setting
         interval = phase_setting(template, getattr(mob, 'v1230_boss_phase', 0),
                                  'olc_boss_phase_tactic_intervals', interval)
     if turn < interval or turn % interval:
@@ -95,7 +95,7 @@ def tactical_element_v1230(mob, template, current_profile=None):
     # bosses. Existing authored affinities/protected combat rules win above.
     configured_cycle = template.get('olc_boss_element_cycle')
     if any(template.get(flag) for flag in _BOSS_FLAGS):
-        from systems.live_olc20_phase_tactics import boss_stage_cycle
+        from systems.published_20_phase_tactics import boss_stage_cycle
         stage_cycle = boss_stage_cycle(template, getattr(mob, 'v1230_boss_phase', 0),
                                        'olc_boss_phase_element_cycles', _ELEMENTS)
         if stage_cycle is not None:
@@ -150,12 +150,12 @@ def ordinary_tactics_v1230(world, mob, template, now=None):
               if candidate is not mob and getattr(candidate, 'alive', False)
               and candidate.engaged_by == mob.engaged_by
               and not getattr(candidate, 'monster_ai_summoned_v1160', False)]
-    from systems.live_olc4_boss_phases import eligible_boss
+    from systems.published_4_boss_phases import eligible_boss
     _olc_boss = eligible_boss(template)
     guard_threshold = (template.get('olc_boss_guard_threshold', 55) if _olc_boss else 55)
     guard_threshold = guard_threshold if type(guard_threshold) is int and 5 <= guard_threshold <= 95 else 55
     if _olc_boss:
-        from systems.live_olc21_phase_strategy import phase_setting
+        from systems.published_21_phase_strategy import phase_setting
         stage = getattr(mob, 'v1230_boss_phase', 0)
         guard_threshold = phase_setting(template, stage, 'olc_boss_phase_guard_thresholds', guard_threshold)
     injured = []
@@ -167,7 +167,7 @@ def ordinary_tactics_v1230(world, mob, template, now=None):
     name = template.get('name', mob.template_id)
     # Wounded pack members get priority over self-buffs, but the mob cannot
     # spam a protective action or permanently avoid its regular attacks.
-    from systems.live_olc4_boss_phases import eligible_boss
+    from systems.published_4_boss_phases import eligible_boss
     _olc_boss = eligible_boss(template)
     support_interval = int(template.get('olc_boss_support_interval', 4)) if _olc_boss else 4
     support_duration = int(template.get('olc_boss_support_duration', 10)) if _olc_boss else 10

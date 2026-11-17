@@ -85,9 +85,9 @@ class SalesResourcesV109Mixin:
                 payout = self.server.db.shop_resale_total_v1175(
                     self.account_id, item_id, 1, normal
                 )
-                from systems.live_olc28_expansion import sale_coins
+                from systems.published_28_expansion import sale_coins
                 payout=sale_coins(payout)
-                from systems.live_olc29_creation import trade_price
+                from systems.published_29_creation import trade_price
                 payout=trade_price(self.character.room_id,payout,'sell')
                 values = {"silver": payout, "gold": 0, "mithril": 0}
                 if not self.server.db.remove_item(self.account_id, item_id, 1):
@@ -166,9 +166,9 @@ class SalesResourcesV109Mixin:
             reward_coins = legacy_currency_to_coins(
                 values["silver"], values["gold"], values["mithril"]
             )
-            from systems.live_olc28_expansion import sale_coins
+            from systems.published_28_expansion import sale_coins
             reward_coins=sale_coins(reward_coins)
-            from systems.live_olc29_creation import trade_price
+            from systems.published_29_creation import trade_price
             reward_coins=trade_price(self.character.room_id,reward_coins,'sell')
             self.character.silver += reward_coins
             await self.gain_charisma_from_sale(reward_coins)

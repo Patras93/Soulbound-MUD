@@ -48,11 +48,11 @@ def run():
                  'helm_quality':{'name':'Dobry Hełm','type':'armor'},
                  'hammer':{'name':'Młot'}}),
         patch('systems.endless_crafting_v5500.endless_crafted_equipment_v5500',lambda iid,*a:iid),
-        patch('systems.live_olc28_expansion.craft_yield',lambda prof,qty:qty),
-        patch('systems.live_olc32_finale.crafting_bonus',lambda rid,room,qty:qty),
-        patch('systems.live_olc35_finale.city_craft_bonus',lambda *args:args[-1]),
-        patch('systems.live_olc33_mechanics.craft_byproduct',lambda *args:None),
-        patch('systems.live_olc34_integration.profession_find',lambda *args:None),
+        patch('systems.published_28_expansion.craft_yield',lambda prof,qty:qty),
+        patch('systems.published_32_finale.crafting_bonus',lambda rid,room,qty:qty),
+        patch('systems.published_35_finale.city_craft_bonus',lambda *args:args[-1]),
+        patch('systems.published_33_mechanics.craft_byproduct',lambda *args:None),
+        patch('systems.published_34_integration.profession_find',lambda *args:None),
     ]
     try:
         with ExitStack() as stack:

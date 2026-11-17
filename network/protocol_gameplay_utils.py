@@ -390,7 +390,7 @@ def mob_respawn_seconds(template):
     else:
         base_seconds = REGULAR_MOB_RESPAWN_SECONDS
 
-    from systems.live_olc24_revolution import respawn_seconds
+    from systems.published_24_revolution import respawn_seconds
     return respawn_seconds(max(
         1,
         int(round(

@@ -32,9 +32,6 @@ class SessionProgressGapsV0590Mixin:
     def _soul_tier_gap_v0590(self):
         c = self.character
         current_tier = max(1, int(c.soul_tier))
-        if current_tier >= SOUL_MAX_TIER:
-            return f"Soul Tier: maksimum {SOUL_MAX_TIER}/{SOUL_MAX_TIER}."
-
         next_tier = current_tier + 1
         next_title = soul_tier_title_for_class(next_tier, c.class_name)
         required_level = int(c.soul_level_cap_for_current_tier())

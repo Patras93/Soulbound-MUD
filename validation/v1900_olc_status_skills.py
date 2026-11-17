@@ -7,7 +7,7 @@ Those checks are provided by the full PREDEPLOY 60 PLUS on Windows.
 import asyncio
 import math
 from types import SimpleNamespace
-from systems.live_olc19_status_skills import (
+from systems.published_19_status_skills import (
     parse_status, apply_skill_status_v1900, cast_with_olc_status_v1900)
 from systems.summon_status_v1808 import summon_status_enemy_turn_v1808
 

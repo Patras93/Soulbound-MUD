@@ -391,7 +391,7 @@ class SessionInventoryEquipmentMixin:
             soul_line = (
                 f"Broń Duszy: {c.soul_weapon}. "
                 f"Soul Poziom {c.soul_level}/{SOUL_MAX_LEVEL}. "
-                f"Soul Tier {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}. "
+                f"Soul Tier {c.soul_tier}/bez limitu — {soul_tier_title_for_class(c.soul_tier, c.class_name)}. "
                 f"Moc {c.soul_power()}."
             )
             if detailed:

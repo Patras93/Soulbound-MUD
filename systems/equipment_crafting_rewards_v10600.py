@@ -7,8 +7,8 @@ counter-only preview object, then publish their counters ONLY after a full
 SQLite commit.  Does not make quest / profession XP atomic yet.
 """
 from types import SimpleNamespace
-from systems.live_olc33_mechanics import craft_byproduct
-from systems.live_olc34_integration import profession_find
+from systems.published_33_mechanics import craft_byproduct
+from systems.published_34_integration import profession_find
 
 
 def preview_resources(session, recipe_id):

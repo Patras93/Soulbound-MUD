@@ -6,7 +6,7 @@ Podłączono do testowego bootstrapu v106, ale NIE do produkcji. Docelowo
 """
 from world.v10600_region_index import REGIONS
 from world.v10400_raids_12_25 import _boss_phases, _phase_strategy
-from systems.live_olc4_boss_phases import validate_boss_phases
+from systems.published_4_boss_phases import validate_boss_phases
 
 RAID_ROWS=(
  (26,4,'Brama Rozdartego Firmamentu','osłony i rozdarcia',('lightning','holy','shadow')),

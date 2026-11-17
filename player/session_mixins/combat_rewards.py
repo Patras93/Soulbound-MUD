@@ -65,7 +65,7 @@ def _final_combat_reward(*args, **kwargs):
     axis=args[1] if len(args)>1 else kwargs.get('axis')
     template=args[0] if args else kwargs.get('template', {})
     if axis in ('class','soul','character','stat') and isinstance(template,dict):
-        from systems.live_olc22_empire import ordinary_reward_bonus
+        from systems.published_22_empire import ordinary_reward_bonus
         result = ordinary_reward_bonus(result, exact=bool(template.get('source_xp_exact') or template.get('uoss_full_progression_source_xp_exact') or superboss_key_from_template_v11135(template)))
         from systems.era_dungeon_plus_v10300 import reward_xp_v10300
         return reward_xp_v10300(template, axis, result)
@@ -792,7 +792,7 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         combat_multiplier=xp_mult,
                         downstream_multiplier=_double_factor_v1286 * _mentor_factor_v1286 * _guild_factor_v1286,
                     )
-                    from systems.live_olc33_mechanics import guild_boss_class_xp
+                    from systems.published_33_mechanics import guild_boss_class_xp
                     class_xp_reward = guild_boss_class_xp(template,session,class_xp_reward)
                     soul_xp_reward = dungeon_recipient_xp_v1286(
                         template, "soul", soul_xp_reward, session.character.soul_level,
@@ -981,7 +981,7 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                             self.server.db.clan_metric_add(_gid,"boss_kills" if _is_boss else "mob_kills",1)
                             _changed=self.server.db.guild_contract_add_v0927(_gid,"bosses" if _is_boss else "kills",1)
                             if _is_boss:
-                                from systems.live_olc35_finale import war_boss_kill
+                                from systems.published_35_finale import war_boss_kill
                                 _war_update=war_boss_kill(self.server.db.conn,_gid,int(time.time()),True)
                                 if _war_update and _war_update[2]:
                                     self.server.db.clan_log(_gid,session.account_id,
@@ -996,7 +996,7 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                                 self.server.db.conn.execute("INSERT INTO player_guild_boss_records_v0927(clan_id,kills,fastest_kill_ms,last_boss_name,last_killed_at) VALUES(?,1,?,?,CURRENT_TIMESTAMP) ON CONFLICT(clan_id) DO UPDATE SET kills=kills+1,fastest_kill_ms=?,last_boss_name=?,last_killed_at=CURRENT_TIMESTAMP",(_gid,_best,_name,_best,_name))
                                 self.server.db.conn.execute("INSERT INTO player_guild_trophies_v0927(clan_id,trophy_id,name,count) VALUES(?,?,?,1) ON CONFLICT(clan_id,trophy_id) DO UPDATE SET count=count+1",(_gid,_tid,f"Trofeum: {_name}"))
                                 _reward=(2_000+int(template.get('guild_hall_level',1))*1_000)*SILVER_PER_GOLD
-                                from systems.live_olc34_integration import guild_treasury_reward
+                                from systems.published_34_integration import guild_treasury_reward
                                 _reward=guild_treasury_reward(_reward)
                                 self.server.db.conn.execute("UPDATE player_clans SET treasury=treasury+? WHERE id=?",(_reward,_gid)); self.server.db.conn.commit(); self.server.db.clan_metric_add(_gid,"guild_boss_kills",1); self.server.db.clan_log(_gid,session.account_id,f"Gildia pokonuje {_name}. Trofeum zapisane; do skarbca trafia {currency_reading_text(_reward,0,0)}.")
                                 await session.send(f"Boss Gildii pokonany. Trofeum zapisane, a skarbiec otrzymuje {currency_reading_text(_reward,0,0)}.")

@@ -54,7 +54,7 @@ def main():
         tests+=check(not linux._read_gate_proof(fake),'incomplete test proof')
         full=('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS\n'
               'SOULBOUND RELEASE GATES PASS\nPLUS CHECKS PASS\n'
-              'UNIVERSAL RELEASE SAFETY: 24/24 PASS\nTCP 6 GRACZY: PASS\n'
+              f'UNIVERSAL RELEASE SAFETY: {__import__("systems.current_release_gate_contract", fromlist=["UNIVERSAL_REQUIRED_GATES"]).UNIVERSAL_REQUIRED_GATES}/{__import__("systems.current_release_gate_contract", fromlist=["UNIVERSAL_REQUIRED_GATES"]).UNIVERSAL_REQUIRED_GATES} PASS\nTCP 6 GRACZY: PASS\n'
               'PASS - FIZYCZNE EQ NA KOPII BAZY (kod 0)\n')
         fake.write_text(full)
         tests+=check(linux._read_gate_proof(fake),'complete proof parse')

@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from systems.v11000_olc_validation_views import combined_catalog, quest_dependency_view
-from systems.live_olc17_quest_dependencies import validate_dependency_graph
+from systems.published_17_quest_dependencies import validate_dependency_graph
 
 
 def run_regression():

@@ -113,7 +113,7 @@ class SkySummonCommandsV109Mixin:
             await self.send('Druid: call list (zwierzęta na aktualnym terenie), call <zwierzę>, call squirrel (wiewiórka dostarcza szyszki za 20 MP), order <zwierzę> <atakuj|bron|wspieraj|czekaj>. Bez Pieczęci Chowańców. Life Oak: poziom 150+, 2 szyszki i 80 MP; Ancient Oak: poziom 400+, 5 szyszek i 180 MP.')
             await self.send('Mag: mag lista, mag przywolaj ogien mniejszy / blyskawice / lod potezny / krysztal. 4 żywioły, po 3 stopnie; moc z Twojej magii i aktualnego poziomu, bez osobnego EXP; mana za przywołanie i ataki. Bez zębów i Kamieni Duszy.')
             await self.send('Nekromanta: nekro lista — konstrukty, nieumarli, materiały, mana, wymagane poziomy. nekro przywolaj metal / gliniany / kostny_straznik itd. Rozkazy: order <nazwa|all> <atakuj|bron|wspieraj|czekaj>.')
-            from systems.live_olc29_creation import ACTIVE as _OLC29_ACTIVE
+            from systems.published_29_creation import ACTIVE as _OLC29_ACTIVE
             for _kind in sorted(_OLC29_ACTIVE['summons']):
                 _spec=SUMMONS[_kind]
                 await self.send(f"Nowe przywołanie: {_spec[0]}; komenda chowaniec przywolaj {_kind}; klasa {_spec[1]}; mana {SUMMON_MANA[_kind]} MP.")
@@ -232,7 +232,7 @@ class SkySummonCommandsV109Mixin:
                 active=conn.execute('SELECT COUNT(*) FROM summons_v1700 WHERE account_id=? AND active=1',(self.account_id,)).fetchone()[0]
                 if active>=3:
                     await self.send('Maksymalnie 3 aktywne przywołania. Schowaj inne.');return
-                from systems.live_olc24_revolution import summon_factor
+                from systems.published_24_revolution import summon_factor
                 mana_cost=(SUMMON_MANA[kind]*summon_factor(kind,'mana_percent')+99)//100
                 if not await self._v1701_need_mana(mana_cost):return
             # Trees always require fresh pinecones. Every fallen beast or skeleton
@@ -262,7 +262,7 @@ class SkySummonCommandsV109Mixin:
         count=conn.execute('SELECT COUNT(*) FROM summons_v1700 WHERE account_id=? AND active=1',(self.account_id,)).fetchone()[0]
         if count>=3:
             await self.send('Masz 3 aktywne przywołania. Najpierw schowaj jedno.');return
-        from systems.live_olc24_revolution import summon_factor
+        from systems.published_24_revolution import summon_factor
         mana_cost=(SUMMON_MANA[kind]*summon_factor(kind,'mana_percent')+99)//100
         if not await self._v1701_need_mana(mana_cost):return
         if not self._v1700_spend_and_write(costs,

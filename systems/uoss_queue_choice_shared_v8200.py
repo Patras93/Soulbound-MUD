@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Source queue rotation shared by realtime combat and detached Admin Live preview.
+"""Source queue rotation shared by realtime combat and detached dawny edytor preview.
 
 This function makes only a *choice*. Casting has side effects and remains in
 realtime combat. No mutation of cursors, database, character, or world here.

@@ -378,9 +378,9 @@ class SessionProfessionStorageMixin:
                 self.mentor_record_activity_v03051()
             actual_prof_xp = self.apply_double_xp(actual_prof_xp)
             tool_xp = self.apply_double_xp(tool_xp)
-            from systems.live_olc26_world import profession_xp_bonus
+            from systems.published_26_world import profession_xp_bonus
             actual_prof_xp = profession_xp_bonus(profession, actual_prof_xp)
-            from systems.live_olc27_master import profession_tool_xp
+            from systems.published_27_master import profession_tool_xp
             if tool_progress:
                 tool_xp = profession_tool_xp(profession, tool_xp)
             # v2.32.19: the ordinary gather/craft route MUST obey the same

@@ -58,8 +58,8 @@ class SkySummonStateV109Mixin:
             factor=NECRO_MINIONS[kind][6]
         if kind in CLASS_MINIONS_V1119:
             factor=CLASS_MINIONS_V1119[kind][7]
-        from systems.live_olc24_revolution import summon_factor
-        from systems.live_olc29_creation import ACTIVE as _custom_summons30
+        from systems.published_24_revolution import summon_factor
+        from systems.published_29_creation import ACTIVE as _custom_summons30
         authored_hp = _custom_summons30['summons'].get(kind,{}).get('hp_percent',100)
         return max(40,int(owner_hp*factor*(1+max(0,int(level)-1)*.075)*summon_factor(kind,'hp_percent')/100*authored_hp/100))
 
@@ -141,7 +141,7 @@ class SkySummonStateV109Mixin:
             if kind not in SUMMONS or not self._v1700_class(SUMMONS[kind][1]):
                 continue
             maximum = max(1, int(r['max_hp']))
-            from systems.live_olc24_revolution import summon_factor
+            from systems.published_24_revolution import summon_factor
             gain = max(1, (maximum * 3 * summon_factor(kind,'regen_percent') + 9999) // 10000)
             new_hp = min(maximum, int(r['hp']) + gain)
             if new_hp <= int(r['hp']):

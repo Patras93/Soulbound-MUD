@@ -16,6 +16,7 @@ from core.classes_skills import (
 from core.progression_600 import (
     SKILL_MAX_LEVEL, SOUL_MAX_TIER, SOUL_TIER_THRESHOLDS,
     soul_tier_title_for_class, soul_weapon_trait_for_tier_v11193,
+    soul_tier_required_level,
 )
 from core.progression_resources import (
     skill_cooldown_multiplier, skill_xp_to_next, v0190_mob_stage,
@@ -36,9 +37,15 @@ class SessionSkillLearningMixin:
                 start = int(self.character.soul_tier)
                 limit = start
                 stop_reason = ''
-                while limit < SOUL_MAX_TIER:
+                while limit < max(start + 1, int(self.character.soul_level) // 10):
+                    # Beyond the existing T6000 trials, all future thresholds
+                    # follow one arithmetic curve. Do not run millions of loop
+                    # iterations for a high-level character using unlock multi.
+                    if limit >= SOUL_MAX_TIER:
+                        limit = max(limit, int(self.character.soul_level) // 10)
+                        break
                     trial_tier = limit + 1
-                    needed = SOUL_TIER_THRESHOLDS[trial_tier-1]
+                    needed = soul_tier_required_level(trial_tier)
                     if int(self.character.soul_level) < needed:
                         stop_reason = f'wymaga Soul Level {needed}'
                         break
@@ -48,25 +55,19 @@ class SessionSkillLearningMixin:
                         break
                     limit = trial_tier
                 if limit == start:
-                    await self.send(f'Nie można odblokować Tieru {start+1}: {stop_reason or "maksymalny Tier"}.')
+                    await self.send(f'Nie można odblokować Tieru {start+1}: {stop_reason or f"wymaga Soul Level {soul_tier_required_level(start + 1)}"}.')
                     return
                 self.character.soul_tier = limit
                 self.server.db.save_character(self.character)
                 await self.send(f'Odblokowano Soul Tier {start+1}–{limit}. '
                                 f'Moc Broni Duszy: {self.character.soul_power()}. '
-                                f'Następny cel: {stop_reason or "maksymalny Tier"}.')
+                                f'Następny cel: {stop_reason or f"Soul Level {soul_tier_required_level(limit + 1)}"}.')
                 await self.server.broadcast_room(self.character.room_id,
                     f'{self.character.name} rozwinął Soul Tier do {limit}.',
                     exclude=self, history_category='system')
                 return
-            if self.character.soul_tier >= SOUL_MAX_TIER:
-                await self.send(
-                    f"Broń Duszy ma już maksymalny Tier {SOUL_MAX_TIER}."
-                )
-                return
-
             next_tier = self.character.soul_tier + 1
-            needed_level = SOUL_TIER_THRESHOLDS[next_tier - 1]
+            needed_level = soul_tier_required_level(next_tier)
             if self.character.soul_level < needed_level:
                 await self.send(
                     f"Tier {next_tier} wymaga Soul Level {needed_level}. "
@@ -87,7 +88,7 @@ class SessionSkillLearningMixin:
             self.server.db.save_character(self.character)
             tier_title = soul_tier_title_for_class(next_tier, self.character.class_name)
             await self.send(
-                f"Odblokowano Soul Tier {next_tier} z {SOUL_MAX_TIER}: {tier_title}. "
+                f"Odblokowano Soul Tier {next_tier}: {tier_title}. "
                 f"Moc Broni Duszy: {self.character.soul_power()}."
             )
             # v0.36.8: odblokowanie Soul Tieru jest wydarzeniem lokalnym.
@@ -114,8 +115,7 @@ class SessionSkillLearningMixin:
                 await self.send(
                     "KAMIEŃ MILOWY. " + self.soul_milestone_text(next_tier)
                 )
-            if next_tier < SOUL_MAX_TIER:
-                await self.send(self.soul_next_goal_text())
+            await self.send(self.soul_next_goal_text())
 
     def class_skills(self):
             skills = []
@@ -168,7 +168,7 @@ class SessionSkillLearningMixin:
 
     def class_teacher(self, class_name=None):
             wanted = class_name or self.character.class_name
-            from systems.admin_live_classes_v7700 import inherited_parent
+            from systems.published_classes_v7700 import inherited_parent
             wanted_base=inherited_parent(wanted) or wanted
             for npc_id, npc in NPCS.items():
                 if npc.get("teacher_class") == wanted_base:

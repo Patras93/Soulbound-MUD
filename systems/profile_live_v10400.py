@@ -29,5 +29,5 @@ def current_profile_values(saved_row, online_character=None):
 
 
 def current_cap_label(kind):
-    """Read current Admin Live setting, not the historic 800 default."""
+    """Read current immutable progression settings, not the historic 800 default."""
     return display(cap(kind))

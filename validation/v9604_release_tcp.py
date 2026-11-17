@@ -4,7 +4,7 @@ from pathlib import Path
 import socket
 import threading
 import re
-from validation.v8700_native_fresh_tcp import receive_login_banner
+from network.telnet_banner_probe import receive_login_banner
 
 
 def run():

@@ -165,13 +165,14 @@ def _read_gate_proof(log):
             'SOULBOUND RELEASE GATES PASS', 'PLUS CHECKS PASS',
             'TCP 6 GRACZY: PASS',
             'PASS - FIZYCZNE EQ NA KOPII BAZY (kod 0)')
-    # The universal suite grew from 20 to 24 mandatory gates. Its output
-    # reports the exact executed total. Never accept the obsolete 20/20
-    # proof, a partial PASS, or a fake summary with mismatched counts.
+    # Require the EXACT count of the currently bundled universal tests.
+    # Old 24/24 logs are not sufficient after the suite gained new gates.
+    from systems.current_release_gate_contract import UNIVERSAL_REQUIRED_GATES
+    expected_count = UNIVERSAL_REQUIRED_GATES
     match=re.search(r'(?m)^UNIVERSAL RELEASE SAFETY: ([0-9]+)/([0-9]+) PASS\s*$',content)
     return (all(token in content for token in needed) and match is not None
             and int(match.group(1))==int(match.group(2))
-            and int(match.group(2))>=24)
+            and int(match.group(2))==expected_count)
 
 
 def predeploy(archive, database, approval, *, stage_hooks=None):
@@ -419,6 +420,8 @@ def deploy(archive,database,approval,workspace,*,no_start=False):
             shutil.copytree(old,code_backup,symlinks=False)
             # Copy only mutable settings and any additional SQLite databases.
             stats=carry_saved_data(code_backup,stage,protected)
+            from systems.current_retire_live_content import carry_published_to_staging
+            carry_published_to_staging(stage,code_backup)
             if fingerprint_source(stage/'soulbound.db')!=fp:
                 raise LinuxReleaseError('Baza zmieniona przy przenoszeniu danych')
         else:

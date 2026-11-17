@@ -683,7 +683,7 @@ def effective_skill_mana_cost(skill, class_name):
     Physical classes remain mana-free by default, but an authored ability may
     carry an exact source MP cost (for example the Mec magic/support branches).
     """
-    from systems.live_olc27_master import skill_mana_cost
+    from systems.published_27_master import skill_mana_cost
     row = skill or {}
     for field in ("uoss_mp_cost", "source_mp_cost"):
         if row.get(field) is not None:

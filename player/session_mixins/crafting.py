@@ -609,11 +609,11 @@ class SessionCraftingMixin:
                 bonus_quantity = quantity
 
             total_quantity = quantity + bonus_quantity
-            from systems.live_olc28_expansion import craft_yield
+            from systems.published_28_expansion import craft_yield
             total_quantity = craft_yield(profession, total_quantity)
-            from systems.live_olc32_finale import crafting_bonus
+            from systems.published_32_finale import crafting_bonus
             total_quantity = crafting_bonus(recipe_id, self.character.room_id, total_quantity)
-            from systems.live_olc35_finale import city_craft_bonus
+            from systems.published_35_finale import city_craft_bonus
             _guild35=self.guild_row_v0926()
             total_quantity = city_craft_bonus(self.server.db.conn, int(_guild35['clan_id']) if _guild35 else None, total_quantity)
             _v106_run_id = None
@@ -672,7 +672,7 @@ class SessionCraftingMixin:
                     'Materialy zuzyto wedlug receptury.'
                 )
             # OLC33: award a configured material only after a successful craft.
-            from systems.live_olc33_mechanics import craft_byproduct
+            from systems.published_33_mechanics import craft_byproduct
             if _v106_recipe_staging:
                 _byproduct33 = _v106_rewards_preview[3]
             else:
@@ -684,7 +684,7 @@ class SessionCraftingMixin:
                     _byproduct33[0],source='Produkt uboczny rzemiosła',
                     announce=True,amount=_byproduct33[1])
             # OLC34: an additional, independently authored exploration material.
-            from systems.live_olc34_integration import profession_find
+            from systems.published_34_integration import profession_find
             _material34 = (_v106_rewards_preview[4] if _v106_recipe_staging
                            else profession_find(self,recipe_id))
             if _material34:
@@ -1212,7 +1212,7 @@ class SessionCraftingMixin:
             return await self.perform_recipe(query, ALCHEMY_RECIPES, "alchemia")
 
     async def handle_custom_activities_v3500(self, query=''):
-        from systems.live_olc35_finale import ACTIVE
+        from systems.published_35_finale import ACTIVE
         activities=ACTIVE['activities']
         name=str(query or '').strip()
         if not name or name.casefold() in ('lista','list','info'):

@@ -136,7 +136,7 @@ def refresh_current_help_v11320(topics, aliases):
     Historical topic keys remain valid for old users and bookmarks.
     """
     # The early 1.60.2 installer still validates authored 800 defaults.
-    # This final overlay runs *after* Admin Live loads persisted limits and
+    # This final overlay runs *after* dawny edytor loads persisted limits and
     # after the v107 default-unlimited migration.  Never reject legitimate
     # production caps just because they differ from the authoring baseline.
     from core.live_level_caps_v5200 import current as current_live_caps
@@ -146,7 +146,7 @@ def refresh_current_help_v11320(topics, aliases):
     if not all((live_caps.get(axis) is None or
                 (type(live_caps[axis]) is int and 1 <= live_caps[axis] <= 10_000_000))
                for axis in axes):
-        raise RuntimeError('HELP: niepoprawne aktywne limity Admin Live')
+        raise RuntimeError('HELP: niepoprawne aktywne progi rozwoju')
 
     def cap_text(axis):
         value = live_caps[axis]
@@ -158,7 +158,7 @@ def refresh_current_help_v11320(topics, aliases):
     assert len(professions) >= 16 and len(NEW_PROFESSIONS) == 8
     assert len(CLASSES) >= 22
     topics['progresja800'] = [
-        ('Aktualne limity Admin Live: postać '+cap_text('postac')+
+        ('Aktualne progi rozwoju: postać '+cap_text('postac')+
          ', Biegłość klasy '+cap_text('bieglosc')+
          ', Soul '+cap_text('dusza')+
          ', Broń Duszy '+cap_text('bron_duszy')+

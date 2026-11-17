@@ -7,7 +7,7 @@ Nie tworzy nowych tabel bazy ani nie odblokowuje progresji graczom.
 from __future__ import annotations
 
 from world.v10300_era_bez_granic import ERAS
-from systems.live_olc4_boss_phases import validate_boss_phases
+from systems.published_4_boss_phases import validate_boss_phases
 
 
 def raid_phases(slug):

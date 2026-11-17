@@ -87,7 +87,7 @@ RUNTIME_ARCHITECTURE_STATE = load_native_runtime(_ROOT, globals())
 # v51: canonical multi-field quest DRAFT and isolated 22-class comparison.
 
 
-# v54: one Admin Live inspection dashboard, without changes to real combat/EXP.
+# v54: one dawny edytor inspection dashboard, without changes to real combat/EXP.
 
 # v55: actual progressive crafting above 800 with persistent item-ID restore.
 
@@ -552,18 +552,11 @@ else:
         )
     RUNTIME_MEMORY_COMPACTION_V0616["post_audit"] = _memory_post
 
-# v102.00.12: reapply persisted Admin Live caps at each startup for all
-# releases from v52 onwards. A hand-maintained VERSION allowlist ended at
-# v97.00.0, inadvertently restoring default 800 for later builds.
-# Keep this AFTER native imports and authoring audits (baseline 800 required).
-# File LIVE_CONTENT/admin_level_caps.json is protected by the ZIP updater.
-if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
-    try:
-        from core.live_level_caps_v5200 import load as _load_caps_v5200
-        _load_caps_v5200()
-    except (ValueError, OSError) as _caps_load_error_v5200:
-        print('UWAGA admin live limity: odczyt ustawien nie powiodl sie: '
-              + str(_caps_load_error_v5200), flush=True)
+# v114: progression belongs to a deploy-time policy, NOT dawny edytor.
+# The historical cap file is deliberately ignored. Authoring audits above
+# still run against the original static catalogue before this policy applies.
+from core.progression_policy_v114 import install_deploy_policy as _sb_deploy_progression_policy
+_sb_deploy_progression_policy()
 
 # v59 release title after legacy runtime assembly, no content reload.
 
@@ -573,11 +566,11 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 
 # v62 canonical release title. Older dispatchers remain as aliases.
 
-# v63 release title; all earlier Admin Live commands preserved.
+# v63 release title; legacy published data retained.
 
-# v64 release title: all earlier Admin Live commands remain intact.
+# v64 release title: legacy published data retained.
 
-# v65: pass real UOSS status/equipment rules to detached Admin Live LAB only.
+# v65: pass real UOSS status/equipment rules to detached dawny edytor LAB only.
 
 # v66: source helper choice inspection, never live combat.
 
@@ -585,11 +578,11 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 
 # v68: production UOSS helper party target selection, isolated laboratory.
 
-# v69: Admin Live centrum komend NVDA; no live combat or EXP mutation.
+# v69: dawny edytor centrum komend NVDA; no live combat or EXP mutation.
 
-# v70: Admin Live odbior wydania i bramki PREDEPLOY; no live combat or EXP mutation.
+# v70: dawny edytor odbior wydania i bramki PREDEPLOY; no live combat or EXP mutation.
 
-# v70.00.2: Admin Live test tools and deterministic DRAFT corrections.
+# v70.00.2: dawny edytor test tools and deterministic DRAFT corrections.
 
 # v70.00.3: cap-adaptive editor, owner-opt-in scalable shop offers and diagnostics.
 
@@ -601,7 +594,7 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 
 
 
-# v74: correct the runtime release identity and expose new Admin Live help.
+# v74: correct the runtime release identity and expose new dawny edytor help.
 
 
 # v75: native UOSS mechanics and legacy prerequisite removal.
@@ -630,7 +623,7 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 
 # v87: atomic quest + scripted UOSS multi-entity OLC and fresh native arena.
 
-# v88: one atomic, cross-domain plan in the existing Admin Live panel.
+# v88: one atomic, cross-domain plan in the existing dawny edytor panel.
 
 # v89: read-only production publication gate and NVDA-readable global diff.
 
@@ -656,7 +649,7 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 # v96.00.1: audited Windows predeploy historical regressions; no gameplay changes.
 
 
-# v96.00.2: restore both pre-v70 and current Admin Live command grammars.
+# v96.00.2: restore both pre-v70 and current dawny edytor command grammars.
 
 
 
@@ -667,13 +660,13 @@ if tuple(int(piece) for piece in VERSION.split('.')) >= (52, 0, 0):
 # v97: active registry displays cumulative update without altering old version snapshots.
 
 
-# v98: three owner-only Admin Live capabilities in one cumulative package.
+# v98: three owner-only dawny edytor capabilities in one cumulative package.
 
-# v99: five real Admin Live extensions, preserving earlier releases.
+# v99: five real dawny edytor extensions, preserving earlier releases.
 
-# v100: source-backed, explicitly bounded Admin Live additions.
+# v100: source-backed, explicitly bounded dawny edytor additions.
 
-# v102: native full-engine isolated tunnel, declarative mechanic conditions, audited Admin Live.
+# v102: native full-engine isolated tunnel, declarative mechanic conditions, audited dawny edytor.
 
 # v101: three bounded expansions. No code execution or unsafe direct in-session full combat.
 
@@ -800,12 +793,7 @@ if _sb107_runtime_enabled():
     HELP_TOPIC_ALIASES['rozdzialy107'] = 'krainy107'
 
 
-# v107: migrate only untouched legacy 800 defaults after all historical
-# bootstrap/catalogue audits. Custom saved Admin Live caps remain unchanged.
-# This is production-authorized only; no migration runs in staging mode.
-if _sb107_runtime_enabled():
-    from core.live_level_caps_v5200 import activate_v107_uncapped_defaults as _v107_uncap
-    _v107_uncap()
+# v114: legacy live-cap migration intentionally retired; release policy is immutable.
 
 
 # v108: documented, actually routed player commands; no overwritten old topic.

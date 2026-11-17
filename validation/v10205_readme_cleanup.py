@@ -16,7 +16,7 @@ def run() -> int:
         parent = Path(tmp)
         root = parent / 'Soulbound-MUD'
         root.mkdir()
-        (root / 'README_ADMIN_LIVE_PL.txt').write_text('NOWY', encoding='utf-8')
+        (root / 'README_AKTUALNE_ZASADY_PL.txt').write_text('NOWY', encoding='utf-8')
         (root / 'README_MOJE_NOTATKI.txt').write_text('PRYWATNE', encoding='utf-8')
         (root / 'CHANGELOG_PL.txt').write_text('HISTORIA', encoding='utf-8')
         (root / 'soulbound.db').write_text('DB', encoding='utf-8')
@@ -31,7 +31,7 @@ def run() -> int:
         for name in LEGACY_READMES:
             ck(not (root / name).exists(), 'old README removed: ' + name)
             ck((saved / name).read_text(encoding='utf-8') == 'stara instrukcja: ' + name, 'backup byte content: ' + name)
-        ck((root / 'README_ADMIN_LIVE_PL.txt').read_text(encoding='utf-8') == 'NOWY', 'current README preserved')
+        ck((root / 'README_AKTUALNE_ZASADY_PL.txt').read_text(encoding='utf-8') == 'NOWY', 'current README preserved')
         ck((root / 'README_MOJE_NOTATKI.txt').read_text(encoding='utf-8') == 'PRYWATNE', 'custom README preserved')
         ck((root / 'CHANGELOG_PL.txt').read_text(encoding='utf-8') == 'HISTORIA', 'changelog preserved')
         ck((root / 'soulbound.db').read_text(encoding='utf-8') == 'DB', 'database preserved')

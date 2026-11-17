@@ -287,7 +287,7 @@ def archive_mapping(archive: zipfile.ZipFile) -> dict[Path, zipfile.ZipInfo]:
         if k in seen:
             raise UpdateError(f'Powtarzajaca sie nazwa w ZIP: {relative}')
         seen.add(k)
-        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json', 'live_content/v109_release_activation.json', 'live_content/release_current.json'):
+        if relative.as_posix().casefold() in ('live_content/v107_release_activation.json', 'live_content/v108_release_activation.json', 'live_content/v109_release_activation.json', 'live_content/release_current.json', 'config/release_current.json'):
             raise UpdateError('Znaczniki zatwierdzenia v107/v108 moze utworzyc tylko instalator.')
         if protected(relative):
             if relative.name.lower().endswith(SQLITE_SUFFIXES):
@@ -606,7 +606,8 @@ def retire_certified_v111_test_files(root: Path, stage: Path, backup: Path) -> i
     """
     if not (stage/'VERSION').is_file() or (stage/'VERSION').read_text(encoding='utf-8-sig').strip() not in ('111.00.0','112.00.0'):
         return 0
-    old_manifest=backup/'LIVE_CONTENT/release_current.json'
+    old_manifest=backup/'config/release_current.json'
+    if not old_manifest.is_file():old_manifest=backup/'LIVE_CONTENT/release_current.json'
     if not old_manifest.is_file():
         print('V111 porządki: brak poprzedniego manifestu; starych testów nie kasuję.', flush=True)
         return 0
@@ -709,7 +710,7 @@ def _restore_prior_code_after_v108_cutover_failure(root: Path, backup: Path, sta
     # Do not leave it behind when reverting to the previous release.
     for generated in (Path('LIVE_CONTENT/v108_release_activation.json'),
                       Path('LIVE_CONTENT/v109_release_activation.json'),
-                      Path('LIVE_CONTENT/release_current.json')):
+                      Path('LIVE_CONTENT/release_current.json'),Path('config/release_current.json')):
         if not (backup/generated).exists():
             (root/generated).unlink(missing_ok=True)
 

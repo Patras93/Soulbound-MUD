@@ -19,7 +19,7 @@ This module only changes per-award cap, never XP requirements or base rewards.
 def multi_cap_level_increment_v23217(level):
     """Increment earned by reaching *this* level; unbounded integer math."""
     level = max(1, int(level))
-    from systems.live_olc24_revolution import extra_cap_value
+    from systems.published_24_revolution import extra_cap_value
     bonus = extra_cap_value(level)-extra_cap_value(level-1) if level>1 else extra_cap_value(1)
     if level <= 10:
         return 500 + bonus
@@ -34,7 +34,7 @@ def multi_cap_level_value_v23217(level):
     O(1) arithmetic even for extremely high, uncapped statistic levels.
     """
     level = max(1, int(level))
-    from systems.live_olc24_revolution import extra_cap_value
+    from systems.published_24_revolution import extra_cap_value
     bonus = extra_cap_value(level)
     if level <= 10:
         return 500 * level + bonus
@@ -125,7 +125,7 @@ def multi_cap_calculation_v23217(conn, account_id):
     # Default v22: only primary class skills; when explicitly enabled by admin,
     # all learned skills belonging to owned classes can contribute. Non-class
     # skills remain included. Archived classes do not become active in combat.
-    from systems.live_olc22_state import WORLD_OVERRIDES
+    from systems.published_22_state import WORLD_OVERRIDES
     include_owned = bool(WORLD_OVERRIDES.get('multi_cap_all_owned_classes',False))
     owners = _class_skill_owners_v71101()
     primary = str(row[15] or '')
@@ -158,7 +158,7 @@ def multi_cap_calculation_v23217(conn, account_id):
                  for name, v in chunks.items()}
     # Bonuses only. Never decrease baseline contribution, never discard banked XP.
     # v102.00.13: 2x the baseline Multi Cap for every earned track.
-    # Published Admin Live category/global bonuses remain multiplicative on top,
+    # Published dawny edytor category/global bonuses remain multiplicative on top,
     # and setting them to AUTO cannot restore the obsolete lower default.
     cap_parts = {name: (2 * base * category_bonus.get(name,100) * overall_bonus + 9999)//10000
                  for name, base in cap_parts.items()}

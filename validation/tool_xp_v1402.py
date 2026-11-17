@@ -22,6 +22,10 @@ def run_tool_xp_regression_v1402():
     )
     from core.progression_resources import v0190_requirement
     from core.profession_timing import TOOL_ACTION_MIN_SECONDS, profession_action_seconds
+    from player.character import Character  # initialize native catalogs before policy
+    from core.progression_policy_v114 import install_deploy_policy
+    from core.live_level_caps_v5200 import cap
+    install_deploy_policy()
     from core.bootstrap_economy_professions import tool_max_level
 
     errors = []
@@ -80,7 +84,8 @@ def run_tool_xp_regression_v1402():
         prior_required = 0
         prior_points = 0
         old_multiplier = TOOL_XP_REQUIREMENT_MULTIPLIERS.get(kind, 1.0)
-        check(tool_max_level(kind) == 800, f'{kind}: 800 maximum')
+        check(cap('narzedzia') is None and tool_max_level(kind) > 60000,
+              f'{kind}: published v114 has no configured maximum')
         for level in range(1, 800):
             base = v0190_requirement('tool', level)
             old = max(1, int(round(base * old_multiplier)))
@@ -95,7 +100,11 @@ def run_tool_xp_regression_v1402():
             check(got > old,
                   f'{kind} level {level}: v3.31.0 requirement larger at every level')
             prior_required, prior_points = got, point
-        check(required(800, kind) == 0, f'{kind}: maximum has no next level')
+        for level in (800, 801, 1000, 5000, 60000):
+            got = required(level, kind)
+            expected = tool_xp_requirement_v1402(v0190_requirement('tool', level), kind, level)
+            check(got == expected and got > 0,
+                  f'{kind}: real requirement beyond 800 at {level}')
 
     for level in (1, 50, 100, 101, 150, 200, 400, 600, 799):
         fishing = required(level, 'fishing')

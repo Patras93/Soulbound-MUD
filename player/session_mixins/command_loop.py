@@ -24,11 +24,6 @@ class SessionCommandLoopMixin:
             raw = await self.read_line()
             if raw is None:
                 break
-            # v102: auth and commands for the isolated engine bypass the production parser.
-            from systems.admin_live_bridge_v10200 import forward_if_connected
-            if await forward_if_connected(self,raw):
-                continue
-
             if self.smelt_task_active_v1124():
                 _busy_parts = raw.split(maxsplit=1)
                 _busy_token = _busy_parts[0].lower() if _busy_parts else ""
@@ -262,8 +257,6 @@ class SessionCommandLoopMixin:
             self._session_summary = None
 
     async def close(self):
-            from systems.admin_live_bridge_v10200 import disconnect
-            await disconnect(self)
             if self.closed:
                 return
             self.clear_downed_v0371(cancel_task=True)

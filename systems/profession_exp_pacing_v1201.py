@@ -25,7 +25,7 @@ def improved_work_xp(existing, required_next, level, content_level, *, tool=Fals
     # never disable content-aware XP pacing for *higher* unlocked levels.
     if content_level is None or level == 800:
         return minimum
-    content = max(1, min(800, int(content_level or 1)))
+    content = max(1, int(content_level or 1))
     # ~300-1900 meaningful profession actions / ~450-2200 tool actions.
     # Deliberate long-term progression, but not 100,000+ actions per level.
     actions = (450 + int(level * 2.1)) if tool else (300 + int(level * 1.9))
