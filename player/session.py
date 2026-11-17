@@ -218,6 +218,9 @@ class Session(
         This additive wrapper preserves the audited historical
         SessionPerceptionMapsMixin.look AST and all its early returns.
         """
+        if self.character is None:
+            await self.send('Najpierw wybierz postać w menu.')
+            return
         await SessionPerceptionMapsMixin.look(self, query)
         if not str(query or "").strip() and self.character:
             if self.server.world.room_ground_loot(self.character.room_id):

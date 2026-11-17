@@ -1,3 +1,94 @@
+SOULBOUND v114.00.6 — CZYSTY KATALOG BEZ __pycache__ — 17.11.2026
+
+- ZABLOKOWANO GENEROWANIE __pycache__ w glownym serwerze juz przed
+  pierwszym importem modulu gry. Dziala rowniez przy bezposrednim
+  uruchomieniu server.py, w linuxowej usludze systemd i przy restarcie watchdog.
+- WINDOWS: wszystkie istniejace BAT korzystajace z Pythona ustawiaja
+  PYTHONDONTWRITEBYTECODE=1; autostart przez pythonw.exe blokuje
+  zapisywanie .pyc nawet bez uruchamiania BAT.
+- LINUX: istniejące skrypty uzywaja python3 -B; dodano gwarancje
+  bezposrednio w server.py bez zmiany pliku uslugi systemd, wiec
+  aktualizator nie traci mozliwosci kontrolowania istniejacej uslugi.
+- WINDOWS: po zatwierdzonej aktualizacji, kompletnym backupie i zatrzymaniu
+  serwera automatycznie usuwane sa tylko katalogi __pycache__ zawierajace
+  wylacznie pliki .pyc. Inne pliki, linki i katalogi prywatne sa chronione.
+- NIE USUWA sie baz SQLite, logow, EQ, kont, questow ani kopii zapasowych.
+  Zadna mechanika gry ani Soul XP nie została zmieniona.
+- Bez dodatkowych BAT, skryptow uruchomieniowych i edytora Admin Live.
+- Wymagany pelny PREDEPLOY 60/60 PLUS przed wdrozeniem tej wersji.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.5 — HOTFIX WALKI, FIZYCZNEGO EQ I MENU — 17.11.2026
+
+- NAPRAWA WALKI: Przywrócono dwie pominięte funkcje publikowanych mechanik
+  bossów: systems.published_34_integration.boss_pressure i
+  systems.published_32_finale.uoss_phase_multiplier.
+  Zasady faz i wzrostu mocy bossów pozostają identyczne jak w v113;
+  gdy reguła nie jest opublikowana, mnożnik wynosi neutralne 1.0.
+  Test automatycznie kontroluje wszystkie statyczne odwołania do modułów
+  published_32..35, wykrywając brakujące funkcje przed walką.
+- NAPRAWA USUWANIA POSTACI: Zamiast niespójnego DELETE poza mechanizmem
+  fizycznego EQ używany jest sprawdzany adapter transakcyjny z ochroną
+  SQLite (SAVEPOINT, sprawdzenie powiązań i pełny ROLLBACK przy błędzie).
+  Chroni konta logowania, portfele, cudze postacie i fizyczne kopie EQ.
+  Nie usuwa postaci z nierozliczoną przesyłką fizycznego ekwipunku.
+  Archiwalne metody kont pozostawiono bez zmian; naprawę wydzielono do
+  małego modułu storage/character_deletion_safe.py.
+- NAPRAWA MENU POSTACI: Komenda look otrzymuje krótki komunikat,
+  gdy postać nie została jeszcze wybrana. Chroniona historyczna metoda
+  SessionPerceptionMapsMixin.look pozostaje nietknięta.
+- NOWY TEST: validation.current_v11405_emergency_regression sprawdza
+  mnożniki bossów, łącza published_* w silniku, osłonę SQL EQ,
+  usuwanie postaci, wymuszony błąd i ROLLBACK oraz look w menu.
+  Podłączono go do wstępnego PREDEPLOY i szybkiej bramki wydania.
+- ZACHOWANO: Soul XP z v113 i dalszy rozwój ponad 800 (v114.00.4),
+  biegłość Broni Duszy, EXP Bank, 6 graczy i niezależność Windows/Linux.
+  Nie zmieniono bazy produkcyjnej, GitHuba ani opublikowanych ustawień.
+- KONTROLE ROBOCZE: 34/34 emergency PASS, 70/70 postaci PASS,
+  47 testów wipe/najemnicy PASS, 38 testów aktualizatora PASS,
+  298 chronionych metod AST PASS, 310/310 kontrakt publikacji PASS.
+  Pełne 60/60 PLUS na Windows NIE zostało wykonane dla v114.00.5.
+- NIE WDRAŻAĆ bez nowego Windows PREDEPLOY 60/60 PLUS dla tego ZIP-a.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.4 — NAPRAWA HISTORYCZNEGO TESTU PROGRESJI SOUL XP — 17.11.2026
+
+- Naprawiono blokujący FAIL etapu 31/60 PREDEPLOY v114.00.3:
+  810 błędnych oczekiwań historycznej regresji v1407 sprawdzało
+  eksperymentalną krzywą v106, mimo przywrócenia produkcyjnej v113.
+- Etap 31 weryfikuje teraz odrębnie historyczne wymagania v113 Soul XP
+  (poziomy 1–800) i rosnącą kontynuację v114 powyżej 800.
+- Równocześnie pilnuje konkretnej wartości Soul Level 240:
+  1 066 673 281 000 wymaganych Soul XP; nagroda 15 646 770 816 XP
+  nie może przeskoczyć poziomu ani Tieru.
+- Zachowano pełne 57 tys. kontroli historycznej progresji, biegłości,
+  profesji i statystyk. Nie pominięto etapu 31 ani nie wyłączono bramki.
+- Zmieniono tylko test etapu 31, VERSION i changelog; nie zmieniono
+  rozgrywki, algorytmu Soul XP, nagród, EXP Banku, biegłości Broni Duszy,
+  ekwipunku, postaci, zapisanej SQLite ani mechaniki Windows/Linux.
+- Naprawa startu opublikowanego świata z v114.00.2 pozostaje zachowana.
+- WYMAGANY NOWY Windows PREDEPLOY 60/60 PLUS. Poprzedni FAIL v114.00.3
+  nie zatwierdza v114.00.4 do wdrożenia. GitHub i produkcja bez zmian.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND v114.00.3 — PRZYWRÓCENIE TEMPA SOUL XP Z V113 — 17.11.2026
+
+- POPRAWKA: wersja v114.00.0 bezwiednie uruchamiała testową krzywą Soul XP z
+  v106, chociaż wcześniej wymagała jawnego SOULBOUND_V106_STAGING=1.
+- Przywrócono produkcyjne koszty Soul Level 1–800 z v113. W szczególności
+  poziom 240 wymaga 1 066 673 281 000 EXP zamiast 274 836.
+- Ponad 800 utrzymano rozwój bez ustawionego limitu, z ciągłą rosnącą krzywą
+  zakotwiczoną w oryginalnym wymaganiu poziomu 800; bez skoku w dół.
+- NOWY obowiązkowy test sprawdza brak przeskakiwania Tierów po nagrodzie
+  15 646 770 816 Soul XP na poziomie 240 oraz historyczne progi 1–800.
+- Nie zmieniono samych nagród za zabicie, EXP Banku, bonusów drużyny,
+  biegłości Broni Duszy, EQ, klasy, progów odblokowania Tierów, zapisów SQLite.
+- Nie cofamy zdobytych już poziomów, Tierów ani posiadanego Soul XP.
+- Bez Admin Live i bez LIVE_CONTENT. Kod wspólny Windows/Linux.
+- Wymagany OSOBNY pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+- GitHub i instalacja produkcyjna nie zostały zmienione podczas przygotowania.
+
+--- POPRZEDNI CHANGELOG ---
 SOULBOUND v114.00.2 — AWARYJNY HOTFIX STARTU OPUBLIKOWANEGO ŚWIATA — 17.11.2026
 
 - Naprawiono AttributeError: PublishedWorldContent nie miał pola _undo podczas

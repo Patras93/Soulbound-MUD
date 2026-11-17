@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parent
 CHECKS = (
     ("validation.v11400_soul_infinite_regression", "unittest"),
     ("validation.current_unbounded_progression_v114_regression", "module"),
+    ("validation.current_soul_v113_pacing_v11403_regression", "module"),
+    ("validation.current_v11405_emergency_regression", "module"),
+    ("validation.current_nopycache_v11406_regression", "module"),
     ("validation.v11400_xp_late_continuation_regression", "module"),
     ("validation.current_saved_content_compatibility_regression", "module"),
     ("validation.current_published_nonempty_startup_regression", "module"),

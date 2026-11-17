@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 from storage.db_schema import DatabaseSchemaMixin
 from storage.db_accounts import DatabaseAccountsMixin
+from storage.character_deletion_safe import SafeCharacterDeletionMixin
 from storage.db_world import DatabaseWorldMixin
 from storage.db_inventory import DatabaseInventoryMixin
 from storage.db_progression import DatabaseProgressionMixin
@@ -188,6 +189,7 @@ def ensure_admin_error_status_v1371(conn):
 
 
 class Database(
+    SafeCharacterDeletionMixin,
     DatabaseTitansV2100Mixin,
     DatabaseExperienceBankV2011Mixin,
     DatabaseWorldCrisesV1220Mixin,

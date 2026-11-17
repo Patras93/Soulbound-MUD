@@ -621,17 +621,14 @@ def soul_xp_to_next(level):
     level = max(1, min(runtime_max, int(level)))
     if level >= runtime_max:
         return 0
-    # v106 STAGING: Soul XP 1..799 liczone względem istniejących nagród
-    # potworów; pomost 800..29999 i nowa era 30000..59999. Żadna ze
-    # zmian nie dotyczy produkcyjnej krzywej bez flagi staging.
+    # v114.00.3: PROD uses the historic v113 Soul XP requirements through
+    # Soul Level 800. v114.00.0 accidentally enabled the experimental v106
+    # 1..59999 curve for every deployed user, reducing level-240 cost by
+    # millions of times and making Soul Tiers rush forward.
+    # The explicit staging switch remains available for isolated historical
+    # tests; it is NEVER implied by an unlimited Soul Level policy.
     import os as _v106_os
-    # v114 deploy policy: apply the already-authored and tested v106 Soul XP
-    # bridge in normal gameplay after the post-bootstrap unlimited policy is
-    # active. This needs NO SOULBOUND_V106_STAGING flag in production. The full
-    # v106 early curve is continuous with its 800+ bridge and 30000+ era.
-    from core.live_level_caps_v5200 import cap as _v114_cap
-    _v114_soul_deployed = _v114_cap('dusza') is None
-    if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1' or _v114_soul_deployed:
+    if _v106_os.environ.get('SOULBOUND_V106_STAGING') == '1':
         if 1 <= level < 800:
             from systems.soul_xp_early_v10600 import requirement as _v106_early
             from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
@@ -645,14 +642,26 @@ def soul_xp_to_next(level):
         if 30000 <= level < 60000:
             from systems.soul_xp_curve_v10600 import requirement as _v106_requirement
             return _v106_requirement(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
-    if level >= 60_000:
-        from systems.soul_xp_unbounded_v114 import requirement as _v114_soul_requirement
-        return _v114_soul_requirement(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
-    authored = _late_game_axis_requirement(
-        "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
-    )
+        if level >= 60000:
+            from systems.soul_xp_unbounded_v114 import requirement as _staged_unbounded
+            return _staged_unbounded(level, SOUL_XP_REQUIREMENT_MULTIPLIER)
+
     from systems.soul_xp_bands_v10402 import requirement as _v10402_soul_requirement
-    return _v10402_soul_requirement(level, authored)
+    # v113 production curve, byte-for-byte for 1..800 (with any configured
+    # historical band percentage). Existing Soul Levels/tiers are not edited.
+    if level <= 800:
+        authored = _late_game_axis_requirement(
+            "soul", level, SOUL_XP_REQUIREMENT_MULTIPLIER
+        )
+        return _v10402_soul_requirement(level, authored)
+    # No sudden collapse from the v113 cost at 800 to the tiny staged v106
+    # bridge at 801. Extend from that exact historic requirement using
+    # integer-only O(1) maths and the existing SQLite overflow guard.
+    from systems.soul_xp_unbounded_v114 import historical_continuation_v11403
+    at_800 = _v10402_soul_requirement(
+        800, _late_game_axis_requirement('soul', 800, SOUL_XP_REQUIREMENT_MULTIPLIER)
+    )
+    return historical_continuation_v11403(level, at_800)
 
 def class_type_for_name(class_name):
     from core.classes_skills import CLASSES

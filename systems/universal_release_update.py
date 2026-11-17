@@ -198,6 +198,42 @@ def restart_windows_without_console(launcher=None, *, installed_root=None) -> in
     return int(completed.returncode)
 
 
+def retire_generated_bytecode_caches(root: Path) -> tuple[int, int]:
+    """Remove only disposable .pyc files after successful in-place publication.
+
+    Never traverse links, touch saved data, or delete folders with unknown files.
+    Called after the verified full backup and while the server is stopped.
+    """
+    root = Path(root).resolve(strict=True)
+    allowed = {'core', 'systems', 'player', 'world', 'storage', 'config',
+               'data', 'events', 'network', 'server', 'server_parts_v109',
+               'admin', 'validation', 'narzedzia'}
+    candidates = [root] + [root / name for name in sorted(allowed)
+                           if (root / name).is_dir() and not (root / name).is_symlink()]
+    removed_files = removed_dirs = 0
+    for subtree in candidates:
+        for cache in sorted(subtree.rglob('__pycache__'), key=lambda p: len(p.parts), reverse=True):
+            if cache.is_symlink() or not cache.is_dir():
+                continue
+            if any(parent.is_symlink() for parent in cache.parents if parent != root):
+                continue
+            if subtree == root and cache.parent != root:
+                continue  # root scan is intentionally non-recursive
+            entries = list(cache.iterdir())
+            if any(not entry.is_file() or entry.is_symlink()
+                   or entry.suffix.lower() != '.pyc' for entry in entries):
+                continue
+            try:
+                for file in entries:
+                    file.unlink()
+                    removed_files += 1
+                cache.rmdir()
+                removed_dirs += 1
+            except OSError as exc:
+                print('UWAGA: nie udalo sie sprzatnac '+str(cache)+': '+str(exc), flush=True)
+    return removed_dirs, removed_files
+
+
 def update(root, archive_path, new_version, mapping, *,restart=True):
     """Replace code IN PLACE after backup and full candidate verification; keep player data."""
     import shutil
@@ -273,6 +309,11 @@ def update(root, archive_path, new_version, mapping, *,restart=True):
         # Never create Soulbound-MUD_V..._NOWA. The existing path is stable.
         publish_in_place(stage,root,backup,protected)
         installed=True
+        try:
+            caches, bytecodes = retire_generated_bytecode_caches(root)
+            print(f'PYTHON CACHE: usunieto {caches} katalogow __pycache__ i {bytecodes} plikow .pyc.', flush=True)
+        except OSError as exc:
+            print('UWAGA: sprzatanie __pycache__ niezakonczone: '+str(exc), flush=True)
         print('AKTUALIZACJA W MIEJSCU PASS: v'+new_version+'; katalog: '+str(root),flush=True)
         print('Dane graczy nietkniete; zbadane bazy: '+str(report['sqlite_files'])+
               '; tabele: '+str(report['tables_checked']),flush=True)

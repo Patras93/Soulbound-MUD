@@ -5,6 +5,8 @@ Used by the Windows BAT shortcuts. Requires Python 3.12+. No third-party modules
 """
 from __future__ import annotations
 
+import sys
+sys.dont_write_bytecode = True  # v114.00.6: direct pythonw startup
 from datetime import datetime
 import json
 import os

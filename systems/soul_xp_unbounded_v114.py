@@ -20,3 +20,22 @@ def requirement(level, multiplier):
     if total > SAFE_INT:
         raise OverflowError('Progi Soul XP przekraczaja techniczny zakres SQLite.')
     return total
+
+
+def historical_continuation_v11403(level, historic_level_800):
+    """Keep v113's Soul-XP difficulty after 800 without a 9e18 flatline.
+
+    A slow linear extension avoids reward/requirement jumps and remains O(1).
+    Technical overflow is reported instead of corrupting a SQLite int64.
+    """
+    if type(level) is not int or level <= 800:
+        raise ValueError('Kontynuacja v114.00.3 wymaga Soul Level > 800.')
+    if type(historic_level_800) is not int or historic_level_800 <= 0:
+        raise ValueError('Nieprawidlowy historyczny prog Soul XP 800.')
+    # One million levels of growth fit within the supported integer range at
+    # the current authored baseline; do not round via float at high levels.
+    step = max(1, historic_level_800 // 100_000)
+    required = historic_level_800 + (level - 800) * step
+    if required > SAFE_INT:
+        raise OverflowError('Progi Soul XP przekraczaja techniczny zakres SQLite.')
+    return required

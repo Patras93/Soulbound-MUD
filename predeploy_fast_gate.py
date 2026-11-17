@@ -91,6 +91,9 @@ def run():
     env['SOULBOUND_V106_STAGING']='1'
     for module in ('validation.v11400_soul_infinite_regression',
                    'validation.current_unbounded_progression_v114_regression',
+                   'validation.current_soul_v113_pacing_v11403_regression',
+                   'validation.current_v11405_emergency_regression',
+                   'validation.current_nopycache_v11406_regression',
                    'validation.v11400_xp_late_continuation_regression',
                    'validation.current_saved_content_compatibility_regression',
                    'validation.current_published_nonempty_startup_regression',
