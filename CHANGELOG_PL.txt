@@ -1,3 +1,55 @@
+SOULBOUND MUD v114.00.9 — SZYBSZY PREDEPLOY, PELNE 60/60 PLUS — 18.11.2026
+
+- Usunieto niepotrzebna bariere miedzy 60/60 PLUS a piecioma obowiazkowymi
+  testami v105, fizycznego EQ i szesciu graczy TCP. Testy dzialaja na
+  odseparowanych kopiach kodu, wlasnych SQLite i portach localhost.
+- Dlugie testy pelnego audytu, 5/6 graczy TCP, bossow i balansowe startuja
+  wczesniej, w RAM-bezpiecznej kolejce obejmujacej MAKSYMALNIE 8 procesow.
+- Wszystkie 60 etapow PLUS, 3 dodatkowe v105, fizyczne EQ, 6 osob TCP oraz
+  uniwersalne bramki sa nadal OBOWIAZKOWE, liczone dokladnie raz.
+- Przy FAIL, timeout lub przerwaniu wynik jest odmowny, bez sztucznego PASS.
+- Log nadal rozroznia ETAP 1..60 i DODATKOWE 1..5; brak nowego BAT-a,
+  manifestow historycznych lub potrzeby starych wersji do aktywacji.
+- Nowa regresja kolejki sprawdza komplet 65 zadan, kolejnosc, izolacje,
+  bezpieczna liczbe procesow i FAIL testu szesciu graczy.
+- Bez zmian gameplay, bazy SQLite, Soul XP, ekwipunku, kont i watchdoga.
+- Dotychczasowe 60/60 PASS wersji v114.00.8 NIE zatwierdza tej paczki.
+  Wymagany nowy, pelny Windows PREDEPLOY 60/60 PLUS i test realnego TCP.
+- Produkcja i GitHub bez zmian na etapie przygotowania.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND MUD v114.00.8 — NAPRAWA TESTU PREDEPLOY WINDOWS — 18.11.2026
+
+- Naprawiono FAIL wstepnej kontroli na Windows w v114.00.7:
+  validation.current_nopycache_v11406_regression, linia 99.
+- Przyczyna: test tworzyl dokument przez Path.write_text(), ktore na
+  Windows zmienialo LF na CRLF; SHA256 przestawal odpowiadac bajtom
+  oryginalnego dokumentu. Bezpieczny cleaner slusznie go nie usuwal.
+- Test zapisuje obecnie dokladne bajty oryginalu przez write_bytes();
+  osobno sprawdza, ze zmodyfikowany wariant CRLF nie jest kasowany.
+- Nie oslabiono sprawdzania SHA256 ani ochrony dokumentow uzytkownika.
+- Nie zmieniano uruchamiania gry, watchdoga, aktualizatora, Soul XP,
+  EQ, postaci, walki, bazy ani zawartosci swiata.
+- Dla nowego ZIP wymagane odrebne Windows PREDEPLOY 60/60 PLUS.
+- GitHub i serwer produkcyjny pozostaja bez zmian.
+
+--- POPRZEDNI CHANGELOG ---
+SOULBOUND MUD v114.00.7 — AUTOSTART BEZ __pycache__ I PORZADKI — 18.11.2026
+
+- Naprawiono brak dziedziczenia PYTHONDONTWRITEBYTECODE=1 w bezokienkowym
+  uruchamianiu Windows przez pythonw.exe, watchdog i proces serwera.
+- Wymuszono brak tworzenia .pyc rowniez przy samodzielnym uruchomieniu
+  supervisor_windows.py, host_windows.py oraz start_windows_bootstrap.py.
+- Usunieto z obu kompletnych wydan 2 nieaktualne dokumenty robocze:
+  v114_REMOVED_EDITOR_FILES_AUDIT.txt oraz v114_WORK_IN_PROGRESS.txt.
+- Dzialajacy aktualizator nie instaluje tych dokumentow, a przy aktualizacji
+  usuwa dotychczasowe tylko po backupie i sprawdzeniu oryginalnego SHA256.
+  Wlasne lub zmienione dokumenty uzytkownika pozostaja bez zmian.
+- Ochrona i sprzatanie __pycache__ z v114.00.6 pozostaja aktywne.
+- Bez zmian rozgrywki, Soul XP, bossow, ekwipunku, bazy i kont.
+- Wymagany nowy pelny Windows PREDEPLOY 60/60 PLUS, poprzedni PASS nie wystarcza.
+
+--- POPRZEDNI CHANGELOG ---
 SOULBOUND v114.00.6 — CZYSTY KATALOG BEZ __pycache__ — 17.11.2026
 
 - ZABLOKOWANO GENEROWANIE __pycache__ w glownym serwerze juz przed
