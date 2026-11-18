@@ -109,7 +109,7 @@ def main() -> int:
         interpreter = str(pythonw if pythonw.is_file() else Path(sys.executable))
         flags = getattr(subprocess, 'DETACHED_PROCESS', 0) | getattr(subprocess, 'CREATE_NEW_PROCESS_GROUP', 0) | getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         env = os.environ.copy()
-        env.update({'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8', 'PYTHONUNBUFFERED': '1', 'SOULBOUND_LOG_DIR': str(LOGS)})
+        env.update({'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8', 'PYTHONUNBUFFERED': '1', 'PYTHONDONTWRITEBYTECODE': '1', 'SOULBOUND_LOG_DIR': str(LOGS)})
         process = subprocess.Popen(
             [interpreter, '-u', str(ROOT / 'supervisor_windows.py')],
             cwd=str(ROOT), env=env, stdin=subprocess.DEVNULL,

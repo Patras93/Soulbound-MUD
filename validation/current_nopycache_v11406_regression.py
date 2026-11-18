@@ -34,6 +34,23 @@ def run():
         text=s.read_text(encoding='utf-8'); head=text.split('from datetime import datetime',1)[0]
         assert 'sys.dont_write_bytecode = True' in head
         checks+=1
+        # v114.00.7: pythonw autostart launches a SECOND Python interpreter.
+        # The v114.00.6 guard only lived in the parent and could not prevent
+        # watchdog/local imports from creating __pycache__ again.
+        assert "'PYTHONDONTWRITEBYTECODE': '1'" in text, 'pythonw child must inherit flag'
+        checks+=1
+        for guarded, local_import in (
+            ('supervisor_windows.py', 'windows_launcher_state'),
+            ('host_windows.py', 'soulbound_backup_windows'),
+            ('start_windows_bootstrap.py', None),
+        ):
+            source=(ROOT/guarded).read_text(encoding='utf-8')
+            before=source.split('from '+local_import+' import',1)[0] if local_import else source.split('import runpy',1)[0]
+            assert 'sys.dont_write_bytecode = True' in before,guarded
+            checks+=1
+        host=(ROOT/'host_windows.py').read_text(encoding='utf-8')
+        assert '"PYTHONDONTWRITEBYTECODE": "1"' in host.split('process = subprocess.Popen',1)[0]
+        checks+=1
         for bat in ROOT.glob('*.bat'):
             assert 'PYTHONDONTWRITEBYTECODE=1' in bat.read_text(encoding='utf-8'),bat.name
             checks+=1
@@ -58,6 +75,44 @@ def run():
         unit=(ROOT/'systems/linux_release.py').read_text(encoding='utf-8')
         assert "'ExecStart='+exe+' -u '" in unit  # service compatibility unchanged
         checks+=1
+    # Candidate development notes must not be installed, even if present
+    # in an untrusted archive. Remove only exact known old bytes from disk.
+    from aktualizuj_soulbound import production_release_mapping
+    note_names=('v114_REMOVED_EDITOR_FILES_AUDIT.txt','v114_WORK_IN_PROGRESS.txt')
+    assert not any((ROOT/name).exists() for name in note_names)
+    checks+=1
+    sample={Path(name):None for name in (*note_names,'server.py','VERSION')}
+    selected=production_release_mapping(sample)
+    assert set(selected)=={Path('server.py'),Path('VERSION')}
+    checks+=1
+    from release_readme_cleanup import cleanup_legacy_readmes,V114_CANDIDATE_ONLY_NOTES
+    legacy_note=('KANDYDAT v114.00.0. NIE WDRAZAC bez realnego PREDEPLOY 60/60 PLUS.\n'
+                 'Pelny aktualny status w CZYTAJ_NAJPIERW_V114_PL.txt.\n')
+    import hashlib
+    assert hashlib.sha256(legacy_note.encode('utf-8')).hexdigest()==V114_CANDIDATE_ONLY_NOTES['v114_WORK_IN_PROGRESS.txt']
+    checks+=1
+    with tempfile.TemporaryDirectory(prefix='sb11407_notes_') as tmp:
+        home=Path(tmp); root=home/'Soulbound-MUD';root.mkdir()
+        # Explicit bytes are essential: Path.write_text on Windows may
+        # translate LF to CRLF, changing the protected SHA256. The prior
+        # test then incorrectly expected an edited file to be deleted.
+        old=root/note_names[1]
+        old.write_bytes(legacy_note.encode('utf-8'))
+        assert hashlib.sha256(old.read_bytes()).hexdigest() == V114_CANDIDATE_ONLY_NOTES[note_names[1]]
+        edited=root/note_names[0];edited.write_text('ZMIENIONY PLIK — NIE USUWAJ',encoding='utf-8')
+        retired,saved=cleanup_legacy_readmes(root,home/'archive')
+        assert retired==[note_names[1]] and not old.exists(),retired
+        assert (saved/note_names[1]).read_text(encoding='utf-8')==legacy_note
+        assert edited.is_file() and edited.read_text(encoding='utf-8')=='ZMIENIONY PLIK — NIE USUWAJ'
+        checks+=4
+        # A CRLF-normalized file really has different bytes. Retain it
+        # rather than silently deleting locally modified documentation.
+        crlf_note=legacy_note.replace('\n','\r\n').encode('utf-8')
+        old.write_bytes(crlf_note)
+        retired_crlf, saved_crlf=cleanup_legacy_readmes(root,home/'another_archive')
+        assert retired_crlf==[] and saved_crlf is None
+        assert old.read_bytes()==crlf_note
+        checks+=2
     # Real module import without -B, env flag, or PYCACHEPREFIX, under an isolated path.
     # A sibling python module imported after the early guard cannot create __pycache__.
     with tempfile.TemporaryDirectory(prefix='sb11406_import_') as work:
@@ -71,7 +126,7 @@ def run():
                          capture_output=True,text=True,timeout=15)
         assert p.returncode==0,(p.returncode,p.stderr);checks+=1
         assert not (root/'__pycache__').exists();checks+=1
-    print(f'NO PYCACHE v114.00.6: {checks} controls PASS')
+    print(f'NO PYCACHE v114.00.8: {checks} controls PASS')
     return 0
 
 

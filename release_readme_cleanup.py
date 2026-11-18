@@ -25,6 +25,13 @@ LEGACY_READMES = (
 )
 
 
+# Exact bytes from v114.00.6; other similarly named files are user-owned.
+V114_CANDIDATE_ONLY_NOTES = {
+    'v114_REMOVED_EDITOR_FILES_AUDIT.txt': '1b63084a6ad11c06db65d4e4835f9ff501e4e302909e304c03ba0a1c48a3a53b',
+    'v114_WORK_IN_PROGRESS.txt': '14b4291d8eefca4811d49b4df14e0817854176772b2f302305ba05f34498598f',
+}
+
+
 class ReadmeCleanupError(RuntimeError):
     pass
 
@@ -38,7 +45,7 @@ def _sha(path: Path) -> str:
 
 
 def cleanup_legacy_readmes(root: Path, backup: Path | None = None) -> tuple[list[str], Path | None]:
-    """Backup and unlink only 8 exact basenames in root; idempotent.
+    """Backup and unlink historical readmes and exactly authenticated v114 notes.
 
     If backup is None, create a timestamped sibling backup, not a directory
     inside the installation. Never follow symlinks (including backup paths).
@@ -48,6 +55,10 @@ def cleanup_legacy_readmes(root: Path, backup: Path | None = None) -> tuple[list
     if not root.is_dir() or root.is_symlink():
         raise ReadmeCleanupError('Niepoprawny folder gry; sprzatanie anulowane.')
     old = [root / name for name in LEGACY_READMES if (root / name).exists() or (root / name).is_symlink()]
+    for name, expected in V114_CANDIDATE_ONLY_NOTES.items():
+        candidate = root / name
+        if candidate.is_file() and not candidate.is_symlink() and _sha(candidate) == expected:
+            old.append(candidate)
     if not old:
         return [], None
     for src in old:

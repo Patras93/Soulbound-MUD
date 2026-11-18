@@ -382,8 +382,34 @@ AVAILABLE_RAM_AT_START = available_predeploy_memory_bytes()
 PARALLEL_WORKERS = recommended_predeploy_workers(available_bytes=AVAILABLE_RAM_AT_START)
 
 
+def critical_path_stage_order(stages, *, post60_count=0, phase='ETAP'):
+    """Schedule independent long gates early; preserve original proof indices.
+
+    No gate is cached, skipped, merged, or replaced. All workers continue to
+    use disposable per-worker copies plus a fresh SQLite/localhost scratch.
+    """
+    indices=list(range(len(stages)))
+    if phase == 'ETAP' and post60_count:
+        if post60_count < 1 or len(stages)-post60_count != len(STAGES):
+            raise ValueError('Nieprawidlowy zestaw bramek PREDEPLOY')
+        priority=(
+            'SZYBKI PREDEPLOY',
+            'PELNY AUDYT',
+            '5 KLIENTOW TCP + RESTART',
+            'V105 BOSSOWIE TCP 5 KLIENTOW / QUEST I NAGRODY',
+            'SZESC GRACZY TCP, QUESTY I RESTART',
+            'V105 KATALOGI I BALANS',
+        )
+        ordered=[i for title in priority for i,item in enumerate(stages)
+                 if item[0]==title]
+        return ordered+[i for i in indices if i not in ordered]
+    if phase == 'ETAP':
+        indices.sort(key=lambda index: stages[index][0] == '5 KLIENTOW TCP + RESTART')
+    return indices
+
+
 def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
-                        max_workers=PARALLEL_WORKERS):
+                        max_workers=PARALLEL_WORKERS, post60_count=0):
     """Run every mandatory gate exactly once, fail closed, with isolated roots.
 
     Return results in the original stage order. Each worker owns its private
@@ -395,21 +421,18 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
         return []
     workers = min(max(1, max_workers), len(stages))
     pending = queue.Queue()
-    indices = list(range(len(stages)))
-    if phase == 'ETAP':
-        # Run the five-player TCP proof after independent short stages, but in
-        # parallel with any still-running audit. Preserve all stage indices.
-        indices.sort(key=lambda index: stages[index][0] == '5 KLIENTOW TCP + RESTART')
+    indices = critical_path_stage_order(stages, post60_count=post60_count,
+                                        phase=phase)
+    old_gate_count = len(stages) - post60_count
     for index in indices:
         pending.put(index)
     results = [None] * len(stages)
     report_lock = threading.Lock()
     abort = threading.Event()  # first hard FAIL stops queued and running stages
-    # The five-client TCP gate uses an isolated worker copy, its own temporary
-    # SQLite and localhost port. Queue it after the other short stages, but do
-    # not wait for the unrelated full audit to finish: that old barrier added
-    # the whole TCP runtime to the critical path for no shared-state reason.
-    # Completion remains mandatory and any failure still invalidates 60/60.
+    # Five-client TCP and six-client TCP/boss gates use isolated worker copies,
+    # scratch SQLite and separate localhost ports. On future releases they may
+    # start before unrelated short audits. Historical releases retain their
+    # previous queue order. No proof is accepted before every gate finishes.
     # v113.00.30: return to real concurrent progression. A Windows 11
     # measurement found that limiting all non-audit stages to two slots while
     # the long audits run INCREASED overall PREDEPLOY from ~29 to ~36 minutes.
@@ -443,7 +466,10 @@ def run_parallel_stages(stages, say, *, phase='ETAP', staging_v106=False,
                     if abort.is_set():
                         raise RuntimeError('Przerwano: poprzedni etap FAIL')
                     with report_lock:
-                        say(f'\nSTART: {phase} {index + 1}/{len(stages)}: {title} [{script}]')
+                        gate_group=('DODATKOWE' if post60_count and index>=old_gate_count else phase)
+                        gate_index=(index-old_gate_count+1 if post60_count and index>=old_gate_count else index+1)
+                        gate_total=(post60_count if post60_count and index>=old_gate_count else old_gate_count)
+                        say(f'\nSTART: {gate_group} {gate_index}/{gate_total}: {title} [{script}]')
                     if not (root / script.split()[0]).is_file():
                         output_lines.append('FAIL: Brak wymaganego pliku: ' + script)
                         code = 2
@@ -623,7 +649,7 @@ def main():
         # 60 PLUS gates. A missing import/new release regression must fail fast;
         # successful preflight is retained as the exact required first future
         # gate and is NOT run again after the 60. EQ and authenticated TCP
-        # remain mandatory after the legacy gate. No PASS is issued early.
+        # remain mandatory, but can overlap legacy tests. No PASS is issued early.
         universal_preflight = None
         if tuple(map(int, candidate_version.split('.'))) > (112, 0, 0):
             say('PRZED 60 PLUS: 25 aktualnych bramek uniwersalnych (fail-fast).')
@@ -641,26 +667,16 @@ def main():
             say('UNIWERSALNE BRAMKI PRZED 60 PLUS: PASS; test nie bedzie powtarzany.')
         ram_msg = ('nieznany' if AVAILABLE_RAM_AT_START is None else
                    f'{AVAILABLE_RAM_AT_START / (1024 ** 3):.1f} GiB')
-        say('PLAN CPU: 60/60 PLUS w izolowanych kopiach; test 5 TCP '
-            'rownolegle z koncowka pelnego audytu, bez czekania na niego. '
-            'Obowiazkowe wszystkie etapy, bez pomijania.')
+        say('PLAN CPU: 60/60 PLUS oraz wymagane dodatkowe testy TCP, EQ i SQLite '
+            'w osobnych kopiach; dlugie testy na poczatku, bez pomijania bramek.')
         say(f'TRYB: {PARALLEL_WORKERS} izolowane kopie kodu; '
             f'{os.cpu_count() or 2} watkow CPU, wolny RAM {ram_msg}; '
             '60/60 PLUS bez pomijania, przerwanie po pierwszym FAIL.')
-        try:
-            status = run_parallel_stages(STAGES, say)
-        except KeyboardInterrupt:
-            say('PRZERWANO: CTRL+C, nie wydawaj tej wersji jako PASS')
-            status.append(('RECZNIE PRZERWANE', 130))
-        except BaseException as exc:
-            say('BLAD TESTERA: '+type(exc).__name__+': '+str(exc))
-            say(traceback.format_exc().strip())
-            status.append(('BLAD TESTERA', 99))
-        # All mandatory v105 / EQ / authenticated TCP checks operate on
-        # mutually isolated worker roots, scratch SQLite and localhost ports.
-        # Starting the five v113+ checks together removes an unnecessary
-        # sequential barrier without skipping a single assertion or changing
-        # the final fail-closed proof. Historical versions keep their lanes.
+        # Future releases run the same 60 old gates AND the five independent
+        # mandatory additional gates as ONE capped 8-worker batch. The long
+        # TCP/audit/boss tests can start immediately after the fail-fast checks;
+        # there is no second serial wave after 60/60. Results are still split
+        # into identical historical and additional proof identities.
         v105_extra=[]
         future_post60=[]
         candidate_number = tuple(map(int, candidate_version.split('.')))
@@ -673,14 +689,28 @@ def main():
             ('FIZYCZNE EQ NA KOPII BAZY', 'validation/v10800_v107_equipment_compat_gate.py',1200),
             ('SZESC GRACZY TCP, QUESTY I RESTART', 'validation/v11000_tcp_six_players.py',900),
         )
-        if len(status)==60 and all(code==0 for _,code in status):
-            if candidate_number > (112,0,0):
-                additional=run_parallel_stages(v105_stages+future_stages,
-                                               say, phase='DODATKOWE', max_workers=5)
+        future_batch = candidate_number > (112,0,0)
+        all_gates = STAGES+(v105_stages+future_stages if future_batch else ())
+        if future_batch:
+            say('HARMONOGRAM: 60 PLUS i 5 dodatkowych bramek w jednym limicie '
+                f'{PARALLEL_WORKERS} izolowanych procesow; nic nie jest pomijane.')
+        try:
+            all_results=run_parallel_stages(
+                all_gates,say,post60_count=5 if future_batch else 0)
+            status=all_results[:len(STAGES)]
+            if future_batch:
+                additional=all_results[len(STAGES):]
                 v105_extra=additional[:3]
                 future_post60=additional[3:]
-            else:
-                v105_extra=run_parallel_stages(v105_stages, say, phase='V105')
+        except KeyboardInterrupt:
+            say('PRZERWANO: CTRL+C, nie wydawaj tej wersji jako PASS')
+            status.append(('RECZNIE PRZERWANE', 130))
+        except BaseException as exc:
+            say('BLAD TESTERA: '+type(exc).__name__+': '+str(exc))
+            say(traceback.format_exc().strip())
+            status.append(('BLAD TESTERA', 99))
+        if not future_batch and len(status)==60 and all(code==0 for _,code in status):
+            v105_extra=run_parallel_stages(v105_stages, say, phase='V105')
         # v106: Mandatory release-candidate checks. The 60 legacy stages run
         # with the historical defaults and cannot validate new staging-only v106.
         # Never advertise 60/60 PASS without exercising real v106 gameplay.

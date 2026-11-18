@@ -52,6 +52,8 @@ def run():
     parallel_test()
     from validation.current_predeploy_historical_parallel_regression import run_regression as historic_parallel_test
     historic_parallel_test()
+    from validation.current_predeploy_critical_path_regression import run_regression as critical_path_test
+    critical_path_test()
     # This exact regression previously raised AttributeError: ground_loot.
     engine_checks=engine_test()
     print(f'KONTROLA WSTEPNA: silnik i odswiezanie swiata PASS ({engine_checks})',flush=True)

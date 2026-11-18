@@ -7,6 +7,8 @@ STOP; a crashed server exits without such request and is restarted with backoff.
 """
 from __future__ import annotations
 
+import sys
+sys.dont_write_bytecode = True  # v114.00.7: prevent cache writes before game imports
 import ctypes
 from datetime import datetime
 import hashlib

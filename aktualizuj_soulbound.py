@@ -74,7 +74,8 @@ V111_CANDIDATE_ONLY_ROOT_FILES = frozenset({
 # Mandatory PREDEPLOY-only launchers live in the full release ZIP, never in
 # the installed runtime. Their validation imports are intentionally absent
 # from the live code subset. This contract is version-neutral.
-CURRENT_PREDEPLOY_ONLY_ROOT_FILES = frozenset({'predeploy_fast_gate.py'})
+CURRENT_PREDEPLOY_ONLY_ROOT_FILES = frozenset({'predeploy_fast_gate.py',
+    'v114_REMOVED_EDITOR_FILES_AUDIT.txt', 'v114_WORK_IN_PROGRESS.txt'})
 
 
 # Current runtime uses systems.runtime_activation only. Historical activators

@@ -72,7 +72,7 @@ def run_regression():
             recorded=[]
             def fake_run_batch(stages, say, **kwargs):
                 recorded.append(tuple(name for name, _, _ in stages))
-                if len(stages)==60:
+                if len(stages)==65:
                     say('PLUS CHECKS PASS')
                 return [(name, int(name==failing)) for name,_,_ in stages]
             fake_env={'SOULBOUND_ULTRA_SOURCE_DB':str(source/'db-test.sqlite')}
@@ -86,7 +86,9 @@ def run_regression():
                 with redirect_stdout(StringIO()):
                     result=runner.main()
             assert result==(0 if failing is None else 1), ('release proof not fail-closed', failing, result)
-            assert len(recorded)==2 and len(recorded[0])==60 and len(recorded[1])==5
+            assert len(recorded)==1 and len(recorded[0])==65
+            assert recorded[0][:60]==tuple(name for name,_,_ in runner.STAGES)
+            assert recorded[0][-1]=='SZESC GRACZY TCP, QUESTY I RESTART' 
             checks+=1
     # Regression for the old 24-minute full-audit -> TCP scheduling barrier.
     # Synthetic source and mocked process launch: never opens ports or touches

@@ -2,6 +2,8 @@
 """Minimal standard-library guard: log even if host_windows.py cannot be imported."""
 from __future__ import annotations
 
+import sys
+sys.dont_write_bytecode = True  # v114.00.7: block before imports of game host
 from datetime import datetime
 import os
 from pathlib import Path

@@ -5,6 +5,8 @@ Standalone, standard-library only; does not alter Soulbound combat or database.
 """
 from __future__ import annotations
 
+import sys
+sys.dont_write_bytecode = True  # v114.00.7: direct Windows host invocation
 import logging
 import json
 from logging.handlers import RotatingFileHandler
@@ -116,7 +118,7 @@ def run_server(entry: Path | None = None) -> int:
         print(message, file=sys.stderr, flush=True)
         return 2
     env = os.environ.copy()
-    env.update({"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
+    env.update({"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1", "PYTHONDONTWRITEBYTECODE": "1"})
     env["SOULBOUND_CONTROL_TOKEN"] = secrets.token_hex(32)
     env["SOULBOUND_CONTROL_FILE"] = str(LOG_DIR / "soulbound_control.json")
     env["SOULBOUND_CONTROL_FALLBACK_FILE"] = str(fallback_dir(ROOT) / "soulbound_control.json")
