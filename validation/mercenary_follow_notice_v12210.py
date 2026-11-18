@@ -18,6 +18,8 @@ def validate_mercenary_follow_notice_v12210():
 
     check(mercenary_follow_notice_v12210([]) == "")
     check(mercenary_follow_notice_v12210(["Seren"]) == "Seren podąża za tobą.")
+    check(mercenary_follow_notice_v12210(["Eliza"]) == "Eliza podąża za tobą.")
+    check(mercenary_follow_notice_v12210(["Eliza", "Seren"]).startswith("Eliza podąża za tobą."))
     check(mercenary_follow_notice_v12210(["Seren", "Vael"]) == "Najemnicy podążają za tobą: Seren i Vael.")
     check(mercenary_follow_notice_v12210(["Seren", "Vael", "Gareth"]) == "Najemnicy podążają za tobą: Seren, Vael i Gareth.")
     root = Path(__file__).resolve().parents[1]

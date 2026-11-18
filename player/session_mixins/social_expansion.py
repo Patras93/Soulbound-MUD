@@ -180,9 +180,11 @@ class SessionSocialExpansionMixin:
         afk=self.server.db.conn.execute("SELECT message FROM social_afk_v03051 WHERE account_id=?",(target.account_id,)).fetchone()
         if afk: await self.send(f"{target.character.name} jest AFK: {afk['message']}")
         # v12.00.8: sound event only after the actual successful delivery.
-        from systems.sound_events_v1208 import _event
+        from systems.v115.optional_sound import _event
         _type = 'REPLY_RECEIVED' if getattr(self, '_sound_reply_mode_v1208', False) else 'TELL_RECEIVED'
-        await target.send(_event(_type, **{'from': self.character.name}), history_store=False)
+        audio_notice = _event(_type, **{'from': self.character.name})
+        if audio_notice is not None:
+            await target.send(audio_notice, history_store=False)
         return True
 
     def _guild_name_v03051(self, aid):

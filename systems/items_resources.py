@@ -1978,3 +1978,7 @@ def profession_resource_market_value_v1148(item_id, item=None, category=None):
     if adjusted_base is None:
         adjusted_base = max(1, int(round(normal * demand)))
     return max(1, int(round(adjusted_base * variant_factor)))
+
+# v115 – materials in the existing crafting-material storage; no new tools.
+from systems.v115.regional_crafting import register_items as _v115_register_items
+_v115_register_items(ITEMS)

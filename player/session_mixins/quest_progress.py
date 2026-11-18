@@ -389,6 +389,10 @@ class SessionQuestProgressMixin:
 
             # v0.60.0: rotujące zamówienia NPC liczą te same realne craft events.
             await self.announce_crafting_order_progress_v0600(item_id, amount)
+            # v115: craft milestones are credited only after the native
+            # successful-output callback, and only inside a v115 region.
+            from systems.v115.profession_objective_bridge import announce_v115_profession_action
+            await announce_v115_profession_action(self, 'craft_item', int(amount))
 
     def format_duration_short(self, seconds):
             seconds = max(0, int(seconds))

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from world.dynamic_content import ACHIEVEMENT_TRACKS, ACHIEVEMENT_TITLE_REWARDS
 from systems.achievement_rewards_v11331 import award_achievement_experience_v11331
-from systems.sound_events_v1208 import (
+from systems.v115.optional_sound import (
     sound_reward_queue_checkpoint_v11329, sound_reward_queue_rollback_v11329,
 )
 

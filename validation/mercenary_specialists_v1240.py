@@ -67,8 +67,10 @@ def validate_mercenary_specialists_v1240():
               superboss_healing_blocked_v11179=lambda p: False,
               v0314_adjust_damage_vs_template=lambda template, dmg, typ, role:(dmg, ''))
     exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),str(src),'exec'),ns)
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
     class Owner:
         mercenary_combat_turn_v1170 = ns['mercenary_combat_turn_v1170']
+        mercenary_party_action_v11503 = SessionMercenaryTavernsMixin.mercenary_party_action_v11503
         def __init__(self):
             self.character = SimpleNamespace(name='Bohater', room_id='room', character_level=1000)
             self.current_hp = 1_000_000
@@ -80,6 +82,7 @@ def validate_mercenary_specialists_v1240():
                 mercenary_contracts=lambda aid, now:[{'role':r,'expires_at':0} for r in ('mag','wojownik','berserker')],
                 mercenary_progress_v1220=lambda aid, role:{'specialization':'automatyczna'}),
                 party_sessions=lambda *a,**k:[self], party_combat_broadcast=self.broadcast)
+            self.server.party_key_for_account = lambda account_id: None  # Solo fixture, no group
         def max_hp(self):return 1_000_000
         def physical_power(self):return 100_000
         def spell_power(self):return 1_000

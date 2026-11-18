@@ -191,9 +191,25 @@ def deferred_kill_commits_v11125(callback):
             result = await _run_with_deferred_kill_commits_v11125(
                 self, callback, mob, *args, **kwargs
             )
+        except BaseException:
+            # SQL settlement failed and coordinator already rolled it back.
+            # Do not restore memory for an exception in post-commit sends.
+            for _receiver, _wallet in getattr(mob, '_v115_objective_wallet_checkpoints', ()):
+                if getattr(_receiver, 'character', None) is not None:
+                    (_receiver.character.silver, _receiver.character.gold,
+                     _receiver.character.mithril) = _wallet
+            raise
+        else:
+            # The kill savepoint has committed. Only now notify recipients.
+            for _receiver, _notice in getattr(mob, '_v115_objective_notices', ()):
+                await _receiver.send(_notice)
             await _announce_cleared_encounter_v1206(self, mob, _room, _was_engaged)
             return result
         finally:
+            if hasattr(mob, '_v115_objective_notices'):
+                del mob._v115_objective_notices
+            if hasattr(mob, '_v115_objective_wallet_checkpoints'):
+                del mob._v115_objective_wallet_checkpoints
             mob.v1400_kill_in_progress = False
     wrapped.__name__ = callback.__name__
     wrapped.__doc__ = callback.__doc__
@@ -349,21 +365,8 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                             await _winner.send(f"TYTAN: legendarny artefakt {ITEMS[_rid]['name']} otrzymany po raz pierwszy.")
                         if _reward["essence"]:
                             await _winner.send(f"TYTAN: +{_reward['essence']} Esencji Pradawnego Tytana. Bonus osobisty odnawia się po 24 godzinach.")
-                # v1.70.2: fame is earned once per genuinely defeated, placed boss,
-                # for each eligible member present in the same room.
-                from systems.fame_v1702 import record_fame_kill
-                from systems.fame_v1702 import fame_pay_later
-                for _fame_session, _fame_region in record_fame_kill(
-                    self.server.db.conn, recipients, mob, template
-                ):
-                    # SQLite permanently credits Fame right after the kill;
-                    # the queued bonus EXP remains delayed and restart-safe.
-                    await _fame_session.send(
-                        'FAME ZALICZONE — nowy cel w terenie '
-                        + str(_fame_region) + '. Premia EXP po chwili. '
-                        'Sprawdź fame cele lub fame log.')
-                    import asyncio
-                    asyncio.create_task(fame_pay_later(_fame_session))
+                # v115: Fame is now staged after final Multi Cap calculations.
+                # Existing v114 credits remain intact in the legacy database.
                 # v2.00.0: real faction and arena kill credit only for
                 # recipients present in the actual fight. No global scans.
                 _v2000_target=str(template.get('quest_target') or mob.template_id)
@@ -851,19 +854,41 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                             _character_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_character_payout_v104,exact=_v111_exact))
                             _soul_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_soul_payout_v104,exact=_v111_exact))
                             _class_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_class_payout_v104,exact=_v111_exact))
+                    # v115: persist final XP axes for every natural Fame kill.
+                    # First Fame is one-time; repeats queue EXP without Fame.
+                    # The original currency/loot/quest path remains unchanged.
+                    from systems.v115.fame_combat_runtime import stage_delayed_first_clear
+                    _fame_queued_v115 = stage_delayed_first_clear(
+                        session.server.db.conn, session, mob, template,
+                        character_xp=_character_payout_v104,
+                        soul_xp=_soul_payout_v104,
+                        class_xp=_class_payout_v104, stat_xp=raw_stat_reward,
+                        class_levels=_class_levels_v104,
+                        class_max_level=CLASS_MASTERY_MAX_LEVEL,
+                        overcap=_overcap_v2009)
+                    _now_stat_v115 = 0 if _fame_queued_v115 else raw_stat_reward
+                    _now_char_v115 = 0 if _fame_queued_v115 else _character_payout_v104
+                    _now_soul_v115 = 0 if _fame_queued_v115 else _soul_payout_v104
+                    _now_class_v115 = 0 if _fame_queued_v115 else _class_payout_v104
                     # No await, network writes or event callbacks while a
                     # SAVEPOINT is open. An error in CLASS/SOUL restores coins,
                     # six stats and character EXP, not just that axis.
                     _settled_v104 = settle_combat_full_progression_v10400(
                         session.server.db, session.character, session.account_id,
                         silver=silver, gold=gold, mithril=mithril,
-                        stat_xp=raw_stat_reward,
-                        character_xp=_character_payout_v104,
-                        soul_xp=_soul_payout_v104,
-                        class_xp=_class_payout_v104,
+                        stat_xp=_now_stat_v115,
+                        character_xp=_now_char_v115,
+                        soul_xp=_now_soul_v115,
+                        class_xp=_now_class_v115,
                         class_levels=_class_levels_v104,
                         class_max_level=CLASS_MASTERY_MAX_LEVEL,
                         overcap=_overcap_v2009)
+                    if _fame_queued_v115:
+                        await session.send(
+                            'FAME MOB: EXP zostanie wypłacony po 60–300 sekundach. '
+                            + ('Fama za tego przeciwnika została już zaliczona.'
+                               if getattr(session, '_v115_fame_repeat_delivery', False)
+                               else 'Fama zostanie przyznana około 2 sekundy po EXP.'))
                     _stat_results = _settled_v104['stats']
                     _character_paid_v104, _character_messages_v104 = _settled_v104['character']
                     _soul_paid_v104, _soul_messages_v104 = _settled_v104['soul']
@@ -874,9 +899,9 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         session.session_summary_add('class_xp', sum(x[0] for x in _class_results_v104))
                     # Mentor activity, achievements and screen-reader output
                     # are emitted only after the complete payment succeeds.
-                    if _soul_payout_v104 and _soul_mentor_pct_v104:
+                    if _now_soul_v115 and _soul_mentor_pct_v104:
                         session.mentor_record_activity_v03051()
-                    if _class_payout_v104 and _class_mentor_pct_v104:
+                    if _now_class_v115 and _class_mentor_pct_v104:
                         session.mentor_record_activity_v03051()
                     if silver or gold or mithril:
                         await session.send('Nagroda walutowa: '
@@ -1263,4 +1288,7 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                     ),
                     exclude=self,
                 )
-
+                # v115: optional regional objective progress, in the existing kill transaction.
+                # Old mob templates without v115_region_key perform no writes.
+                from systems.v115.combat_objective_bridge import record_v115_victory
+                record_v115_victory(self, mob, template)

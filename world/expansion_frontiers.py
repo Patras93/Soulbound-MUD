@@ -66,6 +66,9 @@ def build_world_expansion_ii():
     import world.expansion_frontier_fields_v407 as _impl
     _impl.EXP_AREAS = EXP_AREAS
     result = _impl.build_world_expansion_ii()
+    # v115: keep all original rooms and add independent hunting sectors.
+    from systems.v115.legacy_expareas import expand as _expand_legacy
+    _expand_legacy(ROOMS, MOB_TEMPLATES, MOB_SPAWNS)
     EXP_AREAS = _impl.EXP_AREAS
     return result
 

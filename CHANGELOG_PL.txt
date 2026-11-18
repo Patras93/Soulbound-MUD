@@ -1,3 +1,156 @@
+SOULBOUND MUD v115.00.5 — BEZPIECZNA NAPRAWA AKTUALIZATORA SQLITE SHM
+18.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED NOWYM PASS 60/60 PLUS
+
+- Naprawiono rzeczywisty FAIL Windows podczas aktualizacji v115.00.2 -> v115.00.4:
+  "Niezgodna zawartosc kopii danych: soulbound.db-shm" przy weryfikacji
+  backupu po podmianie kodu i podczas jej cofania.
+- Pliki SQLite *-shm sa przejsciowym indeksem pamieci wspoldzielonej WAL,
+  moga zmienic zawartosc/rozmiar lub zniknac po zamknieciu polaczenia.
+  Nie beda juz falszywie uniewazniac zgodnego backupu.
+- Nadal wymagany jest pelny backup kodu i zapisow, potwierdzone zatrzymanie
+  serwera i nadzorcy oraz zgodny PREDEPLOY tego dokladnie ZIP-a.
+- Wszystkie TRWALE pliki graczy, soulbound.db, wszystkie pliki *-wal,
+  klucze i konfiguracje sa nadal porownywane bajt po bajcie SHA256.
+  Wszelkie rozbieznosci tych plikow BLOKUJA wydanie i wymuszaja rollback.
+- Dowiazania symboliczne w chronionych sciezkach nadal sa blokowane.
+- NOWE KONTROLE: zmiana/znikniecie *-shm po backupie i po podmianie kodu
+  nie powoduje falszywego FAIL; zmiana DB/WAL nadal powoduje FAIL.
+- Zero zmian mechaniki gry, EXP, levelowania, EQ, postaci, najemnikow,
+  Elizy, walki druzynowej i zawartosci swiata wzgledem v115.00.4.
+- PRODUKCJA NIE ZMIENIONA PRZEZ PRZYGOTOWANIE PACZKI.
+- Jesli poprzednia, nieudana aktualizacja pozostawila mieszany kod,
+  NIE ponawiaj wdrozenia bez diagnozy i bezpiecznego odtworzenia wersji.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.4 — NAPRAWA PREDEPLOY TESTOW NAJEMNIKOW
+18.11.2026 — KANDYDAT DO PREDEPLOY, NIE WDRAZAC PRZED PASS 60/60 PLUS
+
+- Naprawiono rzeczywisty FAIL Windows v115.00.3 w etapie 16/60:
+  AttributeError: 'Session' object has no attribute 'mercenary_party_action_v11503'.
+  Przyczyna: historyczne testy uruchamialy sama metode walki z silnika
+  bez nowej, rzeczywistej metody komunikatow druzynowych.
+- Osmiu starszym testom uzupelniono brakujace zaleznosci lub testowe sesje.
+  Testy wywoluja prawdziwa metode wysylania wiadomosci, a nie jej kopie.
+- Test podazania sprawdza teraz rzeczywisty odbior komunikatu przez
+  drugiego czlonka druzyny w tym samym pokoju, bez komunikatow poza lokacja.
+- Zachowano wszystkie poprawki v115.00.3: Eliza, komunikaty poziomow,
+  widocznosc atakow, leczenia i oslon wszystkich najemnikow w lokalnej druzynie.
+- KOD GRY, progi i przyznawanie EXP, awanse, obrazenia, AI, EQ, mechanika
+  drużyny, konta, kontrakty, SQLite i dane postaci POZOSTAJA BEZ ZMIAN.
+- Wstepny test PREDEPLOY: etap 16/60 lokalnie PASS; konieczny osobny
+  pelny PREDEPLOY 60/60 PLUS na Windows na kopii prawdziwej bazy.
+- FAIL poprzedniej wersji NIE zatwierdza v115.00.4 do wdrozenia.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.3 — CZYTELNE KOMUNIKATY (DO PREDEPLOY)
+18.11.2026
+- Poprawiono wyświetlanie rozwoju bez limitu w komendach Level, SCORE, progress,
+  Dziedzictwo Duszy oraz statusach profesji i narzędzi. Nie wyświetlają one
+  historycznego /800 jako maksimum aktualnego poziomu.
+- Poprawiono opisy ras z rozszerzenia: bez zbędnego oznaczenia „Rasa v110”.
+- Pomoc kolejek: rzeczywista nieograniczona liczba wpisów, bez 40–120 slotów.
+- Skorygowano wybrane nieaktualne opisy progresji, Skill Level i profesji.
+- Drużyna: każdy lokalny członek drużyny widzi ataki, leczenie i osłony
+  WSZYSTKICH najemników uczestniczących w walce, również najemników innych
+  graczy. Zdarzenie trafia też do historii walki każdego odbiorcy; bez duplikatów.
+  Odbiorcy poza drużyną i poza lokacją nie widzą tych komunikatów.
+- Eliza: przy wspólnej grupie najemników jej podążanie jest wymienione osobno;
+  „najemnik status” mówi, czy została faktycznie zatrudniona.
+- NIE ZMIENIONO progów EXP, przyznawania nagród, podnoszenia poziomów,
+  klas, ras, statystyk, mocy, walki, bazy SQLite ani istniejących kontraktów.
+- Wymagany NOWY pełny Windows PREDEPLOY 60/60 PLUS i LIVE dla tej paczki.
+  Wynik PASS v115.00.2 nie zatwierdza v115.00.3. Nie wdrażać przed PASS.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND v115.00.2 — PORTFEL A LICZBA POSTACI
+- Usunięcie ostatniej postaci usuwa wspólny portfel wraz z jej postępem, bez usuwania konta logowania.
+- Usunięcie jednej z kilku postaci zachowuje wspólne saldo konta.
+- Nowa pierwsza postać nie dziedziczy starego salda ze starszej wersji, nawet jeśli było 6 mithrilu; otrzymuje zwykły start (30 srebra, 2 złota, 0 mithrilu).
+- Baza produkcyjna i istniejące portfele kont z przynajmniej jedną postacią nie są automatycznie zmieniane.
+- Konieczny ponowny PREDEPLOY 60 PLUS dla v115.00.2.
+
+SOULBOUND MUD v115.00.2 — PORZADKI DOKUMENTACJI (KANDYDAT DO PREDEPLOY)
+Data: 18.11.2026
+- Tylko CHANGELOG_PL.txt w dokumentacji gry i paczce; bez plikow CZYTAJ, ETAP ani raportow tymczasowych.
+- Po zatwierdzonym wdrozeniu i pierwszym starcie bezpieczne automatyczne usuniecie 18 rozpoznanych plikow v115.00.1.
+- Zawsze backup z weryfikacja SHA256; lokalnie edytowane i obce pliki nie sa usuwane.
+- soulbound_world_seed.txt pozostaje w istniejacej instalacji; nie jest publikowany w paczkach.
+- Mechanika, postacie, baza SQLite i gameplay bez zmian.
+- WYMAGANY PONOWNY PREDEPLOY 60/60 PLUS DLA NOWEGO ZIP.
+
+SOULBOUND MUD v115.00.1 — POPRAWKA NIEDESTRUKCYJNEJ MIGRACJI KONT
+KANDYDAT DO PREDEPLOY — NIE WDRAZAC PRZED PASS 60/60 PLUS
+Data: 18.11.2026
+
+PRZYCZYNA: PREDEPLOY v115.00.0, etap 60/60, wykryl nieautoryzowana zmiane
+account_characters podczas startu migrowanej kopii bazy (59/60 PASS, 1 FAIL).
+Stara migracja automatycznie dopisywala brakujace powiazania postaci z kontami
+PRZY KAZDYM URUCHOMIENIU, nawet po zakonczonej migracji. W niekompletnej
+historycznej postaci moglo to stworzyc niezamierzony dodatkowy wpis w rosterze.
+
+POPRAWKA:
+- Automatyczne tworzenie historycznego slotu wykonuje sie WYŁĄCZNIE podczas
+  pierwszej migracji wspolnego portfela (brak flagi shared_account_wallet_v0832).
+- Po jej zakonczeniu start nie dopisuje ani nie przenosi niedokonczonych postaci.
+- Nie usuwa istniejacych kont, postaci, przedmiotow, Famy ani postepow.
+- Dawna jednorazowa migracja do wspolnych portfeli jest zachowana.
+- Rozszerzono regresje migracji i bezpiecznego kreatora o osierocone rekordy.
+- Bramka 60/60 NIE zostala oslabiona i nadal porownuje wszystkie stare dane.
+- Soundpack pozostaje opcjonalny; wszystkie funkcje v115.00.0 pozostaja.
+
+TESTY W SRODOWISKU OPRACOWANIA (Linux, obie kopie kodu):
+- 252/252 testow v115 PASS w kopii Windows i Linux.
+- 14/14 testow migracji historycznych portfeli PASS na obu kopiach.
+- TEST PRAWDZIWEJ BAZY GRACZY: NIE WYKONANY (niedostepna lokalna baza uzytkownika).
+- NATYWNY WINDOWS 60 PLUS: NIE WYKONANY dla tej nowej paczki.
+
+NIE WDRAZAC. Umiesc poprawiona paczke Windows w NOWE_WERSJE, uruchom
+PREDEPLOY_NOWEJ_WERSJI.bat, przeslij nowy log. Poprzedni FAIL nie uprawnia do wdrozenia.
+Jesli migracja wciaz zmieni account_characters, NIE obchodz zabezpieczenia;
+konieczna bedzie osobna diagnostyka kopii rzeczywistej bazy.
+
+--- WCZESNIEJSZA ZAWARTOSC ---
+SOULBOUND MUD v115.00.0 — NIESKONCZONE HORYZONTY
+KANDYDAT DO PREDEPLOY — NIE WDRAZAC BEZ PASS 60/60 PLUS I POTWIERDZENIA WLASCICIELA
+Data: 18.11.2026
+
+ZAWARTOSC:
+- 30 nowych rozleglych krain: po 48 pomieszczen, 24 punkty EP, petle i odnogi; bez blokad poziomowych.
+- 30 dodatkowych podziemi po 24 komnaty, finalni straznicy, zadania ukonczenia lochu.
+- Rozbudowa szesciu dawnych expowisk: po 64 dodatkowe pomieszczenia.
+- 5000 definicji celow zadan i 2000 definicji osiagniec, regionalne zdarzenia,
+  powtarzalne progi, nagrody za walke, EP, profesje, questy i wspolprace.
+- 720 miejsc zbiorow; 8 nowych materialow i 8 receptur bez nowych narzedzi.
+- Eliza: osobna wampirza najemniczka; stare 38 kontraktow zachowane.
+- Polecane klasy dla brakujacych ras; Mec tylko dla Cyborgow;
+  Moogle Board nie jest przyznawany nowemu Cyborgowi na starcie.
+- Fame Mob: pierwszy kill -> oczekiwanie 60–300 s -> EXP -> >=2 s -> Fama;
+  powtorne zabicie -> oczekiwanie 60–300 s -> EXP bez ponownej Famy.
+  Kolejka trwala w SQLite, przypisana do konkretnej postaci, bez podwojnej wyplaty.
+- Soundpack calkowicie opcjonalny. Gra dziala bez plikow dzwiekowych.
+- Naprawa kreatora: tworzenie postaci atomowe, bez niepelnych rekordow po awarii.
+
+KONTROLA PRZEDWYDANIOWA TEJ KOPII:
+- VERSION podniesiony rzeczywiscie do 115.00.0 w Windows i Linux.
+- Wstepny PREDEPLOY (Linux) PASS, 298 metod AST sprawdzonych.
+  Wyjatek v115 w kreatorze ograniczony do trzech recenzowanych zmian;
+  reszta zachowuje historyczny podpis AST.
+- Testy v115: 251/251 PASS na obu kopiach.
+- Uniwersalne bramki: 31/31 PASS na obu kopiach.
+- Dodatkowe regresje v115: 11 skryptow PASS.
+- Sesja TCP realnego Fame Moba: PASS na kopii Linux, soundpack wylaczony.
+- Kontrola Windows odbyla sie pod Linuxem, bez natywnego uruchomienia Windows.
+
+OTWARTE WARUNKI DO PRODUKCJI:
+- PELNY PREDEPLOY 60/60 PLUS na odizolowanej migawce prawdziwej bazy u wlasciciela.
+- Natywny Windows i sprawozdanie z kontroli aktualizacji oryginalnej bazy.
+- Ocena opoznien EP/przedluzonych serii awansow oraz balansu pelnych walk 1–6 graczy.
+- Ew. osierocone zapisy po starym bledzie kreatora NIE sa automatycznie usuwane.
+- Dzialajaca v114.00.9 i GitHub nie zostaly zmienione.
+
+NIE WDRAZAC KANDYDATA PRZED WYNIKIEM PREDEPLOY PASS.
+
+--- WCZESNIEJSZE WYDANIA ---
 SOULBOUND MUD v114.00.9 — SZYBSZY PREDEPLOY, PELNE 60/60 PLUS — 18.11.2026
 
 - Usunieto niepotrzebna bariere miedzy 60/60 PLUS a piecioma obowiazkowymi

@@ -95,7 +95,62 @@ def run():
         total,first,killed,hits=await execute_attack(sess,one,100,cosmic,'mec',True)
         check((total,hits)==(0,0),'moving away must abort attack')
     asyncio.run(combat())
-    print(f'MERCENARY REAL CLASS ARSENAL v113.00.34: {checks} checks PASS')
+
+    # v115.00.5: each local group member must receive EVERY companion's
+    # essential action, including combat history, not only their own hires.
+    from server_parts_v109.party_members import MudPartyMembersV109Mixin
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
+
+    class PartyServer(MudPartyMembersV109Mixin):
+        def __init__(self):
+            self.parties = {1: {1, 2, 3, 4}}
+            self.sessions = {}
+        def session_by_account(self, aid):
+            return self.sessions.get(aid)
+
+    class PartyMember(SessionMercenaryTavernsMixin):
+        def __init__(self, server, aid, room='room', closed=False):
+            self.server = server
+            self.account_id = aid
+            self.character = SimpleNamespace(room_id=room)
+            self.closed = closed
+            self.messages = []
+            server.sessions[aid] = self
+        async def send_combat(self, text, detail='essential'):
+            self.messages.append((text, detail))
+
+    async def party_mercenary_feed():
+        srv = PartyServer()
+        owner = PartyMember(srv, 1)
+        partner = PartyMember(srv, 2)
+        third = PartyMember(srv, 3)
+        remote = PartyMember(srv, 4, room='elsewhere')
+        outsider = PartyMember(srv, 5)
+        srv.parties[5] = {5}
+        await owner.mercenary_party_action_v11503('Eliza: krwawy cios, 100 obrażeń.')
+        for member in (owner, partner, third):
+            check(member.messages == [('Eliza: krwawy cios, 100 obrażeń.', 'essential')],
+                  'party member did not see Eliza once, in concise feed')
+        check(not remote.messages and not outsider.messages,
+              'mercenary combat event leaked outside nearby party')
+        await partner.mercenary_party_action_v11503('Seren: lodowa strzała, 120 obrażeń.')
+        for member in (owner, partner, third):
+            check([m[0] for m in member.messages] == [
+                'Eliza: krwawy cios, 100 obrażeń.',
+                'Seren: lodowa strzała, 120 obrażeń.'],
+                'not all party members see attacks of each owner')
+        check(not remote.messages and not outsider.messages,
+              'cross-room or cross-party visibility')
+        # Solo player must still see their own hired companion's action.
+        await outsider.mercenary_party_action_v11503('Oria: atak, 10 obrażeń.')
+        check(outsider.messages == [('Oria: atak, 10 obrażeń.', 'essential')],
+              'owner must always see own mercenary')
+        partner.closed = True
+        await owner.mercenary_party_action_v11503('Eliza leczy: +20 HP.')
+        check(len(partner.messages) == 2 and len(owner.messages) == 3 and
+              len(third.messages) == 3, 'closed clients must be excluded')
+    asyncio.run(party_mercenary_feed())
+    print(f'MERCENARY REAL CLASS ARSENAL + PARTY FEED v115.00.5: {checks} checks PASS')
     return checks
 
 if __name__=='__main__':

@@ -73,8 +73,10 @@ def audit_mercenary_scaling_v1213():
     exec(compile(ast.fix_missing_locations(ast.Module(body=[actual_turn], type_ignores=[])),
                  str(source_file), 'exec'), namespace)
 
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
     class Sample: 
         mercenary_combat_turn_v1170 = namespace['mercenary_combat_turn_v1170']
+        mercenary_party_action_v11503 = SessionMercenaryTavernsMixin.mercenary_party_action_v11503
         def __init__(self, role, physical, magic):
             self.character = SimpleNamespace(name='Test', room_id='merc_cross_test', character_level=200)
             self.current_hp = 100000
@@ -92,6 +94,7 @@ def audit_mercenary_scaling_v1213():
                 party_sessions=lambda _account, same_room=None: [self],
                 party_combat_broadcast=self.broadcast,
             )
+            self.server.party_key_for_account = lambda account_id: None  # Solo fixture, no group
 
         def physical_power(self):
             return self._physical

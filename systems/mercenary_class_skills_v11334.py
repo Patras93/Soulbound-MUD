@@ -11,7 +11,7 @@ import random
 
 from data.mobs import MOB_TEMPLATES
 from world.machine_expansion import v0314_adjust_damage_vs_template
-from systems.mercenary_taverns import MERCENARIES
+from systems.v115.vampire_mercenary import MERCENARIES
 
 ATTACK_KINDS = frozenset(('damage', 'aoe_damage', 'execute', 'drain'))
 # Mec's control skills are NOT ordinary damage: don't pretend to cast Jammer,
@@ -23,6 +23,14 @@ def _catalogue(role):
     """Read the live, canonical class catalogue; pure source fallback for audits."""
     from core.archetypes.runtime_catalogue import canonical_classes_skills
     name = MERCENARIES[role]['class']
+    if role == 'wampir':
+        # Eliza attacks with a real drain skill plus native Nekromanta spells.
+        # The actual self/party drain is bounded by dealt damage in support.
+        from core.archetypes.runtime_catalogue import canonical_classes_skills
+        spells = tuple(canonical_classes_skills().CLASS_SKILLS.get(name, ()))
+        touch = {'id': 'v115_eliza_dotyk_nocy', 'name': 'Dotyk Nocy',
+                 'kind': 'drain', 'unlock': 1}
+        return (touch,) + spells
     catalogue = canonical_classes_skills().CLASS_SKILLS.get(name)
     if catalogue:
         return tuple(catalogue)

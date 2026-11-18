@@ -251,7 +251,7 @@ class SessionProfesje6Mixin:
         parts=str(args or '').strip().split()
         if not parts or parts[0].casefold() in {'lista','pomoc','help'}:
             await self.send('Profesje: profesje lista; profesja status <nazwa>; profesja kup <nazwa>; profesja czynnosci <nazwa>; profesja praca <nazwa> <czynność> [próg]; profesja zamowienie <nazwa>; profesja oddaj <nazwa>. Projekty mistrzowskie wszystkich 22 profesji: profesja projekt lista. Możesz też wpisać kupiectwo pakuj albo kupiectwo praca pakuj.')
-            await self.send('Poziomy profesji i narzędzi 1–800, trudność pracy: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie kupujesz tylko raz na postać.')
+            await self.send('Poziomy profesji i narzędzi bez limitu, trudność pracy: 1, 25, 75, 150, 300, 500, 700. Każde narzędzie kupujesz tylko raz na postać.')
             for prof,(tt,i,name) in PROFESSIONS.items():
                 await self.send(f'{prof}: {name}; {", ".join(a.code for a in BASE_ACTIONS if a.prof==prof)}.')
             return
@@ -299,7 +299,7 @@ class SessionProfesje6Mixin:
             return
         if verb == 'status':
             p=db.profession(aid,prof);t=db.tool(aid,tool_type)
-            await self.send(f'{prof}: poziom {p["level"]}/800, EXP {p["xp"]}; {tool_name}: poziom {t["level"]}/800, EXP {t["xp"]}. Narzędzie kupione: {"tak" if row else "nie"}.')
+            await self.send(f'{prof}: poziom {p["level"]} (bez limitu), EXP {p["xp"]}; {tool_name}: poziom {t["level"]} (bez limitu), EXP {t["xp"]}. Narzędzie kupione: {"tak" if row else "nie"}.')
             states=db.conn.execute('SELECT kind,ready_at FROM prof6_work_state WHERE account_id=?',(aid,)).fetchall()
             for x in states:
                 await self.send(f'Praca w toku: {x["kind"]}; pozostało {max(0,int(x["ready_at"])-int(time.time()))} sekund.')

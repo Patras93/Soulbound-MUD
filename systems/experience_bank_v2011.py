@@ -52,7 +52,7 @@ def banked_experience_v2011(db, account_id, amount, kind, level, *,
             paid = min(fresh, cap)
         # v113.00.29: the old bank allocator is intentionally bypassed here.
         # Observe the actual payout only; never create EXP_BANK on fresh XP.
-        from systems.sound_events_v1208 import record_paid_exp_event_v11329
+        from systems.v115.optional_sound import record_paid_exp_event_v11329
         record_paid_exp_event_v11329(db, account_id, paid, cap, kind=kind)
         return paid
     allocator = getattr(db, 'allocate_experience_bank_v2011', None)

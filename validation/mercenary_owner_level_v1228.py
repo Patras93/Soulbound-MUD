@@ -13,6 +13,7 @@ from systems.mercenary_growth_v1220 import (
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from validation.mercenary_followers_v1226 import _GameSession, _Db
 from systems.mercenary_taverns import MERCENARIES
+from systems.v115.vampire_mercenary import specialist_profile
 
 
 def validate_mercenary_owner_level_v1228():
@@ -61,6 +62,7 @@ def validate_mercenary_owner_level_v1228():
         'mercenary_unlocked': mercenary_unlocked,
         'mercenary_tactic': mercenary_tactic,
         'MERCENARIES': MERCENARIES,
+        'specialist_profile': specialist_profile,
         'mercenary_role': lambda text: next((role for role, spec in MERCENARIES.items() if text.lower() in (role, spec['name'].lower())), None),
     }
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'), namespace)
@@ -71,7 +73,8 @@ def validate_mercenary_owner_level_v1228():
     harness_db.mercenary_gain_xp_v1220 = lambda *_args: (_ for _ in ()).throw(AssertionError('No EXP writes allowed'))
     async def broadcast(*_args, **_kwargs):
         return None
-    server = SimpleNamespace(db=harness_db, party_sessions=lambda _a, same_room=None: [], party_combat_broadcast=broadcast)
+    server = SimpleNamespace(db=harness_db, party_sessions=lambda _a, same_room=None: [],
+                             party_key_for_account=lambda _a: None, party_combat_broadcast=broadcast)
     owner = _GameSession(server, 1, 'Właściciel', 'room')
     owner.skill_guard = 1
     owner.mob_effective_max_hp_v11330 = lambda mob: 100000

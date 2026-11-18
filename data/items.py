@@ -40,14 +40,14 @@ __all__ = ['ITEMS']
 
 # v6.00.0: narzędzia i towary nowych profesji.
 ITEMS.update({
-    'hunting_knife': {"name":'Nóż Łowiecki',"type":"tool","tool_type":'hunting',"price":1200,"currency":"silver","desc":"Narzędzie profesji Łowiectwo, poziomy 1-800; tylko jedno na postać."},
-    'farming_hoe': {"name":'Motyka Rolnicza',"type":"tool","tool_type":'farming',"price":1200,"currency":"silver","desc":"Narzędzie profesji Rolnictwo, poziomy 1-800; tylko jedno na postać."},
-    'husbandry_kit': {"name":'Przybory Hodowlane',"type":"tool","tool_type":'animal_husbandry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Hodowla zwierząt, poziomy 1-800; tylko jedno na postać."},
-    'shipwright_hammer': {"name":'Młot Okrętowy',"type":"tool","tool_type":'shipbuilding',"price":1200,"currency":"silver","desc":"Narzędzie profesji Okrętownictwo, poziomy 1-800; tylko jedno na postać."},
-    'mason_trowel': {"name":'Kielnia Murarska',"type":"tool","tool_type":'masonry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Murarstwo, poziomy 1-800; tylko jedno na postać."},
-    'engineer_kit': {"name":'Zestaw Inżynierski',"type":"tool","tool_type":'engineering',"price":1200,"currency":"silver","desc":"Narzędzie profesji Inżynieria, poziomy 1-800; tylko jedno na postać."},
-    'merchant_scale': {"name":'Waga Kupiecka',"type":"tool","tool_type":'trading',"price":1200,"currency":"silver","desc":"Narzędzie profesji Kupiectwo, poziomy 1-800; tylko jedno na postać."},
-    'navigation_sextant': {"name":'Sekstant Nawigacyjny',"type":"tool","tool_type":'sailing',"price":1200,"currency":"silver","desc":"Narzędzie profesji Żeglarstwo, poziomy 1-800; tylko jedno na postać."},
+    'hunting_knife': {"name":'Nóż Łowiecki',"type":"tool","tool_type":'hunting',"price":1200,"currency":"silver","desc":"Narzędzie profesji Łowiectwo, poziomy bez limitu; tylko jedno na postać."},
+    'farming_hoe': {"name":'Motyka Rolnicza',"type":"tool","tool_type":'farming',"price":1200,"currency":"silver","desc":"Narzędzie profesji Rolnictwo, poziomy bez limitu; tylko jedno na postać."},
+    'husbandry_kit': {"name":'Przybory Hodowlane',"type":"tool","tool_type":'animal_husbandry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Hodowla zwierząt, poziomy bez limitu; tylko jedno na postać."},
+    'shipwright_hammer': {"name":'Młot Okrętowy',"type":"tool","tool_type":'shipbuilding',"price":1200,"currency":"silver","desc":"Narzędzie profesji Okrętownictwo, poziomy bez limitu; tylko jedno na postać."},
+    'mason_trowel': {"name":'Kielnia Murarska',"type":"tool","tool_type":'masonry',"price":1200,"currency":"silver","desc":"Narzędzie profesji Murarstwo, poziomy bez limitu; tylko jedno na postać."},
+    'engineer_kit': {"name":'Zestaw Inżynierski',"type":"tool","tool_type":'engineering',"price":1200,"currency":"silver","desc":"Narzędzie profesji Inżynieria, poziomy bez limitu; tylko jedno na postać."},
+    'merchant_scale': {"name":'Waga Kupiecka',"type":"tool","tool_type":'trading',"price":1200,"currency":"silver","desc":"Narzędzie profesji Kupiectwo, poziomy bez limitu; tylko jedno na postać."},
+    'navigation_sextant': {"name":'Sekstant Nawigacyjny',"type":"tool","tool_type":'sailing',"price":1200,"currency":"silver","desc":"Narzędzie profesji Żeglarstwo, poziomy bez limitu; tylko jedno na postać."},
     'hunt_meat': {"name":'Mięso Łowne',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
     'field_grain': {"name":'Zboże z Pola',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},
     'farm_wool': {"name":'Wełna Hodowlana',"type":"resource","price":None,"sell_silver":30,"desc":"Surowiec profesji v6.00.0."},

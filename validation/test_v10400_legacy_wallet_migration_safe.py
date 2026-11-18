@@ -150,6 +150,33 @@ class WalletMergeV104(unittest.TestCase):
         self.assertEqual(self.conn.execute('SELECT count(*) FROM account_characters').fetchone()[0],0)
         self.assertEqual(self.conn.execute('SELECT count(*) FROM account_wallet').fetchone()[0],0)
 
+    def test_modern_orphan_does_not_get_reparented_after_completed_migration(self):
+        # Old failed character creation can leave a character without a roster
+        # link.  Startup must preserve it, not create a new master identity.
+        self.conn.execute("INSERT INTO migration_flags(flag) VALUES('shared_account_wallet_v0832')")
+        self.conn.execute("INSERT INTO characters(account_id,name,silver) VALUES(?,?,?)",(77,'Orphan',250))
+        self.migrate()
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM account_characters').fetchone()[0],0)
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM characters WHERE account_id=77').fetchone()[0],1)
+        self.migrate()
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM account_characters').fetchone()[0],0)
+
+    def test_modern_roster_untouched_if_orphan_present(self):
+        self.conn.execute("INSERT INTO migration_flags(flag) VALUES('shared_account_wallet_v0832')")
+        self.conn.executemany('INSERT INTO characters(account_id,name,silver) VALUES(?,?,?)',
+                              [(11,'Owned',20),(12,'Failed',30)])
+        self.conn.execute('INSERT INTO account_characters VALUES(11,11,1)')
+        before=list(map(tuple,self.conn.execute('SELECT * FROM account_characters')))
+        self.migrate()
+        self.assertEqual(list(map(tuple,self.conn.execute('SELECT * FROM account_characters'))),before)
+        self.assertEqual(self.conn.execute('SELECT count(*) FROM characters').fetchone()[0],2)
+
+    def test_historical_autoslots_still_created_on_first_migration(self):
+        self.conn.execute("INSERT INTO characters(account_id,name,silver) VALUES(?,?,?)",(77,'Legacy',250))
+        self.migrate()
+        self.assertEqual(tuple(self.conn.execute('SELECT * FROM account_characters').fetchone()),(77,77,1))
+        self.assertIsNotNone(self.conn.execute("SELECT 1 FROM migration_flags WHERE flag='shared_account_wallet_v0832'").fetchone())
+
     def test_no_dynamic_table_names_allowed(self):
         with self.assertRaises(ValueError):
             sum_slot_currency_v104(self.conn,1,'characters; DROP TABLE accounts;')

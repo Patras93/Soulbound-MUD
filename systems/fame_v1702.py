@@ -274,8 +274,15 @@ def fame_report(conn, account_id, raw='', room_id=None):
     pending={(str(r[0]),str(r[1])) for r in conn.execute(
         'SELECT region,boss_id FROM fame_pending_v1703 WHERE account_id=? AND delivered=0',
         (account_id,))}
-    # Permanent Fame is earned on kill. Pending describes only deferred EXP,
-    # never an uncredited target. Old SQLite progress stays valid.
+    # v115: pending first-clear rewards are not yet credited Fame.
+    # Read them without creating a new table or modifying historical rows.
+    pending_new = set()
+    has_v115 = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v115_fame_delivery'").fetchone()
+    if has_v115:
+        pending_new = {(str(region),str(boss)) for region,boss in conn.execute(
+            "SELECT region,boss_id FROM v115_fame_delivery WHERE account_id=? AND status!='DONE'",
+            (account_id,))}
+    pending |= pending_new
     args = str(raw or '').strip().lower().split()
     if not args:
         # Preserve old kills even if a future content update removes a target.
@@ -309,7 +316,8 @@ def fame_report(conn, account_id, raw='', room_id=None):
                  f'{pending_count} oczekuje. Strona {page}/{pages}.']
         for tid in ordered[(page-1)*page_size:page*page_size]:
             name = str(MOB_TEMPLATES.get(tid, {}).get('name') or tid)
-            status = ('zaliczone (premia EXP oczekuje)' if (zone, tid) in pending else
+            status = ('oczekuje EXP i Famy' if (zone, tid) in pending_new else
+                      'zaliczone (premia EXP oczekuje)' if (zone, tid) in pending else
                       'zaliczone' if (zone, tid) in defeated else 'do zdobycia')
             lines.append(f'{name} — {status}.')
         if not ordered:
@@ -358,7 +366,10 @@ def fame_report(conn, account_id, raw='', room_id=None):
             label=MOB_TEMPLATES.get(tid,{}).get('name') or tid
             state='zaliczone (premia EXP oczekuje)' if delivered==0 else 'zaliczone'
             lines.append(f'{label} — {region}; {state}; pierwsze pokonanie: {when}.')
-        if not section:lines.append('Brak zapisanych celów Fame.')
+        if pending_new:
+            v115_waiting = sorted((z,b) for z,b in pending_new if all_regions or not zone or z==zone)
+            lines.append(f'Fame v115: {len(v115_waiting)} celów oczekuje na EXP i Famę.')
+        if not section and not pending_new:lines.append('Brak zapisanych celów Fame.')
         lines.append('fame log — bieżący teren; fame log wszystko — wszystkie tereny.')
         return lines
     mode = ''
@@ -389,7 +400,9 @@ def fame_report(conn, account_id, raw='', room_id=None):
             if len(missing) == 1:
                 bid = missing[0]
                 name = str(MOB_TEMPLATES.get(bid, {}).get('name') or bid)
-                if (region, bid) in pending:
+                if (region, bid) in pending_new:
+                    message += f' {name}: EXP i Fama czekaja na rozliczenie.'
+                elif (region, bid) in pending:
                     message += f' Fame zaliczone: {name} (EXP oczekuje).'
                 else:
                     message += f' Missing fame: {name}.'

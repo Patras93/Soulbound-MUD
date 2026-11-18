@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 from systems.mercenary_taverns import MERCENARIES, mercenary_role
+from systems.v115.vampire_mercenary import specialist_profile
 from systems.mercenary_growth_v1220 import mercenary_tactic, mercenary_owner_level_v1228, mercenary_unlocked
 from storage.db_mercenaries import DatabaseMercenariesMixin
 from validation.mercenary_followers_v1226 import _GameSession
@@ -55,7 +56,7 @@ def validate_mercenary_tactics_v1229():
     cls = next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='SessionMercenaryTavernsMixin')
     method = next(n for n in cls.body if isinstance(n,ast.AsyncFunctionDef) and n.name=='handle_mercenaries_v1170')
     namespace = dict(mercenary_role=mercenary_role, MERCENARIES=MERCENARIES, mercenary_owner_level_v1228=mercenary_owner_level_v1228,
-                     mercenary_unlocked=mercenary_unlocked, mercenary_tactic=mercenary_tactic)
+                     mercenary_unlocked=mercenary_unlocked, mercenary_tactic=mercenary_tactic, specialist_profile=specialist_profile)
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method],type_ignores=[])),str(path),'exec'),namespace)
     _GameSession.handle_mercenaries_v1170 = namespace['handle_mercenaries_v1170']
     server = SimpleNamespace(db=db)

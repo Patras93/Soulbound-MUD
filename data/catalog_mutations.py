@@ -18,7 +18,7 @@ from typing import Any, Iterable
 
 KNOWN_CATALOGS = frozenset({
     "ROOMS", "ITEMS", "NPCS", "QUESTS", "MOB_TEMPLATES", "SHOPS",
-    "CRAFT_RECIPES", "ALCHEMY_RECIPES",
+    "CRAFT_RECIPES", "COOK_RECIPES", "ALCHEMY_RECIPES",
 })
 
 # Keep only recent detailed entries so procedural runtime generation cannot grow

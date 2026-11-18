@@ -11,6 +11,29 @@ ROOMS.update(_rooms_part_02())
 ROOMS.update(_rooms_part_03())
 ROOMS.update(_rooms_part_04())
 
+# v115: additional separate world catalog; legacy room definitions untouched.
+from systems.v115.playable_regions import build_rooms as _v115_rooms
+if set(ROOMS).intersection(_v115_rooms()):
+    raise ValueError('v115: kolizja ID lokacji')
+ROOMS.update(_v115_rooms())
+# v115: permit only real resource sectors in existing tool/profession commands.
+# Keep the historical native fishing methods/source contracts unchanged.
+from systems.v115.profession_sites import register_authored_sites as _v115_register_sites
+_v115_register_sites(ROOMS)
+if 'up' in ROOMS['crossroads']['exits']:
+    raise ValueError('v115: wyjście góra na Rozdrożu zajęte; nie nadpisuję starej drogi')
+ROOMS['crossroads']['exits']['up'] = 'v115_horyzonty_wezel'
+
+# v115: real connected dungeons, built only after every exterior anchor exists.
+from systems.v115.regional_dungeons import install_rooms as _v115_install_dungeons
+_v115_install_dungeons(ROOMS)
+
+# v115: prawdziwe wejście graveyard; bez zastępowania krypt i starych przejść.
+from systems.v115.graveyard_expansion import build_rooms as _v115_graveyard_rooms, room_id as _v115_graveyard_id
+ROOMS.update(_v115_graveyard_rooms(ROOMS))
+ROOMS['graveyard']['exits']['up'] = _v115_graveyard_id(0, 0)
+
+
 # v2.00.6: region-based world balance.  Only authored starter continent
 # rooms are given stages here.  All later realms, procedurally generated
 # regions, dungeons, world bosses and zones with explicit metadata retain

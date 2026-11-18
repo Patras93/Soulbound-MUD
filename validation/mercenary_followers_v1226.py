@@ -66,6 +66,8 @@ class _GameSession:
     nearby_mercenaries_v1226 = _namespace["nearby_mercenaries_v1226"]
     visible_mercenary_for_look_v1226 = _namespace["visible_mercenary_for_look_v1226"]
     mercenary_combat_turn_v1170 = _namespace["mercenary_combat_turn_v1170"]
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin as _TavernMixin
+    mercenary_party_action_v11503 = _TavernMixin.mercenary_party_action_v11503
     closed = False
     current_hp = 100
     skill_guard = 0
@@ -147,15 +149,19 @@ def validate_mercenary_followers_v1226():
     async def broadcast(owner, message, detail="normal"):
         calls.append((owner, message, detail))
 
-    server.party_combat_broadcast = broadcast
-    server.party_sessions = lambda account_id, same_room: [first, second]
+    server.party_combat_broadcast = broadcast  # old channel must remain unused
+    server.party_key_for_account = lambda account_id: 1 if account_id in (1, 2) else None
+    server.same_party = lambda account_a, account_b: account_a in (1, 2) and account_b in (1, 2)
+    server.party_sessions = lambda account_id, same_room=None: [first, second]
     mob = SimpleNamespace(template_id="test_enemy", room_id="room", hp=1000, alive=True)
     asyncio.run(first.mercenary_combat_turn_v1170(mob))
     assert any("essential: " in m and ("Vael" in m or "Seren" in m)
                for m in first.messages)
     checks += 1
-    assert len(calls) == 2 and all(call[2] == "essential" for call in calls)
-    assert any("Vael" in call[1] for call in calls) and any("Seren" in call[1] for call in calls)
+    # Every local party member, not only the contract owner, gets the actions.
+    assert len(second.messages) == 2 and all(msg.startswith('essential: ') for msg in second.messages)
+    assert any('Vael' in msg for msg in second.messages) and any('Seren' in msg for msg in second.messages)
+    assert len(first.messages) == 2 and not third.messages and not calls
     checks += 1
     assert db.exp == 0  # v1.22.8: combat does not award independent EXP.
     checks += 1

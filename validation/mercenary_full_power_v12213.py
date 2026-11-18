@@ -64,8 +64,10 @@ def validate_mercenary_full_power_v12213():
     exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),
                  'player/session_mixins/mercenary_taverns.py', 'exec'), namespace)
 
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
     class Session:
         mercenary_combat_turn_v1170 = namespace['mercenary_combat_turn_v1170']
+        mercenary_party_action_v11503 = SessionMercenaryTavernsMixin.mercenary_party_action_v11503
         def __init__(self, role, phys=1000, magic=1, phys_eq=1.0, magic_eq=1.0, set_eq=1.0):
             self.character=SimpleNamespace(name='Owner',room_id='room',character_level=1)
             self.account_id=1
@@ -82,6 +84,7 @@ def validate_mercenary_full_power_v12213():
                 mercenary_progress_v1220=lambda aid,r:{'xp':0,'specialization':'automatyczna','actions':0}),
                 party_sessions=lambda aid,same_room=None:[self],
                 party_combat_broadcast=self.broadcast)
+            self.server.party_key_for_account = lambda account_id: None  # Solo fixture, no group
         def physical_power(self): return self._physical
         def spell_power(self): return self._magic
         def equipment_damage_multiplier(self,channel):

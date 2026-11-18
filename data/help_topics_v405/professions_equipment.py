@@ -164,16 +164,16 @@ def make_topics():
                       'Założone EQ nadal jest niesprzedawalne; po zdjęciu staje się zwykłym wolnym '
                       'egzemplarzem i może zostać sprzedane, jeśli jego kategoria na to pozwala.',
                       'Zmiana ekwipunku podczas aktywnej walki nadal jest zablokowana.'],
- 'skill200': ['Wszystkie umiejętności mają Skill Level od 1 do 400 i rozwijają się wyłącznie przez używanie '
+ 'skill200': ['Wszystkie umiejętności mają Skill Level bez stałego limitu i rozwijają się wyłącznie przez używanie '
               'konkretnego skilla/spella.',
               'v0.8.64 zmniejsza przyrost wymaganego Skill XP z +25 do +8 na level i podnosi typową nagrodę '
               'za użycie do 25-35 XP.',
               'Moc rośnie malejąco: około x1,495 przy Skill Level 100 i około x1,745 przy 200, zamiast '
               'starego x2,49.',
-              'Cooldown skraca się przez całe 1-400: około 12,4 procent przy 100, około 24,9 procent przy '
+              'Historyczna krzywa cooldownu 1–400: około 12,4 procent przy 100, około 24,9 procent przy '
               '200 i maksymalnie około 35 procent przy 400.',
-              'Na Skill Level 400 XP zostaje wyzerowane i skill osiąga maksymalny poziom.'],
- 'wolniejszy_xp_narzedzi': ['Narzędzia mają level 1-400 i 40 Tierów, bez trwałości i bez psucia.',
+              'Poziom 400 nie jest już końcem Skill Level; awanse i progi EXP trwają dalej.'],
+ 'wolniejszy_xp_narzedzi': ['Narzędzia rozwijają poziomy bez limitu, z zachowanymi historycznymi 40 Tierami, bez trwałości i bez psucia.',
                             'v0.8.64 używa krzywej: 60 + 8 razy level minus 1 XP do następnego poziomu '
                             'narzędzia.',
                             'Level 1->2 wymaga 60 XP; level 100->101 852 XP; level 199->200 1644 XP.',

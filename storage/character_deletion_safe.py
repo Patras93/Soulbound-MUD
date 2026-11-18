@@ -64,6 +64,49 @@ class SafeCharacterDeletionMixin:
         if not outer:
             conn.commit()
 
+    def shared_wallet_for_master(self, master_account_id):
+        """A login without any real characters has no spendable progress.
+
+        This also hides historical orphan wallet rows until a new first
+        character is created (which atomically discards stale balances).
+        Other accounts retain the exact legacy wallet behavior unchanged.
+        """
+        master_account_id = int(master_account_id)
+        row = self.conn.execute("""
+            SELECT 1 FROM account_characters ac
+            JOIN characters c ON c.account_id=ac.character_account_id
+            WHERE ac.master_account_id=? LIMIT 1
+        """, (master_account_id,)).fetchone()
+        if row is None:
+            return (0, 0, 0)
+        return super().shared_wallet_for_master(master_account_id)
+
+    def create_character_for_master(self, master_account_id, name, race, cls,
+                                    name_cases, gender="nieokreślona"):
+        """A genuinely first character starts with the normal starter purse.
+
+        Historical login accounts can retain a stale shared wallet after the
+        last character was deleted by older releases. Do not inherit it when
+        making a new character, even if an orphaned character row still exists.
+        Keep the reset AND the new character in one reversible transaction.
+        """
+        master_account_id = int(master_account_id)
+        has_character = self.conn.execute("""
+            SELECT 1 FROM account_characters ac
+            JOIN characters c ON c.account_id=ac.character_account_id
+            WHERE ac.master_account_id=? LIMIT 1
+        """, (master_account_id,)).fetchone()
+        if has_character:
+            return super().create_character_for_master(
+                master_account_id, name, race, cls, name_cases, gender=gender)
+        with self.conn.deferred_commits():
+            self.conn.execute(
+                "DELETE FROM account_wallet WHERE master_account_id=?",
+                (master_account_id,),
+            )
+            return super().create_character_for_master(
+                master_account_id, name, race, cls, name_cases, gender=gender)
+
     def wipe_characters_for_master(self, master_account_id):
         """Delete all character progress, preserving login and password."""
         master_account_id=int(master_account_id)
@@ -102,7 +145,7 @@ class SafeCharacterDeletionMixin:
                                   (master_account_id,))
 
     def delete_character_for_master(self, master_account_id, character_account_id):
-        """Remove precisely one character, preserving other characters and wallet."""
+        """Delete one character; retain shared wallet iff another real character remains."""
         master_account_id=int(master_account_id)
         character_account_id=int(character_account_id)
         row=self.conn.execute("""SELECT ac.slot,ac.character_account_id,c.name
@@ -123,5 +166,19 @@ class SafeCharacterDeletionMixin:
                 self.conn.execute("""DELETE FROM account_characters
                     WHERE master_account_id=? AND character_account_id=?""",
                     (master_account_id,character_account_id))
+            # A shared wallet is progress belonging to the remaining roster,
+            # not to the login account. Never carry it into a fresh character
+            # after the last real character is deleted. Keep it untouched if
+            # even one real character remains; the SAVEPOINT makes it atomic.
+            remaining = self.conn.execute("""
+                SELECT 1 FROM account_characters ac
+                JOIN characters c ON c.account_id=ac.character_account_id
+                WHERE ac.master_account_id=? LIMIT 1
+            """, (master_account_id,)).fetchone()
+            if remaining is None:
+                self.conn.execute(
+                    "DELETE FROM account_wallet WHERE master_account_id=?",
+                    (master_account_id,),
+                )
         return {'slot':slot,'name':name}
 

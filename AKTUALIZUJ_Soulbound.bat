@@ -4,10 +4,10 @@ if exist "%~dp0validation\v10600_tcp_world_smoke.py" (
   exit /b 2
 )
 setlocal EnableExtensions DisableDelayedExpansion
+set "PYTHONDONTWRITEBYTECODE=1"
 if exist "%TEMP%\" cd /d "%TEMP%" >nul 2>&1
 set "PYTHONUTF8=1"
 set "PYTHONIOENCODING=utf-8"
-set "PYTHONDONTWRITEBYTECODE=1"
 echo Soulbound - automatyczna aktualizacja z ZIP (kopia bazy i kodu).
 if not exist "%~dp0aktualizuj_soulbound.py" (
   echo BLAD: Brakuje aktualizuj_soulbound.py. Rozpakuj kompletna paczke.

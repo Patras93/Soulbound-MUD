@@ -20,4 +20,10 @@ def build_default_event_bus(server):
     bus.subscribe(PlayerMobKillQuestEvent, credit_primary_kill_quest, name="quests.kill_credit", critical=True)
     bus.subscribe(PlayerMobKillProgressionEvent, credit_extended_kill_progression, name="progression.kill_extended", critical=True)
     bus.subscribe(ResourceGatheredEvent, credit_resource_progression, name="progression.gathering", critical=True)
+    # v115 regional quest completion: observes an already committed native
+    # completion event; failure of bonus milestone cannot undo the quest.
+    from events.contracts import QuestCompletedEvent
+    from systems.v115.quest_completion_bridge import credit_v115_completed_quest
+    bus.subscribe(QuestCompletedEvent, credit_v115_completed_quest,
+                  name='v115.regional_quest_completion', critical=False)
     return bus

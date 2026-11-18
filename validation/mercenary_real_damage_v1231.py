@@ -88,8 +88,10 @@ def validate_mercenary_real_damage_v1231():
     ok(mercenary_owner_real_action_power_v1231(SimpleNamespace(), 43000) == 43000,
        "legacy runtime/test owner retains full equipment fallback")
 
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
     class CombatOwner(DamageOwner):
         mercenary_combat_turn_v1170 = combat
+        mercenary_party_action_v11503 = SessionMercenaryTavernsMixin.mercenary_party_action_v11503
         def __init__(self, phys=1000, magic=50):
             super().__init__()
             self._phys,self._magic = phys,magic
@@ -106,6 +108,7 @@ def validate_mercenary_real_damage_v1231():
                 def mercenary_progress_v1220(self,account,role):
                     return dict(specialization='automatyczna')
             self.server=SimpleNamespace(db=DB(), party_sessions=lambda *a,**k: [self], party_combat_broadcast=self.broadcast)
+            self.server.party_key_for_account = lambda account_id: None  # Solo fixture, no group
         def physical_power(self): return self._phys
         def spell_power(self): return self._magic
         def max_hp(self): return 1_000_000

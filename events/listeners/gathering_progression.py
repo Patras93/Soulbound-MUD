@@ -27,6 +27,10 @@ async def credit_resource_progression(event: ResourceGatheredEvent):
     session.server.db.add_lifetime_stat(session.account_id, event.lifetime_stat, qty)
     session.server.db.add_lifetime_stat(session.account_id, "profession_actions", 1)
     await session.advance_class_guild_quest_v11132("gather", qty)
+    # v115: only successful gathers inside authored regional sectors count.
+    # An optional objective write must not undo the native resource grant.
+    from systems.v115.profession_objective_bridge import announce_v115_profession_action
+    await announce_v115_profession_action(session, 'collect_resource', qty)
 
     if event.rare_achievement:
         await session.advance_achievement(event.rare_achievement, qty)

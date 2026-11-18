@@ -186,26 +186,29 @@ class DatabaseAccountsMixin(
 
 
     def create_character_for_master(self, master_account_id, name, race, cls, name_cases, gender="nieokreślona"):
-        slot = self._next_character_slot(master_account_id)
-        existing_master_character = self.character_for_account(master_account_id)
-        master_link = self.conn.execute(
-            "SELECT 1 FROM account_characters WHERE character_account_id=?",
-            (master_account_id,),
-        ).fetchone()
+        # v115: caly kreator stanowi jedna transakcje. Nieudany INSERT
+        # (np. ochrona fizycznego EQ) nie moze pozostawic osieroconej postaci.
+        # deferred_commits chroni takze istniejaca transakcje wywolujacego.
+        with self.conn.deferred_commits():
+            slot = self._next_character_slot(master_account_id)
+            existing_master_character = self.character_for_account(master_account_id)
+            master_link = self.conn.execute(
+                "SELECT 1 FROM account_characters WHERE character_account_id=?",
+                (master_account_id,),
+            ).fetchone()
 
-        if slot == 1 and not existing_master_character and not master_link:
-            character_account_id = int(master_account_id)
-        else:
-            character_account_id = self._create_hidden_character_account(
-                master_account_id, slot
+            if slot == 1 and not existing_master_character and not master_link:
+                character_account_id = int(master_account_id)
+            else:
+                character_account_id = self._create_hidden_character_account(
+                    master_account_id, slot
+                )
+
+            self.conn.execute(
+                "INSERT INTO account_characters(master_account_id,character_account_id,slot) "
+                "VALUES(?,?,?)",
+                (master_account_id, character_account_id, slot),
             )
-
-        self.conn.execute(
-            "INSERT INTO account_characters(master_account_id,character_account_id,slot) "
-            "VALUES(?,?,?)",
-            (master_account_id, character_account_id, slot),
-        )
-        try:
             self.create_character(
                 character_account_id, name, race, cls, name_cases, gender=gender
             )
@@ -215,38 +218,20 @@ class DatabaseAccountsMixin(
                 (master_account_id,),
             ).fetchone()
             if wallet_row is None:
-                # Pierwsza postać zakłada wspólny portfel z pakietem startowym.
                 created = self.character_for_account(character_account_id)
                 self.set_shared_wallet_for_master(
                     master_account_id,
                     created["silver"], created["gold"], created["mithril"],
                 )
             else:
-                # Każda następna postać dostaje dokładnie saldo konta,
-                # bez ponownego przyznawania startowych monet.
                 self.set_shared_wallet_for_master(
                     master_account_id,
                     wallet_row["silver"], wallet_row["gold"], wallet_row["mithril"],
                 )
-            # v0.34.5: Gildia jest dziedziczona przez nowe postacie tego samego
-            # konta. Ranga zawsze startuje jako `member`; uprawnienia lidera/oficera
-            # pozostają przy postaci, która faktycznie dostała tę rangę.
             self.ensure_character_guild_from_master_v0345(
                 master_account_id, character_account_id
             )
-        except Exception:
-            self.conn.execute(
-                "DELETE FROM account_characters WHERE master_account_id=? AND slot=?",
-                (master_account_id, slot),
-            )
-            if character_account_id != master_account_id:
-                self.conn.execute(
-                    "DELETE FROM accounts WHERE id=?", (character_account_id,)
-                )
-            self.conn.commit()
-            raise
         return character_account_id, slot
-
 
     def create_character(self, account_id, name, race, cls, name_cases, gender="nieokreślona"):
         rname, _, _race_strength, _race_dexterity, _race_constitution, _race_intelligence, _race_willpower = race
@@ -262,6 +247,8 @@ class DatabaseAccountsMixin(
             raise ValueError("invalid_gender")
         if rname == "Driada" and gender != "kobieta":
             raise ValueError("dryad_female_only")
+        if cname == "Mec" and rname != "Cyborg":
+            raise ValueError("mec_cyborg_only")
         starting_stats = class_starting_stats_for(race, cls)
         strength = starting_stats["strength"]
         dexterity = starting_stats["dexterity"]
@@ -293,11 +280,8 @@ class DatabaseAccountsMixin(
             "INSERT OR REPLACE INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)",
             (account_id, "healing_potion", 2),
         )
-        if rname == "Cyborg":
-            self.conn.execute(
-                "INSERT OR REPLACE INTO inventory(account_id,item_id,quantity) VALUES(?,?,?)",
-                (account_id, "moogle_board", 1),
-            )
+        # v115: Moogle Board must be earned from Black Rabite or purchased
+        # with its endgame currency. Never give it to a new Cyborg.
         self.conn.execute(
             "INSERT OR IGNORE INTO class_progress(account_id,class_name,level,xp,active_slot) "
             "VALUES(?,?,1,0,1)",

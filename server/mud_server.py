@@ -585,6 +585,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         latency_task = asyncio.create_task(self.performance_watchdog_v11320())
         wander_task = asyncio.create_task(self.mob_wander_loop())
         xp_event_task = asyncio.create_task(self.double_xp_event_loop())
+        # v115: only persisted and due Fame rewards, completely audio-optional.
+        from systems.v115.fame_online_scheduler import fame_online_scheduler_v115
+        fame_v115_task = asyncio.create_task(fame_online_scheduler_v115(self))
         try:
             async with server:
                 if control is None:
@@ -621,9 +624,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         finally:
             if control is not None:
                 await control.close()
-            for task in (wander_task, xp_event_task, latency_task):
+            for task in (wander_task, xp_event_task, latency_task, fame_v115_task):
                 task.cancel()
-            for task in (wander_task, xp_event_task, latency_task):
+            for task in (wander_task, xp_event_task, latency_task, fame_v115_task):
                 try:
                     await task
                 except asyncio.CancelledError:  # AUDIT_INTENTIONAL_PASS: normal server shutdown task cancellation

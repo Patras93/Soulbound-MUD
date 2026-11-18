@@ -14,7 +14,7 @@ class SessionSoulAncientsV1330Mixin:
         ch=self.character
         soul=int(ch.soul_level)
         mastery=int(ch.soul_weapon_mastery_level)
-        await self.send(f'DZIEDZICTWO DUSZY v1.33.2. Soul Level {soul}/800. Biegłość Broni Duszy {mastery}/800.')
+        await self.send(f'DZIEDZICTWO DUSZY. Soul Level {soul} (bez limitu). Biegłość Broni Duszy {mastery} (bez limitu).')
         await self.send(f'Rezonans Broni Duszy: +{weapon_resonance_percent(mastery):g}% zwykłych trafień. Osobno od dotychczasowego Soul Tier i premii biegłości.')
         upcoming=next((level for level,_ in WEAPON_MILESTONES if mastery<level),None)
         if upcoming:await self.send(f'Następny rezonans Broni Duszy: biegłość {upcoming}.')
@@ -41,6 +41,6 @@ class SessionSoulAncientsV1330Mixin:
                 stage=evolution_stage(level,soul)
                 next_gate=next(((s,so) for s,so in EVOLUTION_THRESHOLDS if level<s or soul<so),None)
                 progress=f'Następny etap: Skill Level {next_gate[0]}, Soul Level {next_gate[1]}.' if next_gate else 'Ostatnia ewolucja osiągnięta.'
-                entries.append(f'{skill["name"]}: poziom {level}/800; {STAGE_NAMES[stage]}; {evolution_description(skill,level,soul)}; {progress}')
+                entries.append(f'{skill["name"]}: poziom {level} (bez limitu); {STAGE_NAMES[stage]}; {evolution_description(skill,level,soul)}; {progress}')
         await self.send(f'Poznane skille: {len(entries)}. Ewolucje są zależne od Skill Level i Soul Level; efekt zależy od roli umiejętności.')
         for line in entries:await self.send(line)
