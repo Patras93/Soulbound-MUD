@@ -50,7 +50,8 @@ SPECIALISTS = {
 
 
 def specialist_description_v1240(role):
-    title, style, *abilities = SPECIALISTS[role]
+    from systems.v115.vampire_mercenary import specialist_profile
+    title, style, *abilities = specialist_profile(role)
     return f"{title}: {style}. Techniki: {', '.join(abilities)}. Dobór samodzielny, siła rośnie wraz z właścicielem bez sufitu."
 
 
@@ -73,7 +74,8 @@ def specialist_attack_v1240(mob, owner_id, role, attack_type, owner_level, now, 
     sequence = int(state.get('sequence', 0))
     prev_role = state.get('role')
     prev_type = state.get('attack_type')
-    title, _style, ordinary, threat, finish = SPECIALISTS[role]
+    from systems.v115.vampire_mercenary import specialist_profile
+    title, _style, ordinary, threat, finish = specialist_profile(role)
     hp = max(0, int(getattr(mob, 'hp', 0) or 0))
     maxhp = max(1, int(getattr(mob, 'adaptive_max_hp_v11330', 0) or getattr(mob, 'max_hp', 0) or max_hp_hint or hp or 1))
     # Never depend solely on a monster's missing max_hp to choose a finishing move.
@@ -83,7 +85,7 @@ def specialist_attack_v1240(mob, owner_id, role, attack_type, owner_level, now, 
     # preserving 100% owner-based damage and all historic specialist bonuses.
     from systems.companion_tactics_v4000 import tactical_response
     tactical_factor, tactical_name = tactical_response(
-        role, boss, hp, maxhp, sequence)
+        'nekromanta' if role == 'wampir' else role, boss, hp, maxhp, sequence)
     if tactical_name and boss:
         technique = f"{technique} — {tactical_name}"
     # Every specialist has its own unlimited growth in addition to full owner DPS.
@@ -116,6 +118,12 @@ def specialist_support_on_strike_v1240(role, weakest, damage, major_threat, heal
         return ''
     hp_max = max(1, int(weakest.max_hp()))
     hp_now = max(0, int(weakest.current_hp))
+    if role == 'wampir':
+        if not healing_blocked and 0 < hp_now < hp_max and damage > 0:
+            recovery = min(hp_max - hp_now, max(1, int(damage) // 10))
+            weakest.current_hp += recovery
+            return f'Eliza: wampiryczne odnowienie {weakest.character.name}: +{recovery} HP.'
+        return ''
     if role in ('nekromanta', 'kaplan', 'druid', 'paladyn', 'tkacz_dusz',
                 'szeptacz_bestii', 'paladyn_zmierzchu') and not healing_blocked and hp_now < hp_max:
         frac = {'nekromanta': .02, 'kaplan': .04, 'druid': .035, 'paladyn': .02, 'tkacz_dusz': .03,
@@ -175,7 +183,10 @@ def mercenary_voice_v1270(role, sequence, combo='', boss=False):
     interval = 4 if boss else 6
     if int(sequence) % interval != 0:
         return ''
+    from systems.v115.vampire_mercenary import VAMPIRE_VOICE
     line = _MERC_VOICES_V1270.get(role, '')
+    if role == 'wampir':
+        line = VAMPIRE_VOICE
     if not line: return ''
     if combo: line += ' Razem z towarzyszem wykonamy kombinację!'
     return line

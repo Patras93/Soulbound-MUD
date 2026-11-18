@@ -138,7 +138,7 @@ async def redeem_exp_bank(session, *, all_balances=False):
             raise
         if success:
             # Send only after savepoint success; no EXP_BANK deposit event.
-            from systems.sound_events_v1208 import record_paid_exp_event_v11329
+            from systems.v115.optional_sound import record_paid_exp_event_v11329
             record_paid_exp_event_v11329(db, account, amount, limit, kind=kind)
             redeemed.append((kind,key,amount))
         else:

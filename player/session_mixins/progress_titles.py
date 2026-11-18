@@ -13,6 +13,8 @@ from core.progression_600 import (
     soul_tier_title_for_class,
 )
 from core.progression_resources import character_xp_to_next, class_mastery_xp_to_next
+from core.live_level_caps_v5200 import can_grow
+from systems.profile_live_v10400 import current_cap_label
 from network.protocol_gameplay_utils import normalize_lookup_text
 from systems.equipment_crafting import GUILD_REPUTATION_MAX
 from world.dynamic_content import ALL_EXPLORATION_ROOMS, COLLECTION_CATALOGS
@@ -169,13 +171,13 @@ class SessionProgressTitlesV0580Mixin:
         await self.send("POSTĘP — PODSUMOWANIE")
 
         # Character Level.
-        if int(c.character_level) >= CHARACTER_MAX_LEVEL:
-            await self.send(f"Level postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}, maksimum.")
+        if not can_grow("postac", c.character_level):
+            await self.send(f"Level postaci: {c.character_level} ({current_cap_label('postac')}), maksimum.")
         else:
             need = character_xp_to_next(int(c.character_level))
             missing = max(0, int(need) - int(c.character_xp))
             await self.send(
-                f"Level postaci: {c.character_level}/{CHARACTER_MAX_LEVEL}. EXP {c.character_xp} z {need}; brakuje {missing}."
+                f"Level postaci: {c.character_level} ({current_cap_label('postac')}). EXP {c.character_xp} z {need}; brakuje {missing}."
             )
 
         # Class mastery.
@@ -184,34 +186,34 @@ class SessionProgressTitlesV0580Mixin:
             row = self.server.db.class_progress_row(self.account_id, class_name)
             level = int(row["level"] or 1)
             xp = int(row["xp"] or 0)
-            if level >= CLASS_MASTERY_MAX_LEVEL:
-                mastery_parts.append(f"{class_name} {level}/{CLASS_MASTERY_MAX_LEVEL} max")
+            if not can_grow("bieglosc", level):
+                mastery_parts.append(f"{class_name} {level} ({current_cap_label('bieglosc')}) max")
             else:
                 need = class_mastery_xp_to_next(level)
-                mastery_parts.append(f"{class_name} {level}/{CLASS_MASTERY_MAX_LEVEL}, XP {xp}/{need}")
+                mastery_parts.append(f"{class_name} {level} ({current_cap_label('bieglosc')}), XP {xp}/{need}")
         await self.send("Biegłość: " + ("; ".join(mastery_parts) if mastery_parts else "brak aktywnej klasy") + ".")
 
         # Soul and Soul Weapon Mastery.
-        if int(c.soul_level) >= SOUL_MAX_LEVEL:
+        if not can_grow("dusza", c.soul_level):
             soul_xp = "maksimum"
         elif c.soul_progress_is_tier_locked():
             soul_xp = "Soul XP zablokowany do odblokowania następnego Tieru"
         else:
             soul_xp = f"Soul XP {c.soul_xp}/{c.soul_xp_to_next()}"
         await self.send(
-            f"Dusza: Soul Level {c.soul_level}/{SOUL_MAX_LEVEL}; Tier {c.soul_tier}/{SOUL_MAX_TIER} — {soul_tier_title_for_class(c.soul_tier, c.class_name)}; {soul_xp}."
+            f"Dusza: Soul Level {c.soul_level} ({current_cap_label('dusza')}); Tier {c.soul_tier} (bez limitu) — {soul_tier_title_for_class(c.soul_tier, c.class_name)}; {soul_xp}."
         )
-        if int(c.soul_weapon_mastery_level) >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
+        if not can_grow("bron_duszy", c.soul_weapon_mastery_level):
             swm = "maksimum"
         else:
             swm = f"XP {c.soul_weapon_mastery_xp}/{c.soul_weapon_mastery_xp_to_next()}"
         await self.send(
-            f"Soul Weapon Mastery: {c.soul_weapon_mastery_level}/{SOUL_WEAPON_MASTERY_MAX_LEVEL}; {swm}."
+            f"Soul Weapon Mastery: {c.soul_weapon_mastery_level} ({current_cap_label('bron_duszy')}); {swm}."
         )
 
         # Professions in three compact NVDA-friendly lines.
         profession_levels = self._profession_levels_v0580()
-        profession_parts = [f"{name} {level}/{PROFESSION_MAX_LEVEL}" for name, (level, _xp) in profession_levels.items()]
+        profession_parts = [f"{name} {level} ({current_cap_label('profesje')})" for name, (level, _xp) in profession_levels.items()]
         for start in range(0, len(profession_parts), 4):
             label = "Profesje" if start == 0 else "Profesje ciąg dalszy"
             await self.send(f"{label}: " + "; ".join(profession_parts[start:start + 4]) + ".")

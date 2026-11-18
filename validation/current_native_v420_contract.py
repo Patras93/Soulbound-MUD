@@ -387,6 +387,48 @@ def _normalize_published_native_ast(node, relative, name):
     return result
 
 
+# v115: these exact three changes were reviewed against v114.00.9. The
+# original v113 hash still verifies ALL remaining statements in the method.
+# Unlike re-signing the whole method, reverting a strictly bounded delta
+# catches any unexpected edits to the login/character-creation control flow.
+_V115_CREATOR_REVIEWED_CHANGES = (
+    (
+        'f"To tylko rekomendacja. Możesz wybrać dowolną dostępną klasę (Mec tylko dla Cyborga). Lista ma {len(CLASSES)} pozycji."',
+        'f"To tylko rekomendacja. Możesz wybrać dowolną z {len(CLASSES)} klas."',
+    ),
+    (
+        '                        proposed_class = CLASSES[int(choice)-1]\n'
+        '                        if proposed_class[0] == "Mec" and selected_race_name != "Cyborg":\n'
+        '                            await self.send("Klasa Mec jest dostępna wyłącznie dla rasy Cyborg.")\n'
+        '                            continue\n'
+        '                        cls = proposed_class',
+        '                        cls = CLASSES[int(choice)-1]',
+    ),
+    (
+        '                if str(exc) == "mec_cyborg_only":\n'
+        '                    await self.send("Mec jest dostępny wyłącznie dla rasy Cyborg.")\n'
+        '                    return False\n'
+        '                if str(exc) == "dryad_female_only":',
+        '                if str(exc) == "dryad_female_only":',
+    ),
+)
+
+
+def _normalize_v115_character_creator_ast(file):
+    source = Path(file).read_text(encoding='utf-8-sig')
+    for reviewed, original in _V115_CREATOR_REVIEWED_CHANGES:
+        if source.count(reviewed) != 1:
+            raise AssertionError(('v115 creator: unreviewed delta', str(file)))
+        source = source.replace(reviewed, original, 1)
+    tree = ast.parse(source, filename=str(file))
+    for item in tree.body:
+        if isinstance(item, ast.ClassDef) and item.name == 'SessionIOAuthCharacterMixin':
+            for member in item.body:
+                if isinstance(member, ast.AsyncFunctionDef) and member.name == 'character_creator':
+                    return member
+    raise AssertionError('v115 creator: missing protected method')
+
+
 def verify_native_method(file, name):
     file = Path(file)
     relative = file.resolve().relative_to(Path(__file__).resolve().parents[1]).as_posix()
@@ -396,6 +438,11 @@ def verify_native_method(file, name):
         raise AssertionError(('missing native method',relative,name))
     if (relative, name) in _PUBLISHED_NATIVE_MIGRATIONS:
         node = _normalize_published_native_ast(node, relative, name)
+    if (relative, name) == ('player/session_mixins/io_auth_character.py',
+                            'SessionIOAuthCharacterMixin.character_creator'):
+        release = (Path(__file__).resolve().parents[1] / 'VERSION').read_text().strip()
+        if release.startswith('115.00.'):
+            node = _normalize_v115_character_creator_ast(file)
     actual=hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()
     if actual != expected:
         raise AssertionError(('changed native method',relative,name))

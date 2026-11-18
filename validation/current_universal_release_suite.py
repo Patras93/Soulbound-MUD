@@ -43,6 +43,7 @@ GATES=(
     'validation/current_v11333_mercenary_38_regression.py',
     'validation/current_mercenary_arsenal_v11334_regression.py',
     'validation/current_crypt_overcap_party_regression.py',
+    'validation/current_feature_release_regression.py',
     'validation/current_only_server_smoke.py',
 )
 

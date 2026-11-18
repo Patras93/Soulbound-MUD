@@ -195,6 +195,25 @@ def check():
         assert (failure_root/'server.py').read_text()=='OLD SERVER\n';n+=1
         assert not (failure_root/'new_module.py').exists() and not (failure_root/'config/release_current.json').exists();n+=1
         assert hashlib.sha256((failure_root/'soulbound.db').read_bytes()).digest()==pre_data;n+=1
+
+        # Reproduce Windows v115.00.4: post-install verifier regenerates
+        # the nondurable SQLite SHM index before backup byte verification.
+        shmroot=Path(td)/'old_game_shm'
+        copytree(bak,shmroot)
+        (shmroot/'soulbound.db-shm').write_bytes(b'index-before-backup')
+        shmbackup=Path(td)/'old_backup_shm'
+        backup_existing(shmroot,shmbackup)
+        assert (shmbackup/'soulbound.db-shm').read_bytes()==b'index-before-backup';n+=1
+        def verify_after_shm_change(path):
+            path=Path(path)
+            if path==shmroot:
+                (path/'soulbound.db-shm').write_bytes(b'changed-index-postinstall')
+            return path in (shmroot, stage2)
+        with patch.object(release_update,'verify_stage',side_effect=verify_after_shm_change):
+            publish_in_place(stage2,shmroot,shmbackup,protected)
+        assert (shmroot/'VERSION').read_text().strip()=='113.00.0';n+=1
+        assert (shmroot/'soulbound.db').read_bytes()==(shmbackup/'soulbound.db').read_bytes();n+=1
+        assert (shmroot/'soulbound.db-shm').read_bytes()!= (shmbackup/'soulbound.db-shm').read_bytes();n+=1
     print('CURRENT UNIVERSAL UPDATE: '+str(n)+' checks PASS')
 
 if __name__=='__main__':check()

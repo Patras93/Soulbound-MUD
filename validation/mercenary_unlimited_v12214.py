@@ -67,8 +67,10 @@ def validate_mercenary_unlimited_v12214():
         def mercenary_gain_xp_v1220(self, *args):
             raise AssertionError('mercenaries do not save XP each action')
 
+    from player.session_mixins.mercenary_taverns import SessionMercenaryTavernsMixin
     class Owner:
         mercenary_combat_turn_v1170 = ns['mercenary_combat_turn_v1170']
+        mercenary_party_action_v11503 = SessionMercenaryTavernsMixin.mercenary_party_action_v11503
         def __init__(self):
             self.character = SimpleNamespace(name='Bohater', room_id='room', character_level=1000)
             self.current_hp = 100000
@@ -79,6 +81,7 @@ def validate_mercenary_unlimited_v12214():
             self.kills = 0
             self.server = SimpleNamespace(db=self.db, party_sessions=lambda *a,**kw:[self],
                                           party_combat_broadcast=self.broadcast)
+            self.server.party_key_for_account = lambda account_id: None  # Solo fixture, no group
         def max_hp(self): return 100000
         def physical_power(self): return 50000
         def spell_power(self): return 100

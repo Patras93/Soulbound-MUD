@@ -20,8 +20,8 @@ def make_topics():
                  'Alchemia rozwija Alchemię oraz Moździerz Alchemiczny.',
                  'Jubilerstwo rozwija Jubilerstwo oraz Szczypce Jubilerskie.',
                  'Pozostałe narzędzia nie dostają XP, użyć ani leveli od tej akcji.'],
- 'endgame_profesje': ['Narzędzia 1-400 odblokowują coraz lepsze surowce i zwiększają rare/quality oraz bonus '
-                      'urobku; profesje 1-400 skracają czas i blokują receptury/zlecenia.',
+ 'endgame_profesje': ['Historyczne progi narzędzi 1–400 odblokowują coraz lepsze surowce i zwiększają rare/quality oraz bonus '
+                      'urobku; historyczne progi profesji 1–400 skracają czas i blokują receptury/zlecenia.',
                       'Wędka odblokowuje nowe ryby endgame; część zależy od typu łowiska: rzeka, jezioro, '
                       'morze albo ocean.',
                       'Kilof odblokowuje: Ruda Kobaltu 100, Kamień Runiczny 120, Smocza Stal 140, Ruda '
@@ -43,7 +43,7 @@ def make_topics():
                    'Działa niezależnie od źródła Soul XP, między innymi z przeciwników oraz Eliksiru Duszy.',
                    'Jeżeli Soul XP nie wbije nowego Soul Levelu, HP nie jest odnawiane.',
                    'Odnowienie dotyczy tylko HP. Mana nie jest automatycznie odnawiana.',
-                   'Soul Level ma zakres 1-400.'],
+                   'Soul Level rozwija się bez limitu; dawne progi 1–400 zachowano.'],
  'rozwoj_statystyk': ['Statystyki rosną automatycznie przez sześć niezależnych liczników EXP; nie ma '
                       'ręcznego rozdawania punktów ani levelu postaci.',
                       'Każda z sześciu statystyk ma osobną krzywą EXP, bez limitu wartości; od 50 wymaga '
@@ -63,19 +63,19 @@ def make_topics():
                            'Ofensywne umiejętności nadal rozpoczynają walkę tylko na wyraźną akcję gracza.',
                            'Cooldown, Mana, Skill Level i zdobywanie Skill XP działają dokładnie tak jak '
                            'przy komendzie skill.'],
- 'soul200': ['Broń Duszy ma Soul Level 1-400.',
+ 'soul200': ['Soul Level Broni Duszy rozwija się bez limitu.',
              'Soul XP używa od v0.8.64 płynnej krzywej +25 procent mnożnika co pełny blok 10 leveli; wpisz '
              'help soulxp.',
              'Tier 4 wymaga próby od Soul Level 25.',
              'Tier 7 wymaga próby od Soul Level 60.',
              'Tier 13 odblokowuje się od Soul Level 120 po Próbie Elora na bossie piętra 120 Krypty.',
              'Tier 19 odblokowuje się od Soul Level 180 po Próbie Elora na bossie piętra 180 Krypty.',
-             'Po Soul Level 100 Broń Duszy rozwija się dalej aż do 400.',
+             'Po Soul Level 100 Broń Duszy rozwija się dalej bez limitu.',
              'Soul Level nadal zwiększa bazową moc Broni Duszy.',
-             'Nie ma levelu postaci.'],
- 'narzedzia200': ['Wszystkie 8 narzędzi ma level 1-400 i 40 Tierów.',
+             'Poziom postaci istnieje osobno od Soul Level.'],
+ 'narzedzia200': ['Historyczne 8 narzędzi ma dalszy rozwój bez limitu; pierwsze 40 Tierów jest zachowanych.',
                   'Wędka, Kilof, Piła, Młot Rzemieślniczy, Nóż Kucharski, Sierp Zielarski, Moździerz '
-                  'Alchemiczny i Szczypce Jubilerskie rozwijają się do 400.',
+                  'Alchemiczny i Szczypce Jubilerskie rozwijają się także powyżej 400.',
                   'Tier 1 obejmuje level 1-9; kolejne Tiery zaczynają się na 10, 20, 30 i dalej co 10 aż do '
                   '180; Tier 20 jest na levelu 200.',
                   'Przykłady bonusu: Tier 1 = 0 procent, Tier 10 od levelu 90 = 18 procent, Tier 11 od 100 = '

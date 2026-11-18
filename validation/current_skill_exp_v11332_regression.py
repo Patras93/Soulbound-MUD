@@ -84,7 +84,10 @@ def test():
         def make(name,class_name):
             aid=db.create_account(name,'secure-pass-test-11332')
             cases={key:name for key in ('nom','gen','dat','acc','ins','loc','voc')}
-            db.create_character(aid,name,RACES[0],next(c for c in CLASSES if c[0]==class_name),cases)
+            # v115: only Cyborg may select Mec. Preserve the real skill
+            # progression test using a legal character, not a bypass.
+            race = next(r for r in RACES if r[0] == 'Cyborg') if class_name == 'Mec' else RACES[0]
+            db.create_character(aid,name,race,next(c for c in CLASSES if c[0]==class_name),cases)
             return Actor(db,aid,class_name)
         user=make('SkillUser','Wojownik')
         skill=next(s for s in CLASS_SKILLS['Wojownik'] if s.get('kind')=='damage')

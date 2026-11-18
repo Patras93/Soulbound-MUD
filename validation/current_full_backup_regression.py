@@ -37,6 +37,21 @@ def main():
         rejects(lambda:verify_private_backup(src,dst,protected));cases+=1
         (dst/'soulbound.db-wal').write_bytes(b'pending-wal')
         assert verify_private_backup(src,dst,protected)==4;cases+=1
-    print('PRIVATE BACKUP BYTE VERIFICATION: '+str(cases)+'/6 PASS')
+        # SHM may differ, appear, or disappear after SQLite closes/reopens.
+        (src/'soulbound.db-shm').write_bytes(b'shm-index-in-source')
+        assert verify_private_backup(src,dst,protected)==4;cases+=1
+        (dst/'soulbound.db-shm').write_bytes(b'old-index-in-backup')
+        assert verify_private_backup(src,dst,protected)==4;cases+=1
+        (src/'soulbound.db-shm').unlink()
+        assert verify_private_backup(src,dst,protected)==4;cases+=1
+        # Unlike SHM, the main DB and WAL must remain byte-identical.
+        (src/'soulbound.db').write_bytes(b'changed-real-db')
+        rejects(lambda:verify_private_backup(src,dst,protected));cases+=1
+        (src/'soulbound.db').write_bytes(b'fake-db-for-backup-comparison')
+        (src/'soulbound.db-wal').write_bytes(b'changed-real-wal')
+        rejects(lambda:verify_private_backup(src,dst,protected));cases+=1
+        (src/'soulbound.db-wal').write_bytes(b'pending-wal')
+        assert verify_private_backup(src,dst,protected)==4;cases+=1
+    print('PRIVATE BACKUP BYTE VERIFICATION: '+str(cases)+'/12 PASS')
 
 if __name__=='__main__':main()

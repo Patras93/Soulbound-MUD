@@ -44,6 +44,8 @@ from world.generation_systems import active_profession_event_for_room, v0140_gat
 
 from events.contracts import ResourceGatheredEvent
 from core.mine_tunnels import mine_tunnel_coords, HORIZONTAL_MINE_DIRECTIONS, MINE_DIRECTION_LABELS
+from systems.v115.profession_sites import has_site as _v115_has_site
+from systems.v115.regional_crafting import grant_after_native_gather as _v115_regional_material
 
 class SessionGatheringActionsMixin:
 
@@ -141,7 +143,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz łowić podczas walki.")
                 return
-            if self.character.room_id not in FISHING_ROOMS and not active_profession_event_for_room(self.character.room_id, "fishing"):
+            if self.character.room_id not in FISHING_ROOMS and not active_profession_event_for_room(self.character.room_id, "fishing") and not _v115_has_site(self.character.room_id, ROOMS.get(self.character.room_id), "fishing"):
                 await self.send("Tutaj nie ma odpowiedniego łowiska.")
                 return
             if self.server.db.item_qty(self.account_id, "fishing_rod") <= 0:
@@ -315,6 +317,7 @@ class SessionGatheringActionsMixin:
                 rare_achievement="rare_fish_caught" if item_id in RARE_FISH_VARIANT_IDS else None,
                 rare_lifetime_stat="rare_fish_caught" if item_id in RARE_FISH_VARIANT_IDS else None,
             ))
+            await _v115_regional_material(self, "fishing")
 
             fish_xp_scale = v096_fishing_reward_scale(profession_level)
             floor_xp_mult = gather_feature["xp_mult"]
@@ -383,7 +386,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz wydobywać podczas walki.")
                 return
-            if not is_mining_room(self.character.room_id) and not active_profession_event_for_room(self.character.room_id, "mining"):
+            if not is_mining_room(self.character.room_id) and not active_profession_event_for_room(self.character.room_id, "mining") and not _v115_has_site(self.character.room_id, ROOMS.get(self.character.room_id), "mining"):
                 await self.send("Tutaj nie ma odpowiedniego złoża.")
                 return
             if self.server.db.item_qty(self.account_id, "pickaxe") <= 0:
@@ -527,6 +530,7 @@ class SessionGatheringActionsMixin:
                 category="ore", bounty_kind="mine", dynamic_kind="mine", legendary_kind="gather",
                 faction="miners", faction_reason="mining", lifetime_stat="ore_mined",
             ))
+            await _v115_regional_material(self, "mining")
 
             floor_xp_mult = gather_feature["xp_mult"]
             vein_xp_mult = {
@@ -661,7 +665,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz ścinać drzew podczas walki.")
                 return
-            if self.character.room_id not in WOODCUTTING_ROOMS and not active_profession_event_for_room(self.character.room_id, "woodcutting"):
+            if self.character.room_id not in WOODCUTTING_ROOMS and not active_profession_event_for_room(self.character.room_id, "woodcutting") and not _v115_has_site(self.character.room_id, ROOMS.get(self.character.room_id), "woodcutting"):
                 await self.send("Tutaj nie ma odpowiednich drzew do Drwalstwa.")
                 return
             if self.server.db.item_qty(self.account_id, "saw") <= 0:
@@ -756,6 +760,7 @@ class SessionGatheringActionsMixin:
                 category="wood", bounty_kind="wood", dynamic_kind="wood", legendary_kind="gather",
                 faction="green_path", faction_reason="woodcutting", lifetime_stat="wood_gathered",
             ))
+            await _v115_regional_material(self, "woodcutting")
 
             floor_xp_mult = gather_feature["xp_mult"]
             rare_xp_mult = rare_resource_xp_multiplier_v1138(item_id)
@@ -806,7 +811,7 @@ class SessionGatheringActionsMixin:
             if self.combat_mob_key:
                 await self.send("Nie możesz zbierać ziół podczas walki.")
                 return
-            if self.character.room_id not in HERBALISM_ROOMS and not active_profession_event_for_room(self.character.room_id, "herbalism"):
+            if self.character.room_id not in HERBALISM_ROOMS and not active_profession_event_for_room(self.character.room_id, "herbalism") and not _v115_has_site(self.character.room_id, ROOMS.get(self.character.room_id), "herbalism"):
                 await self.send("Tutaj nie ma odpowiednich ziół.")
                 return
             if self.server.db.item_qty(self.account_id, "herbalist_sickle") <= 0:
@@ -899,6 +904,7 @@ class SessionGatheringActionsMixin:
                 category="herb", bounty_kind="herb", dynamic_kind="herb", legendary_kind="gather",
                 faction="green_path", faction_reason="herbalism", lifetime_stat="herbs_gathered",
             ))
+            await _v115_regional_material(self, "herbalism")
 
             floor_xp_mult = gather_feature["xp_mult"]
             rare_xp_mult = rare_resource_xp_multiplier_v1138(item_id)

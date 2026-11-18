@@ -104,7 +104,7 @@ class SessionCraftingExpansionV03114Mixin:
                 mapping[item_id] = int(mapping.get(item_id, 0)) + qty
 
         def bulk_protected(item_id, item):
-            # Moogle Board jest startowym, rasowym modułem Cyborga. Hurtowa komenda
+            # Moogle Board jest zdobywaną nagrodą rasową Cyborga. Hurtowa komenda
             # go nie usuwa; nadal można rozłożyć go jawnie pojedynczą komendą.
             if item_id == "moogle_board":
                 return True

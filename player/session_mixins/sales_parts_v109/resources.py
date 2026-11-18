@@ -194,6 +194,8 @@ class SalesResourcesV109Mixin:
                 return "woodpile"
             if item_id in HERB_STORAGE_IDS:
                 return "herbbag"
-            if item_id in CRAFT_MATERIAL_STORAGE_IDS:
+            if item_id in CRAFT_MATERIAL_STORAGE_IDS or ITEMS.get(item_id, {}).get("type") == "craft_material":
+                # v115: materials registered later during startup use the
+                # existing craftbox, independent of import order.
                 return "craftbox"
             return None

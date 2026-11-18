@@ -1145,6 +1145,28 @@ WORLD_SURFACE_EXTRA_SPAWNS = [
 ]
 MOB_SPAWNS.extend(WORLD_SURFACE_EXTRA_SPAWNS)
 
+# v115: standard persistent world spawns, independent of soundpack.
+from systems.v115.playable_regions import build_spawns as _v115_spawns, validate_world as _v115_validate
+from data.rooms import ROOMS as _v115_world_rooms
+from data.mobs import MOB_TEMPLATES as _v115_world_mobs
+_v115_validate({k:v for k,v in _v115_world_rooms.items() if not k.startswith('v115_')},
+               {k:v for k,v in _v115_world_mobs.items() if not k.startswith('v115_')}, MOB_SPAWNS)
+MOB_SPAWNS.extend(_v115_spawns())
+
+# v115: persistent dungeon spawns attached to their actual rooms and mobs.
+from systems.v115.regional_dungeons import build_spawns as _v115_dungeon_spawns, validate_spawns as _v115_dungeon_validate
+_v115_dungeon_validate(_v115_world_rooms, _v115_world_mobs, _v115_dungeon_spawns())
+MOB_SPAWNS.extend(_v115_dungeon_spawns())
+
+# v115: nowe spawny są dodawane do standardowego cyklu potworów.
+from systems.v115.graveyard_expansion import build_spawns as _v115_graveyard_spawns
+for _v115_spawn in _v115_graveyard_spawns():
+    if _v115_spawn[0] not in _v115_world_rooms or _v115_spawn[1] not in _v115_world_mobs:
+        raise RuntimeError('v115 Stary Cmentarz: brak pokoju lub potwora '+str(_v115_spawn))
+    if _v115_spawn not in MOB_SPAWNS:
+        MOB_SPAWNS.append(_v115_spawn)
+
+
 # v1.11.36 — unique UOSSMUD Super Boss arenas are authored by the world layer,
 # while their canonical spawns are installed here after MOB_SPAWNS exists.
 # Player-facing help. Category/group page labels are explicitly documented as

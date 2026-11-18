@@ -1039,17 +1039,18 @@ from systems.equipment_crafting import JEWELCRAFT_RECIPES  # explicit optional d
 CATALOG_VALIDATION_AUDIT = validate_catalog({'ROOMS': ROOMS, 'MOB_TEMPLATES': MOB_TEMPLATES, 'ITEMS': ITEMS, 'QUESTS': QUESTS, 'CLASS_SKILLS': CLASS_SKILLS, 'CRAFT_RECIPES': CRAFT_RECIPES, 'COOK_RECIPES': COOK_RECIPES, 'ALCHEMY_RECIPES': ALCHEMY_RECIPES, 'JEWELCRAFT_RECIPES': JEWELCRAFT_RECIPES})
 BALANCE_MATH_VERSION = balance_math.BALANCE_MATH_VERSION
 
-# v0.31.3: Moogle Board jest specjalnym rasowym Boardem Cyborga.
-# Generator Core nie może nadpisywać jego skalowania z Biegłością Meca.
+# v115: Moogle Board zdobywa się po rozwoju postaci (Level 150+).
+# Generator Core nie może nadpisywać rasowego skalowania z levelem Cyborga.
 if "moogle_board" in ITEMS:
     _catalog_mut.catalog_update_path('ITEMS', ITEMS, ("moogle_board",), {
         "defense": 0,
-        "price": 1000,
+        "price": None,
         "required_mastery": 1,
-        "required_character_level": 1,
-        "generator_level": 1,
+        "required_character_level": 150,
+        "required_level": 150,
+        "generator_level": 150,
         "stats": {},
-        "cyborg_board_scaling": "mec_mastery",
+        "cyborg_board_scaling": "character_level",
     })
 
 # v0.30.30: wszystkie bojowe skille typu boost mają jeden, czytelny czas działania.

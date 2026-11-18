@@ -63,7 +63,8 @@ def run_regression():
                  and n.name == 'SessionCharacterProfileMixin')
     method = next(n for n in mixin.body if isinstance(n, ast.AsyncFunctionDef)
                   and n.name == 'show_character_level')
-    namespace = {'CHARACTER_MAX_LEVEL': 800, 'SOUL_MAX_LEVEL': 800, 'character_xp_to_next': lambda level: 776, 'current_cap_label': lambda kind: '800'}
+    namespace = {'CHARACTER_MAX_LEVEL': 800, 'SOUL_MAX_LEVEL': 800, 'character_xp_to_next': lambda level: 776, 'current_cap_label': lambda kind: 'bez limitu',
+                 'can_grow': lambda kind, level: True}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])),
                  str(source), 'exec'), namespace)
     outputs = []
@@ -76,7 +77,7 @@ def run_regression():
         account_id=1, server=SimpleNamespace(db=db), send=send,
     )
     asyncio.run(namespace['show_character_level'](instance))
-    assert outputs[0].startswith('Poziom postaci: 1/')
+    assert outputs[0].startswith('Poziom postaci: 1 (bez limitu).')
     assert 'Soul XP 275 z 1200. Brakuje 925 Soul XP do poziomu 4.' in outputs[1]
     checks += 1
     assert outputs[-1] == f'Your experience cap is {multi_cap_experience_v23215(db.conn, 1)} EXP.'

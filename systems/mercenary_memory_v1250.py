@@ -10,7 +10,8 @@ from core.large_number_math import safe_success_ratio
 MAX_TARGETS = 200
 
 def memory_choice_v1250(session, role, species, suggested, turn):
-    abilities = SPECIALISTS[role][2:]
+    from systems.v115.vampire_mercenary import specialist_profile
+    abilities = specialist_profile(role)[2:]
     key = (role, str(species))
     memory = getattr(session, '_mercenary_memory_v1250', None)
     if not isinstance(memory, dict):

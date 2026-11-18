@@ -193,6 +193,12 @@ def mercenary_follow_notice_v12210(names):
         return ""
     if len(names) == 1:
         return f"{names[0]} podąża za tobą."
+    if "Eliza" in names:
+        other = tuple(name for name in names if name != "Eliza")
+        return "Eliza podąża za tobą. " + (
+            f"{other[0]} także podąża za tobą." if len(other) == 1 else
+            "Pozostali najemnicy podążają za tobą: " + ", ".join(other[:-1]) + " i " + other[-1] + "."
+        )
     return "Najemnicy podążają za tobą: " + ", ".join(names[:-1]) + " i " + names[-1] + "."
 
 

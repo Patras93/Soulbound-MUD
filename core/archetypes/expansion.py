@@ -122,7 +122,7 @@ def install(namespace):
         passives_c[name]={'kind':passive,'value':value}
         soulweapons[name]=labels[0]
     for name,kind,value,stats in RACE_SPECS:
-        race_rows.append((name,'Rasa v110. Pasyw '+kind+'.',*stats))
+        race_rows.append((name,'Pasyw rasowy: '+kind+'.',*stats))
         passives_r[name]={'kind':kind,'value':value}
         recommendations[name]={'classes':[], 'reason':'Rasa dostępna dla wszystkich klas.'}
     namespace['CLASSES'].extend(class_rows)

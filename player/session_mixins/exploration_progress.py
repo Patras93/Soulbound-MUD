@@ -629,6 +629,17 @@ class SessionExplorationProgressMixin:
             from systems.exploration_point_values_v2322 import is_city_ep_excluded_v1002
             if room_meta.get('v1000_landmark') and not is_city_ep_excluded_v1002(room_meta):
                 await self.claim_landmark_ep_v1002(room_id)
+            # v115: use the *server-side* stable room ID for exploration goals.
+            # Also retry on revisits after a failed objective settlement; the
+            # idempotent event key prevents duplicate rewards or progress.
+            if room_meta.get('v115_region_key'):
+                from systems.v115.exploration_objective_bridge import record_v115_room_visit
+                _, _quests_v115, _achievements_v115, _silver_v115 = (
+                    record_v115_room_visit(self, str(room_id), room_meta))
+                if _quests_v115 or _achievements_v115:
+                    await self.send(
+                        f'Odkrycia v115: {_quests_v115} zadań, '
+                        f'{_achievements_v115} osiągnięć; +{_silver_v115} srebra.')
             if not is_new:
                 return False
             # Exploration quest, atlas and achievements still progress normally.

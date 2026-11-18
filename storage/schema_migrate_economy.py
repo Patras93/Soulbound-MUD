@@ -15,19 +15,30 @@ def migrate_accounts_and_economy(
     # pieniędzy się nie uda, nie zostawiaj częściowo migrowanych slotów.
     self.conn.execute('SAVEPOINT v104_wallet_slots_and_balances')
     try:
-        self.conn.execute(
-            """
-            INSERT OR IGNORE INTO account_characters(
-                master_account_id, character_account_id, slot
+        # Historical auto-slot backfill belongs to the ONE-TIME migration.
+        # A mature database can contain a character row without its roster link
+        # after an old interrupted create_character operation.  Re-running the
+        # backfill on EVERY startup silently re-parents that row to a new master
+        # and changes account_characters during a read-only upgrade check.
+        # Such records must be preserved for explicit recovery, not adopted.
+        wallet_migrated = self.conn.execute(
+            "SELECT 1 FROM migration_flags WHERE flag=?",
+            ("shared_account_wallet_v0832",),
+        ).fetchone()
+        if not wallet_migrated:
+            self.conn.execute(
+                """
+                INSERT OR IGNORE INTO account_characters(
+                    master_account_id, character_account_id, slot
+                )
+                SELECT c.account_id, c.account_id, 1
+                FROM characters c
+                WHERE NOT EXISTS(
+                    SELECT 1 FROM account_characters ac
+                    WHERE ac.character_account_id=c.account_id
+                )
+                """
             )
-            SELECT c.account_id, c.account_id, 1
-            FROM characters c
-            WHERE NOT EXISTS(
-                SELECT 1 FROM account_characters ac
-                WHERE ac.character_account_id=c.account_id
-            )
-            """
-        )
 
         from storage.migration_currency_v10400 import (
             sum_slot_currency_v104, strict_legacy_coins_v104,
@@ -36,10 +47,6 @@ def migrate_accounts_and_economy(
         # v0.8.32: jeden wspólny portfel dla wszystkich postaci na koncie.
         # Pierwsza migracja SUMUJE walutę wszystkich istniejących slotów,
         # dzięki czemu aktualizacja nie kasuje pieniędzy żadnej postaci.
-        wallet_migrated = self.conn.execute(
-            "SELECT 1 FROM migration_flags WHERE flag=?",
-            ("shared_account_wallet_v0832",),
-        ).fetchone()
         if not wallet_migrated:
             # Jeden SAVEPOINT na wszystkie konta: błąd na drugim koncie musi
             # cofnąć również aktualizację pierwszego, bez zatwierdzania rodzica.

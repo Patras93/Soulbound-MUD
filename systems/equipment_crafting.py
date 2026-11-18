@@ -2317,3 +2317,7 @@ for _level in PROGRESSION_400_LEVELS:
 # v1.15.0: legendarne receptury i działające, unikalne efekty sprzętu.
 from systems.legendary_reborn import register_legendary_content_v1150
 register_legendary_content_v1150(CRAFT_RECIPES, JEWELCRAFT_RECIPES)
+
+# v115 – recipes use the native crafting transaction and existing stations.
+from systems.v115.regional_crafting import register_recipes as _v115_register_recipes
+_v115_register_recipes(CRAFT_RECIPES,COOK_RECIPES,ALCHEMY_RECIPES)

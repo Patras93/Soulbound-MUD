@@ -648,9 +648,18 @@ RACE_CLASS_RECOMMENDATIONS = {
 
 def race_class_recommendation_text(race_name):
     data = RACE_CLASS_RECOMMENDATIONS.get(race_name)
-    if not data:
+    if not data or not data.get('classes'):
+        # v110 shipped eight races without any suggested classes. Keep the
+        # original catalogue untouched; provide meaningful v115 fallback.
+        from systems.v115.race_recommendations import recommendation_for
+        data = recommendation_for(race_name, {row[0] for row in CLASSES})
+    if not data or not data.get('classes'):
         return ""
-    return f"Polecane klasy: {', '.join(data['classes'])}. Dlaczego: {data['reason']}."
+    # Mec is exclusively for Cyborg, including older recommendations.
+    classes = [name for name in data['classes'] if name != 'Mec' or race_name == 'Cyborg']
+    if not classes:
+        return ""
+    return f"Polecane klasy: {', '.join(classes)}. Dlaczego: {str(data['reason']).rstrip('.')}."
 
 # v0.9.0: bazowa Moc Broni Duszy ma wąski zakres 7-8 zamiast 6-9.
 # Różnice klas nadal wynikają ze skilli, pasywów i specjalizacji Soul Tier,

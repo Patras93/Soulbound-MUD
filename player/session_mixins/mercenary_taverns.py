@@ -2,7 +2,8 @@
 """Hire permanent NPC mercenaries independently of UOSS helpers."""
 from core.bootstrap_economy_professions import currency_price_text
 import time
-from systems.mercenary_taverns import MERCENARIES, COOLDOWN, mercenary_role, tavern_here, price_silver, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213, mercenary_owner_real_action_power_v1231, mercenary_skill_lines_v12211
+from systems.mercenary_taverns import COOLDOWN, tavern_here, pick_next_contract, mercenary_owner_power_v1213, mercenary_damage_cap_ratio_v12212, mercenary_owner_full_power_v12213, mercenary_owner_real_action_power_v1231
+from systems.v115.vampire_mercenary import MERCENARIES, mercenary_role, price_silver, mercenary_skill_lines_v12211, specialist_profile
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
 from world.machine_expansion import v0314_adjust_damage_vs_template
 from data.mobs import MOB_TEMPLATES
@@ -11,6 +12,35 @@ from systems.mercenary_growth_v1220 import (
 )
 
 class SessionMercenaryTavernsMixin:
+    async def mercenary_party_action_v11503(self, message):
+        """One mercenary action to its owner and each local party member.
+
+        Store an essential combat event in every recipient's combat history,
+        not merely the owner's. Never send across rooms or to other parties.
+        """
+        if not self.character or getattr(self, "closed", False):
+            return
+        room_id = self.character.room_id
+        recipients = [self]
+        if (self.account_id is not None and
+                self.server.party_key_for_account(self.account_id) is not None):
+            recipients = list(self.server.party_sessions(
+                self.account_id, same_room=room_id))
+            if self not in recipients:
+                recipients.insert(0, self)
+        seen = set()
+        for member in recipients:
+            if (member is None or id(member) in seen or
+                    getattr(member, "closed", False) or
+                    not getattr(member, "character", None) or
+                    member.character.room_id != room_id):
+                continue
+            seen.add(id(member))
+            if (member is not self and not self.server.same_party(
+                    self.account_id, member.account_id)):
+                continue
+            await member.send_combat(message, detail="essential")
+
     def nearby_mercenaries_v1226(self):
         """Visible followers share their owner's room; they are not spawnable mobs.
 
@@ -206,7 +236,7 @@ class SessionMercenaryTavernsMixin:
         if action in ("status", "stan", "moje"):
             active = self.server.db.mercenary_contracts(self.account_id)
             if not active:
-                await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3.")
+                await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3. Eliza jest niezatrudniona; wynajmij ją w tawernie.")
                 return
             level = mercenary_owner_level_v1228(self.character)
             await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna realna moc i tempo ataków właściciela (Broń Duszy, statystyki, EQ, trafienia wielokrotne); bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Specjalizacje klasowe: najemnik specjalizacje [imię]. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
@@ -214,9 +244,11 @@ class SessionMercenaryTavernsMixin:
                 role = row["role"]
                 if role in MERCENARIES:
                     progress = self.server.db.mercenary_progress_v1220(self.account_id, role)
-                    from systems.mercenary_specialists_v1240 import SPECIALISTS
-                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}, taktyka {mercenary_tactic(progress['specialization'])}, specjalizacja {SPECIALISTS[role][0]}.")
+                    await self.send(f"{MERCENARIES[role]['name']} ({MERCENARIES[role]['role']}): zatrudniony na stałe, poziom {level}, taktyka {mercenary_tactic(progress['specialization'])}, specjalizacja {specialist_profile(role)[0]}.")
             await self.send(f"Najemnicy: {len(active)}/3. Pomocnicy UOSS mają osobne miejsce.")
+            await self.send("Eliza: zatrudniona i podąża za postacią; sprawdź look Eliza." if any(
+                row["role"] == "wampir" for row in active) else
+                "Eliza: niezatrudniona. Możesz ją wynająć w tawernie: najemnik wynajmij Eliza.")
             return
         if action in ("zwolnij", "usun", "odeślij", "odeslij"):
             role = mercenary_role(name)
@@ -245,7 +277,9 @@ class SessionMercenaryTavernsMixin:
                 return
             self.server.db.apply_shared_wallet_to_character(self.character)
             spec = MERCENARIES[role]
-            await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}. EXP i łupy zostają u graczy.")
+            await self.send(f"{spec['name']} ({spec['role']}) dołącza na stałe za jednorazową opłatę {currency_price_text(price)}. Możesz odesłać najemnika komendą najemnik odeslij {spec['name']}.")
+            if role == "wampir":
+                await self.send("Eliza podąża za tobą po lokacjach. Sprawdź look lub look Eliza.")
             return
         if action not in ("lista", "list", "", "oferta"):
             await self.send("Komendy: najemnicy; najemnik specjalizacje [imię]; najemnik skille [imię] (podgląd); najemnik wynajmij <imię>; najemnik status; najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>; najemnik odeslij <imię|wszyscy>. Najemnicy sami używają swoich umiejętności.")
@@ -318,7 +352,8 @@ class SessionMercenaryTavernsMixin:
                     barrier=max(1,int(weakest.max_hp()*.09))
                     weakest.skill_guard += barrier
                     self._v1600_guardian_barrier_at=now+20.0
-                    await self.send(f"{name}: automatyczna osłona {weakest.character.name}, +{barrier} ochrony.")
+                    await self.mercenary_party_action_v11503(
+                        f"{name}: automatyczna osłona {weakest.character.name}, +{barrier} ochrony.")
             heal_threshold = (.89 if major_threat else (.78 if role != 'druid' else .68))
             if role in ("kaplan", "paladyn", "druid") and (
                     weakest.current_hp < weakest.max_hp() * heal_threshold and
@@ -436,11 +471,9 @@ class SessionMercenaryTavernsMixin:
                         if heal and not superboss_healing_blocked_v11179(weakest):
                             weakest.current_hp += heal
                             message += f" Dodatkowe leczenie: +{heal} HP."
-                # The owner is excluded from party_combat_broadcast by design.
-                # Tell the owner directly, even in concise NVDA combat mode;
-                # share the same action with party members in the same room.
-                await self.send_combat(message, detail="essential")
-                await self.server.party_combat_broadcast(self, message, detail="essential")
+                # Record and show each mercenary action to ALL local party
+                # members, including the owner, once in the essential NVDA feed.
+                await self.mercenary_party_action_v11503(message)
                 if defeated_by_mercenary:
                     for fallen in defeated_mobs:
                         await self.mob_defeated(fallen)

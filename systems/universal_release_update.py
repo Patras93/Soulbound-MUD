@@ -31,11 +31,13 @@ def validate_approval(root, archive_path, version, digest, installed):
 
 
 def verify_private_backup(root, backup, protected_predicate):
-    """Require byte-for-byte backup of every protected user file, not just DB/WAL.
+    """Verify all durable player data byte-for-byte after full backup.
 
-    Backup must be complete and stable before any player data is transferred.
-    This does not certify live database consistency: that is checked separately
-    by the offline SQLite snapshot and PREDEPLOY.
+    SQLite *-shm is a volatile WAL shared-memory index, NOT durable data.
+    The full backup still copies it if present, but its bytes or presence may
+    change while SQLite connections close/reopen. Database and WAL are ALWAYS
+    checked by size and SHA256, along with all other protected saves.
+    This check supplements independent SQLite integrity and migration gates.
     """
     from aktualizuj_soulbound import UpdateError, sha256_file
     root, backup = Path(root), Path(backup)
@@ -51,6 +53,11 @@ def verify_private_backup(root, backup, protected_predicate):
         if source.is_symlink():
             raise UpdateError('Dowiazanie symboliczne w danych graczy: '+str(source))
         if not source.is_file():
+            continue
+        # Only SQLite's nondurable SHM index is exempt from repeated byte checks.
+        # Its presence/content may change during the updater's own validation.
+        # Never exempt .db, .sqlite, .sqlite3, -wal or -journal files.
+        if source.name.casefold().endswith(('.db-shm', '.sqlite-shm', '.sqlite3-shm')):
             continue
         dest = backup / relative
         if dest.is_symlink() or not dest.is_file():

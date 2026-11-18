@@ -1216,7 +1216,7 @@ class SessionIOAuthCharacterMixin:
                     break
                 await self.send(
                     f"Wybrana rasa: {selected_race_name}. {race_class_recommendation_text(selected_race_name)} "
-                    f"To tylko rekomendacja. Możesz wybrać dowolną z {len(CLASSES)} klas."
+                    f"To tylko rekomendacja. Możesz wybrać dowolną dostępną klasę (Mec tylko dla Cyborga). Lista ma {len(CLASSES)} pozycji."
                 )
                 await self.send("Wybierz klasę. Aby wrócić do ras: 0, wroc, wróć albo rasy.")
                 for i, option in enumerate(CLASSES, 1):
@@ -1238,7 +1238,11 @@ class SessionIOAuthCharacterMixin:
                         await self.send("Powrót do listy ras. Imię i płeć zostają zachowane.")
                         break
                     if choice.isdecimal() and 1 <= int(choice) <= len(CLASSES):
-                        cls = CLASSES[int(choice)-1]
+                        proposed_class = CLASSES[int(choice)-1]
+                        if proposed_class[0] == "Mec" and selected_race_name != "Cyborg":
+                            await self.send("Klasa Mec jest dostępna wyłącznie dla rasy Cyborg.")
+                            continue
+                        cls = proposed_class
                         break
                     await self.send("Nieprawidłowa klasa. Wpisz numer klasy albo 0, aby wrócić do ras.")
                 if choice in ("0", "wroc", "wróć", "rasy"):
@@ -1264,6 +1268,9 @@ class SessionIOAuthCharacterMixin:
                     self.master_account_id, name, race, cls, name_cases, gender=gender
                 )
             except ValueError as exc:
+                if str(exc) == "mec_cyborg_only":
+                    await self.send("Mec jest dostępny wyłącznie dla rasy Cyborg.")
+                    return False
                 if str(exc) == "dryad_female_only":
                     await self.send(
                         "Nie można utworzyć tej postaci: Driadą może być wyłącznie kobieta."

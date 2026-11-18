@@ -22,7 +22,7 @@ def _check(db, character, account_id):
 def _atomic(db, account_id, marker, operation, rollback):
     """Operacja nie może popełnić osobnego COMMIT między bankiem a postacią."""
     conn = db.conn
-    from systems.sound_events_v1208 import (sound_reward_queue_checkpoint_v11329, sound_reward_queue_rollback_v11329)
+    from systems.v115.optional_sound import (sound_reward_queue_checkpoint_v11329, sound_reward_queue_rollback_v11329)
     audio_checkpoint = sound_reward_queue_checkpoint_v11329(db, account_id)
     with conn.deferred_commits():
         conn.execute('SAVEPOINT ' + marker)

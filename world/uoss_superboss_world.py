@@ -435,7 +435,7 @@ for _iid in _UNIVERSAL_UOSS_ENDGAME_SHOP_ITEMS_V11194:
 
 _BLACK_RABITE_SHOP_ITEMS_V11190 = (
     *(f"uoss_black_rabite_unique_{i}" for i in range(1,10)),
-    "moogle_board",
+    "moogle_board",  # v115: token-priced Level 150 item; never a starter gift.
 )
 for _iid in _BLACK_RABITE_SHOP_ITEMS_V11190:
     if _iid not in SHOPS["market"]:
