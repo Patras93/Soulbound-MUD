@@ -1,0 +1,15 @@
+# W repozytorium zostaje jedynie CHANGELOG_PL.txt jako dokumentacja wydania.
+# Nie dodawaj historycznych raportow i instrukcji etapow.
+/CZYTAJ*.txt
+/CZYTAJ*.md
+/ETAP*.txt
+/V*_ETAP*.txt
+/V*_ROZPOCZETE*.txt
+/README*.txt
+/README*.md
+/KONTYNUACJA*.txt
+/PUNKT_WZNOWIENIA*.txt
+/ANALIZA_PREDEPLOY*.txt
+/WERYFIKACJA_SHA256.txt
+# Ziarno proceduralnego swiata nalezy do instalacji gracza, nie do repozytorium.
+/soulbound_world_seed.txt
