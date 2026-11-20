@@ -1,3 +1,801 @@
+Soulbound MUD v116.00.41 — NAPRAWA BRAMKI 48/60 (SECURITY)
+
+- Naprawa wykryta w PREDEPLOY v116.00.40 na Windows 20.11.2026:
+  historyczny scenariusz testu 48/60 nie podawal flag
+  release_gates_pass, installed_at_test i returncode oraz symulowal ZIP
+  bez uniwersalnych modulow. Nowy bezpieczny aktualizator poprawnie
+  odrzucal ten nieaktualny kontrakt, lecz test oczekiwal kodu ANULUJ.
+- Test 48/60 teraz symuluje pelny aktualny kontrakt i dodatkowo
+  sprawdza odmowe dla brakujacych modulow, niezgodnej bazy, braku
+  zatwierdzenia, zmiany SHA256, zmiany ZIP i cofniecia zgody.
+- Ta bramka zostala dodana rowniez do uniwersalnych testow wydania,
+  aby przyszle podobne usterki wyszly przed pelnym PREDEPLOY 60/60.
+- Zadne zabezpieczenie produkcyjne nie zostalo wylaczone. Bez 60/60
+  PLUS PASS, zgodnego ZIP i jawnego WDRAZAM nie wolno wdrazac.
+- Bez zmian w silniku, bossach, mapach, Soul XP, EXP, bazie postaci,
+  zapisach ani powrocie do Swiatyni. Gra nadal samowystarczalna.
+- Pelny ZIP jest kandydatem do PREDEPLOY; NIE WDRAZAC przed PASS.
+
+Soulbound MUD v116.00.40 — NIEZALEZNOSC WYDANIA I WDRAZANIA
+
+- Aktualny PREDEPLOY oraz aktualizator wybierają uniwersalny kontrakt na
+  podstawie rzeczywistej zawartości kandydata, a nie progu numeru v112.
+- Wdrożenie nadal wymaga 60/60 PLUS PASS, zgodności zatwierdzonego ZIP/SHA256,
+  zgodności bazy instalacji i wpisania WDRAZAM. W razie braku API: STOP.
+- Historyczne testy pozostają w pełnej paczce tylko dla kompatybilności.
+  Ich nazwy nie oznaczają wymogu instalacji poprzednich wydań.
+- Aktualizator nadal pochodzi z zatwierdzonej paczki, nie z poprzedniego ZIP.
+- Brak zmian mechaniki gry, map, EXP, Soul XP, bossów, postaci i SQLite.
+- Ten ZIP to kandydat do PREDEPLOY; sam lokalny PASS nie upoważnia do wdrożenia.
+
+v116.00.39 — NAPRAWA BALANSU V105 W ROZLEGŁYCH OBRZEŻACH (20.11.2026)
+- W 20 nowych rozległych obrzeżach v105 zwykły historyczny potwór odzyskuje takie same autorskie HP/obrażenia jak w starych pokojach tej samej krainy.
+- Naprawa dotyczy wyłącznie nowego sektora v11621 i właściwego zwykłego moba krainy. Nie rusza bossów, elit, innych regionów, nagród ani systemu progresji.
+- Naprawia błąd Windows PREDEPLOY v116.00.38: v10500_przesmyk_mob_1 25711469 HP zamiast 12925000 w dobudowanych pokojach.
+- Rozszerzono istniejącą regresję 20 krain o kontrolę zgodności statystyk oraz ochronę bossów, elit i innych stref.
+- Status: DO PREDEPLOY — NIE WDRAŻAĆ przed pełnym Windows 60/60 PLUS PASS.
+
+Soulbound MUD v116.00.38 — RZECZYWISTE GENERATORY 11 LOCHÓW
+
+- Dla wszystkich 11 wejść do pięter tworzonych na żądanie przeprowadzono
+  automatyczny test prawdziwego tworzenia pokojów przez oryginalne generatory.
+- Każde wejście ma 144 osiągalne boczne komnaty oraz prawdziwą trasę powrotną.
+  Sprawdzono dwukierunkowe połączenia, brak dodatkowego EXP za odkrycie,
+  brak bossów w bocznych expowiskach i brak duplikacji po ponownym wejściu.
+- Do już istniejącego testu proceduralnych pięter dołączono 11 scenariuszy.
+  Nie ma nowego pliku Python w grze ani nowego skryptu BAT/SH.
+- Testy są izolowane: prawdziwy kod map, bez podpinania bazy graczy i bez
+  żywej sesji TCP; nie udają rozgrywki gracza na produkcji.
+- Bez zmian map świata, mechaniki bossów, checkpointów, EXP/Soul XP, baz,
+  powrotu do Świątyni przy logowaniu i zasad wydawania nagród.
+- Wymagany pełny Windows PREDEPLOY 60/60 PLUS PASS i WDRAZAM przed wdrożeniem.
+
+Soulbound MUD v116.00.37 — bezpieczny ruch do lochów proceduralnych
+- Zabezpieczono końcowe zatwierdzenie ruchu: jeśli docelowy pokój nie powstał, postać zostaje na miejscu.
+- Dotyczy zwykłego ruchu, prowadzenia i członków drużyny, także bez komendy nazwanej.
+- Nowa regresja sprawdza wszystkie 11 wejść: brak zmiany pozycji, zapisu oraz błędnego przejścia po awarii generatora.
+- Brak zmian map, spawnów, bossów, EXP, Soul XP, loginu (Świątynia) i danych SQLite.
+- Wydanie robocze do PREDEPLOY; pełne 60/60 PLUS Windows nadal obowiązkowe.
+
+Soulbound MUD v116.00.36 - BEZPIECZNE WEJSCIA DO LOCHOW PROCEDURALNYCH
+
+- Audyt 11 wejsc statycznego swiata do pokoi tworzonych na zadanie.
+- Regresja weryfikuje odwrotne wyjscia pierwszego i dalszych pieter w
+  rzeczywistych definicjach generatorow, bez uruchamiania masowych spawnow.
+- Naprawa nazwanej komendy wejscia do lochu: jesli generator zwroci False
+  albo nie utworzy pokoju, postac zostaje na progu, a NVDA dostaje
+  krotki komunikat. Nie jest wykonywany ruch do nieistniejacego pokoju.
+- Osobiste wymagania bossow, Floor 0, Serpentarius i checkpointy bez zmian.
+- Po kazdym ponownym zalogowaniu postac nadal trafia do Swiatyni.
+- Bez zmian EXP, Soul XP, spawnown, terenu, kont i bazy SQLite.
+- Do PREDEPLOY 60/60 PLUS, NIE WDRAZAC bez PASS i WDRAZAM.
+
+Soulbound MUD v116.00.35 — TRZY BEZPIECZNE DROGI POWROTNE
+
+- Zamknięto trzy zwykłe jednokierunkowe przejścia: Rozdroże -> Głębia Gaju,
+  Wąwóz Żaru -> Ruiny Ostatniego Paleniska oraz Galeria Absolutu -> Schody Korony.
+- W trzech pokojach docelowych dodano po jednym wolnym kierunku POWROTU.
+  Żadne historyczne wyjście, teren, pokój, spawn ani stara lokacja nie zniknęły.
+- Nie zmieniono specjalnych bram Floor 0 i Serpentariusa ani blokad bossów.
+- Zmiany są atomowe: przed dopisaniem nowych wyjść sprawdzane są wszystkie
+  historyczne pary, kierunki i przynależność do tej samej strefy.
+- Dodano testy dostępności i kolizji do istniejącego zestawu map.
+- Po zalogowaniu postać nadal trafia zawsze do Świątyni. Bez zmian EXP,
+  Soul XP, levelowania, questów, kont i baz graczy.
+- Pełny Windows PREDEPLOY 60/60 PLUS na komputerze użytkownika jest konieczny
+  przed wdrożeniem. Status: DO PREDEPLOY — NIE WDRAŻAĆ.
+
+SOULBOUND MUD 116.00.34 — DOSTĘP DO SAL GILDII I KONTROLA TRAS
+
+- Audyt 32 040 stałych pokoi wykazał dokładnie trzy nieosiągalne
+  zwykłe sale: Sala Dyscypliny, komnata Mnicha i komnata Strażnika.
+  Powodem było historyczne zajęcie wyjścia east z Sali Oręża przez Hangar Meca.
+- Dodano bezpieczne, dwustronne schody: Sala Oręża down -> Sala
+  Dyscypliny, Sala Dyscypliny up -> Sala Oręża. Dawne wyjścia,
+  nauczyciele, sklepy i Hangar Meca bez zmian.
+- Nowa regresja sprawdza osiągalność wszystkich 32 039 zwykłych
+  stałych pokojów od Świątyni. Wyjątek: Floor 0 Deep Dungeon,
+  otwierany tylko specjalną windą z osobistym postępem gracza.
+- Zabezpieczono przed kolizją kierunku i niepełnym przepięciem.
+- Zasada logowania pozostaje: ZAWSZE powrót do Świątyni.
+- Bez zmian EXP, Soul XP, bossów, mobów, checkpointów, bazy
+  graczy, numeracji pokoi i brakujących pokoi generowanych na żądanie.
+- Lokalny audyt oraz testy nie zastępują rzeczywistego Windows PREDEPLOY
+  60/60 PLUS. NIE WDRAŻAĆ bez jego PASS i świadomego WDRAZAM.
+
+Soulbound MUD v116.00.33 — ŚWIĄTYNIA PO KAŻDYM LOGOWANIU
+
+- Potwierdzono niezmienną regułę: po wylogowaniu z dowolnego miejsca
+  każde następne wejście do świata przenosi postać do Świątyni Odrodzenia.
+- Nowa regresja realnej metody enter_world sprawdza pięć różnych
+  zapamiętanych lokalizacji, w tym Deep Dungeon, Kryptę i Magitek,
+  oraz utrzymanie poziomu, Soul XP, HP i Many.
+- Sprawdza też, że historyczny identyfikator pokoju zostaje przekazany
+  do mechanizmu checkpointu Krypty PRZED zapisaniem Świątyni.
+- Chronione metody wyboru postaci i przelogowania pozostawiono
+  bajt w bajt zgodne z v116.00.32 (potwierdza to wstępny PREDEPLOY).
+- Generowanie brakujących pokojów pozostaje bez zmian; nie należy go
+  mylić z docelowym miejscem pojawienia się gracza po zalogowaniu.
+- Jedynie VERSION, CHANGELOG_PL.txt i istniejąca regresja testowa
+  zmienione; bez nowych skryptów i zmian w świecie, EXP, Soul XP,
+  bossach, ruchu, profilu gracza, SQLite i instalatorach.
+- DO PREDEPLOY — NIE WDRAŻAĆ bez pełnego 60/60 PLUS PASS na Windows.
+
+Soulbound MUD v116.00.32 — ZAPISY W LOCHACH PROCEDURALNYCH
+
+- Rozszerzono ochronę odtwarzania zapisanej komnaty z v116.00.31 na
+  generowane na żądanie: Kryptę i Mityczną Kryptę, Wieże Astralne,
+  Twierdzę Gigantów, Kopalnię Głębinową, lochy profesji oraz Magitek.
+- Nieistniejący numer komnaty rNN nie może już zostać zgłoszony jako
+  poprawnie odtworzony; indeksy muszą należeć do starego piętra lub
+  144 bocznych pokojów i mieć dokładny, historyczny format.
+- Nie zmieniono przejść bossów, postępów, nagród, tempa awansowania,
+  starych identyfikatorów, bazy postaci ani planu expowisk.
+- Windows i Linux; lokalne testy nie zastępują PREDEPLOY 60/60 PLUS.
+- DO PREDEPLOY — NIE WDRAŻAĆ przed PASS i potwierdzeniem WDRAZAM.
+
+Soulbound MUD v116.00.31 — ZAPISANE POKOJE DEEP DUNGEON
+
+- Naprawiono powrót postaci zapisanej w bocznym sektorze Deep Dungeon 12x12
+  po restarcie gry: odtwarzamy oryginalne piętro i konkretny pokój.
+- Dokładna walidacja identyfikatorów: tylko istniejące sektory 000–143.
+- Nie zmieniono boss gate, windy, checkpointów, EXP, Soul XP i lootu.
+- Nowa regresja odtwarzania z najdalszej komnaty i powrotu na piętro.
+- Windows i Linux. DO PREDEPLOY — NIE WDRAŻAĆ bez 60/60 PLUS PASS.
+
+Soulbound MUD v116.00.30 — AUDYT BEZPIECZNYCH GRANIC I SERPENTARIUSA
+
+- Sprawdzono komplet 443 przejść między strefami: 442 mają bezpośredni
+  powrót. Jedyny wyjątek to specjalny portal Floor 0 -> Serpentarius.
+- Dodano do istniejącego testu map weryfikację wszystkich połączeń
+  między strefami oraz świadomego wyjątku dla bramy Super Bossa.
+- Nowa regresja sprawdza osobiste odblokowanie piętra 100, ochronę wejścia
+  podczas 24-godzinnej blokady, brak automatycznego aggro i limit 100 rund.
+- Nie zmieniano tras bossów, checkpointów, EXP, Soul XP, spawnów,
+  zapisów postaci, rozmiarów expowisk i żadnej mechaniki walki.
+- Pełna wersja kumulatywna Windows + Linux. DO PREDEPLOY, NIE WDRAŻAĆ
+  bez pełnego 60/60 PLUS PASS na komputerze użytkownika.
+
+Soulbound MUD v116.00.29 — OCHRONA ROZLEGŁYCH EXPOWISK
+
+- Audyt 213 stref statycznego świata: zwykłe expowiska z wieloma
+  przeciwnikami mają już co najmniej 144 pokoje. Nie powiększamy
+  sztucznie miast, sal bossów ani wejść do lochów.
+- Proceduralne galerie Magitek, Krypty, Wież i innych instancji:
+  przed tworzeniem 144 pokoi weryfikowane są wszystkie ich ID.
+  Kolizja identyfikatora nie pozostawia częściowo zbudowanej mapy.
+- Nowe testy regresji kontrolują przypadek kolizji ostatniego pokoju,
+  ochronę dawnych wyjść i spawnów oraz minimalny rozmiar expowisk.
+- Zasada granicznych przejść, stare bossy i checkpointy, EXP, Soul XP,
+  brak hurtowych awansów i dane SQLite pozostają bez zmian.
+- Windows + Linux, pełna wersja kumulatywna do PREDEPLOY.
+  NIE WDRAŻAĆ bez 60/60 PLUS PASS na Windows użytkownika.
+
+Soulbound MUD v116.00.28 — DUŻY DEEP DUNGEON I MAGITEK
+
+- Deep Dungeon UOSS: 144 dodatkowe pokoje i do 72 spawnów zwykłych
+  potworów na piętro, z pętlami i dwukierunkowymi drogami.
+- Winda, Floor 0, progi Apandy co 25 pięter, Serpentarius na 100
+  i historyczne ID pozostają niezmienione. Apanda nie jest kopiowana.
+- Nieskończony Magitek: naprawiono rozpoznawanie aktywnego generatora;
+  każde piętro otrzymuje 144 dodatkowe sektory ponad dawne 12–20.
+- Wieże Astralne pozostają rozbudowane we wcześniejszej v116.00.27;
+  nie utworzono sztucznej kopii Wieży Gwiezdnej.
+- Bez pułapek, auto-aggro, nagród EXP za odkrywanie, nowych bossów,
+  zmian Soul XP, kont, SQLite i mechanizmu jednego awansu na nagrodę.
+- Jedna kumulatywna paczka Windows + Linux — do PREDEPLOY, nie wdrażać
+  bez 60/60 PLUS PASS na własnym Windows.
+
+Soulbound MUD v116.00.27 — ROZLEGŁE PIĘTRA PROCEDURALNE
+
+- Krypty, Wieże, Kopalnia Głębinowa i lochy profesyjne: po 144 nowe pokoje
+  boczne na każdym piętrze tworzonym na żądanie (łączna wielkość 164–174 pokoi).
+- Historyczne schody i komnaty bossów zachowane w tych samych pokojach.
+- Nowe sektory na krańcu starej mapy, z dwukierunkowymi przejściami.
+- Do 72 wystąpień istniejących zwykłych potworów na rozbudowywane piętro.
+- Nie dodano EXP za odkrywanie, pułapek, auto-aggro ani nowych bossów.
+- Nie zmieniono EXP, Soul XP, kont, bazy ani zasady jednego awansu za nagrodę.
+- Deep Dungeon UOSS i osobne Wieże Gwiezdne wymagają jeszcze audytu;
+  nie są objęte tą zmianą.
+- Wersja do PREDEPLOY. Nie wdrażać przed 60/60 PLUS PASS na Windows.
+
+SOULBOUND MUD v116.00.26 — ROZLEGŁE BOCZNE EXPOWISKA HORYZONTÓW
+19 listopada 2026
+
+- Wszystkie 60 bocznych expowisk w podziemiach Horyzontów mają teraz po
+  144 komnaty zamiast 120: 30 Rozległych Podziemi i 30 Dalszych Podziemi.
+- Dodano 1440 połączonych pokojów (po 24 na strefę) i 720 spawnów wyłącznie
+  istniejących zwykłych Cieni Podziemi. Nowe pokoje nie dają EXP za odkrycie.
+- Każde rozszerzenie dołączono na zewnętrznym wschodnim brzegu starej siatki
+  (11,8). Oryginalne drogi pomiędzy lochami, skrzydłami i galeriami pozostają
+  na dawnych krańcach obu map, bez usuwania czy przekierowania wyjść.
+- Nie zmieniono bossów, questów, rozwoju, EXP/Soul XP, EXP Banku,
+  zapisów ani limitu jednego awansu w danej dziedzinie za nagrodę.
+- Brak pułapek, auto-aggro, nowych bossów, blokad poziomowych i
+  zależności od wcześniejszych paczek. Windows i Linux w jednym ZIP.
+- NIE WDRAŻAĆ przed pełnym PREDEPLOY 60/60 PLUS i zgodą WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.25 — ROZLEGŁE GŁÓWNE PODZIEMIA 30 KRAIN
+19 listopada 2026
+
+- 30 głównych lochów Horyzontów ma teraz po 144 komnaty własnej strefy
+  (24 historyczne + 120 nowych). Dwa wcześniejsze skrzydła po 120 pokojów
+  pozostają bez zmian: razem po 384 dostępne komnaty na każdy loch.
+- Dodano 3600 połączonych dwukierunkowo pokoi i 1800 spawnów wyłącznie
+  istniejących zwykłych Cieni Podziemi; bez tworzenia bossów i nowych nagród.
+- Wejście do dodatkowej siatki jest przy wschodnim krańcu (5,0) dawnego
+  lochu i zachodnim początku (0,0) nowej siatki; powrót działa.
+- Oryginalna sala bossa (5,3), warunki ukończenia lochu, stary układ 6x4,
+  dwie galerie z poprzednich wydań, oryginalne wyjścia i identyfikatory pokoi
+  zachowane bez zmiany. Brak pułapek, auto-aggro i dodatkowych gate poziomu.
+- Nie zmieniono progów EXP, Soul XP, rozwoju, EXP Banku, najemników ani
+  zasady jednego awansu w danym systemie za jedną nagrodę.
+- Jedna pełna paczka Windows + Linux, wspólny kod, polski CHANGELOG.
+- NIE WDRAŻAĆ bez pełnego Windows PREDEPLOY 60/60 PLUS PASS oraz WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.24 — ROZLEGŁE PODSTAWOWE EXPOWISKA
+19 listopada 2026
+
+- Dalsza rozbudowa czterech podstawowych expowisk z istniejącymi zwykłymi mobami:
+  Łąki Zielarskie (66 -> 210), Góry (72 -> 216), Łąki (78 -> 222), Dzicz (108 -> 252).
+- Każdemu dodano siatkę 12x12 = 144 lokacje: razem +576 pokoi.
+- Każde wejście umieszczone na wolnym kierunku końcowego pokoju starej trasy;
+  po stronie nowych sektorów wejście jest na zachodnim obrzeżu. Powroty dwukierunkowe.
+- +288 wpisów spawnów wyłącznie już istniejących zwykłych potworów.
+- Wszystkie stare pokoje, przejścia, bossowie, questy i zapisane ID zachowane;
+  w czterech skrajnych pokojach dodano po jednym wyjściu.
+- Bez pułapek, auto-aggro, bramek poziomowych i EP z eksploracji.
+- Bez zmian krzywych EXP/Soul XP, EXP Banku i jednego awansu na nagrodę.
+- Ta paczka nie przesądza jeszcze o kompletności wszystkich lochów proceduralnych.
+- Pełny wariant Windows + Linux. Bez bazy prawdziwych graczy.
+- NIE WDRAŻAĆ przed pełnym PREDEPLOY 60/60 PLUS na Windows i WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.23 — ROZLEGŁE STARE EXPOWISKA
+19 listopada 2026
+
+- Powiększono 13 zwykłych historycznych terenów, które miały 30–48 pokoi:
+  Podziemia, Ruiny Strażnicy, Wybrzeże, Bagna, Pustynia, Korona Świata,
+  Popielne Pustkowia, Rozbite Niebo, Wybrzeże Pustki, Jaskinie Goblinów,
+  Las Szeptów, Obozowiska Bandytów i Jaskinia Trolli.
+- Każdemu z tych terenów dodano 12x12 = 144 sektorów walki, łącznie +1872 lokacje;
+  wejście ze skrajnego odcinka starej trasy, powrót na tę samą granicę.
+- +936 spawnów istniejących zwykłych mobów; żadnych nowych bossów i rajdów.
+- Stare lokacje, wyjścia, NPC, questy, bossowie, progi EXP i Soul XP bez zmian;
+  w 13 starych pokojach dodano tylko po jednym nowym wyjściu.
+- Bez pułapek, auto-aggro, nowych level gate, AP i EP z eksploracji.
+- Zachowana zasada najwyżej jednego awansu na nagrodę, zachowane nadwyżki XP.
+- Arena Super Bossów i inne pokoje specjalne nie są sztucznie powiększane.
+- Paczka jest pełna i kumulatywna dla Windows i Linux, bez baz postaci.
+- NIE WDRAŻAĆ przed pełnym PREDEPLOY 60/60 PLUS na Windows i WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.22 — DUŻE EXPOWISKA ZAMIAST KRÓTKICH MAP
+19 listopada 2026
+
+- Audyt pełnego świata v116.00.21: 213 stref, 20 664 lokacje.
+  Pozostawało 27 małych zwykłych expowisk z mobami (12–20 lokacji)
+  oraz oddzielne specjalne areny. 
+- Każde z 27 expowisk otrzymało własną siatkę 12x12=144 nowych lokacji:
+  11 historycznych krain v103, 10 historycznych krain v104,
+  Kryształowe Bezmiary, Otchłań Nieskończoności, Szkarłatne Pogranicze,
+  Tron Wieczności, Przedmieścia Miasta Dusz i Piwnica Świątyni.
+- Razem +3888 zwykłych lokacji do expienia, każda dwukierunkowa i
+  połączona pętlami. +1944 spawnów WYŁĄCZNIE starych zwykłych potworów.
+  Bez nowych bossów/raidów, pułapek, auto-aggro, level-gate i AP.
+- Dodane wejście na początku/krańcu każdej starej trasy, powrót w to samo
+  miejsce. Nie przesuwano starych pokojów, bossów ani questów.
+- Nie zmieniono liczbowych nagród EXP/Soul XP/EXP Bank, krzywych ani
+  zasady maksymalnie jednego awansu w dziedzinie na jedną nagrodę.
+- Historyczne lokacje i ich stare wyjścia zachowane, poza dodaniem
+  27 nowych dróg do nowych sektorów; zapisane identyfikatory są stałe.
+- Po rozbudowie należy osobno przejrzeć mniejsze (24–36 pokojów) historyczne
+  początki obszarów, choć są już połączone z wcześniejszymi rozległymi strefami.
+  Nie powiększamy automatycznie specjalnych aren i pokoi bez walki.
+- Wydanie kumulatywne Windows + Linux. Nie wymaga wcześniejszych paczek.
+- NIE WDRAŻAĆ przed pełnym PREDEPLOY 60/60 PLUS na Windows i WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.21 — 20 ROZLEGŁYCH HISTORYCZNYCH KRAIN
+19 listopada 2026
+
+AUDYT: v116.00.20 zawiera 213 nazwanych stref. 56 z nich ma poniżej 24 pokojów,
+ale 6 z nich to specjalne strefy 1–2-pokojowe (np. wejścia do proceduralnych
+lochów i specjalna sala bossa). Nie wszystkie są zwykłymi krainami.
+
+- Rozbudowano 20 krain v105, dawniej po 14 pokojów, o 144 nowe sektory każda.
+  Po zmianie każda ma 158 lokacji (14 historycznych + siatka 12x12).
+  Razem 2880 nowych pokojów, świat 17 784 -> 20 664 lokacje.
+- Rozległe siatki zawierają dwukierunkowe drogi i pętle. Każda jest dołączona
+  przy POCZĄTKU historycznej trasy, do narożnika nowej siatki.
+- Zachowano wszystkie 14 oryginalnych ID i wyjścia między strefami,
+  historyczne questy, bossów, profesje i zapisane pozycje graczy.
+- Dodano 720 spawnów wyłącznie istniejących zwykłych potworów tych krain.
+  Bez nowych bossów, pułapek, auto-aggro, nowych bramek poziomowych i AP.
+- Bez modyfikowania Soul XP, EXP Banku, zasady jednego awansu na nagrodę,
+  ekwipunku, SQLite oraz uniwersalnego instalatora.
+- Zmienione pliki: VERSION, CHANGELOG_PL.txt, world/dynamic_content.py,
+  validation/current_universal_release_suite.py, systems/current_release_gate_contract.py.
+  Dwa nowe moduły: wspólny generator i celowany test.
+- Wydanie kumulatywne Windows/Linux, nie wymaga wcześniejszych paczek v116.
+- Audyt całego świata NIE JEST JESZCZE ZAKOŃCZONY: istnieją inne małe strefy
+  historyczne i odrębne piętra proceduralne, do sprawdzenia osobno.
+- NIE WDRAŻAĆ bez pełnego PREDEPLOY Windows 60/60 PLUS PASS i świadomego WDRAZAM.
+
+--- POPRZEDNI CHANGELOG ---
+
+SOULBOUND MUD v116.00.20 — PIĘĆ GRANIC GÓR, WIOSKI I JASKIŃ
+Data: 19 listopada 2026 r.
+
+- Pięć starych przejść zastąpiono dwustronnymi traktami granicznymi:
+  * Górska Przełęcz – Wioska Górska;
+  * Szlak Trolli – Jaskinia Trolli;
+  * Lodowa Przełęcz – Lodowe Jaskinie;
+  * Obóz Goblinów – Jaskinie Goblinów;
+  * Posterunek Pogranicza – Obozowiska Bandytów.
+- Po 12 nowych pokojów na każdej stronie trasy, razem 120 nowych lokacji.
+- Granica stref jest tylko pomiędzy ostatnimi odcinkami obu traktów. Powrót jest dwukierunkowy.
+- Wszystkie stare lokacje, nazwy, opisy, questy, spawny, bossowie i inne wyjścia pozostają bez zmian.
+- Nowe drogi nie przyznają EP, nie tworzą nowych mobów, pułapek, auto-aggro ani blokad poziomowych.
+- Zachowana zasada maksymalnie jednego awansu za nagrodę, wraz z całą nadwyżką EXP/Soul XP.
+- Wydanie kumulatywne, Windows + Linux, bez baz graczy. Wymagany pełny PREDEPLOY 60/60 PLUS PASS na komputerze użytkownika przed wdrożeniem.
+- Audyt granic CAŁEGO świata nie jest jeszcze zakończony; przejścia bossów i miejskie drzwi nie są przerabiane automatycznie.
+
+------------------------------------------------------------------------
+
+SOULBOUND MUD v116.00.19 — GRANICE ŁĄK ZIELARSKICH
+Data: 19 listopada 2026 r.
+
+- Zamieniono dwa bezpośrednie przejścia między Łąkami a Łąkami Zielarskimi na drogi graniczne:
+  1) Srebrna Łąka – Łąka Mięty,
+  2) Łąka Kwiatów – Rozdroże Łąk Zielarskich.
+- Każde połączenie ma po 12 dodatkowych odcinków po OBU stronach, razem 48 nowych lokacji.
+- Właściwa zmiana terenu jest dopiero między ostatnimi odcinkami obu dróg. Powrót jest dwustronny.
+- Zachowano wszystkie stare ID pokojów, nazwy, opisy, inne wyjścia i spawny.
+- Bez nowych potworów, pułapek, auto-aggro, bossów, sztucznych bramek poziomowych i EXP za dodane drogi.
+- System jednego awansu za nagrodę oraz nieutracone Soul XP i EXP Bank bez zmian.
+- Wydanie kumulatywne Windows+Linux. Przed wdrożeniem konieczny PREDEPLOY 60/60 PLUS PASS na Windows użytkownika.
+- Pozostałe historyczne i proceduralne granice nie są jeszcze w pełni zinwentaryzowane.
+
+------------------------------------------------------------------------
+
+SOULBOUND MUD v116.00.18 — TRZY HISTORYCZNE PRZEJŚCIA NA KRAŃCACH
+Data: 19 listopada 2026 r.
+
+- Trzy dawne skróty zastąpiono połączeniami na końcach DWÓCH dróg, osobnej dla każdej strefy:
+  1) Łąka Nadjeziorna – Brzeg Jeziora (Łąki–Dzicz),
+  2) Łąka Mięty – Brzeg Rzeki (Łąki Zielarskie–Dzicz),
+  3) Głęboki Gaj – Las Szeptów (Dzicz–Las Szeptów).
+- Dla każdej pary są 2 drogi po 12 lokacji. Razem +72 pokoje.
+- Dopiero między ostatnimi pokojami obu dróg następuje zmiana terenu; kierunki są dwustronne.
+- Wszystkie wcześniejsze pokoje, stare ID, nazwy, opisy, spawny, obiekty profesji, łowiska, bossowie i questy pozostają. Przekierowano wyłącznie 6 starych wyjść.
+- Bez pułapek, nowych bossów, nowych potworów, auto-aggro, nagród EP i bramek poziomowych.
+- Bez zmian EXP, Soul XP, poziomowania, banku EXP, bazy SQLite i aktualizatora.
+- Kompletne wydanie Windows + Linux; przed wdrożeniem wymagany pełny PREDEPLOY 60/60 PLUS na Windows użytkownika.
+- Dalszy audyt granic świata jest wymagany. Nie oznaczamy wszystkich historycznych przejść jako ukończonych.
+
+------------------------------------------------------------------------
+
+SOULBOUND MUD v116.00.17 — GRANICE DZICZ–ŁĄKI I RUINY STRAŻNICY
+Data: 19 listopada 2026 r.
+
+- Dodano 24 bezpieczne odcinki dwóch dróg granicznych (12 Dzicz + 12 Łąki).
+- Przejście Dzicz–Łąki jest pomiędzy końcem granicznej drogi Dziczy i początkiem granicznej drogi Łąk; stary bezpośredni skrót Gaj Szeptów ↔ Łąka Kwiatów został zastąpiony dojściem do granicy obu terenów.
+- Usunięto jednostronny skrót Rozdroże → Ruiny Strażnicy (z Ruin nie było odwrotnej drogi). Pozostawiono w pełni dwukierunkowe dojście przez Kamienny Most; testy sprawdzają dotarcie i powrót.
+- Zachowano wszystkie dawne identyfikatory, pokoje, nazwy, opisy, spawny, bossów, questy i istniejące postacie; zmieniają się tylko trzy stare kierunki: dwa przekierowania do nowych dróg i usunięcie jednego jednostronnego skrótu.
+- Bez nowych spawnów, pułapek, auto-aggro, bramek poziomowych, zmian Soul XP / EXP, EQ, SQLite i mechaniki jednego awansu na nagrodę.
+- Nie jest to jeszcze naprawa wszystkich historycznych i proceduralnych przejść: kontynuować audyt.
+- Pełna, kumulatywna paczka Windows + Linux. Przed wdrożeniem obowiązuje Windows PREDEPLOY 60/60 PLUS PASS.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.16 — GRANICE DZICZY, GÓR I BAGIEN (Windows/Linux)
+Data: 19 listopada 2026
+
+- Dodatkowe 432 lokacje: Północne Rubieże Dziczy (144), Grzbiet Górski (144) i Rubieże Czarnych Bagien (144), każda siatka 12x12 z dwukierunkowymi ścieżkami.
+- Przejście Dzicz–Góry nie wychodzi już ze środkowego Wzgórza Kamiennych Znaków do Górskiej Przełęczy. Nowa granica łączy zewnętrzne krańce dwóch rozległych obszarów.
+- Przejście Dzicz–Bagna nie wychodzi już z wnętrza Głębi Gaju. Nowa granica łączy krańce nowych rubieży Dziczy i Bagien.
+- Stare końce tras (Leśniczówka, Szczelina Lawy, Posterunek Łowców Bagien) zapewniają dojazd do nowych rozległych obszarów i powrót.
+- Wszystkie istniejące pokoje zachowują ID, nazwy, opisy, moby, stare szablony, NPC, questy i bossów; jedyne usunięte kierunki to dwie świadomie przeniesione pary bezpośrednich przejść.
+- Nowe sektory służą eksploracji; bez spawnowania nowych bossów, bez pułapek, auto-aggro, bramek, zmian EXP, Soul XP, SQlite, premii i mechaniki jednego awansu na nagrodę.
+- Testy w bieżącym, uniwersalnym zestawie sprawdzają dwustronne granice, brak skrótów ze środka i osiągalność wszystkich 432 sektorów.
+- To etap audytu; pozostałe nieregularne historyczne trasy całej gry wymagają kolejnych, celowanych poprawek.
+- Kumulatywna, samowystarczalna paczka Windows + Linux. Nie wdrażać bez Windows PREDEPLOY 60/60 PLUS PASS.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.15 — GRANICZNE TRAKTY 30 KRAIN HORYZONTOW (Windows/Linux)
+Data: 19 listopada 2026
+
+- Rozbudowano Szlak Horyzontów o 30 osobnych traktów granicznych, każdy 12 lokacji: 360 nowych pokoi.
+- Przejścia do 30 krain Horyzontów są teraz na KOŃCU traktów, a nie bezpośrednio ze środkowych węzłów Szlaku. Zostaje również przejście powrotne do krańcowej komnaty traktu.
+- W każdej krainie punkt wejścia (0,0) pozostaje na granicy mapy 12x12; stare pokoje i wszystkie sektorowe połączenia są zachowane.
+- Nie zmieniano identyfikatorów wcześniej istniejących pokojów ani ich nazw, opisów, bossów, questów, przedmiotów, SQLite, EXP, Soul XP, najemników, Jammera ani zasad jednego awansu na nagrodę.
+- Bez nowych potworów, pułapek, auto-aggression i bramek poziomowych; krótkie komunikaty NVDA.
+- Dodano celowany test 30 tras i powrotów w istniejącym audycie świata. Świadomie dostosowano test oczekujący starego bezpośredniego połączenia węzła z krainą.
+- Nie wszystkie nieregularne mapy historyczne zostały jeszcze uporządkowane: wymagają dalszego audytu i celowanych zmian; w szczególności nie zmieniano skrótów w miastach i dawnych wielowyjściowych węzłach Dziczy.
+- Jedna pełna paczka Windows + Linux. Obowiązkowy PREDEPLOY 60/60 PLUS na Windows użytkownika przed wdrożeniem.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.14 — PRZEJSCIA NA GRANICACH CMENTARZA I KRYPTY (Windows/Linux)
+Data: 19 listopada 2026
+
+- Zlikwidowano przejscie ze starego centralnego pokoju Cmentarza wprost do Krypty. Do Krypty schodzi sie teraz z polnocno-wschodniego kranca rozleglej siatki Starego Cmentarza (11,11); wyjscie z Krypty prowadzi z powrotem w to samo miejsce.
+- Przejscie do Nekropolii podczas pelnego uruchomienia swiata przesunieto z centralnego pokoju Cmentarza na poludniowo-wschodni kraniec (11,0); powrot dwukierunkowy.
+- Sprawdzenie wszystkich przejsc pomiedzy siatkowymi krainami na pelnym katalogu runtime; 0 przejsc z interioru siatek. Miasta, krotkie stare trasy i dynamiczne pietra sa traktowane osobno: ich granice nie sa automatycznie przestawiane z ryzykiem uszkodzenia questow i zapisow.
+- Bez zmian ID pokojow, questow, bossow, zawartosci SQLite, nagrod, Duszy, jednego awansu za nagrode, najemnikow i ekonomii. Brak pulapek i automatycznego aggro.
+- Jedno samodzielne archiwum dla Windows + Linux, polski changelog. Obowiazkowy PREDEPLOY 60/60 PLUS przed wdrozeniem.
+- UWAGA: przegląd całego świata jest procesem etapowym. Nie wszystkie krotkie, historyczne trasy zostaly relokowane w tej wersji. Usterki naruszające historyczne mechaniki beda rozpatrywane osobno.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.13 — DALSZE PODZIEMNE GALERIE HORYZONTÓW (Windows/Linux)
+Data: 19 listopada 2026
+
+- Dodano dalsze, rozległe galerie w 30 lochach Horyzontów: każda 12×10 = 120 nowych lokacji; +3600 pokoi i +1800 wystąpień wyłącznie istniejących zwykłych cieni.
+- Przejście każdego nowego obszaru łączy północny KRANIEC poprzedniego skrzydła (0,9) z południowym BRZEGIEM nowej galerii (0,0). Powrót dwukierunkowy; pełne siatki z pętlami.
+- Zachowano dane wszystkich dotychczasowych pokojów i przeciwników, stare wyjścia, salę strażnika (5,3), questy i zaliczenie lochu. W 30 pokojach granicznych dodano tylko jedno nowe wyjście; żaden istniejący kierunek nie został zmieniony.
+- Nowe galerie są opcjonalne: zero pułapek, auto-aggro, bramek poziomowych i bossów; krótkie opisy pod NVDA. Mechanika jednego awansu na nagrodę i zachowanie całej nadwyżki EXP/Soul XP bez zmian.
+- Samodzielne wydanie kumulatywne v116.00.13; wspólny kod Windows/Linux, bez zmian SQLite i kont, bez nowych BAT/SH ani LIVE_CONTENT. Tylko dwa warianty ZIP i jeden CHANGELOG_PL.txt.
+- DO PREDEPLOY, NIE WDRAŻAĆ. Konieczny pełny PREDEPLOY Windows 60/60 PLUS PASS i świadome potwierdzenie WDRAZAM. Produkcja i GitHub nietknięte.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.12 — ROZLEGŁE DAWNE PODZIEMIA (Windows/Linux)
+Data: 19 listopada 2026
+
+- Dodano 3 osobne, szerokie galerie 20×12 (po 240 sektorów): Rozległe Podziemia Świątyni, Rozległa Kopalnia Głębinowa i Rozległe Krypty Pogranicza. Łącznie 720 NOWYCH pokoi, 360 spawnów wyłącznie istniejących zwykłych przeciwników.
+- Wejścia: koniec oryginalnego szczurzego gniazda w Piwnicy Świątyni (północ), początek Kopalni Głębinowej (zachód) oraz początek Krypty (zachód). Wszystkie nowe wejścia i powroty są na BRZEGU siatek, w obie strony. Zostają dotychczasowe drogi oraz sala Kryształowego Władcy, głębia Krypty, questy i bramki.
+- Nie przeniesiono żadnej starej lokacji, nazwy, opisu, ID, bossa, nagrody, istniejącego wyjścia, szablonu potwora ani danych SQLite. Zero pułapek, nowych level gate i auto-aggro. Krótkie opisy dla NVDA.
+- Mechanika maksymalnie jednego awansu danej ścieżki za nagrodę z v116.00.9, cała nadwyżka EXP/Soul XP, skille i balans pozostały bez zmian.
+- Pełna paczka kumulatywna z dotychczasowymi zmianami v116; jeden ZIP z Windows, Linux i CHANGELOG_PL.txt. Brak nowych BAT/SH; nie wymaga starszych ZIP.
+- KANDYDAT DO PREDEPLOY — bez pełnego Windows 60/60 PLUS PASS nie wdrażać. GitHub i produkcja nietknięte.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.11 — ROZLEGŁE PODZIEMIA HORYZONTÓW (Windows/Linux)
+Data: 19 listopada 2026
+
+- Każdy z 30 istniejących lochów Horyzontów ma nowe rozległe skrzydło 12×10 (120 komnat), razem 3600 nowych lokacji. Starych 24 komnat na loch NIE ruszono; po rozszerzeniu jest 144 dostępnych komnat na loch.
+- Nowe dwukierunkowe przejście prowadzi z zachodniego krańca starego lochu (0,3) na wschodni kraniec nowego skrzydła (11,0). Powroty są zachowane. Żadnych przejść między krainami w środku mapy.
+- Żaden dotychczasowy ID, opis, boss, istniejący kierunek, próg lub quest nie został przeniesiony. Historyczny strażnik lochu i jego zaliczenie pozostają w oryginalnej komnacie (5,3). Nie dodano nowych bossów ani bramek.
+- 1800 nowych spawnów wykorzystuje wyłącznie istniejące zwykłe cienie podziemi; bez pułapek, auto-aggro i level-gate. Dodatkowe sektory mają krótkie komunikaty dla NVDA.
+- Pełne zmiany v116.00.10 i v116.00.9 pozostają (w tym maksymalnie jeden awans za nagrodę, bez utraty nadwyżki EXP). Bez modyfikacji SQLite, przedmiotów, EXP, Duszy, najemników, Jammera, instancji bossów czy mechaniki 1–6 graczy.
+- Jeden kompletny ZIP z wariantami Windows/Linux, bez nowych BAT/SH i bez zależności od starszych wydań.
+- KANDYDAT DO PREDEPLOY. Nie wdrażać bez pełnego Windows 60/60 PLUS PASS i potwierdzenia WDRAZAM.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.10 — ROZLEGŁE DAWNE SZLAKI (Windows/Linux)
+Data: 19 listopada 2026
+
+- Dodano trzy rozległe obszary na krańcach starych szlaków: Rozległe Jaskinie Goblinów, Rozległe Pogranicze Bandytów oraz Rozległe Ruiny Strażnicy; każdy 20×12 = 240 lokacji, razem 720 nowych pokoi.
+- Historyczne początki: Wejście do Jaskiń Goblinów (północ), Skraj Obozowiska Bandytów (góra), Zawalona Brama Strażnicy (północ). Wejścia do nowych siatek w (0,0), na ich granicach; pełne dwukierunkowe dojścia i powroty.
+- Wszystkie stare identyfikatory, opisy, nazwy, wyjścia, komnaty bossów, questy i spawny historyczne zostają. Nowe strefy mają osobne nazwy, bez zmiany historycznych liczników krain.
+- Nowe sektory używają tylko istniejących, zwykłych szablonów potworów: 360 dodatkowych spawnów, bez nowych bossów, pułapek, auto-aggro ani level-gate.
+- Zachowano z v116.00.9 maksymalnie jeden awans w danej dziedzinie na nagrodę i całą uzyskaną nadwyżkę EXP / Soul XP; bez zmian krzywych, poziomów, ekwipunku i SQLite.
+- Wspólna mechanika Windows/Linux; nie dodano żadnych BAT/SH, skryptów aktywacji ani wymagań dotyczących historycznych paczek.
+- Wydanie do testów: nie wdrażać przed pełnym PREDEPLOY 60/60 PLUS PASS na Windows i poleceniem WDRAZAM.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.9 — JEDEN AWANS NA NAGRODĘ I DALSZE TERENY (Windows/Linux)
+Data: 2026-11-19
+
+- Każda osobna nagroda doświadczenia może podnieść maksymalnie 1 poziom danej ścieżki: postać, Soul Level, Soul Weapon Mastery, klasa, skill, każda statystyka, profesja i narzędzie.
+- Również ręczny odbiór EXP Bank i nagrody osiągnięć nie wywołują wielu awansów w ramach jednej wypłaty.
+- Zachowano pełny przyznany EXP oraz jego niewydaną nadwyżkę do kolejnych nagród; krzywe progów, Tier, EXP źródeł i istniejące poziomy bez zmian. Nie ma automatycznego wyrównania zaległych awansów przy starcie.
+- Dusza info wyjaśnia nadwyżkę ponad najbliższy próg, zamiast sugerować natychmiastowy hurtowy awans.
+- Rozległe Łąki, Dzicz Pogranicza i Wybrzeże Wysp rosną z 12x12 do 20x12 sektorów (po 240), łącznie +288 nowych pokoi ponad v116.00.8.
+- 144 dawne sektory każdej strefy, ich nazwy/opisy, istniejące identyfikatory, powroty, przejścia i spawny zostają; dodano 144 nowych wystąpień istniejących zwykłych mobów. Wszystkie nowe drogi są dwukierunkowe; wejścia do innych terenów na brzegach.
+- Bez nowych pułapek, auto-aggro, blokad poziomu mapy i nowych bossów; EQ, SQLite, konta, aktualizator oraz GitHub nietknięte.
+- Jedna kompletna paczka Windows + Linux zawiera całość wcześniejszych v116; przed wdrożeniem obowiązkowy PREDEPLOY Windows 60/60 PLUS PASS i osobne WDRAZAM.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.8 — Rozległe stare krainy startowe (Windows/Linux)
+
+- Rozszerzono okolice trzech dawnych terenów: Łąki, Dzicz i Wybrzeże — po 144 nowych, połączonych lokacji (łącznie +432). Nowe sektory mają własne nazwy stref, by nie zakłócać historycznego generatora v0100.
+- Wejścia na brzegach istniejących szlaków: Łąka Kwiatów, Zapomniana Kapliczka i Morskie Molo; wejścia i wyjścia nowych terenów są na ich krańcach. Wybrane kierunki nie kolidują z historycznymi bramkami proceduralnymi.
+- Zachowano wszystkie stare ID, przejścia, NPC, bossów, questy i spawny; dodano 216 odwołań do istniejących zwykłych potworów.
+- Każdy nowy teren ma rozległą siatkę 12×12, liczne trasy powrotne, krótkie opisy NVDA; bez pułapek i auto-aggro.
+- Bez zmian w EXP, poziomach, Duszy, bazie, EQ, najemnikach i aktualizatorze. Nie dodano BAT ani osobnych danych SQLite.
+- Nowa obowiązkowa bramka regresji mapy podnosi lokalny zestaw bezpieczeństwa do 34 kontroli.
+- Pełna samowystarczalna paczka zawiera v116.00.0–v116.00.7. Wymagane PREDEPLOY Windows 60/60 PLUS przed wdrożeniem. GitHub bez zmian.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.7 — Rozległe tereny historyczne (Windows/Linux)
+
+- Pięć starych obszarów wypraw (Ruiny Kultystów, Legowisko Bestii, Nekropolia, Kanały Pod Miastem i Lodowe Jaskinie) powiększono z 8x8 do 12x12 pokoi każdy.
+- Stary Cmentarz również ma teraz 12x12 pokoi. Łącznie +480 lokacji, bez utraty żadnego istniejącego ID pokoju.
+- Zachowano historyczne pokoje, wejścia, bossów, NPC, questy i spawny. Wszystkie dodatkowe lokacje mają połączenie z dawną siatką, a przejścia między terenami prowadzą od ich krańców.
+- Bez pułapek, nowych bramek poziomowych, auto-aggro, zmian EXP, postaci, SQLite ani ekwipunku.
+- Osobna regresja integralności tras i starych ID; istniejące testy rozmiarów dostosowane bez wyłączenia sprawdzania.
+- Pakiet pełny: zawiera wcześniejsze v116.00.0–v116.00.6. Nie wdrażać bez 60/60 PLUS PASS Windows. GitHub nietknięty.
+
+------------------------------------------------------------------------
+
+Soulbound MUD v116.00.6 — ROZLEGŁE TERENY I PRZEJŚCIA NA KRAŃCACH
+Data: 2026-11-19
+
+- 30 istniejących krain Horyzontów rozbudowano z 8x6 do 12x12 sektorów:
+  48 -> 144 lokacje na krainę; wszystkie stare ID lokacji pozostają ważne.
+- Stare miejsca potworów i dotychczasowego strażnika (7,5) pozostają.
+  Nowe sektory mają naturalne trasy, eksplorację i siedliska profesji.
+- Wejście do podziemi każdej krainy przeniesiono z wewnętrznego (6,4)
+  do sektora granicznego (11,10). Powrót z podziemi prowadzi na to samo obrzeże.
+- Wejście do krainy pozostaje na jej początku (0,0); nowe przejścia między
+  obszarami tylko na granicy. Stare ID podziemi oraz zapisane pozycje zachowano.
+- Zaktualizowano testy zawartości, granic, zasobów, spójności dróg i kompatybilności.
+- Bez pułapek, AP, automatycznego aggro, zmian EXP/Soul, SQLite ani EQ.
+- Zmiana dotyczy 30 krain Horyzontów; nie przebudowuje starszych małych terenów.
+- Wszystkie wcześniejsze nowości v116, w tym AI najemników i potworów,
+  Jammer oraz Eliza, pozostają w pełnej paczce Windows/Linux.
+- Przed wdrożeniem obowiązkowy pełny Windows PREDEPLOY 60/60 PLUS.
+
+---
+Soulbound MUD v116.00.5 — POPRAWKA BLOKADY PREDEPLOY (AI NAJEMNIKÓW)
+Data: 2026-11-19
+
+- Usunięto dwa nieklasyfikowane puste bloki except w module taktyki
+  najemników. Właśnie one powodowały natychmiastowy FAIL w PREDEPLOY
+  v116.00.4 (linie 179 i 205), jeszcze przed startem 60/60 PLUS.
+- Jeśli pomocnicze wykrywanie intencji walki napotka błąd, serwer
+  zapisze diagnostykę z wyjątkiem w logu; prawidłowy atak lub skill
+  nadal zakończy się normalnie. Nie ma nowych komunikatów dla NVDA.
+- Dodano regresje: wyjątek obserwatora skilla i zwykłego ataku,
+  nienaruszenie efektu natywnej akcji oraz zapis diagnostyki.
+- Zachowano v116.00.0–v116.00.4, w tym AI potworów i podążanie Elizy.
+- Bez zmian gameplayu, EXP, Soul, MP, EQ, SQLite i skryptów instalacji.
+- Kandydat do PREDEPLOY: wymagany pełny PASS 60/60 PLUS na Windows.
+
+---
+Soulbound MUD v116.00.4 — REAKCJE POTWORÓW NA WALKĘ
+Data: 2026-11-19
+
+- Potwory już zaangażowane w tę samą walkę reagują na śmierć sojusznika:
+  mogą się zawahać ze strachu (utrata jednej akcji) albo użyć krótkiego
+  wzmocnienia w istniejącym systemie (+18% przez 10 sekund).
+- Obrońca może osłonić rannego zwykłego bossa z tej samej walki.
+  Nie modyfikujemy skryptów bossów UOSS ani wyjątkowych bossów.
+- Reakcje są ograniczone czasowo i mają cooldown; bez masowych skanów świata.
+- Naprawiono komunikat podążania Elizy przy przemieszczaniu: teraz
+  pokazuje Elizę obok dwóch pozostałych najemników również podczas
+  prowadzenia automatycznego. Dotyczy tylko informacji NVDA, nie ruchu.
+- Brak automatycznego aggro, przemieszczania potworów, pułapek, AP,
+  zmian nagród, doświadczenia, bazy SQLite, postaci i ekwipunku.
+- Nowe testy obejmują obcych graczy, neutralne moby, bossów chronionych,
+  cooldown, strach i szał, wygaśnięcie i odrodzenie potworów.
+- Kandydat do PREDEPLOY: przed wdrożeniem Windows 60/60 PLUS PASS.
+
+---
+Soulbound MUD v116.00.3 — TAKTYKA NAJEMNIKÓW I PASYW ELIZY
+Data: 2026-11-19
+
+- Eliza korzysta z rasowego pasywu Wampira +8% obrażeń, odczytanego
+  z istniejącego katalogu ras. Nie przenosi rasowego bonusu właściciela.
+- Najemnicy wybierają istniejące skille typu Execute na osłabionego
+  przeciwnika (35% HP lub mniej), nie marnują ich na pełnozdrowe cele.
+- Mec-najemnik nie uruchamia nowego V-MAX Cosmic Rave na zwykłym celu,
+  którego bieżące uderzenie prawdopodobnie dobije; oszczędza cooldown.
+  Przeciw bossom i przy aktywnym V-MAX zasady pozostają bez zmian.
+- Najemnicy nie mają osobnej puli MP: nie dodano fikcyjnego systemu
+  many ani nie pobieramy MP od gracza za skille najemnika.
+- Brak zmian SQLite, postaci, EXP, Soul, EQ i katalogu bossów.
+- Bez nowych plików BAT, instalatora i bez automatycznego aggro.
+- Przed wdrożeniem obowiązuje pełny PREDEPLOY 60/60 PLUS na Windows.
+
+---
+SOULBOUND MUD v116.00.2 — JAMMER MECA, DUSZA I WYBOR CELU
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED 60/60 PLUS PASS
+
+- Jammer pozostaje niezalezny od Logic Bomb / Paralyze. Stara chroniona
+  metoda ma historyczny kod, lecz aktywna sciezka Mec omija ten warunek.
+- Mec posiada stala Dusze (Soul). Nie dodano zakladania lub zdejmowania
+  Support Weapon ani systemu AP.
+- Przy 'aoe off' Jammer wybiera jednego przeciwnika; mozna uzyc
+  jawnego celu 'Jammer at <cel>'. Nieznany lub chroniony cel nie
+  powoduje trafienia innego przeciwnika ani wydania Many.
+- MP: 20 na jeden cel (aoe off), 40 na caly pokoj (aoe on z Dusza).
+  Istniejace modyfikatory kosztu MP z ekwipunku pozostaja aktywne.
+- Przy 'aoe on' Jammer dziala na wszystkich dozwolonych przeciwnikow
+  w biezacym pokoju; nie dziala na cele poza pokojem ani cudze walki.
+- Komunikaty mowia o Duszy Meca, nie o zdejmowanej broni Support.
+- AI najemnikow v116.00.0 i wsparcie v116.00.1 zachowane bez zmian.
+- Brak zmian w bazie postaci, EXP, Soul, EQ, balansie obrazen, Bossach,
+  mechanice Stop, czy systemie aktualizacji. GitHub nietkniety.
+
+---
+
+SOULBOUND MUD v116.00.1 — INTELIGENCJA NAJEMNIKOW, ETAP 2
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED 60/60 PLUS PASS
+
+- Wspolny modul taktyki v116.00.1 wybiera najpilniejszy prawidlowy cel
+  leczenia i oslony w lokalnej druzynie, zamiast zawsze leczyc jedna osobe.
+- Gdy na najranniej postaci obowiazuje antyleczenie, najemnik pomaga
+  kolejnej postaci, ktora mozna legalnie uleczyc. Nie omija antyleczenia.
+- Gdy osoba ma juz tarcze, najemnik chroni kolejnego rannego bez oslony.
+- Straznik reaguje na zagrozenie bossem bez podwojnego nakladania oslony
+  w jednym dzialaniu. Zachowano dotychczasowy cooldown 20 sekund.
+- Eliza i inni wspierajacy najemnicy celniej dobieraja odbiorce
+  regeneracji po trafieniu; tylko rzeczywiste obrazenia i do brakujacego HP.
+- Taktyki obrona / wsparcie trafiaja najpierw do potrzebujacego sojusznika.
+- Bez zmian wielkosci leczenia, ochrony, mocy skilli, krzywej EXP,
+  balansu, zapisu postaci, SQLite i EQ; bez pulapek i nowego auto-aggro.
+- Wspolna mechanika Windows / Linux. GitHub i produkcja nietkniete.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v116.00.0 — INTELIGENCJA NAJEMNIKOW, ETAP 1
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED 60/60 PLUS PASS
+
+- Osobny modul systems/mercenary_tactics_v116.py zarzadza chwilowa
+  intencja walki gracza i lokalnej druzyny bez zapisu do SQLite.
+- Najemnicy skupiaja obrazenia na jednym celu, jesli gracz walczy
+  pojedynczo; AoE wlaczaja po rzeczywistym obszarowym ataku gracza.
+- Jammer z Support Effect i wlaczonym AoE sygnalizuje walke obszarowa.
+- Komenda ataku pojedynczego celu przywraca skupienie; polecenia
+  wygasaja po 12 sekundach i nie przechodza miedzy pomieszczeniami.
+- Obszarowki najemnikow trafiaja tylko juz zaangazowane cele party;
+  brak nowego auto-aggro. Mec zachowuje 5 uderzen Cosmic Rave.
+- Zachowano istniejace leczenie, oslony, wszystkie skille klasowe,
+  rozwoj, damage, konta, SQLite i zgodnosc Windows/Linux.
+- Bez pulapek i bez zmian systemu EXP, EQ, Soul czy balansu postaci.
+- Zmiany testowane na kopii. GitHub i produkcja pozostaja nietkniete.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.12 — BEZPIECZNE SPRZATANIE KATALOGOW PO WDROZENIU
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED 60/60 PLUS PASS
+
+- Po pomyslnym, podpisanym i zgodnym z SHA256 wycofaniu historycznych
+  plikow kodu instalator usuwa takze puste katalogi pozostawione po nich.
+- Nie usuwa zadnych katalogow zawierajacych pliki, danych graczy ani
+  katalogow niewynikajacych z zatwierdzonego manifestu poprzedniej wersji.
+- Sprawdza symlinki na calej sciezce starego pliku (produkcja i backup),
+  aby nie usuwac kodu przez dowiazanie prowadzace poza folder gry.
+- Gdy brakuje poprawnego manifestu, oryginalu w backupie lub SHA256 nie
+  zgadza sie z zatwierdzona wersja, sprzatanie jest pomijane.
+- Oba wydania nadal w calosci zawieraja niezbedne testy PREDEPLOY.
+- Bez zmian: rozgrywka, poziomy, EXP, Soul, walka, Fame Mob,
+  Eliza, najemnicy, postacie, EQ oraz SQLite.
+- Jedno kompletne archiwum Windows+Linux i polski CHANGELOG_PL.txt.
+- GitHub i dzialajaca produkcja bez zmian.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.11 — HISTORYCZNY AUDYT V107 BEZ DUPLIKATOW
+19.11.2026 — PELNY KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED 60/60 PLUS PASS
+
+- Scalono samodzielny historyczny audyt v107 z istniejacym wspolnym
+  modulem validation/v11100_v107_functional_audit.py.
+- Usunieto zdublowany plik audyt_v107_windows_przed_predeploy.py z
+  pelnego wydania Windows i Linux. Scenariusze v107: 33/33 zachowane.
+- Audit v110 korzysta z tego samego, sprawdzonego zestawu SUITES i tej
+  samej izolacji subprocess/TEMP, co w poprzedniej paczce.
+- Historyczna sciezka PREDEPLOY v107-v109 uruchamia scalony audyt;
+  v110 i v111 zachowuja dotychczasowe osobne warunki wydania.
+- Bez zmian: runtime, baza postaci, SQLite WAL, EQ, poziomy, EXP,
+  Soul, Fame Mob, Eliza, najemnicy, balans i wszystkie bramki PLUS.
+- Jeden niezalezny ZIP Windows+Linux, tylko CHANGELOG_PL.txt.
+- GitHub i produkcja bez zmian; wymagane prawdziwe Windows 60/60 PLUS.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.10 — KOLEJNE PORZADKI LINUX / WINDOWS
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC BEZ 60/60 PLUS PASS
+
+- Linux: dwa pomocnicze moduly Windows (windows_runtime_state.py i
+  windows_launcher_state.py) pozostaja w pelnej paczce regresji, lecz nie sa
+  kopiowane do runtime podczas instalacji Linux.
+- Wspolny modul systems/windows_control_v1603.py laduje pomocniczy kod
+  Win32 dopiero gdy jest potrzebny na Windows. Linux nie wymaga tych importow.
+- Zachowano zasady autoryzowanego STOP Windows, a zaktualizowany test wydania
+  bada brak zaleznosci Linux od modulow sledzenia procesow Windows.
+- Wszystkie historyczne testy i 60 bramek PLUS sa nadal w pelnym ZIP-ie.
+- Nie zmieniono mechaniki gry, poziomow, EXP, Soul, Fame Mob, Elizy,
+  najemnikow, EQ ani schematu SQLite. Nie dotykano GitHuba ani produkcji.
+- Po stronie uzytkownika nadal wymagany jest pelny Windows PREDEPLOY PASS.
+- Jeden samodzielny ZIP Windows+Linux, jedyny .txt to CHANGELOG_PL.txt.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.9 — ODDZIELENIE RUNTIME OD TESTOW I WINDOWS OD LINUX
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC BEZ 60/60 PLUS PASS
+
+- arena_real_izolowana.py pozostaje w pelnej paczce PREDEPLOY, ale nie jest
+  instalowana w dzialajacej grze Windows ani Linux. Wszystkie testy areny
+  nadal korzystaja z pelnego ZIP-a i nie zostaly usuniete.
+- Linux: produkcyjny zestaw pomija windows_autostart.py,
+  ktory nie jest potrzebny do uruchamiania gry.
+  Moduly windows_runtime_state.py i windows_launcher_state.py pozostaja,
+  poniewaz test zaleznosci nadal wymaga ich obecnosci w runtime.
+- Usunieto nieuzywany import wait_gone z aktualizatora. Kanal Windows STOP
+  pozostaje bajtowo identyczny jak w v115.00.8.
+- Zachowano predeploy_nowej_wersji.py, BAT/SH, backup, aktywacje, SQLite
+  i mechanizm zatwierdzania aktualizacji. Brak nowych skryptow instalacji.
+- Do istniejacej bramki aktualizatora dodano kontrole odseparowania testow,
+  Win32 oraz zachowania plikow potrzebnych runtime i nastepnemu PREDEPLOY.
+- Nic nie usuwamy z bazy, EQ, lokalnych ustawien ani plikow bez potwierdzonego
+  SHA256 poprzedniej wersji; stare pliki wolno wycofac dopiero po backupie.
+- Poziomy, EXP, Soul, balans, Eliza, najemnicy, Fame Mob, postacie i walka:
+  BEZ ZMIAN. Pelny ZIP Windows+Linux; jedyny .txt to CHANGELOG_PL.txt.
+- GitHub i dzialajaca instalacja pozostaja bez zmian.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.8 — SCALENIE HISTORYCZNYCH TESTOW BAT
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC BEZ 60/60 PLUS PASS
+
+- Wycofano stary wykonywalny modul narzedzia/porzadki_bat.py z wydania.
+  Nie jest wywolywany przez aktualizacje ani serwer v115.
+- Zachowano jego 51 historycznych SHA256 i funkcje bezpiecznego sprawdzania
+  plikow w istniejacym validation/v10800_bat_cleanup_regression.py.
+  Dzialaja WYLACZNIE na prywatnych syntetycznych katalogach testowych.
+- Wspolna implementacja regresji v108 i v109 zostala scalona; osobne
+  punkty uruchomienia pozostaja, oba wykonujac identyczna liczbe kontroli:
+  v108 124 kontrole, v109 132 kontrole; v110 196 kontroli.
+- Usuniecie starego modulu przy prawidlowym, zatwierdzonym manifeście moze
+  nastapic podczas bezpiecznej aktualizacji po utworzeniu pelnego backupu.
+  Pliki lokalnie zmienione lub bez waznego manifestu sa zachowywane.
+- Zadnych zmian gameplay, klas, poziomow, progow EXP, Soul, EQ, Elizy,
+  najemnikow, Fame Mob, innych postaci ani SQLite.
+- Zachowano Windows i Linux w jednej paczce; jeden dokument TXT:
+  CHANGELOG_PL.txt. GitHub i dzialajaca instalacja bez zmian.
+- Po PREDEPLOY 60/60 PLUS wymagane zatwierdzenie WDRAZAM.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.7 — JEDEN START I BEZPIECZNE SPRZATANIE KODU
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC BEZ 60/60 PLUS PASS
+
+- Windows: funkcja Start-Soulbound-Windows.bat zostala przeniesiona bezposrednio
+  do START_Soulbound.bat. Usunieto dodatkowy posredni plik BAT. Start nadal
+  uruchamia nadzorce w tle, przy zachowaniu kodow bledow i Python >= 3.12.
+- Aktualizator: po pelnej kopii zapasowej i pomyslnym zatwierdzeniu nowego
+  kodu wycofuje stare pliki kodu .py/.bat/.sh/.cmd/.vbs pomijane przez nowe
+  wydanie TYLKO jesli stary manifest jest poprawny i pliki zrodlowe ORAZ
+  z backupu sa bajtowo zgodne z podpisana poprzednia wersja.
+- Pliki zmodyfikowane przez uzytkownika, dane postaci, EQ, SQLite, WAL, SHM,
+  ustawienia, skrypty wlasne i wszystkie pliki bez manifestu pozostaja.
+  Przy braku poprawnego manifestu usuwanie jest pomijane.
+- Zachowano wszystkie historyczne testy. Dostosowano tylko sprawdzanie
+  jednego START i modernizacje liczby BAT, bez oslabiania testow regresji.
+- Wariant Linux zachowuje szesc skryptow .sh; wspolny kod gry pozostaje taki
+  sam. W obu wariantach jedyny plik .txt to CHANGELOG_PL.txt.
+- Bez zmian mechaniki: poziomy, EXP, Fame Mob, ataki najemnikow, Eliza,
+  swiat, konta, questy, fizyczne EQ i balans sa identyczne jak v115.00.6.
+- GitHub, produkcja i baza graczy nie byly dotykane.
+- Obowiazuje nowy PREDEPLOY Windows 60/60 PLUS i testy LIVE.
+
+--- POPRZEDNIE ZMIANY ---
+SOULBOUND MUD v115.00.6 — BEZPIECZNE PORZADKI KODU I TESTOW
+19.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED NOWYM PASS 60/60 PLUS
+
+- Uporzadkowano DWA potwierdzone identyczne duplikaty modulow w pelnym
+  archiwum kandydata, osobno dla Windows i Linux:
+  1. Usunieto validation/v115_large_regions_regression.py — jego 8 testow
+     pozostaje w niezmienionym validation/v115_playable_regions_regression.py.
+  2. Usunieto validation/v10700_eq_untracked_locations.py — dokladnie ta
+     sama implementacja pozostaje w systems/eq_migration/locations.py.
+- Dwa historyczne testy/audyty EQ od teraz importuja audit_untracked
+  z jednego, kanonicznego modulu systems.eq_migration.locations.
+  Algorytm audytu EQ i jego wynik sa niezmienione.
+- Nie usuwano plikow wykorzystywanych przez historyczne testy, manifesty,
+  runtime, PREDEPLOY, narzedzia bezpiecznej aktualizacji lub Windows START.
+  W szczegolnosci pozostawiono stary audyt v107, narzedzie porzadki_bat,
+  Start-Soulbound-Windows.bat i wszystkie bramki ochrony zapisow.
+- Zmiana dotyczy wyłącznie kodu testowego kandydata oraz importow audytu:
+  ZERO zmian w gameplay, postaciach, klasach, rasach, EQ, Exp, poziomach,
+  balansie, najemnikach, Elizie, SQLite, Fame Mob i swiecie gry.
+- Jedno kompletne archiwum zawiera oddzielne samowystarczalne ZIP-y Windows
+  i Linux, kazdy z jedynym dokumentem tekstowym CHANGELOG_PL.txt.
+- Nie wprowadzono zadnych zmian na GitHubie ani w dzialajacej instalacji.
+- Pelny PREDEPLOY Windows 60/60 PLUS jest obowiazkowy przed wdrozeniem.
+
+--- POPRZEDNIE ZMIANY ---
 SOULBOUND MUD v115.00.5 — BEZPIECZNA NAPRAWA AKTUALIZATORA SQLITE SHM
 18.11.2026 — KANDYDAT DO PREDEPLOY; NIE WDRAZAC PRZED NOWYM PASS 60/60 PLUS
 

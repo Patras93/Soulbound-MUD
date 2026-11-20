@@ -20,7 +20,7 @@ from systems.equipment_instances_v10600 import (
     snapshot,apply_to_explicit_test_copy,cutover_readiness,
 )
 from systems.equipment_shadow_slots_v10600 import prepare_on_disposable_copy
-from validation.v10700_eq_untracked_locations import audit_untracked
+from systems.eq_migration.locations import audit_untracked
 from systems.v10800_eq_reconciliation_plan import reconciliation_summary
 from systems.v10800_eq_restore_rehearsal import _fields
 from systems.v10800_eq_physical_routes import physical_route_conflicts

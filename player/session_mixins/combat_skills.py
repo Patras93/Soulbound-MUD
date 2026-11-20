@@ -2887,3 +2887,9 @@ import os as _v107_magitek_env
 if _sb107_runtime_enabled():
     from systems.magitek.runtime import install as _v107_magitek_install
     _v107_magitek_install(SessionCombatSkillsMixin)
+
+
+# v116: observe successful player combat casts without rewriting or replacing
+# the historical native skill caster (protected by its AST contract).
+from systems.mercenary_tactics_v116 import install_skill_intent_hook_v116 as _v116_install_merc_intent
+_v116_install_merc_intent(SessionCombatSkillsMixin)

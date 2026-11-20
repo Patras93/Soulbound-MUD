@@ -75,4 +75,41 @@ for _v2006_rid, _v2006_room in ROOMS.items():
 
 del _v2006_rid, _v2006_room, _v2006_profile
 
+# v116: preserve the original starter world; extend only three end-of-route borders.
+from systems.v116_starter_border_regions import install_rooms as _v116_install_starter_edges
+_v116_install_starter_edges(ROOMS)
+
+# v116: safe beginnings of older authored dungeons and outposts.
+from systems.v116_historic_frontier_regions import install_rooms as _v116_install_historic
+_v116_install_historic(ROOMS)
+
+# v116: optional long dungeon wings attached only on boundary, bosses unchanged.
+from systems.v116_dungeon_border_wings import install_rooms as _v116_install_dungeon_wings
+_v116_install_dungeon_wings(ROOMS)
+
+# v116: optional wide galleries at START/END of three legacy underground routes.
+from systems.v116_legacy_depths_regions import install_rooms as _v116_install_legacy_depths
+_v116_install_legacy_depths(ROOMS)
+
+# v116: additional deep galleries, connected only at the far NORTH border
+# of previously added optional dungeon wings; original bosses remain untouched.
+from systems.v116_deep_galleries import install_rooms as _v116_install_deep_galleries
+_v116_install_deep_galleries(ROOMS)
+
 __all__ = ['ROOMS']
+
+# v116.00.14: Krypta tylko na dalekim obrzezu Starego Cmentarza.
+from systems.current_world_perimeter import install_static as _v116_install_perimeter
+_v116_install_perimeter(ROOMS)
+
+# v116.00.15: rzeczywiste przejscia na skraju 30 dlugich traktow Horyzontow.
+from systems.current_world_perimeter import install_horizon_border_trails as _v116_horizon_trails
+_v116_horizon_trails(ROOMS)
+
+# v116.00.25: duze expowiska WEWNATRZ 30 glownych podziemi Horyzontow.
+from systems.current_main_dungeon_expanses import install_rooms as _v11625_main_fields
+_v11625_main_fields(ROOMS)
+
+# v116.00.26: 60 expowisk po 144 pokoje, bez ruszania starych tras.
+from systems.current_wing_grindfields import install_rooms as _v11626_grindfields
+_v11626_grindfields(ROOMS)

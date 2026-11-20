@@ -1458,3 +1458,8 @@ class SessionCombatRealtimeMixin:
 
 
 
+
+# v116: preserve the protected original attack method and observe only a
+# confirmed target after the native action has completed.
+from systems.mercenary_tactics_v116 import install_attack_intent_hook_v116 as _v116_install_attack_intent
+_v116_install_attack_intent(SessionCombatRealtimeMixin)

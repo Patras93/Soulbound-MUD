@@ -173,9 +173,9 @@ def run():
     with patch('systems.multi_cap_v23215.multi_cap_experience_v23215',return_value=1):
         asyncio.run(axes_s.show_exp_bank_v2011('odbierz wszystko'))
     assert axes.class_xp==2001 and axes.skill_xp==1234
-    assert axes_s.character.strength==14 and axes_s.character.strength_progress==50
-    assert axes.profession_row=={'level':4,'xp':50,'actions':12}
-    assert axes.tool_row=={'level':5,'xp':25,'uses':8}
+    assert axes_s.character.strength==11 and axes_s.character.strength_progress==350
+    assert axes.profession_row=={'level':2,'xp':450,'actions':12}
+    assert axes.tool_row=={'level':2,'xp':475,'uses':8}
     assert all(axes.balance(1,k,key)==0 for k,key,_ in all_rows)
     checks+=6
     axes.conn.close()

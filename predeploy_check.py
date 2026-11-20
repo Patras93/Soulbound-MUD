@@ -31,6 +31,7 @@ CHECKS = (
     ("validation.current_v11329_sound_cap_regression", "module"),
     ("validation.current_v11333_mercenary_38_regression", "module"),
     ("validation.current_mercenary_arsenal_v11334_regression", "module"),
+    ("validation.current_mercenary_tactics_v116_regression", "module"),
     ("validation.current_skill_exp_v11332_regression", "module"),
     ("validation.current_achievement_xp_v11331_regression", "module"),
 )

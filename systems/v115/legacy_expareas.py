@@ -6,8 +6,8 @@ branches after the older zone builder has registered the original rooms.
 """
 from data.catalog_mutations import catalog_assign, catalog_set_path
 
-WIDTH = 8
-HEIGHT = 8
+WIDTH = 12
+HEIGHT = 12
 # Existing, stable entry rooms and enemies, never new mandatory templates.
 AREAS = (
     ('kult', 'Ruiny Kultystów', 'cult_ruins_gate', ('cult_acolyte', 'cult_blade', 'cult_void_seer'), 75),

@@ -169,8 +169,9 @@ class Character:
             return {"level_ups": 0, "level": self.soul_weapon_mastery_level,
                     "xp": self.soul_weapon_mastery_xp, "next_xp": 0}
         self.soul_weapon_mastery_xp += amount
+        old_mastery_level = self.soul_weapon_mastery_level
         level_ups = 0
-        while self.soul_weapon_mastery_level < SOUL_WEAPON_MASTERY_MAX_LEVEL:
+        while self.soul_weapon_mastery_level < min(SOUL_WEAPON_MASTERY_MAX_LEVEL, old_mastery_level + 1):
             needed = soul_weapon_mastery_xp_to_next(self.soul_weapon_mastery_level)
             if needed <= 0 or self.soul_weapon_mastery_xp < needed:
                 break
@@ -178,7 +179,8 @@ class Character:
             self.soul_weapon_mastery_level += 1
             level_ups += 1
         if self.soul_weapon_mastery_level >= SOUL_WEAPON_MASTERY_MAX_LEVEL:
-            self.soul_weapon_mastery_xp = 0
+            # Zostaw niezużyte XP na przyszłość przy zmianie limitu.
+            pass
         return {
             "level_ups": level_ups,
             "level": self.soul_weapon_mastery_level,
@@ -199,13 +201,14 @@ class Character:
                 self.character_xp += requested_amount
                 return [f"EXP +{requested_amount} odłożone; osiągnięto limit Level {CHARACTER_MAX_LEVEL}."]
             return []
-        # v1.13.60: zdobyty EXP nigdy nie jest obcinany do jednego awansu.
+        # v116.00.9: jedno podniesienie poziomu na wypłatę; cała nadwyżka XP zostaje.
         # Parametr zachowany tylko dla zgodności ze starymi wrapperami.
         amount=requested_amount
         limited=False
         self.character_xp += amount
+        starting_level = self.character_level
         messages=[]
-        while self.character_level < CHARACTER_MAX_LEVEL:
+        while self.character_level < min(CHARACTER_MAX_LEVEL, starting_level + 1):
             needed=character_xp_to_next(self.character_level)
             if self.character_xp < needed:
                 break
@@ -633,10 +636,10 @@ class Character:
             # levele mobów nadal pozostają słabym źródłem EXP dla wysokich statów.
             stat_amount = uncapped_stat_xp_gain(amount, current_value)
             current_progress = max(0, int(getattr(self, progress_field)))
-            # v1.13.60: nie obcinamy EXP statystyk do jednego punktu na źródło.
+            # v116.00.9: zachowujemy pełen EXP, lecz tylko jeden wzrost na wypłatę.
             progress = current_progress + stat_amount
             leveled = 0
-            while True:
+            while leveled < 1:
                 threshold = self.stat_growth_threshold_for(stat_name)
                 if progress < threshold:
                     break
@@ -727,7 +730,7 @@ class Character:
         _guild_pct=max(0,int(getattr(self,"_guild_bonus_percent",0) or 0))
         amount=max(0,scale_percent_xp_v10400(racial_amount,_guild_pct))
         requested_amount=amount
-        # v1.13.60: nie obcinamy Soul XP do jednego awansu na źródło.
+        # v116.00.9: 1 Soul Level na wypłatę; niewykorzystany XP czeka.
         limited=False
         messages = [f"Broń Duszy otrzymuje {amount} Soul XP."]
         if not limited:
@@ -744,7 +747,8 @@ class Character:
         if int(self.soul_xp) + amount > 9_223_372_036_854_775_807:
             raise OverflowError('Soul XP przekracza techniczny zakres zapisu SQLite; nie zmieniono puli.')
         self.soul_xp += amount
-        while self.soul_level < SOUL_MAX_LEVEL:
+        starting_soul_level = self.soul_level
+        while self.soul_level < min(SOUL_MAX_LEVEL, starting_soul_level + 1):
             cap_level = self.soul_level_cap_for_current_tier()
             if self.soul_level >= cap_level:
                 # Zachowujemy niewykorzystany Soul XP w istniejącym polu

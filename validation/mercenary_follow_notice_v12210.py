@@ -6,7 +6,8 @@ import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 
-from systems.mercenary_taverns import MERCENARIES, mercenary_follow_notice_v12210
+from systems.mercenary_taverns import mercenary_follow_notice_v12210
+from systems.v115.vampire_mercenary import MERCENARIES
 
 
 def validate_mercenary_follow_notice_v12210():
@@ -28,6 +29,9 @@ def validate_mercenary_follow_notice_v12210():
     check('if others:' in perception and 'Najemnicy innych graczy:' in perception)
 
     movement = (root / "player/session_mixins/movement.py").read_text(encoding="utf-8")
+    # The movement list MUST include Eliza, unlike the historical 38-only catalogue.
+    check('from systems.v115.vampire_mercenary import MERCENARIES' in movement)
+    check(MERCENARIES['wampir']['name'] == 'Eliza')
     tree = ast.parse(movement)
     cls = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "SessionMovementMixin")
     move = next(node for node in cls.body if isinstance(node, ast.AsyncFunctionDef) and node.name == "walk_room_transition")
@@ -121,6 +125,23 @@ def validate_mercenary_follow_notice_v12210():
         session.character.room_id = "start"
         check(await session.walk_room_transition("north", "middle", guided=True, show_room=False))
         check(session.messages.count(notice) == 2)  # New guide is a new route.
+        # Regression: two normal hires plus Eliza. Her hire used to disappear
+        # from guided movement because it read the legacy 38-only catalogue.
+        db.hires = ["paladyn", "mag", "wampir"]
+        eliza_notice = (
+            "Eliza podąża za tobą. Pozostali najemnicy podążają za tobą: Seren i Vael."
+        )
+        session.messages.clear()
+        session.character.room_id = "start"
+        session._mercenary_guide_announced_v12210 = False
+        check(await session.walk_room_transition("north", "middle", show_room=True))
+        check(session.messages.count(eliza_notice) == 1)  # Manual movement + look.
+        session.messages.clear()
+        session.character.room_id = "start"
+        session._mercenary_guide_announced_v12210 = False
+        check(await session.walk_room_transition("north", "middle", guided=True, show_room=False))
+        check(await session.walk_room_transition("north", "end", guided=True, show_room=False))
+        check(session.messages.count(eliza_notice) == 1)  # Once per guided route.
         db.hires = []
         session.messages.clear()
         session.character.room_id = "start"

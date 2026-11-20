@@ -6,7 +6,7 @@ from systems.v115.high_level_world import REGIONS
 
 class LargeAreasV115(unittest.TestCase):
  def test_counts(self):
-  self.assertEqual((len(build_rooms()),len(build_mobs()),len(build_spawns())),(1470,90,750))
+  self.assertEqual((len(build_rooms()),len(build_mobs()),len(build_spawns())),(4350,90,2190))
  def test_catalog_valid(self):
   self.assertTrue(validate_world({'crossroads':{}},{},[]))
  def test_every_area_connected_and_looped(self):
@@ -20,8 +20,8 @@ class LargeAreasV115(unittest.TestCase):
      if not dst.startswith(region.key+'_p_'):continue
      edges+=1
      if dst not in seen:seen.add(dst);queue.append(dst)
-   self.assertEqual(len(seen),48)
-   self.assertGreater(edges//2,48) # wiele petli, nie liniowy korytarz
+   self.assertEqual(len(seen),WIDTH*HEIGHT)
+   self.assertGreater(edges//2,WIDTH*HEIGHT) # wiele petli, nie liniowy korytarz
  def test_return_paths(self):
   rooms=build_rooms()
   for rid,room in rooms.items():
@@ -32,7 +32,7 @@ class LargeAreasV115(unittest.TestCase):
  def test_spawns_across_all_regions(self):
   spawns=build_spawns()
   for region in REGIONS:
-   self.assertEqual(sum(x.startswith(region.key+'_p_') for x,y in spawns),25)
+   self.assertEqual(sum(x.startswith(region.key+'_p_') for x,y in spawns),WIDTH*HEIGHT//2+1)
    self.assertIn((room_id(region.key,7,5),f'{region.key}_guardian'),spawns)
  def test_no_level_gate_soundpack_dependency(self):
   import inspect, systems.v115.playable_regions as m
@@ -47,7 +47,7 @@ class LargeAreasV115(unittest.TestCase):
   self.assertIn(HUB,ROOMS)
   self.assertEqual(ROOMS['crossroads']['exits']['up'],HUB)
   self.assertIn('v115_region_01_scout',MOB_TEMPLATES)
-  self.assertEqual(len([x for x in MOB_SPAWNS if any(x[0].startswith(region.key+'_p_') for region in REGIONS)]),750)
+  self.assertEqual(len([x for x in MOB_SPAWNS if any(x[0].startswith(region.key+'_p_') for region in REGIONS)]),2190)
  def test_legacy_preserved(self):
   from data.rooms import ROOMS
   self.assertEqual(ROOMS['crossroads']['exits']['south'],'old_road')

@@ -21,7 +21,6 @@ import sys
 import tempfile
 import time
 import zipfile
-from windows_launcher_state import wait_gone
 from release_readme_cleanup import cleanup_legacy_readmes
 
 ROOT = Path(os.environ.get('SOULBOUND_LIVE_ROOT') or Path(__file__).resolve().parent).resolve()
@@ -68,7 +67,8 @@ V111_CERTIFIED_OBSOLETE_RUNTIME = frozenset({'core/generator_core.py'})
 V111_CANDIDATE_ONLY_ROOT_FILES = frozenset({
     'predeploy_check.py', 'predeploy_full.py', 'testuj_soulbound_windows.py',
     'TESTUJ_Soulbound.bat', '_debug_boot_local.py',
-    'audyt_v107_windows_przed_predeploy.py', 'sprawdz_v104_zbiorczo.py',
+    'sprawdz_v104_zbiorczo.py',
+    'arena_real_izolowana.py',  # PREDEPLOY-only real arena fixture
 })
 
 # Mandatory PREDEPLOY-only launchers live in the full release ZIP, never in
@@ -176,6 +176,12 @@ def production_release_mapping(mapping: dict[Path, zipfile.ZipInfo]) -> dict[Pat
     offline_admin_audits = frozenset(FULL_AUDIT_ONLY_MODULES)
     result={}
     linux_only_runtime = frozenset({
+        # Windows autostart is unused on Linux. Keep shared Win32 utility
+        # modules required by the strict static import-closure audit.
+        'windows_autostart.py',
+        # Runtime helpers are Windows-only; the shared STOP endpoint now
+        # imports them lazily and keeps Linux free of the Win32 state layer.
+        'windows_runtime_state.py', 'windows_launcher_state.py',
         'status_soulbound_windows.py', 'host_windows.py',
         'stop_soulbound_windows.py', 'soulbound_backup_windows.py',
         'supervisor_windows.py', 'uruchom_w_tle.py', 'start_windows_bootstrap.py',
@@ -511,8 +517,13 @@ def port_open(port: int) -> bool:
 def stop_local_server(root: Path) -> bool:
     # Always use the authenticated STOP, even when the port is momentarily
     # free: an active crash supervisor could restart mid-copy.
-    from windows_runtime_state import fallback_dir, read_state
-    from windows_launcher_state import process_alive
+    # On Linux the service manager owns shutdown. These helpers exist only
+    # in Windows production and must never be imported by the Linux runtime.
+    if os.name == 'nt':
+        from windows_runtime_state import fallback_dir, read_state
+        from windows_launcher_state import process_alive
+    else:
+        raise UpdateError('Windows STOP nie jest dostepny w usludze Linux')
 
     logs = (root / 'logs', fallback_dir(root))
     tracked = False
@@ -813,15 +824,20 @@ def sha256_file(file: Path) -> str:
 
 
 def run_update(root: Path, archive_path: Path, new_version: str, *, restart: bool = True, fresh: bool = True) -> Path:
-    if version_tuple(new_version) > (112, 0, 0):
+    # Dispatch from the candidate's actual capabilities, never from a magic
+    # threshold such as 112. Any arbitrary future VERSION uses this path.
+    with zipfile.ZipFile(archive_path) as archive:
+        mapping = archive_mapping(archive)
+        if read_archive_version(archive, mapping) != new_version or archive.testzip():
+            raise UpdateError('Niepoprawna nowa paczka ZIP')
+    current_contract = all(Path(name) in mapping for name in (
+        'core/release_version.py', 'systems/runtime_activation.py',
+        'systems/universal_release_update.py', 'systems/current_fresh_install.py'))
+    if current_contract:
         from systems.universal_release_update import update
-        with zipfile.ZipFile(archive_path) as archive:
-            mapping = archive_mapping(archive)
-            if read_archive_version(archive, mapping) != new_version or archive.testzip():
-                raise UpdateError('Niepoprawna nowa paczka ZIP')
         return update(root, archive_path, new_version, mapping, restart=restart)
-    if version_tuple(new_version) < (112,0,0):
-        raise UpdateError('Nie obsluguje starszych wersji')
+    if new_version != '112.00.0':
+        raise UpdateError('Nieobslugiwane wydanie bez uniwersalnych modulow')
     # Critical: protect direct callers and --yes alike, before shutdown/backup.
     require_v104_official_predeploy(root, archive_path, new_version)
     # Pre-validate ZIP *before* touching running server.

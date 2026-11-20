@@ -1167,6 +1167,60 @@ for _v115_spawn in _v115_graveyard_spawns():
         MOB_SPAWNS.append(_v115_spawn)
 
 
+# v116: ordinary starter-region spawns; only templates already registered.
+from systems.v116_starter_border_regions import build_spawns as _v116_border_spawns
+for _v116_room, _v116_mob in _v116_border_spawns():
+    if _v116_room not in _v115_world_rooms or _v116_mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116: missing starter spawn {_v116_room}: {_v116_mob}')
+    if (_v116_room, _v116_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116: duplicate starter spawn {_v116_room}: {_v116_mob}')
+    MOB_SPAWNS.append((_v116_room, _v116_mob))
+
+
+# v116: new historical border sectors; only existing ordinary mob templates.
+from systems.v116_historic_frontier_regions import build_spawns as _v116_historic_spawns
+for _historic_room, _historic_mob in _v116_historic_spawns():
+    if _historic_room not in _v115_world_rooms or _historic_mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116: brak historycznego spawnu: {_historic_room}/{_historic_mob}')
+    if (_historic_room, _historic_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116: powtórzony historyczny spawn: {_historic_room}/{_historic_mob}')
+    MOB_SPAWNS.append((_historic_room, _historic_mob))
+
+
+# v116: optional dungeon wings, existing ordinary lurkers; no new bosses.
+from systems.v116_dungeon_border_wings import build_spawns as _v116_wing_spawns
+for _wing_room, _wing_mob in _v116_wing_spawns():
+    if _wing_room not in _v115_world_rooms or _wing_mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116: nieznany spawn w podziemiach: {_wing_room}/{_wing_mob}')
+    if _v115_world_mobs[_wing_mob].get('boss'):
+        raise RuntimeError(f'v116: boss w zwykłym sektorze {_wing_room}')
+    if (_wing_room, _wing_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116: duplikat spawnu {_wing_room}/{_wing_mob}')
+    MOB_SPAWNS.append((_wing_room, _wing_mob))
+
+
+# v116: added old-dungeon side galleries; only existing ordinary monsters.
+from systems.v116_legacy_depths_regions import build_spawns as _v116_depth_spawns
+for _depth_room,_depth_mob in _v116_depth_spawns():
+    if _depth_room not in _v115_world_rooms or _depth_mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116: brak nowego podziemnego spawnu {_depth_room}/{_depth_mob}')
+    if _v115_world_mobs[_depth_mob].get('boss') or _v115_world_mobs[_depth_mob].get('world_boss'):
+        raise RuntimeError(f'v116: boss w bocznej galerii {_depth_room}')
+    if (_depth_room,_depth_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116: powtórzony podziemny spawn {_depth_room}/{_depth_mob}')
+    MOB_SPAWNS.append((_depth_room,_depth_mob))
+
+# v116: extra distant galleries, exclusively existing ordinary lurkers.
+from systems.v116_deep_galleries import build_spawns as _v116_deep_gallery_spawns
+for _deep_room,_deep_mob in _v116_deep_gallery_spawns():
+    if _deep_room not in _v115_world_rooms or _deep_mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116: nieznany sektor podziemi {_deep_room}/{_deep_mob}')
+    if _v115_world_mobs[_deep_mob].get('boss') or _v115_world_mobs[_deep_mob].get('world_boss'):
+        raise RuntimeError(f'v116: boss w zwykłej galerii {_deep_room}')
+    if (_deep_room,_deep_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116: podwójny spawn {_deep_room}/{_deep_mob}')
+    MOB_SPAWNS.append((_deep_room,_deep_mob))
+
 # v1.11.36 — unique UOSSMUD Super Boss arenas are authored by the world layer,
 # while their canonical spawns are installed here after MOB_SPAWNS exists.
 # Player-facing help. Category/group page labels are explicitly documented as
@@ -1715,3 +1769,25 @@ LATEST_CHANGES = [
 # Historical LATEST_CHANGES entries remain as an archive, not the live title.
 from core.bootstrap_economy_professions import VERSION as _CURRENT_RELEASE_VERSION
 LATEST_CHANGES_TITLE = 'Soulbound v' + _CURRENT_RELEASE_VERSION + ' — Aktualna wersja gry'
+
+# v116.00.25: zwykle potwory wewnatrz rozleglych glownych podziemi.
+from systems.current_main_dungeon_expanses import build_spawns as _v11625_main_spawns
+for _room,_mob in _v11625_main_spawns():
+    if _room not in _v115_world_rooms or _mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116.00.25: brak pokoju lub potwora {_room}/{_mob}')
+    if _v115_world_mobs[_mob].get('boss') or _v115_world_mobs[_mob].get('world_boss'):
+        raise RuntimeError(f'v116.00.25: boss w sektorze exp {_room}')
+    if (_room,_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116.00.25: zdublowany spawn {_room}/{_mob}')
+    MOB_SPAWNS.append((_room,_mob))
+
+# v116.00.26: tylko istniejące zwykłe potwory, bez EXP za odkrywanie.
+from systems.current_wing_grindfields import build_spawns as _v11626_spawns
+for _room,_mob in _v11626_spawns():
+    if _room not in _v115_world_rooms or _mob not in _v115_world_mobs:
+        raise RuntimeError(f'v116.00.26: nieznany sektor lub potwor: {_room}/{_mob}')
+    if _v115_world_mobs[_mob].get('boss') or _v115_world_mobs[_mob].get('world_boss'):
+        raise RuntimeError(f'v116.00.26: boss na zwyklym expowisku: {_room}')
+    if (_room,_mob) in MOB_SPAWNS:
+        raise RuntimeError(f'v116.00.26: podwojny spawn: {_room}/{_mob}')
+    MOB_SPAWNS.append((_room,_mob))

@@ -72,11 +72,11 @@ class RegionalExplorationRewards(unittest.TestCase):
         self.character.account_id=2
         with self.assertRaises(ValueError):self.visit(0,0)
         self.assertEqual(self.wallet(),100)
-    def test_every_region_has_24_landmarks_with_ep(self):
+    def test_every_region_has_half_the_rooms_as_landmarks_with_ep(self):
         for region in REGIONS:
             area=[room for name,room in ROOMS.items() if room.get('v115_region_key')==region.key]
             self.assertEqual(len(area),WIDTH*HEIGHT)
-            self.assertEqual(sum(bool(room.get('v1000_landmark')) and room.get('exploration_ep',0)>0 for room in area),24)
+            self.assertEqual(sum(bool(room.get('v1000_landmark')) and room.get('exploration_ep',0)>0 for room in area),WIDTH*HEIGHT//2)
     def test_soundpack_not_required(self):
         import inspect
         from systems.v115 import exploration_objective_bridge

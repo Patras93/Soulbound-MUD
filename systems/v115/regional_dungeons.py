@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """v115: real, connected 24-room dungeons for every new high-level realm.
 
-The base 48-room regions remain accessible, with no level gate. A dungeon clear
+The base 144-room regions remain accessible, with no level gate. A dungeon clear
 is credited only for a confirmed boss defeat at its final chamber; merely
 visiting the dungeon never completes it. No separate game engine or soundpack.
 """
@@ -10,7 +10,7 @@ from .high_level_world import REGIONS, REGION_BY_KEY
 from .playable_regions import room_id as sector_room_id
 
 WIDTH, HEIGHT = 6, 4
-ENTRY_X, ENTRY_Y = 6, 4  # authored exterior sector, its 'up' exit is free
+ENTRY_X, ENTRY_Y = 11, 10  # border sector; no cross-zone gates in the interior
 _NAMES = ('Zewnętrzny Krąg', 'Zapomniany Trakt', 'Krypta', 'Galeria',
           'Pęknięta Sala', 'Kamienny Labirynt', 'Podziemna Przełęcz', 'Komora')
 _INDEX = {reg.key: i for i, reg in enumerate(REGIONS, 1)}

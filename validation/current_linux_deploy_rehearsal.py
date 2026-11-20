@@ -52,6 +52,9 @@ def main():
         assert (root/'workspace/current').is_symlink();checks+=1
         assert result.name=='v'+L.VERSION;checks+=1
         assert (result/'START_Soulbound.sh').stat().st_mode & 0o100;checks+=1
+        for helper in ('windows_runtime_state.py','windows_launcher_state.py'):
+            assert not (result/helper).exists(), 'Linux installer retained '+helper
+            checks+=1
         assert L.fingerprint_source(result/'soulbound.db')==L.fingerprint_source(db);checks+=1
         assert list((root/'workspace/backups').glob('*.sqlite'));checks+=1
         with sqlite3.connect(result/'soulbound.db') as c:

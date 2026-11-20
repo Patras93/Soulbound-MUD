@@ -154,7 +154,13 @@ async def _try_dungeon_entry_command_v03812(self, raw):
     spec = candidates[0]
     target = str(spec["target"])
     if target not in ROOMS:
-        self.server.world.ensure_runtime_room(target)
+        # A procedural entrance must exist before normal movement starts.
+        # If generation cannot produce it, leave the character at the
+        # threshold; never enter an unresolved room or bypass boss gates.
+        if (not self.server.world.ensure_runtime_room(target)
+                or target not in ROOMS):
+            await self.send("Nie udało się przygotować wejścia. Spróbuj ponownie.")
+            return True
     direction = _v03812_direction_to(room_id, target)
     if direction is None:
         await self.send(

@@ -173,12 +173,21 @@ def deployment_fail_closed():
         fake=root/'Soulbound-MUD-v2.32.10-test.zip'
         fake.write_bytes(b'test version data')
         expected=hashlib.sha256(fake.read_bytes()).hexdigest()
+        # Simulate the CURRENT universal contract, not a retired historic
+        # approval record. The production dispatcher must refuse historic
+        # candidates without universal APIs before asking for consent.
+        contract={name:None for name in (
+            'systems/runtime_activation.py',
+            'systems/universal_release_update.py',
+            'systems/current_fresh_install.py',
+        )}
         good={'status':'PASS','quality_gate':'ULTIMATE-60-PLUS','required_stages':60,
               'completed_stages':60,'zip':str(fake),'version':'2.32.10',
-              'sha256':expected,'finished_at':'mock'}
+              'sha256':expected,'finished_at':'mock',
+              'release_gates_pass':True,'installed_at_test':'2.32.7','returncode':0}
         with (mock.patch.object(deployment,'STATE',state),
               mock.patch.object(deployment,'installed_version',return_value='2.32.7'),
-              mock.patch.object(deployment,'inspect_zip',return_value=('2.32.10',{})),
+              mock.patch.object(deployment,'inspect_zip',return_value=('2.32.10',contract)),
               mock.patch.object(deployment.subprocess,'call',side_effect=AssertionError('DEPLOY TRIGGERED')),
               mock.patch('builtins.input',side_effect=AssertionError('Unexpected confirmation prompt'))):
             for changes in [
@@ -197,8 +206,19 @@ def deployment_fail_closed():
             fake.write_bytes(b'test version data')
             state.write_text(json.dumps(good),encoding='utf-8')
             with mock.patch('builtins.input',return_value='ANULUJ'):
-                assert deployment.main()==2, 'Missing confirmation did not cancel'
-    print('Broken PASS, old gate, incomplete stages, bad hash, modified ZIP and missing consent BLOCKED',flush=True)
+                assert deployment.main()==2, 'Valid approval must still require consent'
+            # Spoofing a newer version without bundled activation/update APIs
+            # never opens a legacy deployment path, even with a valid PASS.
+            with mock.patch.object(deployment,'inspect_zip',return_value=('2.32.10',{})):
+                assert deployment.main()==1, 'Missing universal APIs did not block'
+            # After approval, explicit opt-in is necessary; a missing current
+            # gate or wrong installed base must not trigger even a prompt.
+            for changes in ({'release_gates_pass':False},
+                            {'installed_at_test':'2.32.6'}, {'returncode':1}):
+                wrong=good.copy(); wrong.update(changes)
+                state.write_text(json.dumps(wrong),encoding='utf-8')
+                assert deployment.main()==1, ('Invalid current approval accepted',changes)
+    print('CURRENT SECURITY: unsafe PASS, missing API, stale base, bad hash, tampered ZIP and missing consent BLOCKED',flush=True)
 
 
 def production_data_preserved():

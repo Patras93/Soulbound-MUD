@@ -133,6 +133,92 @@ def ensure_stopped_for_upgrade(root: Path) -> None:
         raise UpdateError('Port 4000 nadal zajety po sprawdzeniu STOP. Nie dotykam danych ani obcego procesu.')
 
 
+
+def retire_superseded_approved_files(root: Path, stage: Path, backup: Path, protected_predicate) -> int:
+    """Retire superseded *manifest-verified* release code only, after a full backup.
+
+    A previously deployed release is verified using its own approval manifest,
+    but with the current universal verifier (no old source is executed).
+    Never delete player data, unsigned files, symlinks or locally edited code.
+    When the old manifest cannot be verified, do not clean anything.
+    """
+    import hashlib
+    from aktualizuj_soulbound import sha256_file
+    from systems.universal_activation import verify
+    root, stage, backup = map(Path, (root, stage, backup))
+    marker = backup / 'config/release_current.json'
+    if not marker.is_file() or marker.is_symlink() or not verify(backup):
+        return 0
+    try:
+        record = json.loads(marker.read_text(encoding='utf-8'))
+        old_files = record['files']
+        if not isinstance(old_files, dict):
+            return 0
+    except (OSError, ValueError, TypeError, KeyError, UnicodeError):
+        return 0
+    # Check every directory in the old manifest path, not only its final file.
+    # A locally created directory symlink must never redirect a cleanup action
+    # outside the installation or its verified backup.
+    def real_parent_chain(base: Path, relative: Path) -> bool:
+        cursor = base
+        if cursor.is_symlink():
+            return False
+        for component in relative.parts[:-1]:
+            cursor = cursor / component
+            if cursor.is_symlink() or not cursor.is_dir():
+                return False
+        return True
+
+    retired = 0
+    candidate_empty_dirs = set()
+    for filename, digest in sorted(old_files.items()):
+        if not isinstance(filename, str) or not isinstance(digest, str):
+            continue
+        if (not filename or filename.startswith(('/', '\\')) or ':' in filename
+                or '\\' in filename or '..' in Path(filename).parts
+                or len(digest) != 64 or any(ch not in '0123456789abcdef' for ch in digest)):
+            continue
+        relative = Path(filename)
+        # Source files only. Data, config, TXT, binaries and user scripts
+        # not present in the signed previous release are never deleted.
+        if relative.suffix.casefold() not in ('.py', '.bat', '.sh', '.cmd', '.vbs'):
+            continue
+        if (protected_predicate(relative) or (stage / relative).exists()
+                or not real_parent_chain(root,relative)
+                or not real_parent_chain(backup,relative)):
+            continue
+        target, saved = root / relative, backup / relative
+        if (target.is_symlink() or saved.is_symlink()
+                or not target.is_file() or not saved.is_file()):
+            continue
+        # Both copies must match the *approved old* bytes, not just each other.
+        if sha256_file(target) != digest or sha256_file(saved) != digest:
+            continue
+        target.unlink()
+        retired += 1
+        # Only directories reached by removal of an approved, unedited file
+        # can be candidates for pruning. Preserve any unknown user content.
+        parent = relative.parent
+        while parent != Path('.'):
+            candidate_empty_dirs.add(parent)
+            parent = parent.parent
+    empty_removed = 0
+    for relative_dir in sorted(candidate_empty_dirs,
+                               key=lambda item: (-len(item.parts),item.as_posix())):
+        directory = root / relative_dir
+        if (directory.is_symlink() or not directory.is_dir()
+                or not real_parent_chain(root,relative_dir / '_probe')):
+            continue
+        try:
+            directory.rmdir()  # Succeeds only when truly empty.
+        except OSError:
+            continue
+        empty_removed += 1
+    if empty_removed:
+        print(f'Porzadki: usunieto {empty_removed} pustych katalogow po zatwierdzonych plikach.',flush=True)
+    return retired
+
+
 def publish_in_place(stage: Path, root: Path, backup: Path, protected_predicate) -> None:
     """Install approved code at the original path and roll back on ANY failure.
 
@@ -161,6 +247,9 @@ def publish_in_place(stage: Path, root: Path, backup: Path, protected_predicate)
             raise UpdateError('Manifest aktywacji nie zgadza sie po podmianie w starym folderze')
         # Check protected original bytes AGAIN after code replacement.
         verify_private_backup(root,backup,protected_predicate)
+        retired_code = retire_superseded_approved_files(root,stage,backup,protected_predicate)
+        if retired_code:
+            print(f'Wycofano {retired_code} zatwierdzonych, nieuzywanych plikow kodu po pelnym backupie.',flush=True)
         from systems.current_retire_live_content import retire
         removed=retire(root,backup)
         if removed:print(f'Usunieto LIVE_CONTENT po pelnym backupie ({removed} plikow).',flush=True)

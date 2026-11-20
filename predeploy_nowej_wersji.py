@@ -140,7 +140,8 @@ def inspect_zip(zippath):
                 if required_v108.casefold() not in mapping:
                     raise ValueError('v108: brak produkcyjnej bramki '+required_v108+
                                      '; stare 60/60 nie wystarcza')
-        if version_tuple(ver) > (112,0,0):
+        current_contract = 'core/release_version.py' in mapping
+        if current_contract:
             for stable in ('systems/runtime_activation.py',
                            'systems/universal_release_update.py',
                            'systems/current_fresh_install.py'):
@@ -323,21 +324,23 @@ def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
     if not live.is_absolute():
         live = ROOT / live
     ver=(Path(stage_root)/'VERSION').read_text(encoding='utf-8-sig').strip()
-    prefix='sb110_predeploy_sqlite_frozen_' if ver in ('110.00.0','111.00.0','112.00.0') else 'Soulbound_PREDEPLOY_SQLITE_FROZEN_'
+    # The current candidate uses one independent staging protocol.
+    current_contract = (Path(stage_root)/'core/release_version.py').is_file()
+    prefix='Soulbound_PREDEPLOY_SQLITE_FROZEN_' if current_contract else 'sb110_predeploy_sqlite_frozen_'
     if ver in ('110.00.0','111.00.0','112.00.0'):
         env.update(SOULBOUND_V107_STAGING='1',SOULBOUND_V109_STAGING='1',
                    SOULBOUND_V110_STAGING='1')
         if ver in ('111.00.0','112.00.0'):env['SOULBOUND_V111_STAGING']='1'
         if ver=='112.00.0':env['SOULBOUND_V112_STAGING']='1' 
-    if version_tuple(ver) > (112,0,0):
+    if current_contract:
         env['SOULBOUND_UNIVERSAL_STAGING']='1'
     with tempfile.TemporaryDirectory(prefix=prefix) as frozen_dir:
         snapshot = create_detached_source_snapshot(
             live, Path(frozen_dir)/'SOURCE_COMMITTED_SNAPSHOT.sqlite')
         # v112 runs only on a detached source snapshot. Earlier release
         # rebuild tools are not part of the current PREDEPLOY runtime.
-        if version_tuple(ver) < (112,0,0):
-            raise ValueError('PREDEPLOY nie instaluje starszych wersji')
+        if not current_contract and ver not in ('112.00.0',):
+            raise ValueError('PREDEPLOY nie uruchamia nieobslugiwanych historycznych wydan')
         env['SOULBOUND_ULTRA_SOURCE_DB'] = str(snapshot)
         env['SOULBOUND_DB'] = str(snapshot)  # no fallthrough to production
         env['SOULBOUND_HOST'] = '127.0.0.1'
@@ -369,13 +372,15 @@ def run_tests(stage_root, logpath, *, timeout_seconds=5400, source_db=None):
             return code
 
 
-def verified_staged_pass(code, staged_log, version):
+def verified_staged_pass(code, staged_log, version, *, current_contract=False):
     """Consume the staged test log BEFORE its TemporaryDirectory is removed."""
     if code != 0 or not Path(staged_log).is_file():
         return False
     log = Path(staged_log).read_text(encoding='utf-8', errors='replace')
     basic = ('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS' in log and
              'PLUS CHECKS PASS' in log)
+    if current_contract:
+        return basic and 'SOULBOUND RELEASE GATES PASS' in log
     if version == '108.00.0':
         basic = basic and 'V108 RELEASE GATES PASS' in log
     elif version == '109.00.0':
@@ -401,14 +406,16 @@ def main(argv=None):
         zip_path=pick_zip(args.zip_path)
         version,mapping=inspect_zip(zip_path)
         active=installed_version()
-        if version_tuple(version) < version_tuple(active):
+        current_contract=('core/release_version.py' in mapping)
+        if current_contract and version_tuple(version) <= version_tuple(active):
+            raise ValueError(f'Wymagane nowsze wydanie niz v{active}.')
+        if not current_contract and version_tuple(version) < version_tuple(active):
             raise ValueError(f'Nowa paczka v{version} jest starsza od dzialajacej v{active}.')
         # Recovery route to v112 accepts both v110 and v111 only after a
         # read-only EQ/SQLite audit. Do not allow v112 -> v112 or pretend this
         # candidate-specific upgrade path supports future v113 releases.
-        if version_tuple(version) > (112,0,0):
-            if version_tuple(version) <= version_tuple(active):
-                raise ValueError('Wymagane nowsze wydanie')
+        if not current_contract and version not in ('112.00.0',):
+            raise ValueError('Brak uniwersalnego kontraktu PREDEPLOY w kandydacie.')
         if version == '112.00.0':
             if active not in ('110.00.0', '111.00.0'):
                 raise ValueError('V112: odzyskiwanie wymaga gry v110.00.0 lub v111.00.0.')
@@ -449,7 +456,9 @@ def main(argv=None):
             staged_log=target/'logs'/'TESTY_Soulbound.log'
             # The staged folder disappears at the end of this with-block.
             # Capture its proof while it still exists, including the v108 gate.
-            verified = verified_staged_pass(result, staged_log, version)
+            verified = verified_staged_pass(
+                result, staged_log, version,
+                current_contract=('core/release_version.py' in mapping))
         # Verify the exact tested archive has not changed meanwhile.
         if version == '108.00.0':
             state['v108_eq_rebuild_trial_pass'] = ('V108 PREDEPLOY REBUILD SNAPSHOT PASS:'
@@ -470,7 +479,7 @@ def main(argv=None):
             state['v111_release_gates_pass'] = bool(verified)
         if version == '112.00.0':
             state['v112_release_gates_pass'] = bool(verified)
-        if version_tuple(version) > (112,0,0):
+        if current_contract:
             state['release_gates_pass'] = bool(verified)
         save_state(state)
         print('\nWYNIK PREDEPLOY: '+state['status'],flush=True)

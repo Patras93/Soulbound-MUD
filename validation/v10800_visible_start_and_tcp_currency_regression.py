@@ -20,7 +20,7 @@ def run():
     launcher = (ROOT/'START_Soulbound.bat').read_text(encoding='ascii')
     updater = (ROOT/'aktualizuj_soulbound.py').read_text(encoding='utf-8')
     docker = (ROOT/'Dockerfile').read_text(encoding='utf-8')
-    assert 'call "%~dp0Start-Soulbound-Windows.bat"' in launcher
+    assert 'py -3 -u "%ROOT%uruchom_w_tle.py"' in launcher and 'python -u "%ROOT%uruchom_w_tle.py"' in launcher
     checks += 1
     assert 'exit /b !errorlevel!' in launcher
     checks += 1

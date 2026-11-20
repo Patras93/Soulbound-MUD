@@ -9,7 +9,7 @@ import ast
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import hashlib
-from narzedzia.porzadki_bat import ORIGINAL_SHA256
+from validation.v10800_bat_cleanup_regression import ORIGINAL_SHA256
 from systems.v11000_retired_installers import RETIRED_V109_SHA256,RETIRED_ROOT_BATS_V110,RETIRED_VALIDATION_PY_V110,retire
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,13 +35,17 @@ def run_regression():
     ck(all(name.lower().endswith('.bat') and '/' not in name for name in RETIRED_ROOT_BATS_V110),
        'only root BATs in v110 retiring list')
     essential={
-      'AKTUALIZUJ_Soulbound.bat','AUTOSTART_WLACZ_Soulbound.bat',
+      'AKTUALIZUJ_Soulbound.bat','INSTALUJ_SAMODZIELNY.bat','AUTOSTART_WLACZ_Soulbound.bat',
       'AUTOSTART_WYLACZ_Soulbound.bat','BACKUP_TERAZ_Soulbound.bat',
       'PREDEPLOY_NOWEJ_WERSJI.bat','START_Soulbound.bat',
       'STATUS_Soulbound.bat','STOP_Soulbound.bat',
-      'Start-Soulbound-Windows.bat','TESTUJ_Soulbound.bat',
+      'TESTUJ_Soulbound.bat',
       'WDROZ_PO_PREDEPLOY.bat',
     }
+    if (ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()=='110.00.0':
+        # Historical v110 retained the intermediate launcher, not the later installer.
+        essential.remove('INSTALUJ_SAMODZIELNY.bat')
+        essential.add('Start-Soulbound-Windows.bat')
     ck({p.name for p in ROOT.glob('*.bat')}==essential,
        'exact 11 supported Windows BAT entrypoints')
     ck(not list(ROOT.rglob('*.cmd')),'no stray CMD in v110 release')

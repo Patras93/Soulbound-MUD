@@ -735,7 +735,7 @@ def main():
                     and len(v105_extra)==3 and all(code==0 for _,code in v105_extra)):
                 legacy_audit = ('validation/v11100_v107_functional_audit.py' if actual_version in ('111.00.0','112.00.0')
                                 else 'validation/v11000_v107_functional_audit.py' if actual_version == '110.00.0'
-                                else 'audyt_v107_windows_przed_predeploy.py')
+                                else 'validation/v11100_v107_functional_audit.py')
                 v107_extra=run_parallel_stages((
                     ('V107 33 REGRESJE MECHANIKI + AKTUALNA OCHRONA INSTALACJI',
                      legacy_audit, 2400),

@@ -324,6 +324,9 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                 # This keeps the arena safe after the boss's 24h lockout begins.
                 if template.get("uoss_unique_superboss_key"):
                     self.server.world.clear_superboss_companions_v1144(mob)
+                # v116.00.4: combat-local ally morale, before engagement is cleared.
+                from systems.monster_reactions_v116 import notice_ally_defeat
+                notice_ally_defeat(self.server.world, mob)
                 mob.alive = False
                 respawn_seconds = mob_respawn_seconds(template)
                 mob.respawn_at = time.time() + respawn_seconds

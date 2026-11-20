@@ -10,7 +10,7 @@ engagements and already-active Stop remain guarded.
 
 def select_jammer_targets(room_mobs, templates, *, support_weapon=False,
                           aoe_enabled=True, preferred_key=None, allowed=None,
-                          room_id=None):
+                          room_id=None, target_text=''):
     eligible = []
     immune = 0
     already = 0
@@ -37,11 +37,26 @@ def select_jammer_targets(room_mobs, templates, *, support_weapon=False,
         return eligible, immune, already
     if not eligible:
         return [], immune, already
+    # UOSS permits an explicit single target. Never silently substitute a
+    # different monster if the player's name was not found or is protected.
+    # The permanent Soul makes wide Jammer possible, but 'aoe off' still
+    # selects a single target. No Logic Bomb/Paralyze prerequisite is involved.
+    wanted = str(target_text or '').strip()
+    if wanted.casefold().startswith('at '):
+        wanted = wanted[3:].strip()
+    if wanted:
+        from network.protocol_gameplay_utils import normalize_lookup_text
+        lookup = normalize_lookup_text(wanted)
+        choice = next((mob for mob in eligible
+                       if lookup == normalize_lookup_text(str(mob.key)) or
+                       lookup in normalize_lookup_text(str(templates[mob.template_id].get('name', '')))),
+                      None)
+        return ([choice] if choice is not None else []), immune, already
     choice = next((mob for mob in eligible if mob.key == preferred_key), eligible[0])
     return [choice], immune, already
 
 
-async def cast_jammer(session, skill, unused_target_text=''):
+async def cast_jammer(session, skill, target_text=''):
     """Cast standalone Mec Jammer while preserving the protected native method.
 
     Only the explicit Jammer skill is routed here by magitek.runtime.install().
@@ -78,15 +93,21 @@ async def cast_jammer(session, skill, unused_target_text=''):
     if ready_at > now:
         await session.send(f"{skill['name']} jest na cooldownie jeszcze {int(ready_at-now+0.999)} sekund.")
         return
+    # Soulbound's Mec Soul is permanent; there is no equip/unequip Support
+    # weapon action. In Soulbound the existing AoE switch selects the 20 MP
+    # single-target mode or the 40 MP Support-wide mode (when Soul is active).
+    support_effect = bool(session.mec_support_effect_v11149())
+    aoe_enabled = bool(session.offensive_aoe_enabled_v11120())
+    wide_jammer = support_effect and aoe_enabled
     mana_cost = session.combat_skill_mana_cost_v11191(skill, skill_class)
+    if not wide_jammer and skill.get('uoss_mp_cost') is not None:
+        mana_cost = max(0, int(skill['uoss_mp_cost']))
     if mana_cost > 0:
         mana_cost = int(round(mana_cost * session.equipment_mp_cost_multiplier_v11176()))
     if mana_cost > session.current_mana:
         await session.send(f"Za mało Many. {skill['name']} wymaga {mana_cost}, a masz {session.current_mana}.")
         return
 
-    support_effect = bool(session.mec_support_effect_v11149())
-    aoe_enabled = bool(session.offensive_aoe_enabled_v11120())
     cast_room_id = session.character.room_id
     session.server.world.refresh()
     room_mobs = list(session.server.world.room_mobs(cast_room_id))
@@ -99,14 +120,17 @@ async def cast_jammer(session, skill, unused_target_text=''):
     targets, immune_count, stopped_count = select_jammer_targets(
         room_mobs, MOB_TEMPLATES, support_weapon=support_effect,
         aoe_enabled=aoe_enabled, preferred_key=session.combat_mob_key,
-        allowed=attackable, room_id=cast_room_id,
+        allowed=attackable, room_id=cast_room_id, target_text=target_text,
     )
     if not targets:
-        await session.send(
-            f"Jammer: brak dostępnych przeciwników do zatrzymania. "
-            f"Już zatrzymanych: {stopped_count}. "
-            "Mana bez zmian."
-        )
+        if target_text and not wide_jammer:
+            await session.send('Jammer: nie ma takiego dostępnego przeciwnika w tym pokoju. Mana bez zmian.')
+        else:
+            await session.send(
+                f"Jammer: brak dostępnych przeciwników do zatrzymania. "
+                f"Już zatrzymanych: {stopped_count}. "
+                "Mana bez zmian."
+            )
         return
 
     # Resolve the entire eligible set before paying mana. Refuse to turn a
@@ -188,8 +212,8 @@ async def cast_jammer(session, skill, unused_target_text=''):
         await session.server.auto_assist_party_combat(session, target)
     await session.send(
         f"Jammer: {hits} celów zatrzymanych, {misses} oparło się."
-        + (' Support weapon obejmuje wszystkich przeciwników.' if support_effect and aoe_enabled
-           else (' AoE jest wyłączone — Support Effect pozostaje na jednym celu.'
+        + (' Dusza Meca: Jammer obejmuje wszystkich przeciwników.' if support_effect and aoe_enabled
+           else (' AoE wyłączone: Jammer działa na jeden cel.'
                  if support_effect and not aoe_enabled else ''))
     )
     # One compact, essential party notification per cast. The server helper

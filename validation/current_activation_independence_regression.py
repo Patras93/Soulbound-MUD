@@ -63,6 +63,22 @@ def check():
         'server.py', 'systems/runtime_activation.py', 'systems/universal_activation.py'})
     assert closure['missing_import_count'] == 0, closure['missing_imports'][:10]
     checks += 2
+    # Platform-aware but NOT permissive: on Linux guarded Win32 imports are
+    # unreachable, on Windows mandatory. All unguarded imports still fail.
+    fixture={
+       'driver.py':b"import os\nif os.name == 'nt':\n    import windows_runtime_state\n",
+       'windows_runtime_state.py':b"x=1\n",
+    }
+    with patch.object(sys,'platform','linux'):
+        assert inspect_files(fixture,{'driver.py'})['missing_import_count']==0;checks+=1
+        unconditional=dict(fixture,**{'driver.py':b'import windows_runtime_state\n'})
+        assert inspect_files(unconditional,{'driver.py'})['missing_import_count']==1;checks+=1
+        unknown=dict(fixture,**{'driver.py':b"import os\nif os.name == 'win32':\n    import windows_runtime_state\n"})
+        assert inspect_files(unknown,{'driver.py'})['missing_import_count']==1;checks+=1
+        rebound=dict(fixture,**{'driver.py':b"import os\nos = object()\nif os.name == 'nt':\n    import windows_runtime_state\n"})
+        assert inspect_files(rebound,{'driver.py'})['missing_import_count']==1;checks+=1
+    with patch.object(sys,'platform','win32'):
+        assert inspect_files(fixture,{'driver.py'})['missing_import_count']==1;checks+=1
     source = (ROOT / 'server/mud_server.py').read_text(encoding='utf-8-sig')
     assert '_runtime_mode = authorized_mode(DB_PATH)' in source
     assert 'authorized_predeploy_test' not in source

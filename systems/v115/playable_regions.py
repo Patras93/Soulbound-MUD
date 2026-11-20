@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """v115: rozlegle, stale krainy; bez wymagania soundpacka.
 
-Kazda kraina ma siatke 8 x 6 (48 pokojow) z wieloma petlami i odnogami.
+Kazda kraina ma siatke 12 x 12 (144 pokoje) z wieloma petlami i odnogami.
 Stale nazwy i ID umozliwiaja zapisy i latwa nawigacje NVDA.
 """
 from .high_level_world import REGIONS
 from .profession_sites import site_for_sector
 
 HUB = 'v115_horyzonty_wezel'
-WIDTH, HEIGHT = 8, 6
+WIDTH, HEIGHT = 12, 12
 FEATURES = ('Skraj', 'Trakt', 'Wąwóz', 'Polana', 'Kamienny krąg', 'Ruiny',
             'Przesmyk', 'Dziedziniec', 'Rozstaje', 'Obozowisko', 'Taras', 'Wzgórze',
             'Przepaść', 'Punkt obserwacyjny', 'Pustkowie', 'Sanktuarium')
@@ -88,7 +88,7 @@ def build_spawns():
                 if (x+y)%2 == 0:
                     kind='scout' if (x+2*y)%3==0 else 'patrol'
                     spawns.append((room_id(region.key,x,y),f'{region.key}_{kind}'))
-        spawns.append((room_id(region.key,WIDTH-1,HEIGHT-1),f'{region.key}_guardian'))
+        spawns.append((room_id(region.key,7,5),f'{region.key}_guardian'))
     return spawns
 
 def validate_world(existing_rooms,existing_mobs,existing_spawns):

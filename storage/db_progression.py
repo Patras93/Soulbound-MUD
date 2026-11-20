@@ -134,14 +134,14 @@ class DatabaseProgressionMixin:
         xp = int(row["xp"])
         previous_level, previous_xp = level, xp
         requested_gain = max(0, int(amount))
-        # v1.13.60: Class XP nie jest już obcinany do jednego awansu na źródło.
+        # v116.00.9: jedna biegłość na wypłatę, pełen XP pozostaje w puli.
         # Parametr single_level_cap pozostaje tylko dla kompatybilności API.
         gain = requested_gain
         limited = False
         xp += gain
         level_ups = 0
 
-        while level < CLASS_MASTERY_MAX_LEVEL:
+        while level < min(CLASS_MASTERY_MAX_LEVEL, previous_level + 1):
             needed = class_mastery_xp_to_next(level)
             if needed <= 0 or xp < needed:
                 break
@@ -506,7 +506,7 @@ class DatabaseProgressionMixin:
         uses = int(row["uses"]) + 1
         level_ups = 0
 
-        while level < SKILL_MAX_LEVEL:
+        while level < min(SKILL_MAX_LEVEL, previous_level + 1):
             needed = skill_xp_to_next(level)
             if needed <= 0 or xp < needed:
                 break

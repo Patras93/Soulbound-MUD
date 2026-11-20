@@ -10,7 +10,7 @@ from data.rooms import ROOMS
 from data.mobs import MOB_TEMPLATES
 from systems.content_registry import MOB_SPAWNS
 from systems.v115.legacy_expareas import AREAS, room_id, WIDTH, HEIGHT, expand
-from systems.v115.graveyard_expansion import room_id as grave_room_id
+from systems.v115.graveyard_expansion import room_id as grave_room_id, WIDTH as GRAVE_WIDTH, HEIGHT as GRAVE_HEIGHT
 
 class RealWorldRoutes(unittest.TestCase):
     def test_all_six_zones_reachable_and_returnable(self):
@@ -27,7 +27,7 @@ class RealWorldRoutes(unittest.TestCase):
                 for nxt in ROOMS[current].get('exits', {}).values():
                     if nxt in ROOMS and nxt not in reachable:
                         reachable.add(nxt);queue.append(nxt)
-            self.assertEqual(sum(rid(x,y) in reachable for y in range(HEIGHT) for x in range(WIDTH)),64,key)
+            self.assertEqual(sum(rid(x,y) in reachable for y in range(HEIGHT) for x in range(WIDTH)),WIDTH*HEIGHT,key)
             # Every new room also has a route backwards to the original entrance.
             reverse={}; target={rid(x,y) for y in range(HEIGHT) for x in range(WIDTH)} | {anchor}
             for source in target:
@@ -37,7 +37,7 @@ class RealWorldRoutes(unittest.TestCase):
             while queue:
                 for prev in reverse.get(queue.popleft(),()):
                     if prev not in back:back.add(prev);queue.append(prev)
-            self.assertEqual(sum(rid(x,y) in back for y in range(HEIGHT) for x in range(WIDTH)),64,key)
+            self.assertEqual(sum(rid(x,y) in back for y in range(HEIGHT) for x in range(WIDTH)),WIDTH*HEIGHT,key)
     def test_horizon_hub_preserves_old_northern_route(self):
         self.assertEqual(ROOMS['crossroads']['exits']['north'], 'wild_frontier')
         self.assertEqual(ROOMS['crossroads']['exits']['up'], 'v115_horyzonty_wezel')
@@ -50,7 +50,7 @@ class RealWorldRoutes(unittest.TestCase):
                 self.assertIn(room, ROOMS)
                 self.assertIn(mob,MOB_TEMPLATES)
         grave=[(room,mob) for room,mob in MOB_SPAWNS if room.startswith('v115_graveyard_')]
-        self.assertEqual(len(grave),32)
+        self.assertEqual(len(grave),GRAVE_WIDTH*GRAVE_HEIGHT//2)
     def test_existing_routes_and_idempotence(self):
         for _,_,anchor,_,_ in AREAS:
             self.assertTrue(ROOMS[anchor].get('exits'))

@@ -65,7 +65,8 @@ class Game(Combat):
         )
     def find_skill_from_input(self,raw):
         if 'logic bomb' in str(raw).lower():return NORMAL,''
-        return JAMMER,''
+        raw=str(raw).strip()
+        return JAMMER, (raw[10:].strip() if raw.casefold().startswith('jammer at ') else '')
     def is_downed_v0371(self):return False
     def skill_class_name(self,skill):return 'Mec'
     def class_mastery_level(self, cls):return 1000
@@ -112,7 +113,7 @@ async def scenarios():
     check(game.assists==['wolf','robot','boss'],'party combat begins on eligible targets')
     check(len(game.party_sent)==1 and '3 zatrzymanych' in game.party_sent[0],
           'one brief party announcement for AoE Jammer')
-    check(any('Support weapon obejmuje wszystkich' in s for s in game.sent),'Support summary')
+    check(any('Dusza Meca: Jammer obejmuje wszystkich' in s for s in game.sent),'Soul summary')
     check(not any(hasattr(m,'v11196_logic_bomb_rounds') for m in (wolf,robot)),
           'no Logic Bomb markers needed')
     check(all(x.v11196_jammer_stop_rounds for x in (wolf,robot)),'durations positive')
@@ -134,8 +135,30 @@ async def scenarios():
     with patch('random.random',return_value=0):await g.use_class_skill('Jammer')
     check(a.v11196_jammer_stop_rounds==0,'AoE off leaves other monster')
     check(b.v11196_jammer_stop_rounds>0,'AoE off auto-selects engaged monster')
-    check(g.current_mana==60,'Support mp cost retained with AoE off')
-    check(any('AoE jest wyłączone' in s for s in g.sent),'AoE off announcement')
+    check(g.current_mana==80,'single target uses 20 MP despite permanent Soul')
+    check(any('AoE wyłączone' in s for s in g.sent),'AoE off announcement')
+
+    # Named target must override the current focus in single-target mode.
+    a,b=mob('a'),mob('b')
+    g=Game([a,b],support=True,aoe=False)
+    g.combat_mob_key='a'
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer at b')
+    check(a.v11196_jammer_stop_rounds==0,'named target leaves previous focus untouched')
+    check(b.v11196_jammer_stop_rounds>0,'named target receives Stop without Logic Bomb')
+    check(g.current_mana==80,'named target costs 20 MP')
+    a,b=mob('a'),mob('b')
+    g=Game([a,b],support=True,aoe=False)
+    await g.use_class_skill('Jammer at missing')
+    check(a.v11196_jammer_stop_rounds==0 and b.v11196_jammer_stop_rounds==0,
+          'unknown named target cannot accidentally Stop a different enemy')
+    check(g.current_mana==100 and g.xp==0,'unknown target spends no mana or XP')
+    # Explicit intent to use the Soul-wide mode still hits all in local room.
+    a,b=mob('a'),mob('b')
+    g=Game([a,b],support=True,aoe=True)
+    with patch('random.random',return_value=0):await g.use_class_skill('Jammer at b')
+    check(a.v11196_jammer_stop_rounds>0 and b.v11196_jammer_stop_rounds>0,
+          'Soul AoE mode reaches all local enemies even with a named target')
+    check(g.current_mana==60,'wide Jammer costs 40 MP')
 
     # No Support weapon: only one target with AoE ON.
     a,b=mob('a'),mob('b')

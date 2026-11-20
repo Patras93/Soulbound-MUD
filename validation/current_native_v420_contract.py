@@ -440,8 +440,10 @@ def verify_native_method(file, name):
         node = _normalize_published_native_ast(node, relative, name)
     if (relative, name) == ('player/session_mixins/io_auth_character.py',
                             'SessionIOAuthCharacterMixin.character_creator'):
-        release = (Path(__file__).resolve().parents[1] / 'VERSION').read_text().strip()
-        if release.startswith('115.00.'):
+        # Content-based compatibility: the v115 reviewed creator delta remains
+        # valid in later releases without depending on a release number.
+        source = Path(file).read_text(encoding='utf-8-sig')
+        if all(reviewed in source for reviewed, _ in _V115_CREATOR_REVIEWED_CHANGES):
             node = _normalize_v115_character_creator_ast(file)
     actual=hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()
     if actual != expected:
