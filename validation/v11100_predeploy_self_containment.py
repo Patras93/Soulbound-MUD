@@ -121,6 +121,14 @@ def main():
                 else:raise AssertionError(('unauthorized port',port))
     current_audit=(ROOT/'validation/v11100_v107_functional_audit.py').read_text('utf8')
     assert 'from audyt_v107_windows_przed_predeploy import' not in current_audit
+    # v115.00.11: the standalone v107 audit has been merged into this shared
+    # 33-slot runner; legacy versions still route to it, with no old root tool.
+    assert not (ROOT/'audyt_v107_windows_przed_predeploy.py').exists()
+    from validation.v11100_v107_functional_audit import (
+        entrypoint as v107_entrypoint, check_sources as v107_check_sources)
+    assert callable(v107_entrypoint) and callable(v107_check_sources)
+    assert "else 'validation/v11100_v107_functional_audit.py'" in (ROOT/'testuj_soulbound_windows.py').read_text('utf-8')
+
     assert v107_gate_proof('111.00.0',[]) is False
     assert v107_gate_proof('111.00.0',[('V107',1)]) is False
     assert v107_gate_proof('111.00.0',[('V107',0),('V107',0)]) is False

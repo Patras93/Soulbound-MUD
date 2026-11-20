@@ -70,6 +70,93 @@ def run():
             assert db.execute('PRAGMA integrity_check').fetchone()[0]=='ok'
             checks+=3
         finally:db.close()
+    # A release's own universal modules determine activation/update.  Old
+    # installed-version-specific paths are NOT used for modern candidates.
+    from unittest.mock import patch
+    from aktualizuj_soulbound import run_update, UpdateError
+    from predeploy_nowej_wersji import verified_staged_pass
+    import wdroz_po_predeploy as deploy
+    import json
+    from systems import universal_release_update
+    with tempfile.TemporaryDirectory(prefix='sb_future_dispatch_') as temp:
+        home=Path(temp)
+        evidence=home/'proof.log'
+        evidence.write_text('WYNIK KONCOWY: PASS - WSZYSTKIE 60 ETAPOW PLUS\n'
+                            'PLUS CHECKS PASS\nSOULBOUND RELEASE GATES PASS\n',
+                            encoding='utf-8')
+        candidates=(current_version(ROOT),'219.47.5','301.00.1')
+        for future in candidates:
+            assert verified_staged_pass(0,evidence,future,current_contract=True)
+            assert not verified_staged_pass(1,evidence,future,current_contract=True)
+            checks+=2
+            archive=home/('Soulbound-MUD-v'+future+'-fixture.zip')
+            with zipfile.ZipFile(archive,'w') as z:
+                for rel in ('VERSION','core/bootstrap_economy_professions.py',
+                            'core/release_version.py','server.py',
+                            'predeploy_check.py','START_Soulbound.bat','STOP_Soulbound.bat',
+                            'systems/runtime_activation.py',
+                            'systems/universal_release_update.py',
+                            'systems/current_fresh_install.py'):
+                    if rel=='VERSION':data=future+'\n'
+                    elif (ROOT/rel).is_file():data=(ROOT/rel).read_bytes()
+                    else:data=b'fixture\n'
+                    z.writestr('Soulbound-MUD/'+rel,data)
+            with patch.object(universal_release_update,'update',return_value=home/'backup') as call:
+                assert run_update(home,archive,future,restart=False)==home/'backup'
+                assert call.call_count==1
+                assert call.call_args.args[2]==future
+                checks+=2
+            statefile=home/'last_result.json'
+            record={'status':'PASS','quality_gate':'ULTIMATE-60-PLUS',
+                    'required_stages':60,'completed_stages':60,'returncode':0,
+                    'release_gates_pass':True,'version':future,
+                    'installed_at_test':'115.00.12','sha256':'a'*64,
+                    'zip':str(archive),'finished_at':'fixture'}
+            statefile.write_text(json.dumps(record),encoding='utf-8')
+            current_modules={name:None for name in (
+                'systems/runtime_activation.py',
+                'systems/universal_release_update.py',
+                'systems/current_fresh_install.py')}
+            with patch.object(deploy,'STATE',statefile), \
+                 patch.object(deploy,'ROOT',home), \
+                 patch.object(deploy,'sha256',return_value='a'*64), \
+                 patch.object(deploy,'installed_version',return_value='115.00.12'), \
+                 patch.object(deploy,'inspect_zip',return_value=(future,current_modules)), \
+                 patch('builtins.input',return_value='WDRAZAM'), \
+                 patch.object(deploy.subprocess,'call',return_value=0) as invoked:
+                assert deploy.main()==0
+                assert invoked.call_count==1
+                checks+=2
+                record['release_gates_pass']=False
+                statefile.write_text(json.dumps(record),encoding='utf-8')
+                invoked.reset_mock()
+                assert deploy.main()==1
+                invoked.assert_not_called()
+                checks+=2
+                record['release_gates_pass']=True
+                record['sha256']='b'*64
+                statefile.write_text(json.dumps(record),encoding='utf-8')
+                assert deploy.main()==1
+                invoked.assert_not_called()
+                checks+=2
+        # No universal API: a future label must not run the historical updater.
+        bad=home/'Soulbound-MUD-v220.00.0-bad.zip'
+        with zipfile.ZipFile(bad,'w') as z:
+            for rel in ('VERSION','core/bootstrap_economy_professions.py',
+                        'server.py','START_Soulbound.bat','STOP_Soulbound.bat',
+                        'predeploy_check.py'):
+                z.writestr('Soulbound-MUD/'+rel,
+                           '220.00.0\n' if rel=='VERSION' else
+                           (ROOT/rel).read_bytes() if (ROOT/rel).is_file() else b'x')
+        try:run_update(home,bad,'220.00.0',restart=False)
+        except UpdateError:checks+=1
+        else:raise AssertionError('Brak uniwersalnego API nie zablokowal wydania')
+    # The full ULTIMATE security case is cheap and must be part of the
+    # universal 47/47 suite.  Otherwise a stale mock can break the user's
+    # 60/60 PREDEPLOY after all local release tests pass.
+    from validation.predeploy_ultimate_v2328 import deployment_fail_closed
+    deployment_fail_closed()
+    checks+=1
     print(f'VERSION-NEUTRAL GAME: {checks}/{checks} PASS')
 
 if __name__=='__main__':run()

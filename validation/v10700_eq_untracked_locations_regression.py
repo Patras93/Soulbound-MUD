@@ -8,7 +8,7 @@ import sys
 import tempfile
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
-from validation.v10700_eq_untracked_locations import audit_untracked
+from systems.eq_migration.locations import audit_untracked
 from validation.v10700_eq_ledger_live_clone import audit_live_db
 from validation.v10700_eq_ledger_live_clone_regression import SCHEMA
 

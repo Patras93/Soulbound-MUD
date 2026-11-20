@@ -1154,6 +1154,19 @@ def v0100_expand_instance_floor(canonical_room, spawn_pairs=None, runtime=False)
     return pairs
 
 
+# v116.00.27: dynamic side expowiska; wrapper preserves the historical
+# v0100_expand_instance_floor method body/AST and all old boss checkpoints.
+from systems.current_procedural_grindfields import extend_instance_floor as _v11627_extend
+_v11627_original_expand = v0100_expand_instance_floor
+
+def _v11627_expand_with_grindfields(canonical_room, spawn_pairs=None, runtime=False):
+    pairs = _v11627_original_expand(canonical_room, spawn_pairs, runtime)
+    pairs = _v11627_extend(canonical_room, pairs, runtime)
+    from systems.current_deep_dungeon_grindfields import expand_deep_dungeon
+    return expand_deep_dungeon(canonical_room, pairs, runtime)
+
+v0100_expand_instance_floor = _v11627_expand_with_grindfields
+
 def build_v0100_massive_instance_floors():
     from data.rooms import ROOMS  # canonical current dependency
     from systems.content_registry import CRYPT_PREGENERATED_MAX_FLOOR  # explicit current dependency
@@ -2803,3 +2816,51 @@ if _sb111_world_enabled():
         EXP_ZONE_AREA_ID, EXP_AREA_BASE_CATEGORY, GUIDE_DESTINATION_ALIASES,
         __import__('core.mines_threat', fromlist=['EXP_AREA_TARGET_POWER']).EXP_AREA_TARGET_POWER)
     EXP_AREAS = EXP_AREAS + V11100_HOLIDAY_BUILD['areas']
+
+# v116.00.14: po zbudowaniu proceduralnej Nekropolii wejscie z kranca Cmentarza.
+from systems.current_world_perimeter import install_runtime as _v116_runtime_perimeter
+_v116_runtime_perimeter(ROOMS)
+
+# v116.00.16: po dawnych instalatorach przesuń dwa przejścia na rzeczywiste krańce.
+from systems.current_world_perimeter import install_wild_border_network as _v116_wild_border_network
+_v116_wild_border_network(ROOMS)
+
+# v116.00.17: koniec skrótu przez wnętrze Dziczy; droga do Ruin nadal dostępna.
+from systems.current_world_perimeter import install_historical_meadow_wilderness_border as _v116_historical_borders
+_v116_historical_borders(ROOMS)
+
+# v116.00.18: przejscia na koncach dróg: jezioro, rzeka, Las Szeptow.
+from systems.current_world_perimeter import install_old_border_routes as _v116_old_border_routes
+_v116_old_border_routes(ROOMS)
+
+# v116.00.19: Łąki Zielarskie — graniczne wyjścia z obu stron.
+from systems.current_world_perimeter import install_herbal_border_routes as _v116_herbal_border_routes
+_v116_herbal_border_routes(ROOMS)
+
+# v116.00.20: trasy górskie, wioska i jaskinie — obie strony granicy.
+from systems.current_world_perimeter import install_mountain_border_routes as _v116_mountain_border_routes
+_v116_mountain_border_routes(ROOMS)
+
+# v116.00.21: powiększenie 20 krain v105, po instalacji wszystkich historycznych modułów.
+from systems.current_legacy_region_expansion import install_legacy_large_regions as _v116_large_old_regions
+_v116_large_old_regions(ROOMS, MOB_SPAWNS, MOB_TEMPLATES)
+
+# v116.00.22: rozległe expowiska po wygenerowaniu wszystkich starych terenów.
+from systems.current_large_experience_zones import install_large_experience_zones as _v116_large_exp_zones
+_v116_large_exp_zones(ROOMS, MOB_SPAWNS, MOB_TEMPLATES)
+
+# v116.00.23: wydłużenie 13 historycznych expowisk na granicznych sektorach.
+from systems.current_remaining_grindfields import install_remaining_grindfields as _v116_remaining_grindfields
+_v116_remaining_grindfields(ROOMS, MOB_SPAWNS, MOB_TEMPLATES)
+
+# v116.00.24: cztery dawne główne expowiska dostają rozległe obrzeża.
+from systems.current_remaining_grindfields import install_core_region_grindfields as _v116_core_grindfields
+_v116_core_grindfields(ROOMS, MOB_SPAWNS, MOB_TEMPLATES)
+
+# Bezpieczny powrót do sal dyscypliny po instalacji hangaru Meca.
+from systems.current_world_perimeter import install_guild_training_access as _v116_guild_training_access
+_v116_guild_training_access(ROOMS)
+
+# Trzy historyczne wewnątrzstrefowe ścieżki powrotne; bez zmian bram bossów.
+from systems.current_world_perimeter import install_historical_return_paths as _v116_historical_returns
+_v116_historical_returns(ROOMS)

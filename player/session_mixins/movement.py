@@ -19,7 +19,8 @@ from config.postal import COURIER_CITY_ROOM_TO_NAME_V0530
 from core.progression_resources import mine_floor_number
 from core.mine_tunnels import HORIZONTAL_MINE_DIRECTIONS, mine_tunnel_coords, mine_tunnel_identity, mine_tunnel_room_id
 from systems.content_registry import MOB_TEMPLATES
-from systems.mercenary_taverns import MERCENARIES, mercenary_follow_notice_v12210
+from systems.mercenary_taverns import mercenary_follow_notice_v12210
+from systems.v115.vampire_mercenary import MERCENARIES  # 38 legacy mercenaries + Eliza
 from world.uoss_superboss_world import (
     UOSS_DEEP_DUNGEON_ENTRY_V11331,
     UOSS_DEEP_DUNGEON_FLOOR0_V11331,
@@ -457,7 +458,16 @@ class SessionMovementMixin:
             old = self.character.room_id
             if old == target:
                 return True
-            self.server.world.ensure_runtime_room(target)
+            room_available = self.server.world.ensure_runtime_room(target)
+            # A lazy dungeon generator can refuse to create a floor. Never
+            # commit movement into a room that still does not exist, including
+            # guided/party steps that bypass the named-dungeon command.
+            # Strict False is the native world contract for a missing room.
+            # Historical in-memory party fixtures return None for an allowed
+            # synthetic room; do not mistake that for a real generation error.
+            if room_available is False and target not in ROOMS:
+                await self.send("Nie udało się przygotować przejścia. Pozostajesz w bieżącej lokacji.")
+                return False
             label = DIRECTION_WALK_LABELS.get(direction, str(direction))
             target_name = ROOMS.get(target, {}).get("name", str(target))
             sailing_v1000 = bool(

@@ -57,6 +57,41 @@ def run():
     targets,_,_=select_jammer_targets(room,templates,support_weapon=True,aoe_enabled=False,preferred_key='b')
     check([m.key for m in targets]==['b'],'single can select preferred boss')
 
+    # The optional named target is honored only in single-target mode.
+    single,_,_=select_jammer_targets(room,templates,support_weapon=True,
+                                    aoe_enabled=False,target_text='Robot')
+    check([m.key for m in single]==['r'],'named monster chosen with AoE OFF')
+    single,_,_=select_jammer_targets(room,templates,support_weapon=True,
+                                    aoe_enabled=False,target_text='at Robot')
+    check([m.key for m in single]==['r'],'UOSS at target syntax accepted')
+    single,_,_=select_jammer_targets(room,templates,support_weapon=True,
+                                    aoe_enabled=False,target_text='Nieistniejący')
+    check(not single,'unmatched explicit name does not hit different mob')
+    single,_,_=select_jammer_targets(room,templates,support_weapon=True,
+                                    aoe_enabled=False,target_text='Mini',
+                                    allowed=lambda mob,template: mob.key!='m')
+    check(not single,'protected explicit name never falls back to unprotected mob')
+    all_room,_,_=select_jammer_targets(room,templates,support_weapon=True,
+                                    aoe_enabled=True,target_text='Robot')
+    check(len(all_room)==4,'Soul with AoE ON is room-wide despite named target')
+    # The real Mec support predicate is based on the permanent Soul, not
+    # switching weapons and not a Logic Bomb effect marker.
+    source=(ROOT/'player/session_mixins/skill_queue_buffs.py').read_text(encoding='utf-8')
+    module=ast.parse(source)
+    klass=next(n for n in module.body if isinstance(n,ast.ClassDef) and
+               n.name=='SessionSkillQueueBuffsMixin')
+    fn=next(n for n in klass.body if isinstance(n,ast.FunctionDef) and
+            n.name=='mec_support_effect_v11149')
+    isolated=ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[]))
+    ns={}
+    exec(compile(isolated,str(ROOT/'player/session_mixins/skill_queue_buffs.py'),'exec'),ns)
+    probe=SimpleNamespace(character=SimpleNamespace(class_name='Mec',soul_weapon='Cyborg Soul'))
+    check(ns['mec_support_effect_v11149'](probe),
+          'permanent Mec Soul enables Support without equip action')
+    probe.character.class_name='Warrior'
+    check(not ns['mec_support_effect_v11149'](probe),
+          'other classes do not gain Mec Support')
+
     # No Logic Bomb/paralysis token is set anywhere in the fixtures.
     check(not any(hasattr(m,'v1200_logic_paralyze_token') for m in room),'no Logic Bomb prerequisite')
     check(not any(hasattr(m,'v1200_jammer_attempted_token') for m in room),'no Logic Bomb lock')
@@ -111,6 +146,8 @@ def run():
           'historical Jammer source remains unmodified as a legacy fallback')
     check('async def cast_jammer(' in adapter,'separate independent Jammer implementation')
     check('support_weapon=support_effect' in adapter,'Support as Soul Weapon retained')
+    check('target_text=target_text' in adapter,'player target passed to selector')
+    check('wide_jammer = support_effect and aoe_enabled' in adapter,'Soul and AoE determine wide mode')
     check('aoe_enabled=aoe_enabled' in adapter,'AoE toggle retained')
     check('from systems.summon_ai_v1200 import jammer_eligible' not in adapter,
           'new Jammer never checks Logic Bomb prerequisite')
@@ -119,8 +156,8 @@ def run():
     check('session.current_mana -= mana_cost' in adapter,'mana debit after target checks')
     check(adapter.index('if not targets:') < adapter.index('session.current_mana -= mana_cost'),
           'no target leaves mana unchanged')
-    check('Support weapon obejmuje wszystkich przeciwników.' in adapter,'Support combat message')
-    check('AoE jest wyłączone — Support Effect pozostaje na jednym celu.' in adapter,
+    check('Dusza Meca: Jammer obejmuje wszystkich przeciwników.' in adapter,'Soul combat message')
+    check('AoE wyłączone: Jammer działa na jeden cel.' in adapter,
           'AoE OFF combat message')
     check('session.server.engagement_allowed(session, mob)' in adapter,
           'other player engagements protected')

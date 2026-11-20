@@ -5,10 +5,18 @@ from player.session_mixins.guide_navigation import SessionGuideNavigationMixin
 from player.session_mixins.gathering import SessionGatheringMixin
 
 
+
+# The original native mixin keeps its protected published code unchanged.
+# These are the current, explicitly imported award implementations.
+from player.session_mixins import current_profession_awards as _current_prof
+
 class SessionProfessionsStorageGuideMixin(
     SessionProfessionStorageMixin,
     SessionGuideNavigationMixin,
     SessionGatheringMixin,
 ):
-    """Compatibility aggregate; gameplay methods live in focused mixins."""
-    pass
+    """Compatibility aggregate; native contracts stay intact on disk."""
+    grant_profession_progress = _current_prof.grant_profession_progress
+    grant_tool_progress = _current_prof.grant_tool_progress
+    grant_tool_reward_xp = _current_prof.grant_tool_reward_xp
+    grant_profession_reward_xp = _current_prof.grant_profession_reward_xp

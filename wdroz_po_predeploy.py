@@ -25,13 +25,20 @@ def main():
         z=Path(s['zip']).resolve()
         if not z.is_file() or sha256(z)!=s.get('sha256'):
             raise ValueError('ZIP zostal zmieniony po predeploy. Wykonaj test ponownie.')
-        ver,_=inspect_zip(z)
-        if version_tuple(ver) > (112, 0, 0):
+        ver,archive_files=inspect_zip(z)
+        # Current releases are recognized by bundled, version-neutral APIs.
+        # Old synthetic fixture contracts remain isolated below.
+        current_contract = all(name in archive_files for name in (
+            'systems/runtime_activation.py',
+            'systems/universal_release_update.py',
+            'systems/current_fresh_install.py',
+        ))
+        if current_contract:
             if (s.get('release_gates_pass') is not True
                     or s.get('installed_at_test') != installed_version()
                     or s.get('returncode') != 0):
                 raise ValueError('Brak zgodnego zatwierdzenia 60/60 PLUS dla tej aktualizacji.')
-        if ver == '112.00.0':
+        elif ver == '112.00.0':
             if (s.get('v112_release_gates_pass') is not True
                     or s.get('installed_at_test') not in ('110.00.0','111.00.0')
                     or s.get('returncode')!=0):
@@ -53,8 +60,10 @@ def main():
                 raise ValueError('v109: brak odrębnego zatwierdzenia PREDEPLOY i wersji bazowej.')
             # Full revalidation (including installed v108 marker) happens
             # in updater before any server STOP, and again after staging.
-        elif version_tuple(ver) >= (108, 0, 0) and version_tuple(ver) <= (112, 0, 0):
-            raise ValueError('Nieautoryzowana wersja: brak testow LIVE; nie zatrzymano serwera.')
+        else:
+            # A candidate lacking the current APIs is never allowed to use
+            # a legacy installer merely by advertising a future version.
+            raise ValueError('Brak uniwersalnych modulow i historycznego zatwierdzenia. STOP zabroniony.')
         current=installed_version()
         if ver!=s.get('version') or version_tuple(ver)<=version_tuple(current):
             raise ValueError(f'Wersja kandydata v{ver} nie jest nowsza niz produkcyjna v{current}.')

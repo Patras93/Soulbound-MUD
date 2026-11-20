@@ -183,13 +183,32 @@ class World:
                         tpl['generator_level'] = stage
                         tpl['v019_stage'] = stage
             return
-        if not (str(room_id).startswith("v10500_")
-                and str(template_id).startswith("v10500_")):
-            return
-        stage = int(ROOMS.get(room_id, {}).get("generator_level", 0) or 0)
-        if stage <= 800:
+        # v116.00.39: v11621 adds 144 rooms to each authored v105 region.
+        # The extra rooms carry v116_large_legacy rather than generator_level.
+        # Use the original v105 mob stage there, otherwise the same ordinary
+        # mob receives a second world-overdrive HP/damage boost in the wing.
+        room_id = str(room_id or "")
+        template_id = str(template_id or "")
+        room = ROOMS.get(room_id, {}) or {}
+        legacy_slug = str(room.get("v116_large_legacy") or "")
+        native = room_id.startswith("v10500_")
+        extension = room_id.startswith("v11621_region_") and bool(legacy_slug)
+        if not template_id.startswith("v10500_") or not (native or extension):
             return
         tpl = MOB_TEMPLATES.get(template_id)
+        if extension:
+            # Only the original ordinary mob of THIS region can be restored.
+            # Bosses, other regions, elite affixes and unrelated systems retain
+            # their independent combat stats and encounter rules.
+            base_id = str((tpl or {}).get("base_template") or "")
+            if not base_id.startswith(f"v10500_{legacy_slug}_mob_"):
+                return
+            base_tpl = MOB_TEMPLATES.get(base_id, {}) or {}
+            stage = int(base_tpl.get("generator_level", 0) or 0)
+        else:
+            stage = int(room.get("generator_level", 0) or 0)
+        if stage <= 800:
+            return
         if isinstance(tpl, dict):
             stage = max(stage, int(tpl.get("generator_level", 0) or 0))
             tpl["generator_level"] = stage
@@ -1288,6 +1307,8 @@ class World:
                         "monster_ai_guard_until_v1160", "monster_ai_summon_used_v1160",
                         "monster_ai_resurrect_used_v1160", "monster_ai_add_sequence_v1160",
                         "monster_ai_raised_once_v1160", "monster_ai_lifesteal_turn_v1160",
+                        "monster_reaction_pending_v1164", "monster_reaction_next_v1164",
+                        "monster_reaction_notified_v1164",
                     ):
                         if hasattr(mob, field):
                             delattr(mob, field)
@@ -2241,3 +2262,61 @@ if not any(int(req) == 1000 for req, _tier in _boss_tiers):
 ACHIEVEMENT_TRACKS["boss_kills"]["tiers"] = tuple(_boss_tiers)
 from world.dynamic_content import ACHIEVEMENT_TITLE_REWARDS  # explicit current dependency
 ACHIEVEMENT_TITLE_REWARDS[("boss_kills", "Mythic")] = "Łowca 1000 Bossów"
+
+
+# v116.00.31: rehydrate a character saved in a 12x12 Deep Dungeon wing.
+# Preserve the original World.ensure_runtime_room body (protected AST),
+# and use the original handler for all other rooms and side-room events.
+_v11631_previous_ensure_runtime_room = World.ensure_runtime_room
+
+def _v11631_ensure_saved_deep_room(self, room_id):
+    from data.rooms import ROOMS
+    from systems.current_deep_dungeon_grindfields import deep_dungeon_saved_side_parent
+    parent = deep_dungeon_saved_side_parent(room_id)
+    if parent is not None and str(room_id) not in ROOMS:
+        # Regenerate the canonical floor, its historic boss/checkpoint and
+        # its exact 144 optional rooms before the login fallback to square.
+        if not self.ensure_infinite_dungeon_floor(parent):
+            return False
+        if str(room_id) not in ROOMS:
+            return False
+    return _v11631_previous_ensure_runtime_room(self, room_id)
+
+World.ensure_runtime_room = _v11631_ensure_saved_deep_room
+
+
+# v116.00.32: saved rooms of lazy instance floors must EXIST after rehydration.
+# Floor-number parsers intentionally accept _rNN suffixes, but an arbitrary
+# _r999 historically made ensure_infinite_dungeon_floor return True as long as
+# the canonical landing existed. Never report a nonexistent player position as
+# a successfully restored room; keep the original AST and all boss gates.
+_v11632_previous_ensure_runtime_room = World.ensure_runtime_room
+
+def _v11632_ensure_saved_instance_room(self, room_id):
+    from data.rooms import ROOMS
+    room_id = str(room_id or '')
+    if room_id not in ROOMS and '_r' in room_id:
+        import re
+        match = re.fullmatch(r'(.+)_r([0-9]{1,5})', room_id)
+        if match is not None:
+            from core.runtime_rules import get_rule
+            from world.dynamic_content import v0100_subroom_id
+            canonical = match.group(1)
+            spec = get_rule('v0100_instance_spec')(canonical)
+            if spec is not None:
+                index = int(match.group(2))
+                # Exact published spelling, not an unbounded/alias index.
+                # Each lazy floor has original rooms (including landing) plus
+                # exactly 144 optional 12x12 sectors; its final boss/steps
+                # room and historical IDs stay in their original positions.
+                last = int(spec['rooms']) + 144 - 1
+                if not 1 <= index <= last or v0100_subroom_id(canonical, index) != room_id:
+                    return False
+                if not self.ensure_infinite_dungeon_floor(canonical):
+                    return False
+                if room_id not in ROOMS:
+                    return False
+    result = _v11632_previous_ensure_runtime_room(self, room_id)
+    return bool(result and room_id in ROOMS)
+
+World.ensure_runtime_room = _v11632_ensure_saved_instance_room

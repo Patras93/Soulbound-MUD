@@ -48,8 +48,9 @@ def _credit(session, kind, key, amount):
             return False
         _,value_field,xp_field=char.STAT_PROGRESS_FIELDS[stat_key]
         progress=int(getattr(char,xp_field))+amount
+        original_stat=int(getattr(char,value_field))
         # No new reward multipliers on old banked XP.
-        while progress>=char.stat_growth_threshold_for(stat_key):
+        while progress>=char.stat_growth_threshold_for(stat_key) and int(getattr(char,value_field))==original_stat:
             progress-=char.stat_growth_threshold_for(stat_key)
             setattr(char,value_field,int(getattr(char,value_field))+1)
         setattr(char,xp_field,progress)
@@ -64,7 +65,7 @@ def _credit(session, kind, key, amount):
             return False
         ceiling=axis_cap if axis_cap is not None else 1_000_000_000
         threshold=(lambda x:session.profession_xp_to_next(x,key)) if kind=='profession' else (lambda x:session.tool_xp_to_next(x,key))
-        while level<ceiling:
+        while level<min(ceiling,int(row["level"])+1):
             needed=threshold(level)
             if needed<=0 or xp<needed:
                 break

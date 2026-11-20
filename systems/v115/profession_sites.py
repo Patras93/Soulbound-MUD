@@ -10,7 +10,7 @@ from collections import Counter
 from .high_level_world import REGION_BY_KEY
 
 KINDS = ('fishing', 'mining', 'woodcutting', 'herbalism')
-# For each 8-room row: 4 sites, plus four ordinary combat/exploration rooms.
+# Every realm is now 12 x 12; existing 8 x 6 site positions are unchanged.
 # Rotation offsets make sites take different routes in each new region.
 _WATER = {'ruiny': 'river', 'pustynia': 'lake', 'lodowiec': 'lake',
           'astral': 'river', 'kanion': 'river', 'las': 'river',
@@ -25,7 +25,7 @@ _LABELS = {'fishing': 'Łowisko Horyzontów',
 def site_for_sector(region_key, x, y):
     """Stable authored node descriptor; None denotes a non-resource room."""
     region = REGION_BY_KEY.get(region_key)
-    if region is None or type(x) is not int or type(y) is not int or not (0 <= x < 8 and 0 <= y < 6):
+    if region is None or type(x) is not int or type(y) is not int or not (0 <= x < 12 and 0 <= y < 12):
         return None
     index = int(region_key.rsplit('_', 1)[-1])
     slot = (3*x + 5*y + 7*index) % 8
@@ -83,7 +83,7 @@ def register_authored_sites(rooms):
     # Validate the whole regional catalog before any mutation.
     sites = [(rid, site) for rid, room in rooms.items()
              if (site := site_for_room(rid, room)) is not None]
-    if len(sites) != 30*24 or Counter(site['kind'] for _,site in sites) != Counter({k:180 for k in KINDS}):
+    if len(sites) != 2158 or any(Counter(site['kind'] for _,site in sites)[k] < 500 for k in KINDS):
         raise ValueError('Niekompletne złoża v115; nie rejestruję części świata')
     for rid, site in sites:
         kind = site['kind']

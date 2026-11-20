@@ -61,9 +61,59 @@ def mod_for_path(path: str) -> str:
     return path[:-3].replace('/', '.')
 
 
+def _guarded_platform_branch(node: ast.AST):
+    """Return whether a plain `if os.name == 'nt'` is reachable.
+
+    Unrecognized expressions are NEVER optimistically skipped: both branches
+    remain in the closure audit. Only exact syntax with immutable platform
+    literals is accepted, not locally reassigned aliases or complex conditions.
+    """
+    if not isinstance(node, ast.Compare) or len(node.ops)!=1 or len(node.comparators)!=1:
+        return None
+    left,right=node.left,node.comparators[0]
+    if not (isinstance(left,ast.Attribute) and isinstance(left.value,ast.Name)
+            and left.value.id=='os' and left.attr=='name'
+            and isinstance(right,ast.Constant) and right.value=='nt'):
+        return None
+    if isinstance(node.ops[0],ast.Eq):return sys.platform.startswith('win')
+    if isinstance(node.ops[0],ast.NotEq):return not sys.platform.startswith('win')
+    return None
+
+
+def _trusted_os_name(tree: ast.AST) -> bool:
+    """Only accept direct top-level `import os` without rebinding `os`."""
+    imported=any(isinstance(stmt,ast.Import) and any(
+        alias.name=='os' and alias.asname is None for alias in stmt.names)
+        for stmt in getattr(tree,'body',()))
+    if not imported:return False
+    for node in ast.walk(tree):
+        if isinstance(node,ast.Name) and node.id=='os' and isinstance(node.ctx,(ast.Store,ast.Del)):
+            return False
+        if isinstance(node,ast.arg) and node.arg=='os':return False
+        if isinstance(node,(ast.Import,ast.ImportFrom)) and any(
+            alias.asname=='os' and alias.name!='os' for alias in node.names):
+            return False
+    return True
+
+
+def _reachable_nodes(node: ast.AST, *, trusted_os: bool):
+    """Walk only provably reachable OS-specific import branches."""
+    yield node
+    if isinstance(node,ast.If):
+        branch=_guarded_platform_branch(node.test) if trusted_os else None
+        if branch is not None:
+            # Visit test expression as well, so importlib inside it is noticed.
+            yield from _reachable_nodes(node.test, trusted_os=trusted_os)
+            for sub in node.body if branch else node.orelse:
+                yield from _reachable_nodes(sub, trusted_os=trusted_os)
+            return
+    for sub in ast.iter_child_nodes(node):
+        yield from _reachable_nodes(sub,trusted_os=trusted_os)
+
+
 def imports_from(tree: ast.AST, parent: str, path: str):
     """Yield (dotted_module, lineno, kind, optional imported name)."""
-    for n in ast.walk(tree):
+    for n in _reachable_nodes(tree, trusted_os=_trusted_os_name(tree)):
         if isinstance(n, ast.Import):
             for alias in n.names:
                 yield alias.name, n.lineno, 'import', None

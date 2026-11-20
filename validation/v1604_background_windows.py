@@ -26,15 +26,14 @@ def _visible_starter_preserves_exit_code(visible: str) -> bool:
 
 def run_regression():
     launcher = (ROOT / 'START_Soulbound.bat').read_text(encoding='ascii')
-    visible = (ROOT / 'Start-Soulbound-Windows.bat').read_text(encoding='ascii')
     stop = (ROOT / 'STOP_Soulbound.bat').read_text(encoding='ascii')
     bg = (ROOT / 'uruchom_w_tle.py').read_text(encoding='utf-8')
     checks = {
-        'default calls visible BAT': 'call "%~dp0Start-Soulbound-Windows.bat"' in launcher,
+        'single START launcher': 'call "%~dp0Start-Soulbound-Windows.bat"' not in launcher and 'py -3 -u "%ROOT%uruchom_w_tle.py"' in launcher,
         'no WScript dependency': 'wscript' not in launcher.lower() and not (ROOT/'START_Soulbound_UKRYTY.vbs').exists(),
         'launcher returns real exit code': 'exit /b !errorlevel!' in launcher,
         'autostart uses pythonw registry, keeps only legacy CMD recognition': all(word in (ROOT/'windows_autostart.py').read_text(encoding='utf-8') for word in ('Soulbound_Autostart.cmd', 'pythonw.exe', 'RUN_KEY', 'migrate_if_enabled')),
-        'visible starter exits': _visible_starter_preserves_exit_code(visible),
+        'visible starter exits': _visible_starter_preserves_exit_code(launcher),
         'detached Python': 'DETACHED_PROCESS' in bg and 'CREATE_NO_WINDOW' in bg,
         'safe STOP': 'stop_soulbound_windows.py' in stop and 'taskkill' not in stop.lower(),
         'STOP working dir outside game': 'cd /d "%TEMP%"' in stop,

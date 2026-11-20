@@ -62,7 +62,8 @@ def available_attacks(role, level):
     return tuple(dict((x['id'], x) for x in result).values())
 
 
-def pick_skill(session, role, level, now, boss=False):
+def pick_skill(session, role, level, now, boss=False, intent=None, *,
+               conserve_burst=False, target_hp_ratio=None):
     """Rotate genuine learned class attacks, prioritizing different tiers.
 
     Mec V-MAX is a separate transient mercenary buff, not the owner's buff.
@@ -83,7 +84,7 @@ def pick_skill(session, role, level, now, boss=False):
     if role == 'mec':
         has_vmax = any(x.get('mec_special') == 'vmax' and
                        int(x.get('unlock', 99999)) <= level for x in _catalogue(role))
-        if has_vmax and now >= entry['vmax_next']:
+        if has_vmax and now >= entry['vmax_next'] and not conserve_burst:
             entry['vmax_until'] = now + 25.0
             entry['vmax_next'] = now + 95.0
             vmax_started = True
@@ -93,6 +94,27 @@ def pick_skill(session, role, level, now, boss=False):
             return cosmic, vmax_started, True
     else:
         vmax_active = False
+    # v116: use the full learned catalogue, but prefer a single-target skill
+    # unless a real player has deliberately widened the current encounter.
+    # The default (None) preserves the historical catalogue rotation contract.
+    if intent == 'focus':
+        attacks = tuple(x for x in attacks if x.get('kind') != 'aoe_damage') or attacks
+    elif intent == 'area':
+        attacks = tuple(x for x in attacks if x.get('kind') == 'aoe_damage') or attacks
+    # v116.00.3: use native execution skills as finishers, not openers.
+    # This changes only the choice of an existing skill, not NPC hit power,
+    # cooldowns, character MP, class unlocks or saved data. Default None
+    # preserves the complete historic rotating catalogue for audits.
+    if target_hp_ratio is not None and intent != 'area':
+        ratio = float(target_hp_ratio)
+        if 0.0 < ratio <= .35:
+            finishing = tuple(x for x in attacks if x.get('kind') == 'execute')
+            if finishing:
+                attacks = finishing
+        elif ratio > .35:
+            non_finishing = tuple(x for x in attacks if x.get('kind') != 'execute')
+            if non_finishing:
+                attacks = non_finishing
     # Cycle through ALL genuine unlocked offensive class skills, not a hand-
     # selected subset. All 38 classes keep their own catalogues and level gates.
     # Boss encounters offset the current turn but never remove abilities.
@@ -124,7 +146,7 @@ def engaged_targets(session, primary):
     return tuple(result)
 
 
-async def execute_attack(session, primary, raw_power, skill, role, vmax_active):
+async def execute_attack(session, primary, raw_power, skill, role, vmax_active, area_allowed=None):
     """Apply a single existing mercenary action using source attack targeting.
 
     Returns (total_damage, primary_damage, slain_mobs, hit_count). Does not send
@@ -138,7 +160,7 @@ async def execute_attack(session, primary, raw_power, skill, role, vmax_active):
         return 0, 0, (), 0
     cosmic = role == 'mec' and skill.get('mec_special') == 'cosmic_rave'
     is_aoe = skill.get('kind') == 'aoe_damage' or cosmic
-    targets = possible if is_aoe else (primary,)
+    targets = possible if (is_aoe and area_allowed is not False) else (primary,)
     five = cosmic and vmax_active
     count = 5 if five else len(targets)
     # Multihit distributes a single action budget; V-MAX adds a modest bonus.

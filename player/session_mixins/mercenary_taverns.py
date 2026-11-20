@@ -239,7 +239,7 @@ class SessionMercenaryTavernsMixin:
                 await self.send("Nie masz wynajętych najemników. Najemnicy: 0/3. Eliza jest niezatrudniona; wynajmij ją w tawernie.")
                 return
             level = mercenary_owner_level_v1228(self.character)
-            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna realna moc i tempo ataków właściciela (Broń Duszy, statystyki, EQ, trafienia wielokrotne); bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Specjalizacje klasowe: najemnik specjalizacje [imię]. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
+            await self.send(f"Każdy najemnik ma twój aktualny poziom {level}, bez osobnego EXP. Obrażenia: pełna realna moc i tempo ataków właściciela (Broń Duszy, statystyki, EQ, trafienia wielokrotne); bonus za poziom rośnie bez limitu. Każdy najemnik działa samodzielnie we własnym rytmie. Inteligencja v116: skupienie na jednym celu; AoE po obszarowym ataku drużyny. Specjalizacje klasowe: najemnik specjalizacje [imię]. Taktyki: najemnik taktyka <imię> <automatyczna|szturm|obrona|wsparcie>.")
             for row in active:
                 role = row["role"]
                 if role in MERCENARIES:
@@ -298,6 +298,10 @@ class SessionMercenaryTavernsMixin:
             memory_choice_v1250, memory_effect_v1250, memory_learn_v1250,
         )
         from systems.mercenary_class_skills_v11334 import pick_skill, execute_attack
+        from systems.mercenary_tactics_v116 import (
+            combat_intent, select_ally_v116, mercenary_race_damage_v116,
+            conserve_finishing_burst_v116,
+        )
         from systems.mercenary_specialists_v1240 import (
             specialist_attack_v1240, specialist_support_on_strike_v1240,
             mercenary_voice_v1270, mercenary_preferred_combo_v1270,
@@ -344,30 +348,42 @@ class SessionMercenaryTavernsMixin:
                                 target_template.get('mythic_crypt_boss') or
                                 target_template.get('uoss_unique_superboss_key') or
                                 target_template.get('superboss') or target_template.get('rank') == 'boss')
-            # v1.60: dedicated guardian anticipates major-boss pressure and
-            # shields the weakest party member WITHOUT sacrificing its attack.
-            if role == 'straznik' and major_threat and weakest.skill_guard <= 0:
-                next_barrier=getattr(self,'_v1600_guardian_barrier_at',0.0)
-                if now >= next_barrier and weakest.current_hp < weakest.max_hp()*.95:
-                    barrier=max(1,int(weakest.max_hp()*.09))
-                    weakest.skill_guard += barrier
-                    self._v1600_guardian_barrier_at=now+20.0
+            # v116.00.1: triage checks eligibility per player rather than
+            # giving up when the lowest-HP player is heal-blocked/shielded.
+            # Keep every old threshold and exact heal/guard magnitude.
+            barrier_applied = False
+            if role == 'straznik' and major_threat:
+                guardian_target = select_ally_v116(living, action='guard', threshold=.95)
+                next_barrier = getattr(self, '_v1600_guardian_barrier_at', 0.0)
+                if guardian_target is not None and now >= next_barrier:
+                    barrier = max(1, int(guardian_target.max_hp() * .09))
+                    guardian_target.skill_guard += barrier
+                    self._v1600_guardian_barrier_at = now + 20.0
+                    barrier_applied = True
                     await self.mercenary_party_action_v11503(
-                        f"{name}: automatyczna osłona {weakest.character.name}, +{barrier} ochrony.")
+                        f"{name}: automatyczna osłona {guardian_target.character.name}, +{barrier} ochrony.")
             heal_threshold = (.89 if major_threat else (.78 if role != 'druid' else .68))
-            if role in ("kaplan", "paladyn", "druid") and (
-                    weakest.current_hp < weakest.max_hp() * heal_threshold and
-                    not superboss_healing_blocked_v11179(weakest)):
-                heal=min(max(0,weakest.max_hp()-weakest.current_hp), max(1,int(weakest.max_hp()*(.18 if role=="kaplan" else (.13 if role=="druid" else .11)))))
-                weakest.current_hp+=heal
-                message=f"{name} leczy {weakest.character.name}: +{heal} HP."
+            heal_target = (select_ally_v116(living, action='heal', threshold=heal_threshold,
+                           healing_blocked=superboss_healing_blocked_v11179)
+                           if role in ('kaplan', 'paladyn', 'druid') else None)
+            guard_target = (select_ally_v116(living, action='guard',
+                            threshold=.90 if major_threat else .75)
+                            if role in ('wojownik', 'paladyn', 'straznik', 'psionik', 'inzynier')
+                            and not barrier_applied else None)
+            if heal_target is not None:
+                heal = min(max(0, heal_target.max_hp()-heal_target.current_hp),
+                           max(1, int(heal_target.max_hp() *
+                                      (.18 if role == 'kaplan' else (.13 if role == 'druid' else .11)))))
+                heal_target.current_hp += heal
+                message = f"{name} leczy {heal_target.character.name}: +{heal} HP."
                 experience_action = True
-            elif (role in ("wojownik", "paladyn", "straznik", "psionik", "inzynier")
-                  and weakest.skill_guard <= 0 and
-                  weakest.current_hp < weakest.max_hp() * (.90 if major_threat else .75)):
-                guard=max(1,int(weakest.max_hp()*({"wojownik":.09, "paladyn":.06, "straznik":.13, "psionik":.08, "inzynier":.10}[role])))
-                weakest.skill_guard += guard
-                message=f"{name} osłania {weakest.character.name}: następny cios osłabiony o maksymalnie {guard}."
+            elif guard_target is not None:
+                guard = max(1, int(guard_target.max_hp() *
+                                    {'wojownik':.09, 'paladyn':.06, 'straznik':.13,
+                                     'psionik':.08, 'inzynier':.10}[role]))
+                guard_target.skill_guard += guard
+                message = (f"{name} osłania {guard_target.character.name}: "
+                           f"następny cios osłabiony o maksymalnie {guard}.")
                 experience_action = True
             defeated_by_mercenary = False
             if message is None and mob.hp > 0:
@@ -406,13 +422,27 @@ class SessionMercenaryTavernsMixin:
                 # v113.00.34: real, level-gated class attacks from the live
                 # catalogue. The old three-move memory still supplies its
                 # damage adaptation without restricting the actual spell list.
-                class_skill, vmax_started, vmax_active = pick_skill(
-                    self, role, merc_level, now, major_threat)
+                # Attack scope follows a recent, deliberate local party cast.
+                # Target count is calculated from already engaged enemies only.
+                from systems.mercenary_class_skills_v11334 import engaged_targets
+                tactical_mode = combat_intent(self)
+                area_allowed = (tactical_mode == 'area' and
+                                len(engaged_targets(self, mob)) > 1)
                 # No arbitrary 42%, damage ceiling or downgrade for support roles.
+                # Eliza uses HER Vampire race passive (+8%), not the owner's.
                 power = max(1, int(power_base * max(1.0, float(spec["power"]))
                                    * mercenary_attack_multiplier(merc_level, tactic)
                                    * mercenary_combo_v1230(role, roles, MERCENARIES)
-                                   * specialist_factor * memory_factor_v1250 * duo_mult_v1270))
+                                   * specialist_factor * memory_factor_v1250 * duo_mult_v1270
+                                   * mercenary_race_damage_v116(role)))
+                max_target_hp = max(1, int(getattr(mob, 'adaptive_max_hp_v11330', 0) or
+                                       getattr(mob, 'max_hp', 0) or
+                                       target_template.get('max_hp', 0) or mob.hp or 1))
+                class_skill, vmax_started, vmax_active = pick_skill(
+                    self, role, merc_level, now, major_threat,
+                    intent='area' if area_allowed else 'focus',
+                    conserve_burst=conserve_finishing_burst_v116(mob, power, major_threat),
+                    target_hp_ratio=max(0.0, int(mob.hp)) / max_target_hp)
                 # v11 coordinated strikes against new two-phase ancient bosses.
                 # Bonus only; the full owner-equipment damage floor is unchanged.
                 from systems.eternal_glory.companions import companion_coordination_v1100
@@ -427,7 +457,8 @@ class SessionMercenaryTavernsMixin:
                     'kind': 'damage', 'unlock': 1}
                 hp_before_memory_v1250 = max(0, int(mob.hp))
                 total_damage, primary_damage, defeated_mobs, number_of_hits = (
-                    await execute_attack(self, mob, power, chosen_skill, role, vmax_active))
+                    await execute_attack(self, mob, power, chosen_skill, role, vmax_active,
+                                         area_allowed=area_allowed))
                 memory_learn_v1250(self, memory_key_v1250, memory_idx_v1250,
                                    primary_damage, power_base, hp_before_memory_v1250)
                 damage = total_damage
@@ -450,9 +481,31 @@ class SessionMercenaryTavernsMixin:
                     message += f" {name}: {voice}"
                 # Protection/healing can support an attack rather than costing
                 # an additional damage turn. Anti-heal is always respected.
+                # Passive support also finds the next eligible ally instead
+                # of wasting a heal on someone under an anti-heal effect.
+                heal_support_roles = ('wampir', 'nekromanta', 'kaplan', 'druid',
+                                      'paladyn', 'tkacz_dusz', 'szeptacz_bestii',
+                                      'paladyn_zmierzchu')
+                if role in heal_support_roles:
+                    support_target = select_ally_v116(
+                        living, action='heal', threshold=1.0,
+                        healing_blocked=superboss_healing_blocked_v11179)
+                else:
+                    support_target = select_ally_v116(
+                        living, action='guard', threshold=.95 if major_threat else .82)
+                if role == 'paladyn_zmierzchu' and support_target is None:
+                    # This hybrid has a native defensive fallback when healing
+                    # is blocked; keep it rather than dropping its guard skill.
+                    support_target = select_ally_v116(
+                        living, action='guard', threshold=.95 if major_threat else .82)
+                if role == 'straznik' and barrier_applied:
+                    # The guardian's proactive boss barrier already used this
+                    # action's protection. Its attack remains available, but
+                    # a second shield in the same action would buff balance.
+                    support_target = None
                 support_text = specialist_support_on_strike_v1240(
-                    role, weakest, damage, major_threat,
-                    superboss_healing_blocked_v11179(weakest),
+                    role, support_target, damage, major_threat,
+                    bool(support_target and superboss_healing_blocked_v11179(support_target)),
                 )
                 if support_text:
                     message += f" {support_text}"
@@ -463,14 +516,23 @@ class SessionMercenaryTavernsMixin:
                 # their own role ability; this small extra effect is player-configured.
                 if experience_action:
                     if tactic == "obrona":
-                        guard = max(1, int(weakest.max_hp() * .05))
-                        weakest.skill_guard += guard
+                        # Keep the existing player-selected guard bonus; first
+                        # place it on an unshielded wounded ally when possible.
+                        extra_guard_target = (select_ally_v116(
+                            living, action='guard', threshold=1.0) or weakest)
+                        guard = max(1, int(extra_guard_target.max_hp() * .05))
+                        extra_guard_target.skill_guard += guard
                         message += f" Dodatkowa osłona: {guard}."
-                    elif tactic == "wsparcie" and weakest.current_hp < weakest.max_hp():
-                        heal = min(max(0, weakest.max_hp()-weakest.current_hp), max(1, int(weakest.max_hp() * .04)))
-                        if heal and not superboss_healing_blocked_v11179(weakest):
-                            weakest.current_hp += heal
-                            message += f" Dodatkowe leczenie: +{heal} HP."
+                    elif tactic == "wsparcie":
+                        extra_heal_target = select_ally_v116(
+                            living, action='heal', threshold=1.0,
+                            healing_blocked=superboss_healing_blocked_v11179)
+                        if extra_heal_target is not None:
+                            heal = min(max(0, extra_heal_target.max_hp()-extra_heal_target.current_hp),
+                                       max(1, int(extra_heal_target.max_hp() * .04)))
+                            if heal:
+                                extra_heal_target.current_hp += heal
+                                message += f" Dodatkowe leczenie: +{heal} HP."
                 # Record and show each mercenary action to ALL local party
                 # members, including the owner, once in the essential NVDA feed.
                 await self.mercenary_party_action_v11503(message)

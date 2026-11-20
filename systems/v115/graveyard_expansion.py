@@ -4,7 +4,7 @@
 Stale 64 identyfikatory; ruch w siatce oraz droga powrotna do graveyard.
 """
 
-WIDTH = HEIGHT = 8
+WIDTH = HEIGHT = 12
 ANCHOR = "graveyard"
 PREFIX = "v115_graveyard_"
 

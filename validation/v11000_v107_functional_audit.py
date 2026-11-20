@@ -12,7 +12,7 @@ import ast,os,shutil,sys,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
-from audyt_v107_windows_przed_predeploy import SUITES,call,ignored
+from validation.v11100_v107_functional_audit import SUITES,call,ignored
 REPLACEMENTS={
  'v8500_native_tcp_full_journey':('V110: dawna bramka TCP zachowana; 6 graczy osobno obowiązkowo','v11000_v85_tcp_compat'),
  'v10700_consolidated_content_regression':('V110: komplet zawartości v107, 30 historycznych klas i ras','v11000_v107_catalog_compat'),

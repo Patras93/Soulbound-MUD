@@ -253,7 +253,7 @@ class SessionCharacterProfileMixin:
                 soul_remaining = max(0, soul_required - soul_current)
                 await self.send(
                     f"Soul XP: {soul_current} z {soul_required}. "
-                    f"Brakuje {soul_remaining} Soul XP do Soul Level {int(c.soul_level) + 1}."
+                    + (f"Brakuje {soul_remaining} Soul XP do Soul Level {int(c.soul_level) + 1}." if soul_remaining else "Nadwyżka Soul XP zachowana. Jeden Soul Level na nagrodę.")
                 )
                 if c.soul_progress_is_tier_locked():
                     await self.send(
@@ -461,7 +461,7 @@ class SessionCharacterProfileMixin:
                             f"Najpierw odblokuj Tier {c.soul_tier + 1}."
                         )
                     else:
-                        await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
+                        await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}." + (" Nadwyżka zachowana; maksymalnie 1 Soul Level na nagrodę." if c.soul_xp >= c.soul_xp_to_next() else ""))
                         await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
                 else:
                     await self.send("Soul XP: maksimum.")
@@ -497,7 +497,7 @@ class SessionCharacterProfileMixin:
                         f"Najpierw odblokuj Tier {c.soul_tier + 1}."
                     )
                 else:
-                    await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}.")
+                    await self.send(f"Soul XP: {c.soul_xp} z {c.soul_xp_to_next()}." + (" Nadwyżka zachowana; maksymalnie 1 Soul Level na nagrodę." if c.soul_xp >= c.soul_xp_to_next() else ""))
                     await self.send(f"Mnożnik wymaganego Soul XP: x{c.soul_xp_multiplier():.2f}.")
             else:
                 await self.send(f"Soul XP: maksimum. Soul Level {SOUL_MAX_LEVEL}.")

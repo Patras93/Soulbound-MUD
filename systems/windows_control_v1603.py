@@ -11,7 +11,6 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from windows_runtime_state import write_state, remove_matching
 import secrets
 
 
@@ -33,7 +32,9 @@ class LocalControlV1603:
             pass
         if self.alternate is not None:
             try:
-                remove_matching(self.alternate, 'token', self.token, root=Path(__file__).resolve().parents[1])
+                if os.name == 'nt':
+                    from windows_runtime_state import remove_matching
+                    remove_matching(self.alternate, 'token', self.token, root=Path(__file__).resolve().parents[1])
             except OSError as exc:
                 print(f'Soulbound Windows: nie usunieto pomocniczego sterowania: {exc}', flush=True)
 
@@ -94,7 +95,9 @@ async def start_control_v1603(stop_event):
     alternate = Path(fallback_filename).resolve() if fallback_filename else None
     if alternate is not None and alternate != path:
         try:
-            write_state(alternate, metadata)
+            if os.name == 'nt':
+                from windows_runtime_state import write_state
+                write_state(alternate, metadata)
         except OSError as exc:
             print(f'Soulbound Windows: pomocniczy plik sterowania niedostepny: {exc}', flush=True)
             alternate = None

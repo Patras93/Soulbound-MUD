@@ -87,7 +87,7 @@ def _profession_reward(session, name, tier):
     if not gain:
         return 0
     xp += gain
-    while level < profession_max_level(name):
+    while level < min(profession_max_level(name), int(row["level"]) + 1):
         needed = session.profession_xp_to_next(level, name)
         if not needed or xp < needed:
             break
@@ -113,7 +113,7 @@ def _tool_reward(session, name, tier):
     if not gain:
         return 0
     xp += gain
-    while level < tool_max_level(name):
+    while level < min(tool_max_level(name), int(row["level"]) + 1):
         needed = session.tool_xp_to_next(level, name)
         if not needed or xp < needed:
             break
@@ -143,7 +143,7 @@ def _combat_skill_reward(session, tier):
     if not paid:
         return None
     xp += paid
-    while level < SKILL_MAX_LEVEL:
+    while level < min(SKILL_MAX_LEVEL, int(row["level"]) + 1):
         needed = skill_xp_to_next(level)
         if not needed or xp < needed:
             break

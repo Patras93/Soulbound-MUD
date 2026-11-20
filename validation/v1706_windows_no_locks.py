@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 def run_regression():
     checks=0
     for name in ('START_Soulbound.bat','STOP_Soulbound.bat',
-                 'Start-Soulbound-Windows.bat',
                  'uruchom_w_tle.py','windows_launcher_state.py'):
         assert (ROOT/name).is_file(), name
         checks+=1

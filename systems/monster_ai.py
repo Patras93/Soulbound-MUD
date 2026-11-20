@@ -8,6 +8,7 @@ import time
 
 from data.mobs import MOB_TEMPLATES
 from systems.tactical_ai_v2200 import role as tactical_role_v2200, select_support as tactical_support_v2200
+from systems.monster_reactions_v116 import has_reaction, choose_reaction, perform_reaction
 
 SUPPORT_COOLDOWN = 14.0
 SUPPORT_DURATION = 10.0
@@ -71,7 +72,7 @@ def monster_ai_eligible_v1160(mob, template):
         return False
     if getattr(mob, "monster_ai_summoned_v1160", False):
         return False
-    return bool(template.get("elite_affix") or template.get("damage_type") == "magic" or monster_ai_necromancer_v1160(template) or tactical_role_v2200(template))
+    return bool(template.get("elite_affix") or template.get("damage_type") == "magic" or monster_ai_necromancer_v1160(template) or tactical_role_v2200(template) or has_reaction(mob))
 
 
 def _max_hp(mob, template):
@@ -109,6 +110,11 @@ def monster_ai_plan_v1160(mob, template, live_allies, dead_allies=(), now=None):
     def _cap_v2200(other):
         return _max_hp(other, template if other.key == mob.key else MOB_TEMPLATES.get(other.template_id, template))
     support = tactical_support_v2200(mob, template, engaged, now, _cap_v2200)
+    if support and support["kind"] == "heal":
+        return support
+    reaction = choose_reaction(mob, template, engaged, now)
+    if reaction:
+        return reaction
     if support:
         return support
     heal_targets = [mob] + [a for a in engaged if a.key != mob.key]
@@ -151,7 +157,7 @@ def monster_ai_execute_v1160(world, mob, template, plan, now=None):
     name = str(template.get("name") or mob.template_id)
     target_template = world.mob_templates_for_ai_v1160(target)
     target_name = str(target_template.get("name") or target.template_id)
-    text = ""
+    text = perform_reaction(mob, template, plan, now)
     if kind == "heal" and target.alive:
         cap = _max_hp(target, target_template)
         amount = min(max(0, cap - target.hp), max(1, (cap * 18) // 100))

@@ -51,7 +51,7 @@ class SalesProfessionExpV109Mixin:
                 f"za {units} sztuk."
             ]
 
-            while level < cap:
+            while level < min(cap, int(prow["level"]) + 1):
                 needed = self.profession_xp_to_next(level, profession)
                 if xp < needed:
                     break

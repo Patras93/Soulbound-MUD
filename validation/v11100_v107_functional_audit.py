@@ -10,7 +10,10 @@ snapshot checks remain separately mandatory during Windows PREDEPLOY.
 from __future__ import annotations
 import ast,os,shutil,sys,tempfile,subprocess,socket,signal,time,hashlib
 from pathlib import Path
+from datetime import datetime
+import re
 ROOT=Path(__file__).resolve().parents[1]
+SCRIPT = 'validation.v10700_release_readiness'  # v107-v109 historical only
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
 # The current v111 gate owns its 33 audit specs and isolated runner.
 # No dependency on the v107 standalone launcher or previous installations.
@@ -195,4 +198,86 @@ def main():
           f'{len(REPLACEMENTS)} legacy-only slots adapted with v110 safety and functional tests',flush=True)
     return 0
 
-if __name__=='__main__':raise SystemExit(main())
+def check_sources(stage: Path) -> tuple[int, str]:
+    version = (stage / 'VERSION').read_text(encoding='utf-8-sig').strip()
+    bootstrap = (stage / 'core/bootstrap_economy_professions.py').read_text(encoding='utf-8-sig')
+    actual = re.search(r'^\s*VERSION\s*=\s*[\'"](\d+\.\d+\.\d+)[\'"]', bootstrap, re.M)
+    if version not in ('107.00.0','108.00.0','109.00.0') or actual is None or actual.group(1) != version:
+        raise RuntimeError('Niezgodne VERSION i kod gry v107.')
+    sources = list(stage.rglob('*.py'))
+    if not sources:
+        raise RuntimeError('Brak zrodel Python w kopii testowej.')
+    for path in sources:
+        try:
+            ast.parse(path.read_text(encoding='utf-8-sig'), filename=str(path))
+        except (SyntaxError, UnicodeError) as exc:
+            raise RuntimeError(f'Blad skladni: {path.relative_to(stage)}: {exc}') from exc
+    if any(p.is_file() and p.name.lower().endswith(DB_SUFFIXES) for p in stage.rglob('*')):
+        raise RuntimeError('Kopia testowa zawiera baze SQLite - przerwano.')
+    return len(sources), version
+
+
+def legacy_v107_main() -> int:
+    stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log = ROOT / 'logs' / f'AUDYT_V107_WINDOWS_{stamp}.log'
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open('w', encoding='utf-8', buffering=1) as fp:
+        def say(msg=''):
+            print(msg, flush=True)
+            fp.write(msg+'\n')
+        say('SOULBOUND v107.00.0 - AUDYT KODU WINDOWS PRZED PREDEPLOY')
+        say('Katalog: '+str(ROOT))
+        say('Python: '+sys.version.splitlines()[0])
+        say('Baza graczy: NIE OTWIERANA. Serwer produkcyjny: NIE ZATRZYMYWANY.')
+        say('Testy v107 w kopii tymczasowej, bez wdrazania.')
+        if not (ROOT / 'VERSION').is_file():
+            say('FAIL: Nie znaleziono VERSION. Rozpakuj pelny ZIP.');return 2
+        if os.name == 'nt' and sys.version_info < (3, 12):
+            say('FAIL: Wymagany Python 3.12 lub nowszy.');return 2
+        try:
+            with tempfile.TemporaryDirectory(prefix='soulbound_v107_windows_audit_') as directory:
+                stage = Path(directory) / 'Soulbound-MUD'
+                shutil.copytree(ROOT, stage, ignore=ignored)
+                count, version = check_sources(stage)
+                say(f'SKLADNIA: PASS ({count} plikow Python); VERSION: {version}')
+                failures = 0
+                for index, (name, script, args, deadline) in enumerate(SUITES, 1):
+                    code, output, elapsed = call(stage, 'validation.'+script, args, deadline)
+                    say(f'{index:02d}/{len(SUITES)} {"PASS" if code == 0 else "FAIL"}: {name} ({elapsed:.1f} s)')
+                    if output.strip():
+                        # Keep the final messages and error trace accessible in the log.
+                        fp.write(output.rstrip()+'\n')
+                    if code:
+                        failures += 1
+                        say('  Powod: kod '+str(code)+'; '+output.strip()[-500:])
+                code, readiness, elapsed = call(stage, SCRIPT, (), 30)
+                say('GOTOWOSC PRODUKCYJNA: '+('PASS' if code == 0 else 'FAIL'))
+                if readiness.strip():
+                    say(readiness.rstrip())
+                if failures:
+                    say(f'WYNIK: FAIL; {failures}/{len(SUITES)} testow kodu nie przeszlo. NIE WDRAZAJ.')
+                    return 1
+                say(f'TESTY KODU v107: PASS {len(SUITES)}/{len(SUITES)}.')
+                if code:
+                    say('WYNIK PRODUKCYJNY: FAIL - blokady wymagaja naprawy. Nie uruchamiaj WDROZ_PO_PREDEPLOY.bat.')
+                    return 3
+                # Even a green release-readiness check is not enough for deployment.
+                say('WYNIK: KOD PRZESZEDL; uruchom osobno PREDEPLOY_NOWEJ_WERSJI.bat 60/60 PLUS na Windows.')
+                say('Zgoda na wdrozenie jest mozliwa dopiero po oficjalnym PREDEPLOY 60/60 PLUS.')
+                return 0
+        except (OSError, RuntimeError, shutil.Error) as exc:
+            say('FAIL: Blad audytu: '+type(exc).__name__+': '+str(exc))
+            return 2
+        finally:
+            say('LOG AUDYTU: '+str(log))
+
+
+def entrypoint() -> int:
+    # v107-v109 keep their original 33 isolated regression gates, including
+    # the independent readiness check. v111 retains its own modern gate.
+    version=(ROOT/'VERSION').read_text(encoding='utf-8-sig').strip()
+    if version in ('107.00.0','108.00.0','109.00.0'):
+        return legacy_v107_main()
+    return main()
+
+if __name__=='__main__':raise SystemExit(entrypoint())

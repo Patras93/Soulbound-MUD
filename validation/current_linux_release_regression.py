@@ -109,6 +109,13 @@ def main():
         tests+=check(Path('validation/current_linux_release_regression.py') in entries,'Linux gate in ZIP')
         tests+=check(Path('validation/current_linux_release_regression.py') not in prod,'tests excluded from production')
         tests+=check(Path('soulbound.db') not in entries,'no private DB in ZIP')
+        # The complete candidate keeps Win32 regressions; Linux installation
+        # excludes only two Windows process-tracking runtime helpers.
+        for helper in ('windows_runtime_state.py','windows_launcher_state.py'):
+            tests+=check(Path(helper) in entries,'complete historical candidate: '+helper)
+            tests+=check(Path(helper) not in prod,'no Win32 state in Linux runtime: '+helper)
+        tests+=check(Path('systems/windows_control_v1603.py') in prod,
+                     'shared authenticated control remains in Linux runtime')
         tests+=check(not any(p.suffix.lower()=='.bat' for p in entries),'no Windows BAT anywhere in Linux ZIP')
         tests+=check(not any(p.suffix.lower()=='.bat' for p in prod),'no Windows BAT in installed game')
         tests+=check(all(Path(rel) in prod for rel in activation.required_for('linux')),'Linux runtime files complete')

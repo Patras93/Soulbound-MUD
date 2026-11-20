@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from systems.universal_release_update import validate_approval, ensure_stopped_for_upgrade, activate_candidate, verify_stage, update, publish_in_place
 import systems.universal_release_update as release_update
+from systems.universal_release_update import retire_superseded_approved_files
 from systems.current_fresh_install import target_for,_sqlite_snapshot
 from aktualizuj_soulbound import UpdateError
 
@@ -214,6 +215,204 @@ def check():
         assert (shmroot/'VERSION').read_text().strip()=='113.00.0';n+=1
         assert (shmroot/'soulbound.db').read_bytes()==(shmbackup/'soulbound.db').read_bytes();n+=1
         assert (shmroot/'soulbound.db-shm').read_bytes()!= (shmbackup/'soulbound.db-shm').read_bytes();n+=1
+
+        # Future-proof release retirement: after backup, remove only exactly
+        # certified former *code*, not user-modified or unsigned scripts.
+        oldroot=Path(td)/'old_approved_install';oldroot.mkdir()
+        oldbackup=Path(td)/'old_approved_backup';oldbackup.mkdir()
+        newstage=Path(td)/'next_approved_release';newstage.mkdir()
+        oldbin=b'@echo off\r\nREM old reviewed starter\r\n'
+        modified=b'print("locally modified")\n'
+        keep=b'print("still part of the new version")\n'
+        private=b'player secrets'
+        entries={
+            'Start-Soulbound-Windows.bat':oldbin,
+            'user_changed.py':modified,
+            'keep.py':keep,
+            'soulbound.db':private,
+        }
+        manifest_files={}
+        for relative, contents in entries.items():
+            (oldroot/relative).write_bytes(contents)
+            (oldbackup/relative).write_bytes(contents)
+            manifest_files[relative]=hashlib.sha256(contents).hexdigest()
+        (newstage/'keep.py').write_bytes(b'updated')
+        (oldroot/'user_changed.py').write_bytes(b'print("edited by player")\n')
+        (oldroot/'custom_addon.py').write_bytes(b'# custom user script\n')
+        (oldbackup/'config').mkdir()
+        marker=oldbackup/'config/release_current.json'
+        marker.write_text(json.dumps({'files':manifest_files}),encoding='utf-8')
+        with patch('systems.universal_activation.verify',return_value=False):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==0
+            assert (oldroot/'Start-Soulbound-Windows.bat').exists()
+            n+=1
+        with patch('systems.universal_activation.verify',return_value=True):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==1
+            n+=1
+        assert not (oldroot/'Start-Soulbound-Windows.bat').exists();n+=1
+        assert (oldbackup/'Start-Soulbound-Windows.bat').read_bytes()==oldbin;n+=1
+        assert (oldroot/'user_changed.py').read_bytes()!=modified;n+=1
+        assert (oldroot/'keep.py').read_bytes()==keep;n+=1
+        assert (oldroot/'soulbound.db').read_bytes()==private;n+=1
+        assert (oldroot/'custom_addon.py').exists();n+=1
+        # v115.00.12: after signed retirement, empty historical directories
+        # disappear, but never an unlisted file, edited code or a symlink.
+        legacy=(oldroot/'legacy'/'obsolete')
+        verified_backup=(oldbackup/'legacy'/'obsolete')
+        legacy.mkdir(parents=True)
+        verified_backup.mkdir(parents=True)
+        payload=b'# old approved offline-only audit\n'
+        (legacy/'audit.py').write_bytes(payload)
+        (verified_backup/'audit.py').write_bytes(payload)
+        (legacy/'user_notes.py').write_text('# local addon\n',encoding='utf8')
+        marker.write_text(json.dumps({'files':{
+            'legacy/obsolete/audit.py':hashlib.sha256(payload).hexdigest()}}),encoding='utf8')
+        with patch('systems.universal_activation.verify',return_value=True):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==1;n+=1
+        assert not (legacy/'audit.py').exists();n+=1
+        assert (legacy/'user_notes.py').read_text('utf8')=='# local addon\n';n+=1
+        assert legacy.is_dir();n+=1
+        # Remove the *local* untracked fixture ourselves; the approved
+        # backup remains separate and no updater has touched it.
+        (legacy/'user_notes.py').unlink()
+        second=b'# second signed old test\n'
+        (legacy/'audit2.py').write_bytes(second)
+        (verified_backup/'audit2.py').write_bytes(second)
+        marker.write_text(json.dumps({'files':{
+            'legacy/obsolete/audit2.py':hashlib.sha256(second).hexdigest()}}),encoding='utf8')
+        with patch('systems.universal_activation.verify',return_value=True):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==1;n+=1
+        assert not (oldroot/'legacy').exists();n+=1
+        assert (verified_backup/'audit.py').read_bytes()==payload;n+=1
+        # A signed-looking path redirected by a user symlink must be ignored.
+        external=Path(td)/'external_owned';external.mkdir()
+        (external/'outside.py').write_bytes(b'owner file')
+        try:
+            (oldroot/'redirect').symlink_to(external,target_is_directory=True)
+        except (OSError,NotImplementedError):
+            redirect_ok=False
+        else:
+            redirect_ok=True
+        if redirect_ok:
+            (oldbackup/'redirect').mkdir()
+            (oldbackup/'redirect/outside.py').write_bytes(b'owner file')
+        if redirect_ok:
+            marker.write_text(json.dumps({'files':{
+                'redirect/outside.py':hashlib.sha256(b'owner file').hexdigest()}}),encoding='utf8')
+        if redirect_ok:
+            with patch('systems.universal_activation.verify',return_value=True):
+                assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==0;n+=1
+            assert (external/'outside.py').read_bytes()==b'owner file';n+=1
+            (oldroot/'redirect').unlink()
+        marker.write_text(json.dumps({'files':manifest_files}),encoding='utf8')
+        # Without the approved old bytes in backup, a matching live file
+        # must still be preserved. No rename or deletion based on filenames.
+        (oldroot/'Start-Soulbound-Windows.bat').write_bytes(oldbin)
+        (oldbackup/'Start-Soulbound-Windows.bat').write_bytes(b'changed backup')
+        with patch('systems.universal_activation.verify',return_value=True):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==0
+            n+=1
+        assert (oldroot/'Start-Soulbound-Windows.bat').exists();n+=1
+        # Paths outside an approved manifest cannot be deleted.
+        marker.write_text(json.dumps({'files':{'../outside.py':hashlib.sha256(oldbin).hexdigest()}}),encoding='utf8')
+        with patch('systems.universal_activation.verify',return_value=True):
+            assert retire_superseded_approved_files(oldroot,newstage,oldbackup,protected)==0
+            n+=1
+        # v115.00.9 production-only pruning. The FULL archive retains
+        # offline test fixtures; the approved installed runtime does not.
+        from aktualizuj_soulbound import production_release_mapping
+        candidates={Path(name):None for name in (
+            'VERSION', 'server.py', 'CHANGELOG_PL.txt',
+            'arena_real_izolowana.py', 'validation/test_v115_eliza_mercenary.py',
+            'windows_autostart.py', 'windows_runtime_state.py',
+            'windows_launcher_state.py', 'systems/windows_control_v1603.py',
+            'predeploy_nowej_wersji.py', 'START_Soulbound.bat',
+        )}
+        with patch('aktualizuj_soulbound.sys.platform','linux'):
+            linux={p.as_posix() for p in production_release_mapping(candidates)}
+        with patch('aktualizuj_soulbound.sys.platform','win32'):
+            windows={p.as_posix() for p in production_release_mapping(candidates)}
+        assert not ('arena_real_izolowana.py' in linux or 'arena_real_izolowana.py' in windows);n+=1
+        assert 'validation/test_v115_eliza_mercenary.py' not in linux|windows;n+=1
+        assert all(p in linux for p in ('VERSION','server.py','CHANGELOG_PL.txt',
+                                         'systems/windows_control_v1603.py','predeploy_nowej_wersji.py'));n+=1
+        assert 'windows_autostart.py' in windows and 'windows_autostart.py' not in linux;n+=1
+        for name in ('windows_runtime_state.py','windows_launcher_state.py'):
+            assert name in windows and name not in linux;n+=1
+        # The Linux runtime does NOT load Win32 process state just to import
+        # the shared localhost control service. Force import failure in a
+        # clean reload to catch future accidental eager imports.
+        import importlib, asyncio, os, sys
+        from unittest.mock import patch as _patch
+        with _patch.dict(sys.modules, {'windows_runtime_state': None,
+                                       'windows_launcher_state': None}):
+            control = importlib.reload(importlib.import_module('systems.windows_control_v1603'))
+            with _patch.dict(os.environ, {'SOULBOUND_CONTROL_TOKEN': '',
+                                         'SOULBOUND_CONTROL_FILE': ''}):
+                assert asyncio.run(control.start_control_v1603(asyncio.Event())) is None;n+=1
+        # The shared module does not accidentally re-enable old imports.
+        control_src=(Path(__file__).resolve().parents[1]/'systems/windows_control_v1603.py').read_text('utf-8')
+        assert 'from windows_runtime_state import write_state, remove_matching' not in control_src;n+=1
+        # A real localhost control endpoint can still start and stop without
+        # a Windows fallback file and without loading either Win32 helper.
+        with tempfile.TemporaryDirectory(prefix='sb11510_control_') as isolated:
+            from unittest.mock import patch as _patch
+            control_path=str(Path(isolated)/'control.json')
+            with _patch.dict(sys.modules, {'windows_runtime_state': None,
+                                           'windows_launcher_state': None}), \
+                 _patch.dict(os.environ, {'SOULBOUND_CONTROL_TOKEN': 'x'*40,
+                                          'SOULBOUND_CONTROL_FILE': control_path,
+                                          'SOULBOUND_CONTROL_FALLBACK_FILE': ''}):
+                async def _control_cycle():
+                    result=await control.start_control_v1603(asyncio.Event())
+                    assert result is not None and Path(control_path).is_file()
+                    await result.close()
+                    assert not Path(control_path).exists()
+                asyncio.run(_control_cycle());n+=1
+        assert 'START_Soulbound.bat' in windows and 'START_Soulbound.bat' not in linux;n+=1
+        # The update entrypoint has no eager Win32 helper import either.
+        updater_text=(Path(__file__).resolve().parents[1]/'aktualizuj_soulbound.py').read_text('utf-8')
+        assert 'from windows_launcher_state import wait_gone' not in updater_text;n+=1
+        # v115.00.11: v107 standalone audit merged, not silently discarded.
+        import hashlib as _hashlib
+        from validation import v11100_v107_functional_audit as historic
+        assert not (Path(__file__).resolve().parents[1]/'audyt_v107_windows_przed_predeploy.py').exists();n+=1
+        assert len(historic.SUITES)==33 and historic.suites_reviewed();n+=1
+        assert historic.SCRIPT=='validation.v10700_release_readiness';n+=1
+        with tempfile.TemporaryDirectory(prefix='sb11511_history_') as hdir:
+            historical_root=Path(hdir)
+            (historical_root/'VERSION').write_text('107.00.0')
+            (historical_root/'core').mkdir()
+            (historical_root/'core/bootstrap_economy_professions.py').write_text("VERSION = '107.00.0'\n")
+            (historical_root/'fixture.py').write_text('x=1\n')
+            assert historic.check_sources(historical_root)[1]=='107.00.0';n+=1
+            (historical_root/'fixture.db').write_bytes(b'private fixture')
+            try:historic.check_sources(historical_root)
+            except RuntimeError:n+=1
+            else:raise AssertionError('Historyczny audyt nie moze zawierac bazy')
+            (historical_root/'fixture.db').unlink()
+            with patch.object(historic,'ROOT',historical_root), \
+                 patch.object(historic,'legacy_v107_main',return_value=7) as old_runner, \
+                 patch.object(historic,'main',return_value=8) as new_runner:
+                assert historic.entrypoint()==7;n+=1
+                old_runner.assert_called_once();new_runner.assert_not_called()
+                (historical_root/'VERSION').write_text('111.00.0')
+                assert historic.entrypoint()==8;n+=1
+                new_runner.assert_called_once()
+        assert "from validation.v11100_v107_functional_audit import SUITES,call,ignored" in (Path(__file__).resolve().parents[1]/'validation/v11000_v107_functional_audit.py').read_text('utf-8');n+=1
+        assert "else 'validation/v11100_v107_functional_audit.py'" in (Path(__file__).resolve().parents[1]/'testuj_soulbound_windows.py').read_text('utf-8');n+=1
+        # Offline arena is used ONLY by the complete regression archive.
+        source_root=Path(__file__).resolve().parents[1]
+        for source in source_root.rglob('*.py'):
+            rel=source.relative_to(source_root)
+            if 'validation' in rel.parts or rel.name=='arena_real_izolowana.py':
+                continue
+            if 'arena_real_izolowana' in source.read_text(encoding='utf-8-sig'):
+                # A static mapping / historical note is harmless, an import is not.
+                for ln in source.read_text(encoding='utf-8-sig').splitlines():
+                    if 'arena_real_izolowana' in ln and ('import' in ln or 'open(' in ln):
+                        raise AssertionError('Production code depends on offline arena: '+str(rel))
+        n+=1
     print('CURRENT UNIVERSAL UPDATE: '+str(n)+' checks PASS')
 
 if __name__=='__main__':check()
