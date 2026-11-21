@@ -66,6 +66,16 @@ def run():
     from validation.current_fame_immediate_regression import run as current_fame_test
     current_fame_test()  # instant kill EXP, separate first Fame bonus, legacy debt
     print('KONTROLA WSTEPNA: natychmiastowy EXP i osobny Fame PASS',flush=True)
+    # v116.00.50: each party member must keep all hires and summons;
+    # cached world events and atlas must not rescan 37k rooms per step.
+    from validation.current_six_player_helpers_performance_v11650_regression import run as six_helpers_test
+    six_helpers_test()
+    from validation.current_world_event_atlas_cache_v11650_regression import run as caches_test
+    caches_test()
+    print('KONTROLA WSTEPNA: 6 graczy, najemnicy, chowance i cache swiata PASS', flush=True)
+    from validation.current_world_balance_stage_v11650_regression import run as stage_balance_test
+    stage_balance_test()  # every world zone; higher-stage mobs resist group+helpers
+    print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)
     from validation.current_quest_accept_performance_regression import run as quest_lookup_test
     quest_lookup_test()  # NPC lookup: preserve names, forbid whole-world offer scans
     print('KONTROLA WSTEPNA: szybkie przyjmowanie questow PASS',flush=True)

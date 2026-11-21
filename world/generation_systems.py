@@ -1784,9 +1784,30 @@ def v0160_traveler_room(npc_id, now=None):
     return route[(slot + offset) % len(route)]
 
 
+# v116.00.50: static NPCs are indexed by room; the dynamic travelers are
+# deliberately resolved at read time (their positions change with the clock).
+# Controlled same-size NPC edits invalidate the index via catalog generation.
+_V016_NPCS_ROOM_INDEX_V11650 = None
+
+
+def v0160_static_npcs_in_room_v11650(room_id):
+    from data.npcs import NPCS
+    from data.catalog_mutations import NPCS_GENERATION_V11650
+    global _V016_NPCS_ROOM_INDEX_V11650
+    signature = (id(NPCS), len(NPCS), NPCS_GENERATION_V11650)
+    cached = _V016_NPCS_ROOM_INDEX_V11650
+    if cached is None or cached[0] != signature:
+        by_room = {}
+        for nid, npc in NPCS.items():
+            by_room.setdefault(npc.get("room"), []).append((nid, npc))
+        _V016_NPCS_ROOM_INDEX_V11650 = (signature, by_room)
+        cached = _V016_NPCS_ROOM_INDEX_V11650
+    # Return an independent dict: callers must not mutate the shared index.
+    return dict(cached[1].get(room_id, ()))
+
+
 def v0160_npcs_in_room(room_id, now=None):
-    from data.npcs import NPCS  # canonical current dependency
-    result = {nid: npc for nid, npc in NPCS.items() if npc.get("room") == room_id}
+    result = v0160_static_npcs_in_room_v11650(room_id)
     for npc_id, data in V016_TRAVELERS.items():
         if v0160_traveler_room(npc_id, now) == room_id:
             entry = dict(data)

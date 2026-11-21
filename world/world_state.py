@@ -73,15 +73,32 @@ class MobState:
 # ============================================================
 # v0.29.0 - DYNAMIC WORLD EVENTS + BOSS/NEMESIS GENERATOR
 # ============================================================
+# v116.00.50: The five v029 events belong to an hourly slot. Cache that
+# deterministic selection for the slot; do NOT rescan every spawn on every
+# player look/move. Rebuild on a clock-slot or registry-object change. Runtime
+# spawns added mid-slot are eligible for the next hourly rotation, so already
+# announced boss locations never silently jump while a party approaches.
+_V0290_EVENT_SNAPSHOT_V11650 = None
+
+
 def v0290_active_world_events(now=None):
     from data.mobs import MOB_TEMPLATES  # canonical current dependency
     from data.rooms import ROOMS  # canonical current dependency
     import world.dynamic_world_generator as dynamic_world_v029  # explicit current dependency
     from core.bootstrap_economy_professions import V0250_WORLD_SEED  # explicit current dependency
     from systems.content_registry import MOB_SPAWNS  # explicit current dependency
-    events = dynamic_world_v029.active_events(
-        ROOMS, MOB_SPAWNS, MOB_TEMPLATES, str(V0250_WORLD_SEED), now=now
-    )
+    import time as _time_v11650
+    global _V0290_EVENT_SNAPSHOT_V11650
+    slot = dynamic_world_v029.event_slot(_time_v11650.time() if now is None else now)
+    signature = (slot, id(ROOMS), id(MOB_SPAWNS), id(MOB_TEMPLATES), str(V0250_WORLD_SEED))
+    cached = _V0290_EVENT_SNAPSHOT_V11650
+    if cached is None or cached[0] != signature:
+        events = dynamic_world_v029.active_events(
+            ROOMS, MOB_SPAWNS, MOB_TEMPLATES, str(V0250_WORLD_SEED), now=now
+        )
+        _V0290_EVENT_SNAPSHOT_V11650 = (signature, events)
+    else:
+        events = cached[1]
     # v1.20.0: use the EXISTING ephemeral event spawner for new regions.
     # The module is imported lazily because this World module precedes its
     # authored catalogs in the legacy bootstrap order.

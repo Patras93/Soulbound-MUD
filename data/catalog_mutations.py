@@ -29,6 +29,11 @@ CATALOG_MUTATION_COUNTS: Counter[tuple[str, str, str]] = Counter()
 CATALOG_LAST_WRITER: dict[tuple[str, Any], str] = {}
 # Invalidate the live relic index after controlled item catalog changes.
 ITEMS_GENERATION_V11320 = 0
+# v116.00.50: mutation-aware room index for static NPCs.
+NPCS_GENERATION_V11650 = 0
+# Only changes that may affect atlas categories rebuild the giant catalog.
+# Ordinary procedural room/spawn creation no longer invalidates it per step.
+ATLAS_GENERATION_V11650 = 0
 
 
 def _caller_module() -> str:
@@ -66,6 +71,15 @@ def _record(name: str, key: Any, action: str, *, owner: str | None = None, path=
     if name == "ITEMS":
         global ITEMS_GENERATION_V11320
         ITEMS_GENERATION_V11320 += 1
+    if name == "NPCS":
+        global NPCS_GENERATION_V11650
+        NPCS_GENERATION_V11650 += 1
+    if ((name == "ROOMS" and str(key).startswith(
+            ("v1500_", "v1600_", "v1700_", "v1300_orc", "uoss_"))
+            and not str(key).startswith("v1500_echo_"))
+            or (name == "MOB_TEMPLATES" and str(key).startswith(("v1600_", "v1700_")))):
+        global ATLAS_GENERATION_V11650
+        ATLAS_GENERATION_V11650 += 1
     CATALOG_MUTATION_COUNTS[(owner, name, action)] += 1
     CATALOG_LAST_WRITER[(name, root_key)] = owner
     CATALOG_MUTATION_LOG.append({
