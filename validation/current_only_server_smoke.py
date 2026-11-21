@@ -12,7 +12,7 @@ sys.path.insert(0,str(ROOT))
 
 
 def main():
-    with tempfile.TemporaryDirectory(prefix='sb112_standalone_') as td:
+    with tempfile.TemporaryDirectory(prefix='sb112_standalone_', ignore_cleanup_errors=True) as td:
         for key in list(os.environ):
             if key.startswith('SOULBOUND_') and key.endswith(('_STAGING', '_PREDEPLOY')):
                 os.environ.pop(key, None)
@@ -188,16 +188,77 @@ def main():
         assert set(architecture['modules']) == set(RUNTIME_MODULES)
         assert all(row['dependency_mode'] == 'explicit'
                    for row in server.RUNTIME_NATIVE_MODULE_INDEX.values())
-        instance=MudServer()
-        tables={row[0] for row in instance.db.conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-        required={'v110_event_progress','v110_event_death_receipts',
-                  'v110_event_participants','v110_event_reward_receipts',
-                  'v110_profession_cooldowns'}
-        assert required<=tables
-        assert not (forbidden & set(sys.modules)), forbidden & set(sys.modules)
-        instance.db.conn.close()
-        server._BOOT_SOCKET.close()
+        # Always release the smoke DB, including when an assertion fails. On
+        # Windows an open SQLite handle prevents TemporaryDirectory cleanup and
+        # used to mask the *real* test failure with WinError 32.
+        instance = None
+        try:
+            instance=MudServer()
+            tables={row[0] for row in instance.db.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+            required={'v110_event_progress','v110_event_death_receipts',
+                      'v110_event_participants','v110_event_reward_receipts',
+                      'v110_profession_cooldowns'}
+            assert required<=tables
+            assert not (forbidden & set(sys.modules)), forbidden & set(sys.modules)
+            # Empty-world CPU regression: no monster scans until a real character
+            # enters, immediate wake, normal ticks while online, sleep on logout.
+            import asyncio
+            class IdleWorldProbe:
+                def __init__(self):
+                    self.mobs = {}
+                    self.scans = 0
+                    self.wanders = 0
+                def refresh(self, force=False):
+                    assert force
+                    self.scans += 1
+                    return {}
+                def wander_step(self):
+                    self.wanders += 1
+                    return []
+            class OnlineProbe:
+                closed = False
+                character = object()
+                current_hp = 100
+                combat_mob_key = None
+            async def check_idle_world():
+                probe = MudServer.__new__(MudServer)
+                probe.sessions = set()
+                probe.world = IdleWorldProbe()
+                probe._players_present_v11645 = asyncio.Event()
+                loop_task = asyncio.create_task(probe.mob_wander_loop(tick_seconds=0.015))
+                try:
+                    await asyncio.sleep(0.065)
+                    assert (probe.world.scans, probe.world.wanders) == (0, 0), 'idle world still scans'
+                    online = OnlineProbe()
+                    probe.sessions.add(online)
+                    probe._players_present_v11645.set()
+                    await asyncio.sleep(0.075)
+                    assert probe.world.scans == 1, 'online wake refresh missing'
+                    assert probe.world.wanders >= 2, 'movement did not resume'
+                    probe.sessions.discard(online)
+                    await asyncio.sleep(0.045)
+                    ticks = probe.world.wanders
+                    await asyncio.sleep(0.065)
+                    assert probe.world.wanders == ticks, 'movement continued while empty'
+                    assert not probe._players_in_world_v11645(), 'empty state incorrect'
+                finally:
+                    loop_task.cancel()
+                    await asyncio.gather(loop_task, return_exceptions=True)
+            asyncio.run(check_idle_world())
+            from systems.mob_recovery_v1405 import restore_idle_hp_tick_v1405
+            from types import SimpleNamespace
+            dummy=SimpleNamespace(alive=True,hp=5,engaged_by=None,aoe_engaged_by=None,
+                                  adaptive_max_hp_v11330=0)
+            assert restore_idle_hp_tick_v1405(dummy, {'max_hp':100}, ticks=10)==95
+            assert dummy.hp==100
+            dummy.engaged_by='real_player'
+            assert restore_idle_hp_tick_v1405(dummy, {'max_hp':100}, ticks=10)==0
+            print('IDLE WORLD OPTIMIZATION PASS: empty/wake/reempty, HP catch-up', flush=True)
+        finally:
+            if instance is not None:
+                instance.db.conn.close()
+            server._BOOT_SOCKET.close()
         print('CURRENT-ONLY RUNTIME PASS: 38 klas, 38 ras, 15136 questow, '
               '5 tabel SQLite, 8 narzędzi/8 wyrobów, 38 pul zadań gildyjnych, 38 unikalnych profili EQ; '
               f'{round(time.monotonic()-t,2)} sek. 127.0.0.1 tylko test',flush=True)

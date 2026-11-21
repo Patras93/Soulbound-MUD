@@ -87,6 +87,9 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         self.published_world_content = PublishedWorldContent(self.db)
         self.world = World()
         self.sessions = set()
+        # v116.00.45: notification, not a periodic polling task. Only a real
+        # player who has entered the world wakes autonomous monster movement.
+        self._players_present_v11645 = asyncio.Event()
         self.parties = {}
         self.party_invites = {}
         # leader_account_id -> protector_account_id. Stan sesyjny; bez migracji DB.
@@ -418,7 +421,7 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                     file=sys.stderr, flush=True,
                 )
 
-    def regenerate_idle_mobs_v1405(self):
+    def regenerate_idle_mobs_v1405(self, *, ticks=1):
         """One lightweight HP tick; only mobs without a living opponent heal.
 
         Reuses the existing 15-second world loop; no task per mob, no DB writes.
@@ -445,19 +448,54 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
             if int(getattr(mob, "adaptive_max_hp_v11330", 0) or 0) > 0:
                 self.reset_adaptive_mob_encounter_v11330(mob)
             template = MOB_TEMPLATES.get(mob.template_id, {})
-            if restore_idle_hp_tick_v1405(mob, template):
+            if restore_idle_hp_tick_v1405(mob, template, ticks=ticks):
                 restored += 1
         return restored
 
-    async def mob_wander_loop(self):
+    def _players_in_world_v11645(self):
+        """Only logged-in characters count, not TCP probes or login screens."""
+        return any(
+            not getattr(session, "closed", False)
+            and getattr(session, "character", None) is not None
+            for session in self.sessions
+        )
+
+    async def mob_wander_loop(self, *, tick_seconds=15.0):
         import asyncio  # canonical current dependency
         from data.mobs import MOB_TEMPLATES  # canonical current dependency
         import time  # canonical current dependency
         while True:
-            # v1.11.22: ruch świata nie wymaga ticku co 5 s. Same moby mają
-            # własne next_wander_at liczone w znacznie dłuższych interwałach.
-            # Rzadszy tick ogranicza globalne skany i broadcasty bez wyłączania ruchu.
-            await asyncio.sleep(15.0)
+            # v116.00.45: an empty server has no observers of roaming mobs.
+            # Wait on a real login signal: no 22k-mob scans, no timed polling,
+            # and no changes to other background event/Fame/backup tasks.
+            if not self._players_in_world_v11645():
+                self._players_present_v11645.clear()
+                idle_since = time.monotonic()
+                print('[WORLD IDLE] Brak graczy: ruch i AI spacerujacych mobow uspione.', flush=True)
+                await self._players_present_v11645.wait()
+                if not self._players_in_world_v11645():
+                    continue
+                # Respawns, loot and corpse expirations use real wall-clock
+                # deadlines. Refresh once on wake instead of replaying ticks.
+                try:
+                    self.world.refresh(force=True)
+                    # Healing would otherwise freeze during long empty periods.
+                    # Catch up in ONE mob scan (at most ten 10% ticks), without
+                    # respawning or fully healing a mob during live combat.
+                    missed = min(10, int((time.monotonic() - idle_since) // 15.0))
+                    if missed:
+                        self.regenerate_idle_mobs_v1405(ticks=missed)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    print(f'[WORLD IDLE WAKE ERROR] {type(exc).__name__}: {exc}',
+                          file=sys.stderr, flush=True)
+                print('[WORLD ACTIVE] Gracz wszedl do swiata: ruch potworow wznowiony.', flush=True)
+            # v1.11.22: ordinary roaming remains on the original 15-second
+            # schedule while at least one character is in the world.
+            await asyncio.sleep(tick_seconds)
+            if not self._players_in_world_v11645():
+                continue
             try:
                 _tick_started_v0718 = time.perf_counter()
                 # v1.40.5: healed idle mobs only; 10% HP each 15-second tick.
@@ -508,6 +546,8 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         try:
             if await session.login_flow():
                 await session.enter_world()
+                # Wake world movement as soon as the first real character enters.
+                self._players_present_v11645.set()
                 while not session.closed:
                     try:
                         await session.command_loop()

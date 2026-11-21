@@ -1,3 +1,97 @@
+Soulbound MUD v116.00.46 — NAPRAWA TESTU PREDEPLOY v116.00.45 (21.11.2026)
+
+- Naprawiono test pelnego uruchomienia serwera: atrapa zalogowanego gracza ma
+  wymagane pola HP i walki, dzieki czemu weryfikacja wybudzenia AI dziala
+  bez AttributeError.
+- Po bledzie testowego uruchomienia połączenie SQLite i testowe gniazdo TCP
+  sa zamykane przed usuwaniem katalogu TEMP; WinError 32 nie maskuje juz
+  pierwotnego bledu testowego na Windows.
+- Nie ma zmian w mechanice, swiatach, bazie, EQ, nagrodach ani najemnikach
+  wzgledem v116.00.45. Oszczedzanie CPU pustego MUD pozostaje aktywne.
+- Pelny PREDEPLOY Windows 60/60 PLUS oraz testy LIVE sa nadal obowiazkowe.
+  Poprzedniego wyniku FAIL v116.00.45 nie wolno uzywac do wdrozenia v116.00.46.
+
+Soulbound MUD v116.00.45 — OSZCZĘDZANIE CPU PUSTEGO SERWERA (21.11.2026)
+
+- Gdy nikt nie ma zalogowanej postaci, pętla spacerów i regeneracji mobów
+  usypia się na zdarzeniu logowania, zamiast co 15 sekund skanować ~22 tys.
+  potworów i generować tysiące nieobserwowanych ruchów.
+- Po wejściu pierwszego gracza natychmiast odświeżane są zaplanowane respawny,
+  wygasłe zwłoki i łupy. Nie odtwarza się tysięcy zaległych spacerów.
+- Leczenie poza walką nadrabia pominięte ticki w jednym skanie, maksymalnie
+  do pełnego zdrowia; walczących mobów nie leczy i nie wskrzesza.
+- Po zalogowaniu normalny ruch mobów wraca do pierwotnego interwału 15 s.
+  Same moby nie znikają, nie są osłabione i nie zmieniają swoich nagród.
+- Zegary, eventy, EXP x2, Fame i backupy działają niezależnie od stanu uśpienia.
+- Jeden krótki wpis w logu przy uśpieniu i wybudzeniu, bez danych postaci.
+- Baza kont/postaci, EQ i stan progresu bez migracji, wspólny gameplay
+  Windows/Linux. PREDEPLOY 60/60 PLUS PASS jest obowiązkowy przed wdrożeniem.
+
+Soulbound MUD v116.00.44 — RATUNEK WYDAJNOŚCI I FAME (20.11.2026)
+
+- Ruch: Globalny Atlas Odkryć nie buduje ponownie całego katalogu 37 tys. lokacji
+  przy każdym odkryciu; cache współdzielony przez sesje, automatycznie
+  odświeżany po rozszerzeniu listy pokoi/NPC i z bezpiecznym czasem życia.
+- Odkrycia po staremu przyznają EP, zadania i osiągnięcia; przy wyszukiwaniu
+  prefiksów odkrytych miejsc używany jest indeks posortowanych identyfikatorów.
+- W izolowanym profilu pełnego świata kolejne sprawdzenie atlasu: 3,3 s ->
+  około 0,003 s. Pierwsze budowanie nadal jest kosztowne; to nie jest obietnica
+  czasu pełnej komendy chodzenia u gracza.
+- Prowadzenie: indeks nazw, aliasów i stref oszczędza powtarzane przeglądanie
+  wszystkich pokoi, a indeks aktualizuje się po dołożeniu nowych pokojów.
+- Lista prowadzenia obejmuje bieżący katalog 38 profesji (zależnie od runtime),
+  tylko rzeczywiście istniejący mistrz jest proponowany jako cel. Rozległe
+  listy są dzielone na strony po 12/20 pozycji dla NVDA.
+- Atlas profesji nadal używa bieżącego, kompletnego katalogu runtime.
+- Komenda expareas wylicza orientacyjną siłę postaci raz na wywołanie,
+  nie osobno dla każdej pozycji; każda kolejna komenda bierze aktualne staty.
+- FAME MOB: po pierwszym prawdziwym zabiciu wypłacane są DWIE oddzielne
+  składowe: pełny zwykły EXP z walki i jednorazowy bonus Fame zgodny
+  z bieżącym Multi Cap na każdą dostępną oś. Obie składowe atomowe i w EXP Bank.
+  Fama przyznawana po dalszych ok. 2 s. Ponowne zabicia: zwykły EXP bez
+  jednorazowego bonusu. Opóźnienie 60-300 s i istniejące zapisy zachowane.
+- Bez nowych terenów, bossów ani zmian bazy postaci. Windows i Linux mają
+  identyczny gameplay. Wymagany realny Windows PREDEPLOY 60/60 PLUS PASS przed
+  wdrożeniem. NIE WDRAŻAĆ przed PASS.
+
+Soulbound MUD v116.00.43 — NAPRAWA ODKRYWANIA I LAGÓW (20.11.2026)
+
+- Poprawiono wyjątek "Odkrycie v115 poza autoryzowanym sektorem"
+  podczas przejścia do nowych skrzydeł, galerii i podziemi v116.
+- Własne cele eksploracji v115 pozostają dostępne tylko w autentycznych
+  sektorach v115; nowe v116 zachowują zwykłe odkrywanie i swoje EP.
+- Przy ocenie zagrożenia pokojów i komendzie "expareas" zamiast ponownego
+  przeglądania dziesiątek tysięcy spawnów dla każdego pokoju stosowany jest
+  indeks spawnów, przebudowywany po zmianie rozmiaru katalogu.
+- Przy dużych wypłatach EP serwer oddaje sterowanie pętli między porcjami;
+  Multi Cap i EXP Bank nadal są przeliczane oddzielnie dla każdego EP.
+- Zachowano nagrody DZIENNY PREZENT ze v116.00.42, w tym EXP wielu systemów.
+- Baza graczy, ekwipunek, ilość EP, mapy, lochy i walka bez migracji.
+- Wymagany nowy PREDEPLOY Windows 60/60 PLUS PASS; nie wdrażać przed PASS.
+
+Soulbound MUD v116.00.42 — DZIENNY PREZENT: ROZWÓJ WSZYSTKICH ŚCIEŻEK (20.11.2026)
+
+- Dotychczasowy automatyczny DZIENNY PREZENT zachowuje nazwę, komunikat NVDA,
+  opóźnienie 2 minut, pieniądze i istniejący EXP postaci.
+- Dodatkowo wypłaca małe porcje EXP do Soul Level, wszystkich 6 statystyk,
+  biegłości bieżącej klasy, biegłości Broni Duszy, wszystkich poznanych
+  umiejętności, rozpoczętych profesji i używanych narzędzi.
+- Magitek korzysta z biegłości swojej klasy i posiadanych umiejętności UOSS;
+  nie tworzymy fikcyjnej osobnej waluty/poziomu Magiteka.
+- Zwykły prezent: ok. 1% aktualnego progu każdego systemu (statystyki
+  mniejsza porcja, bo standardowy system stosuje własne mnożniki),
+  adwentowy: ok. 3%; każda porcja ograniczona oraz regulowana Multi Cap.
+- Brak automatycznego odblokowywania Tierów, umiejętności, klas i profesji;
+  nagroda nie udaje użycia skilla ani pracy narzędziem.
+- Jedna nagroda dziennie na konto główne, bez powtórek po wylogowaniu.
+  Pieniądze i wszystkie osie EXP są wypłacane razem lub w całości cofane
+  w razie błędu, bez usuwania sald starego EXP Banku.
+- W grudniu większy prezent ADWENT obejmuje te same ścieżki rozwoju.
+- Zmieniono tylko 2 moduły wypłat i 2 istniejące zestawy testów,
+  VERSION i polski changelog; bez nowych BAT, SH, skryptów ani migracji bazy.
+- Windows i Linux mają tę samą mechanikę. Wymagany PREDEPLOY 60/60 PLUS PASS
+  na Twoim Windows przed WDROZ_PO_PREDEPLOY.bat. NIE WDRAŻAĆ przed PASS.
+
 Soulbound MUD v116.00.41 — NAPRAWA BRAMKI 48/60 (SECURITY)
 
 - Naprawa wykryta w PREDEPLOY v116.00.40 na Windows 20.11.2026:

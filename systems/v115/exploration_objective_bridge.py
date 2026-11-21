@@ -14,6 +14,45 @@ from .objective_progress import record_event
 from .objective_rewards import settle_kill_objectives
 
 
+def _v116_extension(room_id, room, region_key):
+    """Recognize authentic v116 extensions without crediting v115-only goals.
+
+    The newer wings carry v115_region_key for their terrain/difficulty, but
+    their rooms are NOT part of the v115 144-sector/24-dungeon objective.
+    Validate their canonical IDs and provenance markers: a forged/malformed
+    v115 room still fails closed instead of silently becoming a free reward.
+    """
+    if not isinstance(room_id, str):
+        return False
+    from .regional_dungeons import _INDEX
+    index = _INDEX[region_key]
+    import re
+    match = re.fullmatch(r'(v116(?:_dungeon_wing|_deep_gallery)|v11625_main_dungeon|v11626_(?:wing|gallery))_([0-9]{2})_p_([0-9]{2})_([0-9]{2})', room_id)
+    if match is None:
+        return False
+    label, found_index, x_txt, y_txt = match.groups()
+    if int(found_index) != index:
+        raise ValueError('Niepoprawna kraina rozszerzenia v116')
+    x, y = int(x_txt), int(y_txt)
+    from systems.v116_dungeon_border_wings import wing_id, WIDTH as WING_W, HEIGHT as WING_H
+    from systems.v116_deep_galleries import gallery_id, WIDTH as GAL_W, HEIGHT as GAL_H
+    from systems.current_main_dungeon_expanses import sector_id as main_id, WIDTH as MAIN_W, HEIGHT as MAIN_H
+    from systems.current_wing_grindfields import sector_id as side_id, WIDTH as SIDE_W, HEIGHT as SIDE_H
+    kinds = {
+        'v116_dungeon_wing': ('v116_dungeon_wing', None, WING_W, WING_H, wing_id),
+        'v116_deep_gallery': ('v116_deep_gallery', None, GAL_W, GAL_H, gallery_id),
+        'v11625_main_dungeon': ('v11625_main_dungeon_expanse', None, MAIN_W, MAIN_H, main_id),
+        'v11626_wing': ('v116_dungeon_wing', 'wing', SIDE_W, SIDE_H, lambda i,a,b:side_id('wing',i,a,b)),
+        'v11626_gallery': ('v116_deep_gallery', 'gallery', SIDE_W, SIDE_H, lambda i,a,b:side_id('gallery',i,a,b)),
+    }
+    marker, side, width, height, canonical = kinds[label]
+    if (room.get(marker) != region_key or x >= width or y >= height
+            or (side is not None and room.get('v11626_wing_grindfield') != side)
+            or canonical(index,x,y) != room_id):
+        raise ValueError('Niepoprawny sektor rozszerzenia v116')
+    return True
+
+
 def _valid_sector(room_id, room):
     if not isinstance(room, dict):
         return None
@@ -22,6 +61,8 @@ def _valid_sector(room_id, room):
         return None
     if key not in REGION_BY_KEY:
         raise ValueError('Nieznana kraina odkrycia v115')
+    if _v116_extension(room_id, room, key):
+        return None  # Native discovery/EP still work; no duplicate v115 objectives.
     from .regional_dungeons import is_authored_dungeon_room
     dungeon = is_authored_dungeon_room(room_id, room)
     if dungeon is not None:

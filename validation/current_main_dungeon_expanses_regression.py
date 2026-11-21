@@ -82,6 +82,50 @@ class MainDungeonExpanses(unittest.TestCase):
             self.assertFalse(MOB_TEMPLATES[mob].get('world_boss'))
         for rid,mob in old_spawns():self.assertIn((rid,mob),MOB_SPAWNS)
 
+    def test_v116_live_discovery_bridge_accepts_all_new_dungeon_rooms(self):
+        from systems.v115.exploration_objective_bridge import _valid_sector
+        from systems.v115.playable_regions import room_id as original_id
+        from systems.v115.regional_dungeons import room_id as dungeon_id
+        # The actual 12,240 generated rooms carry v115_region_key for
+        # terrain scaling. None may be mistaken for a v115 objective sector.
+        extensions = [(rid, room) for rid, room in ROOMS.items()
+                      if rid.startswith('v116') and room.get('v115_region_key')]
+        self.assertEqual(len(extensions),12240)
+        for rid, room in extensions:
+            self.assertIsNone(_valid_sector(rid, room), rid)
+        for reg in REGIONS:
+            a=original_id(reg.key,0,0)
+            b=dungeon_id(reg.key,0,0)
+            self.assertEqual(_valid_sector(a,ROOMS[a]),reg.key)
+            self.assertEqual(_valid_sector(b,ROOMS[b]),reg.key)
+        actual=extensions[0]
+        # Reject counterfeit IDs/region keys rather than silently treating
+        # corrupt metadata as an ordinary extension.
+        with self.assertRaises(ValueError):
+            _valid_sector(actual[0], dict(actual[1],v115_region_key=REGIONS[-1].key))
+        with self.assertRaises(ValueError):
+            _valid_sector(actual[0]+'_fake',actual[1])
+        with self.assertRaises(ValueError):
+            _valid_sector('forged',{'v115_region_key':REGIONS[0].key})
+
+    def test_spawn_threat_index_is_exact_and_rebuilds_after_growth(self):
+        from core import mines_threat as threat
+        from unittest.mock import patch
+        from systems.content_registry import MOB_SPAWNS as REAL_SPAWNS
+        # No need to mutate players' DB or the actual world catalog.
+        first=[(f'fixture_room_{i}', 'temple_rat') for i in range(22000)]
+        with patch('systems.content_registry.MOB_SPAWNS',first):
+            index=threat.v0866_room_spawn_index()
+            self.assertEqual(len(index),22000)
+            self.assertIs(index,threat.v0866_room_spawn_index())
+            for i in (0,123,999,10000,21999):
+                profile=threat.v0866_room_threat_profile(f'fixture_room_{i}',1)
+                self.assertEqual(profile['normal_count'],1)
+            first.append(('fixture_new_room','temple_rat'))
+            self.assertEqual(threat.v0866_room_threat_profile('fixture_new_room',1)['normal_count'],1)
+        # Rebuild on the real source after the synthetic fixture exits.
+        self.assertEqual(sum(map(len,threat.v0866_room_spawn_index().values())),len(REAL_SPAWNS))
+
     def test_atomic_preflight_rejects_missing_wrong_occupied_and_collision(self):
         def sample():
             return {old_id(reg.key,5,0):{'zone':f'Podziemia — {reg.name}',
