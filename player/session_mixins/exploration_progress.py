@@ -116,7 +116,12 @@ class SessionExplorationProgressMixin:
             """Finite, source-backed discovery catalog built from the live world registries."""
             global _GLOBAL_ATLAS_CATALOG_CACHE_V11644
             now = time.monotonic()
-            signature = (id(ROOMS), len(ROOMS), len(NPCS), len(MOB_TEMPLATES))
+            from data import catalog_mutations as _mut_v11650
+            # Runtime procedural rooms and ordinary mob templates must not
+            # rebuild a 37k-room atlas for every player step. Controlled edits
+            # to actual atlas regions/bosses have their own generation key.
+            signature = (id(ROOMS), id(NPCS), id(MOB_TEMPLATES),
+                         _mut_v11650.ATLAS_GENERATION_V11650)
             cached = _GLOBAL_ATLAS_CATALOG_CACHE_V11644
             if (cached is not None and cached[0] == signature
                     and now - cached[1] < 3600.0):

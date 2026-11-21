@@ -270,6 +270,35 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=
 
 
 
+def authored_stage_challenge_multiplier_v11650(
+        template, character_level, room=None, real_players=1, mercenaries=0, companions=0):
+    """Conservative world-wide HP floor for fights ABOVE the party's level.
+
+    This is independent of the old optional Adaptive Combat switch: no
+    player-damage penalties, no increased XP/Fame, no raids and no hard gates.
+    Followers improve the party's effective attack force but NEVER count as
+    player connections. An equal-level/overlevelled fight stays unchanged.
+    """
+    if not isinstance(template, dict) or template.get('training_dummy'):
+        return 1.0
+    if character_level is None:
+        return 1.0
+    stage = adaptive_encounter_stage_v2325(template, room)
+    level = max(1, int(character_level))
+    deficit = max(0, stage - level - 5)
+    if not deficit:
+        return 1.0
+    # Relative level pressure is capped; actual authored HP has no such cap.
+    gap = min(120, deficit)
+    stage_factor = min(30.0, 1.0 + 0.10 * gap + 0.0025 * gap * gap)
+    fighters = max(1, min(6, int(real_players)))
+    assistants = max(0, min(24, int(mercenaries)))
+    pets = max(0, min(24, int(companions)))
+    team_strength = fighters + 0.35 * assistants + 0.20 * pets
+    team_factor = min(4.0, 1.0 + 0.30 * (team_strength - 1.0))
+    return round(stage_factor * team_factor, 4)
+
+
 def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
     """Diminishing, uncapped compensation for actual extra combat effort.
 

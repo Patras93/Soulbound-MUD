@@ -1,3 +1,35 @@
+Soulbound MUD v116.00.50 — PŁYNNOŚĆ DRUŻYN I BALANS CAŁEGO ŚWIATA (21.11.2026)
+
+1. LAGI: statyczne postacie NPC są wyszukiwane przez indeks lokacji zamiast
+   przeglądania całego katalogu przy każdym kroku. Podróżujący NPC i nauczyciele
+   zachowują prawidłowe zachowanie.
+2. LAGI: wydarzenia świata na godzinny cykl są wybierane tylko raz; nie trzeba
+   przy każdej komendzie przeszukiwać wszystkich lokacji i spawnów.
+3. LAGI: atlas odkryć nie przebudowuje się przy każdym nowym proceduralnym
+   pokoju. Zmiany autorskich regionów nadal unieważniają pamięć podręczną.
+4. TRUDNOŚĆ: wszędzie na świecie, gdy zalecany poziom potwora/terenu jest
+   wyraźnie wyższy od najwyższego Levelu postaci w aktywnej drużynie,
+   potwór otrzymuje dodatkową wytrzymałość na czas walki. Dotyczy otwartego
+   świata, krypt, wież i innych lochów; działa również na warianty Elite/Rare.
+   Nie blokuje wejścia, nie zmniejsza obrażeń graczy, najemników i chowańców.
+5. SKALOWANIE DRUŻYNY: tylko prawdziwi gracze (maks. 6) zajmują miejsca;
+   aktywni najemnicy i chowańce zwiększają ocenę siły drużyny w bitwie, bez
+   zajmowania slotów i bez limitowania liczby pomocników. Brak rajdów.
+   Taki zwiększony HP nie daje dodatkowego EXP, Fame, złota ani przedmiotów.
+6. POCZĄTKUJĄCY: przeciwnicy na równym lub niższym poziomie oraz manekiny
+   treningowe pozostają niezmienione. Zachowane stare flagi Adaptive Combat,
+   wypłaty EXP/Fame i system przyjmowania questów.
+7. TESTY: 131 kontroli grupy 6 graczy + 18 najemników + 6 chowańców;
+   109 kontroli cache; 194 kontrole globalnego balansu; historyczne testy
+   trudności v1.25, v1.26, v2.00.5, v3.00 i v102 przeszły.
+8. TEST IZOLACYJNY: w próbce sześciu postaci sześć kroków skróciło się
+   z 4,54 s do 0,28 s; to nie jest pomiar Windows produkcyjnego.
+
+WAŻNE: NIE WDRAŻAĆ bez pełnego PREDEPLOY 60/60 PLUS na docelowym Windows.
+Obecnej gry, soulbound.db, zapisów kont i GitHuba NIE ZMIENIONO.
+
+---
+
 Soulbound MUD v116.00.49 — NALICZANIE QUESTÓW ZE SZKODNIKAMI (21.11.2026)
 
 - Wzmocniono naliczanie questów z miejskimi Podziemnymi Szkodnikami:

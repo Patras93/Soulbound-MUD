@@ -5,6 +5,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import math
 import random
+import sqlite3
 import sys
 
 from core.progression_600 import CHARACTER_MAX_LEVEL
@@ -154,11 +155,83 @@ class SessionCombatDamageMixin:
                 template = MOB_TEMPLATES.get(mob.template_id, {})
                 if not isinstance(template, dict) or template.get("training_dummy"):
                     return None
-                # Global OFF disables both HP and damage scaling for everyone.
+                # Legacy Adaptive Combat remains OFF for enemy damage and
+                # reward scaling. A separate authored-stage HP floor protects
+                # underlevelled hunting grounds across the entire world.
                 from systems.adaptive_switch_v102006 import enabled, reset_mob
                 if not enabled():
-                    reset_mob(mob, template)
-                    return None
+                    from systems.adaptive_combat import authored_stage_challenge_multiplier_v11650
+                    import time as _time_v11650
+                    members = self.adaptive_party_members_v11330(mob)
+                    party_level = max(
+                        max(1, int(getattr(member.character, 'character_level', 1) or 1))
+                        for member in members
+                    )
+                    room_v11650 = ROOMS.get(str(getattr(mob, 'room_id', '')), {})
+                    # Most equal-level hunts take the extremely cheap legacy
+                    # path, without querying companion/contract tables.
+                    if adaptive_encounter_stage_v2325(template, room_v11650) <= party_level + 5:
+                        if not self.adaptive_mob_has_active_fighters_v1261(mob):
+                            reset_mob(mob, template)
+                        return None
+                    # The party composition changes far less often than its
+                    # combat rounds. Cache helper counts briefly, per owner.
+                    mercenaries = companions = 0
+                    for member in members:
+                        cached = getattr(member, '_world_helpers_count_v11650', None)
+                        now = _time_v11650.monotonic()
+                        if cached is not None and now - cached[0] < 5.0:
+                            hires, pets = cached[1], cached[2]
+                        else:
+                            db = getattr(getattr(member, 'server', None), 'db', None)
+                            hires = pets = 0
+                            contracts = getattr(db, 'mercenary_contracts', None)
+                            if callable(contracts):
+                                for row in contracts(member.account_id):
+                                    expiration = float(row['expires_at'] or 0)
+                                    if expiration <= 0 or expiration > _time_v11650.time():
+                                        hires += 1
+                            conn = getattr(db, 'conn', None)
+                            if conn is not None:
+                                try:
+                                    pets = int(conn.execute(
+                                        'SELECT COUNT(*) FROM summons_v1700 '
+                                        'WHERE account_id=? AND active=1 AND hp>0',
+                                        (member.account_id,)).fetchone()[0])
+                                except sqlite3.OperationalError:
+                                    pets = 0  # Fresh character without summon schema
+                            member._world_helpers_count_v11650 = (now, hires, pets)
+                        mercenaries += hires
+                        companions += pets
+                    multiplier = authored_stage_challenge_multiplier_v11650(
+                        template, party_level,
+                        room_v11650, len(members), mercenaries, companions)
+                    if multiplier <= 1.0:
+                        if not self.adaptive_mob_has_active_fighters_v1261(mob):
+                            reset_mob(mob, template)
+                        return None
+                    base_max = max(1, int(template.get('max_hp', 1) or 1))
+                    target_max = max(base_max, int(round(base_max * multiplier)))
+                    old_max = max(base_max,
+                        int(getattr(mob, 'adaptive_max_hp_v11330', 0) or base_max))
+                    if target_max > old_max:
+                        # Damage previously dealt remains real; don't heal it.
+                        mob.hp = min(target_max, max(1, int(mob.hp)) + target_max - old_max)
+                        old_max = target_max
+                    elif target_max < old_max and not self.adaptive_mob_has_active_fighters_v1261(mob):
+                        old_hp = min(old_max, max(0, int(mob.hp)))
+                        mob.hp = max(1, min(target_max,
+                            (target_max * old_hp + old_max - 1) // old_max))
+                        old_max = target_max
+                    mob.adaptive_max_hp_v11330 = old_max
+                    mob.adaptive_hp_multiplier_v11330 = round(old_max / base_max, 4)
+                    mob.adaptive_reward_multiplier_v11330 = 1.0
+                    mob.adaptive_party_size_v11330 = len(members)
+                    mob.adaptive_party_dps_v11330 = 0.0
+                    mob.adaptive_rank_v11330 = adaptive_combat_rank_v11330(template)
+                    return {'max_hp':old_max, 'base_max_hp':base_max,
+                            'party_size':len(members), 'hp_multiplier':mob.adaptive_hp_multiplier_v11330,
+                            'reward_multiplier':1.0, 'rank':mob.adaptive_rank_v11330}
 
                 members = self.adaptive_party_members_v11330(mob)
                 from systems.v106_raid_combat_dps import (

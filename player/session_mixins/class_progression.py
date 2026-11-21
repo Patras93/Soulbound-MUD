@@ -152,11 +152,11 @@ class SessionClassProgressionMixin:
             from systems.published_classes_v7700 import inherited_parent
             active = set(self.active_class_names())
             parent_map = {inherited_parent(name): name for name in active if inherited_parent(name)}
-            for npc_id, npc in NPCS.items():
+            from world.generation_systems import v0160_static_npcs_in_room_v11650
+            for npc_id, npc in v0160_static_npcs_in_room_v11650(self.character.room_id).items():
                 if (
-                    npc.get("room") == self.character.room_id
-                    and (npc.get("teacher_class") in active
-                         or npc.get("teacher_class") in parent_map)
+                    npc.get("teacher_class") in active
+                    or npc.get("teacher_class") in parent_map
                 ):
                     inherited=parent_map.get(npc.get("teacher_class"))
                     return npc_id, dict(npc,teacher_class=inherited) if inherited else npc
