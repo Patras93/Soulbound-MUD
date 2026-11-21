@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
-"""v115 combat first-clear switch: queue new Fame XP, retain ordinary kill rewards."""
+"""Queue only first-clear Fame bonus; combat always awards ordinary kill EXP now."""
 from __future__ import annotations
-from systems.v115.fame_combat_capture import resolve_fame_objective, stage_final_combat_reward
+from systems.v115.fame_combat_capture import resolve_fame_objective
 from systems.v115.fame_reward_snapshot import RewardSnapshot
-from systems.v115.fame_repeat_rewards import stage_repeat_exp
+from systems.v115.fame_snapshot_delivery import stage_first_clear
 
 
 def stage_delayed_first_clear(conn, session, mob, template, *,
                               character_xp, soul_xp, class_xp, stat_xp,
                               class_levels, class_max_level, overcap, now=None):
-    """Call inside an existing kill transaction, after final reward calculations.
+    """Stage only the first Fame milestone, never the ordinary kill EXP.
 
-    True means caller must suppress all immediate EXP axes, while preserving
-    standard coins and loot. False means old/duplicate/non-Fame kill.
+    Every actual kill earns its normal Character/Soul/Class/Stat EXP immediately,
+    including the first clear and all repeat kills. A first clear schedules only
+    the separate one-time Multi Cap Fame bonus and Fame point. Historical
+    pending v115 payouts (from before this fix) remain deliverable unchanged.
     """
     # Transient per-kill result used only for the following text message.
     session._v115_fame_repeat_delivery = False
@@ -23,31 +25,31 @@ def stage_delayed_first_clear(conn, session, mob, template, *,
     account = getattr(session, 'account_id', None)
     if not isinstance(account, int) or account < 1:
         raise ValueError('Authenticated Fame account required')
-    # A Fame point is a one-time discovery; the combat EXP belongs to EVERY
-    # real kill. Previously credited or pending objectives therefore receive
-    # a separate, delayed EXP-only repeat entry. No extra Fame is minted.
+    # Only the Fame milestone is deferred. Ordinary EXP is paid by the
+    # normal combat transaction on EVERY kill, including repeats. Do not
+    # create new delayed-repeat rows; earlier queued rows remain payable.
     legacy = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='fame_bosses_v1702'").fetchone()
     already_credited = bool(legacy and conn.execute('''SELECT 1 FROM fame_bosses_v1702
             WHERE account_id=? AND region=? AND boss_id=?''',
             (account, region, boss_id)).fetchone())
+    if already_credited:
+        session._v115_fame_repeat_delivery = True
+        return True
     queue = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='v115_fame_delivery'").fetchone()
     already_pending = bool(queue and conn.execute('''SELECT 1 FROM v115_fame_delivery
             WHERE account_id=? AND region=? AND boss_id=?''',
             (account, region, boss_id)).fetchone())
-    if already_credited or already_pending:
-        plan = RewardSnapshot(
-            character_xp=character_xp,soul_xp=soul_xp,
-            class_xp=class_xp,stat_xp=stat_xp,
-            class_levels=tuple(class_levels),class_max_level=class_max_level,
-            overcap=overcap,character_name=getattr(getattr(session,'character',None),'name',None),
-            verified_zero=True).validate()
-        stage_repeat_exp(conn,account,region,boss_id,
-            str(template.get('name') or boss_id),plan,now=now)
+    if already_pending:
         session._v115_fame_repeat_delivery = True
         return True
-    return stage_final_combat_reward(
-        conn, session, mob, template,
-        character_xp=character_xp, soul_xp=soul_xp,
-        class_xp=class_xp, stat_xp=stat_xp,
-        class_levels=class_levels, class_max_level=class_max_level,
-        overcap=overcap, now=now)
+    # Resolve the Fame objective only once per kill. No second catalog walk.
+    # Zero is a verified marker: NORMAL EXP is awarded by combat; the later
+    # settlement still generates the independent first-clear Multi Cap bonus.
+    plan = RewardSnapshot(
+        character_xp=0, soul_xp=0, class_xp=0, stat_xp=0,
+        class_levels=tuple(class_levels),class_max_level=class_max_level,
+        overcap=overcap,
+        character_name=getattr(getattr(session, 'character', None), 'name', None),
+        verified_zero=True).validate()
+    return stage_first_clear(conn, account, region, boss_id,
+                             str(template.get('name') or boss_id),plan,now=now)

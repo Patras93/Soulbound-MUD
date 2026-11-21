@@ -2461,37 +2461,73 @@ def canonical_bestiary_template_id(template_id):
     return template_id
 
 
-def quest_kill_targets_v0389(template_id, template=None):
-    """Return every kill-quest target credited by this defeated mob.
+def quest_kill_targets_v0389(template_id, template=None, *, room_id=None):
+    """Return authored kill targets for a defeated mob and its runtime variants.
 
-    v0.38.9: generated Elite/Rare/dense variants must also credit quests for
-    the canonical base species and for any quest aliases authored on that base.
+    v116.00.49: City pest hunts and other ordinary quests retain credit even
+    when terrain/world/Elite variants are nested and a later clone does not
+    repeat quest_target metadata. Each actual death is still settled ONCE by
+    settle_all_kill_quests_v10400; aliases must never multiply the reward.
     """
     from data.mobs import MOB_TEMPLATES  # canonical current dependency
     template_id = str(template_id or "")
-    template = template or MOB_TEMPLATES.get(template_id, {}) or {}
-    canonical_id = canonical_bestiary_template_id(template_id)
-    canonical_template = MOB_TEMPLATES.get(canonical_id, {}) or {}
-
-    # v0.58.3: open-world terrain/world-threat/event clones carry their
-    # authored quest identity in base_template.  They are not Elite/Rare/dense
-    # variants, so canonical_bestiary_template_id intentionally does not
-    # collapse them.  Kill quests still must credit the authored base mob.
-    base_id = str(template.get("base_template") or "")
-    canonical_base_id = canonical_bestiary_template_id(base_id) if base_id else ""
-    base_template = MOB_TEMPLATES.get(canonical_base_id or base_id, {}) or {}
-
+    template = template if isinstance(template, dict) else MOB_TEMPLATES.get(template_id, {}) or {}
+    # Follow only explicit authored/runtime lineage. Never infer a quest target
+    # from a translated display name: different cities have identically named
+    # Podziemne Szkodniki but separate quest counters.
+    lineage_keys = (
+        "elite_base_template", "rare_base_template", "dense_dungeon_base_template",
+        "base_template", "elite_source_template_v11338",
+    )
     targets = []
-    for value in (template_id, canonical_id, base_id, canonical_base_id):
-        if value:
-            targets.append(str(value))
-    # Regular Upior Krypty occurs every eight floors (2, 10, 18, ...),
-    # not only on floor 2. Credit the actual named wraith at every depth,
-    # including its generated rare/elite/base-template variants. Do not
-    # credit skeletons, guardians or the unrelated crypt bosses.
-    # Preserve the historical quest target crypt_wraith for old SQLite saves.
-    for candidate in (template_id, canonical_id, base_id, canonical_base_id):
-        match = re.fullmatch(r"crypt_floor_mob_([1-9]\d*)", str(candidate))
+    queue = [(template_id, template)]
+    city_pest_identity = bool(template.get("v0900_city2"))
+    seen = set()
+    while queue and len(seen) < 32:
+        current_id, known_template = queue.pop(0)
+        current_id = str(current_id or "")
+        if not current_id or current_id in seen:
+            continue
+        seen.add(current_id)
+        targets.append(current_id)
+        current = known_template if isinstance(known_template, dict) else MOB_TEMPLATES.get(current_id, {})
+        if not isinstance(current, dict):
+            current = {}
+        if current.get("v0900_city2") or current_id.startswith("v0900_city_") and "_threat" in current_id:
+            city_pest_identity = True
+        primary = current.get("quest_target")
+        if primary:
+            targets.append(str(primary))
+        for value in current.get("quest_targets") or ():
+            if value:
+                targets.append(str(value))
+        for key in lineage_keys:
+            source_id = str(current.get(key) or "")
+            if source_id and source_id not in seen:
+                queue.append((source_id, MOB_TEMPLATES.get(source_id, {})))
+
+    # City 2.0: a wandering pest defeated inside an authored city area counts
+    # for that city's own threat quest. Both city hunt stages keep their same
+    # target and their original 8/16 requirements; a same-named pest outside
+    # the relevant city never grants credit. This also covers legacy runtime
+    # variants whose single quest_target field was dropped by a clone.
+    if room_id and city_pest_identity and "Podziemny Szkodnik" in str(template.get("name") or ""):
+        from data.rooms import ROOMS
+        room = ROOMS.get(str(room_id), {})
+        if room.get("v0900_city2"):
+            rid = str(room_id)
+            for suffix in ("under_gate", "undercity", "guard", "council", "residential", "craft", "shrine", "archive"):
+                if rid.startswith("v0900_city_") and rid.endswith("_" + suffix):
+                    local_target = rid[:-(len(suffix) + 1)] + "_threat"
+                    if local_target in MOB_TEMPLATES:
+                        targets.append(local_target)
+                    break
+
+    # Existing Crypt quest compatibility: named wraiths on all eligible floors
+    # still count for the historical crypt_wraith objective, but other mobs do
+    # not receive that target by name or by sharing the same floor.
+    for candidate in seen:
+        match = re.fullmatch(r"crypt_floor_mob_([1-9]\d*)", candidate)
         if not match:
             continue
         actual = MOB_TEMPLATES.get(candidate, {})
@@ -2499,13 +2535,6 @@ def quest_kill_targets_v0389(template_id, template=None):
                 and str(actual.get("name", "")).startswith("Upiór Krypty ")):
             targets.append("crypt_wraith")
             break
-    for source in (template, canonical_template, base_template):
-        primary = source.get("quest_target")
-        if primary:
-            targets.append(str(primary))
-        for value in source.get("quest_targets") or ():
-            if value:
-                targets.append(str(value))
     return tuple(dict.fromkeys(targets))
 
 

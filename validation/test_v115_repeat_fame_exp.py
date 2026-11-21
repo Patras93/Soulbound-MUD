@@ -30,7 +30,7 @@ class ProxyConnection:
     def close(self):self.sql.close()
 
 
-class TestDelayedRepeatFame(unittest.TestCase):
+class TestLegacyDelayedRepeatFame(unittest.TestCase):
     def setUp(self):
         self.conn=ProxyConnection()
         self.char=SimpleNamespace(account_id=88,name='Bohater',silver=0)
@@ -51,17 +51,15 @@ class TestDelayedRepeatFame(unittest.TestCase):
         self.assertTrue(self.stage())
         self.assertTrue(self.stage())
         self.assertEqual(1,self.conn.execute('SELECT count(*) FROM v115_fame_delivery').fetchone()[0])
-        self.assertEqual(2,self.conn.execute('SELECT count(*) FROM v115_fame_repeat_exp').fetchone()[0])
-        self.assertEqual(2,len(scheduler.pending_online_accounts(self.conn))) if False else self.assertEqual({88},scheduler.pending_online_accounts(self.conn))
-        self.assertEqual([],repeat.due_repeats(self.conn,88,'Bohater',now=1000))
-        self.assertEqual(2,len(repeat.due_repeats(self.conn,88,'Bohater',now=1400)))
-        self.assertEqual(2,len(repeat.due_repeats(self.conn,88,'Bohater',now=1400)))
+        self.assertFalse(self.conn.execute("SELECT name FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone())
+        # Historical snapshots alone remain due for deferred Fame payout.
+        self.assertEqual({88},scheduler.pending_online_accounts(self.conn,now=1400))
     def test_legacy_fame_gets_repeat_exp_only(self):
         self.conn.execute('CREATE TABLE fame_bosses_v1702 (account_id INTEGER,region TEXT,boss_id TEXT)')
         self.conn.execute("INSERT INTO fame_bosses_v1702 VALUES (88,'Cmentarz','boss')")
         self.assertTrue(self.stage())
         self.assertFalse(self.conn.execute("SELECT name FROM sqlite_master WHERE name='v115_fame_delivery'").fetchone())
-        self.assertEqual(1,self.conn.execute('SELECT count(*) FROM v115_fame_repeat_exp').fetchone()[0])
+        self.assertFalse(self.conn.execute("SELECT name FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone())
     def test_repeat_rollback_with_combat(self):
         self.conn.execute('SAVEPOINT combat')
         self.assertTrue(self.stage())
@@ -80,8 +78,8 @@ class TestDelayedRepeatFame(unittest.TestCase):
     def test_no_early_payment_wrong_character_or_audio(self):
         self.conn.execute('CREATE TABLE fame_bosses_v1702(account_id INTEGER,region TEXT,boss_id TEXT)')
         self.conn.execute("INSERT INTO fame_bosses_v1702 VALUES (88,'Cmentarz','boss')")
-        self.stage()
-        tok=self.conn.execute('SELECT kill_token FROM v115_fame_repeat_exp').fetchone()[0]
+        plan=RewardSnapshot(100,200,300,400,(('Mag',100),),999999,False,'Bohater',True)
+        tok,_=repeat.stage_repeat_exp(self.conn,88,'Cmentarz','boss','Boss',plan,now=1000)
         db=SimpleNamespace(conn=self.conn)
         self.assertIsNone(repeat.settle_repeat_exp(db,self.char,88,tok,now=1000))
         wrong=SimpleNamespace(account_id=88,name='Inna postać')
@@ -91,8 +89,8 @@ class TestDelayedRepeatFame(unittest.TestCase):
     def test_real_award_atomic_and_only_once(self):
         self.conn.execute('CREATE TABLE fame_bosses_v1702(account_id INTEGER,region TEXT,boss_id TEXT)')
         self.conn.execute("INSERT INTO fame_bosses_v1702 VALUES (88,'Cmentarz','boss')")
-        self.stage()
-        tok=self.conn.execute('SELECT kill_token FROM v115_fame_repeat_exp').fetchone()[0]
+        plan=RewardSnapshot(100,200,300,400,(('Mag',100),),999999,False,'Bohater',True)
+        tok,_=repeat.stage_repeat_exp(self.conn,88,'Cmentarz','boss','Boss',plan,now=1000)
         db=SimpleNamespace(conn=self.conn)
         def award(_db,ch,aid,**kw):
             _db.conn.execute('CREATE TABLE IF NOT EXISTS exp_records (account_id INT, exp INT)')
@@ -108,8 +106,8 @@ class TestDelayedRepeatFame(unittest.TestCase):
     def test_failure_rollback_sql_and_character_then_retry(self):
         self.conn.execute('CREATE TABLE fame_bosses_v1702(account_id INTEGER,region TEXT,boss_id TEXT)')
         self.conn.execute("INSERT INTO fame_bosses_v1702 VALUES (88,'Cmentarz','boss')")
-        self.stage()
-        tok=self.conn.execute('SELECT kill_token FROM v115_fame_repeat_exp').fetchone()[0]
+        plan=RewardSnapshot(100,200,300,400,(('Mag',100),),999999,False,'Bohater',True)
+        tok,_=repeat.stage_repeat_exp(self.conn,88,'Cmentarz','boss','Boss',plan,now=1000)
         db=SimpleNamespace(conn=self.conn)
         self.conn.execute('CREATE TABLE exp_records(x INTEGER)')
         self.conn.sql.commit()

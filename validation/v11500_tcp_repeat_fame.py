@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Real TCP boss-kill regression for delayed repeat EXP and Fame uniqueness.
+"""Real TCP boss-kill regression for immediate repeat EXP and Fame uniqueness.
 
 Uses a disposable SQLite account with its previous one-time Fame credit
 explicitly seeded INSIDE the guarded test fixture. Actual `k boss` combat is
@@ -26,82 +26,60 @@ async def repeat_kill(port,db_path):
     hero=TcpPlayer('tcpcheck1','Testtcp1',port)
     await hero.connect_and_login()
     try:
+        # The login prompt may arrive before the test fixture finishes
+        # enter_world() and writes its one-time Fame ledger. The `look`
+        # response confirms the character has entered the game world.
+        looking=await hero.command('look '+BOSS_NAME,quiet=.18)
+        if BOSS_NAME not in looking:
+            raise AssertionError('Repeat Fame boss missing in TCP look: '+repr(looking[-800:]))
         with closing(sqlite3.connect(db_path)) as conn:
             aid=int(conn.execute("SELECT id FROM accounts WHERE username='tcpcheck1'").fetchone()[0])
             credited=conn.execute('''SELECT region,boss_id FROM fame_bosses_v1702
                 WHERE account_id=?''',(aid,)).fetchall()
             assert len(credited)==1 and credited[0][1]==BOSS_ID,repr(credited)
             before=conn.execute('SELECT character_xp,soul_xp,stat_progress FROM characters WHERE account_id=?',(aid,)).fetchone()
-        looking=await hero.command('look '+BOSS_NAME,quiet=.18)
-        if BOSS_NAME not in looking:
-            raise AssertionError('Repeat Fame boss missing in TCP look: '+repr(looking[-800:]))
         await hero.send('k '+BOSS_NAME)
         transcript=''
-        waiting=None
-        end=time.monotonic()+65
-        while time.monotonic()<end:
+        deadline=time.monotonic()+65
+        paid=False
+        while time.monotonic()<deadline:
             try:
                 chunk=await asyncio.wait_for(hero.reader.read(16384),1.5)
             except asyncio.TimeoutError:
                 chunk=b''
-            if chunk: transcript+=chunk.decode('utf8','replace')
-            with closing(sqlite3.connect(db_path)) as conn:
-                if conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone():
-                    waiting=conn.execute('''SELECT kill_token,account_id,boss_id,status,due_at,snapshot
-                        FROM v115_fame_repeat_exp WHERE account_id=?''',(aid,)).fetchall()
-            if waiting:break
+            if chunk:
+                transcript+=chunk.decode('utf8','replace')
             if 'Wystąpił błąd' in transcript:
                 raise AssertionError('Error during repeat kill: '+repr(transcript[-1500:]))
-        if len(waiting or [])!=1 or waiting[0][2]!=BOSS_ID or waiting[0][3]!='PENDING':
-            raise AssertionError('Actual repeat kill did not create PENDING EXP: '+repr(waiting))
-        token,_,boss,status,due_at,snapshot=waiting[0]
-        delay=due_at-time.time()
-        if not 55<=delay<=305:
-            raise AssertionError('Incorrect repeat-kill delay: '+repr(delay))
-        content=json.loads(snapshot)
-        if not any(content[key]>0 for key in ('character_xp','soul_xp','class_xp','stat_xp')):
-            raise AssertionError('Real repeated kill queued zero XP '+repr(content))
+            if 'FAME MOB: zwykły EXP za zabicie otrzymujesz od razu.' in transcript:
+                paid=True
+                break
+        if not paid:
+            raise AssertionError('Real repeat kill did not finish immediate EXP award: '+repr(transcript[-1800:]))
+        # The game emits its combat messages before the outer kill SAVEPOINT
+        # finishes all unrelated loot/quest bookkeeping. Confirm EXP after
+        # durable COMMIT, not merely after the first socket notification.
+        after=before
+        commit_deadline=time.monotonic()+25
+        while after==before and time.monotonic()<commit_deadline:
+            with closing(sqlite3.connect(db_path)) as conn:
+                after=conn.execute('SELECT character_xp,soul_xp,stat_progress FROM characters WHERE account_id=?',(aid,)).fetchone()
+            if after==before:
+                await asyncio.sleep(0.25)
+        if after==before:
+            raise AssertionError(f'Repeat Fame boss EXP not committed: {before=}, {after=}; output '+repr(transcript[-1800:]))
         with closing(sqlite3.connect(db_path)) as conn:
-            immediate=conn.execute('SELECT character_xp,soul_xp,stat_progress FROM characters WHERE account_id=?',(aid,)).fetchone()
-            if immediate!=before:
-                raise AssertionError('Repeated Fame EXP incorrectly paid immediately')
-            # Allow the real scheduler to execute the due reward by moving only
-            # the disposable test row's timestamp, never production constants.
-            conn.execute('UPDATE v115_fame_repeat_exp SET due_at=? WHERE kill_token=?',
-                         (time.time()-1,token))
-            conn.commit()
-        exp_pattern='FAME MOB: zaległy EXP za '+BOSS_NAME
-        famine='FAMA: +1 za '+BOSS_NAME
-        exp_found=False
-        end=time.monotonic()+18
-        while time.monotonic()<end and not exp_found:
-            try:
-                piece=await asyncio.wait_for(hero.reader.read(16384),1.8)
-            except asyncio.TimeoutError:
-                continue
-            if not piece: raise AssertionError('Socket dropped before repeat EXP')
-            transcript+=piece.decode('utf8','replace')
-            exp_found=exp_pattern in transcript
-        if not exp_found:
-            raise AssertionError('EXP from real repeat kill never delivered: '+repr(transcript[-1200:]))
-        # Wait at least one more scheduler interval to prove Fame does not recur.
-        await asyncio.sleep(4.0)
-        try:
-            chunk=await asyncio.wait_for(hero.reader.read(16384),0.3)
-        except asyncio.TimeoutError:
-            chunk=b''
-        transcript+=chunk.decode('utf8','replace')
-        if famine in transcript:
-            raise AssertionError('Repeat kill incorrectly awarded additional Fame')
-        with closing(sqlite3.connect(db_path)) as conn:
-            status=conn.execute('SELECT status FROM v115_fame_repeat_exp WHERE kill_token=?',(token,)).fetchone()[0]
-            fame=conn.execute('SELECT count(*) FROM fame_bosses_v1702 WHERE account_id=?',(aid,)).fetchone()[0]
-            after=conn.execute('SELECT character_xp,soul_xp,stat_progress FROM characters WHERE account_id=?',(aid,)).fetchone()
-            check=conn.execute('PRAGMA integrity_check').fetchone()[0]
-            if status!='DONE' or fame!=1 or after==before or check!='ok':
-                raise AssertionError(f'Invalid repeat payout: {status=}, {fame=}, {after=}, {check=}')
-        print('REAL REPEAT TCP PASS: kill stage->60..300 sec pending EXP; '
-              'deferred payment; exactly one historical Fame; SQLite intact; soundpack off',flush=True)
+            queued=conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone()
+            repeats=conn.execute('SELECT COUNT(*) FROM v115_fame_repeat_exp WHERE account_id=?',(aid,)).fetchone()[0] if queued else 0
+            fame=conn.execute('SELECT COUNT(*) FROM fame_bosses_v1702 WHERE account_id=?',(aid,)).fetchone()[0]
+            integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]
+            if repeats!=0 or fame!=1 or integrity!='ok':
+                raise AssertionError(f'Repeat credited wrong queue/fame/integrity {repeats=}, {fame=}, {integrity=}')
+        # A Fame point is once per boss; repeated kill never produces another.
+        if 'FAMA: +1 za '+BOSS_NAME in transcript:
+            raise AssertionError('Repeat kill incorrectly awarded extra Fame')
+        print('REAL REPEAT TCP PASS: normal EXP at death; no new delayed row; '
+              'exactly one historical Fame; SQLite intact; soundpack off',flush=True)
     finally:
         await hero.close()
 

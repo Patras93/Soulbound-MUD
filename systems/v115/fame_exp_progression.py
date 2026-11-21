@@ -78,6 +78,10 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
                 overcap=overcap)
             normal['fame_bonus'] = premium
             normal['fame_bonus_cap'] = fame_bonus
+        # New kills paid ordinary EXP immediately, so their saved snapshot
+        # contains zeros. Old pending rewards contain real values and MUST
+        # continue paying those amounts once; do not erase legacy debts.
+        normal['fame_normal_exp_deferred'] = bool(any(awards))
         result.append(normal)
 
     try:

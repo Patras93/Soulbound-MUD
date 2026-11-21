@@ -17,7 +17,9 @@ class V115RealDbAward(FullKillAtomic):
         with patch.object(fame_combat_runtime, 'resolve_fame_objective', return_value=('Kraina','boss')), \
              patch.object(fame_combat_capture, 'resolve_fame_objective', return_value=('Kraina','boss')):
             with self.db.conn.deferred_commits():
-                first = fame_combat_runtime.stage_delayed_first_clear(
+                # Regression for already-queued legacy v115/v116.46 payouts.
+                # Old saves still contain their ordinary EXP until this clears.
+                first = fame_combat_capture.stage_final_combat_reward(
                     self.db.conn, player, mob, {'name':'Boss','rank':'boss'}, **args)
                 settle_combat_full_progression_v10400(
                     self.db,self.char,1,silver=11,gold=0,mithril=0,

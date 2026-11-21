@@ -507,16 +507,30 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                         f"[PERF SLOW WORLD TICK] {_tick_elapsed_v0718:.3f}s; moves={len(_moves_v0718)}; mobs={len(self.world.mobs)}",
                         flush=True,
                     )
+                # v116.00.47: a large active world may move thousands of
+                # monsters per tick. The old loop awaited two no-op broadcasts
+                # for EVERY move, including unoccupied regions. No player can
+                # hear those events. Preserve all movement, AI, respawns and
+                # observable messages; only skip sends to empty rooms.
+                _occupied_rooms_v11647 = {
+                    getattr(session.character, 'room_id', None)
+                    for session in tuple(self.sessions)
+                    if not session.closed and session.character is not None
+                }
                 for mob, old_room, new_room in _moves_v0718:
-                    name = MOB_TEMPLATES.get(mob.template_id, {}).get(
-                        "name", "Wróg"
-                    )
-                    await self.broadcast_room(
-                        old_room, f"{name} odchodzi do sąsiedniej lokacji."
-                    )
-                    await self.broadcast_room(
-                        new_room, f"{name} nadchodzi z sąsiedniej lokacji."
-                    )
+                    _has_departure_v11647 = old_room in _occupied_rooms_v11647
+                    _has_arrival_v11647 = new_room in _occupied_rooms_v11647
+                    if not (_has_departure_v11647 or _has_arrival_v11647):
+                        continue
+                    name = MOB_TEMPLATES.get(mob.template_id, {}).get('name', 'Wróg')
+                    if _has_departure_v11647:
+                        await self.broadcast_room(
+                            old_room, f"{name} odchodzi do sąsiedniej lokacji."
+                        )
+                    if _has_arrival_v11647:
+                        await self.broadcast_room(
+                            new_room, f"{name} nadchodzi z sąsiedniej lokacji."
+                        )
             except asyncio.CancelledError:
                 raise
             except Exception as exc:

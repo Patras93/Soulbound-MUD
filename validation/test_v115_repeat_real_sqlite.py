@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Real SQLite character fixture: repeated Fame EXP remains delayed and durable."""
+"""Real SQLite character fixture: immediate repeat EXP and old queued rewards."""
 from types import SimpleNamespace
 from unittest.mock import patch
 from validation.test_v115_end_to_end_sqlite_payout import V115RealDbAward
@@ -23,14 +23,14 @@ class V115RealRepeatAward(V115RealDbAward):
             with self.db.conn.deferred_commits():
                 delayed=fame_combat_runtime.stage_delayed_first_clear(self.db.conn,player,mob,{'name':'Boss','rank':'boss'},**args)
                 settle_combat_full_progression_v10400(self.db,self.char,1,
-                    silver=4,character_xp=0 if delayed else args['character_xp'],
-                    soul_xp=0 if delayed else args['soul_xp'],
-                    class_xp=0 if delayed else args['class_xp'],
-                    stat_xp=0 if delayed else args['stat_xp'],
+                    silver=4,character_xp=args['character_xp'],
+                    soul_xp=args['soul_xp'],
+                    class_xp=args['class_xp'],
+                    stat_xp=args['stat_xp'],
                     class_levels=args['class_levels'],overcap=False,class_max_level=800)
         return delayed
 
-    def test_repeat_xp_waits_and_does_not_add_fame(self):
+    def test_repeat_xp_immediate_and_does_not_add_fame(self):
         with patch('player.character.character_xp_to_next', return_value=100), \
              patch('storage.db_progression.class_mastery_xp_to_next',return_value=1000):
             due=self._stage()
@@ -39,28 +39,25 @@ class V115RealRepeatAward(V115RealDbAward):
             self.assertEqual(1,self.db.conn.execute('SELECT COUNT(*) FROM fame_bosses_v1702').fetchone()[0])
             before=self.balance('character')
             self.assertTrue(self._stage_repeat(now=due+5))
-            self.assertEqual(before,self.balance('character'))
-            self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+6))
-            paid=deliver_stored_for_online_player(self.db,self.char,1,now=due+306)
-            self.assertEqual(['exp'],[v[0] for v in paid])
             self.assertGreater(self.balance('character'),before)
+            self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+306))
             self.assertEqual(1,self.db.conn.execute('SELECT COUNT(*) FROM fame_bosses_v1702').fetchone()[0])
             self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+309))
 
-    def test_two_overdue_repeat_awards_not_sent_together(self):
+    def test_old_queued_repeat_still_paid_once_after_upgrade(self):
+        # A v116.46 repeat row already on disk must not be dropped.
+        from systems.v115.fame_repeat_rewards import stage_repeat_exp
+        from systems.v115.fame_reward_snapshot import RewardSnapshot
         with patch('player.character.character_xp_to_next',return_value=100), \
              patch('storage.db_progression.class_mastery_xp_to_next',return_value=1000):
             due=self._stage()
             deliver_stored_for_online_player(self.db,self.char,1,now=due)
             deliver_stored_for_online_player(self.db,self.char,1,now=due+2)
-            self.assertTrue(self._stage_repeat(now=due+4))
-            self.assertTrue(self._stage_repeat(now=due+5))
-            self.assertEqual(2,self.db.conn.execute("SELECT count(*) FROM v115_fame_repeat_exp WHERE status='PENDING'").fetchone()[0])
-            # Only one EXP event is sent per scheduler iteration, avoiding
-            # overlapping soundpack notifications even after long downtime.
-            first=deliver_stored_for_online_player(self.db,self.char,1,now=due+900)
-            self.assertEqual(['exp'],[ev[0] for ev in first])
-            self.assertEqual(1,self.db.conn.execute("SELECT count(*) FROM v115_fame_repeat_exp WHERE status='PENDING'").fetchone()[0])
-            next_one=deliver_stored_for_online_player(self.db,self.char,1,now=due+903)
-            self.assertEqual(['exp'],[ev[0] for ev in next_one])
-            self.assertEqual(0,self.db.conn.execute("SELECT count(*) FROM v115_fame_repeat_exp WHERE status='PENDING'").fetchone()[0])
+            before=self.balance('character')
+            plan=RewardSnapshot(180,180,180,180,(('Wojownik',1),),800,False,'BohaterTest',True)
+            token,_=stage_repeat_exp(self.db.conn,1,'Kraina','boss','Boss',plan,now=due+4)
+            paid=deliver_stored_for_online_player(self.db,self.char,1,now=due+900)
+            self.assertEqual(['exp'],[event[0] for event in paid])
+            self.assertGreater(self.balance('character'),before)
+            self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+903))
+            self.assertEqual('DONE', self.db.conn.execute('SELECT status FROM v115_fame_repeat_exp WHERE kill_token=?',(token,)).fetchone()[0])

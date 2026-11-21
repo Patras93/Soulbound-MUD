@@ -48,11 +48,20 @@ class FameOnlineDelivery:
                 phase, region, boss_id, boss_name, amount = event
                 if phase == 'exp':
                     if isinstance(amount, dict) and 'fame_bonus_cap' in amount:
-                        await session.send(
-                            'FAME MOB: zaległy EXP za ' + str(boss_name)
-                            + ' rozliczony. EXP za zabicie i osobny bonus EXP'
-                            + ' za Fame (Multi Cap ' + str(amount['fame_bonus_cap'])
-                            + ' na każdą dostępną oś). EXP Bank aktywny.')
+                        if amount.get('fame_normal_exp_deferred'):
+                            # Rewards staged by pre-v116.00.47 servers must
+                            # retain their once-only ordinary kill payout.
+                            await session.send(
+                                'FAME MOB: zaległy EXP za ' + str(boss_name)
+                                + ' rozliczony. Osobny bonus EXP za Fame (Multi Cap '
+                                + str(amount['fame_bonus_cap'])
+                                + ' na każdą dostępną oś). EXP Bank aktywny.')
+                        else:
+                            await session.send(
+                                'FAME MOB: osobny bonus EXP za Fame za '
+                                + str(boss_name) + ' (Multi Cap '
+                                + str(amount['fame_bonus_cap'])
+                                + ' na każdą dostępną oś). EXP Bank aktywny.')
                     else:
                         # Repeat kills have ordinary delayed EXP, not Fame.
                         await session.send('FAME MOB: zaległy EXP za ' + str(boss_name)

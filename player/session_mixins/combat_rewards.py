@@ -857,9 +857,11 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                             _character_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_character_payout_v104,exact=_v111_exact))
                             _soul_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_soul_payout_v104,exact=_v111_exact))
                             _class_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_class_payout_v104,exact=_v111_exact))
-                    # v115: persist final XP axes for every natural Fame kill.
-                    # First Fame is one-time; repeats queue EXP without Fame.
-                    # The original currency/loot/quest path remains unchanged.
+                    # v116.00.47: ALL normal kill EXP axes pay immediately.
+                    # First natural Fame clear queues a separate one-time Multi
+                    # Cap bonus, NOT a second copy of the ordinary kill EXP.
+                    # Repeats earn only their normal EXP; historical pending
+                    # v115 payments remain eligible for the scheduler.
                     from systems.v115.fame_combat_runtime import stage_delayed_first_clear
                     _fame_queued_v115 = stage_delayed_first_clear(
                         session.server.db.conn, session, mob, template,
@@ -869,10 +871,10 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         class_levels=_class_levels_v104,
                         class_max_level=CLASS_MASTERY_MAX_LEVEL,
                         overcap=_overcap_v2009)
-                    _now_stat_v115 = 0 if _fame_queued_v115 else raw_stat_reward
-                    _now_char_v115 = 0 if _fame_queued_v115 else _character_payout_v104
-                    _now_soul_v115 = 0 if _fame_queued_v115 else _soul_payout_v104
-                    _now_class_v115 = 0 if _fame_queued_v115 else _class_payout_v104
+                    _now_stat_v115 = raw_stat_reward
+                    _now_char_v115 = _character_payout_v104
+                    _now_soul_v115 = _soul_payout_v104
+                    _now_class_v115 = _class_payout_v104
                     # No await, network writes or event callbacks while a
                     # SAVEPOINT is open. An error in CLASS/SOUL restores coins,
                     # six stats and character EXP, not just that axis.
@@ -888,10 +890,11 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         overcap=_overcap_v2009)
                     if _fame_queued_v115:
                         await session.send(
-                            'FAME MOB: EXP zostanie wypłacony po 60–300 sekundach. '
-                            + ('Fama za tego przeciwnika została już zaliczona.'
+                            'FAME MOB: zwykły EXP za zabicie otrzymujesz od razu. '
+                            + ('Fama za tego przeciwnika była już zaliczona; bez dodatkowego bonusu.'
                                if getattr(session, '_v115_fame_repeat_delivery', False)
-                               else 'Fama zostanie przyznana około 2 sekundy po EXP.'))
+                               else 'Osobny bonus EXP za Fame zostanie przyznany po 60–300 sekundach, '
+                                    'a Fama około 2 sekundy później.'))
                     _stat_results = _settled_v104['stats']
                     _character_paid_v104, _character_messages_v104 = _settled_v104['character']
                     _soul_paid_v104, _soul_messages_v104 = _settled_v104['soul']
@@ -1089,7 +1092,8 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                     # przez własny template_id. Zachowujemy również historyczne aliasy
                     # quest_target/quest_targets, więc stare questy nadal zaliczają całe
                     # rodziny mobów (np. wszystkie odmiany goblinów).
-                    quest_targets = quest_kill_targets_v0389(mob.template_id, template)
+                    quest_targets = quest_kill_targets_v0389(
+                        mob.template_id, template, room_id=mob.room_id)
 
                     # v104: resolve every local-recipient quest credit from this
                     # same real kill (ordinary, OLC, class saga, party contract)
