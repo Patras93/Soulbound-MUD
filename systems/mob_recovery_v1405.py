@@ -18,7 +18,7 @@ def preserve_hp_when_encounter_ends_v1405(hp, old_max_hp, base_max_hp):
     return max(1, min(base, (base * surviving + previous - 1) // previous))
 
 
-def restore_idle_hp_tick_v1405(mob, template):
+def restore_idle_hp_tick_v1405(mob, template, *, ticks=1):
     """Heal an idle living enemy by up to 10% template HP per 15-second tick.
 
     Engagement is enforced by caller and checked here too. Never revive dead
@@ -33,7 +33,10 @@ def restore_idle_hp_tick_v1405(mob, template):
     current = int(mob.hp)
     if current >= maximum:
         return 0
+    # Recovery after an empty-world interval is equivalent to missed ticks,
+    # applied once rather than performing N scans of every mob.
+    ticks = max(1, min(10, int(ticks)))
     amount = min(maximum - current,
-                 max(1, (maximum * REGEN_PERCENT_PER_TICK_V1405 + 99) // 100))
+                 max(1, (maximum * REGEN_PERCENT_PER_TICK_V1405 + 99) // 100) * ticks)
     mob.hp = current + amount
     return amount

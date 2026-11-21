@@ -195,5 +195,9 @@ async def exercise():
     print(f'V109 GIFTS: {checks} kontroli PASS, kalendarz, portfel, EXP, rollback, alt, opóźnienie')
     return checks
 
-def run():return asyncio.run(exercise())
+def run():
+    # Historical v109 fixture intentionally models ONLY character EXP; the
+    # full v116 daily growth is covered with a real SQLite DB in current gates.
+    with patch('systems.gift_parts.payout.award_daily_growth', return_value={}):
+        return asyncio.run(exercise())
 if __name__=='__main__':run()

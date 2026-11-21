@@ -2,6 +2,8 @@
 """Treasure maps, exploration, progress, achievements and titles."""
 
 import random
+import time
+from bisect import bisect_left
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 from config.postal import GUIDE_CITY_HUBS_V0522, POSTAL_CITY_HUBS_V0522
 from core.bootstrap_economy_professions import currency_reading_text
@@ -92,6 +94,11 @@ GLOBAL_DISCOVERY_ATLAS_MASTER_V1120 = (
 GLOBAL_DISCOVERY_ATLAS_MASTER_TITLE_V1120 = "Kartograf Całego Świata"
 
 
+# Pure LIVE world geometry: one shared catalog for all player sessions. The
+# catalog only depends on world registries, never on account or discovered XP.
+# Runtime room generation changes len(ROOMS), which invalidates the snapshot.
+_GLOBAL_ATLAS_CATALOG_CACHE_V11644 = None
+
 class SessionExplorationProgressMixin:
 
     def global_discovery_place_v1120(self, key, name, room_ids=(), prefixes=(), hidden=False, collection=None, collection_key=None):
@@ -107,6 +114,13 @@ class SessionExplorationProgressMixin:
 
     def global_discovery_atlas_catalog_v1120(self):
             """Finite, source-backed discovery catalog built from the live world registries."""
+            global _GLOBAL_ATLAS_CATALOG_CACHE_V11644
+            now = time.monotonic()
+            signature = (id(ROOMS), len(ROOMS), len(NPCS), len(MOB_TEMPLATES))
+            cached = _GLOBAL_ATLAS_CATALOG_CACHE_V11644
+            if (cached is not None and cached[0] == signature
+                    and now - cached[1] < 3600.0):
+                return cached[2]
             catalog = {key: [] for key in GLOBAL_DISCOVERY_ATLAS_CATEGORIES_V1120}
 
             # Miasta: one discovery per actual courier/city hub. Expansions extend
@@ -319,12 +333,21 @@ class SessionExplorationProgressMixin:
                 catalog[key] = sorted(
                     unique.values(), key=lambda row: normalize_lookup_text(row["name"])
                 )
+            _GLOBAL_ATLAS_CATALOG_CACHE_V11644 = (signature, time.monotonic(), catalog)
             return catalog
 
     def global_discovery_atlas_state_v1120(self):
             catalog = self.global_discovery_atlas_catalog_v1120()
             discovered = set(self.server.db.discovered_room_ids(self.account_id))
+            # A sorted lookup turns thousands of prefix comparisons from
+            # O(catalog * discovered) into O(catalog * log discovered).
+            sorted_discovered = sorted(discovered)
             collection_cache = {}
+
+            def has_discovered_prefix(prefix):
+                where = bisect_left(sorted_discovered, prefix)
+                return (where < len(sorted_discovered)
+                        and sorted_discovered[where].startswith(prefix))
 
             def found(place):
                 collection = place.get("collection")
@@ -338,10 +361,7 @@ class SessionExplorationProgressMixin:
                     return True
                 prefixes = place.get("prefixes", ())
                 if prefixes:
-                    return any(
-                        any(rid.startswith(prefix) for prefix in prefixes)
-                        for rid in discovered
-                    )
+                    return any(has_discovered_prefix(prefix) for prefix in prefixes)
                 return False
 
             state = {}
@@ -733,7 +753,13 @@ class SessionExplorationProgressMixin:
             if ep_points <= 0 or not self.server.db.claim_landmark_ep_v1002(self.account_id, room_id, ep_points):
                 return False
             total_character = 0
-            for _ in range(ep_points):
+            for point_index in range(ep_points):
+                if point_index and point_index % 2 == 0:
+                    # Let other players' movement/TCP run during large EP
+                    # claims. Every individual EP keeps its own current
+                    # Multi Cap, bank transaction and reward semantics.
+                    import asyncio
+                    await asyncio.sleep(0)
                 multi_cap = self.server.db.multi_cap_v23215(self.account_id)
                 if multi_cap is None:
                     raise RuntimeError('EP: brak Multi Cap postaci')

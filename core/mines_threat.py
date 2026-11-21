@@ -1069,6 +1069,29 @@ DYNAMIC_KILL_XP_MAX_MULTIPLIER = 2.25
 # zwykły mob około floor 100 ma ~1940 HP i ~39 dmg, floor 200 ~3740/72.
 _ROOM_THREAT_CACHE = {}
 _ZONE_THREAT_CACHE = {}
+# The catalog holds 20k+ spawns. Previously EVERY room threat lookup scanned
+# the entire catalog, which made expareas and zone summaries block the server.
+# This index is built once per static catalog generation, not per room.
+_ROOM_SPAWN_INDEX = None
+_ROOM_SPAWN_INDEX_SOURCE = None
+
+
+def v0866_room_spawn_index():
+    from systems.content_registry import MOB_SPAWNS
+    global _ROOM_SPAWN_INDEX, _ROOM_SPAWN_INDEX_SOURCE
+    fingerprint = (id(MOB_SPAWNS), len(MOB_SPAWNS))
+    if _ROOM_SPAWN_INDEX is None or _ROOM_SPAWN_INDEX_SOURCE != fingerprint:
+        from collections import defaultdict
+        result = defaultdict(list)
+        for room_id, template_id in MOB_SPAWNS:
+            result[room_id].append(template_id)
+        _ROOM_SPAWN_INDEX = result
+        _ROOM_SPAWN_INDEX_SOURCE = fingerprint
+        # Newly installed runtime rooms/spawns invalidate historical threats.
+        _ROOM_THREAT_CACHE.clear()
+        _ZONE_THREAT_CACHE.clear()
+    return _ROOM_SPAWN_INDEX
+
 
 def v0866_is_boss_template(template):
     return bool(
@@ -1124,8 +1147,8 @@ def v0866_percentile(values, fraction):
 
 def v0866_room_threat_profile(room_id, fallback=1):
     from data.mobs import MOB_TEMPLATES  # canonical current dependency
-    from systems.content_registry import MOB_SPAWNS  # explicit current dependency
     from core.progression_600 import CHARACTER_MAX_LEVEL  # canonical current dependency
+    index = v0866_room_spawn_index()  # O(1) local lookup, not a full spawn scan.
     cache_key = str(room_id or "")
     cached = _ROOM_THREAT_CACHE.get(cache_key)
     if cached is not None:
@@ -1133,9 +1156,7 @@ def v0866_room_threat_profile(room_id, fallback=1):
     normal = []
     bosses = []
     variants = []
-    for spawn_room, template_id in MOB_SPAWNS:
-        if spawn_room != room_id:
-            continue
+    for template_id in index.get(room_id, ()):
         template = MOB_TEMPLATES.get(template_id)
         if not template or template.get("training_dummy"):
             continue
@@ -1187,6 +1208,7 @@ def v0866_threat_label(target, power):
 
 def v0866_zone_threat_profile(zone):
     from data.rooms import ROOMS  # canonical current dependency
+    v0866_room_spawn_index()
     cache_key = str(zone or "")
     cached = _ZONE_THREAT_CACHE.get(cache_key)
     if cached is not None:

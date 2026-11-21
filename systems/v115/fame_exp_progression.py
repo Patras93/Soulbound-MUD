@@ -38,18 +38,47 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
     before = copy.deepcopy(character.__dict__)
     result = []
     from systems.combat_kill_settlement_v10400 import settle_combat_full_progression_v10400
+    # The immutable kill snapshot above is the NORMAL kill EXP. A FIRST Fame
+    # also earns the independent milestone bonus of one current Multi Cap on
+    # each existing axis. Sample before awarding the kill to avoid having a
+    # character level-up artificially raise this same Fame bonus.
+    # Historical isolated SQLite fixtures have no account-level Multi Cap
+    # resolver. Keep their original, exact one-source payout unchanged.
+    # Real production DB always has the canonical resolver: its absence on
+    # a real character remains a hard failure, never a fabricated bonus.
+    cap_resolver = getattr(db, 'multi_cap_v23215', None)
+    if callable(cap_resolver):
+        multi_cap = cap_resolver(account_id)
+        if multi_cap is None:
+            raise RuntimeError('FAME: brak Multi Cap postaci')
+        fame_bonus = max(1, int(multi_cap))
+    else:
+        fame_bonus = 0
 
     def award_same_connection(actual_conn, _queued_bonus):
         if actual_conn is not conn:
             raise RuntimeError('EXP payout must use the queue SQLite connection')
         # This must be enclosed by fame_queue's SAVEPOINT: never COMMIT here.
-        result.append(settle_combat_full_progression_v10400(
+        normal = settle_combat_full_progression_v10400(
             db,character,account_id,
             silver=0,gold=0,mithril=0,
             character_xp=character_xp,soul_xp=soul_xp,
             class_xp=class_xp,stat_xp=stat_xp,
             class_levels=tuple(class_levels),class_max_level=class_max_level,
-            overcap=overcap))
+            overcap=overcap)
+        # Same queue SAVEPOINT and SQLite connection: either both EXP sources
+        # and the phase commit, or neither. No bonus on repeat kills.
+        if fame_bonus:
+            premium = settle_combat_full_progression_v10400(
+                db,character,account_id,
+                silver=0,gold=0,mithril=0,
+                character_xp=fame_bonus,soul_xp=fame_bonus,
+                class_xp=fame_bonus if class_levels else 0,stat_xp=fame_bonus,
+                class_levels=tuple(class_levels),class_max_level=class_max_level,
+                overcap=overcap)
+            normal['fame_bonus'] = premium
+            normal['fame_bonus_cap'] = fame_bonus
+        result.append(normal)
 
     try:
         with conn.deferred_commits():

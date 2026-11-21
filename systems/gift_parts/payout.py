@@ -1,6 +1,6 @@
 """Atomowa wyplata SQLite, EXP i portfela z rollbackiem."""
 import datetime as dt
-from .rewards import reward_plan
+from .rewards import reward_plan, award_daily_growth
 from .legacy import _legacy_claimed, _update_daily_streak
 
 def claim_once(session, *, day=None):
@@ -19,7 +19,11 @@ def claim_once(session, *, day=None):
     char=session.character
     master=int(db.master_account_for_character(account))
     plan=reward_plan(day,master,char)
-    old=(char.character_level,char.character_xp,char.silver,char.gold,char.mithril)
+    # A single gift must roll back *every* character axis if any domain fails.
+    old=dict(char.__dict__)
+    from systems.v115.optional_sound import (
+        sound_reward_queue_checkpoint_v11329, sound_reward_queue_rollback_v11329)
+    audio_before=sound_reward_queue_checkpoint_v11329(db,account)
     with conn.deferred_commits():
         conn.execute('SAVEPOINT v109_daily_gift_once')
         try:
@@ -46,6 +50,7 @@ def claim_once(session, *, day=None):
             db.set_shared_wallet_for_master(master,current+plan['silver'],0,0,commit=False)
             db.apply_shared_wallet_to_character(char)
             paid,notes=award_character_xp_atomic_v10400(db,char,account,plan['exp'])
+            other_xp=award_daily_growth(session,plan['kind'])
             if plan['kind']=='daily':
                 _update_daily_streak(conn,account,day)
             conn.execute('INSERT INTO v109_gift_claims '
@@ -58,7 +63,8 @@ def claim_once(session, *, day=None):
                 conn.execute('ROLLBACK TO SAVEPOINT v109_daily_gift_once')
                 conn.execute('RELEASE SAVEPOINT v109_daily_gift_once')
             finally:
-                (char.character_level,char.character_xp,char.silver,
-                 char.gold,char.mithril)=old
+                char.__dict__.clear()
+                char.__dict__.update(old)
+                sound_reward_queue_rollback_v11329(db,account,audio_before)
             raise
-    return dict(plan,exp=paid,level_notes=notes)
+    return dict(plan,exp=paid,level_notes=notes,other_xp=other_xp)

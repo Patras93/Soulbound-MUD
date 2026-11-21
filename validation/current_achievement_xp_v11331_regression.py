@@ -2,6 +2,7 @@
 """Live SQLite/real progression gateways for achievement-specific XP rewards."""
 from __future__ import annotations
 import asyncio
+from datetime import date
 import tempfile
 import sys
 from pathlib import Path
@@ -24,6 +25,7 @@ class TestSession(SessionAchievementXpV11331Mixin,SessionProfessionStorageMixin)
         self.account_id=aid
         self.character=Character.from_row(db.character_for_account(aid))
         self.messages=[]
+        self.closed=False
     async def send(self,text,*args,**kwargs):self.messages.append(str(text))
     async def unlock_title(self,key,name,announce=True):
         self.server.db.unlock_title(self.account_id,key,name)
@@ -109,6 +111,106 @@ def test():
         ok(not bad.messages,'no false notice after rollback')
         asyncio.run(bad.check_achievement_tiers('rare_fish_caught',1))
         ok(db.profession(bad.account_id,'Wędkarstwo')['xp']>0,'retry after rollback')
+        # CURRENT v116.00.42: daily/advent grants all *existing* progression
+        # axes without unlocked content, fake actions or multiple payouts.
+        from systems.gift_parts.payout import claim_once
+        from systems.gift_parts.rewards import _daily_growth_amount
+        # Live gameplay keeps old bank balances manual-only.
+        db._manual_bank_only_v11325=True
+        daily=make('DailyGiftGrowth')
+        daily_aid=daily.account_id
+        skill_ids=[row['id'] for row in CLASS_SKILLS[daily.character.class_name][:2]]
+        for skill_id in skill_ids:
+            db.learn_skill(daily_aid,skill_id)
+        # One played profession/tool and one dormant placeholder each.
+        db.profession(daily_aid,'Wędkarstwo')
+        db.save_profession(daily_aid,'Wędkarstwo',1,0,1)
+        db.tool(daily_aid,'fishing')
+        db.save_tool(daily_aid,'fishing',1,0,1)
+        db.profession(daily_aid,'Górnictwo')
+        db.tool(daily_aid,'mining')
+        skill_uses={sk:db.skill_progress(daily_aid,sk)['uses'] for sk in skill_ids}
+        before_level=daily.character.character_level
+        gift=claim_once(daily,day=date(2026,11,21))
+        ok(gift is not None and gift['kind']=='daily','daily gift delivered')
+        ok(gift['other_xp']['soul']>0 and daily.character.soul_xp>0,'daily Soul XP')
+        ok(gift['other_xp']['stats']>0 and all(
+            daily.character.stat_progress_for(k)>0 for k in daily.character.STAT_PROGRESS_FIELDS),
+            'daily all six stats')
+        ok(gift['other_xp']['class']>0 and
+           int(db.class_progress_row(daily_aid,daily.character.class_name)['xp'])>0,
+           'daily primary class XP')
+        ok(gift['other_xp']['weapon']>0 and daily.character.soul_weapon_mastery_xp>0,
+           'daily Soul Weapon Mastery')
+        ok(gift['other_xp']['skills']>0 and all(
+            db.skill_progress(daily_aid,sk)['xp']>0 for sk in skill_ids),
+           'daily all known skills')
+        ok(all(db.skill_progress(daily_aid,sk)['uses']==skill_uses[sk] for sk in skill_ids),
+           'daily is not a skill cast')
+        ok(gift['other_xp']['profession']>0 and db.profession(daily_aid,'Wędkarstwo')['xp']>0,
+           'daily played profession')
+        ok(gift['other_xp']['tool']>0 and db.tool(daily_aid,'fishing')['xp']>0,
+           'daily used tool')
+        ok(db.profession(daily_aid,'Górnictwo')['xp']==0 and
+           db.tool(daily_aid,'mining')['xp']==0,
+           'no phantom growth for only queried inactive tracks')
+        ok(db.profession(daily_aid,'Wędkarstwo')['actions']==1 and
+           db.tool(daily_aid,'fishing')['uses']==1,
+           'no fake profession or tool action')
+        ok(daily.character.character_level<=before_level+1,'no multilevel daily character')
+        snapshot=(daily.character.character_xp,daily.character.soul_xp,
+                  db.class_progress_row(daily_aid,daily.character.class_name)['xp'])
+        ok(claim_once(daily,day=date(2026,11,21)) is None,'same day no duplicate')
+        ok(snapshot==(daily.character.character_xp,daily.character.soul_xp,
+                     db.class_progress_row(daily_aid,daily.character.class_name)['xp']),
+           'no duplicate across axes')
+        ok(_daily_growth_amount(10000,'advent') > _daily_growth_amount(10000,'daily'),
+           'advent all axes bonus higher')
+        from systems.gift_parts.delivery import announce_gift
+        asyncio.run(announce_gift(daily,gift))
+        ok(daily.messages[-1].startswith('DZIENNY PREZENT:'),
+           'daily NVDA announcement name unchanged')
+        mag=make('MagitekBonus')
+        # Synthetic active Magitek profile: actual UOSS classes are registered
+        # by later world content and not part of the original 22-class fixture.
+        mag.character.class_name='Magitek'
+        db.conn.execute('UPDATE characters SET class_name=? WHERE account_id=?',
+                        ('Magitek',mag.account_id))
+        db.conn.commit()
+        db.ensure_primary_class(mag.account_id,'Magitek')
+        db.learn_skill(mag.account_id,'v107_magitek_runicweapon')
+        magic=claim_once(mag,day=date(2026,12,6))
+        ok(magic is not None and magic['kind']=='advent','advent delivered')
+        ok(db.class_progress_row(mag.account_id,'Magitek')['xp']>0,
+           'Magitek mastery from Advent')
+        ok(db.skill_progress(mag.account_id,'v107_magitek_runicweapon')['xp']>0,
+           'learned Magitek skill from Advent')
+        ok(magic['other_xp']['stats']>0 and magic['other_xp']['soul']>0,
+           'advent grows all same domains')
+        ok(db.conn.execute('SELECT COUNT(*) FROM learned_skills WHERE account_id=?',
+                           (mag.account_id,)).fetchone()[0]==1,
+           'advent does not unlock new Magitek skills')
+        # Late failure must roll back every axis and the per-day receipt.
+        roll=make('DailyGiftRollback')
+        rid=roll.account_id
+        db.tool(rid,'fishing'); db.save_tool(rid,'fishing',1,0,1)
+        db.profession(rid,'Wędkarstwo'); db.save_profession(rid,'Wędkarstwo',1,0,1)
+        before_roll=dict(roll.character.__dict__)
+        before_class=dict(db.class_progress_row(rid,roll.character.class_name))
+        with patch.object(db,'save_tool',side_effect=RuntimeError('daily injected tool failure')):
+            try: claim_once(roll,day=date(2026,11,23))
+            except RuntimeError as exc:
+                ok(str(exc)=='daily injected tool failure','injected late failure')
+            else: raise AssertionError('Gift tool error must abort whole gift')
+        ok(dict(roll.character.__dict__)==before_roll,'rollback all character axes')
+        ok(dict(db.class_progress_row(rid,roll.character.class_name))==before_class,
+           'rollback class XP')
+        ok(db.profession(rid,'Wędkarstwo')['xp']==0 and db.tool(rid,'fishing')['xp']==0,
+           'rollback all career progress')
+        ok(db.conn.execute('SELECT 1 FROM v109_gift_claims WHERE master_account_id=? '
+                           'AND gift_date=?',(db.master_account_for_character(rid),'2026-11-23')).fetchone() is None,
+           'rollback receipt')
+        ok(claim_once(roll,day=date(2026,11,23)) is not None,'retry after failure')
         ok(db.conn.execute('PRAGMA integrity_check').fetchone()[0]=='ok','SQLite integrity')
         # No automatic EXP Bank deposit or withdrawal is permitted.
         ok(db.conn.execute('SELECT COUNT(*) FROM experience_bank_v2011 WHERE balance != ?',('0',)).fetchone()[0]==0,'old EXP Bank not modified')
