@@ -63,6 +63,14 @@ def run():
         raise AssertionError('Ciala i przedmioty na ziemi: test FAIL')
     print(f'KONTROLA WSTEPNA: ciala / EQ / ziemia PASS ({result.testsRun})',flush=True)
     crypt_test()  # raises on a failed assertion; prints the achieved check count
+    from validation.current_fame_immediate_regression import run as current_fame_test
+    current_fame_test()  # instant kill EXP, separate first Fame bonus, legacy debt
+    print('KONTROLA WSTEPNA: natychmiastowy EXP i osobny Fame PASS',flush=True)
+    from validation.current_quest_accept_performance_regression import run as quest_lookup_test
+    quest_lookup_test()  # NPC lookup: preserve names, forbid whole-world offer scans
+    print('KONTROLA WSTEPNA: szybkie przyjmowanie questow PASS',flush=True)
+    from validation.current_city_pest_quest_regression import run as city_pest_test
+    city_pest_test()  # authored city threat, room-aware and nested runtime variants
     print('KONTROLA WSTEPNA: questy i walka PASS',flush=True)
     from validation.current_movement_tempo_regression import run as movement_tempo_test
     movement_tempo_test()

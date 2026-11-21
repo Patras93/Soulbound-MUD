@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Actual localhost TCP Fame boss kill -> delayed EXP/Fame.
+# Actual localhost TCP Fame boss: ordinary EXP now, separate bonus/Fame later.
 # Only disposable low-HP fixture; not a normal difficulty test.
 from __future__ import annotations
 import asyncio
@@ -72,8 +72,8 @@ async def actual_boss_fight(port, db_path):
             raise AssertionError('Wrong 60-300 sec combat delay: '+repr(due_at-time.time()))
         with closing(sqlite3.connect(db_path)) as conn:
             after=conn.execute('SELECT character_xp,soul_xp,stat_progress FROM characters WHERE account_id=?',(aid,)).fetchone()
-            if after!=before:
-                raise AssertionError(f'Fame mob credited XP immediately: {before=}, {after=}')
+            if after==before:
+                raise AssertionError(f'Fame mob failed to award ordinary kill EXP at death: {before=}, {after=}')
             try:
                 credited=conn.execute('SELECT COUNT(*) FROM fame_bosses_v1702 WHERE account_id=?',(aid,)).fetchone()[0]
             except sqlite3.OperationalError:
@@ -85,15 +85,15 @@ async def actual_boss_fight(port, db_path):
             if not snapshot:
                 raise AssertionError('Real kill did not save Multi Cap EXP snapshot')
             numbers=json.loads(snapshot[0]); axes=('character_xp','soul_xp','class_xp','stat_xp')
-            if not any(int(numbers[a])>0 for a in axes):
-                raise AssertionError('Real boss kill generated all-zero EXP: '+repr(numbers))
+            if any(int(numbers[a]) for a in axes) or not numbers.get('verified_zero'):
+                raise AssertionError('First Fame milestone incorrectly queued ordinary kill EXP: '+repr(numbers))
             # Simulate passage of 60-300 seconds in the disposable DB only.
             # Keeps normal production delay untouched, never sleeps minutes.
             conn.execute('UPDATE v115_fame_delivery SET due_at=? WHERE account_id=?',
                          (time.time()-1,aid))
             conn.commit()
         exp_time=fame_time=None
-        exp_pattern='FAME MOB: zaległy EXP za '+BOSS_NAME
+        exp_pattern='FAME MOB: osobny bonus EXP za Fame za '+BOSS_NAME
         fame_pattern='FAMA: +1 za '+BOSS_NAME
         end=time.monotonic()+24
         while time.monotonic()<end and (exp_time is None or fame_time is None):
@@ -119,7 +119,7 @@ async def actual_boss_fight(port, db_path):
             integrity=conn.execute('PRAGMA integrity_check').fetchone()[0]
             if integrity!='ok':raise AssertionError('SQLite integrity failure: '+str(integrity))
         print('REAL BOSS TCP PASS: natural kill -> pending 60..300 sec; '
-              'XP untouched until due; EXP->Fame gap '+str(round(fame_time-exp_time,2))+
+              'normal EXP at kill; bonus->Fame gap '+str(round(fame_time-exp_time,2))+
               's; exact first Fame once; saved EXP; soundpack off',flush=True)
     finally:
         await hero.close()

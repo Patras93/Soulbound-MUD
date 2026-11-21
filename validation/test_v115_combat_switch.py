@@ -36,24 +36,32 @@ class TestCombatSwitch(unittest.TestCase):
         self.kw['character_xp'] = 99999
         self.assertTrue(self.stage())
         self.assertEqual(1,self.conn.execute('SELECT COUNT(*) FROM v115_fame_reward_snapshot').fetchone()[0])
-        self.assertEqual(1,self.conn.execute('SELECT COUNT(*) FROM v115_fame_repeat_exp').fetchone()[0])
+        # The queued milestone contains no copy of the ordinary kill EXP.
+        from systems.v115.fame_reward_snapshot import load_snapshot
+        snap=load_snapshot(self.conn,77,'Kraina','boss')
+        self.assertEqual((0,0,0,0),(snap.character_xp,snap.soul_xp,snap.class_xp,snap.stat_xp))
+        self.assertFalse(self.conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone())
     def test_legacy_first_clear_preserved(self):
         self.conn.execute('CREATE TABLE fame_bosses_v1702(account_id INTEGER,region TEXT,boss_id TEXT)')
         self.conn.execute("INSERT INTO fame_bosses_v1702 VALUES(77,'Kraina','boss')")
         self.assertTrue(self.stage())
         self.assertFalse(self.conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_delivery'").fetchone())
-        self.assertEqual(1,self.conn.execute('SELECT COUNT(*) FROM v115_fame_repeat_exp').fetchone()[0])
+        self.assertFalse(self.conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_repeat_exp'").fetchone())
     def test_rollback_no_pending(self):
         self.conn.execute('SAVEPOINT death')
         self.stage()
         self.conn.execute('ROLLBACK TO death')
         self.conn.execute('RELEASE death')
         self.assertFalse(self.conn.execute("SELECT 1 FROM sqlite_master WHERE name='v115_fame_delivery'").fetchone())
-    def test_combat_hook_wires_zeroed_axes(self):
+    def test_combat_hook_wires_immediate_axes(self):
         src = (Path(__file__).parents[1]/'player/session_mixins/combat_rewards.py').read_text()
         self.assertIn('stage_delayed_first_clear(',src)
         for axis in ('char','soul','class','stat'):
             self.assertIn('_now_'+axis+'_v115',src)
+        self.assertIn('_now_char_v115 = _character_payout_v104',src)
+        self.assertIn('_now_soul_v115 = _soul_payout_v104',src)
+        self.assertIn('_now_class_v115 = _class_payout_v104',src)
+        self.assertIn('_now_stat_v115 = raw_stat_reward',src)
         self.assertNotIn('record_fame_kill(',src)
 
 if __name__=='__main__': unittest.main()

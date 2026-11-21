@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """Atomically prepare a Fame first-clear from FINAL combat reward numbers.
 
-This does not install a combat hook: combat must suppress its legacy Fame
-and immediate EXP paths when this function stages a first-clear. Keeping
-this contract separate avoids accidentally paying both paths during rollout.
+This does not install a combat hook: combat must suppress the legacy Fame
+path, but it must pay ordinary kill EXP immediately, outside this queue.
+The first-clear snapshot carries zero ordinary EXP for new kills; older
+snapshots retain their original deferred payouts after upgrade.
 """
 from __future__ import annotations
 from systems import fame_v1702
@@ -25,7 +26,7 @@ def resolve_fame_objective(mob, template):
 def stage_final_combat_reward(conn, session, mob, template, *,
                               character_xp, soul_xp, class_xp, stat_xp,
                               class_levels, class_max_level, overcap, now=None):
-    """Save real per-axis payout only for an eligible first Fame clear.
+    """Save deferred per-axis payout only for an eligible first Fame clear.
 
     Must be called inside the combat kill coordinator's transaction after
     multiplier/cap calculations and BEFORE any progression payout. Caller

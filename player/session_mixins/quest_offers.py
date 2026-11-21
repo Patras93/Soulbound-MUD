@@ -419,18 +419,28 @@ class SessionQuestOffersMixin:
 
             quest = QUESTS.get(quest_id, {})
             giver_norm = self.normalize_description_query(quest.get("giver", ""))
-            # Najpierw NPC w bieżącej lokacji, potem globalny fallback po nazwie givera.
-            ordered = list(NPCS.items())
-            ordered.sort(key=lambda pair: pair[1].get("room") != self.character.room_id)
-            for npc_id, npc in ordered:
-                if quest_id not in self.quest_ids_for_npc(npc_id, npc):
+            # v116.00.48: przyjmowanie questa NIE może sprawdzać oferty
+            # każdego NPC w całym świecie. Przy 15 tys. questów stary
+            # fallback zajmował do 15.8 s CPU i blokował pętlę gry.
+            # Zachowujemy historyczne pierwszeństwo: miejscowi NPC
+            # w oryginalnej kolejności, potem wyłącznie globalni NPC
+            # o dokładnej nazwie givera. Pozostali i tak nie mogliby
+            # zwrócić nazwy w starej implementacji.
+            current_room = self.character.room_id
+            for npc_id, npc in NPCS.items():
+                if npc.get("room") != current_room:
                     continue
-                if giver_norm:
-                    npc_norm = self.normalize_description_query(npc.get("name", ""))
-                    if npc_norm == giver_norm:
-                        return npc.get("name", quest.get("giver", "NPC"))
-                if npc.get("room") == self.character.room_id:
+                if quest_id in self.quest_ids_for_npc(npc_id, npc):
                     return npc.get("name", quest.get("giver", "NPC"))
+
+            if giver_norm:
+                for npc_id, npc in NPCS.items():
+                    if npc.get("room") == current_room:
+                        continue
+                    if self.normalize_description_query(npc.get("name", "")) != giver_norm:
+                        continue
+                    if quest_id in self.quest_ids_for_npc(npc_id, npc):
+                        return npc.get("name", quest.get("giver", "NPC"))
             return str(quest.get("giver") or "NPC")
 
     def quest_accept_reaction_v099(self, quest, npc_name, repeated=False):

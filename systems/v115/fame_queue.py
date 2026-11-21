@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""v115: durable EXP-before-Fame delivery, independent from audio.
+"""Durable Fame bonus/Fame delivery; preserve legacy queued ordinary EXP.
 
 This is a persistence/settlement primitive, not a replacement for character XP
 APIs. A host award callback MUST write through the SAME SQLite connection and
@@ -43,7 +43,7 @@ def ensure_schema(conn):
 
 
 def schedule_fame(conn, account_id, region, boss_id, boss_name, *, reward_xp=0, fame_points=1, now=None):
-    """Queue one first-clear. Never immediately credit EXP or Fame."""
+    """Queue one first-clear bonus/Fame event; never credit either here."""
     now = time.time() if now is None else float(now)
     reward_xp, fame_points = int(reward_xp), int(fame_points)
     if reward_xp < 0 or fame_points < 1:

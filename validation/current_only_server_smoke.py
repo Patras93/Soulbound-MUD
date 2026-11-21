@@ -246,6 +246,38 @@ def main():
                     loop_task.cancel()
                     await asyncio.gather(loop_task, return_exceptions=True)
             asyncio.run(check_idle_world())
+            # Active-world lag regression: distant mob movements continue,
+            # but cannot trigger thousands of empty-room network broadcasts.
+            async def check_wander_room_audience():
+                from types import SimpleNamespace
+                probe = MudServer.__new__(MudServer)
+                on = OnlineProbe()
+                on.character = SimpleNamespace(room_id='A')
+                probe.sessions = {on}
+                probe._players_present_v11645 = asyncio.Event()
+                class MoveWorld:
+                    mobs = {}
+                    calls = 0
+                    def wander_step(self):
+                        self.calls += 1
+                        mob = SimpleNamespace(template_id='rat')
+                        return [(mob, 'A', 'B'), (mob, 'X', 'Y'), (mob, 'Z', 'A')]
+                probe.world = MoveWorld()
+                announcements = []
+                async def announce(room_id, message):
+                    announcements.append((room_id, message))
+                probe.broadcast_room = announce
+                task = asyncio.create_task(probe.mob_wander_loop(tick_seconds=0.015))
+                try:
+                    await asyncio.sleep(0.07)
+                    assert probe.world.calls > 0, 'active movement disabled'
+                    assert announcements and all(room == 'A' for room, _ in announcements), announcements
+                    assert any('odchodzi' in message for _, message in announcements)
+                    assert any('nadchodzi' in message for _, message in announcements)
+                finally:
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
+            asyncio.run(check_wander_room_audience())
             from systems.mob_recovery_v1405 import restore_idle_hp_tick_v1405
             from types import SimpleNamespace
             dummy=SimpleNamespace(alive=True,hp=5,engaged_by=None,aoe_engaged_by=None,

@@ -1,3 +1,61 @@
+Soulbound MUD v116.00.49 — NALICZANIE QUESTÓW ZE SZKODNIKAMI (21.11.2026)
+
+- Wzmocniono naliczanie questów z miejskimi Podziemnymi Szkodnikami:
+  warianty terenowe, zagrozenia swiata i odmiany Elite/Rare zachowuja
+  identyfikator pierwotnego celu takze przy kilku poziomach klonowania.
+- Szkodnik pokonany na obszarze wlasciwego miasta zalicza cel tego miasta,
+  jesli jego identyfikator wskazuje na miejskiego szkodnika. Identyczne nazwy
+  potworow z innych miast nie prowadza do naliczania zadan w niewlasciwym
+  miejscu. Zwykle moby nadal nie zaliczaja questow o szkodnikach.
+- Dwa etapy questu zachowuja dotychczasowe progi 8 oraz 16 zabic; kazde
+  faktyczne zabicie podnosi pojedynczy aktywny licznik o co najwyzej 1.
+- Dodano 6 regresji z osobnymi kontami i statusem zadania do obowiazkowego
+  PREDEPLOY; zachowano testy questow, SQLite, Fame i walki.
+- UWAGA: log PREDEPLOY v116.00.48 wykazal PASS 60/60, ale nie sprawdzal
+  wszystkich miejskich szkodnikow. Ta nowa paczka v116.00.49 wymaga
+  oddzielnego PASS 60/60 PLUS na Windows przed wdrozeniem.
+- Prawdziwa baza i konta pozostaja bez zmian. Produkcja i GitHub
+  NIE byly aktualizowane na etapie przygotowania tej paczki.
+
+Soulbound MUD v116.00.48 — NAPRAWA LAGU PRZY PRZYJMOWANIU QUESTA (21.11.2026)
+
+- POPRAWKA REALNEGO LAGU v116.00.46: log serwera z 21.11 wskazal
+  15.857 sekundy CPU w komendzie quests, w tym 15.807 s w etapie
+  akceptacji i wyboru NPC. Poprzednio skanowano oferty kazdego NPC
+  na swiecie, nawet jesli jego nazwa i lokacja nie pasowaly.
+- Nowy wybor NPC zachowuje pierwszenstwo miejscowego NPC i podanej
+  nazwy, ale pobiera oferty questowe tylko dla faktycznie pasujacych
+  kandydatow. Przy 10 000 niepowiazanych NPC: 1 zapytanie o oferte,
+  a gdy brak pasujacej nazwy: 0 zamiast tysięcy. Bez zmiany nagrod,
+  przyjmowania, kont, postaci ani zasad widocznosci questow.
+- Obowiazkowa regresja w szybkim PREDEPLOY: 189 porownan z poprzednim
+  zachowaniem, w tym test przeciw globalnemu skanowaniu.
+- Zachowano w calosci naprawy z v116.00.47: natychmiastowy zwykly EXP,
+  osobny Fame i ograniczenie pustych komunikatow ruchu potworow.
+- Uwaga: log pokazuje rowniez wolny ruch postaci (do 2.481 s), wiec
+  powyzsza poprawka nie jest potwierdzeniem usuniecia WSZYSTKICH lagow.
+- Paczka do PREDEPLOY na Windows. Nie wdrazac bez 60/60 PLUS PASS.
+
+Soulbound MUD v116.00.47 — NATYCHMIASTOWY EXP Z WALKI I ODDZIELNY FAME (21.11.2026)
+
+- POPRAWKA: normalny EXP postaci, Soul, klasy i statystyk za kazde zabicie
+  Fame Moba jest wyplacany natychmiast, tak jak za inne potwory.
+- Bonus EXP za pierwsza Fame zostaje osobna, dodatkowa nagroda rowna
+  biezacemu Multi Cap na dostepna os; jest wyplacany po 60–300 sekundach,
+  a 1 punkt Fame okolo 2 sekundy pozniej. Brak podwojnego EXP za zabicie.
+- Powtorne zabicia Fame Moba nie wstawiaja juz kolejek opoznionego EXP:
+  zwykly EXP trafia od razu; Fame i bonus pierwszego odkrycia sie nie powtarzaja.
+- Wazne: juz oczekujace wyplaty z wersji 115–116.46 sa nadal rozliczane
+  w starej kolejnosci i bez utraty EXP, nawet po aktualizacji.
+- Mniej zapytan i zapisow SQLite przy powtarzalnych walkach z Fame Mobami.
+- Poprawka wydajnosci ruchu swiata: petla 15-sekundowych spacerow nie
+  wykonuje juz tysiecy pustych wywolan rozglaszania do pokoi bez graczy.
+  Wszystkie moby dalej sie ruszaja, a gracze w swoich lokacjach nadal
+  otrzymuja komunikaty wejscia i wyjscia. Bez zmian AI i rozmieszczenia.
+  To ogranicza narzut serwera, ale nie dowodzi usuniecia wszystkich lagow.
+- Brak zmian w kontach, prawdziwej bazie postaci, balansie, sprzecie i obszarach.
+  Wspolna mechanika Windows/Linux. PRZED WDROZENIEM wymagany PREDEPLOY PASS.
+
 Soulbound MUD v116.00.46 — NAPRAWA TESTU PREDEPLOY v116.00.45 (21.11.2026)
 
 - Naprawiono test pelnego uruchomienia serwera: atrapa zalogowanego gracza ma

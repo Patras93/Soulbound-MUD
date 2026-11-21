@@ -27,7 +27,7 @@ def stage_first_clear(conn, account_id, region, boss_id, boss_name, snapshot, *,
 
 
 def deliver_stored_for_online_player(db, character, account_id, *, now=None, limit=20):
-    """Deliver exactly the XP calculated at the kill, then Fame >=2s later.
+    """Deliver stored historical XP or new separate Fame bonus, then Fame >=2s later.
 
     Run under a per-character lock on a serialized authenticated session.
     Outputs are *post-commit* notifications, never call soundpack or network.
@@ -74,8 +74,9 @@ def deliver_stored_for_online_player(db, character, account_id, *, now=None, lim
             if credited:
                 events.append(('fame', region, boss_id, boss_name, 1))
                 return events
-    # Repeat kills earn delayed EXP only; Fame is credited once per objective.
-    # The scheduler runs this entire function under the same kill-settlement lock.
+    # Old repeat kills (queued by pre-v116.00.47 code) retain their delayed
+    # EXP once-only. New repeat kills already received EXP at combat time.
+    # The scheduler runs under the same kill-settlement lock.
     for token, boss_name in fame_repeat_rewards.due_repeats(
             db.conn,account_id,getattr(character,'name',None),now=now,limit=limit):
         paid = fame_repeat_rewards.settle_repeat_exp(

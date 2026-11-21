@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Opóźniony EXP za każde ponowne zabicie naturalnego Fame Moba.
+"""Zgodnościowe wypłaty EXP za ponowne Fame zabicia sprzed v116.00.47.
 
-Pierwsza Fama jest jednorazowa i pozostaje w fame_queue. Powtórne zabicia
-nie generują drugiej Famy, ale ich rzeczywisty EXP także nie wpada od razu.
-Moduł jest niezależny od klienta i soundpacka.
+Od v116.00.47 normalny EXP z powtórki trafia natychmiast przy zabiciu.
+Nie wolno usuwać ani ignorować wcześniejszych, już zakolejkowanych nagród.
+Moduł pozostaje do ich trwałego, jednokrotnego rozliczenia po aktualizacji.
 """
 from __future__ import annotations
 
