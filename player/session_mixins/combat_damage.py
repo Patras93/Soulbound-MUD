@@ -172,7 +172,9 @@ class SessionCombatDamageMixin:
                     room_v11650 = ROOMS.get(str(getattr(mob, 'room_id', '')), {})
                     # Most equal-level hunts take the extremely cheap legacy
                     # path, without querying companion/contract tables.
-                    if authored_stage_combat_level_v11651(template, room_v11650) < party_level - 15:
+                    _stage_v11656 = authored_stage_combat_level_v11651(template, room_v11650)
+                    if (_stage_v11656 < party_level - 15
+                            and _stage_v11656 < max(35, party_level - 40)):
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):
                             reset_mob(mob, template)
                         return None
@@ -229,9 +231,12 @@ class SessionCombatDamageMixin:
                         except (ArithmeticError, AttributeError, TypeError, ValueError):
                             party_dps = 0
                         self._world_party_dps_v11652 = (party_key, now_dps, party_dps)
+                    from systems.encounter_burst_v11656 import party_skill_burst_v11656
+                    skill_burst = party_skill_burst_v11656(members, now=now_dps)
                     damage_target = authored_party_damage_target_hp_v11652(
                         template, base_max, party_level, party_dps,
-                        room_v11650, len(members), mercenaries, companions)
+                        room_v11650, len(members), mercenaries, companions,
+                        skill_burst=skill_burst)
                     target_max = max(stage_target, damage_target)
                     if target_max <= base_max:
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):

@@ -84,6 +84,10 @@ def run():
     print('KONTROLA WSTEPNA: globalny balans HP 1-6 graczy i krypta pietro 60 PASS',flush=True)
     from validation.current_global_party_dps_v11652_regression import run as party_damage_balance_test
     party_damage_balance_test()  # all world ranks/regions + actual live HP route
+    # v116.00.56: real learned Mec and other class skill-burst test.
+    from validation.current_skill_burst_v11656_regression import run as learned_burst_test
+    assert learned_burst_test() >= 15
+    print('KONTROLA WSTEPNA: skille 1-6 graczy i wsparcie przeciw one-shot PASS',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)
     from validation.current_quest_accept_performance_regression import run as quest_lookup_test
