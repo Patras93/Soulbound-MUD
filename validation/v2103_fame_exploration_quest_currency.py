@@ -65,7 +65,7 @@ def run_regression():
         checks += 1
     s = _MockSession()
     caps = fame_cap_awards_v2103(s)
-    assert all(caps[k] == 248500 for k in ('character','soul','stat','class_total'))
+    assert all(caps[k] == 24850 for k in ('character','soul','stat','class_total'))
     checks += 4
     ensure_schema(s.server.db.conn)
     s.server.db.conn.execute('''INSERT INTO fame_pending_v1703

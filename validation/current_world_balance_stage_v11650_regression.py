@@ -14,6 +14,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 from systems.adaptive_combat import (
     authored_stage_challenge_multiplier_v11650,
+    authored_stage_combat_level_v11651,
+    authored_party_damage_target_hp_v11652,
     adaptive_encounter_stage_v2325,
     adaptive_combat_rank_v11330,
 )
@@ -57,6 +59,8 @@ def run():
         'MOB_TEMPLATES':{'crypt_test':template},
         'adaptive_combat_rank_v11330':adaptive_combat_rank_v11330,
         'adaptive_encounter_stage_v2325':adaptive_encounter_stage_v2325,
+        'authored_stage_combat_level_v11651':authored_stage_combat_level_v11651,
+        'authored_party_damage_target_hp_v11652':authored_party_damage_target_hp_v11652,
         'math':math,'random':random,'sqlite3':sqlite3,'sys':sys}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[fn],type_ignores=[])),
                  str(source),'exec'),ns)
@@ -98,6 +102,35 @@ def run():
         check(expanded['max_hp']>=first['max_hp'],'6 real players raise the target')
         check(expanded['party_size']==6,'6 slots regardless of 18 contracts and pets')
         check(expanded['reward_multiplier']==1.0,'6-player reward remains authored')
+        # Reproduce the real complaint against the production session method:
+        # two Level-73 players, six hires, two pets on Crypt floor 60.
+        del sessions[2:]
+        for member in sessions:
+            member.character.character_level = 73
+        ns['ROOMS']['crypt60'] = {'generator_level':139}
+        ns['MOB_TEMPLATES']['crypt60mob'] = {
+            'crypt_floor':60, 'generator_level':139, 'max_hp':139071,
+            'rank':'normal', 'damage':320,
+        }
+        crypt = SimpleNamespace(key='cryptmob', template_id='crypt60mob',
+                                room_id='crypt60', hp=139071, alive=True)
+        balanced = apply(sessions[0], crypt)
+        check(balanced is not None and balanced['party_size']==2,
+              'two real players have two real player slots')
+        check(139071 < balanced['max_hp'] < 200000,
+              'floor-60 normal HP no longer has x33 inflated health')
+        remaining = crypt.hp // 3
+        crypt.hp = remaining
+        again = apply(sessions[1], crypt)
+        check(again['max_hp']==balanced['max_hp'] and crypt.hp==remaining,
+              'repeated party hit does not heal normal Crypt mob')
+        for member in sessions:
+            member.character.character_level = 85
+        reset = apply(sessions[0], crypt)
+        check(reset is None and 0 < crypt.hp < 139071,
+              'outlevelled party removes only bonus HP without healing combat damage')
+        check(crypt.adaptive_reward_multiplier_v11330==1.0,
+              'Fame and XP never increased by extra HP')
         db.conn.close()
     print(f'WORLD STAGE AND SIX-PLAYER BALANCE v116.00.50: {checks} PASS',flush=True)
     return checks

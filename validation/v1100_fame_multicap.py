@@ -17,9 +17,11 @@ def run_regression():
     checks=0
     for amount in (1, 40000, 80000, 248500, 1000000000):
         result=fame_cap_awards_v2103(SessionFake(amount))
-        assert result=={key:amount for key in ('character','soul','stat','class_total')}
+        from systems.milestone_cap_rewards_v2103 import milestone_payout_from_cap_v11653
+        expected = milestone_payout_from_cap_v11653(amount,10)
+        assert result=={key:expected for key in ('character','soul','stat','class_total')}
         checks+=4
     return checks
 
 if __name__=='__main__':
-    print('FAME 100% MULTI CAP:',run_regression(),'PASS')
+    print('FAME 10% MULTI CAP:',run_regression(),'PASS')

@@ -28,7 +28,7 @@ def run_regression():
         fame = fame_cap_awards_v2103(session)
         ep = explorer_award_per_point_v4211(level)
         cap = experience_cap_v2009('character', level)
-        assert fame['character'] == 248500 + 500*level
+        assert fame['character'] == (248500 + 500*level + 9) // 10
         assert fame == dict.fromkeys(('character','soul','stat','class_total'), fame['character'])
         assert 120 <= ep['character'] <= 220
         assert len(set(ep.values())) == 1

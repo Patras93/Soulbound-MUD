@@ -2,7 +2,7 @@
 """v115 transactional bridge: EXP progression before delayed Fame.
 
 This adapter deliberately does NOT hook itself into combat. Caller owns eligibility,
-real Fame boss identity, and selection of correct full Multi Cap inputs.
+real Fame boss identity, and selection of correct Multi Cap inputs.
 No async I/O, soundpack or network calls inside the award transaction.
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
     result = []
     from systems.combat_kill_settlement_v10400 import settle_combat_full_progression_v10400
     # The immutable kill snapshot above is the NORMAL kill EXP. A FIRST Fame
-    # also earns the independent milestone bonus of one current Multi Cap on
+    # also earns the independent 10% Multi Cap milestone bonus (v116.53) on
     # each existing axis. Sample before awarding the kill to avoid having a
     # character level-up artificially raise this same Fame bonus.
     # Historical isolated SQLite fixtures have no account-level Multi Cap
@@ -51,7 +51,11 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
         multi_cap = cap_resolver(account_id)
         if multi_cap is None:
             raise RuntimeError('FAME: brak Multi Cap postaci')
-        fame_bonus = max(1, int(multi_cap))
+        from systems.milestone_cap_rewards_v2103 import (
+            milestone_payout_from_cap_v11653, V11653_FAME_CAP_PERCENT,
+        )
+        fame_bonus = milestone_payout_from_cap_v11653(
+            multi_cap, V11653_FAME_CAP_PERCENT)
     else:
         fame_bonus = 0
 

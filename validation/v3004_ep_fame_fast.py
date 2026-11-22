@@ -23,7 +23,7 @@ def run_regression_fast():
         assert method in calls, ('EP Fame source contract', method)
     assert source.index('not self.server.db.claim_landmark_ep_v1002') < source.index('caps = explorer_award_per_point_v1001'), 'repeat EP guard'
     assert source.count('caps = explorer_award_per_point_v1001') == 1
-    assert 'for _ in range(ep_points):' in source, 'one award per EP'
+    assert ('for point_index in range(ep_points):' in source or 'for _ in range(ep_points):' in source), 'one award per EP'
     assert "if caps['class_total']:" in source, 'class guard'
     assert 'EXP Bank' in source, 'NVDA summary'
     return len(expected) + 5

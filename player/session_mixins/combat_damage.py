@@ -22,6 +22,8 @@ from systems.adaptive_combat import (
     adaptive_target_max_hp_v11330,
     adaptive_beginner_incoming_target_v2005,
     adaptive_encounter_stage_v2325,
+    authored_stage_combat_level_v11651,
+    authored_party_damage_target_hp_v11652,
 )
 from systems.elite_variants import elite_average_enemy_multiplier_v11338
 from systems.elemental_combat import elemental_expected_incoming_multiplier_v11339
@@ -170,7 +172,7 @@ class SessionCombatDamageMixin:
                     room_v11650 = ROOMS.get(str(getattr(mob, 'room_id', '')), {})
                     # Most equal-level hunts take the extremely cheap legacy
                     # path, without querying companion/contract tables.
-                    if adaptive_encounter_stage_v2325(template, room_v11650) <= party_level + 5:
+                    if authored_stage_combat_level_v11651(template, room_v11650) < party_level - 15:
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):
                             reset_mob(mob, template)
                         return None
@@ -206,12 +208,35 @@ class SessionCombatDamageMixin:
                     multiplier = authored_stage_challenge_multiplier_v11650(
                         template, party_level,
                         room_v11650, len(members), mercenaries, companions)
-                    if multiplier <= 1.0:
+                    base_max = max(1, int(template.get('max_hp', 1) or 1))
+                    stage_target = max(base_max, int(round(base_max * multiplier)))
+                    # No additional SQLite work here. Use actual player action
+                    # estimates (cached briefly), then a bounded helper share.
+                    # Do not multiply the stage and output-based HP targets.
+                    party_key = tuple(sorted((
+                        str(getattr(member, 'account_id', '')),
+                        int(getattr(member.character, 'character_level', 1) or 1),
+                    ) for member in members))
+                    now_dps = _time_v11650.monotonic()
+                    cached_dps = getattr(self, '_world_party_dps_v11652', None)
+                    if (cached_dps and cached_dps[0] == party_key
+                            and now_dps - cached_dps[1] < 5.0):
+                        party_dps = cached_dps[2]
+                    else:
+                        estimate = getattr(self, 'adaptive_party_dps_v1261', None)
+                        try:
+                            party_dps = estimate(members) if callable(estimate) else 0
+                        except (ArithmeticError, AttributeError, TypeError, ValueError):
+                            party_dps = 0
+                        self._world_party_dps_v11652 = (party_key, now_dps, party_dps)
+                    damage_target = authored_party_damage_target_hp_v11652(
+                        template, base_max, party_level, party_dps,
+                        room_v11650, len(members), mercenaries, companions)
+                    target_max = max(stage_target, damage_target)
+                    if target_max <= base_max:
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):
                             reset_mob(mob, template)
                         return None
-                    base_max = max(1, int(template.get('max_hp', 1) or 1))
-                    target_max = max(base_max, int(round(base_max * multiplier)))
                     old_max = max(base_max,
                         int(getattr(mob, 'adaptive_max_hp_v11330', 0) or base_max))
                     if target_max > old_max:

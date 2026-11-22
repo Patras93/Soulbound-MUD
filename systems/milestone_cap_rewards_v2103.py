@@ -24,15 +24,27 @@ def explorer_award_per_point_v4211(room_stage=1):
 
 
 
-def explorer_award_per_point_v1001(multi_cap):
-    """One earned EP rewards 100% of the *current* full Multi Cap per existing EXP axis.
+# v116.00.53: Multi Cap is the maximum allowed PER AWARD, never the default
+# value of every milestone. Full-cap EP/Fame created a feedback loop: stronger
+# stats raised the cap, and each EP then granted the whole larger cap to all
+# stats, class, character and Soul. Use bounded FRACTIONS for future awards.
+# Do not change the legacy Multi Cap curve, EXP Bank or any earned XP.
+V11653_EP_CAP_PERCENT = 5
+V11653_FAME_CAP_PERCENT = 10
 
-    Separate character, Soul, class and stat gateways preserve the previous
-    reward destinations. Professions/tools are never rewarded by exploration.
-    EXP Bank remains responsible for per-axis overflow. No EXP is multiplied
-    by the number of level-bearing domains contributing to Multi Cap.
+
+def milestone_payout_from_cap_v11653(multi_cap, percent):
+    cap = max(1, int(multi_cap))
+    fraction = max(1, min(100, int(percent)))
+    return min(cap, max(1, (cap * fraction + 99) // 100))
+
+
+def explorer_award_per_point_v1001(multi_cap):
+    """One earned EP pays 5% of Multi Cap independently to existing axes.
+
+    No duplicate profession/tool EXP, no account data migration or bank erase.
     """
-    reward = max(1, int(multi_cap))
+    reward = milestone_payout_from_cap_v11653(multi_cap, V11653_EP_CAP_PERCENT)
     return {'character': reward, 'soul': reward, 'class_total': reward, 'stat': reward}
 
 def _fame_award_for_level_v4211(level):
@@ -42,15 +54,15 @@ def _fame_award_for_level_v4211(level):
 
 
 def fame_cap_awards_v2103(session):
-    """v11 candidate: each UNIQUE Fame is 100% of the current Multi Cap.
+    """Each UNIQUE Fame pays a bounded 10% of the current Multi Cap.
 
-    Fame is durable per canonical target and region. Professions/tools do
-    not receive battle milestone XP. All awards use existing EXP Bank gates.
+    Fame remains durable per canonical target/region; this changes ONLY
+    FUTURE unissued awards, never completed Fame or existing EXP balances.
     """
     multi_cap = session.server.db.multi_cap_v23215(session.account_id)
     if multi_cap is None:
         raise RuntimeError('FAME: brak Multi Cap postaci')
-    reward = max(1, int(multi_cap))
+    reward = milestone_payout_from_cap_v11653(multi_cap, V11653_FAME_CAP_PERCENT)
     # Explicitly classless historical/test sessions have no class mastery
     # axis to credit; real characters retain their full class allocation.
     classes = getattr(session, 'active_class_names', None)
