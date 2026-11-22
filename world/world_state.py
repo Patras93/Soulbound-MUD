@@ -1404,6 +1404,9 @@ class World:
         # 5 sekund; pełny refresh wykona się tylko gdy cache jest nieaktualny.
         live_counts = dict(self.refresh())
         moves = []
+        # Per-tick local caches: no stale catalog data survives this tick.
+        template_can_wander = {}
+        room_candidates = {}
 
         for mob in self.mobs.values():
             if not mob.alive or mob.engaged_by:
@@ -1413,11 +1416,18 @@ class World:
             mob.next_wander_at = now + random.uniform(
                 MOB_WANDER_MIN_SECONDS, MOB_WANDER_MAX_SECONDS
             )
-            template = MOB_TEMPLATES.get(mob.template_id, {})
-            if not mob_template_can_wander(template):
+            can_wander = template_can_wander.get(mob.template_id)
+            if can_wander is None:
+                can_wander = mob_template_can_wander(MOB_TEMPLATES.get(mob.template_id, {}))
+                template_can_wander[mob.template_id] = can_wander
+            if not can_wander:
                 continue
+            candidates_for_room = room_candidates.get(mob.room_id)
+            if candidates_for_room is None:
+                candidates_for_room = tuple(mob_wander_candidates(mob.room_id))
+                room_candidates[mob.room_id] = candidates_for_room
             candidates = [
-                target for target in mob_wander_candidates(mob.room_id)
+                target for target in candidates_for_room
                 if live_counts.get(target, 0) < MOB_WANDER_ROOM_CAP
             ]
             if not candidates:
@@ -1430,17 +1440,31 @@ class World:
             moves.append((mob, old_room, target))
         self._last_live_counts = live_counts
         if moves:
-            by_room = {room_id: list(rows) for room_id, rows in self._last_live_by_room.items()}
+            # Keep immutable tuples for all untouched rooms. The old logic
+            # rebuilt mutable arrays for EVERY populated room on every tick.
+            # Mutable arrays are created only for rooms actually touched by a
+            # moving mob. Identity is crucial: two mobs may have equal data.
+            by_room = dict(self._last_live_by_room)
+            changed = {}
+            def editable(room_id):
+                rows = changed.get(room_id)
+                if rows is None:
+                    rows = list(by_room.get(room_id, ()))
+                    changed[room_id] = rows
+                return rows
             for mob, old_room, target in moves:
-                old_rows = by_room.get(old_room, [])
-                if mob in old_rows:
-                    old_rows.remove(mob)
-                if old_rows:
-                    by_room[old_room] = old_rows
+                old_rows = editable(old_room)
+                for index, candidate in enumerate(old_rows):
+                    if candidate is mob:
+                        old_rows.pop(index)
+                        break
+                editable(target).append(mob)
+            for room_id, rows in changed.items():
+                if rows:
+                    by_room[room_id] = tuple(rows)
                 else:
-                    by_room.pop(old_room, None)
-                by_room.setdefault(target, []).append(mob)
-            self._last_live_by_room = {room_id: tuple(rows) for room_id, rows in by_room.items()}
+                    by_room.pop(room_id, None)
+            self._last_live_by_room = by_room
         return moves
 
     def live_crypt_boss(self, room_id):

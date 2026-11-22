@@ -162,7 +162,12 @@ class SessionCommandLoopMixin:
             # v1.26.2: cache immutable EQ readouts only for the duration of a
             # single read-only STATY request. Never carry these values into
             # combat, crafting, equipping, or another command.
-            _read_only_stats_v1262 = command == "stats"
+            _read_only_stats_v1262 = (
+                command == "stats" or
+                (command in ("eq", "equipment") and
+                 str(args or "").strip().casefold() not in
+                 ("auto", "automatycznie", "najlepsze", "best"))
+            )
             if _read_only_stats_v1262:
                 self._read_only_equipment_cache_v1262 = {}
             try:

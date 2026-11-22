@@ -500,8 +500,18 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                 _tick_started_v0718 = time.perf_counter()
                 # v1.40.5: healed idle mobs only; 10% HP each 15-second tick.
                 self.regenerate_idle_mobs_v1405()
+                _after_regen_v11655 = time.perf_counter()
                 _moves_v0718 = self.world.wander_step()
-                _tick_elapsed_v0718 = time.perf_counter() - _tick_started_v0718
+                _after_wander_v11655 = time.perf_counter()
+                _tick_elapsed_v0718 = _after_wander_v11655 - _tick_started_v0718
+                if _tick_elapsed_v0718 >= 0.45:
+                    # Separate the two CPU-heavy phases for the next real log;
+                    # no usernames, IPs, movements or session data are stored.
+                    print(
+                        f"[PERF WORLD PHASE v11655] regen={_after_regen_v11655-_tick_started_v0718:.3f}s; "
+                        f"wander={_after_wander_v11655-_after_regen_v11655:.3f}s; "
+                        f"mobs={len(self.world.mobs)}", flush=True,
+                    )
                 if _tick_elapsed_v0718 >= 0.10:
                     print(
                         f"[PERF SLOW WORLD TICK] {_tick_elapsed_v0718:.3f}s; moves={len(_moves_v0718)}; mobs={len(self.world.mobs)}",

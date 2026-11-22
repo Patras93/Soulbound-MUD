@@ -724,64 +724,69 @@ class SessionGuideNavigationMixin:
                     "Pełny krok-po-kroku odczyt: trasa pełna <cel>. Następny krok później: trasa krok."
                 )
 
+    @staticmethod
+    def _reconstruct_guide_path_v11655(previous, target_room):
+            # Build only the final route. FIFO parent assignment preserves the
+            # exact tie-breaking of the legacy breadth-first search.
+            path = []
+            while previous[target_room] is not None:
+                parent, direction = previous[target_room]
+                path.append((direction, target_room))
+                target_room = parent
+            path.reverse()
+            return path
+
     def shortest_path(self, start_room, target_room):
             if start_room == target_room:
                 return []
-
-            queue = [(start_room, [])]
-            visited = {start_room}
-
+            from collections import deque
+            queue = deque([start_room])
+            previous = {start_room: None}
             while queue:
-                room_id, path = queue.pop(0)
+                room_id = queue.popleft()
                 room = ROOMS.get(room_id)
                 if not room:
                     continue
                 for direction, next_room in room["exits"].items():
-                    if next_room in visited:
+                    if next_room in previous:
                         continue
-                    # v0.23.0: świat ma wyjścia do pięter tworzonych dopiero na
-                    # żądanie. Nie rozwijamy ich wszystkich podczas BFS (to mogłoby
-                    # generować kolejne piętra bez końca). Materializujemy tylko
-                    # brakujący pokój, jeżeli jest dokładnie szukanym celem; inne
-                    # lazy-exity bezpiecznie pomijamy.
+                    # Only the explicit destination may be materialized. Never
+                    # spawn infinite floors by exploring a speculative edge.
                     if next_room not in ROOMS and next_room == target_room:
                         self.server.world.ensure_runtime_room(next_room)
                     if next_room not in ROOMS:
                         continue
-                    new_path = path + [(direction, next_room)]
+                    previous[next_room] = (room_id, direction)
                     if next_room == target_room:
-                        return new_path
-                    visited.add(next_room)
-                    queue.append((next_room, new_path))
+                        return self._reconstruct_guide_path_v11655(previous, target_room)
+                    queue.append(next_room)
             return None
 
     def shortest_path_within_floor_v11340(
             self, start_room, target_room, floor_parser, floor_number
     ):
-            """Route inside one dungeon floor without crossing its up/down edge."""
+            """Find an intra-floor route without crossing an up/down boundary."""
             if start_room == target_room:
                 return []
-            queue = [(start_room, [])]
-            visited = {start_room}
+            from collections import deque
+            queue = deque([start_room])
+            previous = {start_room: None}
             while queue:
-                room_id, path = queue.pop(0)
+                room_id = queue.popleft()
                 room = ROOMS.get(room_id)
                 if not room:
                     continue
                 for direction, next_room in room.get("exits", {}).items():
-                    if next_room in visited:
-                        continue
-                    if floor_parser(next_room) != floor_number:
+                    if next_room in previous or floor_parser(next_room) != floor_number:
                         continue
                     if next_room not in ROOMS:
                         self.server.world.ensure_runtime_room(next_room)
                     if next_room not in ROOMS:
                         continue
-                    new_path = path + [(direction, next_room)]
+                    previous[next_room] = (room_id, direction)
                     if next_room == target_room:
-                        return new_path
-                    visited.add(next_room)
-                    queue.append((next_room, new_path))
+                        return self._reconstruct_guide_path_v11655(previous, target_room)
+                    queue.append(next_room)
             return None
 
     def guide_descending_floor_v1501(self, room_id):
