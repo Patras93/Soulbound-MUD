@@ -42,12 +42,18 @@ class FameInstant11647(FullKillAtomic):
             self.assertEqual((0,0,0,0),(snapshot.character_xp,snapshot.soul_xp,snapshot.class_xp,snapshot.stat_xp))
             due=self.db.conn.execute('SELECT due_at FROM v115_fame_delivery').fetchone()[0]
             before=self.balance('character')
+            before_total=(self.char.character_level * 100
+                          + self.char.character_xp + before)
             self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due-1))
             ev=deliver_stored_for_online_player(self.db,self.char,1,now=due)
             self.assertEqual(['exp'],[x[0] for x in ev])
             self.assertEqual(False,ev[0][4]['fame_normal_exp_deferred'])
-            self.assertEqual(40,ev[0][4]['fame_bonus_cap'])
-            self.assertGreaterEqual(self.balance('character'),before)
+            self.assertEqual(4,ev[0][4]['fame_bonus_cap'])
+            self.assertGreaterEqual(
+                self.char.character_level*100 + self.char.character_xp
+                + self.balance('character'), before_total)
+            # A smaller Fame reward can automatically drain 4 XP from an
+            # existing EXP Bank into a level. Bank decreasing is not loss.
             self.assertEqual(['fame'],[x[0] for x in deliver_stored_for_online_player(self.db,self.char,1,now=due+2)])
             self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+3))
             self.assertEqual(1,self.db.conn.execute('SELECT count(*) FROM fame_bosses_v1702').fetchone()[0])
@@ -69,7 +75,7 @@ class FameInstant11647(FullKillAtomic):
             event=deliver_stored_for_online_player(self.db,self.char,1,now=due)
             self.assertEqual('exp',event[0][0])
             self.assertTrue(event[0][4]['fame_normal_exp_deferred'])
-            self.assertEqual(40,event[0][4]['fame_bonus_cap'])
+            self.assertEqual(4,event[0][4]['fame_bonus_cap'])
             self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+1))
             self.assertEqual('fame',deliver_stored_for_online_player(self.db,self.char,1,now=due+2)[0][0])
             self.assertEqual([],deliver_stored_for_online_player(self.db,self.char,1,now=due+3))

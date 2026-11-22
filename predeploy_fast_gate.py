@@ -66,6 +66,10 @@ def run():
     from validation.current_fame_immediate_regression import run as current_fame_test
     current_fame_test()  # instant kill EXP, separate first Fame bonus, legacy debt
     print('KONTROLA WSTEPNA: natychmiastowy EXP i osobny Fame PASS',flush=True)
+    # v116.00.53: Future EP/Fame must not issue the full escalating cap.
+    from validation.current_milestone_pacing_v11653_regression import run as milestone_pacing_test
+    assert milestone_pacing_test() >= 60
+    print('V116.00.53 MILESTONE EP/FAME 5/10 PROCENT: PASS',flush=True)
     # v116.00.50: each party member must keep all hires and summons;
     # cached world events and atlas must not rescan 37k rooms per step.
     from validation.current_six_player_helpers_performance_v11650_regression import run as six_helpers_test
@@ -75,6 +79,12 @@ def run():
     print('KONTROLA WSTEPNA: 6 graczy, najemnicy, chowance i cache swiata PASS', flush=True)
     from validation.current_world_balance_stage_v11650_regression import run as stage_balance_test
     stage_balance_test()  # every world zone; higher-stage mobs resist group+helpers
+    from validation.current_global_combat_balance_v11651_regression import run as global_balance_test
+    global_balance_test()  # cap stacking, Krypta floor 60, all ranks and 1-6 players
+    print('KONTROLA WSTEPNA: globalny balans HP 1-6 graczy i krypta pietro 60 PASS',flush=True)
+    from validation.current_global_party_dps_v11652_regression import run as party_damage_balance_test
+    party_damage_balance_test()  # all world ranks/regions + actual live HP route
+    print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)
     from validation.current_quest_accept_performance_regression import run as quest_lookup_test
     quest_lookup_test()  # NPC lookup: preserve names, forbid whole-world offer scans

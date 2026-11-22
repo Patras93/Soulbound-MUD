@@ -115,7 +115,7 @@ def run_regression():
         active_class_names=lambda: db.active_class_names(1, classes[0]),
         class_mastery_level=lambda name: int(db.class_progress_row(1, name)["level"]))
     fame = fame_cap_awards_v2103(ses)
-    assert fame == dict.fromkeys(('character','soul','stat','class_total'), new_cap)
+    assert fame == dict.fromkeys(('character','soul','stat','class_total'), (new_cap + 9) // 10)
     assert exploration_point_xp_v2103(ses.character) == 120
     checks += 2
     assert db.active_class_names(1, classes[0])[0] == classes[0]

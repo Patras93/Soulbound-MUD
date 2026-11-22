@@ -270,34 +270,115 @@ def adaptive_target_max_hp_v11330(base_max_hp, party_dps, template, party_level=
 
 
 
+def authored_stage_combat_level_v11651(template, room=None):
+    """Combat-level recommendation, separate from numeric Generator stage.
+
+    Crypt templates have had Generator stage = 79 + floor since v12.00.2;
+    that stage is already used to create their high *authored* HP/damage.
+    Treating it as a second player-level deficit multiplied the very same
+    dungeon difficulty again (floor 60 / level 73 became x33 HP in v116.50).
+    This is a soft recommendation, not an entry gate or EXP requirement.
+    """
+    stage = adaptive_encounter_stage_v2325(template, room)
+    if not isinstance(template, dict):
+        return stage
+    # Normal crypts are already tougher than open-world mobs of the same
+    # floor, and the first crypt floor is deliberately an endgame location.
+    # +20 is for the *extra encounter modifier only*, not for generated HP.
+    floor = adaptive_dungeon_floor_v2325({'crypt_floor':template.get('crypt_floor')}) if template.get('crypt_floor') is not None else 0
+    if floor:
+        return floor + 20
+    mythic = adaptive_dungeon_floor_v2325({'mythic_crypt_floor':template.get('mythic_crypt_floor')}) if template.get('mythic_crypt_floor') is not None else 0
+    if mythic:
+        # Mythic starts at the genuinely late-game combat stage (115 + floor),
+        # not floor+60. Authored difficulty is still built exactly once.
+        return mythic + 115
+    return stage
+
+
 def authored_stage_challenge_multiplier_v11650(
         template, character_level, room=None, real_players=1, mercenaries=0, companions=0):
-    """Conservative world-wide HP floor for fights ABOVE the party's level.
+    """v116.51: modest, bounded GLOBAL resistance against farming above level.
 
-    This is independent of the old optional Adaptive Combat switch: no
-    player-damage penalties, no increased XP/Fame, no raids and no hard gates.
-    Followers improve the party's effective attack force but NEVER count as
-    player connections. An equal-level/overlevelled fight stays unchanged.
+    Preserve all authored HP/damage, dungeon rank mechanics, boss profiles,
+    full strength of hires and summons, and the 1–6 *real* player cap.
+    Never stack the old squared level gap and full companion multiplier.
+    Only the optional extra HP changes, never rewards or character damage.
     """
-    if not isinstance(template, dict) or template.get('training_dummy'):
+    if not isinstance(template, dict) or template.get('training_dummy') or character_level is None:
         return 1.0
-    if character_level is None:
-        return 1.0
-    stage = adaptive_encounter_stage_v2325(template, room)
+    stage = authored_stage_combat_level_v11651(template, room)
     level = max(1, int(character_level))
     deficit = max(0, stage - level - 5)
     if not deficit:
         return 1.0
-    # Relative level pressure is capped; actual authored HP has no such cap.
-    gap = min(120, deficit)
-    stage_factor = min(30.0, 1.0 + 0.10 * gap + 0.0025 * gap * gap)
+    # The original v116.50 formula grew quadratically and could turn a
+    # normal dungeon mob into a boss even before its authored rank/HP.
+    # sqrt is smooth, scales even at extremely high stages and is capped.
+    gap = min(1000, deficit)
+    stage_factor = 1.0 + min(0.75, 0.04 * math.sqrt(gap))
     fighters = max(1, min(6, int(real_players)))
-    assistants = max(0, min(24, int(mercenaries)))
+    assistants = max(0, min(18, int(mercenaries)))
     pets = max(0, min(24, int(companions)))
-    team_strength = fighters + 0.35 * assistants + 0.20 * pets
-    team_factor = min(4.0, 1.0 + 0.30 * (team_strength - 1.0))
-    return round(stage_factor * team_factor, 4)
+    # Helpers already provide 100% of their own damage, so their *count*
+    # cannot also multiply enemy health several-fold. In a six-player party
+    # the extra HP remains bounded while hired assistance still matters.
+    team_factor = 1.0 + min(0.32,
+        0.04 * (fighters - 1) + 0.012 * assistants + 0.008 * pets)
+    return round(min(2.30, stage_factor * team_factor), 4)
 
+
+
+# v116.00.52: a short, bounded survival floor based on the CURRENT LOCAL
+# PLAYERS' actual attack cadence, rather than blindly multiplying monster HP
+# by the number of hires. The floor is applied only in a level-appropriate or
+# more difficult zone. Overlevelled players can still farm old areas quickly.
+# Each rank retains its authored HP, mechanics, base rewards and relative role.
+V11652_COMBAT_SECONDS_TENTHS = {
+    "normal": 35, "elite": 45, "rare": 55,
+    "mini": 75, "boss": 110, "world_boss": 150,
+}
+V11652_COMBAT_HP_CEILINGS = {
+    "normal": 40, "elite": 50, "rare": 60,
+    "mini": 75, "boss": 100, "world_boss": 130,
+}
+
+
+def authored_party_damage_target_hp_v11652(
+        template, base_hp, player_level, party_dps, room=None,
+        real_players=1, mercenaries=0, companions=0):
+    """Supplement authored HP only where the party actually outdamages it.
+
+    This target is a NON-stacking MAXIMUM with stage-based resistance, never
+    its product. Real DPS from all players is sampled on a short per-session
+    cache. Hires/pets make a bounded *estimated* contribution, do not occupy
+    player slots and are not modified. At low DPS the target is unchanged.
+    """
+    base = max(1, int(base_hp or 1))
+    if (not isinstance(template, dict) or template.get('training_dummy')
+            or player_level is None):
+        return base
+    stage = authored_stage_combat_level_v11651(template, room)
+    if stage <= 0 or stage < max(1, int(player_level)) - 15:
+        return base
+    try:
+        dps = max(0, int(party_dps or 0))
+    except (ValueError, OverflowError, TypeError):
+        return base
+    if not dps:
+        return base
+    rank = adaptive_combat_rank_v11330(template)
+    real = max(1, min(6, int(real_players)))
+    hires = max(0, min(18, int(mercenaries)))
+    pets = max(0, min(24, int(companions)))
+    # Mercenaries have full-powered five-second actions, not additional player
+    # slots or guaranteed simultaneous bursts. The 35%/25% factors are
+    # intentionally below their theoretical maximum damage to protect weak
+    # parties from inflated projections. No bonus without measured player DPS.
+    helper_percent = 100 + min(300, (35 * hires + 25 * pets) // real)
+    target = ((dps * V11652_COMBAT_SECONDS_TENTHS[rank] * helper_percent)
+              + 999) // 1000
+    return max(base, min(base * V11652_COMBAT_HP_CEILINGS[rank], target))
 
 def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
     """Diminishing, uncapped compensation for actual extra combat effort.

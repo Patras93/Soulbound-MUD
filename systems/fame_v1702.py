@@ -475,7 +475,7 @@ async def pay_due_fame(session):
         count=0
         for region,bid,name,raw_amount in rows:
             if getattr(session,'closed',False) or not session.character:break
-            # v11 Fame: first defeat only, full Multi Cap sampled at payout.
+            # v116.53 Fame: first defeat only, bounded 10% of Multi Cap at payout.
             # The permanent SQLite ledger and offline payout queue remain unchanged.
             from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
             caps = fame_cap_awards_v2103(session)
@@ -496,7 +496,7 @@ async def pay_due_fame(session):
                                f'każda statystyka +{caps["stat"]}; '
                                'każda aktywna klasa otrzymuje własną nagrodę Biegłości. '
                                'Wypłaty po bonusach podlegają EXP Bankowi. '
-                               '1 Fame = 100% bieżącego Multi Cap. '
+                               '1 Fame = 10% bieżącego Multi Cap. '
                                'Bez EXP profesji i narzędzi.')
             count+=1
         return count

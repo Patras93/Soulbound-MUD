@@ -787,7 +787,7 @@ class SessionExplorationProgressMixin:
             self.server.db.save_character(self.character)
             await self.send(
                 f'Wazne odkrycie: +{ep_points} EP. '
-                f'EXP postaci +{total_character}; każdy punkt daje 100% bieżącego Multi Cap. '
+                f'EXP postaci +{total_character}; każdy punkt daje 5% bieżącego Multi Cap. '
                 'EXP pozostałych dziedzin naliczany osobno; działa EXP Bank.')
             return True
 

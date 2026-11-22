@@ -1,3 +1,103 @@
+Soulbound MUD v116.00.54 — HOTFIX PREDEPLOY FAME (22.11.2026)
+
+- Naprawiono historyczny test ostatniej bramki PLUS: fame_expansion wymagał
+  starej wypłaty 100% Multi Cap, chociaż v116.00.53 świadomie zmniejsza
+  nowe nagrody Fame do 10% Multi Cap. Test odtąd weryfikuje prawdziwą
+  wypłatę 10%, osobno dla dwóch graczy, jej jednorazowość oraz SQLite.
+- Zaktualizowano komunikat testu końcowego z 100% na 10%.
+- Mechanika nagród pozostaje bez zmian względem v116.00.53:
+  EP 5% Multi Cap; Fame 10% Multi Cap. Zachowano poprawki globalnego
+  balansu walk z v116.00.52 i optymalizacje z v116.00.50.
+- Nie ruszamy już zdobytych poziomów, zgromadzonego EXP, Soul, EQ,
+  EXP Bank, bazy ani nagród już rozliczonych.
+- v116.00.53 nie przeszła PREDEPLOY (59/60); nie używać do wdrożenia.
+- v116.00.54 wymaga NOWEGO PREDEPLOY 60/60 PLUS na Windows.
+
+---
+
+Soulbound MUD v116.00.53 — WOLNIEJSZY ROZWÓJ EP/FAME I GLOBALNY BALANS (22.11.2026)
+
+- Koniec automatycznej wypłaty całego wielomilionowego Multi Cap za każdy EP/Fame.
+  Każdy nowy punkt EP: 5% bieżącego Multi Cap, a pierwszy Fame: 10%, na
+  każdą istniejącą kategorię EXP oddzielnie. Przy Cap 23 491 000 to odpowiednio
+  1 174 550 oraz 2 349 100 EXP przed dodatkowymi modyfikatorami.
+- Sam Multi Cap pozostaje niezmieniony jako górny limit JEDNEJ nagrody;
+  istniejące postacie, statystyki, profesje, poziomy, Soul, EQ i salda EXP Banku
+  nie są zmieniane ani cofane. Fame nadal nalicza się tylko raz na unikalny cel;
+  EP tylko raz na odkrytą lokację. Bez zmian w nagrodach za zwykłe zabicia.
+- Zachowano globalne skalowanie do DPS drużyny, 1–6 realnych graczy,
+  najemników i chowańców z v116.00.52 (w tym Mityczna Krypta, Wieża Astralna).
+  Rzeczywista płynność i czas do zabicia wymaga prób w grze; sam test nie
+  oznacza że wszystkie tereny mają już idealny balans.
+- Uzupełniono testy wypłat i skorygowano testy starszej pełnej nagrody EP/Fame.
+- NIE WDRAŻAĆ bez Windows PREDEPLOY 60/60 PLUS. Produkcja/GitHub niezmienione.
+
+---
+
+Soulbound MUD v116.00.52 — GLOBALNA KOREKTA ZBYT LATWYCH WALK (21.11.2026)
+
+- Poprawka dotycząca CAŁEGO świata, nie tylko Mitycznej Krypty:
+  normalne, Elite, Rare, miniboss, boss i world boss mają dodatkowy,
+  ograniczony cel wytrzymałości zależny od przybliżonego DPS realnych
+  graczy w danym pokoju oraz ostrożnej poprawki na najemników/chowańce.
+- Cel wytrzymałości działa wyłącznie w obszarach odpowiednich do poziomu
+  lub wyższych. Stare, znacznie łatwiejsze tereny pozostają łatwiejsze.
+- Zachowano poprawkę v116.51: NIE mnożymy razem bonusu różnicy poziomów
+  i mocy drużyny. W nowej mechanice wybieramy większy cel HP, nie ich iloczyn.
+- Mityczna Krypta: pierwszy poziom naprawdę odpowiada późnej strefie
+  trudności (zalecenie 116, dalej +1 na piętro); wcześniejsze zalecenie
+  61 dla piętra 1 było zaniżone. Bazowe HP i obrażenia Generatora pozostają.
+- Wydajność: szacunek obrażeń drużyny jest buforowany na 5 sekund i nie
+  robi dodatkowych zapytań SQL; istniejący cache pomocników zostaje.
+- Nie ograniczamy obrażeń najemników/chowańców i nie zwiększamy ich limitów.
+  Bez zmian: EXP, Fame, EQ, skille, questy, zapisy, boss gate i 6 slotów graczy.
+- Nowe testy globalnego balansu i scenariuszy 1–6 graczy z pomocnikami.
+  Wynik lokalny nie gwarantuje balansu na wszystkich postaciach produkcyjnych.
+- WYMAGANY pełny Windows PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+---
+
+Soulbound MUD v116.00.51 — GLOBALNY BALANS WALK, KRYPTA PIĘTRO 60 (21.11.2026)
+
+NAPRAWA PILNA (v116.00.50):
+- Usunięto nadmierne nakładanie się mnożników HP potworów na całym świecie.
+  Poprzednio różnica poziomów rosła kwadratowo, a liczba najemników
+  dodatkowo ją mnożyła. Przy 2 graczach Level 73, 6 najemnikach i
+  2 chowańcach na 60. piętrze Krypty zwykły mob dostawał około x33,63 HP.
+  Nowa wartość tego dodatkowego mnożnika: około x1,19, przy zachowaniu
+  autorskiego HP i obrażeń 60. piętra oraz cech bossa.
+- W zwykłej i Mitycznej Krypcie poziom Generatora (używany wcześniej do
+  stworzenia bazowego HP/obrażeń) nie jest po raz drugi naliczany jako
+  pełna różnica między levelem moba i gracza. Uwzględniono osobne
+  zalecenia trudności pięter; same poziomy Generatora, piętra,
+  tożsamości potworów i zróżnicowanie bossów zostają bez zmian.
+- We wszystkich regionach, wieżach, lochach i na wyższych poziomach
+  ograniczono DODATKOWY mnożnik HP z tej mechaniki do x2,30, zamiast
+  wcześniejszych wartości do ponad x100. Odrębne autorskie HP bossa,
+  mechanika etapów i obrażenia pozostają niezmienione.
+- Wspomaganie drużyny ma niewielki, ograniczony wpływ na DODATKOWE HP.
+  Najemnicy i chowańce zachowują pełną siłę i nie zajmują slotów graczy.
+  Limitem serwera nadal jest 6 rzeczywistych graczy. Brak rajdów.
+- Brak blokowania wejścia na piętra, nowego EXP, Fame lub podwójnych
+  nagród. Zachowano postępy, EQ, questy i atomowy zapis do SQLite.
+- Tam, gdzie poziom zagrożenia nie przewyższa poziomu drużyny o ponad
+  pięć, nie ma żadnego dodatkowego skalowania. Ponowne przeliczenie
+  nie leczy uszkodzonego potwora.
+
+TESTY LOKALNE:
+- 7079 globalnych sprawdzeń dla różnych rang, poziomów i składu 1–6
+  prawdziwych graczy, w tym 18 najemników i 6 chowańców.
+- 194 kontrole istniejącego kontraktu walk drużynowych; 131 kontroli
+  najemników i chowańców; 5329 kontroli rozwoju lochów v12.00.2.
+- To są testy izolowane na Linuksie, a nie dowód płynności/balansu
+  w rzeczywistej grze na komputerze użytkownika.
+- Pełny PREDEPLOY 60/60 PLUS na docelowym Windows jest OBOWIĄZKOWY.
+
+UWAGA: NIE WDRAŻAĆ bez PASS 60/60 PLUS na Windows.
+Baza i działająca instalacja pozostały nietknięte. GitHub także.
+
+---
+
 Soulbound MUD v116.00.50 — PŁYNNOŚĆ DRUŻYN I BALANS CAŁEGO ŚWIATA (21.11.2026)
 
 1. LAGI: statyczne postacie NPC są wyszukiwane przez indeks lokacji zamiast

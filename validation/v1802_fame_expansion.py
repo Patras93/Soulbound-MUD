@@ -75,7 +75,17 @@ def run_regression():
         assert await pay_due_fame(p1) == 0
         assert await pay_due_fame(p2) == 1
     asyncio.run(pay())
-    assert p1.granted == 4*80000 and p2.granted == p1.granted
+    # v116.00.54: 80,000 is the Multi Cap LIMIT, not the Fame payout.
+    # Each NEW Fame must award 10% to each available EXP axis exactly once,
+    # independently for both owners of the same first-kill target.
+    from systems.milestone_cap_rewards_v2103 import fame_cap_awards_v2103
+    actual_per_axis = fame_cap_awards_v2103(p1)
+    assert actual_per_axis == dict.fromkeys(
+        ('character', 'soul', 'class_total', 'stat'), 8000), actual_per_axis
+    assert p1.granted == 4 * 8000 and p2.granted == 4 * 8000, (
+        p1.granted, p2.granted)
+    assert all('10% bieżącego Multi Cap' in message
+               for message in (p1.messages[-1], p2.messages[-1]))
     assert db.execute('SELECT count(*) FROM fame_pending_v1703 WHERE delivered=0').fetchone()[0] == 0
     assert db.execute('SELECT count(*) FROM fame_bosses_v1702').fetchone()[0] == 3
     assert any('ZALICZONE' in txt for txt in p1.messages)

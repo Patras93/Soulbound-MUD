@@ -53,13 +53,13 @@ class FameOnlineDelivery:
                             # retain their once-only ordinary kill payout.
                             await session.send(
                                 'FAME MOB: zaległy EXP za ' + str(boss_name)
-                                + ' rozliczony. Osobny bonus EXP za Fame (Multi Cap '
+                                + ' rozliczony. Osobny bonus EXP za Fame (10% Multi Cap: '
                                 + str(amount['fame_bonus_cap'])
                                 + ' na każdą dostępną oś). EXP Bank aktywny.')
                         else:
                             await session.send(
                                 'FAME MOB: osobny bonus EXP za Fame za '
-                                + str(boss_name) + ' (Multi Cap '
+                                + str(boss_name) + ' (10% Multi Cap: '
                                 + str(amount['fame_bonus_cap'])
                                 + ' na każdą dostępną oś). EXP Bank aktywny.')
                     else:

@@ -53,7 +53,7 @@ def main():
     from validation.v1802_fame_expansion import run_regression as _v1100_fame_scope_plus
     fame_scope = _v1100_fame_scope_plus()
     assert fame_scope['targets']>=500 and fame_scope['pending_payout_once']
-    print(f"V11 FAME 6.0: {fame_scope['targets']} important targets; no ordinary mobs; 100% CAP PASS",flush=True)
+    print(f"V11 FAME 6.0: {fame_scope['targets']} important targets; no ordinary mobs; 10% CAP PASS",flush=True)
     from validation.v1100_eternal_glory import run_regression as _v1100_world_plus
     print(f"ERA WIECZNEJ CHWALY: {_v1100_world_plus()} assertions PASS", flush=True)
     from systems.eternal_glory.companions import run_regression as _v1100_allies_plus
