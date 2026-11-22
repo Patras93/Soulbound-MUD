@@ -1,3 +1,26 @@
+Soulbound MUD v116.00.56 — balans przeciw zabójstwom jednym ciosem (Windows/Linux)
+
+- Poprawiono przyczynę słabych mobów po v116.00.55: v116.52 obliczał HP
+  przede wszystkim z DPS zwykłego ataku, ignorując moc pierwszego ofensywnego
+  skilla Mec i innych nauczonych umiejętności. Istniał też limit HP 40–130×
+  bazowych punktów, który nie chronił przed wielkim pojedynczym ciosem.
+- Przed pierwszym trafieniem w przeciwnika o odpowiednim poziomie gra szacuje
+  najsilniejszy rzeczywiście nauczony ofensywny skill każdego realnego gracza
+  w lokacji. HP dopasowuje do 2–4 rotacji, zależnie od rangi; obecność
+  najemników/chowańców zwiększa ten cel jedynie w rozsądnych granicach.
+  Mechanika skillów nie jest wykonywana w czasie prognozy, tylko odczytywana.
+- Wymagające piętra Wieży Astralnej i innych lochów mogą skalować się także
+  do 40 poziomów poniżej bohatera. Najstarsze tereny startowe nadal mogą
+  padać jednym ciosem: postęp postaci nie staje się bezużyteczny.
+- Zachowano zmiany wydajności v116.55, brak limitu 6 dla pomocników,
+  dotychczasowe XP, Fame, EP, nagrody, EQ, statystyki i zapisy postaci.
+- Nowy test: trzyosobowa drużyna silnych Mec, nauczone skille, bufor HP,
+  boss i wieża, brak niepotrzebnych odczytów DB. Stare testy balansu pozostają.
+- WYMAGANY pełny PREDEPLOY 60/60 PLUS na Windows, NIE WDRAŻAĆ bez PASS.
+  Ta paczka nie modyfikuje działającego serwera ani GitHuba.
+
+---
+
 Soulbound MUD v116.00.55 — optymalizacja ścieżek i aktywnego świata (Windows/Linux)
 
 - Skrócono BFS prowadzenia i tras: kolejka deque + jeden łańcuch poprzedników zamiast kopiowania tras dla każdego odwiedzonego pokoju. Zachowano kolejność kierunków, bezpieczne bramy i generowanie tylko rzeczywistego celu.

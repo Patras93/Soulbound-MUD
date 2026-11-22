@@ -346,7 +346,7 @@ V11652_COMBAT_HP_CEILINGS = {
 
 def authored_party_damage_target_hp_v11652(
         template, base_hp, player_level, party_dps, room=None,
-        real_players=1, mercenaries=0, companions=0):
+        real_players=1, mercenaries=0, companions=0, *, skill_burst=0):
     """Supplement authored HP only where the party actually outdamages it.
 
     This target is a NON-stacking MAXIMUM with stage-based resistance, never
@@ -359,13 +359,20 @@ def authored_party_damage_target_hp_v11652(
             or player_level is None):
         return base
     stage = authored_stage_combat_level_v11651(template, room)
-    if stage <= 0 or stage < max(1, int(player_level)) - 15:
+    level = max(1, int(player_level))
+    # v116.56: ordinary old starter zones stay easy; high-tier hunting
+    # grounds and real dungeons up to 40 levels behind the player remain
+    # useful fights for an advanced party when their actual skill burst is huge.
+    burst = max(0, int(skill_burst or 0))
+    tier_ok = stage >= level - 15
+    burst_ok = burst > 0 and stage >= max(35, level - 40)
+    if stage <= 0 or not (tier_ok or burst_ok):
         return base
     try:
         dps = max(0, int(party_dps or 0))
     except (ValueError, OverflowError, TypeError):
         return base
-    if not dps:
+    if not dps and not burst:
         return base
     rank = adaptive_combat_rank_v11330(template)
     real = max(1, min(6, int(real_players)))
@@ -378,7 +385,18 @@ def authored_party_damage_target_hp_v11652(
     helper_percent = 100 + min(300, (35 * hires + 25 * pets) // real)
     target = ((dps * V11652_COMBAT_SECONDS_TENTHS[rank] * helper_percent)
               + 999) // 1000
-    return max(base, min(base * V11652_COMBAT_HP_CEILINGS[rank], target))
+    # The v116.52 relative HP ceiling could be below a SINGLE real skill
+    # (e.g. a powerful Mec versus a 55k-HP mythical opponent). Its old DPS
+    # floor remains capped for compatibility, but actual trained-skill burst
+    # is independently targeted to ~2-4 complete offensive rotations.
+    burst_rotations = {'normal':2, 'elite':2, 'rare':3,
+                       'mini':3, 'boss':4, 'world_boss':4}
+    # Hires and pets may act before the owner's first standard hit. Count
+    # them as a bounded share of one burst, never as extra real players.
+    helper_burst_percent = 100 + min(100, (25 * hires + 10 * pets) // real)
+    burst_target = ((burst * burst_rotations[rank] * helper_burst_percent + 99)
+                    // 100) if burst_ok or tier_ok else 0
+    return max(base, min(base * V11652_COMBAT_HP_CEILINGS[rank], target), burst_target)
 
 def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
     """Diminishing, uncapped compensation for actual extra combat effort.
