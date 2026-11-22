@@ -1,3 +1,12 @@
+Soulbound MUD v116.00.55 — optymalizacja ścieżek i aktywnego świata (Windows/Linux)
+
+- Skrócono BFS prowadzenia i tras: kolejka deque + jeden łańcuch poprzedników zamiast kopiowania tras dla każdego odwiedzonego pokoju. Zachowano kolejność kierunków, bezpieczne bramy i generowanie tylko rzeczywistego celu.
+- Ruch potworów: cache na czas jednego ticku dla szablonów i sąsiednich pokoi; indeks pokoi aktualizowany wyłącznie dla pokoi zmienionych przez ruch. Wszystkie moby nadal wykonują swoje normalne próby wędrówki.
+- Komenda eq/equipment (wyświetlanie): używa istniejącej pamięci podręcznej odczytów wyposażenia podczas jednej komendy, bez utrwalania wyników między komendami. eq auto pozostaje bez cache, aby nie utracić zmian.
+- Diagnostyka wolnych ticków podaje teraz osobno koszt regeneracji HP i wędrówki mobów. Nie ujawnia danych postaci.
+- Bez zmian w prędkości marszu 0,1 s, liczbie potworów, AI bojowym, balansie HP, expie, Fame, profesjach, opóźnieniach rzemiosła i zachowaniu danych postaci.
+- Dodatkowe testy sprawdzają zgodność tras, indeksów mobów i cache wyposażenia. Pełny PREDEPLOY 60/60 PLUS na Windows nadal obowiązkowy. Ta paczka NIE JEST DO BEZPOŚREDNIEGO WDROŻENIA.
+
 Soulbound MUD v116.00.54 — HOTFIX PREDEPLOY FAME (22.11.2026)
 
 - Naprawiono historyczny test ostatniej bramki PLUS: fame_expansion wymagał

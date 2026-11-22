@@ -100,6 +100,10 @@ def run():
     from validation.current_party_fast_crypt_follow_regression import run as crypt_follow_test
     crypt_follow_test()
     print('KONTROLA WSTEPNA: szybkie prowadzenie druzyny PASS',flush=True)
+    # v116.00.55: newest production hot paths; fail before costly 60 PLUS.
+    from validation.current_live_performance_v11655_regression import run as live_perf_test
+    assert live_perf_test() >= 480
+    print('KONTROLA WSTEPNA: wydajnosc aktywnego swiata, tras i EQ PASS',flush=True)
     # The help atlas tests create a full catalogue and may get stuck when
     # sharing the warmed-up engine process. A clean isolated Python process
     # checks the same authored atlas contract without leaking runtime state.

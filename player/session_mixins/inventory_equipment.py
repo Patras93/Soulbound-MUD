@@ -384,7 +384,7 @@ class SessionInventoryEquipmentMixin:
             detailed = mode in (
                 "info", "pelne", "pełne", "szczegoly", "szczegóły", "details"
             )
-            rows = self.server.db.equipment(self.account_id)
+            rows = self.equipped_item_rows()
 
             await self.send("EQ INFO" if detailed else "EQ")
             c = self.character
