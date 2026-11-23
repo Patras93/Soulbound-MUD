@@ -42,6 +42,9 @@ def run():
             verify_native_method(ROOT / relative, method)
             protected += 1
     print(f'KONTROLA WSTEPNA: chronione historyczne metody AST PASS ({protected})',flush=True)
+    # v116.68: N+1 skill-progress INSERT/COMMIT and Windows peer-reset callbacks.
+    from validation.current_live_performance_v11668_regression import run as perf68_test
+    assert perf68_test() == 19
     # v116.00.63: WinError 121 during TCP read closes the session cleanly.
     from validation.current_windows_tcp_read_timeout_v11663_regression import run as tcp_timeout_test
     assert tcp_timeout_test() == 7

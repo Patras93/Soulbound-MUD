@@ -8,6 +8,7 @@ skill combo helpers are stateful: do NOT call their mutating forecast path.
 from __future__ import annotations
 
 import time
+import sqlite3
 
 OFFENSIVE_KINDS = frozenset(('damage', 'aoe_damage', 'execute', 'drain'))
 MEC_BRANCHES = frozenset(('melee', 'ranged', 'feedback', 'magic'))
@@ -41,80 +42,108 @@ def member_skill_burst_v11656(member, *, now=None):
         skills = tuple(member.class_skills())
     except (AttributeError, TypeError, ValueError):
         return 0
+    # v116.68: Forecasts must never create progress rows or commit once per
+    # learned skill. A player can have >1,000 skills; the old skill_progress()
+    # helper performed INSERT OR IGNORE + COMMIT + SELECT for each one.
+    # Read the snapshot once; a genuinely missing row is level 1, as the
+    # historical ensure_skill_progress default would have been. Real skill
+    # usage still creates/updates its progress via the existing DB methods.
+    levels = None
+    try:
+        rows = db.conn.execute(
+            'SELECT skill_id, level FROM skill_progress WHERE account_id=?',
+            (member.account_id,),
+        ).fetchall()
+        levels = {str(row[0]): max(1, int(row[1] or 1)) for row in rows}
+    except (AttributeError, sqlite3.OperationalError):
+        # Isolated historical fixtures can expose only skill_progress().
+        levels = None
+
+    # The entire forecast is read-only; reuse the existing per-request EQ
+    # snapshot, then remove it immediately. Never keep a gear cache between
+    # attacks, equipment changes or different sessions.
+    old_equipment_cache = getattr(member, '_read_only_equipment_cache_v1262', None)
+    created_equipment_cache = old_equipment_cache is None
+    if created_equipment_cache:
+        member._read_only_equipment_cache_v1262 = {}
     strongest = 0
-    for skill in skills:
-        if not isinstance(skill, dict) or skill.get('kind') not in OFFENSIVE_KINDS:
-            continue
-        skill_id = str(skill.get('id', ''))
-        if not skill_id or skill_id not in known:
-            continue
-        # Compress is an exact percentage of current target HP, not an
-        # Attack*multiplier skill. It must never set an independent HP floor.
-        if skill.get('mec_special') == 'compress':
-            continue
-        try:
-            progress = db.skill_progress(member.account_id, skill_id)
-            level = max(1, int(progress['level']))
-            soul = max(1, int(char.soul_level))
-            role = 'offense'
-            skill_factor = (skill_power_multiplier(level)
-                            * evolution_power_multiplier(level, soul)
-                            * role_evolution(skill, level, soul, role))
-            core = int(member.offensive_skill_core_power_v11185(skill))
-            kind = member.offensive_skill_damage_type_v11190(skill)
-            # Mec Feedback's direct HP contribution is part of the real
-            # first hit, but was absent from the v116.56 forecast. Never
-            # mutate HP or consume a skill merely to estimate its power.
-            special = str(skill.get('mec_special', '') or '')
-            if special in ('robo_tackle', 'kamikaze_crush'):
-                from decimal import Decimal, ROUND_HALF_UP
-                health = max(0, int(getattr(member, 'current_hp', 0) or 0))
-                ratio = Decimal(str(skill.get('current_hp_power_ratio',
-                    0.20 if special == 'kamikaze_crush' else 0.12) or 0))
-                core += int((Decimal(health) * ratio).to_integral_value(
-                    rounding=ROUND_HALF_UP))
-            c = char
-            core = max(1, int(core))
-            mult = float(skill.get('mult', 1.0) or 1.0)
-            if kind == 'physical':
-                mult *= c.class_physical_damage_multiplier() * c.racial_physical_damage_multiplier()
-            elif kind == 'magic':
-                mult *= c.class_magic_damage_multiplier() * c.racial_magic_damage_multiplier()
-            mult *= c.racial_all_damage_multiplier()
-            mult *= member.total_set_damage_multiplier()
-            mult *= member.equipment_damage_multiplier(kind)
-            mult *= member.skill_buff_multiplier(target_type=kind)
-            from systems.party_synergies import party_synergy_damage_multiplier_v11338
-            mult *= party_synergy_damage_multiplier_v11338(member, kind)
-            mult *= skill_bonus_rules['skills'].get('global', {}).get('damage_percent', 100) / 100.0
-            if skill.get('mec_authored') and skill.get('mec_branch') in MEC_BRANCHES:
-                mult *= member.mec_branch_multiplier_v0319(
-                    str(skill['mec_branch']), str(skill.get('mec_special', '')))
-            # Combo / chain / alternation multiply live hits but their
-            # helpers also CHANGE session state. Inspect only published
-            # metadata, and use the strongest legal conditional factor.
-            from systems.published_32_finale import ACTIVE as combo_rules
-            from systems.published_33_mechanics import ACTIVE as alternate_rules
-            from systems.published_34_integration import ACTIVE as chain_rules
-            for rules, field in ((combo_rules, 'combo_percent'),
-                                 (alternate_rules, 'bonus_percent'),
-                                 (chain_rules, 'bonus_percent')):
-                row = rules.get('skills', {}).get(skill_id, {})
-                mult *= max(1.0, float(row.get(field, 100) or 100) / 100.0)
-            # Max crit is possible on first contact. This forecast is a
-            # target for roughly two rotations, not a guarantee of exact RNG.
-            crit = max(1.0, float(member.critical_multiplier()))
-            if core.bit_length() > 900:
-                # Never discard a trained high-tier skill as a bogus zero
-                # simply because float(int) exceeds IEEE-754's range.
-                from core.large_number_math import rounded_product
-                expected = max(0, rounded_product(core, skill_factor, mult, crit))
-            else:
-                expected = max(0, int(core * skill_factor * mult * crit))
-            strongest = max(strongest, expected)
-        except (ArithmeticError, AttributeError, KeyError, TypeError, ValueError):
-            # A single exotic skill must not break any real combat.
-            continue
+    try:
+        for skill in skills:
+            if not isinstance(skill, dict) or skill.get('kind') not in OFFENSIVE_KINDS:
+                continue
+            skill_id = str(skill.get('id', ''))
+            if not skill_id or skill_id not in known:
+                continue
+            # Compress is an exact percentage of current target HP, not an
+            # Attack*multiplier skill. It must never set an independent HP floor.
+            if skill.get('mec_special') == 'compress':
+                continue
+            try:
+                level = (levels.get(skill_id, 1) if levels is not None
+                         else max(1, int(db.skill_progress(member.account_id, skill_id)['level'])))
+                soul = max(1, int(char.soul_level))
+                role = 'offense'
+                skill_factor = (skill_power_multiplier(level)
+                                * evolution_power_multiplier(level, soul)
+                                * role_evolution(skill, level, soul, role))
+                core = int(member.offensive_skill_core_power_v11185(skill))
+                kind = member.offensive_skill_damage_type_v11190(skill)
+                # Mec Feedback's direct HP contribution is part of the real
+                # first hit, but was absent from the v116.56 forecast. Never
+                # mutate HP or consume a skill merely to estimate its power.
+                special = str(skill.get('mec_special', '') or '')
+                if special in ('robo_tackle', 'kamikaze_crush'):
+                    from decimal import Decimal, ROUND_HALF_UP
+                    health = max(0, int(getattr(member, 'current_hp', 0) or 0))
+                    ratio = Decimal(str(skill.get('current_hp_power_ratio',
+                        0.20 if special == 'kamikaze_crush' else 0.12) or 0))
+                    core += int((Decimal(health) * ratio).to_integral_value(
+                        rounding=ROUND_HALF_UP))
+                c = char
+                core = max(1, int(core))
+                mult = float(skill.get('mult', 1.0) or 1.0)
+                if kind == 'physical':
+                    mult *= c.class_physical_damage_multiplier() * c.racial_physical_damage_multiplier()
+                elif kind == 'magic':
+                    mult *= c.class_magic_damage_multiplier() * c.racial_magic_damage_multiplier()
+                mult *= c.racial_all_damage_multiplier()
+                mult *= member.total_set_damage_multiplier()
+                mult *= member.equipment_damage_multiplier(kind)
+                mult *= member.skill_buff_multiplier(target_type=kind)
+                from systems.party_synergies import party_synergy_damage_multiplier_v11338
+                mult *= party_synergy_damage_multiplier_v11338(member, kind)
+                mult *= skill_bonus_rules['skills'].get('global', {}).get('damage_percent', 100) / 100.0
+                if skill.get('mec_authored') and skill.get('mec_branch') in MEC_BRANCHES:
+                    mult *= member.mec_branch_multiplier_v0319(
+                        str(skill['mec_branch']), str(skill.get('mec_special', '')))
+                # Combo / chain / alternation multiply live hits but their
+                # helpers also CHANGE session state. Inspect only published
+                # metadata, and use the strongest legal conditional factor.
+                from systems.published_32_finale import ACTIVE as combo_rules
+                from systems.published_33_mechanics import ACTIVE as alternate_rules
+                from systems.published_34_integration import ACTIVE as chain_rules
+                for rules, field in ((combo_rules, 'combo_percent'),
+                                     (alternate_rules, 'bonus_percent'),
+                                     (chain_rules, 'bonus_percent')):
+                    row = rules.get('skills', {}).get(skill_id, {})
+                    mult *= max(1.0, float(row.get(field, 100) or 100) / 100.0)
+                # Max crit is possible on first contact. This forecast is a
+                # target for roughly two rotations, not a guarantee of exact RNG.
+                crit = max(1.0, float(member.critical_multiplier()))
+                if core.bit_length() > 900:
+                    # Never discard a trained high-tier skill as a bogus zero
+                    # simply because float(int) exceeds IEEE-754's range.
+                    from core.large_number_math import rounded_product
+                    expected = max(0, rounded_product(core, skill_factor, mult, crit))
+                else:
+                    expected = max(0, int(core * skill_factor * mult * crit))
+                strongest = max(strongest, expected)
+            except (ArithmeticError, AttributeError, KeyError, TypeError, ValueError):
+                # A single exotic skill must not break any real combat.
+                continue
+    finally:
+        if created_equipment_cache:
+            member.__dict__.pop('_read_only_equipment_cache_v1262', None)
     member._burst_forecast_v11656 = (cache_key, now, strongest)
     return strongest
 
