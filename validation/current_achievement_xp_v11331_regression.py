@@ -50,6 +50,7 @@ def test():
         ok(reward_domains_v11331(metric)==expected,'mapping '+metric)
     with tempfile.TemporaryDirectory(prefix='sb-current-achievement-11331-') as td:
         db=Database(str(Path(td)/'test.sqlite'))
+        db._manual_bank_only_v11325=True  # align fixture with real live session
         def make(name):
             aid=db.create_account(name,'secure-pass-test-11331')
             cases={key:name for key in ('nom','gen','dat','acc','ins','loc','voc')}

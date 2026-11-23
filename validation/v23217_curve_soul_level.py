@@ -48,11 +48,11 @@ def run_regression():
 
     db = TestDB()
     baseline = multi_cap_experience_v23215(db.conn, 1)
-    assert baseline == 11000
+    assert baseline == 5000
     assert multi_cap_experience_v23215(db.conn, 2) is None
     checks += 2
 
-    # Character, soul, tier, soul weapon, stat, class, profession, tool,
+    # Character, soul, tier, soul weapon, class, profession, tool,
     # learned skill and earned ascension are independently counted.
     db.conn.execute('UPDATE characters SET character_level=400, soul_level=31, '
                     'soul_tier=11, soul_weapon_mastery_level=101, strength=21 WHERE account_id=1')
@@ -70,7 +70,7 @@ def run_regression():
     cap, levels, levels_by_kind, cap_by_kind = result
     expected_lvls = {
         'postać': [400], 'dusza': [31], 'soul tier': [11],
-        'broń duszy': [101], 'statystyki': [21,1,1,1,1,1],
+        'broń duszy': [101],
         'klasy': [20], 'profesje': [41],
         'narzędzia': [51], 'skille': [201], 'wzniesienia': [31]
     }

@@ -346,7 +346,8 @@ V11652_COMBAT_HP_CEILINGS = {
 
 def authored_party_damage_target_hp_v11652(
         template, base_hp, player_level, party_dps, room=None,
-        real_players=1, mercenaries=0, companions=0, *, skill_burst=0):
+        real_players=1, mercenaries=0, companions=0, *, skill_burst=0,
+        helper_opening_burst=0):
     """Supplement authored HP only where the party actually outdamages it.
 
     This target is a NON-stacking MAXIMUM with stage-based resistance, never
@@ -365,7 +366,11 @@ def authored_party_damage_target_hp_v11652(
     # useful fights for an advanced party when their actual skill burst is huge.
     burst = max(0, int(skill_burst or 0))
     tier_ok = stage >= level - 15
-    burst_ok = burst > 0 and stage >= max(35, level - 40)
+    # A level-85 player should not one-shot genuine stage-30+ hunting
+    # grounds solely because an older release classified them as obsolete.
+    # Starter rooms remain trivial; a high-level player still dominates
+    # sectors below roughly a third of their level.
+    burst_ok = (burst > 0 or int(helper_opening_burst or 0) > 0) and stage >= max(25, level // 3)
     if stage <= 0 or not (tier_ok or burst_ok):
         return base
     try:
@@ -396,7 +401,17 @@ def authored_party_damage_target_hp_v11652(
     helper_burst_percent = 100 + min(100, (25 * hires + 10 * pets) // real)
     burst_target = ((burst * burst_rotations[rank] * helper_burst_percent + 99)
                     // 100) if burst_ok or tier_ok else 0
-    return max(base, min(base * V11652_COMBAT_HP_CEILINGS[rank], target), burst_target)
+    # The number of hires does not describe their damage: nine companions
+    # inherited from a 10M-hit owner can finish the mob before the first
+    # player's action.  Estimate a first five-second hired volley through
+    # their actual non-mutating combat model (cached by the caller).
+    helper = max(0, int(helper_opening_burst or 0))
+    # A skill and the helper first wave can land in the SAME action cycle.
+    # MAX(skill, helper) would still let that combined volley kill in one turn.
+    # Use roughly two rotations, and no multiplication by unrelated zones.
+    combined_target = ((burst * 100 + helper * 65) * burst_rotations[rank] + 99) // 100
+    return max(base, min(base * V11652_COMBAT_HP_CEILINGS[rank], target),
+               burst_target, combined_target)
 
 def adaptive_reward_multiplier_v11330(base_max_hp, scaled_max_hp):
     """Diminishing, uncapped compensation for actual extra combat effort.

@@ -1407,6 +1407,16 @@ class World:
         # Per-tick local caches: no stale catalog data survives this tick.
         template_can_wander = {}
         room_candidates = {}
+        # Static exits vastly outlive the 15-second mob wander tick. Keep a
+        # bounded per-world index; a changed graph length, room metadata or
+        # exit map invalidates the appropriate candidate snapshot.
+        from data.rooms import ROOMS as _wander_rooms_v11657
+        graph_len = len(_wander_rooms_v11657)
+        persistent = getattr(self, '_wander_static_candidates_v11657', None)
+        if persistent is None or getattr(self, '_wander_graph_len_v11657', -1) != graph_len:
+            persistent = {}
+            self._wander_static_candidates_v11657 = persistent
+            self._wander_graph_len_v11657 = graph_len
 
         for mob in self.mobs.values():
             if not mob.alive or mob.engaged_by:
@@ -1424,7 +1434,30 @@ class World:
                 continue
             candidates_for_room = room_candidates.get(mob.room_id)
             if candidates_for_room is None:
-                candidates_for_room = tuple(mob_wander_candidates(mob.room_id))
+                room = _wander_rooms_v11657.get(mob.room_id)
+                if room is None:
+                    # Synthetic fixtures, transient rooms and legacy world
+                    # aliases retain their uncached authoritative lookup.
+                    candidates_for_room = tuple(mob_wander_candidates(mob.room_id))
+                else:
+                    exits = room.get('exits') or {}
+                    # Snapshot every exit, not only its length: a dynamic
+                    # route can change its destination while retaining 4 exits.
+                    # Include neighbor identity/zone/safety in the key:
+                    # procedural passage edits must never keep stale travel.
+                    snapshot = tuple((direction, dest,
+                        id(_wander_rooms_v11657.get(dest)),
+                        _wander_rooms_v11657.get(dest, {}).get('zone'),
+                        bool(_wander_rooms_v11657.get(dest, {}).get('procedural_infinite')))
+                        for direction, dest in exits.items())
+                    signature = (id(room), room.get('zone'),
+                                 bool(room.get('procedural_infinite')), snapshot)
+                    saved = persistent.get(mob.room_id)
+                    if saved is not None and saved[0] == signature:
+                        candidates_for_room = saved[1]
+                    else:
+                        candidates_for_room = tuple(mob_wander_candidates(mob.room_id))
+                        persistent[mob.room_id] = (signature, candidates_for_room)
                 room_candidates[mob.room_id] = candidates_for_room
             candidates = [
                 target for target in candidates_for_room
