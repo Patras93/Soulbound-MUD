@@ -28,7 +28,7 @@ def run_regression():
     before = db.conn.total_changes
     lines = level_overview_lines_v23216(db.conn, 1, 'Wojownik')
     checks += 1
-    assert lines[0] == 'WSZYSTKIE POZIOMY POSTACI — MULTI CAP'
+    assert lines[0] == 'WSZYSTKIE POZIOMY POSTACI — MULTI CAP: postać, klasy, wzniesienia'
     checks += 1
     assert lines[-1] == f'Your experience cap is {multi_cap_experience_v23215(db.conn, 1)} EXP.'
     checks += 1
@@ -39,6 +39,8 @@ def run_regression():
                  'gornictwo: poziom 7', 'kilof: poziom 8', 'soul: poziom 3'):
         assert item in full, item
         checks += 1
+    assert 'poza Multi CAP' in full
+    assert 'Łączna suma poziomów wliczanych do Multi CAP:' in full
     assert 'not_learned' not in full
     checks += 1
     assert db.conn.total_changes == before

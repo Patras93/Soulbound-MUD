@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Complete, NVDA-readable list of every progression level in the global EXP cap.
+"""Complete, NVDA-readable progression overview and separately computed CAP.
 
 All rows are read from the account's real progression tables.  The final cap
 comes from the same authoritative calculator as the EXP reward pipeline.
@@ -50,8 +50,8 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
     if character is None:
         return ['Nie można odczytać poziomów postaci.']
 
-    lines = ['WSZYSTKIE POZIOMY POSTACI — MULTI CAP']
-    lines.append('Dusza: poziom {}. Soul Tier: poziom {}. Broń Duszy — biegłość: poziom {}.'.format(
+    lines = ['WSZYSTKIE POZIOMY POSTACI — MULTI CAP: postać, klasy, wzniesienia']
+    lines.append('DUSZA — poza Multi CAP. Dusza: poziom {}. Soul Tier: poziom {}. Broń Duszy — biegłość: poziom {}.'.format(
         _level(character['soul_level']), _level(character['soul_tier']),
         _level(character['soul_weapon_mastery_level'])))
 
@@ -84,7 +84,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
                AND sp.skill_id=ls.skill_id
          WHERE ls.account_id=? ORDER BY ls.skill_id COLLATE NOCASE
     ''', (aid,)).fetchall()
-    _section(lines, f'SKILLE — nauczonych {len(skills)}:', [
+    _section(lines, f'SKILLE — poza Multi CAP, nauczonych {len(skills)}:', [
         f'{r["name"]}: poziom {_level(r["level"])}' for r in skills
     ])
 
@@ -92,7 +92,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
         SELECT profession AS name, level FROM professions
          WHERE account_id=? ORDER BY profession COLLATE NOCASE
     ''', (aid,)).fetchall()
-    _section(lines, f'PROFESJE — rozwijanych {len(professions)}:', [
+    _section(lines, f'PROFESJE — poza Multi CAP, rozwijanych {len(professions)}:', [
         f'{r["name"]}: poziom {_level(r["level"])}' for r in professions
     ])
 
@@ -100,7 +100,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
         SELECT tool_type AS name, level FROM tools
          WHERE account_id=? ORDER BY tool_type COLLATE NOCASE
     ''', (aid,)).fetchall()
-    _section(lines, f'NARZĘDZIA — rozwijanych {len(tools)}:', [
+    _section(lines, f'NARZĘDZIA — poza Multi CAP, rozwijanych {len(tools)}:', [
         f'{r["name"]}: poziom {_level(r["level"])}' for r in tools
     ])
 
@@ -112,7 +112,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
         f'{r["name"]}: poziom {int(r["rank"])}' for r in ascensions
     ])
 
-    lines.append(f'Łączna suma trwałych poziomów: {levels}. Multi Cap rośnie co 10 poziomów każdej dziedziny.')
+    lines.append(f'Łączna suma poziomów wliczanych do Multi CAP: {levels}. CAP rośnie tylko z poziomem postaci, klas i wzniesień.')
     lines.append('Przyrost poziomu 1-10: +500 EXP; 11-20: +1000; 21-30: +5000; od 31 co 10 poziomów stawka rośnie o +2500 EXP.')
     # The last line must be identical to `expcap` and the real XP allocator.
     lines.append(f'Your experience cap is {cap} EXP.')

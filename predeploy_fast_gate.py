@@ -42,6 +42,10 @@ def run():
             verify_native_method(ROOT / relative, method)
             protected += 1
     print(f'KONTROLA WSTEPNA: chronione historyczne metody AST PASS ({protected})',flush=True)
+    # v116.00.63: WinError 121 during TCP read closes the session cleanly.
+    from validation.current_windows_tcp_read_timeout_v11663_regression import run as tcp_timeout_test
+    assert tcp_timeout_test() == 7
+    print('WINDOWS TCP READ TIMEOUT v116.00.63: 7/7 PASS', flush=True)
     from validation.current_v114_published_native_contract_regression import run as published_native_test
     published_native_test()
     from validation.current_v11325_item_description_contract import run as item_description_test
@@ -66,6 +70,10 @@ def run():
     from validation.current_fame_immediate_regression import run as current_fame_test
     current_fame_test()  # instant kill EXP, separate first Fame bonus, legacy debt
     print('KONTROLA WSTEPNA: natychmiastowy EXP i osobny Fame PASS',flush=True)
+    # v116.00.62: Soul Tier ma blokowac nowe nagrody i bank do unlock.
+    from validation.current_soul_tier_lock_v11662_regression import run as soul_gate_test
+    assert soul_gate_test() == 4
+    print('SOUL TIER LOCK NO NEW XP v116.00.62: 4/4 PASS', flush=True)
     # v116.00.53: Future EP/Fame must not issue the full escalating cap.
     from validation.current_milestone_pacing_v11653_regression import run as milestone_pacing_test
     assert milestone_pacing_test() >= 60

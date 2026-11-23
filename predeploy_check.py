@@ -19,6 +19,7 @@ CHECKS = (
     ("validation.v11400_soul_infinite_regression", "unittest"),
     ("validation.current_unbounded_progression_v114_regression", "module"),
     ("validation.current_soul_v113_pacing_v11403_regression", "module"),
+    ("validation.current_soul_tier_lock_v11662_regression", "module"),
     ("validation.current_v11405_emergency_regression", "module"),
     ("validation.current_nopycache_v11406_regression", "module"),
     ("validation.v11400_xp_late_continuation_regression", "module"),

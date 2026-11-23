@@ -1,3 +1,16 @@
+SOULBOUND MUD v116.00.63 — OBSŁUGA WINDOWS TCP WINERROR 121 (2026-11-23)
+- OSError WinError 121 podczas oczekiwania na kolejną linię klienta kończy
+  sesję jak rozłączenie, bez fałszywego raportu awarii poprzedniej komendy (np. fish).
+- Zachowany historyczny kod natywnego read_line; osłona tylko w aktywnej
+  klasie Session, bez zmiany mechaniki łowienia, walki i nagród.
+- Wygasłe połączenie przechodzi standardową ścieżkę close() z zapisem postaci.
+- Inne błędy OSError nadal są raportowane. Anulowanie asyncio działa normalnie.
+- Siedem testów regresji w bramce PREDEPLOY: WinError 121, errno 121,
+  pętla komend, inne OSError, CancelledError, zwykła komenda, EOF/reset.
+- Nie naprawia przyczyn awarii połączenia klienta, routera lub Windows.
+- Kod Windows/Linux wspólny; brak migracji SQLite i zmian bazy danych.
+- PEŁNY PREDEPLOY 60/60 PLUS przed wdrożeniem; ZIP NIE WDRAŻAĆ BEZ PASS.
+
 SOULBOUND MUD v116.00.60 — NAPRAWA REGRESJI PREDEPLOY (2026-11-22)
 - Bramki EXP Bank i dzwiek CAP dopasowane do ograniczenia Over CAP z v116.58 (maks. 2x CAP).
 - Test osiagniec uruchamia historyczny EXP Bank w trybie recznego odbioru, jak w aktywnej grze.
@@ -1748,3 +1761,13 @@ HOTFIX PREDEPLOY v113.00.34 - izolowane audyty historyczne rownolegle (2026-11-1
 - POPRAWKA TESTU: uniwersalna bramka v113.00.34 arsenal najemnikow ustawia katalog gry na sys.path przy bezposrednim uruchomieniu, bez zmian w mechanice skilli.
 
 v116.00.61: Naprawiono historyczna bramke jednej klasy po wykluczeniu 6 statystyk z Multi CAP. Oczekiwany bazowy CAP=5000 (4 osie + klasa), dodano test niezaleznosci od poziomow statystyk. Bez zmian produkcyjnej mechaniki EXP, Soul i baz danych.
+
+v116.00.62 — SOUL XP ZATRZYMANY PRZY TIERZE + UPROSZCZONY MULTI CAP
+- Po osiągnięciu progu Soul Level wymaganego do następnego Tieru nowe Soul XP nie jest przyznawane: brak dopisywania z mobów, questów, bossów, Daily Gift i pozostałych nagród.
+- Zablokowana nagroda Soul XP nie trafia do EXP Banku i jest raportowana jako 0; wcześniejsze zapisy Soul XP i stary EXP Bank pozostają nietknięte.
+- Ręczne odbieranie historycznego Soul EXP Banku jest wstrzymane do użycia unlock. Po odblokowaniu normalne zdobywanie XP i odbiór banku działają dalej.
+- Multi CAP liczy wyłącznie poziom postaci, poziomy klas i wzniesienia. Dusza, Soul Tier, biegłość Broni Duszy, statystyki, skille, profesje i narzędzia są POZA obliczaniem CAP.
+- Zmiana CAP nie usuwa poziomów ani EXP poza CAP; ich nagrody wciąż mają ograniczenia pojedynczej wypłaty.
+- Komenda poziomów wyraźnie oddziela dziedziny wliczane od niewliczanych do CAP.
+- Zmiana CAP może obniżyć limit pojedynczej nagrody, nie zmienia progów następnego poziomu ani istniejących sald EXP. Bez migracji bazy.
+- Dodatkowe testy izolowane; wymagany pełny PREDEPLOY 60/60 PLUS przed wdrożeniem.

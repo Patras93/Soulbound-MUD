@@ -51,11 +51,11 @@ class SoulBankGateV105(unittest.TestCase):
             actor._guild_bonus_percent = 0
             self.assertTrue(actor.soul_progress_is_tier_locked())
             texts = actor.add_soul_xp(1000)
-            self.assertEqual(actor.soul_xp, 13345)
-            self.assertTrue(any('odłożone' in msg for msg in texts))
+            self.assertEqual(actor.soul_xp, 12345)
+            self.assertTrue(any('nie naliczono' in msg for msg in texts))
             actor.soul_tier = tier + 1
             actor.add_soul_xp(0)
-            self.assertEqual(actor.soul_xp, 13345)
+            self.assertEqual(actor.soul_xp, 12345)
 
 if __name__ == '__main__':
     unittest.main()

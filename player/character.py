@@ -692,35 +692,26 @@ class Character:
         )
 
     def add_soul_xp(self, amount, single_level_cap=False):
+        # v116.00.62: Po osiagnieciu progu Soul Tier nie przyznajemy
+        # NOWYCH punktow Soul XP. Nie dopisujemy ich do puli ani banku.
+        # Dotychczas zapisane Soul XP pozostaje bez zmian po aktualizacji.
+        cap_level = self.soul_level_cap_for_current_tier()
+        if self.soul_progress_is_tier_locked():
+            next_tier = int(self.soul_tier) + 1
+            return [
+                f"Soul XP nie naliczono — Soul Level {cap_level} czeka na "
+                f"odblokowanie Tieru {next_tier}. Wpisz unlock"
+                + (" po ukończeniu Próby Broni Duszy."
+                   if next_tier in SOUL_TRIAL_QUEST_IDS and next_tier % 10 == 0
+                   else ".")
+            ]
+
         if self.soul_level >= SOUL_MAX_LEVEL:
             amount = max(0, int(amount or 0))
             if amount:
                 self.soul_xp += amount
                 return [f"Soul XP +{amount} odłożone przy limicie Soul Level {SOUL_MAX_LEVEL}."]
             return [f"Broń Duszy ma już Soul Level {SOUL_MAX_LEVEL}."]
-
-        # v103 DEV: Soul XP przy bramce Tieru jest odłożony, nie kasowany.
-        # Każdy kolejny poziom wciąż wymaga osobnego unlock / Próby;
-        # sama nadwyżka nie pozwala przekroczyć bramki.
-        cap_level = self.soul_level_cap_for_current_tier()
-        if self.soul_progress_is_tier_locked():
-            next_tier = int(self.soul_tier) + 1
-            base = max(0, int(amount or 0))
-            racial = max(0, scale_multiplier_xp_v10400(base, self.racial_soul_xp_multiplier()))
-            guild_pct = max(0, int(getattr(self, '_guild_bonus_percent', 0) or 0))
-            awarded = max(0, scale_percent_xp_v10400(racial, guild_pct))
-            # SQLite stores signed 64-bit integers; report a technical overflow
-            # instead of silently wrapping the saved XP balance.
-            if int(self.soul_xp) + awarded > 9_223_372_036_854_775_807:
-                raise OverflowError('Soul XP przekracza techniczny zakres zapisu SQLite; nie zmieniono puli.')
-            self.soul_xp += awarded
-            return [
-                f"Soul XP +{awarded} odłożone przy Soul Level {cap_level}; "
-                f"w puli {self.soul_xp}. "
-                + (f"Odblokuj Tier {next_tier} po Próbie Broni Duszy komendą unlock."
-                   if next_tier in SOUL_TRIAL_QUEST_IDS and next_tier % 10 == 0
-                   else f"Odblokuj Tier {next_tier} komendą unlock.")
-            ]
 
         base_amount = max(0, int(amount))
         racial_amount = max(

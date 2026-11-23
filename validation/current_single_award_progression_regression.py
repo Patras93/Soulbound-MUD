@@ -24,10 +24,11 @@ class SingleAwardProgression(unittest.TestCase):
         self.assertEqual(c.soul_xp,225_047_361+1-needed,notes)
         self.assertGreater(c.soul_xp,0)
         self.assertEqual(len([x for x in notes if 'osiąga Soul Level' in x]),1)
-        # Tier boundary still locks progress without erasing earned XP.
+        # Tier boundary freezes NEW awards, preserves previously earned XP.
         c.soul_level=90;c.soul_xp=12345
-        c.add_soul_xp(999)
-        self.assertEqual((c.soul_level,c.soul_xp),(90,13344))
+        notes=c.add_soul_xp(999)
+        self.assertEqual((c.soul_level,c.soul_xp),(90,12345))
+        self.assertTrue(any('nie naliczono' in line for line in notes))
 
     def test_character_soul_weapon_and_stats_one_step(self):
         c=object.__new__(Character)
