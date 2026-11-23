@@ -138,7 +138,9 @@ class SkySummonStateV109Mixin:
         healed = 0
         for r in rows:
             kind = r['summon_type']
-            if kind not in SUMMONS or not self._v1700_class(SUMMONS[kind][1]):
+            permission = getattr(self, 'v11664_can_use_summon', None)
+            if kind not in SUMMONS or not (permission(kind,SUMMONS[kind][1]) if callable(permission)
+                                          else self._v1700_class(SUMMONS[kind][1])):
                 continue
             maximum = max(1, int(r['max_hp']))
             from systems.published_24_revolution import summon_factor

@@ -256,6 +256,11 @@ class DatabaseAccountsMixin(
         intelligence = starting_stats["intelligence"]
         willpower = starting_stats["willpower"]
         charisma = starting_stats["charisma"]
+        from systems.current_class_schools_v11664 import school_room
+        _class_school_start = (school_room(cname)
+                               if getattr(self,'_class_schools_v11664',False)
+                               else 'square')
+        # Legacy test databases and already-created characters remain in place.
         self.conn.execute(
             """
             INSERT INTO characters(
@@ -264,7 +269,7 @@ class DatabaseAccountsMixin(
                 race,gender,class_name,class_type,soul_weapon,weapon_base,
                 strength,dexterity,constitution,intelligence,willpower,charisma,
                 stat_progress,soul_level,soul_xp,soul_tier,room_id,silver,gold,mithril,deaths
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,'square',?,?,?,0)
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,1,0,1,?,?,?, ?,0)
             """,
             (
                 account_id, name,
@@ -273,7 +278,7 @@ class DatabaseAccountsMixin(
                 name_cases["voc"],
                 rname, gender, cname, ctype, soul_weapon, weapon_base,
                 strength, dexterity, constitution, intelligence, willpower, charisma,
-                STARTING_SILVER, STARTING_GOLD, STARTING_MITHRIL,
+                _class_school_start, STARTING_SILVER, STARTING_GOLD, STARTING_MITHRIL,
             ),
         )
         self.conn.execute(

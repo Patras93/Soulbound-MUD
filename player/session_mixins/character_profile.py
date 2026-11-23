@@ -128,15 +128,19 @@ class SessionCharacterProfileMixin:
                 if c.soul_progress_is_tier_locked():
                     await self.send('Soul XP zablokowany do odblokowania kolejnego Soul Tier.')
             for line in level_overview_lines_v23216(
-                    self.server.db.conn, self.account_id, c.class_name):
+                    self.server.db.conn, self.account_id, c.class_name,
+                    uncapped=bool(getattr(self.server.db, '_uncapped_awards_v11664', False))):
                 await self.send(line)
 
     async def show_character_xp(self):
             """Stan EXP postaci z dokładną liczbą brakującą do następnego Levelu."""
             c = self.character
-            from systems.multi_cap_v23215 import multi_cap_calculation_v23217
-            multi = multi_cap_calculation_v23217(self.server.db.conn, self.account_id)
-            if multi:
+            if getattr(self.server.db, '_uncapped_awards_v11664', False):
+                multi = None
+            else:
+                from systems.multi_cap_v23215 import multi_cap_calculation_v23217
+                multi = multi_cap_calculation_v23217(self.server.db.conn, self.account_id)
+            if multi and not getattr(self.server.db, '_uncapped_awards_v11664', False):
                 cap = int(multi[0]); await self.send(f"Cel EXP: {cap // 2}. Multi Cap EXP: {cap}.")
             if not can_grow("postac", c.character_level):
                 await self.send(f"EXP postaci: maksimum. Poziom {c.character_level} ({current_cap_label('postac')}).")
@@ -149,7 +153,11 @@ class SessionCharacterProfileMixin:
             )
 
     async def show_experience_cap_v2009(self, raw=""):
-            """NVDA-friendly live unified Multi Cap; no artificial maximum."""
+            """Live XP without a per-award CAP; legacy fixtures preserved."""
+            if getattr(self.server.db, '_uncapped_awards_v11664', False):
+                await self.send('Limit EXP i Multi CAP wyłączone. Nagrody naliczane bezpośrednio, EXP Bank nieaktywny.')
+                await self.send('Wymagania poziomów pozostają bez zmian. Soul XP blokuje wymagany unlock Tieru.')
+                return
             from systems.multi_cap_v23215 import multi_cap_calculation_v23217
             result = multi_cap_calculation_v23217(self.server.db.conn, self.account_id)
             if result is None:
@@ -183,7 +191,16 @@ class SessionCharacterProfileMixin:
             )
 
     async def show_exp_bank_v2011(self, raw=""):
-            """Persistent balances per character, Soul, class, skill, stat, profession and tool."""
+            """Read-only archive of historic bank balances; never pay live XP."""
+            if getattr(self.server.db, '_uncapped_awards_v11664', False):
+                rows = self.server.db.experience_bank_rows_v2011(self.account_id)
+                entries = [(kind, key, amount) for kind,key,amount in rows if amount > 0]
+                await self.send('EXP Bank wyłączony. Dawne salda zachowane w SQLite jako archiwum, bez automatycznych wypłat.')
+                if entries:
+                    await self.send('Archiwalne EXP: ' + '; '.join(f'{kind} {key}: {amount}' for kind,key,amount in entries) + '.')
+                else:
+                    await self.send('Brak sald archiwalnych.')
+                return
             action = ' '.join(str(raw or '').strip().casefold().split())
             if action in ('odbierz wszystko', 'wyplac wszystko', 'wypłać wszystko',
                           'withdraw all', 'claim all'):

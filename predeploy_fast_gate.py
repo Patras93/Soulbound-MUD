@@ -46,6 +46,9 @@ def run():
     from validation.current_windows_tcp_read_timeout_v11663_regression import run as tcp_timeout_test
     assert tcp_timeout_test() == 7
     print('WINDOWS TCP READ TIMEOUT v116.00.63: 7/7 PASS', flush=True)
+    # v116.67: fail immediately if cast/c collide with the canonical skill command.
+    from validation.current_cast_command_alias_v11667_regression import run as cast_skill_alias_test
+    assert cast_skill_alias_test() == 14
     from validation.current_v114_published_native_contract_regression import run as published_native_test
     published_native_test()
     from validation.current_v11325_item_description_contract import run as item_description_test
@@ -70,10 +73,28 @@ def run():
     from validation.current_fame_immediate_regression import run as current_fame_test
     current_fame_test()  # instant kill EXP, separate first Fame bonus, legacy debt
     print('KONTROLA WSTEPNA: natychmiastowy EXP i osobny Fame PASS',flush=True)
+    # v116.66: catch Fame message syntax that bytecode compilation permits.
+    from validation.current_fame_message_v11666_regression import run as fame_message_test
+    assert fame_message_test() == 8
     # v116.00.62: Soul Tier ma blokowac nowe nagrody i bank do unlock.
     from validation.current_soul_tier_lock_v11662_regression import run as soul_gate_test
     assert soul_gate_test() == 4
     print('SOUL TIER LOCK NO NEW XP v116.00.62: 4/4 PASS', flush=True)
+    # v116.64: all class starting schools and own teachers, portal confirmation.
+    from validation.current_class_schools_v11664_regression import run as class_schools_test
+    assert class_schools_test() == 7
+    print('CLASS SCHOOLS AND TEACHERS: 7/7 PASS',flush=True)
+    # v116.64: assert LIVE kill/quest/EP/Fame source balance, not legacy fixtures.
+    from validation.current_global_rebalance_v11664_regression import run as global_rebalance_test
+    assert global_rebalance_test() == 8
+    print('GLOBAL REBALANCE v116.64: 8/8 PASS',flush=True)
+    # v116.65: no player summons in live runtime; UOSS NPC helpers remain.
+    from validation.current_retired_player_minions_v11665_regression import run as retired_summons_test
+    assert retired_summons_test() == 17
+    # v116.64: mandatory active-runtime removal of CAP, bank and hirelings.
+    from validation.current_no_cap_hires_cast_v11664_regression import run as no_cap_no_hires_test
+    assert no_cap_no_hires_test() == 5
+    print('NO CAP / NO HIRES / SKELETAL CAST: 5/5 PASS',flush=True)
     # v116.00.53: Future EP/Fame must not issue the full escalating cap.
     from validation.current_milestone_pacing_v11653_regression import run as milestone_pacing_test
     assert milestone_pacing_test() >= 60
@@ -99,7 +120,7 @@ def run():
     # v116.00.57: actual helper full-strength opening and cached roaming graph.
     from validation.current_combat_performance_v11657_regression import run as combat_perf_test
     assert combat_perf_test() >= 140
-    print('KONTROLA WSTEPNA: prawdziwa pierwsza fala najemnikow i cache wędrówek PASS',flush=True)
+    print('KONTROLA WSTEPNA: historyczna wydajnosc helperow i cache wedrowek PASS; najemnicy w nowej grze nieaktywni',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)
     from validation.current_quest_accept_performance_regression import run as quest_lookup_test

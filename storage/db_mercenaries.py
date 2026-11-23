@@ -35,6 +35,8 @@ class DatabaseMercenariesMixin:
         return dict(row) if row else {"xp": 0, "specialization": "", "actions": 0}
 
     def mercenary_gain_xp_v1220(self, character_account_id, role, xp):
+        if getattr(self, '_retired_mercenaries_v11664', False):
+            return self.mercenary_progress_v1220(character_account_id, role)
         self.conn.execute(
             "INSERT INTO mercenary_progress_v1220(character_account_id,role,xp,actions) "
             "VALUES(?,?,?,1) ON CONFLICT(character_account_id,role) "
@@ -50,6 +52,8 @@ class DatabaseMercenariesMixin:
         Reuse the historical specialization column so existing selections and
         characters survive migrations. No XP writes, no money cost or lock-in.
         """
+        if getattr(self, '_retired_mercenaries_v11664', False):
+            return 'disabled'
         from systems.mercenary_growth_v1220 import TACTICS
         if tactic not in TACTICS:
             return "unknown"
@@ -73,6 +77,9 @@ class DatabaseMercenariesMixin:
         return self.mercenary_set_tactic_v1229(character_account_id, role, name)
 
     def mercenary_contracts(self, character_account_id, now=None):
+        # v116.64: legacy records are archived, never active on the live server.
+        if getattr(self, '_retired_mercenaries_v11664', False):
+            return []
         now = time.time() if now is None else float(now)
         self.conn.execute("DELETE FROM mercenary_contracts WHERE character_account_id=? AND expires_at>0 AND expires_at<=?", (int(character_account_id), now))
         return [dict(row) for row in self.conn.execute(
@@ -81,6 +88,8 @@ class DatabaseMercenariesMixin:
 
     def hire_mercenary(self, character_account_id, role, price_silver, duration=0, now=None):
         """One-time payment for a permanent hire; duration is legacy-only."""
+        if getattr(self, '_retired_mercenaries_v11664', False):
+            return 'disabled'  # do not charge coins, write contracts or alter saves
         now = time.time() if now is None else float(now)
         ident = int(character_account_id)
         role = str(role)

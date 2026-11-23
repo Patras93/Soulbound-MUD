@@ -765,11 +765,18 @@ class SessionExplorationProgressMixin:
                     # Multi Cap, bank transaction and reward semantics.
                     import asyncio
                     await asyncio.sleep(0)
-                multi_cap = self.server.db.multi_cap_v23215(self.account_id)
-                if multi_cap is None:
-                    raise RuntimeError('EP: brak Multi Cap postaci')
-                caps = explorer_award_per_point_v1001(multi_cap)
                 content_level = max(1, int(self.character.character_level))
+                # v116.00.64: no CAP formula for live EP rewards.
+                if getattr(self.server.db, '_uncapped_awards_v11664', False):
+                    from systems.independent_milestone_xp_v11664 import ep_xp_per_point_v11664
+                    reward = ep_xp_per_point_v11664(content_level)
+                    caps = {'character': reward, 'soul': reward,
+                            'class_total': reward, 'stat': reward}
+                else:
+                    multi_cap = self.server.db.multi_cap_v23215(self.account_id)
+                    if multi_cap is None:
+                        raise RuntimeError('EP: brak Multi Cap postaci')
+                    caps = explorer_award_per_point_v1001(multi_cap)
                 await self.grant_combat_soul_xp_v11350(
                     caps['soul'], content_level=content_level, content_scaled=True)
                 if caps['class_total']:
@@ -787,8 +794,8 @@ class SessionExplorationProgressMixin:
             self.server.db.save_character(self.character)
             await self.send(
                 f'Wazne odkrycie: +{ep_points} EP. '
-                f'EXP postaci +{total_character}; każdy punkt daje 5% bieżącego Multi Cap. '
-                'EXP pozostałych dziedzin naliczany osobno; działa EXP Bank.')
+                f'EXP postaci +{total_character}; punkty dają EXP według poziomu. '
+                'EXP pozostałych dziedzin naliczany osobno. Bez CAP i EXP Banku.')
             return True
 
     async def discover_current_room(self, announce=True):

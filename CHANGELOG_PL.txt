@@ -1,3 +1,26 @@
+v116.00.67 — NAPRAWA PREDEPLOY: CAST/C I REJESTR KOMEND
+- Naprawiono błąd etapu 26/60 z v116.66: „komenda cast: nie rozpoznano nazwy kanonicznej”.
+- cast i c to aliasy kanonicznej komendy skill. Nie rejestrujemy ich jako osobnych komend przywoływania minionów.
+- Zwykłe skille i zaklęcia nadal działają. Miniony i najemnicy pozostają wyłączone; wspólnicy UOSS pozostają niezależni.
+- Dodano wczesny test 14 kontroli aliasów i wykonywania skilli, zanim ruszy pełne 60/60 PLUS.
+- Nie zmieniono balansu, EXP, szkół, kont, bazy, kontraktów ani wyposażenia.
+- Paczka wyłącznie do PREDEPLOY: nie wdrażać bez pełnego 60/60 PLUS PASS.
+
+v116.00.66 — NAPRAWA PREDEPLOY: WYPŁATA FAME BEZ CAP
+- Naprawiono TypeError: str object is not callable w systems/fame_v1702.py, zgłoszony w bramce QUESTY — EXP, FAME, ZŁOTO v116.65.
+- Poprawiono składanie komunikatu o wypłacie Fame w aktywnym trybie bez Multi CAP i EXP Banku.
+- Zachowano osobne komunikaty dla izolowanych historycznych testów trybu z CAP.
+- Dodano obowiązkowy test predeploy wypłaty i treści powiadomienia Fame w obu trybach.
+- Bez zmiany formuł, zapisów EXP, Soul XP, banku, szkół, walki i limitu graczy.
+- Pełny Windows PREDEPLOY 60/60 PLUS jest nadal wymagany przed wdrożeniem.
+
+v116.00.65 — BEZ MINIONÓW I CHOWAŃCÓW, WSPÓLNICY TYLKO UOSS
+- Usunięto wszystkie miniony i chowańce GRACZY z aktywnej rozgrywki: przywoływanie cast/c, mag/nekro/druid/call/order, ataki, absorpcja ciosów, leczenie, regeneracja, mapy i skalowanie przeciwników.
+- Pomocnicy UOSS pozostają jako osobny system NPC, wybierany przed walką z bossami UOSS; nadal walczą tylko przy odpowiednich encounterach. Nie przywrócono najemników tawernianych.
+- Drużyna monitor / group monitor: lider widzi HP, MP, status i lokację członków online oraz nazwę aktywnego wspólnika UOSS podczas odpowiedniego starcia. Zwykła drużyna nadal wyświetla graczy.
+- Historyczne dane SQLite minionów i najemników nie są usuwane ani automatycznie przepisywane.
+- Pozostaje v116.64: brak Multi CAP i nowego bankowania EXP, rebalans i 38 szkół klasowych.
+
 SOULBOUND MUD v116.00.63 — OBSŁUGA WINDOWS TCP WINERROR 121 (2026-11-23)
 - OSError WinError 121 podczas oczekiwania na kolejną linię klienta kończy
   sesję jak rozłączenie, bez fałszywego raportu awarii poprzedniej komendy (np. fish).
@@ -1771,3 +1794,23 @@ v116.00.62 — SOUL XP ZATRZYMANY PRZY TIERZE + UPROSZCZONY MULTI CAP
 - Komenda poziomów wyraźnie oddziela dziedziny wliczane od niewliczanych do CAP.
 - Zmiana CAP może obniżyć limit pojedynczej nagrody, nie zmienia progów następnego poziomu ani istniejących sald EXP. Bez migracji bazy.
 - Dodatkowe testy izolowane; wymagany pełny PREDEPLOY 60/60 PLUS przed wdrożeniem.
+
+
+v116.00.64 — Bez CAP i bieżącego EXP Banku:
+- Prawdziwe nagrody EXP dla postaci, Duszy, klas, skilli, statystyk, profesji i narzędzi naliczane bezpośrednio, bez limitu wypłaty i bez wpłat do banku.
+- Historyczne salda banku nie są kasowane i można je tylko wyświetlić przez expbank (archiwum; bez wypłat).
+- EXP za EP i Fame z nowych, niezależnych od CAP tymczasowych krzywych poziomu, zbliżonych do dotychczasowych wypłat na poziomie 92 (do późniejszego rebalansu).
+- Soul Tier nadal blokuje nowe Soul XP do unlock. Dotychczasowe wymagania i ograniczenie jednego awansu z wypłaty pozostają bez zmian.
+- Usunięto komunikaty CAP z expcap, levels, EXP Bank i zdarzeń soundpacka.
+- Nie zmieniono prawdziwej bazy postaci ani schematu SQLite.
+
+- Najemnicy całkowicie wyłączeni w aktywnej grze: brak rekrutacji, działania w walce, podążania, wyświetlania; zapisane umowy i postęp w bazie zachowane jako archiwum. Skalowanie potworów liczy 0 najemników.
+- Szkielet Maga i Wojownika jest odrębnym zaklęciem dla Maga lub Nekromanty: cast skeletal mage/warrior (c ...). 10% maksymalnej many, minimum 120/90 MP, przy każdym rzeczywistym przywołaniu; brak materiałów, limit 3. Druid bez klasy Maga/Nekromanty nie może przywołać tych minionów.
+- Komenda chowaniec i nekro nie przywołują już tych dwóch szkieletów.
+
+- 38 oddzielnych szkół klasowych dla nowych postaci (25 pomieszczeń każda, sale treningowe i przeciwnicy), 38 nauczycieli klasowych.
+- Stare postacie zachowują lokację; stare sale Gildii i nauczyciele pozostają funkcjonalne.
+- Portal z krańca szkoły do Miasta Dusz: zalecany poziom 10, ostrzeżenie i potwierdzenie przez powtórzenie up.
+
+REBALANS v116.00.64: po wycofaniu najemników zwykłe walki, questy, EP i Fame otrzymują spójne nowe nagrody zależne od poziomu postaci, rozwijanej dziedziny, trudności terenu, rangi wroga i liczby powtórzeń. Szacunkowo 125–400 normalnych starć na poziom przed premiami; mocne bossy i questy odpowiednio wynagradzają walkę. Koniec 200 tys. minimalnego EXP za startowy quest w aktywnej grze. Żadnego obcinania EXP przez Multi CAP ani bankowania świeżych nagród; zachowane stare salda tylko do odczytu. Nie rusza już zdobytych doświadczeń i progów poziomów.
+REBALANS: także potwory z dokładnymi historycznymi nagrodami źródłowymi (boss/UOSS) korzystają w nowej grze z bezpiecznej krzywej źródła; nie zachowują dawnych kwot mogących dać wiele poziomów z jednego zabicia. Zerowy mnożnik walki pozostaje zerowym EXP.

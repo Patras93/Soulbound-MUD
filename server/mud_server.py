@@ -45,6 +45,13 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
         _runtime_mode = authorized_mode(DB_PATH)
         self.start_time_v1224 = time.time()
         self.db = Database(DB_PATH)
+        # v116.00.64: set before any session, scheduled reward or login gift.
+        self.db._uncapped_awards_v11664 = True
+        self.db._rebalanced_awards_v11664 = True
+        self.db._manual_bank_only_v11325 = True
+        self.db._retired_mercenaries_v11664 = True
+        self.db._retired_player_minions_v11665 = True
+        self.db._class_schools_v11664 = True
         # Clock-driven live events remain disabled in isolated staging.
         if _runtime_mode == 'production':
             self.db._v108_live_event_caps = True
@@ -566,6 +573,12 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
             await writer.wait_closed()
             return
         session = Session(self, reader, writer)
+        # v116.00.64: enable uncapped direct XP for login/enter_world as well.
+        # These same methods use the flag in authenticated command_loop.
+        self.db._manual_bank_only_v11325 = True
+        self.db._uncapped_awards_v11664 = True
+        self.db._retired_mercenaries_v11664 = True
+        self.db._retired_player_minions_v11665 = True
         self.sessions.add(session)
         try:
             if await session.login_flow():

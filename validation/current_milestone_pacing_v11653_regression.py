@@ -46,14 +46,14 @@ def run():
     root=Path(__file__).resolve().parents[1]
     exp=(root/'player/session_mixins/exploration_progress.py').read_text('utf-8')
     fam=(root/'systems/fame_v1702.py').read_text('utf-8')
-    assert '5% bieżącego Multi Cap' in exp and '10% bieżącego Multi Cap' in fam;checks+=1
+    assert 'punkty dają EXP według poziomu' in exp and 'Bez CAP i EXP Banku' in fam;checks+=1
     assert 'caps = explorer_award_per_point_v1001(multi_cap)' in exp;checks+=1
     assert 'caps = fame_cap_awards_v2103(session)' in fam;checks+=1
     actual=(root/'systems/v115/fame_exp_progression.py').read_text('utf-8')
     assert 'fame_bonus = milestone_payout_from_cap_v11653(' in actual;checks+=1
     assert 'V11653_FAME_CAP_PERCENT' in actual;checks+=1
     online=(root/'systems/v115/fame_online_delivery.py').read_text('utf-8')
-    assert '10% Multi Cap' in online;checks+=1
+    assert 'Bez CAP i EXP Banku' in online;checks+=1
     return checks
 
 if __name__=='__main__':

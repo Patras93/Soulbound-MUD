@@ -10,6 +10,8 @@ def nearby_companions_v1801(server, room_id):
     Companions follow their ONLINE owner; never spawn monster instances and
     never copy, update, or reset durable summon/character state.
     """
+    if getattr(getattr(server, 'db', None), '_retired_player_minions_v11665', False):
+        return []
     from player.session_mixins.era_sky_v1700 import SUMMONS, summon_display
     owners = {
         int(s.account_id): s for s in tuple(server.sessions)
@@ -35,7 +37,9 @@ def nearby_companions_v1801(server, room_id):
         owner = owners.get(int(row['account_id']))
         kind = str(row['summon_type'])
         spec = SUMMONS.get(kind)
-        if not owner or not spec or spec[1] not in owner.active_class_names():
+        permission = getattr(owner, 'v11664_can_use_summon', None)
+        if not owner or not spec or not (permission(kind,spec[1]) if callable(permission)
+                                       else spec[1] in owner.active_class_names()):
             continue
         companions.append((owner, kind, summon_display(kind, row['soul_rank']),
                            int(row['hp']), int(row['max_hp']),

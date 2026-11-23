@@ -47,6 +47,8 @@ def record_paid_exp_event_v11329(db, account_id, paid, cap, *, kind='character')
     clipped at that cap is FULL_CAP, not a fictitious overflow or
     EXP_BANK deposit.
     """
+    if getattr(db, '_uncapped_awards_v11664', False):
+        return None  # No CAP means no FULL/HALF/OVER CAP event.
     paid = int(paid or 0)
     cap = int(cap or 0)
     if paid <= 0 or cap <= 0 or account_id is None:
@@ -69,6 +71,8 @@ async def _watch_hourly_overcap_v11329(server):
     It runs while live sessions exist and does not write SQLite. Audio errors
     cannot change the clock, rewards or combat.
     """
+    if getattr(getattr(server, 'db', None), '_uncapped_awards_v11664', False):
+        return  # no active Over CAP event after removal
     import asyncio
     import time
     from systems.v10800_seasonal_events import overcap_event_state

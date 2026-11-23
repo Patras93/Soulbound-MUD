@@ -19,6 +19,10 @@ class SessionCommandLoopMixin:
         # Enable only for a running, authenticated game server. Historical
         # offline fixtures keep their old allocator contract for migration tests.
         self.server.db._manual_bank_only_v11325 = True
+        self.server.db._uncapped_awards_v11664 = True
+        self.server.db._rebalanced_awards_v11664 = True
+        self.server.db._retired_mercenaries_v11664 = True
+        self.server.db._retired_player_minions_v11665 = True
         while not self.closed:
             # Cichy prompt dla NVDA: klient po prostu czeka na kolejną linię.
             raw = await self.read_line()

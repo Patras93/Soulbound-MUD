@@ -857,6 +857,25 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                             _character_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_character_payout_v104,exact=_v111_exact))
                             _soul_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_soul_payout_v104,exact=_v111_exact))
                             _class_payout_v104=min(V019_SAFE_INT,_v111_bonus(_v111_mob_id,_class_payout_v104,exact=_v111_exact))
+                    # v116.64: predictable XP/level pace without an EXP award CAP.
+                    # Recompute each SOURCE reward against the real recipient.
+                    # Also rebalance 'source_xp_exact' high bosses: with CAP
+                    # retired, old fixed UOSS multi-million awards could jump
+                    # a fresh hero through dozens of levels from one kill.
+                    # Paid seasonal bonuses remain separate after source XP.
+                    if getattr(session.server.db, '_rebalanced_awards_v11664', False):
+                        from systems.progression_rebalance_v11664 import live_kill_reward_v11664
+                        _balanced_v11664 = live_kill_reward_v11664(
+                            session,template,stage=_stage_v104,
+                            combat_multiplier=xp_mult,
+                            double_factor=_double_factor_v1286,
+                            guild_percent=_guild_pct_v104,
+                            mentor_percent=_class_mentor_pct_v104,
+                            class_levels=_class_levels_v104)
+                        _character_payout_v104 = _balanced_v11664['character']
+                        _soul_payout_v104 = _balanced_v11664['soul']
+                        _class_payout_v104 = _balanced_v11664['class']
+                        raw_stat_reward = _balanced_v11664['stat']
                     # v116.00.47: ALL normal kill EXP axes pay immediately.
                     # First natural Fame clear queues a separate one-time Multi
                     # Cap bonus, NOT a second copy of the ordinary kill EXP.
@@ -945,7 +964,7 @@ class SessionCombatRewardsMixin(CombatMilestoneV109Mixin):
                         _event_note_v104 = ' Event x2 EXP.' if _class_double_v104 > _class_scaled_v104 else ''
                         await session.send(
                             f'EXP klasy {session.character.class_name}: {_class_total_paid_v104}. '
-                            'Nagroda trafia tylko do klasy glownej (do Multi Cap).'
+                            'Nagroda trafia tylko do klasy głównej. Brak Multi CAP.'
                             + _event_note_v104 + _guild_note_v104)
                         for (_name_v104, _), (_paid_v104, _row_v104) in zip(
                                 _class_levels_v104, _class_results_v104):
