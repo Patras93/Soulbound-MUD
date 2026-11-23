@@ -157,7 +157,7 @@ class SessionCharacterProfileMixin:
                 return
             cap, levels, parts, cap_parts = result
             await self.send(f"Cel EXP: {int(cap) // 2}. Multi Cap EXP: {cap} za pojedynczą nagrodę.")
-            await self.send(f"Suma faktycznie rozwiniętych poziomów: {levels}.")
+            await self.send(f"Suma poziomów wliczanych do Multi CAP: {levels}.")
             await self.send("Składniki: " + "; ".join(
                 f"{name}: {amount} poziomów, +{cap_parts[name]} EXP"
                 for name, amount in parts.items()) + ".")
@@ -170,9 +170,10 @@ class SessionCharacterProfileMixin:
                 "EXP nie jest dzielony między kategorie."
             )
             await self.send(
-                "Walka nie rozwija profesji ani narzędzi. Rozwój profesji i "
-                "narzędzi podnosi jednak Multi Cap do przyszłych walk. "
-                "Nieodblokowane skille i klasy nie podnoszą limitu. "
+                "Multi CAP rośnie wyłącznie dzięki poziomowi postaci, "
+                "głównej klasie i zdobytym wzniesieniom. Dusza, Soul Tier, "
+                "Broń Duszy, statystyki, skille, profesje i narzędzia "
+                "rozwijają się niezależnie i nie zwiększają CAP. "
                 "Archiwalne klasy można uwzględnić ustawieniem OLC multi_cap_all_owned_classes."
             )
             await self.send(

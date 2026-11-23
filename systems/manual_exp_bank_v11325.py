@@ -19,6 +19,11 @@ def _credit(session, kind, key, amount):
         char.add_character_xp(amount)
         db.save_character(char, commit=False)
     elif kind == 'soul':
+        # v116.00.62: historyczny bank nie jest kasowany, lecz nie moze
+        # zostac odebrany, dopoki gracz nie uzyje unlock Soul Tier.
+        tier_locked = getattr(char, 'soul_progress_is_tier_locked', None)
+        if callable(tier_locked) and tier_locked():
+            return False
         from core.live_level_caps_v5200 import cap
         if cap('dusza') is not None and char.soul_level >= cap('dusza'):
             return False

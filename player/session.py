@@ -121,6 +121,24 @@ class Session(
 ):
     """Player session composed from focused subsystem mixins."""
 
+    async def read_line(self):
+        """Finish an expired Windows TCP read as a disconnect, not a failed command.
+
+        The original native reader remains SHA/AST-locked in its mixin.
+        Returning None lets the existing login/command loops exit and lets
+        MudServer.handle_client run session.close(), saving character state.
+        """
+        try:
+            return await super().read_line()
+        except OSError as exc:
+            # Windows overlapped socket read may raise OSError(WinError 121)
+            # rather than ConnectionError. This is a transport timeout, not a
+            # fish/mine/etc command exception. Preserve all other OSErrors.
+            if getattr(exc, 'winerror', None) != 121 and getattr(exc, 'errno', None) != 121:
+                raise
+            return None
+
+
     async def show_profession_atlas_v1602(self, query=""):
         """Complete live profession atlas; original historical 14 remain unchanged."""
         from core.bootstrap_economy_professions import TOOL_PROFESSION_MAP

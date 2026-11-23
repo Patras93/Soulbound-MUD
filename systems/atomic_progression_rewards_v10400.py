@@ -46,6 +46,11 @@ def award_soul_xp_atomic_v10400(db, character, account_id, amount, *,
     _check(db, character, account_id)
     old = (character.soul_level, character.soul_xp, character.soul_tier)
     def run():
+        # v116.00.62: sprawdz przed alokatorem. Bramka Tieru nie moze
+        # odkladac nowej nagrody do EXP Banku ani raportowac fikcyjnej wyplaty.
+        tier_locked = getattr(character, 'soul_progress_is_tier_locked', None)
+        if callable(tier_locked) and tier_locked():
+            return 0, character.add_soul_xp(0, single_level_cap=single_level_cap)
         paid = banked_experience_v2011(
             db, account_id, amount, 'soul', int(old[0]), overcap=overcap)
         notes = character.add_soul_xp(paid, single_level_cap=single_level_cap)

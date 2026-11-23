@@ -31,9 +31,8 @@ def run_regression():
     other = 'Mag'
     db.ensure_primary_class(1, own)
     baseline = multi_cap_experience_v23215(db.conn, 1)
-    # v116.59: six independent stats no longer contribute 6 * 1000 to CAP.
-    # Four core axes plus the one primary class contribute 5 * 1000.
-    check(baseline == 5000, 'one class primary baseline, stats excluded')
+    # v116.00.62: character + one primary class, no Soul/skills/stats/professions.
+    check(baseline == 2000, 'one class primary baseline; other tracks excluded')
     db.conn.execute('UPDATE characters SET strength=900, dexterity=800, constitution=700, intelligence=600, willpower=500, charisma=400 WHERE account_id=1')
     db.conn.commit()
     check(multi_cap_experience_v23215(db.conn, 1) == baseline,
@@ -65,16 +64,16 @@ def run_regression():
     db.conn.execute('INSERT INTO learned_skills VALUES(1,?)',(own_sk,))
     db.conn.execute('INSERT INTO skill_progress VALUES(1,?,?)',(own_sk,3))
     db.conn.commit()
-    check(multi_cap_experience_v23215(db.conn,1)==baseline+3000,'primary learned skill counted')
+    check(multi_cap_experience_v23215(db.conn,1)==baseline,'primary skill does not count')
     db.conn.execute("INSERT INTO ascension_progress_v021 VALUES(1,'class:Mag',100)")
     db.conn.commit()
-    check(multi_cap_experience_v23215(db.conn,1)==baseline+3000, 'inactive ascension excluded')
+    check(multi_cap_experience_v23215(db.conn,1)==baseline, 'inactive ascension excluded')
     db.conn.execute("INSERT INTO ascension_progress_v021 VALUES(1,'class:Wojownik',2)")
     db.conn.commit()
-    check(multi_cap_experience_v23215(db.conn,1)==baseline+5000,'primary ascension counted')
+    check(multi_cap_experience_v23215(db.conn,1)==baseline+2000,'primary ascension counted')
     db.conn.execute('UPDATE class_progress SET level=8 WHERE account_id=1 AND class_name=?',(own,))
     db.conn.commit()
-    check(multi_cap_experience_v23215(db.conn,1)==baseline+5000+7*1000,'primary mastery counted')
+    check(multi_cap_experience_v23215(db.conn,1)==baseline+2000+7*1000,'primary mastery counted')
     db.ensure_primary_class(1, own)
     check(db.class_progress_row(1, other)['level']==400,'repeated login keeps archive')
     check(db.active_class_names(1,own)==[own], 'idempotent single class')

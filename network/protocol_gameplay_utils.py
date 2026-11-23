@@ -222,7 +222,7 @@ HELP_TOPICS["dusza"] = [
     "Broń Duszy ma Soul Level 1-400 i Soul XP. Nie jest levelem postaci.",
     "Soul Tiery mają zakres 1-40. Historyczne Tiery 1-20 oraz progi do Soul 200 pozostają bez zmian; Tiery 21-40 prowadzą dalej do Soul 400.",
     "Soul Level może dojść tylko do progu następnego, jeszcze nieodblokowanego Tieru. Na tym progu dalszy Soul XP jest ZABLOKOWANY.",
-    "Aby Soul XP znów ruszył, wykonaj właściwą Próbę Broni Duszy i odblokuj kolejny Tier komendą unlock. Nadmiar Soul XP ponad zablokowany próg nie jest bankowany.",
+    "W czasie blokady nie otrzymujesz nowych Soul XP ani nie odkładasz ich w EXP Banku. Wcześniejsze Soul XP pozostaje zapisane. Wykonaj Próbę i wpisz unlock.",
     "Bramka działa globalnie: na Soul XP z mobów, questów walki, przedmiotów i innych źródeł.",
     "Istniejące save'y nie są cofane, jeśli historycznie mają Soul Level ponad bieżącym Tierem; dalszy Soul XP pozostaje zablokowany do nadrobienia Tierów.",
 ]

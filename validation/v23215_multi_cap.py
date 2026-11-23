@@ -48,8 +48,8 @@ def run_regression():
     db = TestDB()
     assert MULTICLASS_MAX_ACTIVE == 1
     checks += 1
-    # 4 core tracks + 1 primary-class fallback = 5; stats outside cap.
-    assert multi_cap_experience_v23215(db.conn, 1) == 5000
+    # Only character and primary class at level one contribute.
+    assert multi_cap_experience_v23215(db.conn, 1) == 2000
     assert multi_cap_experience_v23215(db.conn, 2) is None
     checks += 2
     # v116.59: no base stat may inflate CAP, including extreme levels.
@@ -64,7 +64,7 @@ def run_regression():
     classes = ['Test'+str(n) for n in range(14)]
     db.ensure_primary_class(1, classes[0])
     base = multi_cap_experience_v23215(db.conn, 1)
-    assert base == 5000
+    assert base == 2000
     checks += 1
     # Old unlocked secondary classes and previously active slots are archived.
     for i, name in enumerate(classes[1:], start=2):
@@ -94,12 +94,13 @@ def run_regression():
         INSERT INTO skill_progress VALUES(1,'unlearned_cheat',1000000);
         INSERT INTO ascension_progress_v021 VALUES(1,'class:Test0',7);
     ''')
-    bonus = (3 + 4 + 5 + 7) * 500
-    assert multi_cap_experience_v23215(db.conn, 1) == base + 2 * (500 + bonus)
+    # All new skills, professions, tools are ignored; rank 7 is counted.
+    assert multi_cap_experience_v23215(db.conn, 1) == base + 1000 + 2 * 7 * 500
     checks += 1
     # A skill without a learned_skills row must never add fictional cap.
     _, parts = multi_cap_breakdown_v23215(db.conn, 1)
-    assert parts['skille'] == 5 and parts['profesje'] == 3 and parts['narzędzia'] == 4
+    assert set(parts) == {'postać', 'klasy', 'wzniesienia'}
+    assert parts['wzniesienia'] == 7
     checks += 1
     cap = multi_cap_experience_v23215(db.conn, 1)
     assert banked_experience_v2011(db, 1, cap * 4, 'profession', 3, source_key='mining') == cap
@@ -114,7 +115,13 @@ def run_regression():
     checks += 2
     db.conn.execute("UPDATE tools SET level=5 WHERE account_id=1 AND tool_type='pickaxe'")
     new_cap = multi_cap_experience_v23215(db.conn, 1)
-    assert new_cap == cap + 1000
+    assert new_cap == cap  # Tools do not contribute to CAP.
+    db.conn.execute("UPDATE professions SET level=99999 WHERE account_id=1")
+    db.conn.execute("UPDATE skill_progress SET level=99999 WHERE account_id=1")
+    db.conn.execute("UPDATE characters SET soul_level=99999,soul_tier=999,"
+                    "soul_weapon_mastery_level=99999 WHERE account_id=1")
+    assert multi_cap_experience_v23215(db.conn, 1) == cap
+    checks += 1
     assert banked_experience_v2011(db, 1, 1, 'class', 2, source_key=classes[0]) == 2
     checks += 2
     # v11: each new Fame is exactly the live Multi Cap; existing EP helper is historical.

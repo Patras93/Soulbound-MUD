@@ -101,12 +101,12 @@ def run():
     obj.soul_level=obj.soul_level_cap_for_current_tier()
     obj.race='Człowiek';obj._guild_bonus_percent=0
     output=obj.add_soul_xp(1000)
-    ok(obj.soul_xp==13345,'soul bank preserved at gate')
+    ok(obj.soul_xp==12345,'existing soul XP preserved at gate')
     ok(obj.soul_progress_is_tier_locked(),'soul bank gate is really reached')
-    ok('odłożone' in output[0],'soul bank NVDA announcement')
+    ok('nie naliczono' in output[0],'soul tier lock NVDA announcement')
     obj.soul_tier=2
     obj.add_soul_xp(0)
-    ok(obj.soul_xp==13345,'tier unlocked does not double XP')
+    ok(obj.soul_xp==12345,'tier unlocked does not double XP')
     # Other milestone namespace; save repeated calls must not produce duplicates.
     ok(levels_reached(5001)[-1]==5000,'no false milestone 5001')
     ok(levels_reached(5500)[-1]==5500,'milestones continue beyond 5000')
