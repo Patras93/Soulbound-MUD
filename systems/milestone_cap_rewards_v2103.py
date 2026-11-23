@@ -59,6 +59,15 @@ def fame_cap_awards_v2103(session):
     Fame remains durable per canonical target/region; this changes ONLY
     FUTURE unissued awards, never completed Fame or existing EXP balances.
     """
+    if getattr(session.server.db, '_uncapped_awards_v11664', False):
+        # Provisional Fame-by-level reward, no CAP dependency.
+        from systems.independent_milestone_xp_v11664 import fame_xp_per_first_v11664
+        level = max(1, int(session.character.character_level))
+        reward = fame_xp_per_first_v11664(level)
+        classes = getattr(session, 'active_class_names', None)
+        has_class = bool(classes()) if callable(classes) else True
+        return {'character': reward, 'soul': reward, 'stat': reward,
+                'class_total': reward if has_class else 0}
     multi_cap = session.server.db.multi_cap_v23215(session.account_id)
     if multi_cap is None:
         raise RuntimeError('FAME: brak Multi Cap postaci')

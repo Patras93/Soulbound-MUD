@@ -16,9 +16,12 @@ class SkySummonCombatV109Mixin:
         conn=self._v1700_conn()
         self._v1702_prepare_summon_lives(conn)
         self._v1710_refresh_summon_health(conn)
+        permission = getattr(self, 'v11664_can_use_summon', None)
         pets=[r for r in conn.execute('SELECT summon_type,level,hp,max_hp,stance FROM summons_v1700 '
                 'WHERE account_id=? AND active=1 AND hp>0',(self.account_id,)).fetchall()
-              if r['summon_type'] in SUMMONS and self._v1700_class(SUMMONS[r['summon_type']][1])]
+              if r['summon_type'] in SUMMONS and (
+                  permission(r['summon_type'],SUMMONS[r['summon_type']][1]) if callable(permission)
+                  else self._v1700_class(SUMMONS[r['summon_type']][1]))]
         if not pets:return False
         from systems.published_27_master import summon_may_intercept
         pets=[r for r in pets if summon_may_intercept(r['summon_type'],r['hp'],r['max_hp'])]
@@ -102,7 +105,9 @@ class SkySummonCombatV109Mixin:
         for row in rows:
             if not mob.alive or mob.hp<=0:break
             spec=SUMMONS.get(row['summon_type'])
-            if not spec or not self._v1700_class(spec[1]):continue
+            permission = getattr(self, 'v11664_can_use_summon', None)
+            if not spec or not (permission(row['summon_type'],spec[1]) if callable(permission)
+                                else self._v1700_class(spec[1])):continue
             name,_,_,kind,factor=spec
             stance=row['stance'] if 'stance' in row.keys() else 'atakuj'
             if stance=='czekaj':continue

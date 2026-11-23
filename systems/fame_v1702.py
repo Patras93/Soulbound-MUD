@@ -495,9 +495,9 @@ async def pay_due_fame(session):
                                f'postać +{caps["character"]}, Dusza +{caps["soul"]}, '
                                f'każda statystyka +{caps["stat"]}; '
                                'każda aktywna klasa otrzymuje własną nagrodę Biegłości. '
-                               'Wypłaty po bonusach podlegają EXP Bankowi. '
-                               '1 Fame = 10% bieżącego Multi Cap. '
-                               'Bez EXP profesji i narzędzi.')
+                               + ('Bez CAP i EXP Banku. ' if getattr(session.server.db, '_uncapped_awards_v11664', False)
+                                  else 'Wypłaty po bonusach podlegają EXP Bankowi. 1 Fame = 10% bieżącego Multi Cap. ')
+                               + 'Bez EXP profesji i narzędzi.')
             count+=1
         return count
     finally:

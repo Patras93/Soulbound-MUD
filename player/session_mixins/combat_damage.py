@@ -181,7 +181,11 @@ class SessionCombatDamageMixin:
                     # The party composition changes far less often than its
                     # combat rounds. Cache helper counts briefly, per owner.
                     mercenaries = companions = 0
-                    for member in members:
+                    # v116.65: no retired hired NPCs or player summons may
+                    # inflate live mob HP; UOSS helpers are boss-only logic.
+                    _no_helpers_v11665 = bool(getattr(self.server.db,
+                                           '_retired_player_minions_v11665', False))
+                    for member in (() if _no_helpers_v11665 else members):
                         cached = getattr(member, '_world_helpers_count_v11650', None)
                         now = _time_v11650.monotonic()
                         if cached is not None and now - cached[0] < 5.0:

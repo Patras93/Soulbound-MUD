@@ -49,6 +49,10 @@ COMMAND_REGISTRY = {
     'bogowie': ('chaos_bosses_v1800', (COMMAND_TEXT,), {}),
     'reakcje': ('reactions_info_v1800', (COMMAND_TEXT,), {}),
     'fame': ('fame_v1702', (COMMAND_TEXT,), {}),
+    'miniony': ('minions_v11665', (COMMAND_TEXT,), {}),
+    'minion': ('minions_v11665', (COMMAND_TEXT,), {}),
+    # v116.67: cast/c are aliases of canonical 'skill', not separate
+    # minion handlers. Retired player summons cannot be called through them.
     'mag': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
     'zywiolak': ('mage_elementals_v1702', (COMMAND_TEXT,), {}),
     'niebo': ('sky_v1700', (COMMAND_TEXT,), {}),
@@ -229,6 +233,8 @@ COMMAND_REGISTRY = {
     'reply': ('reply_private_v0928', (COMMAND_TEXT,), {}),
     'teleportleader': ('teleport_to_party_leader', (COMMAND_TEXT,), {}),
     'party': ('handle_party', (COMMAND_TEXT,), {}),
+    'group': ('handle_party', (COMMAND_TEXT,), {}),
+    'grupa': ('handle_party', (COMMAND_TEXT,), {}),
     'partyinvite': ('party_invite', (COMMAND_TEXT,), {}),
     'partyaccept': ('party_accept', (), {}),
     'partydecline': ('party_decline', (), {}),
@@ -435,7 +441,7 @@ COMMAND_REGISTRY.update({
 # catalog whether the resolved canonical command is safe in a given state.
 DOWNED_SAFE_COMMANDS = {
     "activityjournal", "whattodo", "gaps", "compareeq", "itemsource", "itemuses", "recipegaps", "availablerecipes", "reciperoute",
-    "help", "look", "party", "partychat", "say", "tell", "reply", "who", "gossip", "newbie", "channels",
+    "help", "look", "party", "group", "grupa", "partychat", "say", "tell", "reply", "who", "gossip", "newbie", "channels",
     "where", "hp", "score", "records", "chronicle", "selfrespawn", "treasures", "tasks",
     "historybuffer", "lifetime", "ep", "deathrecap", "combatrecap", "navigation2", "career2", "greatworld",
 }

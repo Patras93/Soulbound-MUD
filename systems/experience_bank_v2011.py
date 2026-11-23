@@ -6,6 +6,13 @@ from systems.experience_cap_v2009 import experience_cap_v2009
 
 def banked_experience_v2011(db, account_id, amount, kind, level, *,
                             source_key='', overcap=False):
+    # v116.00.64: LIVE GAME awards are uncapped and never read/write EXP Bank.
+    # This runtime flag is set by the authenticated command loop. Historical
+    # isolated fixtures retain the original allocator for regression/archival
+    # compatibility; their rules do not apply to live players.
+    if getattr(db, '_uncapped_awards_v11664', False):
+        from core.big_numbers_v10400 import number
+        return number(amount if amount is not None else 0)
     # Unified real-character cap; old per-axis cap remains only for old
     # isolated test databases without characters/progression schema.
     resolver = getattr(db, 'multi_cap_v23215', None)

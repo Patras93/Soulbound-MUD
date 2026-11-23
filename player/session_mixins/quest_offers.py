@@ -989,6 +989,9 @@ class SessionQuestOffersMixin:
 
             from systems.quest_reward_floor_v1020012 import quest_xp_plan
             reward_plan = quest_xp_plan(quest_id, quest)
+            if getattr(self.server.db, '_rebalanced_awards_v11664', False):
+                from systems.progression_rebalance_v11664 import rebalanced_quest_plan_v11664
+                reward_plan = rebalanced_quest_plan_v11664(self, quest_id, quest, reward_plan)
             reward_parts = []
             generated_currency=v0190_quest_currency_reward(quest)
             if generated_currency:

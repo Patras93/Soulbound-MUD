@@ -755,6 +755,12 @@ if _sb107_runtime_enabled():
             'Każdy zakup wymaga właściwej klasy, a Tier zależy od Levelu postaci.',
         ]
 
+    # v116.64: 38 new class starter schools and teachers, after the archived
+    # unique-teacher and class-EQ audits. Existing guild NPCs are untouched.
+    from systems.current_class_schools_v11664 import install_class_schools
+    V11664_CLASS_SCHOOLS = install_class_schools(
+        ROOMS, NPCS, MOB_SPAWNS, MOB_TEMPLATES, CLASSES)
+
     # v107 ETAP 6: only the EXISTING Kraina Owadów gets more wildlife.
     # Register after historical world audits and before World() is created.
     from world.v10700_insects_expansion import install as _sb_v107_insects_install

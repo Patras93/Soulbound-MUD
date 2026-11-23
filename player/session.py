@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.49.0 Session assembly from focused mixins."""
+from player.session_mixins.minions_party_monitor_v11665 import SessionMinionsPartyMonitorV11665Mixin
 
+
+from player.session_mixins.no_hires_minion_spells_v11664 import SessionNoHiresMinionSpellsV11664Mixin
 from player.session_mixins.achievement_xp_v11331 import SessionAchievementXpV11331Mixin
 from player.session_mixins.living_empire_v7000 import SessionLivingEmpireV7000Mixin
 from player.session_mixins.profesje6 import SessionProfesje6Mixin
@@ -61,6 +64,8 @@ from player.session_mixins.password_recovery_v1222 import SessionPasswordRecover
 
 
 class Session(
+    SessionMinionsPartyMonitorV11665Mixin,
+    SessionNoHiresMinionSpellsV11664Mixin,
     SessionAchievementXpV11331Mixin,
     SessionLivingEmpireV7000Mixin,
     SessionProfesje6Mixin,

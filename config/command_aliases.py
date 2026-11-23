@@ -58,6 +58,7 @@ COMMAND_ALIAS_DEFINITIONS = {'chron': 'protecteq', 'chronione': 'protecteq', 'oc
  'cartography': 'cartography',
  'cartographyworld': 'cartographyworld',
  'cast': 'skill',
+ 'c': 'skill',
  'celekonca': 'endgamegoals',
  'changelog': 'changes',
  'changes': 'changes',

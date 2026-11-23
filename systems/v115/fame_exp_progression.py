@@ -46,7 +46,12 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
     # resolver. Keep their original, exact one-source payout unchanged.
     # Real production DB always has the canonical resolver: its absence on
     # a real character remains a hard failure, never a fabricated bonus.
-    cap_resolver = getattr(db, 'multi_cap_v23215', None)
+    if getattr(db, '_uncapped_awards_v11664', False):
+        from systems.independent_milestone_xp_v11664 import fame_xp_per_first_v11664
+        fame_bonus = fame_xp_per_first_v11664(character.character_level)
+    else:
+        fame_bonus = None  # legacy test fallback below
+    cap_resolver = getattr(db, 'multi_cap_v23215', None) if fame_bonus is None else None
     if callable(cap_resolver):
         multi_cap = cap_resolver(account_id)
         if multi_cap is None:
@@ -56,7 +61,7 @@ def settle_fame_exp_progression(db, character, account_id, region, boss_id, *,
         )
         fame_bonus = milestone_payout_from_cap_v11653(
             multi_cap, V11653_FAME_CAP_PERCENT)
-    else:
+    elif fame_bonus is None:
         fame_bonus = 0
 
     def award_same_connection(actual_conn, _queued_bonus):
