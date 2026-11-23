@@ -1,3 +1,11 @@
+v116.00.68 — WYDAJNOŚĆ WALKI, ŚWIATA I TCP
+- Prognoza obrażeń wyuczonych umiejętności odczytuje poziomy hurtowo, bez INSERT/COMMIT dla każdej umiejętności. Brak ingerencji w rzeczywisty postęp skilli.
+- Statystyki EQ podczas jednego wyliczenia prognozy korzystają z tymczasowej pamięci podręcznej, zwalnianej bezpośrednio po obliczeniu.
+- Wędrujące potwory: mniej powtarzanych odczytów sąsiednich pokoi przy sprawdzaniu przejść; zachowane kierunki, limity, terminy i bezpieczeństwo pokoju.
+- Windows TCP: WinError 10054 podczas końcowego czyszczenia socketu klienta ma krótki komunikat zamiast pełnego tracebacka; pozostałe błędy są nadal zgłaszane.
+- Nie zmieniono EXP, HP/obrażeń, skalowania 1–6 graczy, wyłączenia najemników i minionów, UOSS, baz danych ani zapisów postaci.
+- Wydanie wyłącznie do PREDEPLOY; wymagany pełny 60/60 PLUS PASS przed wdrożeniem.
+
 v116.00.67 — NAPRAWA PREDEPLOY: CAST/C I REJESTR KOMEND
 - Naprawiono błąd etapu 26/60 z v116.66: „komenda cast: nie rozpoznano nazwy kanonicznej”.
 - cast i c to aliasy kanonicznej komendy skill. Nie rejestrujemy ich jako osobnych komend przywoływania minionów.

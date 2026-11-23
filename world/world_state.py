@@ -1445,11 +1445,15 @@ class World:
                     # route can change its destination while retaining 4 exits.
                     # Include neighbor identity/zone/safety in the key:
                     # procedural passage edits must never keep stale travel.
-                    snapshot = tuple((direction, dest,
-                        id(_wander_rooms_v11657.get(dest)),
-                        _wander_rooms_v11657.get(dest, {}).get('zone'),
-                        bool(_wander_rooms_v11657.get(dest, {}).get('procedural_infinite')))
-                        for direction, dest in exits.items())
+                    def neighbor_signature_v11668(direction, dest):
+                        neighbor = _wander_rooms_v11657.get(dest)
+                        if neighbor is None:
+                            return (direction, dest, id(None), None, False)
+                        return (direction, dest, id(neighbor),
+                                neighbor.get('zone'),
+                                bool(neighbor.get('procedural_infinite')))
+                    snapshot = tuple(neighbor_signature_v11668(direction, dest)
+                                     for direction, dest in exits.items())
                     signature = (id(room), room.get('zone'),
                                  bool(room.get('procedural_infinite')), snapshot)
                     saved = persistent.get(mob.room_id)

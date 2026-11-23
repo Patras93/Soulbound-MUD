@@ -636,6 +636,11 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
     async def run(self):
         from core.bootstrap_economy_professions import DB_PATH, HOST, MAX_CLIENTS, PORT, PORT_SOURCE, VERSION
         import asyncio  # canonical current dependency
+        # Windows Proactor cleanup can raise a benign peer-reset callback
+        # after a client has already disconnected. Other errors retain the
+        # native asyncio traceback; no TCP session or save is suppressed.
+        from network.peer_reset_handler_v11668 import install_peer_reset_handler
+        install_peer_reset_handler(asyncio.get_running_loop())
         from data.rooms import ROOMS  # canonical current dependency
         boot_socket = take_boot_socket()
         if boot_socket is not None:
