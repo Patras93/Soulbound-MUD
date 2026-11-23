@@ -1,3 +1,61 @@
+SOULBOUND MUD v116.00.60 — NAPRAWA REGRESJI PREDEPLOY (2026-11-22)
+- Bramki EXP Bank i dzwiek CAP dopasowane do ograniczenia Over CAP z v116.58 (maks. 2x CAP).
+- Test osiagniec uruchamia historyczny EXP Bank w trybie recznego odbioru, jak w aktywnej grze.
+- Bez zmian postaci i zapisow; statystyki pozostaja poza CAP jak w v116.59.
+- Pelny PREDEPLOY Windows wymagany przed wdrozeniem.
+
+SOULBOUND MUD v116.00.59 — STATYSTYKI POZA MULTI CAP (2026-11-22)
+
+- Wyłączono sześć statystyk z obliczania Multi CAP (także sumy poziomów CAP).
+- Statystyki, ich własne EXP, progi, premie i zapis pozostają bez zmian.
+- Komenda przeglądu poziomów wskazuje, że statystyki są poza CAP.
+- Nie resetujemy zapisów ani EXP Banku; limit na nagrodę może spaść, co trzeba zweryfikować na produkcyjnym profilu w PREDEPLOY.
+- Pozostałe kategorie CAP pozostawiono bez zmian do osobnego audytu.
+
+SOULBOUND MUD v116.00.58 — SPOWOLNIENIE EXP (2026-11-22)
+
+1. Over CAP: wydarzenie x2 zwiększa limit pojedynczej nagrody, ale
+   nie wypłaca już nieograniczonego EXP. Naprawiono rozbieżność z opisem.
+2. Nowa nagroda EXP postaci z normalnego mechanizmu banku ma dodatkowy
+   limit 5% wymagania do kolejnego poziomu, po zwykłym Multi CAP.
+   Obejmuje zwykłe nagrody (w tym questy, walki, Fame i EP) na tej ścieżce.
+3. Nie zmieniono istniejących poziomów, nadwyżek XP, zapisów, Soul XP,
+   historycznych banków ani polecenia ręcznego odbioru z EXP Banku.
+4. UWAGA: istniejąca nadwyżka EXP (np. 13 mld) nadal pozostaje i może
+   powodować awans przy kolejnej wypłacie. Wymaga odrębnego bezpiecznego
+   mechanizmu odłożenia nadwyżki z zachowaniem salda.
+5. Testy lokalne nie zastępują pełnego PREDEPLOY Windows/Linux.
+
+---
+
+SOULBOUND MUD v116.00.57 — TRWALSZA WALKA + OPTYMALIZACJA AI (2026-11-22)
+
+1. Balans przeciw jednemu ciosowi: przy pierwszym starciu prognoza uwzględnia
+   rzeczywistą moc rozpoczęcia tury najemników, wyliczoną z istniejącego silnika
+   pełnej siły pomocników. Poprzednia wersja opierała tę część głównie na
+   samym liczniku najemników i potrafiła mocno zaniżać obrażenia pierwszej fali.
+2. Silne nauczone umiejętności Meca: prognoza obejmuje także wkład bieżącego
+   HP w Robo Tackle / Kamikaze Crush oraz maksymalne dozwolone bonusy combo,
+   chain i alternation; nie uruchamia skilli, nie zmienia ich liczników.
+3. Tereny łowieckie o etapie co najmniej 25 i około 1/3 Levelu drużyny mogą
+   pozostać wyzwaniem przy dużej mocy nauczonych skilli. Początkowe szczury
+   i gobliny na bardzo starych terenach nie stają się bossami.
+4. AI/wędrowanie mobów: pamięć podręczna niezmienionych przejść między
+   kolejnymi cyklami. Przebudowa lokacji, zmiana wyjścia lub strefy unieważnia
+   cache. Działa dotychczasowa losowość, limity i zasady bezpieczeństwa NPC.
+5. Większy wynik HP nie podwyższa automatycznie EXP/Fame. Nie zmieniono
+   obrażeń graczy, siły najemników i chowańców, bazy, kont, EQ ani EXP Banku.
+6. Testy: nowa izolowana regresja 143 kontroli obejmująca pełną pierwszą
+   falę pomocników, cache tras i jego unieważnianie. Pozostają wszystkie
+   historyczne 60 PLUS i pięć dodatkowych bramek. Wyniki lokalne nie zastępują
+   pełnego PREDEPLOY na Windows.
+
+WAŻNE: dalszy balans rzeczywistych mobów i opóźnienia attack/use wymagają
+obserwacji po wdrożeniu. Jest to poprawa szacowania HP i wędrówek, nie
+sztuczny limit obrażeń ani gwarancja określonej liczby sekund walki.
+
+---
+
 Soulbound MUD v116.00.56 — balans przeciw zabójstwom jednym ciosem (Windows/Linux)
 
 - Poprawiono przyczynę słabych mobów po v116.00.55: v116.52 obliczał HP
@@ -1688,3 +1746,5 @@ HOTFIX PREDEPLOY v113.00.34 - izolowane audyty historyczne rownolegle (2026-11-1
 - Maksymalnie dwa dodatkowe procesy izolowane na kazdy audyt naraz, by nie przeciążyć komputera. Ostateczny wynik czasu nalezy zmierzyc na Windows; nie gwarantujemy 10 minut.
 - Wymagany nadal PREDEPLOY 60/60 PLUS, bramki uniwersalne, LIVE/TCP, migracja SQLite i EQ. NIE WDRAZAC PRZED PELNYM PASS.
 - POPRAWKA TESTU: uniwersalna bramka v113.00.34 arsenal najemnikow ustawia katalog gry na sys.path przy bezposrednim uruchomieniu, bez zmian w mechanice skilli.
+
+v116.00.61: Naprawiono historyczna bramke jednej klasy po wykluczeniu 6 statystyk z Multi CAP. Oczekiwany bazowy CAP=5000 (4 osie + klasa), dodano test niezaleznosci od poziomow statystyk. Bez zmian produkcyjnej mechaniki EXP, Soul i baz danych.

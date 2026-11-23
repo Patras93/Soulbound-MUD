@@ -73,7 +73,7 @@ def level_overview_lines_v23216(conn, account_id, main_class=''):
         # Matches the +1 primary-class fallback in multi_cap_breakdown_v23215.
         _section(lines, 'KLASY:', [f'{main_class or "Klasa główna"}: poziom 1 (główna)'])
 
-    _section(lines, 'STATYSTYKI — poziomy bazowe, bez premii EQ:', [
+    _section(lines, 'STATYSTYKI — poza Multi CAP, poziomy bazowe bez EQ:', [
         f'{label}: poziom {_level(character[key])}' for key, label in _STAT_LABELS
     ])
 

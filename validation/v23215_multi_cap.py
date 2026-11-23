@@ -48,14 +48,23 @@ def run_regression():
     db = TestDB()
     assert MULTICLASS_MAX_ACTIVE == 1
     checks += 1
-    # 4 core tracks + 6 stats + 1 primary-class fallback = 11.
-    assert multi_cap_experience_v23215(db.conn, 1) == 11000
+    # 4 core tracks + 1 primary-class fallback = 5; stats outside cap.
+    assert multi_cap_experience_v23215(db.conn, 1) == 5000
     assert multi_cap_experience_v23215(db.conn, 2) is None
+    checks += 2
+    # v116.59: no base stat may inflate CAP, including extreme levels.
+    before_stats = multi_cap_experience_v23215(db.conn, 1)
+    db.conn.execute("UPDATE characters SET strength=2000, dexterity=3000, "
+                    "constitution=4000, intelligence=5000, willpower=6000, "
+                    "charisma=7000 WHERE account_id=1")
+    assert multi_cap_experience_v23215(db.conn, 1) == before_stats
+    _, categories = multi_cap_breakdown_v23215(db.conn, 1)
+    assert 'statystyki' not in categories
     checks += 2
     classes = ['Test'+str(n) for n in range(14)]
     db.ensure_primary_class(1, classes[0])
     base = multi_cap_experience_v23215(db.conn, 1)
-    assert base == 11000
+    assert base == 5000
     checks += 1
     # Old unlocked secondary classes and previously active slots are archived.
     for i, name in enumerate(classes[1:], start=2):

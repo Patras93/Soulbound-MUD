@@ -56,8 +56,8 @@ def run():
         checks+=2
     with patch('systems.v10800_seasonal_events.overcap_event_state',return_value={'active':True}):
         before=len(db._sound_events_v1208[1])
-        assert banked_experience_v2011(db,1,1000,'character',1)==1000
-        assert db._sound_events_v1208[1][before:]==['SOUND_EVENT OVER_CAP_REWARD cap=200 kind=character']
+        assert banked_experience_v2011(db,1,1000,'character',1)==200  # v116.58 Over CAP respects 2x cap
+        assert db._sound_events_v1208[1][before:]==['SOUND_EVENT FULL_CAP cap=200 kind=character']
         checks+=2
     assert db.experience_bank_rows_v2011(1)==bank_before
     checks+=1

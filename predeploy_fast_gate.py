@@ -88,6 +88,10 @@ def run():
     from validation.current_skill_burst_v11656_regression import run as learned_burst_test
     assert learned_burst_test() >= 15
     print('KONTROLA WSTEPNA: skille 1-6 graczy i wsparcie przeciw one-shot PASS',flush=True)
+    # v116.00.57: actual helper full-strength opening and cached roaming graph.
+    from validation.current_combat_performance_v11657_regression import run as combat_perf_test
+    assert combat_perf_test() >= 140
+    print('KONTROLA WSTEPNA: prawdziwa pierwsza fala najemnikow i cache wędrówek PASS',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)
     from validation.current_quest_accept_performance_regression import run as quest_lookup_test

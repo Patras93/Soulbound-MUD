@@ -174,7 +174,7 @@ class SessionCombatDamageMixin:
                     # path, without querying companion/contract tables.
                     _stage_v11656 = authored_stage_combat_level_v11651(template, room_v11650)
                     if (_stage_v11656 < party_level - 15
-                            and _stage_v11656 < max(35, party_level - 40)):
+                            and _stage_v11656 < max(25, party_level // 3)):
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):
                             reset_mob(mob, template)
                         return None
@@ -233,10 +233,34 @@ class SessionCombatDamageMixin:
                         self._world_party_dps_v11652 = (party_key, now_dps, party_dps)
                     from systems.encounter_burst_v11656 import party_skill_burst_v11656
                     skill_burst = party_skill_burst_v11656(members, now=now_dps)
+                    # v116.57: full-powered mercenaries hit BEFORE the owner's
+                    # first automatic attack. The old 25% headcount estimate
+                    # missed their real owner-derived damage by orders of
+                    # magnitude. Take one cached, read-only five-second volley
+                    # per owner, not a SQL scan every attack/skill.
+                    helper_opening = 0
+                    if mercenaries:
+                        for member in members:
+                            helper_cache = getattr(member, '_world_mercenary_opening_v11657', None)
+                            if helper_cache and now_dps - helper_cache[0] < 8.0:
+                                contribution = helper_cache[1]
+                            else:
+                                estimator = getattr(member, 'adaptive_member_mercenary_dps_v1261', None)
+                                contribution = 0
+                                if callable(estimator):
+                                    try:
+                                        contribution = max(0, int(estimator(member) * 5))
+                                    except (ArithmeticError, AttributeError, KeyError,
+                                            TypeError, ValueError):
+                                        contribution = 0
+                                member._world_mercenary_opening_v11657 = (
+                                    now_dps, contribution)
+                            helper_opening += contribution
                     damage_target = authored_party_damage_target_hp_v11652(
                         template, base_max, party_level, party_dps,
                         room_v11650, len(members), mercenaries, companions,
-                        skill_burst=skill_burst)
+                        skill_burst=skill_burst,
+                        helper_opening_burst=helper_opening)
                     target_max = max(stage_target, damage_target)
                     if target_max <= base_max:
                         if not self.adaptive_mob_has_active_fighters_v1261(mob):

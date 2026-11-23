@@ -43,9 +43,9 @@ def _enqueue(db, account_id, event_name, **fields):
 def record_paid_exp_event_v11329(db, account_id, paid, cap, *, kind='character'):
     """One marker for a successful real payout, never for a bank deposit/read.
 
-    An unlimited active v108 event can pay above the current effective cap;
-    that is the only OVER_CAP_REWARD case. A clipped payout is FULL_CAP,
-    not a fictitious overflow or EXP_BANK deposit.
+    The v116.58 Over CAP event respects the effective cap. An award
+    clipped at that cap is FULL_CAP, not a fictitious overflow or
+    EXP_BANK deposit.
     """
     paid = int(paid or 0)
     cap = int(cap or 0)

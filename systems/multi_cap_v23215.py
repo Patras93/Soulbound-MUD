@@ -142,7 +142,7 @@ def multi_cap_calculation_v23217(conn, account_id):
         'dusza': core[1:2],
         'soul tier': core[2:3],
         'broń duszy': core[3:4],
-        'statystyki': core[4:10],
+        # v116.59: six base stats grow independently; never increase Multi CAP.
         # Default primary-only, optional all-owned; no duplicates per class ID.
         'klasy': _levels(row[17] if include_owned else row[10]) or [1],
         'profesje': _levels(row[11]),

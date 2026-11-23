@@ -45,11 +45,16 @@ def banked_experience_v2011(db, account_id, amount, kind, level, *,
     if getattr(db, '_manual_bank_only_v11325', False):
         from core.big_numbers_v10400 import number
         fresh = number(amount if amount is not None else 0)
-        if getattr(db, '_v108_live_event_caps', False) is True and overcap_event_state()['active']:
-            # Over Cap EVENT is unlimited; boss double-cap is a different rule.
-            paid = fresh
-        else:
-            paid = min(fresh, cap)
+        # v116.00.58: wydarzenie Over CAP PODWAJA limit nagrody, lecz nie
+        # znosi go. Nie wolno płacić `fresh` bez ograniczeń podczas eventu.
+        # EXP Bank historyczny pozostaje nietknięty.
+        paid = min(fresh, cap)
+        if kind == 'character' and paid > 0 and cap > 0:
+            from core.progression_resources import character_xp_to_next
+            # Pojedyncza nowa nagroda nie może zapełnić całego poziomu.
+            # Dotyczy również questów, EP i Fame przechodzących przez gateway.
+            level_budget = max(1, int(character_xp_to_next(level)) // 20)
+            paid = min(paid, level_budget)
         # v113.00.29: the old bank allocator is intentionally bypassed here.
         # Observe the actual payout only; never create EXP_BANK on fresh XP.
         from systems.v115.optional_sound import record_paid_exp_event_v11329

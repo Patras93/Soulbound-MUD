@@ -24,7 +24,7 @@ def run_regression():
         assert not db.activate_secondary_class(1, classes[0], name)[0]
         checks += 1
     multi_cap = multi_cap_experience_v23215(db.conn, 1)
-    assert multi_cap == 11000  # four core + six stats + ONE primary class
+    assert multi_cap == 5000  # four core + ONE primary class; six stats excluded
     checks += 1
 
     issued = []

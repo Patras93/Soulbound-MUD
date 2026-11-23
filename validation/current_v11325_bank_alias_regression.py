@@ -63,7 +63,7 @@ def run():
         assert banked_experience_v2011(db,2,90,'character',1)==90
     assert db.experience_bank_rows_v2011(1)==before
     with patch('systems.v10800_seasonal_events.overcap_event_state',return_value={'active':True}):
-        assert banked_experience_v2011(db,1,100000,'character',1)==100000
+        assert banked_experience_v2011(db,1,100000,'character',1)==200  # v116.58 Over CAP is capped at 2x
     assert db.experience_bank_rows_v2011(1)==before
     result=asyncio.run(run_aliases(db))
     db.conn.close()

@@ -31,7 +31,13 @@ def run_regression():
     other = 'Mag'
     db.ensure_primary_class(1, own)
     baseline = multi_cap_experience_v23215(db.conn, 1)
-    check(baseline == 11000, 'one class primary baseline')
+    # v116.59: six independent stats no longer contribute 6 * 1000 to CAP.
+    # Four core axes plus the one primary class contribute 5 * 1000.
+    check(baseline == 5000, 'one class primary baseline, stats excluded')
+    db.conn.execute('UPDATE characters SET strength=900, dexterity=800, constitution=700, intelligence=600, willpower=500, charisma=400 WHERE account_id=1')
+    db.conn.commit()
+    check(multi_cap_experience_v23215(db.conn, 1) == baseline,
+          'six large stats never increase primary class cap')
     db.ensure_class_progress(1, other)
     db.conn.execute('UPDATE class_progress SET level=400,xp=789,active_slot=2 WHERE account_id=1 AND class_name=?', (other,))
     db.conn.commit()
