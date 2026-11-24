@@ -414,19 +414,30 @@ class World:
         template_meta = MOB_TEMPLATES.get(spawn_template_id)
         if isinstance(template_meta, dict):
             template_meta["auto_aggro"] = False
-        if not any(r == room_id and t == spawn_template_id for r, t in MOB_SPAWNS):
-            MOB_SPAWNS.append((room_id, spawn_template_id))
-        # A single pass is sufficient. The previous code ran a second
-        # full-world count after establishing that there was no matching mob;
-        # that second count was guaranteed to be zero.
-        for existing in self.mobs.values():
-            if (existing.room_id == room_id
-                    and elite_source_template_id_v11338(
-                        existing.template_id, MOB_TEMPLATES.get(existing.template_id, {})
-                    ) == spawn_template_id):
-                return existing
-        n = 1
-        key = f"{room_id}:{spawn_template_id}:{n}"
+        # v116.69: new large instance floors create up to 114 spawns. The
+        # old code scanned ~25,000 registered spawns AND every live mob for
+        # every new room, i.e. millions of comparisons per floor. The exact
+        # home-room/source key is already stable and unique for this method.
+        # External catalogue additions invalidate the membership snapshot.
+        registered = getattr(self, '_runtime_spawn_pairs_v11669', None)
+        if (registered is None or
+                getattr(self, '_runtime_spawn_pairs_len_v11669', -1) != len(MOB_SPAWNS) or
+                getattr(self, '_runtime_spawn_pairs_source_v11669', None) is not MOB_SPAWNS):
+            registered = set(MOB_SPAWNS)
+            self._runtime_spawn_pairs_v11669 = registered
+            self._runtime_spawn_pairs_source_v11669 = MOB_SPAWNS
+            self._runtime_spawn_pairs_len_v11669 = len(MOB_SPAWNS)
+        pair = (room_id, spawn_template_id)
+        if pair not in registered:
+            MOB_SPAWNS.append(pair)
+            registered.add(pair)
+            self._runtime_spawn_pairs_len_v11669 = len(MOB_SPAWNS)
+        # Do not replace a real monster merely because it wandered away
+        # from its home room; its key and encounter/respawn state persist.
+        key = f"{room_id}:{spawn_template_id}:1"
+        existing = self.mobs.get(key)
+        if existing is not None:
+            return existing
         template_id = self._elite_spawn_template_v11338(spawn_template_id)
         v0190_apply_combat_template(MOB_TEMPLATES[template_id])
         self._restore_v105_authored_stage(room_id, template_id)
@@ -1420,6 +1431,14 @@ class World:
 
         for mob in self.mobs.values():
             if not mob.alive or mob.engaged_by:
+                continue
+            # v116.69: all procedural-infinite dungeon rooms are explicitly
+            # non-wanderable. Skip their due-timer, template roll and neighbor
+            # lookup entirely; even tens of thousands of generated floor mobs
+            # cannot consume roaming CPU. They remain spawned, fightable and
+            # subject to normal refresh/respawn, with no change to their HP.
+            _home_v11669 = _wander_rooms_v11657.get(mob.room_id)
+            if _home_v11669 and _home_v11669.get('procedural_infinite'):
                 continue
             if now < float(mob.next_wander_at or 0.0):
                 continue

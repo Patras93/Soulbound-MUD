@@ -1,3 +1,32 @@
+v116.00.69 — WYDAJNOŚĆ WALKI I GENEROWANYCH LOCHÓW
+
+- Zlikwidowano masowe pomocnicze INSERT/COMMIT podczas ODCZYTU
+  pasywnych umiejętności w prognozie siły ataku. Nauczone boosty
+  są odczytywane jednym SELECT JOIN i buforowane wyłącznie w czasie
+  bieżącego obliczenia; poziomy, obrażenia i EXP pozostają bez zmian.
+- Przy tworzeniu dużego piętra lochu rejestr mobów/spawnów używa
+  jednoznacznych kluczy zamiast dwukrotnego skanowania całego świata
+  dla każdego z ponad 100 pomieszczeń. Ponowne wejście nie podmienia
+  moba, który chwilowo odszedł od swojej lokacji startowej.
+- Moby z proceduralnych, nieskończonych lochów nie wykonują
+  niepotrzebnej próby wędrówki (już wcześniej nie wolno im było
+  opuszczać tych lokacji). Nie usunięto żadnego istniejącego moba,
+  nie zmniejszono expowisk i nie ograniczono dostępnych pięter.
+- Buforowana jest tylko niezmienna część reguły dopuszczania ruchu
+  między pokojami; zmiany stref i blokady proceduralne działają od razu.
+- Test wydajności 21/21 dołączono do obowiązkowej wstępnej bramki,
+  aby uniknąć kilkudziesięciominutowego PREDEPLOY z oczywistym błędem.
+- Bez zmian bazy graczy, poziomów, wymaganych EXP, nagród, bossów,
+  walk UOSS, szkół oraz reguł braku najemników i minionów.
+
+UWAGA: Nowe piętra lochów nadal legalnie powiększają świat o nowe
+przeciwniki. Zmiana usuwa zbędny koszt takiego tworzenia, lecz nie
+wprowadza arbitralnego limitu łącznej liczby mobów.
+
+WYŁĄCZNIE DO PREDEPLOY 60/60 PLUS — NIE WDRAŻAĆ BEZ PASS.
+
+---
+
 v116.00.68 — WYDAJNOŚĆ WALKI, ŚWIATA I TCP
 - Prognoza obrażeń wyuczonych umiejętności odczytuje poziomy hurtowo, bez INSERT/COMMIT dla każdej umiejętności. Brak ingerencji w rzeczywisty postęp skilli.
 - Statystyki EQ podczas jednego wyliczenia prognozy korzystają z tymczasowej pamięci podręcznej, zwalnianej bezpośrednio po obliczeniu.

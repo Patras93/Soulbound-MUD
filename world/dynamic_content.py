@@ -2021,21 +2021,30 @@ def mob_template_can_wander(template):
     return not any(template.get(flag) for flag in boss_flags)
 
 
+# v116.69: 20k+ monsters probe the same neighboring room metadata many
+# times per tick. Cache only the pure eligibility rule, never the exits or
+# occupants. Its key contains ALL mutable room attributes used by this rule;
+# changes of zone, safety identity or the procedural flag are not hidden.
+from functools import lru_cache as _wander_lru_cache_v11669
+
+@_wander_lru_cache_v11669(maxsize=65536)
+def _mob_zone_wander_allowed_v11669(room_id, zone, procedural):
+    if room_id in MOB_WANDER_SAFE_ROOMS or procedural:
+        return False
+    if zone in MOB_WANDER_BLOCKED_ZONES or zone.startswith('Loch Profesyjny'):
+        return False
+    return not any(token in zone for token in (
+        'Krypta', 'Wieża Astralna', 'Twierdza Gigantów'))
+
+
 def mob_room_can_wander(room_id):
     from data.rooms import ROOMS  # canonical current dependency
     room = ROOMS.get(room_id, {})
-    zone = str(room.get("zone", ""))
-    if not room or room_id in MOB_WANDER_SAFE_ROOMS:
+    if not room:
         return False
-    if room.get("procedural_infinite"):
-        return False
-    if zone in MOB_WANDER_BLOCKED_ZONES:
-        return False
-    if zone.startswith("Loch Profesyjny"):
-        return False
-    if any(token in zone for token in ("Krypta", "Wieża Astralna", "Twierdza Gigantów")):
-        return False
-    return True
+    return _mob_zone_wander_allowed_v11669(
+        room_id, str(room.get('zone', '')),
+        bool(room.get('procedural_infinite')))
 
 
 def mob_wander_candidates(room_id):
