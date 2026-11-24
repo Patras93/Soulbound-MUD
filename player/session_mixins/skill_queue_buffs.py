@@ -2,6 +2,7 @@
 """Skill queues, buffs and class support helpers."""
 # v0.45.0: explicit imports; no compatibility-runtime injection.
 import asyncio
+import sqlite3
 import re
 import time
 from player.session_mixins.equipment_stats import class_type_for_name
@@ -603,6 +604,36 @@ class SessionSkillQueueBuffsMixin:
             wanted_type = str(target_type or "").strip().lower()
             if wanted_type == "feedback":
                 return 1.0
+            # v116.69: forecast of 100s of offensive abilities used to call
+            # knows_skill() + skill_progress() for each learned passive boost
+            # *per offensive skill*. skill_progress() is not read-only: it
+            # INSERTs and COMMITs even when the row already exists. A single
+            # joined snapshot replaces those writes and redundant lookups.
+            # The temporary forecast cache is removed after each calculation,
+            # so learning/upgrading skills still takes effect in live combat.
+            db = self.server.db
+            cache = getattr(self, '_read_only_equipment_cache_v1262', None)
+            boost_levels = (cache.get('boost_levels_v11669')
+                            if isinstance(cache, dict) else None)
+            if boost_levels is None:
+                try:
+                    rows = db.conn.execute(
+                        'SELECT ls.skill_id, COALESCE(sp.level, 1) '
+                        'FROM learned_skills AS ls '
+                        'LEFT JOIN skill_progress AS sp '
+                        'ON sp.account_id=ls.account_id AND sp.skill_id=ls.skill_id '
+                        'WHERE ls.account_id=?', (self.account_id,),
+                    ).fetchall()
+                    boost_levels = {str(row[0]): max(1, int(row[1] or 1))
+                                    for row in rows}
+                    if isinstance(cache, dict):
+                        cache['boost_levels_v11669'] = boost_levels
+                except (AttributeError, TypeError, ValueError):
+                    # Minimal historical fixtures provide only DB helpers.
+                    boost_levels = None
+                except sqlite3.OperationalError:
+                    # Older isolated databases may lack the progression table.
+                    boost_levels = None
             total_bonus = 0.0
             for class_name in self.active_class_names():
                 boost_type = class_type_for_name(class_name)
@@ -615,12 +646,16 @@ class SessionSkillQueueBuffsMixin:
                         continue
                     if exclude_skill_id and skill.get("id") == exclude_skill_id:
                         continue
-                    if not self.server.db.knows_skill(self.account_id, skill["id"]):
+                    skill_id = str(skill['id'])
+                    if boost_levels is not None:
+                        if skill_id not in boost_levels:
+                            continue
+                    elif not db.knows_skill(self.account_id, skill_id):
                         continue
                     if not self.skill_mastery_unlocked(skill):
                         continue
-                    progress = self.server.db.skill_progress(self.account_id, skill["id"])
-                    level = max(1, int(progress["level"]))
+                    level = (boost_levels[skill_id] if boost_levels is not None
+                             else max(1, int(db.skill_progress(self.account_id, skill_id)['level'])))
                     authored = max(1.0, float(skill.get("boost", 1.0) or 1.0))
                     base_bonus = max(0.0, authored - 1.0)
                     scaled_bonus = base_bonus * (1.0 + min(1.0, level / float(SKILL_MAX_LEVEL)))
