@@ -1,3 +1,42 @@
+v116.00.75 — WYDAJNOŚĆ WALKI I RUCHU ŚWIATA
+- Odczyt poprawnej aktywnej klasy i biegłości klasy: bez INSERT, UPDATE i COMMIT. Brakujące i stare zapisy nadal są naprawiane, dokładny EXP oraz transakcje zachowane.
+- Ruch mobów: porcje do 2048 identyfikatorów z oddaniem sterowania pętli asyncio między porcjami. Liczba mobów, mapy, reguły ruchu, okres 15 s i krok walki bez zmian. Osobny pomiar najdłuższej porcji w logu (max_batch).
+- Naprawiona kontrola AST guide_to dla dokładnie zatwierdzonego usunięcia aliasów walk z v116.74. Zachowane walk dol i wszystkie zmiany Deep Dungeon/Magitek.
+- Lokalnie: 977/977 regresji klas i ruchu, 980/980 regresji Skill XP, 30 testów BigNumber/SQLite, 298/298 chronionych AST. Test syntetyczny 2700 mobów: identyczny ruch i indeksy. Nowa regresja w istniejącej bramce PREDEPLOY.
+- Nie przeprowadzono pomiarów na prawdziwych graczach ani pełnego PREDEPLOY 60/60 PLUS. Nie zmieniano produkcyjnej bazy ani GitHuba. Brak gwarancji usunięcia wszystkich lagów attack/use.
+
+v116.00.74
+- Jedyna krotka komenda nawigacji do zejscia: walk dol. Usunieto aliasy dool i doll.
+- Zachowano schody na krancach Deep Dungeon i Magitek, bez zmian ruchu recznego.
+- Analiza logu 116.71: 836 blokad petli, do 2.640 s; use i attack wymagaja oddzielnego audytu wydajnosci.
+- Kontrola skladni zmienionych modulow i CRC ZIP; pelny PREDEPLOY wymagany.
+
+v116.00.73 — MAGITEK: SCHODY NA KOŃCU PIĘTRA
+
+- Numerowane piętra Magitek: dojście do starej komnaty schodów i bossa wyłącznie przez przeciwległy kraniec galerii 12x12.
+- Zachowane identyfikatory, bossowie, skrzynie, walk dol/dool oraz ręczne zejście.
+- Zachowana poprawka Deep Dungeon z v116.00.72.
+- Test regresji 127/127 PASS, dodatkowe testy Deep Dungeon, zapisów i walk dool PASS. Pełny PREDEPLOY wymagany.
+
+v116.00.72 — DEEP DUNGEON / MAGITEK WALK DOL
+
+- Deep Dungeon: zejście w dół przeniesiono na odległy kraniec 12x12 sektorów.
+  Wejście i schody są rozdzielone; nie można schodzić seryjnie samym d.
+  Do schodów na sprawdzonych piętrach prowadzą 23 kroki. Powrót w górę
+  prowadzi do schodów poprzedniego piętra. Zachowano identyfikatory pokoi.
+- Apanda co 25 pięter pozostaje osobistą blokadą zejścia. Winda i zapis
+  odkrytych pięter działają według wcześniejszych reguł; sektory nie dodają
+  wpisów odkrycia do SQLite. Nie trzeba zabijać wszystkich mobów.
+- Magitek: walk dol / walk dool prowadzi do najbliższego zejścia w aktualnym
+  sektorze, również w początkowej części kompleksu (5 sektorów). Ostatni
+  krok w dół wykonuje gracz. Numerowane piętra działają jak poprzednio.
+- Rozszerzono istniejący test regresji, bez nowych skryptów instalacyjnych.
+  Lokalnie sprawdzono mapy, Apandę, powrót, 5 sektorów Magitek i chronione
+  metody AST. Pełny PREDEPLOY 60/60 PLUS pozostaje obowiązkowy.
+- Bez migracji bazy, zmian EXP, balansu i zasad logowania.
+
+---
+
 v116.00.71 — NAPRAWA WCZESNEJ BRAMKI PREDEPLOY
 
 - Naprawiono błąd z v116.70: kontrola AST wykrywała pusty

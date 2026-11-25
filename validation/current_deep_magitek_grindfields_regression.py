@@ -27,7 +27,7 @@ def reach(ids, first):
                 seen.add(dst);q.append(dst)
     return seen
 
-for floor in (1,25,100):
+for floor in (1,2,25,26,100,101):
     canonical,pairs=deep_create(floor)
     old_exits=dict(ROOMS[canonical]['exits'])
     global_spawns=list(MOB_SPAWNS)
@@ -37,9 +37,23 @@ for floor in (1,25,100):
     check(len([i for i in ROOMS if str(i).startswith(f'{canonical}_v11628_')])==144,f'deep {floor}: count')
     check(all(ROOMS[i].get('exploration_ep')==0 and ROOMS[i]['zone']==ROOMS[canonical]['zone'] for i in ids),f'deep {floor}: zone/exp')
     check(all(not any(ROOMS[i].get(k) for k in ('trap','auto_aggro','boss','min_level')) for i in ids),f'deep {floor}: no traps')
-    check(all(ROOMS[canonical]['exits'][d]==dst for d,dst in old_exits.items()),f'deep {floor}: old exit')
-    check(len(ROOMS[canonical]['exits'])==len(old_exits)+1,f'deep {floor}: one new exit')
+    from world.uoss_superboss_world import uoss_deep_dungeon_floor_id_v11331
+    from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation
+    end = _room_id(canonical, 143)
+    expected_up = old_exits['up'] if floor == 1 else _room_id(uoss_deep_dungeon_floor_id_v11331(floor-1), 143)
+    check(ROOMS[canonical]['exits'].get('up') == expected_up, f'deep {floor}: return')
+    check('down' not in ROOMS[canonical]['exits'], f'deep {floor}: no entry shortcut')
+    check(ROOMS[end]['exits'].get('down') == old_exits['down'], f'deep {floor}: far descent')
+    check([i for i in ids if 'down' in ROOMS[i]['exits']] == [end], f'deep {floor}: unique descent')
+    check(all(deep_dungeon_floor_for_navigation(i) == floor for i in ids), f'deep {floor}: sector floor identity')
     entry=next(dst for d,dst in ROOMS[canonical]['exits'].items() if d not in old_exits)
+    distances={canonical:0}; queue=deque([canonical])
+    while queue:
+        src=queue.popleft()
+        for dst in ROOMS[src]['exits'].values():
+            if dst in ids and dst not in distances:
+                distances[dst]=distances[src]+1; queue.append(dst)
+    check(distances[end] >= 12, f'deep {floor}: meaningful exploration distance')
     check(entry in ids and reach(ids,entry)==ids,f'deep {floor}: reach')
     check(all(ROOMS[b]['exits'].get({'north':'south','south':'north','east':'west','west':'east'}[d])==a for a in ids for d,b in ROOMS[a]['exits'].items() if d in ('north','south','east','west') and b in ROOMS),f'deep {floor}: reversibility')
     added=[(r,t) for r,t in created if r in ids]
@@ -64,11 +78,18 @@ for old_total in (12,20):
     if canonical in ROOMS:
         raise AssertionError('Existing fixture room name')
     ROOMS[canonical]={'zone':'Nieskończony Kompleks Magitek','name':'Test Magitek',
-                       'exits': {'up':'magitek_zero_final', 'down':'magitek_floor_10000'},
+                       'exits': {'up':'magitek_zero_final', 'east':v0100_subroom_id(canonical,1)},
                        'recommended_mastery': 390}
     for i in range(1,old_total):
         ROOMS[v0100_subroom_id(canonical,i)]={'zone':ROOMS[canonical]['zone'],
             'exits': {}}
+    for i in range(1, old_total):
+        rid = v0100_subroom_id(canonical, i)
+        ROOMS[rid]['exits']['west'] = canonical if i == 1 else v0100_subroom_id(canonical, i-1)
+        if i < old_total-1:
+            ROOMS[rid]['exits']['east'] = v0100_subroom_id(canonical, i+1)
+    final = v0100_subroom_id(canonical, old_total-1)
+    ROOMS[final]['exits']['down'] = 'magitek_floor_10000'
     def magitek_rule(rid, room=canonical, count=old_total):
         if rid==room:
             return {'kind':'magitek','floor':9999,'next_dir':'down',
@@ -85,6 +106,13 @@ for old_total in (12,20):
     check(len([x for x in result if x[0] in ids])==72,f'magitek {old_total}: 72 regular mobs')
     start=v0100_subroom_id(canonical,old_total)
     check(reach(ids,start)==ids,f'magitek {old_total}: all reachable')
+    end = v0100_subroom_id(canonical, old_total+143)
+    check(ROOMS[final]['exits'] == {'west':end,'down':'magitek_floor_10000'}, 'Magitek final stair identity')
+    check(ROOMS[end]['exits']['east']==final, 'Magitek far corner access')
+    old_ids={canonical}|{v0100_subroom_id(canonical,i) for i in range(1,old_total)}
+    check(final not in reach(old_ids,canonical), 'Magitek no old shortcut')
+    check(reach(old_ids|ids,canonical)==old_ids|ids, 'Magitek full floor connected')
+    check(not any('down' in ROOMS[r]['exits'] for r in (old_ids|ids)-{final}), 'Magitek single descent')
     check(all(ROOMS[b]['exits'].get({'north':'south','south':'north','east':'west','west':'east'}[d])==a
               for a in ids for d,b in ROOMS[a]['exits'].items()
               if d in ('north','south','east','west') and b in ROOMS),f'magitek {old_total}: directions reversible')
@@ -195,6 +223,93 @@ try:
 finally:
     world_state._v11631_previous_ensure_runtime_room = previous_login_handler
 print('SAVED DEEP DUNGEON LOGIN REHYDRATION PASS', flush=True)
+
+# Actual navigation and per-player Apanda gate, without a production database.
+# Extract the actual method bodies without importing heavyweight server modules
+# into the isolated catalogue fixture. Only the unrelated Magitek parser is stubbed.
+import ast
+import re
+from types import SimpleNamespace
+from unittest.mock import patch
+import asyncio
+from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
+from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation
+
+def production_methods(relative, klass, names):
+    source = ROOT / relative
+    tree = ast.parse(source.read_text(encoding='utf-8'))
+    original = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == klass)
+    nodes = [node for node in original.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names]
+    check(len(nodes) == len(names), f'{klass}: production methods present')
+    scope = dict(ROOMS=ROOMS, deque=deque, re=re,
+                 uoss_deep_dungeon_floor_number_v11331=uoss_deep_dungeon_floor_number_v11331)
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(source), 'exec'), scope)
+    return {name:scope[name] for name in names}
+
+progression = production_methods('player/session_mixins/dungeon_progression.py',
+    'SessionDungeonProgressionMixin', ('uoss_deep_dungeon_descent_blocked_v11331', 'register_uoss_deep_dungeon_visit_v11331'))
+movement = production_methods('player/session_mixins/movement.py',
+    'SessionMovementMixin', ('change_dungeon_floor_v2009',))
+
+class DeepExplorer:
+    uoss_deep_dungeon_descent_blocked_v11331 = progression['uoss_deep_dungeon_descent_blocked_v11331']
+    register_uoss_deep_dungeon_visit_v11331 = progression['register_uoss_deep_dungeon_visit_v11331']
+    change_dungeon_floor_v2009 = movement['change_dungeon_floor_v2009']
+    def __init__(self, floor, cleared=()):
+        self.character = SimpleNamespace(room_id=uoss_deep_dungeon_floor_id_v11331(floor))
+        self.combat_mob_key = None
+        self.moving = self.guiding = False
+        self.cleared = set(cleared)
+        self.steps = []
+        self.messages = []
+    def uoss_deep_dungeon_apanda_cleared_v11331(self, floor):
+        return floor in self.cleared
+    async def send(self, msg):
+        self.messages.append(msg)
+    async def move(self, direction):
+        here = self.character.room_id
+        target = ROOMS[here]['exits'].get(direction)
+        if target and not self.uoss_deep_dungeon_descent_blocked_v11331(here, direction):
+            self.character.room_id = target
+            self.steps.append(direction)
+
+async def check_deep_exploration():
+    floor1 = uoss_deep_dungeon_floor_id_v11331(1)
+    floor2 = uoss_deep_dungeon_floor_id_v11331(2)
+    floor25 = uoss_deep_dungeon_floor_id_v11331(25)
+    floor26 = uoss_deep_dungeon_floor_id_v11331(26)
+    stairs25 = _room_id(floor25,143)
+    actor = DeepExplorer(1)
+    await actor.move('down')
+    check(actor.character.room_id == floor1 and not actor.steps, 'd at landing cannot descend')
+    await actor.change_dungeon_floor_v2009('dol')
+    check(actor.character.room_id == floor2 and len(actor.steps) == 24, 'guided floor command walks 23 rooms plus descent')
+    await actor.move('down')
+    check(actor.character.room_id == floor2 and len(actor.steps) == 24, 'repeated d cannot descend again')
+    await actor.change_dungeon_floor_v2009('gora')
+    check(actor.character.room_id == _room_id(floor1,143), 'ascending returns to previous stairs')
+    actor = DeepExplorer(25)
+    await actor.change_dungeon_floor_v2009('dol')
+    check(actor.character.room_id == stairs25 and len(actor.steps) == 23, 'uncleared Apanda blocks at far stairs')
+    check(actor.uoss_deep_dungeon_descent_blocked_v11331(stairs25,'down'), 'personal checkpoint remains at far stairs')
+    cleared = DeepExplorer(25, [25])
+    await cleared.change_dungeon_floor_v2009('dol')
+    check(cleared.character.room_id == floor26 and len(cleared.steps) == 24, 'cleared player can descend')
+    check(not cleared.uoss_deep_dungeon_descent_blocked_v11331(stairs25,'up'), 'ascending unaffected')
+    check(actor.uoss_deep_dungeon_descent_blocked_v11331(stairs25,'down'), 'other party member is still blocked')
+    for relative in ('movement.py', 'guide_navigation.py'):
+        tree = ast.parse((ROOT / 'player/session_mixins' / relative).read_text(encoding='utf-8'))
+        check(any(isinstance(node, ast.ImportFrom) and node.module == 'systems.current_deep_dungeon_grindfields'
+                  and any(alias.name == 'deep_dungeon_floor_for_navigation' and alias.asname == 'uoss_deep_dungeon_floor_number_v11331'
+                          for alias in node.names) for node in tree.body), f'{relative}: sector-aware parser wired')
+    # Sector movement never inserts floor discovery rows or unlocks the elevator.
+    await actor.register_uoss_deep_dungeon_visit_v11331(stairs25)
+    check(not hasattr(actor,'server'), 'sector visit needs no DB (canonical-only discovery)')
+
+with patch.dict(sys.modules, {"world.magitek_infinite": SimpleNamespace(magitek_floor_number=lambda rid: None)}):
+    asyncio.run(check_deep_exploration())
+print('DEEP DUNGEON EXPLORATION / APANDA / RETURN PASS', flush=True)
+
 
 
 # v116.00.32 — saved positions in old and new 12x12 instance sectors.
@@ -358,3 +473,52 @@ try:
 finally:
     _v11633_fame.fame_pay_later = _v11633_original_fame
 print('TEMPLE LOGIN v11633 PASS', flush=True)
+
+
+# Magitek authored sectors: the generic walk dol parser must stop at every descent.
+def check_magitek_authored_walk():
+    import re
+    nav = production_methods('player/session_mixins/guide_navigation.py',
+        'SessionGuideNavigationMixin', ('guide_descending_floor_v1501',
+        'shortest_path_within_floor_v11340', '_reconstruct_guide_path_v11655'))
+    def magitek_number(rid):
+        match = re.fullmatch(r'magitek_floor_(\d+)(?:_r\d+)?', str(rid or ''))
+        return int(match.group(1)) if match else None
+    def magitek_id(floor): return f'magitek_floor_{floor}'
+    context = nav['guide_descending_floor_v1501']
+    context.__globals__.update({key: (lambda rid: None) for key in
+        ('crypt_floor_number','mythic_crypt_floor_number','uoss_deep_dungeon_floor_number_v11331')})
+    context.__globals__.update({key: (lambda floor: str(floor)) for key in
+        ('crypt_floor_id','mythic_crypt_floor_id','uoss_deep_dungeon_floor_id_v11331')})
+    authored = {}
+    for file in ('world/machine_expansion.py','world/magitek_dungeon.py'):
+        tree = ast.parse((ROOT/file).read_text(encoding='utf-8'))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                for k, value in zip(node.keys, node.values):
+                    if isinstance(k, ast.Constant) and isinstance(k.value, str) and k.value.startswith('magitek_') and isinstance(value, ast.Tuple) and len(value.elts) >= 3 and isinstance(value.elts[2], ast.Dict):
+                        authored[k.value] = {'name':k.value, 'exits':ast.literal_eval(value.elts[2]), 'magitek_authored_prologue':True}
+    authored['magitek_omega_chamber']['exits']['down']='magitek_sector1_lift'
+    authored['magitek_zero_final']['exits']['down']='magitek_floor_1'
+    cases = [('magitek_yard','magitek_omega_chamber','magitek_sector1_lift'),
+        ('magitek_sector1_lift','magitek_alpha_boss','magitek_beta_lift'),
+        ('magitek_beta_lift','magitek_beta_boss','magitek_gamma_lift'),
+        ('magitek_gamma_lift','magitek_gamma_boss','magitek_zero_lift'),
+        ('magitek_zero_lift','magitek_zero_final','magitek_floor_1')]
+    with patch.dict(ROOMS, authored), patch.dict(sys.modules, {
+        'world.magitek_infinite':SimpleNamespace(magitek_floor_number=magitek_number, magitek_floor_id=magitek_id)}):
+        actor = SimpleNamespace(server=SimpleNamespace(world=SimpleNamespace(ensure_runtime_room=lambda rid: rid in ROOMS)))
+        actor._reconstruct_guide_path_v11655=nav['_reconstruct_guide_path_v11655']
+        for start, stairs, next_room in cases:
+            label, floor, parser, builder = context(actor,start)
+            check(parser(stairs)==floor and parser(next_room)==floor+1,'Magitek current sector boundary')
+            check(builder(floor)==start,'Magitek no next floor generation')
+            route=nav['shortest_path_within_floor_v11340'](actor,start,stairs,parser,floor)
+            check(route is not None and all(direction not in ('up','down') for direction, _target in route),'Magitek stops before manual descent')
+            check(parser('magitek_gate') is None,'Magitek no exterior route')
+            check(nav['shortest_path_within_floor_v11340'](actor,start,next_room,parser,floor) is None,'Magitek cannot cross gate')
+        label,floor,parser,builder=context(actor,'magitek_floor_25_r100')
+        check(floor==25 and parser('magitek_floor_26')==26 and builder(25)=='magitek_floor_25','Magitek generated floor navigation unchanged')
+    print('MAGITEK WALK DOL / 5 SECTORS PASS',flush=True)
+
+check_magitek_authored_walk()

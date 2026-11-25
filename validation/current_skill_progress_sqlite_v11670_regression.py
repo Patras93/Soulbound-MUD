@@ -114,3 +114,86 @@ def run():
 
 if __name__ == '__main__':
     run()
+
+
+def run_class_and_wander_regression():
+    """Read-only class checks and bounded world slices, isolated from production."""
+    from dataclasses import replace
+    from unittest.mock import patch
+    import random
+    from world.world_state import World, MobState
+    from world import dynamic_content
+    from data import rooms as catalog
+    checks = 0
+    def check(condition, message):
+        nonlocal checks
+        assert condition, message
+        checks += 1
+    raw = sqlite3.connect(':memory:')
+    raw.row_factory = sqlite3.Row
+    raw.execute('CREATE TABLE class_progress (account_id INTEGER, class_name TEXT, level INTEGER, xp INTEGER, active_slot INTEGER, PRIMARY KEY(account_id,class_name))')
+    class DB(DatabaseProgressionMixin):
+        conn = _DeferredCommitConnection(raw)
+    db = DB()
+    db.ensure_primary_class(7, 'Mec')
+    db.ensure_primary_class(8, 'Mag')
+    raw.execute("UPDATE class_progress SET level=80,xp=123 WHERE account_id=7")
+    raw.commit()
+    before = raw.total_changes
+    scope, token = begin('v11675_class_reads')
+    for _ in range(480):
+        check(db.active_class_names(7, 'Mec') == ['Mec'], 'active primary')
+        row = db.class_progress_row(7, 'Mec')
+        check((row['level'], row['xp']) == (80, 123), 'mastery read')
+    finish(scope, token, minimum=100000)
+    check(scope.sql_queries == 960, 'one SELECT per call')
+    check(scope.sql_commits == 0 and raw.total_changes == before, 'zero writes and commits')
+    check(db.class_progress_row(7, 'Mag')['level'] == 1, 'lazy archived class')
+    raw.execute("UPDATE class_progress SET level=35,xp=77,active_slot=2 WHERE account_id=7 AND class_name='Mag'")
+    raw.commit()
+    check(db.active_class_names(7, 'Mec') == ['Mec'], 'legacy active slot repaired')
+    archived = db.class_progress_row(7, 'Mag')
+    check((archived['level'], archived['xp'], archived['active_slot']) == (35,77,None), 'archive preserved')
+    check(db.active_class_names(9, 'Druid') == ['Druid'], 'missing primary created')
+    check(db.active_class_names(8, 'Mag') == ['Mag'], 'other character isolated')
+    result = db.add_class_mastery_xp(7, 'Mec', 37)
+    check((result['level'], result['xp']) == (80,160), 'exact XP award')
+    try:
+        with db.conn.deferred_commits():
+            db.add_class_mastery_xp(7, 'Mec', 37)
+            raise RuntimeError('rollback test')
+    except RuntimeError as exc:
+        check(str(exc) == 'rollback test', 'expected exception')
+    check(db.class_progress_row(7, 'Mec')['xp'] == 160, 'rollback preserved')
+    raw.close()
+    rooms = {f'r{i}': {'zone':'Łąki','exits':{'east':f'r{(i+1)%450}','west':f'r{(i-1)%450}'}} for i in range(450)}
+    mobs = {f'm{i}': MobState(f'm{i}',f'r{i%450}','synthetic',100,next_wander_at=0.0) for i in range(2700)}
+    def world():
+        w = World.__new__(World)
+        w.mobs = {key:replace(m) for key,m in mobs.items()}
+        rows = {}
+        for m in w.mobs.values(): rows.setdefault(m.room_id,[]).append(m)
+        w._last_live_by_room = {r:tuple(group) for r,group in rows.items()}
+        w._last_live_counts = {r:len(group) for r,group in rows.items()}
+        w.refresh = lambda: w._last_live_counts
+        return w
+    def signature(moves): return [(m.key,a,b) for m,a,b in moves]
+    a,b = world(),world()
+    with patch.object(catalog,'ROOMS',rooms), patch.object(dynamic_content,'mob_template_can_wander',return_value=True):
+        random.seed(1024)
+        old = a.wander_step(now=1)
+        random.seed(1024)
+        keys = tuple(b.mobs)
+        new = []
+        for offset in range(0,len(keys),2048):
+            new.extend(b.wander_step(now=1,mob_keys=keys[offset:offset+2048]))
+            check(all(m.room_id == r for r,group in b._last_live_by_room.items() for m in group), 'index consistent after slice')
+        check(signature(old) == signature(new), 'same moves and random order')
+        check(a._last_live_counts == b._last_live_counts, 'same population')
+        check({r:tuple(m.key for m in group) for r,group in a._last_live_by_room.items()} == {r:tuple(m.key for m in group) for r,group in b._last_live_by_room.items()}, 'same room order')
+        check(all(a.mobs[k].next_wander_at == b.mobs[k].next_wander_at for k in keys), 'same timers')
+        b.mobs['m0'].engaged_by = 'fighter'
+        b.mobs['m0'].next_wander_at = 0
+        check(not b.wander_step(now=2,mob_keys=('missing','m0')), 'removed key and engaged mob never move')
+    print(f'CLASS SQLITE / WORLD SLICES v11675: {checks}/{checks} PASS; 960 reads, 0 COMMIT; same seeded movement',flush=True)
+    return checks

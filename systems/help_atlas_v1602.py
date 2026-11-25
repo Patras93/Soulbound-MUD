@@ -92,7 +92,7 @@ def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
     ]
     topics['labirynt_echa'] = [
         'Nieskończony Labirynt Echa: pięć komór na piętro, boss co 10 pięter, bez sztucznego końca.',
-        'lochy50 pokazuje opis systemu. walk dol lub walk dool prowadzi do zejścia i zatrzymuje przed przejściem piętra.',
+        'lochy50 pokazuje opis systemu. walk dol prowadzi do zejścia i zatrzymuje przed przejściem piętra.',
         'Schodząc na następny poziom wpisz kierunek wskazany przez exits; zwykły walk nie omija bossa.',
         'Odkrycia: atlas odkrycia lochy.',
     ]
@@ -103,7 +103,7 @@ def install_help_atlas_v1602(topics, aliases, tool_profession_map=None):
     ]
     topics['walk'] = [
         'walk <cel> prowadzi postać po dostępnych drogach. walk orki — dojście do Krainy Orków.',
-        'walk dol / walk dool — automatyczne dojście do zejścia w podziemiach i lochach, bez wykonania ostatniego kroku.',
+        'walk dol — automatyczne dojście do zejścia w podziemiach i lochach, bez wykonania ostatniego kroku.',
         'walk gora / walk góra — dojście do wejścia wyżej w wieżach, z zatrzymaniem przed przejściem piętra.',
         'Przed wejściem na kolejne piętro użyj exits i wybierz właściwy kierunek.',
     ]
@@ -261,7 +261,7 @@ def refresh_current_help_v11320(topics, aliases):
         if key == 'krypta':
             old = [s for s in old if 'prowadz krypta prowadzi tylko' not in s]
             old.extend([
-                'walk krypta dol / walk krypta dool prowadzi do następnego zejścia, z ochroną prowadzonej drużyny.',
+                'walk krypta dol prowadzi do następnego zejścia, z ochroną prowadzonej drużyny.',
                 'Zabite moby znikają z listy żywych; ciało pozostaje do 10 minut, nieodebrane EQ leży potem na ziemi do 30 minut.',
                 'ziemia — zobacz łup; podnies <nr|nazwa> / wez <nazwa> — podnieś przedmiot.',
                 'Upiory Krypty z głębszych pięter także zaliczają zadanie wymagające upiorów.'

@@ -1401,7 +1401,7 @@ class World:
         self._last_live_by_room = {room_id: tuple(rows) for room_id, rows in live_by_room.items()}
         return live_counts
 
-    def wander_step(self, now=None):
+    def wander_step(self, now=None, *, mob_keys=None):
         """Wykonuje pojedynczy bezpieczny tick ruchu zwykłych mobów."""
         from data.mobs import MOB_TEMPLATES  # canonical current dependency
         import random  # explicit current dependency
@@ -1429,7 +1429,14 @@ class World:
             self._wander_static_candidates_v11657 = persistent
             self._wander_graph_len_v11657 = graph_len
 
-        for mob in self.mobs.values():
+        # The live loop can process a stable snapshot of keys in bounded
+        # slices. Re-resolve each key after a yield: a despawned mob must not
+        # move and a newly generated floor belongs to the next tick.
+        mobs = (self.mobs.values() if mob_keys is None else
+                (self.mobs.get(key) for key in mob_keys))
+        for mob in mobs:
+            if mob is None:
+                continue
             if not mob.alive or mob.engaged_by:
                 continue
             # v116.69: all procedural-infinite dungeon rooms are explicitly

@@ -35,8 +35,8 @@ from systems.items_resources import CLASS_SHOP_CLASSES_BY_ROOM
 from world.generation_systems import V013_FRONTIER_SPECS, v0140_surface_secret_info
 from world.uoss_superboss_world import (
     uoss_deep_dungeon_floor_id_v11331,
-    uoss_deep_dungeon_floor_number_v11331,
 )
+from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation as uoss_deep_dungeon_floor_number_v11331
 
 
 @lru_cache(maxsize=8192)
@@ -803,6 +803,42 @@ class SessionGuideNavigationMixin:
                 identity = echo_identity(rid)
                 return identity[0] if identity else None
 
+            # Authored Magitek has five sectors separated by manual down/up
+            # transitions. Find only the current horizontal component, never
+            # route automatically through the boss gate of a later sector.
+            if (str(room_id).startswith("magitek_") and room_id != "magitek_gate"
+                    and magitek_floor_number(room_id) is None
+                    and ROOMS.get(room_id, {}).get("magitek_authored_prologue")):
+                from collections import deque
+                component = {room_id}
+                queue = deque([room_id])
+                exits_down = []
+                while queue:
+                    rid = queue.popleft()
+                    for direction, target in ROOMS[rid].get("exits", {}).items():
+                        if direction == "down":
+                            if str(target).startswith("magitek_"):
+                                exits_down.append(target)
+                            continue
+                        if direction == "up" or target == "magitek_gate" or target in component:
+                            continue
+                        room = ROOMS.get(target, {})
+                        if room.get("magitek_authored_prologue") and magitek_floor_number(target) is None:
+                            component.add(target)
+                            queue.append(target)
+                if exits_down:
+                    next_room = exits_down[0]
+                    sector = next((index for index, anchor in enumerate((
+                        "magitek_yard", "magitek_sector1_lift", "magitek_beta_lift",
+                        "magitek_gamma_lift")) if anchor in component), 0)
+                    def authored_parser(rid):
+                        if rid in component:
+                            return sector
+                        if rid == next_room:
+                            return sector + 1
+                        return None
+                    return "Kompleks Magitek – sektory", sector, authored_parser, lambda floor: room_id
+
             families = (
                 ("Labirynt Echa", echo_parser, echo_floor_id),
                 ("Krypta", crypt_floor_number, crypt_floor_id),
@@ -1114,6 +1150,9 @@ class SessionGuideNavigationMixin:
                 q = q[3:].strip()
 
             normalized = self.normalize_room_query(q)
+            if normalized in ("dool", "doll", "w dol", "down", "zejscie", "zejscie w dol", "krypta dool", "krytta dool", "deep dool", "deep dungeon dool"):
+                await self.send("Użyj walk dol.")
+                return
             if normalized in ("profesje", "professions"):
                 await self.show_guide_destinations("profesje")
                 return
@@ -1158,7 +1197,7 @@ class SessionGuideNavigationMixin:
                         "walk gora / walk góra działa na piętrze Wieży Astralnej, "
                         "Mitycznej Wieży Astralnej lub Twierdzy Gigantów. "
                         "Najpierw wejdź do wieży. W lochach schodzących w dół "
-                        "użyj walk dol / walk dool."
+                        "użyj walk dol."
                     )
                     return
 
@@ -1170,10 +1209,10 @@ class SessionGuideNavigationMixin:
             if shortcut and shortcut not in ROOMS:
                 self.server.world.ensure_runtime_room(shortcut)
 
-            # v1.50.1: krótkie `walk dol` / `walk dool` wybiera zejście
+            # v1.50.1: krótkie `walk dol` wybiera zejście
             # z AKTUALNEGO piętra. Nie przechodzi na następne piętro.
             generic_down_requested = normalized in (
-                "dol", "dool", "w dol", "down", "zejscie", "zejscie w dol",
+                "dol",
             )
             direct_generic_down = False
             generic_down_floor = None
@@ -1225,7 +1264,7 @@ class SessionGuideNavigationMixin:
             # bossa/checkpointu pozostaje w zwykłym runtime ruchu.
             crypt_down_requested = normalized in (
                 "krypta dol", "krypta w dol", "krypta down", "crypt down",
-                "krypty dol", "krypta dool", "krytta dol", "krytta dool",
+                "krypty dol", "krytta dol",
                 "mityczna krypta dol", "mityczna krypta w dol",
                 "mityczna krypta down", "mythic crypt down",
             )
@@ -1395,7 +1434,6 @@ class SessionGuideNavigationMixin:
             deep_down_requested = normalized in (
                 "deep dol", "deep w dol", "deep down",
                 "deep dungeon dol", "deep dungeon w dol", "deep dungeon down",
-                "deep dool", "deep dungeon dool",
             )
             direct_deep_down = False
             deep_down_floor = None

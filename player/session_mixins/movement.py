@@ -24,8 +24,8 @@ from systems.v115.vampire_mercenary import MERCENARIES  # 38 legacy mercenaries 
 from world.uoss_superboss_world import (
     UOSS_DEEP_DUNGEON_ENTRY_V11331,
     UOSS_DEEP_DUNGEON_FLOOR0_V11331,
-    uoss_deep_dungeon_floor_number_v11331,
 )
+from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation as uoss_deep_dungeon_floor_number_v11331
 from systems.dungeons_regions import (
     astral_floor_number,
     crypt_floor_number,
@@ -207,7 +207,7 @@ class SessionMovementMixin:
                 crypt_floor_number, astral_floor_number, mythic_crypt_floor_number,
                 mythic_astral_floor_number, giant_fortress_floor_number,
             )
-            from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
+            from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation as uoss_deep_dungeon_floor_number_v11331
             from world.magitek_infinite import magitek_floor_number
             from systems.echo_dungeon_v1500 import echo_identity
             from core.progression_resources import mine_floor_number

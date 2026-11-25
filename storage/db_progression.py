@@ -42,12 +42,14 @@ class DatabaseProgressionMixin:
         if copy_mode:
             from storage.big_number_copy_runtime_v10400 import _require_copy_path
             _require_copy_path(self)  # before ensure_class_progress can mutate DB
-        self.ensure_class_progress(account_id, class_name)
-        row = self.conn.execute(
-            "SELECT class_name,level,xp,active_slot FROM class_progress "
-            "WHERE account_id=? AND class_name=?",
-            (account_id, class_name),
-        ).fetchone()
+        # Existing mastery is a read, not an INSERT/COMMIT. Preserve lazy
+        # initialization and exact-XP verification for both storage modes.
+        sql = ("SELECT class_name,level,xp,active_slot FROM class_progress "
+               "WHERE account_id=? AND class_name=?")
+        row = self.conn.execute(sql, (account_id, class_name)).fetchone()
+        if row is None:
+            self.ensure_class_progress(account_id, class_name)
+            row = self.conn.execute(sql, (account_id, class_name)).fetchone()
         if copy_mode and row is not None:
             from storage.big_number_copy_runtime_v10400 import (
                 _ExactProgressRow, read_exact_class_xp_copy,
@@ -68,13 +70,15 @@ class DatabaseProgressionMixin:
         if copy_mode:
             from storage.big_number_copy_runtime_v10400 import _require_copy_path
             _require_copy_path(self)
-        self.ensure_primary_class(account_id, primary_class)
-        rows = self.conn.execute(
-            "SELECT class_name,level,xp,active_slot FROM class_progress "
-            "WHERE account_id=? AND active_slot IS NOT NULL "
-            "ORDER BY active_slot",
-            (account_id,),
-        ).fetchall()
+        sql = ("SELECT class_name,level,xp,active_slot FROM class_progress "
+               "WHERE account_id=? AND active_slot IS NOT NULL ORDER BY active_slot")
+        rows = self.conn.execute(sql, (account_id,)).fetchall()
+        # Normal combat/equipment reads need no write. Repair old or missing
+        # active slots through the original transactional path, only on demand.
+        if (len(rows) != 1 or rows[0]['class_name'] != primary_class
+                or rows[0]['active_slot'] != 1):
+            self.ensure_primary_class(account_id, primary_class)
+            rows = self.conn.execute(sql, (account_id,)).fetchall()
         if copy_mode:
             from storage.big_number_copy_runtime_v10400 import (
                 _ExactProgressRow, read_exact_class_xp_copy,
@@ -128,7 +132,6 @@ class DatabaseProgressionMixin:
         if getattr(self, '_v104_big_number_copy_rehearsal', False):
             from storage.big_number_copy_runtime_v10400 import _require_copy_path
             _require_copy_path(self)  # reject before any INSERT/COMMIT
-        self.ensure_class_progress(account_id, class_name)
         row = self.class_progress_row(account_id, class_name)
         level = int(row["level"])
         xp = int(row["xp"])

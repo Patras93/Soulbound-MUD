@@ -9,6 +9,9 @@ async def guide_to(self, query):
             q = q[3:].strip()
 
         normalized = self.normalize_room_query(q)
+        if normalized in ("dool", "doll", "w dol", "down", "zejscie", "zejscie w dol", "krypta dool", "krytta dool", "deep dool", "deep dungeon dool"):
+            await self.send("Użyj walk dol.")
+            return
         if normalized in ("profesje", "professions"):
             await self.show_guide_destinations("profesje")
             return
@@ -53,7 +56,7 @@ async def guide_to(self, query):
                     "walk gora / walk góra działa na piętrze Wieży Astralnej, "
                     "Mitycznej Wieży Astralnej lub Twierdzy Gigantów. "
                     "Najpierw wejdź do wieży. W lochach schodzących w dół "
-                    "użyj walk dol / walk dool."
+                    "użyj walk dol."
                 )
                 return
 
@@ -65,10 +68,10 @@ async def guide_to(self, query):
         if shortcut and shortcut not in ROOMS:
             self.server.world.ensure_runtime_room(shortcut)
 
-        # v1.50.1: krótkie `walk dol` / `walk dool` wybiera zejście
+        # v1.50.1: krótkie `walk dol` wybiera zejście
         # z AKTUALNEGO piętra. Nie przechodzi na następne piętro.
         generic_down_requested = normalized in (
-            "dol", "dool", "w dol", "down", "zejscie", "zejscie w dol",
+            "dol",
         )
         direct_generic_down = False
         generic_down_floor = None
@@ -120,7 +123,7 @@ async def guide_to(self, query):
         # bossa/checkpointu pozostaje w zwykłym runtime ruchu.
         crypt_down_requested = normalized in (
             "krypta dol", "krypta w dol", "krypta down", "crypt down",
-            "krypty dol", "krypta dool", "krytta dol", "krytta dool",
+            "krypty dol", "krytta dol",
             "mityczna krypta dol", "mityczna krypta w dol",
             "mityczna krypta down", "mythic crypt down",
         )
@@ -290,7 +293,6 @@ async def guide_to(self, query):
         deep_down_requested = normalized in (
             "deep dol", "deep w dol", "deep down",
             "deep dungeon dol", "deep dungeon w dol", "deep dungeon down",
-            "deep dool", "deep dungeon dool",
         )
         direct_deep_down = False
         deep_down_floor = None
