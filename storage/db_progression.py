@@ -491,6 +491,16 @@ class DatabaseProgressionMixin:
         self.conn.commit()
 
     def skill_progress(self, account_id, skill_id):
+        # v116.70: a read of an existing skill is strictly read-only.  The
+        # historical unconditional INSERT OR IGNORE + COMMIT could run
+        # thousands of times for one combat command even though no row changed.
+        # Preserve lazy initialization of genuinely missing progress rows.
+        row = self.conn.execute(
+            "SELECT level,xp,uses FROM skill_progress WHERE account_id=? AND skill_id=?",
+            (account_id, skill_id),
+        ).fetchone()
+        if row is not None:
+            return row
         self.ensure_skill_progress(account_id, skill_id)
         return self.conn.execute(
             "SELECT level,xp,uses FROM skill_progress WHERE account_id=? AND skill_id=?",
@@ -498,7 +508,8 @@ class DatabaseProgressionMixin:
         ).fetchone()
 
     def add_skill_xp(self, account_id, skill_id, amount):
-        self.ensure_skill_progress(account_id, skill_id)
+        # skill_progress() already ensures a missing row.  Do not issue a
+        # redundant INSERT/COMMIT before reading it, even for a new skill.
         row = self.skill_progress(account_id, skill_id)
         level = int(row["level"])
         previous_level, previous_xp = level, int(row["xp"])

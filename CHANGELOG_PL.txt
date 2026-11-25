@@ -1,3 +1,38 @@
+v116.00.71 — NAPRAWA WCZESNEJ BRAMKI PREDEPLOY
+
+- Naprawiono błąd z v116.70: kontrola AST wykrywała pusty
+  `except RuntimeError: pass` w teście SQLite na linii 91 i wstrzymywała
+  PREDEPLOY, zanim rozpoczęło się 60 etapów PLUS.
+- Test nadal sprawdza rollback po celowo wywołanym błędzie, lecz teraz
+  weryfikuje także dokładny komunikat wyjątku; żadnego wyjątku nie
+  pomija bez kontroli. Liczba historycznych asercji testu: 980.
+- Mechanika Skill XP, SQLite, EXP, balans, moby i AI są identyczne jak
+  w v116.70. Nie zmieniono bazy ani zapisów graczy.
+- Wymagany nowy pełny PREDEPLOY 60/60 PLUS PASS przed wdrożeniem.
+
+---
+
+v116.00.70 — SKILL XP / SQLITE: MNIEJ COMMITÓW PODCZAS WALKI
+
+- Naprawiono główną przyczynę nadmiarowych operacji SQLite w poleceniach
+  attack i use: samo odczytanie już istniejącego postępu skilla wykonuje
+  teraz tylko SELECT, bez zbędnego INSERT OR IGNORE i COMMIT.
+- Wypłata prawdziwego Skill XP pomija powtórne inicjalizowanie rekordu.
+  Każda wypłata wciąż zapisuje dokładnie poziom, EXP i liczbę użyć.
+- Pierwszy odczyt skilla bez rekordu nadal bezpiecznie zakłada poziom 1,
+  XP 0 i użycia 0. Nie usuwamy ani nie resetujemy zapisanych umiejętności.
+- Testy na prawdziwym SQLite (980/980): 480 odczytów = 0 COMMIT;
+  480 rzeczywistych wypłat = 480 COMMIT zamiast 1440; poprawne konta,
+  wartości, pierwsze użycie, transakcja, rollback i brak podwójnych nagród.
+- Bez zmian EXP, HP, obrażeń, tempa nauki, AI, respawnu, wielkości terenów,
+  liczby mobów, 6 graczy, bossów UOSS oraz braku najemników/minionów.
+- Wzrost liczby mobów przy odkrywaniu nowych pięter jest nadal legalny;
+  ta aktualizacja usuwa zbędne operacje bazy, nie nakłada limitu świata.
+- NOWA BRAMKA przed pełnym PREDEPLOY 60/60 PLUS; obie platformy sprawdzone
+  lokalnie. NIE WDRAŻAĆ PRZED PASS 60/60 PLUS na Windows.
+
+---
+
 v116.00.69 — WYDAJNOŚĆ WALKI I GENEROWANYCH LOCHÓW
 
 - Zlikwidowano masowe pomocnicze INSERT/COMMIT podczas ODCZYTU
