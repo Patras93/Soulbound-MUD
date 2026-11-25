@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Rozległe expowiska na piętrach tworzonych na żądanie (v116.00.27).
 
-Boczne sektory nie przesuwają dawnych sal bossa, schodów i identyfikatorów.
+Boczne sektory zachowują identyfikatory; w Magitek sala schodów jest na końcu galerii.
 Tworzone dopiero podczas wejścia na piętro; żadnych migracji baz danych.
 """
 from __future__ import annotations
@@ -94,6 +94,26 @@ def extend_instance_floor(canonical_room, pairs, runtime=False):
     # Anchor is at the old maze boundary; new sector (0,0) is at its edge.
     catalog.catalog_assign(first, 'ROOMS', ROOMS, (anchor, 'exits', direction))
     catalog.catalog_assign(anchor, 'ROOMS', ROOMS, (first, 'exits', REVERSE[direction]))
+    # Magitek keeps the boss and staircase in their original room ID,
+    # but the only entrance is now at the opposite corner of the gallery.
+    if spec['kind'] == 'magitek':
+        final = v0100_subroom_id(canonical_room, old_total - 1)
+        final_exits = ROOMS[final]['exits']
+        if final_exits.get('down'):
+            for d, neighbor in list(final_exits.items()):
+                if d not in REVERSE:
+                    continue
+                if ROOMS.get(neighbor, {}).get('exits', {}).get(REVERSE[d]) == final:
+                    catalog.catalog_pop_path('ROOMS', ROOMS, (neighbor, 'exits'), REVERSE[d], None)
+                catalog.catalog_pop_path('ROOMS', ROOMS, (final, 'exits'), d, None)
+            end = ids[WIDTH - 1, HEIGHT - 1]
+            catalog.catalog_assign(final, 'ROOMS', ROOMS, (end, 'exits', 'east'))
+            catalog.catalog_assign(end, 'ROOMS', ROOMS, (final, 'exits', 'west'))
+            previous = base.get('exits', {}).get('up')
+            previous_spec = get_rule('v0100_instance_spec')(previous) if previous else None
+            if previous_spec and previous_spec['kind'] == 'magitek':
+                previous_final = v0100_subroom_id(previous, int(previous_spec['rooms']) - 1)
+                catalog.catalog_assign(previous_final, 'ROOMS', ROOMS, (canonical_room, 'exits', 'up'))
     v0100_copy_resource_membership(canonical_room, list(ids.values()))
 
     # Spawn only existing ordinary enemies from this floor, never bosses.

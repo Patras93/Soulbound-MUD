@@ -53,6 +53,8 @@ def run():
     # Skill XP payouts keep exact level/XP/uses with transaction safety.
     from validation.current_skill_progress_sqlite_v11670_regression import run as skill_sql70_test
     assert skill_sql70_test() == 980
+    from validation.current_skill_progress_sqlite_v11670_regression import run_class_and_wander_regression
+    assert run_class_and_wander_regression() == 977
     # v116.00.63: WinError 121 during TCP read closes the session cleanly.
     from validation.current_windows_tcp_read_timeout_v11663_regression import run as tcp_timeout_test
     assert tcp_timeout_test() == 7

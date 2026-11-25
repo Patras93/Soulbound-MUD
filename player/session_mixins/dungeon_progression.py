@@ -118,7 +118,8 @@ class SessionDungeonProgressionMixin:
     ):
             if direction != "down":
                 return False
-            floor = uoss_deep_dungeon_floor_number_v11331(room_id)
+            from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation
+            floor = deep_dungeon_floor_for_navigation(room_id)
             if floor is None or floor % 25 != 0:
                 return False
             return not self.uoss_deep_dungeon_apanda_cleared_v11331(floor)

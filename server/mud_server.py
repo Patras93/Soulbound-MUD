@@ -508,46 +508,53 @@ class MudServer(MudSessionsV109Mixin, MudPartyMembersV109Mixin, MudEngagementV10
                 # v1.40.5: healed idle mobs only; 10% HP each 15-second tick.
                 self.regenerate_idle_mobs_v1405()
                 _after_regen_v11655 = time.perf_counter()
-                _moves_v0718 = self.world.wander_step()
-                _after_wander_v11655 = time.perf_counter()
-                _tick_elapsed_v0718 = _after_wander_v11655 - _tick_started_v0718
-                if _tick_elapsed_v0718 >= 0.45:
-                    # Separate the two CPU-heavy phases for the next real log;
-                    # no usernames, IPs, movements or session data are stored.
-                    print(
-                        f"[PERF WORLD PHASE v11655] regen={_after_regen_v11655-_tick_started_v0718:.3f}s; "
-                        f"wander={_after_wander_v11655-_after_regen_v11655:.3f}s; "
-                        f"mobs={len(self.world.mobs)}", flush=True,
-                    )
-                if _tick_elapsed_v0718 >= 0.10:
-                    print(
-                        f"[PERF SLOW WORLD TICK] {_tick_elapsed_v0718:.3f}s; moves={len(_moves_v0718)}; mobs={len(self.world.mobs)}",
-                        flush=True,
-                    )
-                # v116.00.47: a large active world may move thousands of
-                # monsters per tick. The old loop awaited two no-op broadcasts
-                # for EVERY move, including unoccupied regions. No player can
-                # hear those events. Preserve all movement, AI, respawns and
-                # observable messages; only skip sends to empty rooms.
-                _occupied_rooms_v11647 = {
-                    getattr(session.character, 'room_id', None)
-                    for session in tuple(self.sessions)
-                    if not session.closed and session.character is not None
-                }
-                for mob, old_room, new_room in _moves_v0718:
-                    _has_departure_v11647 = old_room in _occupied_rooms_v11647
-                    _has_arrival_v11647 = new_room in _occupied_rooms_v11647
-                    if not (_has_departure_v11647 or _has_arrival_v11647):
-                        continue
-                    name = MOB_TEMPLATES.get(mob.template_id, {}).get('name', 'Wróg')
-                    if _has_departure_v11647:
-                        await self.broadcast_room(
-                            old_room, f"{name} odchodzi do sąsiedniej lokacji."
-                        )
-                    if _has_arrival_v11647:
-                        await self.broadcast_room(
-                            new_room, f"{name} nadchodzi z sąsiedniej lokacji."
-                        )
+                # Every original tick still visits all existing mobs, but
+                # releases the event loop between bounded, index-consistent
+                # slices. Never retain a live dictionary iterator across await.
+                keys = tuple(self.world.mobs)
+                batch_size = 2048
+                tick_now = time.time()
+                total_moves = 0
+                wander_cpu = 0.0
+                max_batch = 0.0
+                for offset in range(0, max(1, len(keys)), batch_size):
+                    if not self._players_in_world_v11645():
+                        break
+                    started_batch = time.perf_counter()
+                    if len(keys) <= batch_size:
+                        moves = self.world.wander_step()
+                    else:
+                        moves = self.world.wander_step(
+                            now=tick_now, mob_keys=keys[offset:offset + batch_size])
+                    elapsed_batch = time.perf_counter() - started_batch
+                    wander_cpu += elapsed_batch
+                    max_batch = max(max_batch, elapsed_batch)
+                    total_moves += len(moves)
+                    # Recompute the audience for each slice, rather than using
+                    # a stale snapshot from before another player's move.
+                    occupied = {
+                        getattr(session.character, 'room_id', None)
+                        for session in tuple(self.sessions)
+                        if not session.closed and session.character is not None
+                    }
+                    for mob, old_room, new_room in moves:
+                        if old_room not in occupied and new_room not in occupied:
+                            continue
+                        name = MOB_TEMPLATES.get(mob.template_id, {}).get('name', 'Wróg')
+                        if old_room in occupied:
+                            await self.broadcast_room(old_room, f"{name} odchodzi do sąsiedniej lokacji.")
+                        if new_room in occupied:
+                            await self.broadcast_room(new_room, f"{name} nadchodzi z sąsiedniej lokacji.")
+                    if offset + batch_size < len(keys):
+                        await asyncio.sleep(0)
+                regen_elapsed = _after_regen_v11655 - _tick_started_v0718
+                if regen_elapsed + wander_cpu >= 0.10:
+                    print(f"[PERF WORLD PHASE v11655] regen={regen_elapsed:.3f}s; "
+                          f"wander={wander_cpu:.3f}s; max_batch={max_batch:.3f}s; "
+                          f"moves={total_moves}; mobs={len(self.world.mobs)}", flush=True)
+                if max(regen_elapsed, max_batch) >= 0.10:
+                    print(f"[PERF SLOW WORLD TICK] {max(regen_elapsed, max_batch):.3f}s; "
+                          f"moves={total_moves}; mobs={len(self.world.mobs)}; sliced=1", flush=True)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:

@@ -445,6 +445,37 @@ def verify_native_method(file, name):
         source = Path(file).read_text(encoding='utf-8-sig')
         if all(reviewed in source for reviewed, _ in _V115_CREATOR_REVIEWED_CHANGES):
             node = _normalize_v115_character_creator_ast(file)
+    if (relative, name) == ('player/session_mixins/guide_navigation.py',
+                            'SessionGuideNavigationMixin.guide_descending_floor_v1501'):
+        # Reviewed Magitek prologue insertion only; preserve original AST hash.
+        source = file.read_text(encoding='utf-8-sig')
+        reviewed = '            # Authored Magitek has five sectors separated by manual down/up\n            # transitions. Find only the current horizontal component, never\n            # route automatically through the boss gate of a later sector.\n            if (str(room_id).startswith("magitek_") and room_id != "magitek_gate"\n                    and magitek_floor_number(room_id) is None\n                    and ROOMS.get(room_id, {}).get("magitek_authored_prologue")):\n                from collections import deque\n                component = {room_id}\n                queue = deque([room_id])\n                exits_down = []\n                while queue:\n                    rid = queue.popleft()\n                    for direction, target in ROOMS[rid].get("exits", {}).items():\n                        if direction == "down":\n                            if str(target).startswith("magitek_"):\n                                exits_down.append(target)\n                            continue\n                        if direction == "up" or target == "magitek_gate" or target in component:\n                            continue\n                        room = ROOMS.get(target, {})\n                        if room.get("magitek_authored_prologue") and magitek_floor_number(target) is None:\n                            component.add(target)\n                            queue.append(target)\n                if exits_down:\n                    next_room = exits_down[0]\n                    sector = next((index for index, anchor in enumerate((\n                        "magitek_yard", "magitek_sector1_lift", "magitek_beta_lift",\n                        "magitek_gamma_lift")) if anchor in component), 0)\n                    def authored_parser(rid):\n                        if rid in component:\n                            return sector\n                        if rid == next_room:\n                            return sector + 1\n                        return None\n                    return "Kompleks Magitek – sektory", sector, authored_parser, lambda floor: room_id\n\n'
+        if source.count(reviewed) == 1:
+            tree = ast.parse(source.replace(reviewed, '', 1))
+            klass = next(n for n in tree.body if isinstance(n, ast.ClassDef)
+                         and n.name == 'SessionGuideNavigationMixin')
+            node = next(n for n in klass.body if isinstance(n, ast.FunctionDef)
+                        and n.name == 'guide_descending_floor_v1501')
+    if (relative, name) == ('player/session_mixins/guide_navigation.py',
+                            'SessionGuideNavigationMixin.guide_to'):
+        # Reviewed v116.74 alias removal: reverse only the exact known delta.
+        # Any unrelated change still fails the original hash.
+        source = file.read_text(encoding='utf-8-sig')
+        changes = (
+            ('            if normalized in ("dool", "doll", "w dol", "down", "zejscie", "zejscie w dol", "krypta dool", "krytta dool", "deep dool", "deep dungeon dool"):\n                await self.send("Użyj walk dol.")\n                return\n', ''),
+            ('"użyj walk dol."', '"użyj walk dol / walk dool."'),
+            ('generic_down_requested = normalized in (\n                "dol",\n', 'generic_down_requested = normalized in (\n                "dol", "dool", "w dol", "down", "zejscie", "zejscie w dol",\n'),
+            ('"krypty dol", "krytta dol",', '"krypty dol", "krypta dool", "krytta dol", "krytta dool",'),
+            ('"deep dungeon dol", "deep dungeon w dol", "deep dungeon down",\n', '"deep dungeon dol", "deep dungeon w dol", "deep dungeon down",\n                "deep dool", "deep dungeon dool",\n'),
+        )
+        if all(source.count(current) == 1 for current, _ in changes):
+            for current, original in changes:
+                source = source.replace(current, original, 1)
+            tree = ast.parse(source)
+            klass = next(n for n in tree.body if isinstance(n, ast.ClassDef)
+                         and n.name == 'SessionGuideNavigationMixin')
+            node = next(n for n in klass.body if isinstance(n, ast.AsyncFunctionDef)
+                        and n.name == 'guide_to')
     actual=hashlib.sha256(ast.dump(node,include_attributes=False).encode()).hexdigest()
     if actual != expected:
         raise AssertionError(('changed native method',relative,name))

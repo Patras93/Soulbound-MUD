@@ -104,7 +104,7 @@ class SessionHelpSystemMixin(HelpHistoryV109Mixin, HelpSkillsV109Mixin):
                 "location / lokalizacja - lokacja, strefa i wyjścia",
                 "north/south/east/west/up/down lub n/s/e/w/u/d - chodzenie; każdy krok najpierw rozpoczyna marsz, potem dopiero przenosi do sąsiedniej lokacji",
                 "prowadz <cel> / walk <cel> - automatycznie prowadzi dokładnie do rozpoznanej lokalizacji lub NPC; działa też walk to <cel>",
-                "walk dol / walk dool - na piętrze lochu prowadzi do przejścia na kolejne piętro; ostatni krok wykonujesz ręcznie (również w Labiryncie Echa, Deep Dungeon, Magitek i lochach profesji)",
+                "walk dol - na piętrze lochu prowadzi do przejścia na kolejne piętro; ostatni krok wykonujesz ręcznie (również w Labiryncie Echa, Deep Dungeon, Magitek i lochach profesji)",
                 "walk gora / walk góra - na piętrze zwykłej i Mitycznej Wieży Astralnej lub Twierdzy Gigantów prowadzi przed wejście na kolejne piętro; ostatni krok w górę ręcznie",
                 "walk krypta dół - będąc na piętrze zwykłej Krypty prowadzi przed zejście na następne piętro; samo zejście wykonujesz ręcznie",
                 "/ - sam znak ukośnika i Enter natychmiast teleportuje do Świątyni Odrodzenia; w drużynie obejmuje tylko osoby stojące razem w tej samej lokacji",

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""v116.00.28: large optional UOSS Deep Dungeon floors.
+"""Large UOSS Deep Dungeon floors with separate entry and descent.
 
-The canonical landing, personal Apanda checkpoint and elevators are untouched.
-Only regular mobs copied from the current floor can spawn in the new maze.
+The canonical landing retains its Apanda and elevator checkpoint.
+Only regular mobs copied from the current floor spawn in the maze.
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ def expand_deep_dungeon(canonical, pairs, runtime=False):
     if first in ROOMS:  # idempotency; keep original pairs on repeated calls
         return list(pairs)
 
-    # The landing is the START/border of the floor. Preserve both vertical
-    # exits: the old Apanda boss and deepelevator rules depend on those IDs.
+    # The canonical landing is the entrance and keeps the Apanda checkpoint.
+    # Descent is exclusively at the far corner; the return leads there too.
     base = ROOMS[canonical]
     exits = base.get('exits', {})
     side = next((d for d in ('east','west','north','south') if d not in exits), None)
@@ -80,6 +80,22 @@ def expand_deep_dungeon(canonical, pairs, runtime=False):
     catalog.catalog_assign(start,'ROOMS',ROOMS,(canonical,'exits',side))
     catalog.catalog_assign(canonical,'ROOMS',ROOMS,(start,'exits',back))
 
+    # Use a stable far-corner ID, even when the previous floor has not been
+    # generated yet (e.g. arriving by an unlocked elevator after restart).
+    end = ids[(WIDTH-1, HEIGHT-1)]
+    next_floor = uoss_deep_dungeon_floor_id_v11331(floor + 1)
+    catalog.catalog_pop_path('ROOMS', ROOMS, (canonical, 'exits'), 'down', None)
+    catalog.catalog_assign(next_floor, 'ROOMS', ROOMS, (end, 'exits', 'down'))
+    catalog.catalog_assign(f'Deep Dungeon {floor} — schody w dół', 'ROOMS', ROOMS, (end, 'name'))
+    catalog.catalog_assign('Kraniec piętra. Schody prowadzą na kolejne piętro Deep Dungeon.',
+                           'ROOMS', ROOMS, (end, 'desc'))
+    if floor > 1:
+        previous = uoss_deep_dungeon_floor_id_v11331(floor - 1)
+        catalog.catalog_assign(_room_id(previous, WIDTH*HEIGHT-1), 'ROOMS', ROOMS,
+                               (canonical, 'exits', 'up'))
+    catalog.catalog_assign(base['desc'] + ' Schody w dół znajdują się na odległym krańcu piętra.',
+                           'ROOMS', ROOMS, (canonical, 'desc'))
+
     regular=[]
     for rid,tid in pairs:
         if rid != canonical or tid not in MOB_TEMPLATES:
@@ -120,3 +136,18 @@ def deep_dungeon_saved_side_parent(room_id):
     if found is None or int(found.group(2)) >= WIDTH * HEIGHT:
         return None
     return uoss_deep_dungeon_floor_id_v11331(int(found.group(1)))
+
+
+def deep_dungeon_floor_for_navigation(room_id):
+    """Read a floor from its landing or a genuine sector, without changing
+    canonical floor detection used by spawn generation and discovery writes.
+    """
+    room_id = str(room_id or "")
+    if not room_id.startswith("uoss_deep_dungeon_floor_"):
+        return None
+    from world.uoss_superboss_world import uoss_deep_dungeon_floor_number_v11331
+    if "_v11628_" in room_id:
+        room_id = deep_dungeon_saved_side_parent(room_id)
+        if room_id is None:
+            return None
+    return uoss_deep_dungeon_floor_number_v11331(room_id)

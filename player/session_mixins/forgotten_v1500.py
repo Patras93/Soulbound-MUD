@@ -35,12 +35,12 @@ class SessionForgottenV1500Mixin:
                 floor,role=found
                 await self.send(f'NIESKOŃCZONY LABIRYNT ECHA: jesteś na piętrze {floor}, komora {role}.')
                 await self.send('Wschód prowadzi przez komory. Z ostatniej komory DÓŁ — piętro dalej. Z pierwszej komory GÓRA — wyżej.')
-                await self.send('Co 10 pięter boss; co 5 pięter elita. walk dol / walk dool prowadzi przed zejście. Użyj wyjscie, by wrócić do bramy.')
+                await self.send('Co 10 pięter boss; co 5 pięter elita. walk dol prowadzi przed zejście. Użyj wyjscie, by wrócić do bramy.')
                 return
         await self.send('NIESKOŃCZONY LABIRYNT ECHA: Valdoria -> Era Imperiów -> Sala Próby -> wschód, dół, dół.')
         await self.send('Każde piętro ma pięć komór. Co 5 pięter elita, co 10 pięter dodatkowy boss.')
         await self.send('Dalsze piętra tworzone są tylko przy wejściu. Nagrody skalują się z głębokością.')
-        await self.send('Nie ma limitu pięter, blokady poziomu ani losowych pułapek. W lochu wpisz walk dol / walk dool, by dotrzeć przed zejście, albo wyjscie, by wrócić.')
+        await self.send('Nie ma limitu pięter, blokady poziomu ani losowych pułapek. W lochu wpisz walk dol, by dotrzeć przed zejście, albo wyjscie, by wrócić.')
 
     def dungeon_exit_destination(self, room_id=None):
         room_id=str(room_id or (self.character.room_id if self.character else ''))
