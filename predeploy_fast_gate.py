@@ -141,6 +141,8 @@ def run():
     print('KONTROLA WSTEPNA: szybkie przyjmowanie questow PASS',flush=True)
     from validation.current_city_pest_quest_regression import run as city_pest_test
     city_pest_test()  # authored city threat, room-aware and nested runtime variants
+    from validation.current_city_pest_quest_regression import run_quest_receiver_regression
+    assert run_quest_receiver_regression() == 36
     print('KONTROLA WSTEPNA: questy i walka PASS',flush=True)
     from validation.current_movement_tempo_regression import run as movement_tempo_test
     movement_tempo_test()

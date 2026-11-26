@@ -124,24 +124,49 @@ class SessionQuestTurninMixin:
                 )
             await self.send("Szczegóły: quest info <numer>.")
 
-    def local_quest_ids(self):
-            local_npcs = {
-                npc_id: npc
-                for npc_id, npc in NPCS.items()
-                if npc["room"] == self.character.room_id
-            }
-            giver_names = {
-                self.normalize_description_query(npc["name"])
-                for npc in local_npcs.values()
-            }
+    def quest_turnin_location(self, quest_id, *, allow_remote=True):
+            """Resolve the actual receiver before any quest items or rewards move."""
+            quest = QUESTS.get(quest_id, {})
+            room = self.character.room_id
+            kind = quest.get("kind")
+            target = quest.get("target_npc")
+            required = quest.get("required_npc_id")
+            source = quest.get("v0560_source_npc")
+            if target or required or source:
+                # A delivery receiver takes precedence over its original giver.
+                npc_id = target or required or source
+                npc = NPCS.get(npc_id, {})
+                return bool(npc and npc.get("room") == room), npc.get("name", npc_id)
+            if kind == "talk_class_teacher":
+                return any(npc.get("room") == room and npc.get("teacher_class") == self.character.class_name
+                           for npc in NPCS.values()), "Nauczyciel klasy"
+            giver = str(quest.get("giver") or "")
+            norm = self.normalize_description_query(giver)
+            named = []
+            linked = []
+            for npc in NPCS.values():
+                if norm and self.normalize_description_query(str(npc.get("name") or "")) == norm:
+                    named.append(npc)
+                if (npc.get("quest") == quest_id
+                        or quest_id in (npc.get("quest_chain") or ())
+                        or quest_id in (npc.get("specialist_quests") or ())):
+                    linked.append(npc)
+            # An explicit quest assignment disambiguates NPCs with the same name.
+            both = [npc for npc in named if npc in linked]
+            receivers = both or named or linked
+            if receivers:
+                return (any(npc.get("room") == room for npc in receivers),
+                        ", ".join(dict.fromkeys(str(npc.get("name") or giver or "NPC") for npc in receivers)))
+            # Only the intentionally virtual hourly board has remote turn-in.
+            # An NPC quest cannot bypass locality by setting a remote flag.
+            remote = (allow_remote and bool(quest.get("remote_turnin"))
+                      and norm == self.normalize_description_query("Tablica Godzinnych Zleceń"))
+            return remote, giver or "właściwy NPC"
 
-            result = []
-            for quest_id, quest in QUESTS.items():
-                giver = self.normalize_description_query(quest.get("giver", ""))
-                target_npc = str(quest.get("target_npc", "") or "")
-                if (giver and giver in giver_names) or (target_npc and target_npc in local_npcs):
-                    result.append(quest_id)
-            return result
+    def local_quest_ids(self, quest_ids=None):
+            # Runtime callers pass active IDs, avoiding a full world catalogue scan.
+            return [qid for qid in (QUESTS if quest_ids is None else quest_ids)
+                    if qid in QUESTS and self.quest_turnin_location(qid, allow_remote=False)[0]]
 
     def normalize_turnin_query(self, query):
             value = self.normalize_description_query(query)
@@ -168,12 +193,10 @@ class SessionQuestTurninMixin:
             wanted = self.normalize_turnin_query(query)
             candidates = []
 
-            for quest_id in self.local_quest_ids():
-                row = self.server.db.quest(self.account_id, quest_id)
-                if not row or row["status"] != "active":
-                    continue
-                quest = QUESTS[quest_id]
-                candidates.append((quest_id, quest))
+            active_ids = [row["quest_id"] for row in self.server.db.quest_rows(self.account_id)
+                          if row["status"] == "active" and row["quest_id"] in QUESTS]
+            for quest_id in self.local_quest_ids(active_ids):
+                candidates.append((quest_id, QUESTS[quest_id]))
 
             if not wanted:
                 return candidates
@@ -226,9 +249,8 @@ class SessionQuestTurninMixin:
             if not quest or not row or row["status"] != "active":
                 await self.send("Ten quest nie jest obecnie aktywny.")
                 return
-            local_ids = set(self.local_quest_ids())
-            if quest_id not in local_ids and not quest.get("remote_turnin"):
-                npc_name = self.quest_turnin_npc_name_v098(quest)
+            allowed, npc_name = self.quest_turnin_location(quest_id)
+            if not allowed:
                 await self.send(
                     f"Quest: {quest['name']}. Aby go oddać, idź do NPC: {npc_name}."
                 )
@@ -389,6 +411,11 @@ class SessionQuestTurninMixin:
                     return
 
                 await self.send(f"Zadanie {q['name']} jest już ukończone.")
+                return
+
+            allowed, npc_name = self.quest_turnin_location(quest_id)
+            if not allowed:
+                await self.send(f"Quest: {q['name']}. Aby go oddać, idź do NPC: {npc_name}.")
                 return
 
             if q['kind'] == 'multi_objective':

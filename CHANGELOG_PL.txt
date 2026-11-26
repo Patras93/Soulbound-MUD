@@ -1,3 +1,12 @@
+v116.00.76 — ODDAWANIE QUESTÓW U WŁAŚCIWEGO NPC
+
+- Godzinne zlecenie: Zaopatrzenie dla Seifer (5 ziół, v0560_hourly_npc_uoss_helper_seifer) i pozostałe generowane zadania rozpoznają odbiorcę po trwałym identyfikatorze NPC v0560_source_npc, nie tylko po nazwie.
+- Zadania z konkretnym odbiorcą/nauczycielem wymagają jego aktualnej lokacji. Kontrola przed pobieraniem przedmiotów i przyznawaniem nagród, także przy oddaniu po numerze, nazwie i bez argumentu.
+- Jawnie zdalne zlecenia wirtualnej Tablicy Godzinnych Zleceń bez powiązania z NPC pozostają zdalne. Dostawy do innego NPC zachowują odbiorcę. Bez migracji bazy, zmian nagród i nowych BAT-ów.
+- Lokalnie: 36/36 kontroli odbiorcy i ziół, 6/6 regresji szkodników, 298/298 chronionych metod AST. W pełnym katalogu v116.75 potwierdzono rzeczywistą definicję zadania Seifera; próby oddania testowano na izolowanym modelu z tym samym identyfikatorem i celem, nie na produkcyjnym koncie. Wymagany PREDEPLOY 60/60 PLUS.
+
+---
+
 v116.00.75 — WYDAJNOŚĆ WALKI I RUCHU ŚWIATA
 - Odczyt poprawnej aktywnej klasy i biegłości klasy: bez INSERT, UPDATE i COMMIT. Brakujące i stare zapisy nadal są naprawiane, dokładny EXP oraz transakcje zachowane.
 - Ruch mobów: porcje do 2048 identyfikatorów z oddaniem sterowania pętli asyncio między porcjami. Liczba mobów, mapy, reguły ruchu, okres 15 s i krok walki bez zmian. Osobny pomiar najdłuższej porcji w logu (max_batch).
