@@ -112,4 +112,111 @@ def run():
     print(f'CITY PEST KILL QUEST v116.00.49: {result.testsRun}/6 PASS',flush=True)
     return result.testsRun
 
+def run_quest_receiver_regression():
+    """Real turn-in handlers: no item removal or payout before locality."""
+    import asyncio
+    from types import SimpleNamespace
+    from data.npcs import NPCS
+    from player.session_mixins.quest_turnin import SessionQuestTurninMixin
+    herb = 'herbalist_30_herbs'
+    seifer = 'v0560_hourly_npc_uoss_helper_seifer'
+    delivery = '__test_delivery_receiver'
+    teacher = '__test_required_teacher'
+    board = '__test_virtual_board'
+    unbound = '__test_unknown_receiver'
+    fake_quests = {
+        seifer: dict(QUESTS[herb], name='Godzinne zlecenie: Zaopatrzenie dla Seifer', giver='Seifer', needed=5, v0560_source_npc='uoss_helper_seifer'),
+        delivery: dict(QUESTS[herb], name='Dostawa', giver='Seifer', kind='deliver_npc', target_npc='__receiver'),
+        teacher: dict(QUESTS[herb], name='Próba nauczyciela', giver='Seifer', required_npc_id='__receiver', remote_turnin=True),
+        board: dict(QUESTS[herb], name='Zlecenie wirtualne', giver='Tablica Godzinnych Zleceń', remote_turnin=True),
+        unbound: dict(QUESTS[herb], name='Brak odbiorcy', giver='Nieistniejący NPC', remote_turnin=True),
+    }
+    fake_npcs = {
+        'uoss_helper_seifer': {'name':'Seifer', 'room':'__seifer_room', 'quest':seifer},
+        '__same_name': {'name':'Seifer', 'room':'__wrong_room'},
+        '__receiver': {'name':'Odbiorca', 'room':'__receiver_room'},
+    }
+    checks = 0
+    def check(ok, label):
+        nonlocal checks
+        assert ok, label
+        checks += 1
+    class DB:
+        def __init__(self, qid):
+            self.row = {'quest_id':qid, 'status':'active', 'progress':QUESTS[qid]['needed']}
+            self.stock = QUESTS[qid]['needed']
+        def quest(self, aid, qid): return self.row if qid == self.row['quest_id'] else None
+        def quest_rows(self, aid): return [self.row]
+        def total_items_across_storage_and_inventory(self, *args): return self.stock
+    class Actor(SessionQuestTurninMixin):
+        def __init__(self,qid,room):
+            self.character = SimpleNamespace(room_id=room, class_name='Mag')
+            self.account_id = 1
+            self.combat_mob_key = None
+            self.server = SimpleNamespace(db=DB(qid))
+            self.quest_list_context = {'source':'active','quest_ids':[qid]}
+            self.messages = []
+            self.payouts = []
+        def normalize_description_query(self, value):
+            return value.strip().lower().translate(str.maketrans('ąćęłńóśźż','acelnoszz'))
+        def quest_progress_for_turnin(self,qid): return QUESTS[qid]['needed'],True
+        def quest_collect_category_info(self,target): return ('herb',), 'herb_storage', 'ziół'
+        def consume_quest_items_batch_v10800(self,requirements):
+            self.server.db.stock -= sum(r[1] for r in requirements)
+            return True
+        async def complete_quest(self,qid):
+            self.payouts.append(qid)
+            self.server.db.row['status']='completed'
+        async def send(self,msg): self.messages.append(msg)
+    async def exercise():
+        for qid, wrong, right in ((herb,'__wrong_room',NPCS['herbalist_liora']['room']),
+                                  (seifer,'__wrong_room','__seifer_room')):
+            for route in ('number','name','plain','direct'):
+                actor = Actor(qid,wrong)
+                if route=='number':
+                    resolved,error=actor.quest_id_for_turnin_number('1')
+                    check(resolved==qid and error is None,'numeric context')
+                    await actor.turn_in_quest_id(resolved)
+                elif route=='name': await actor.turn_in_quest(QUESTS[qid]['name'])
+                elif route=='plain': await actor.turn_in_quest('')
+                else: await actor.handle_quest_interaction(qid)
+                check(actor.server.db.stock==QUESTS[qid]['needed'] and not actor.payouts and actor.server.db.row['status']=='active', 'wrong location retains all state')
+                check(bool(actor.messages),'wrong location explains refusal')
+            for route in ('number','name','plain','direct'):
+                actor=Actor(qid,right)
+                if route=='number': await actor.turn_in_quest_id(qid)
+                elif route=='name': await actor.turn_in_quest(QUESTS[qid]['name'])
+                elif route=='plain': await actor.turn_in_quest('')
+                else: await actor.handle_quest_interaction(qid)
+                check(actor.server.db.stock==0 and actor.payouts==[qid] and actor.server.db.row['status']=='completed', 'right NPC consumes once and pays once')
+        actor=Actor(seifer,'__wrong_room')
+        with patch.dict(QUESTS[seifer],{'remote_turnin':True}):
+            await actor.turn_in_quest_id(seifer)
+            check(not actor.payouts and actor.server.db.stock==5,'generated NPC cannot be remote even if flag is set')
+        # Exercise the source-ID rule even if localized giver name or offer changes.
+        with patch.dict(QUESTS[seifer],{'giver':'Inny NPC'}), patch.dict(NPCS['uoss_helper_seifer'],{'quest':None}):
+            check(not actor.quest_turnin_location(seifer)[0],'generated ID wins over stale name')
+            actor.character.room_id='__seifer_room'
+            check(actor.quest_turnin_location(seifer)[0],'generated source remains valid')
+        for qid in (delivery,teacher):
+            actor=Actor(qid,'__seifer_room')
+            check(not actor.quest_turnin_location(qid)[0],'explicit receiver blocks original giver')
+            actor.character.room_id='__receiver_room'
+            check(actor.quest_turnin_location(qid)[0],'explicit receiver accepts')
+        actor=Actor(board,'__wrong_room')
+        await actor.turn_in_quest_id(board)
+        check(actor.payouts==[board],'virtual board remains remote')
+        actor=Actor(unbound,'__wrong_room')
+        await actor.turn_in_quest_id(unbound)
+        check(not actor.payouts and actor.server.db.stock==30,'unknown receiver fails closed')
+        actor=Actor(board,'__wrong_room')
+        with patch.dict(NPCS,{'__board_owner':{'name':'Seifer','room':'__seifer_room','quest':board}}):
+            await actor.turn_in_quest_id(board)
+            check(not actor.payouts and actor.server.db.stock==30,'NPC-linked board quest cannot be remotely redeemed')
+    with patch.dict(QUESTS,fake_quests), patch.dict(NPCS,fake_npcs):
+        asyncio.run(exercise())
+    print(f'QUEST RECEIVER / HERBS v11676: {checks}/{checks} PASS',flush=True)
+    return checks
+
+
 if __name__=='__main__':run()
