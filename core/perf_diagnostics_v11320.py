@@ -7,6 +7,7 @@ retained. The profiler only tracks calls executed on the active command task.
 from __future__ import annotations
 from contextvars import ContextVar
 from dataclasses import dataclass
+from functools import wraps
 from time import perf_counter, process_time
 
 _ACTIVE = ContextVar('sb_perf_current_command_v11320', default=None)
@@ -60,3 +61,27 @@ def finish(scope, token, *, minimum=0.25):
               % (scope.kind, elapsed, cpu, scope.sql_queries, scope.sql_seconds,
                  scope.sql_max, scope.sql_commits, scope.sql_commit_seconds), flush=True)
     return elapsed
+
+
+def equipment_read_snapshot(method):
+    """Reuse EQ reads only inside one synchronous calculation, never across await.
+
+    Callers can already own a forecast snapshot. Nested calculations reuse it;
+    otherwise the local snapshot is discarded even on a failed calculation.
+    No result or equipment state is cached between independent attacks/skills.
+    """
+    @wraps(method)
+    def calculate(actor, *args, **kwargs):
+        previous = getattr(actor, '_read_only_equipment_cache_v1262', None)
+        if previous is not None:
+            return method(actor, *args, **kwargs)
+        had_attribute = '_read_only_equipment_cache_v1262' in actor.__dict__
+        actor._read_only_equipment_cache_v1262 = {}
+        try:
+            return method(actor, *args, **kwargs)
+        finally:
+            if had_attribute:
+                actor._read_only_equipment_cache_v1262 = previous
+            else:
+                actor.__dict__.pop('_read_only_equipment_cache_v1262', None)
+    return calculate

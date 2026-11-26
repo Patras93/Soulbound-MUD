@@ -127,4 +127,7 @@ def rebase_after_heritage():
     _apply(current())
 def inherited_parent(class_name):
     # May be used for locating the corresponding guild trainer.
-    return current().get(class_name,{}).get('parent')
+    # Only a scalar is returned; the private settings mapping never escapes.
+    if _SETTINGS is None:
+        current()
+    return _SETTINGS.get(class_name, {}).get('parent')

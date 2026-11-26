@@ -133,6 +133,10 @@ def run():
     # v116.00.57: actual helper full-strength opening and cached roaming graph.
     from validation.current_combat_performance_v11657_regression import run as combat_perf_test
     assert combat_perf_test() >= 140
+    from validation.current_combat_performance_v11657_regression import run_soul_equipment_regression
+    assert run_soul_equipment_regression() >= 900
+    from validation.current_combat_performance_v11657_regression import run_soul_form_regression
+    assert run_soul_form_regression() == 20
     print('KONTROLA WSTEPNA: historyczna wydajnosc helperow i cache wedrowek PASS; najemnicy w nowej grze nieaktywni',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)

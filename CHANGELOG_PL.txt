@@ -1,3 +1,21 @@
+v116.00.78 — FORMY BRONI DUSZY: OFF I ZANTETSUKEN
+
+- Cofnięto wyłącznie wzmocnienie podstawowego ataku Inżyniera z v116.77; przywrócono jego poprzednią formułę i opis. Optymalizacja odczytów EQ i pozostałe poprawki zostają.
+- forma off (również wyłącz/zdejmij): trwałe wyłączenie formy, bez utraty reliktu ani podstawowej Broni Duszy. forma auto przywraca automat, forma wybierz umożliwia świadomy wybór.
+- Automat pomija Zantetsuken; jeśli to jedyna forma, nie aktywuje żadnej. Zapisany wcześniej ręczny wybór pozostaje ważny do forma off/auto/wybierz. Mechanika samego Zantetsuken bez zmian.
+- Zapis stanu w istniejącej tabeli kolekcji, atomowo, bez migracji i nowych BAT-ów. Lokalnie: formy/SQLite 20/20, obrażenia/EQ 965/965 (38 profili), AST 298/298, kontrakt v114 310/310, składnia 1741 plików. Pełny PREDEPLOY 60/60 PLUS wymagany.
+
+---
+
+v116.00.77 — BROŃ DUSZY INŻYNIERA I ODCZYTY EQ
+
+- Omni-Narzędzie: do podstawowego ataku i jego prognozy zastosowano procentową specjalizację Soul Tier (ten sam wzór co klasy ofensywne). Wartości skilli, pasyw klasy, EXP, Soul XP i nagrody bez zmian. Opis bonusu wyświetla rzeczywistą premię.
+- Powtarzane odczyty EQ w pojedynczym synchronicznym obliczeniu obrażeń, prognozie, mocy skilla oraz HP/MP korzystają z lokalnego snapshotu. Bez przenoszenia nowych snapshotów pomiędzy niezależnymi akcjami, bez zmian bazy; oryginalny stan cache przywracany również po wyjątku. Odczyt rodzica klasy bez kopiowania całego katalogu.
+- Regresja 969/969: 38 autorskich profili, 4 progi Soul Tier, porównanie ataków i skilli, zmiana EQ między akcjami. Izolowane SELECT: prognoza 38 -> 12, rdzeń skilla 50 -> 12. To nie jest pomiar całych komend na serwerze. Chronione AST 298/298. Dwa testy historyczne korzystające z ekstrakcji AST dostały jawną zależność dekoratora; dawny samodzielny audyt v109 już w v116.76 miał niezgodną sumę historyczną i nie był naprawiany w tym wydaniu.
+- Nie zmieniano pozostałych klas ani AI/ruchu mobów. Dalsza optymalizacja pętli walki i skoków globalnego odświeżania świata wymaga pomiaru produkcyjnego. Pełny PREDEPLOY 60/60 PLUS obowiązkowy.
+
+---
+
 v116.00.76 — ODDAWANIE QUESTÓW U WŁAŚCIWEGO NPC
 
 - Godzinne zlecenie: Zaopatrzenie dla Seifer (5 ziół, v0560_hourly_npc_uoss_helper_seifer) i pozostałe generowane zadania rozpoznają odbiorcę po trwałym identyfikatorze NPC v0560_source_npc, nie tylko po nazwie.

@@ -54,7 +54,8 @@ def audit_v1264():
 
     src = ast.parse((Path(__file__).resolve().parents[1]/'player/session_mixins/combat_damage.py').read_text(encoding='utf8'))
     klass = next(x for x in src.body if isinstance(x, ast.ClassDef) and x.name=='SessionCombatDamageMixin')
-    ns = {}
+    from core.perf_diagnostics_v11320 import equipment_read_snapshot
+    ns = {"equipment_read_snapshot": equipment_read_snapshot}
     exec(compile(ast.fix_missing_locations(ast.Module(body=[klass],type_ignores=[])),
                  'combat_damage.py','exec'),ns)
     SessionCombatDamageMixin = ns['SessionCombatDamageMixin']

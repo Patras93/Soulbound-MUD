@@ -5,6 +5,7 @@ v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import math
 import random
+from core.perf_diagnostics_v11320 import equipment_read_snapshot
 import sqlite3
 import sys
 
@@ -423,6 +424,7 @@ class SessionCombatDamageMixin:
 
 
 
+    @equipment_read_snapshot
     def player_damage(self):
                 c = self.character
 
@@ -505,6 +507,7 @@ class SessionCombatDamageMixin:
                         )
                     )
 
+    @equipment_read_snapshot
     def consider_player_expected_hit(self):
                 c = self.character
                 build_power, build_stat, _channel = self.basic_attack_build_v11196()

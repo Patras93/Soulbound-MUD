@@ -19,6 +19,8 @@ def isolated_method(path, method_name, namespace):
     method=next(node for cls in tree.body if isinstance(cls,ast.ClassDef)
                 for node in cls.body if isinstance(node, (ast.FunctionDef,ast.AsyncFunctionDef))
                 and node.name==method_name)
+    from core.perf_diagnostics_v11320 import equipment_read_snapshot
+    namespace['equipment_read_snapshot'] = equipment_read_snapshot
     exec(compile(ast.fix_missing_locations(ast.Module(body=[method], type_ignores=[])), str(path), 'exec'),namespace)
     return namespace[method_name]
 

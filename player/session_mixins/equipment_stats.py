@@ -4,6 +4,7 @@ from systems.runtime_activation import enabled as _sb107_runtime_enabled
 
 # v0.44.0: explicit dependencies; no compatibility-global injection.
 import random
+from core.perf_diagnostics_v11320 import equipment_read_snapshot
 from core.character_resources import (
     character_hp_base,
     character_mana_base,
@@ -133,25 +134,50 @@ class SessionEquipmentStatsMixin:
             rows=self.soul_weapon_relic_rows_v11179()
             if not rows:
                 return None,None
-            selected=str(getattr(self,"active_soul_weapon_relic_id_v11179","") or "")
-            if not selected:
-                persisted=self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")
-                selected=next(iter(sorted(persisted)), "")
+            # Durable, character-scoped selection. Never reuse another
+            # character's session selection. The off marker is not an item.
+            persisted=self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")
+            if "__form_off__" in persisted:
+                return None,None
             for row in rows:
-                if row[0]==selected:
+                if row[0] in persisted:
                     return row
-            # Backward-compatible automatic mode: strongest level requirement,
-            # deterministic id tie-break. Never stacks multiple relics.
-            return sorted(rows,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))[-1]
+            # Zantetsuken suppresses ordinary physical attacks. It must be
+            # explicitly selected, never silently equipped by automatic mode.
+            eligible=[row for row in rows if row[0]!="uoss_odin_unique_2"]
+            if not eligible:
+                return None,None
+            return max(eligible,key=lambda row:(int(row[1].get("required_level",0) or 0),row[0]))
+
+    def set_soul_weapon_form_v11179(self, selection):
+            db=self.server.db
+            category="active_soul_weapon_relic_v11183"
+            with db.conn.deferred_commits():
+                for old in db.collection_entry_ids(self.account_id,category):
+                    db.remove_collection_entry(self.account_id,category,old)
+                if selection is not None:
+                    db.add_collection_entry(self.account_id,category,selection)
+            self.active_soul_weapon_relic_id_v11179=selection
 
     async def handle_soul_weapon_relic_v11179(self, raw=""):
             """Manage one active Soul Weapon form; legacy relikt/relic commands remain aliases."""
             rows=self.soul_weapon_relic_rows_v11179()
             arg=str(raw or "").strip()
-            if not rows:
-                await self.send("Nie masz jeszcze żadnej dostępnej formy Broni Duszy.")
-                return
             low=arg.lower()
+            if low in ("off","wylacz","wyłącz","zdejmij"):
+                self.set_soul_weapon_form_v11179("__form_off__")
+                await self.send("Formy Broni Duszy wyłączone. Zwykła Broń Duszy pozostaje aktywna. Wybór zapisany na stałe; relikty pozostają w kolekcji. Wpisz forma auto lub forma wybierz, aby ponownie włączyć formę.")
+                return
+            if low in ("auto","automatyczny","automatycznie"):
+                self.set_soul_weapon_form_v11179(None)
+                active_id,active=self.active_soul_weapon_relic_v11176()
+                await self.send("Forma Broni Duszy: tryb automatyczny. Aktywna: "
+                    +(active.get("name",active_id) if active else "brak")
+                    +". Zantetsuken wymaga ręcznego wyboru.")
+                return
+            if not rows:
+                await self.send("Nie masz jeszcze żadnej dostępnej formy Broni Duszy. Użycie: forma off / forma auto.")
+                return
             if not arg or low in ("lista","list","status","aktywna","aktywna forma","active"):
                 active_id,active=self.active_soul_weapon_relic_v11176()
                 rendered=[]
@@ -185,22 +211,14 @@ class SessionEquipmentStatsMixin:
                         + (f" — {'; '.join(suffix)}" if suffix else "")
                     )
                 await self.send("Formy Broni Duszy: " + " | ".join(rendered) + ".")
+                persisted=self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")
+                mode="wyłączone" if "__form_off__" in persisted else ("ręczny" if active_id in persisted else "automatyczny")
                 await self.send(
                     "Aktywna forma: "
                     +(active.get("name",active_id) if active else "brak")
-                    +". Użycie: forma wybierz <numer lub nazwa>; forma auto. "
+                    +f". Tryb: {mode}. Użycie: forma wybierz <numer lub nazwa>; forma auto; forma off. "
+                    "Zantetsuken wymaga ręcznego wyboru i ogranicza zwykłe ataki fizyczne. "
                     "Tylko jedna forma naraz przekazuje swoje statystyki i Weapon Power do Broni Duszy."
-                )
-                return
-            if low in ("auto","automatyczny","automatycznie"):
-                self.active_soul_weapon_relic_id_v11179=None
-                for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
-                    self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
-                active_id,active=self.active_soul_weapon_relic_v11176()
-                await self.send(
-                    "Forma Broni Duszy: tryb automatyczny. Aktywna: "
-                    +(active.get("name",active_id) if active else "brak")
-                    +". Gra wybiera najwyższą dostępną formę według wymaganego poziomu."
                 )
                 return
             if low.startswith("wybierz "):
@@ -216,10 +234,7 @@ class SessionEquipmentStatsMixin:
             if not chosen:
                 await self.send("Nie znam takiej posiadanej formy. Wpisz forma lista.")
                 return
-            self.active_soul_weapon_relic_id_v11179=chosen[0]
-            for _old in tuple(self.server.db.collection_entry_ids(self.account_id,"active_soul_weapon_relic_v11183")):
-                self.server.db.remove_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",_old)
-            self.server.db.add_collection_entry(self.account_id,"active_soul_weapon_relic_v11183",chosen[0])
+            self.set_soul_weapon_form_v11179(chosen[0])
             await self.send(
                 f"Aktywna forma Broni Duszy: {chosen[1].get('name',chosen[0])}. "
                 "Wybór zapisany na stałe; pozostałe kupione formy pozostają w kolekcji."
@@ -883,6 +898,7 @@ class SessionEquipmentStatsMixin:
                 + self.equipment_bonus_totals()["willpower"]
             )
 
+    @equipment_read_snapshot
     def max_hp(self):
             bonuses = self.equipment_bonus_totals()
             base = character_hp_base(
@@ -898,6 +914,7 @@ class SessionEquipmentStatsMixin:
                 value = int(round(value * 1.50))
             return max(1, value)
 
+    @equipment_read_snapshot
     def max_mana(self):
             bonuses = self.equipment_bonus_totals()
             base = character_mana_base(
@@ -911,6 +928,7 @@ class SessionEquipmentStatsMixin:
             ))
             return max(0, value)
 
+    @equipment_read_snapshot
     def physical_power(self):
             flat = self.equipment_flat_power_totals_v11187()
             return (
@@ -958,6 +976,7 @@ class SessionEquipmentStatsMixin:
                 )),
             )
 
+    @equipment_read_snapshot
     def spell_power(self):
             flat = self.equipment_flat_power_totals_v11187()
             return (

@@ -7,6 +7,7 @@ from systems.runtime_activation import enabled as _sb107_runtime_enabled
 v0.47.0: explicit combat architecture; no compatibility-global injection.
 """
 import random
+from core.perf_diagnostics_v11320 import equipment_read_snapshot
 import time
 
 from world.uoss_superboss_runtime import superboss_healing_blocked_v11179
@@ -104,6 +105,7 @@ class SessionCombatSkillsMixin:
             stat_power += int(flat["attack"]) + int(flat["weapon_power"])
         return max(1, int(stat_power))
 
+    @equipment_read_snapshot
     def offensive_skill_core_power_v11185(self, skill, authored_base=0):
         """Global offensive core driven primarily by real character stats + EQ.
 
@@ -347,6 +349,7 @@ class SessionCombatSkillsMixin:
         )
         return actual
 
+    @equipment_read_snapshot
     def offensive_skill_damage_multiplier_v11186(self, skill, skill_class_type=None):
         """Global multiplier path with separate physical, magic and Feedback roles.
 
