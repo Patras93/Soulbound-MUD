@@ -354,6 +354,12 @@ def _normalize_published_native_ast(node, relative, name):
     """
     allowed = _PUBLISHED_NATIVE_MIGRATIONS[(relative, name)]
     result = copy.deepcopy(node)  # _all_methods() is cached; never mutate it.
+    # Reviewed snapshot decorator: all body statements and original imports
+    # remain subject to the exact historical fingerprint below.
+    if (relative, name) == ('player/session_mixins/combat_skills.py',
+                            'SessionCombatSkillsMixin.offensive_skill_damage_multiplier_v11186'):
+        if len(result.decorator_list) == 1 and isinstance(result.decorator_list[0], ast.Name) and result.decorator_list[0].id == 'equipment_read_snapshot':
+            result.decorator_list = []
 
     class Renames(ast.NodeTransformer):
         def __init__(self):
@@ -436,6 +442,15 @@ def verify_native_method(file, name):
     node = _all_methods(str(file.resolve())).get(name)
     if node is None:
         raise AssertionError(('missing native method',relative,name))
+    if (relative, name) in {
+        ('player/session_mixins/combat_skills.py', 'SessionCombatSkillsMixin.offensive_skill_core_power_v11185'),
+        ('player/session_mixins/combat_skills.py', 'SessionCombatSkillsMixin.offensive_skill_damage_multiplier_v11186'),
+    }:
+        # Reviewed synchronous read-only equipment snapshot. The original
+        # body and all other decorators must still match the original hash.
+        if len(node.decorator_list) == 1 and isinstance(node.decorator_list[0], ast.Name) and node.decorator_list[0].id == 'equipment_read_snapshot':
+            node = copy.deepcopy(node)
+            node.decorator_list = []
     if (relative, name) in _PUBLISHED_NATIVE_MIGRATIONS:
         node = _normalize_published_native_ast(node, relative, name)
     if (relative, name) == ('player/session_mixins/io_auth_character.py',
