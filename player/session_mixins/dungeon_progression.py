@@ -988,6 +988,11 @@ class SessionDungeonProgressionMixin:
             if room != "giant_fortress_gate" and level is None:
                 await self.send("Portal Twierdzy działa przy bramie lub zaliczonym bossie co 10 pięter.")
                 return
+            if value in ('', 'lista', 'list', 'status'):
+                await self.show_checkpoint_portal_status_v11331(kind='giant', label='Portal Twierdzy Gigantów', start_floor=10)
+                await self.send(f'Bieżące piętro: {level if level is not None else "brama"}. Lista dotyczy twojej postaci.')
+                await self.send("Komendy: portal 10, portal 20 lub gigantportal 10; portal wyjdz.")
+                return
             if self.combat_mob_key or self.moving or self.guiding or getattr(self, 'current_hp', 0) <= 0 or self.is_downed_v0371():
                 await self.send("Portal Twierdzy: najpierw zakończ walkę, ruch lub odrodź postać.")
                 return
@@ -995,10 +1000,6 @@ class SessionDungeonProgressionMixin:
                 await self.send("Portal Twierdzy: w drużynie przejście uruchamia obecny lider.")
                 return
             floors = self.checkpoint_portal_floors_v11331('giant')
-            if value in ('', 'lista', 'list', 'status'):
-                await self.show_checkpoint_portal_status_v11331(kind='giant', label='Portal Twierdzy Gigantów', start_floor=10)
-                await self.send("Komendy: portal 10, portal 20 lub gigantportal 10; portal wyjdz.")
-                return
             returning = value in ('wyjdz', 'wyjdź', 'wyjscie', 'wyjście', 'out', 'exit')
             if returning:
                 if level is None:

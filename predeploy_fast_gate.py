@@ -137,6 +137,10 @@ def run():
     assert run_soul_equipment_regression() >= 900
     from validation.current_combat_performance_v11657_regression import run_soul_form_regression
     assert run_soul_form_regression() == 20
+    from validation.current_remote_party_v11679_regression import run as remote_party_test
+    assert remote_party_test() == 40
+    from validation.current_personal_portal_regression import run as personal_portal_test
+    assert personal_portal_test() == 231
     print('KONTROLA WSTEPNA: historyczna wydajnosc helperow i cache wedrowek PASS; najemnicy w nowej grze nieaktywni',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)

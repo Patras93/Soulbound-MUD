@@ -160,6 +160,7 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
         if not value or value in ('status','lista','list'):
             floors=sorted(map(int,(f for f in allowed if f.isdigit())))
             await self.send(f'{title}. Checkpointy: '+(', '.join(map(str,floors)) if floors else 'brak')+'.')
+            await self.send(f'Bieżące piętro: {current_n if current_n is not None else "brama"}. Twoje checkpointy; portal <piętro> lub portal wyjdz wykonuje przejście.')
             return
         if self.portal_requires_local_leader_v12811():
             await self.send('Portal uruchamia lider drużyny obecny w tym pokoju.')
@@ -213,13 +214,34 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
     old_origin=Session.checkpoint_portal_origin_v2010
     from systems.dungeons_regions import (
         ASTRAL_MIN_FLOOR, astral_floor_number, mythic_astral_floor_number,
+        crypt_floor_number, mythic_crypt_floor_number, giant_fortress_floor_number,
     )
 
-    def tower_first_floor(origin):
-        # Normal Astral Tower starts at floor 100; Mythic Tower starts at 1.
-        # Subrooms on their first floor are covered by the floor parsers.
-        return (astral_floor_number(origin) == ASTRAL_MIN_FLOOR or
-                mythic_astral_floor_number(origin) == 1)
+    def status_requested(self, raw):
+        return self.normalize_room_query(raw) in ('', 'status', 'lista', 'list')
+
+    async def personal_portal_status(self, *, astral_only=False):
+        # A status query must never enter a travel handler: those enforce
+        # local leadership and historically treated an empty argument as exit.
+        origin = str(self.character.room_id)
+        af, maf = astral_floor_number(origin), mythic_astral_floor_number(origin)
+        if astral_only or origin in ('astral_gate', 'mythic_astral_gate') or af is not None or maf is not None:
+            mythic = origin == 'mythic_astral_gate' or maf is not None
+            current = maf if mythic else af
+            await self.show_astral_portal_status(kind='mythic_astral' if mythic else 'astral')
+        elif origin == 'giant_fortress_gate' or giant_fortress_floor_number(origin) is not None:
+            return await self.use_giant_fortress_portal_v10800('lista')
+        elif self.catacomb_floor_v2010(origin) is not None or origin == 'temple_basement_deep_nest':
+            current = self.catacomb_floor_v2010(origin)
+            floors = self.catacomb_unlocked_floors_v2010()
+            await self.send('Portal Katakumb: twoje odblokowane piętra: ' + (', '.join(map(str, floors)) if floors else 'brak') + '.')
+            await self.send('Użyj portal 1, portal 2, portal 3 lub portal wyjdz.')
+        else:
+            cf, mcf = crypt_floor_number(origin), mythic_crypt_floor_number(origin)
+            mythic = origin == 'mythic_crypt_gate' or mcf is not None
+            current = mcf if mythic else cf
+            await self.show_portal_status(kind='mythic_crypt' if mythic else 'crypt')
+        await self.send(f'Bieżące piętro: {current if current is not None else "poza piętrami lochu"}. Lista dotyczy twojej postaci. Samo portal nie przenosi postaci.')
 
     def tower_checkpoint_origin(self, *, room_id, gate_rooms, kind,
                                 current_floor, is_checkpoint):
@@ -244,15 +266,11 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
         if pair:key=pair[0]
         if key in ('krypta','chaos','wieza'):
             return await portal(self,raw,key)
-        # The universal 'portal' must show the tower's own checkpoint list
-        # on floor one, even if that floor is also a cleared boss checkpoint.
-        # The old 'astralportal' command retains its original semantics.
+        if status_requested(self, raw):
+            return await personal_portal_status(self)
         if origin in ('astral_gate','mythic_astral_gate') or (
                 astral_floor_number(origin) is not None or
                 mythic_astral_floor_number(origin) is not None):
-            value=self.normalize_room_query(raw)
-            if not value and tower_first_floor(origin):
-                return await old_astral(self,'lista')
             return await old_astral(self,raw)
         return await old_crypt(self,raw)
     async def astral(self,raw):
@@ -262,6 +280,8 @@ def install(rooms,mobs,spawns,help_topics,aliases,World,Session):
         if pair:key=pair[0]
         if key=='wieza':
             return await portal(self,raw,key)
+        if status_requested(self, raw):
+            return await personal_portal_status(self, astral_only=True)
         return await old_astral(self,raw)
     Session.use_crypt_portal=crypt
     Session.use_astral_portal=astral
