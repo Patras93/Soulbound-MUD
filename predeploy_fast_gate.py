@@ -141,6 +141,8 @@ def run():
     assert remote_party_test() == 40
     from validation.current_personal_portal_regression import run as personal_portal_test
     assert personal_portal_test() == 231
+    from validation.current_performance_v11681_regression import run as performance81_test
+    assert performance81_test() == 28
     print('KONTROLA WSTEPNA: historyczna wydajnosc helperow i cache wedrowek PASS; najemnicy w nowej grze nieaktywni',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)

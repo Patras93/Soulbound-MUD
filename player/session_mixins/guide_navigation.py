@@ -39,7 +39,7 @@ from world.uoss_superboss_world import (
 from systems.current_deep_dungeon_grindfields import deep_dungeon_floor_for_navigation as uoss_deep_dungeon_floor_number_v11331
 
 
-@lru_cache(maxsize=8192)
+@lru_cache(maxsize=131072)
 def _normalized_room_search_text_v107(value: str) -> str:
     """Pure spelling normalization cached by *text*, never by Session/user.
 
@@ -49,8 +49,9 @@ def _normalized_room_search_text_v107(value: str) -> str:
     """
     text = value.strip().lower()
     text = text.replace("ł", "l").replace("Ł", "l")
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    if not text.isascii():
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
     text = text.replace("_", " ").replace("-", " ")
     text = re.sub(r"[^a-z0-9 ]+", " ", text)
     return " ".join(text.split())

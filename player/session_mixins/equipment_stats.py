@@ -113,14 +113,21 @@ class SessionEquipmentStatsMixin:
                 return list(cache["relic_rows"])
             level=int(getattr(self.character,"character_level",1) or 1)
             rows=[]
-            # Production-safe item ID index. Never cache ownership, levels,
-            # activation choice or an item's mutable/current dict.
-            from systems.relic_runtime_index_v11320 import relic_candidates_v11320
-            candidates = relic_candidates_v11320(ITEMS)
+            # A character's positive inventory is the authoritative ownership
+            # table. One SELECT and direct template lookups replace a periodic
+            # full catalogue scan plus a SELECT for every world relic.
+            db = self.server.db
+            inventory = getattr(db, 'inventory', None)
+            if callable(inventory):
+                candidates = ((row['item_id'], ITEMS.get(row['item_id'], {}))
+                              for row in inventory(self.account_id))
+            else:
+                # Historical isolated fixtures expose only item_qty().
+                from systems.relic_runtime_index_v11320 import relic_candidates_v11320
+                candidates = ((item_id, item) for item_id, item in relic_candidates_v11320(ITEMS)
+                              if db.item_qty(self.account_id, item_id) > 0)
             for item_id,item in candidates:
-                if item.get("type")!="soul_weapon_relic":
-                    continue
-                if self.server.db.item_qty(self.account_id,item_id)<=0:
+                if not isinstance(item, dict) or item.get("type")!="soul_weapon_relic":
                     continue
                 if int(item.get("required_level",0) or 0)>level:
                     continue

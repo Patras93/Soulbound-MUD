@@ -604,6 +604,13 @@ class SessionSkillQueueBuffsMixin:
             wanted_type = str(target_type or "").strip().lower()
             if wanted_type == "feedback":
                 return 1.0
+            # The burst forecast is a synchronous, read-only calculation.
+            # Its passive boosts depend on the same trained skills and mastery
+            # for every offensive skill in the same channel, not on time.
+            reads = getattr(self, '_burst_reads_v11681', None)
+            boost_key = ('passive_boost', exclude_skill_id, wanted_type)
+            if reads is not None and boost_key in reads:
+                return reads[boost_key]
             # v116.69: forecast of 100s of offensive abilities used to call
             # knows_skill() + skill_progress() for each learned passive boost
             # *per offensive skill*. skill_progress() is not read-only: it
@@ -662,7 +669,10 @@ class SessionSkillQueueBuffsMixin:
                     from systems.soul_evolutions_v1332 import role_evolution
                     scaled_bonus *= role_evolution(skill, level, self.character.soul_level, "passive_boost")
                     total_bonus += min(0.90, scaled_bonus)
-            return 1.0 + total_bonus
+            result = 1.0 + total_bonus
+            if reads is not None:
+                reads[boost_key] = result
+            return result
 
     def skill_buff_multiplier(self, exclude_skill_id=None, target_type=None):
             """Mnożnik boostów właściwy dla bieżącego typu akcji.
