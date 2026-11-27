@@ -15,6 +15,22 @@ MEC_BRANCHES = frozenset(('melee', 'ranged', 'feedback', 'magic'))
 
 
 def member_skill_burst_v11656(member, *, now=None):
+    """Use one private synchronous class/passive snapshot per forecast."""
+    if member is None:
+        return 0
+    previous = getattr(member, '_burst_reads_v11681', None)
+    had_previous = '_burst_reads_v11681' in member.__dict__
+    member._burst_reads_v11681 = {}
+    try:
+        return _member_skill_burst_v11681(member, now=now)
+    finally:
+        if had_previous:
+            member._burst_reads_v11681 = previous
+        else:
+            member.__dict__.pop('_burst_reads_v11681', None)
+
+
+def _member_skill_burst_v11681(member, *, now=None):
     """Return approximate strongest single offensive skill, or zero if none.
 
     Caches one DB snapshot for twelve seconds to keep combat hot paths fast.

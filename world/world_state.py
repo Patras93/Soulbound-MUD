@@ -1279,7 +1279,11 @@ class World:
 
         expired_keys = []
         live_counts = {}
-        live_by_room = {}
+        # Most rooms have unchanged occupants between refreshes. Keep their
+        # immutable tuples instead of allocating a list and a tuple per room
+        # on every global scan. The traversal order remains self.mobs order.
+        previous_rooms = getattr(self, "_last_live_by_room", {})
+        changed_rooms = {}
         for mob_key, mob in self.mobs.items():
             # Most mobs are ordinary MobState instances. A direct state dict
             # avoids repeated slow missing-attribute lookups across the world.
@@ -1367,8 +1371,18 @@ class World:
                     )
 
             if mob.alive:
-                live_counts[mob.room_id] = live_counts.get(mob.room_id, 0) + 1
-                live_by_room.setdefault(mob.room_id, []).append(mob)
+                room_id = mob.room_id
+                index = live_counts.get(room_id, 0)
+                live_counts[room_id] = index + 1
+                changed = changed_rooms.get(room_id)
+                if changed is not None:
+                    changed.append(mob)
+                else:
+                    previous = previous_rooms.get(room_id, ())
+                    if index >= len(previous) or previous[index] is not mob:
+                        changed = list(previous[:index])
+                        changed.append(mob)
+                        changed_rooms[room_id] = changed
 
         for mob_key in expired_keys:
             self.mobs.pop(mob_key, None)
@@ -1398,7 +1412,15 @@ class World:
 
         self._last_refresh_at = now
         self._last_live_counts = live_counts
-        self._last_live_by_room = {room_id: tuple(rows) for room_id, rows in live_by_room.items()}
+        live_by_room = {}
+        for room_id, count in live_counts.items():
+            changed = changed_rooms.get(room_id)
+            if changed is not None:
+                live_by_room[room_id] = tuple(changed)
+            else:
+                previous = previous_rooms[room_id]
+                live_by_room[room_id] = previous if len(previous) == count else previous[:count]
+        self._last_live_by_room = live_by_room
         return live_counts
 
     def wander_step(self, now=None, *, mob_keys=None):
@@ -1413,7 +1435,8 @@ class World:
         # v1.11.22: zwykłe odświeżenie ma już cache i jest wywoływane
         # przez aktywność graczy. Wander nie wymusza pełnego skanu świata co
         # 5 sekund; pełny refresh wykona się tylko gdy cache jest nieaktualny.
-        live_counts = dict(self.refresh())
+        live_counts = self.refresh()
+        copied_counts = False
         moves = []
         # Per-tick local caches: no stale catalog data survives this tick.
         template_can_wander = {}
@@ -1497,6 +1520,11 @@ class World:
                 continue
             old_room = mob.room_id
             target = random.choice(candidates)
+            # Many slices consist entirely of stationary procedural mobs.
+            # Keep the refresh snapshot intact until the first actual move.
+            if not copied_counts:
+                live_counts = dict(live_counts)
+                copied_counts = True
             mob.room_id = target
             live_counts[old_room] = max(0, live_counts.get(old_room, 1) - 1)
             live_counts[target] = live_counts.get(target, 0) + 1

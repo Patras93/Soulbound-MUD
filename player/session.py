@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Soulbound v0.49.0 Session assembly from focused mixins."""
 from player.session_mixins.minions_party_monitor_v11665 import SessionMinionsPartyMonitorV11665Mixin
+from core.perf_diagnostics_v11320 import equipment_read_snapshot
 
 
 from player.session_mixins.no_hires_minion_spells_v11664 import SessionNoHiresMinionSpellsV11664Mixin
@@ -214,19 +215,32 @@ class Session(
         now = time.monotonic()
         if cache and cache[0] == stamp and now - cache[1] < 3600.0:
             return cache[2]
+        # Floor generation frequently grows ROOMS by ~100 entries. Rebuild
+        # the public indexes, but reuse pure aliases for unchanged metadata;
+        # no stale destinations or old room objects are carried forward.
+        previous = cache[3] if cache and cache[0][0] == stamp[0] and len(cache) > 3 else {}
+        signatures = {}
         zones, exact, aliases = {}, {}, {}
         for rid, room in ROOMS.items():
-            z = self.normalize_room_query(room.get('zone') or '')
+            signature = (room['name'], room.get('zone', ''))
+            old = previous.get(rid)
+            if old is not None and old[0] == signature:
+                z, names, sort_name = old[1:]
+                signatures[rid] = old
+            else:
+                z = self.normalize_room_query(room.get('zone') or '')
+                names = tuple(a for a in self.room_search_aliases(rid, room) if a)
+                sort_name = self.normalize_room_query(room['name'])
+                signatures[rid] = (signature, z, names, sort_name)
             if z:
                 zones.setdefault(z, []).append(rid)
-            names = tuple(a for a in self.room_search_aliases(rid, room) if a)
             aliases[rid] = names
             for alias in names:
                 exact.setdefault(alias, []).append(rid)
         for rows in zones.values():
-            rows.sort(key=lambda rid: self.normalize_room_query(ROOMS[rid]['name']))
+            rows.sort(key=lambda rid: signatures[rid][3])
         data = (zones, exact, aliases)
-        Session._v11644_room_index = (stamp, now, data)
+        Session._v11644_room_index = (stamp, now, data, signatures)
         return data
 
     def rooms_in_exact_zone(self, query):
@@ -256,6 +270,13 @@ class Session(
         partial = [rid for rid, names in aliases.items()
                    if any(q in name for name in names)]
         return sorted(set(partial), key=lambda rid: ROOMS[rid]['name'].lower())
+
+    @equipment_read_snapshot
+    def combat_xp_power_v023(self):
+        # Keep the original progression formula and its historical AST intact.
+        # Five effective stats use the same read-only EQ snapshot, never a
+        # cached progression result between movements or experience awards.
+        return super().combat_xp_power_v023()
 
     async def show_exp_areas(self, query=''):
         # A single read-only rendering must not recompute class mastery,

@@ -1,3 +1,14 @@
+v116.00.81 — WYDAJNOŚĆ WALKI, NAWIGACJI I ŚWIATA
+
+- Prognoza najsilniejszego skilla korzysta z jednego synchronicznego odczytu aktywnej klasy, biegłości i pasywnych mnożników; właściciele skilli indeksowani raz w obrębie prognozy. Dane nie pozostają w tej dodatkowej pamięci po zakończeniu obliczenia. Dotychczasowy 12-sekundowy cache końcowej prognozy pozostaje bez zmian.
+- Formy Broni Duszy: pojedynczy odczyt dodatnich pozycji osobistego ekwipunku, bez okresowego skanowania całego katalogu przedmiotów i zapytań osobno dla każdego reliktu. Bez zmian form, własności i wymagań poziomu.
+- Prowadzenie / expowiska: przy przebudowie indeksu po rozbudowie świata ponownie przeliczane są tylko aliasy nowych lub zmienionych lokacji. Dotychczasowe zasady unieważniania indeksu, przejść i blokad pozostają. Obliczenie siły bojowej korzysta z jednego synchronicznego odczytu EQ, oryginalna formuła bez zmian.
+- Odświeżanie świata ponownie wykorzystuje niezmienione krotki żywych mobów w lokacjach. W turach bez ruchu nie kopiuje indeksu liczebności. Kolejność mobów, losowania, respawn, HP, 15-sekundowy cykl i krok gracza 0,1 s pozostają bez zmian. Nie ograniczono populacji wygenerowanych pięter.
+- Lokalny test izolowany: 28/28 PASS, prognoza 240 skilli 4084 -> 5 zapytań SQLite przy identycznym wyniku; 2000 -> 4 obliczeń aliasów po zmianie czterech lokacji, ponowne użycie 2000 niezmienionych krotek. Nie są to pomiary pełnych komend ani opóźnień na żywym serwerze. Regresje: 298/298 AST, 310/310 kontrakt v114, 977/977 klas i ruchu, 965/965 obrażeń/EQ, 20/20 form, 497/497 wydajności i 8/8 cyklu życia ciał. Składnia i kontrola wyjątków 1744 plików Python PASS.
+- Bez zmian balansu, EXP, drużyn, checkpointów, schematu bazy i skryptów BAT/SH. Obowiązkowy pełny PREDEPLOY 60/60 PLUS przed wdrożeniem; kolejny log produkcyjny pozwoli ocenić pozostałe skoki opóźnień.
+
+---
+
 v116.00.80 — OSOBISTY PODGLĄD PORTALI W DRUŻYNIE
 
 - portal, portal lista i portal status pokazują własne odblokowane checkpointy/piętra i bieżące piętro gracza, bez wymagania lidera; również astralportal i gigantportal w swoich lochach.

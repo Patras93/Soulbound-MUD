@@ -24,8 +24,14 @@ class SessionClassProgressionMixin:
             return list(names)
 
     def active_class_names(self):
+            reads = getattr(self, '_burst_reads_v11681', None)
+            if reads is not None and 'active_classes' in reads:
+                return list(reads['active_classes'])
             self.refresh_active_classes()
-            return self.character.active_class_names()
+            names = self.character.active_class_names()
+            if reads is not None:
+                reads['active_classes'] = tuple(names)
+            return names
 
     def find_class_name(self, query):
             wanted = self.normalize_description_query(query)
@@ -47,14 +53,31 @@ class SessionClassProgressionMixin:
 
     def skill_class_name(self, skill):
             skill_id = skill["id"] if isinstance(skill, dict) else str(skill)
+            reads = getattr(self, '_burst_reads_v11681', None)
+            if reads is not None:
+                owners = reads.get('skill_owners')
+                if owners is None:
+                    owners = {}
+                    for owner, skills in CLASS_SKILLS.items():
+                        for entry in skills:
+                            owners.setdefault(entry['id'], owner)
+                    reads['skill_owners'] = owners
+                return owners.get(skill_id, self.character.class_name)
             for class_name, skills in CLASS_SKILLS.items():
                 if any(entry["id"] == skill_id for entry in skills):
                     return class_name
             return self.character.class_name
 
     def class_mastery_level(self, class_name):
+            reads = getattr(self, '_burst_reads_v11681', None)
+            key = ('class_mastery', class_name)
+            if reads is not None and key in reads:
+                return reads[key]
             row = self.server.db.class_progress_row(self.account_id, class_name)
-            return int(row["level"]) if row else 1
+            level = int(row["level"]) if row else 1
+            if reads is not None:
+                reads[key] = level
+            return level
 
     def highest_active_class_mastery(self):
             active = self.active_class_names()
