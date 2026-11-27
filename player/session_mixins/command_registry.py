@@ -233,6 +233,7 @@ COMMAND_REGISTRY = {
     'reply': ('reply_private_v0928', (COMMAND_TEXT,), {}),
     'teleportleader': ('teleport_to_party_leader', (COMMAND_TEXT,), {}),
     'party': ('handle_party', (COMMAND_TEXT,), {}),
+    'druzyny': ('show_remote_parties_v11679', (COMMAND_TEXT,), {}),
     'group': ('handle_party', (COMMAND_TEXT,), {}),
     'grupa': ('handle_party', (COMMAND_TEXT,), {}),
     'partyinvite': ('party_invite', (COMMAND_TEXT,), {}),
@@ -517,6 +518,8 @@ for _canonical, (_handler, _positional, _keywords) in COMMAND_REGISTRY.items():
         help_topic=_canonical, kind="session",
     )
 
+COMMAND_CATALOG.add_alias('drużyny', 'druzyny', source='player/session_mixins/command_registry.py')
+
 for _alias in ('teleport', 'tp', 'teleportdolidera', 'tpdolidera'):
     COMMAND_CATALOG.add_alias(_alias, 'teleportleader', source='player/session_mixins/command_registry.py')
 COMMAND_CATALOG.add_alias('prezent', 'adwent', source='player/session_mixins/command_registry.py')
@@ -578,7 +581,7 @@ for _alias, _target in (("piętro", "pietro"), ("floor", "pietro"),
                         ("capexp", "experience"), ("exp", "experience")):
     COMMAND_CATALOG.add_alias(_alias, _target, source='player/session_mixins/command_registry.py')
 for _safe in (REST_SAFE_COMMANDS, GUIDE_SAFE_COMMANDS, DOWNED_SAFE_COMMANDS):
-    _safe.update(("experience", "your", "expbank"))
+    _safe.update(("experience", "your", "expbank", "druzyny"))
 
 # v1.13.42: czytelne polskie polecenie jest kanoniczne, ale zachowujemy
 # angielskie odpowiedniki dla graczy używających starych skrótów.

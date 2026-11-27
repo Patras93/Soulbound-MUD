@@ -1402,6 +1402,8 @@ if "nawigacja" in HELP_TOPICS:
     HELP_TOPICS["nawigacja"].append("Rozszerzenie v1.19.1: nawigacja status, krok, okolica, cel <nazwa>. help nawigacja2.")
 if "druzyny" in HELP_TOPICS:
     HELP_TOPICS["druzyny"].append("Party 4.0: raport, zbiorka, trasa <cel>/krok/off. help party4.")
+    HELP_TOPICS["druzyny"].append("druzyny pokazuje aktywne drużyny. druzyna dolacz <numer lub lider> wysyła prośbę; druzyna prosby pokazuje oczekujące prośby.")
+    HELP_TOPICS["druzyny"].append("Lider: druzyna akceptuj <gracz> przenosi gracza do lidera, druzyna odrzuc <gracz> odrzuca. druzyna anuluj anuluje własną prośbę. Ważność: 3 minuty; istniejące bramy i specjalne lokacje pozostają chronione.")
 
 
 # v1.21.1: osobny, prawdziwy temat HELP dla istniejącej Tawerny Najemników.

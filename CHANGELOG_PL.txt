@@ -1,3 +1,23 @@
+v116.00.80 — OSOBISTY PODGLĄD PORTALI W DRUŻYNIE
+
+- portal, portal lista i portal status pokazują własne odblokowane checkpointy/piętra i bieżące piętro gracza, bez wymagania lidera; również astralportal i gigantportal w swoich lochach.
+- Samo portal bez argumentów nie przenosi nikogo, także gdy polecenie wpisuje lider lub gracz solo na zaliczonym checkpointcie. Przejście wymaga jawnego numeru albo portal wyjdz; zasady lidera, walki i osobistych blokad pozostają bez zmian. W Katakumbach podgląd odczytuje zapisane odwiedziny bez odblokowywania nowych pięter.
+- Utrzymano zdalne dołączanie do drużyn z v116.79. Bez zmiany balansu, migracji bazy i nowych BAT-ów.
+- Lokalnie 231/231 kontroli rzeczywistych handlerów i rejestru komend w izolowanym modelu sesji, 298/298 chronionych metod AST. Pełny PREDEPLOY 60/60 PLUS wymagany przed wdrożeniem.
+
+---
+
+v116.00.79 — DOŁĄCZANIE DO DRUŻYN NA ODLEGŁOŚĆ
+
+- druzyny / drużyny: numerowana lista aktywnych drużyn z liderem online, liczebnością, limitem, lokacją i opcjonalnym celem. Bez wychodzenia ze zwykłej lokacji i bez przerywania odpoczynku/prowadzenia.
+- druzyna dolacz <numer lub nazwa lidera>: prośba o dołączenie, bez zmiany położenia i składu przed akceptacją. Lider: druzyna prosby, druzyna akceptuj <gracz> (także zaakceptuj), druzyna odrzuc <gracz>. Gracz: druzyna anuluj. Prośba wygasa po 3 minutach; jedna oczekująca na postać. Numer odnosi się do ostatnio wyświetlonej listy, nie zmienia celu przy zmianie składu listy.
+- Akceptacja dołącza gracza i przenosi go do bieżącej lokacji lidera. Ponownie sprawdzany jest limit, lider, członkostwo, ignorowanie i stan sesji. Niepowodzenie zapisu przywraca poprzednią lokację i nie dodaje członka. Prośby są sesyjne; wylogowanie, rozwiązanie/odtworzenie drużyny lub zmiana lidera je unieważnia.
+- Teleport nie działa podczas walki, powalenia, ruchu, odpoczynku, auto-profesji, prowadzenia lub innej wykonywanej komendy gracza. Osobiste bramy bossów, bramy Apandy, kopalnia i wymagania profesji pozostają chronione; do prywatnych chodników, sekretów, aren UOSS, gauntletów i szlaków morskich wchodzi się normalną drogą. Bez nowych ograniczeń zwykłego marszu.
+- Dotychczasowe zaproszenia (druzyna dolacz bez argumentu), monitor, ruch i teleport w Krypcie bez zmian. Bez migracji bazy, zmian balansu, nowych BAT-ów i zmian limitu klientów.
+- Lokalnie: 40/40 testów próśb, teleportu i routingu (izolowane sesje), 33/33 dotychczasowego teleportu, 17/17 minionów/monitora, 14/14 cast/c, 298/298 AST, składnia 1742 plików Python. Pełny PREDEPLOY 60/60 PLUS wymagany przed wdrożeniem.
+
+---
+
 v116.00.78 — FORMY BRONI DUSZY: OFF I ZANTETSUKEN
 
 - Cofnięto wyłącznie wzmocnienie podstawowego ataku Inżyniera z v116.77; przywrócono jego poprzednią formułę i opis. Optymalizacja odczytów EQ i pozostałe poprawki zostają.

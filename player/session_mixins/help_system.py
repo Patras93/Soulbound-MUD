@@ -86,6 +86,7 @@ class SessionHelpSystemMixin(HelpHistoryV109Mixin, HelpSkillsV109Mixin):
                 "krypta / crypt - informacje o nieskończonej Krypcie, bossach co 10 pięter i checkpointach",
                 "wieza / astral - informacje o nieskończonej Wieży Astralnej od piętra 100",
                 "astralportal [poziom] - zwykła i Mityczna Wieża: checkpoint co 10 poziomów; z Bramy LUB z odblokowanego checkpointu przeskok na dowolny inny odblokowany checkpoint; astralportal wyjdz wraca do Bramy",
+                "portal / portal lista / portal status - twoje odblokowane piętra i bieżące piętro, również w drużynie; bez teleportu. Portal z numerem lub wyjdz uruchamia przejście. Wspólne przejście nadal uruchamia lider.",
                 "portal [piętro] - zwykła i Mityczna Krypta: checkpoint co 10 pięter; z wejścia LUB odblokowanego checkpointu przeskok na inny odblokowany checkpoint; portal wyjdz wraca do Bramy/Sali",
                 "W Katakumbach pod Świątynią: portal 1/2/3 - przejście na już odwiedzone piętro; portal - lista; portal wyjdz - wyjście.",
                 "deepdungeon - status nieskończonego UOSS Deep Dungeon; deepelevator <piętro> - winda do odwiedzonego piętra; deepelevator 0 - Floor 0 po dotarciu do 100",
