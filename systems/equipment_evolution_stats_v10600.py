@@ -10,7 +10,7 @@ import os
 from systems.equipment_evolution_v10500 import current_stage, MAX_STAGE
 
 
-def equipped_evolution_stage(db, account_id, slot, item_id):
+def equipped_evolution_stage(db, account_id, slot, item_id, *, read_snapshot=None):
     """Return the evolution level for a worn *instance*, never its item template.
 
     v105 without the explicit disposable-copy marker uses the existing legacy
@@ -26,8 +26,17 @@ def equipped_evolution_stage(db, account_id, slot, item_id):
     item_id, slot = str(item_id), str(slot)
     if catalog.get(item_id, {}).get('type') not in ('armor', 'weapon'):
         return current_stage(db.conn, account_id, item_id)
-    from systems.equipment_shadow_slots_v10600 import equipped_copy
-    found = equipped_copy(db.conn, account_id, slot, catalog)
+    from systems.equipment_shadow_slots_v10600 import equipped_copy, equipped_copies_v11684
+    if read_snapshot is None:
+        found = equipped_copy(db.conn, account_id, slot, catalog)
+    else:
+        # Private dict owned by ONE synchronous stat/defense calculation.
+        # Do not keep it on a player or connection; no cache across await,
+        # combat hits, changes of equipment, or character switches.
+        key = (id(db), int(account_id), id(catalog))
+        if key not in read_snapshot:
+            read_snapshot[key] = equipped_copies_v11684(db.conn, account_id, catalog)
+        found = read_snapshot[key].get(slot)
     if found is None or found[1] != item_id:
         raise RuntimeError('v106 bonus EQ: slot nie wskazuje właściwej fizycznej sztuki')
     stage = found[2]

@@ -260,6 +260,88 @@ class SessionMinionsPartyMonitorV11665Mixin:
                     and not requester.remote_party_busy_v11679()):
                 await requester.look()
 
+    async def teleport_to_party_leader(self, raw=""):
+        """Keep old crypt recovery; also let any member return to a named teammate."""
+        requested = " ".join(str(raw or "").split())
+        normalized = self.normalize_description_query(requested)
+        leader_words = ("", "to leader", "leader", "do lidera", "lider", "lidera")
+        if not self.remote_party_online_v11679(self):
+            return False
+        key = self.party_key()
+        if key is None:
+            await self.send("Nie należysz do drużyny.")
+            return False
+        # No guessing which room to use when the team has split. The leader
+        # is free to pick any online teammate without moving anyone else.
+        members = self.server.parties.get(key, set())
+        candidates = []
+        for aid in sorted(members):
+            teammate = self.server.session_by_account(aid)
+            if teammate is not self and self.remote_party_online_v11679(teammate) and teammate.party_key() == key:
+                candidates.append(teammate)
+        if normalized in ("druzyna", "party", "lista", "list") or (normalized in leader_words and key == self.account_id):
+            from data.rooms import ROOMS
+            lines = ["TELEPORT DRUŻYNY — wybierz członka: "]
+            for teammate in sorted(candidates, key=lambda member: member.character.name.casefold()):
+                room = ROOMS.get(teammate.character.room_id, {}).get('name', teammate.character.room_id)
+                state = ' (zajęty lub powalony)' if teammate.remote_party_busy_v11679() else ''
+                lines.append(f'{teammate.character.name}: {room}{state}.')
+            if not candidates:
+                lines.append('Brak innych członków drużyny online.')
+            lines.append('Użycie: tp <imię gracza> lub tp gracz <imię>.')
+            await self.send('\r\n'.join(lines))
+            return False
+        if normalized in leader_words:
+            if self.character.room_id != 'temple':
+                return await super().teleport_to_party_leader(raw)
+            candidates = [m for m in candidates if m.account_id == key]
+        else:
+            if normalized.startswith('gracz '):
+                requested = requested.split(maxsplit=1)[1]
+                normalized = self.normalize_description_query(requested)
+            candidates = [m for m in candidates if self.normalize_description_query(m.character.name) == normalized]
+        if len(candidates) != 1:
+            await self.send('Nie ma takiego innego członka drużyny online. Wpisz tp druzyna.')
+            return False
+        teammate = candidates[0]
+        if (self.remote_party_busy_v11679() or teammate.remote_party_busy_v11679()
+                or getattr(teammate, '_remote_party_dispatching_v11679', False)):
+            await self.send('Teleport wymaga, aby oboje byli żywi i zakończyli walkę, ruch, odpoczynek oraz auto-profesje. Spróbuj ponownie.')
+            return False
+        old = self.character.room_id
+        target = teammate.character.room_id
+        if old == target:
+            await self.send(f'Jesteś już przy {teammate.character.name}.')
+            return True
+        error = self.remote_party_entry_error_v11679(target)
+        if error:
+            await self.send(f'Teleport zablokowany: {error}')
+            return False
+        # A synchronous check and save: no yield between membership, gate
+        # checks and assignment, no changes to any other player's position.
+        if (self.party_key() != key or teammate.party_key() != key
+                or not self.remote_party_online_v11679(teammate)
+                or teammate.character.room_id != target):
+            await self.send('Drużyna lub cel zmieniły się. Spróbuj ponownie.')
+            return False
+        previous = self.previous_room_id
+        self.character.room_id = target
+        self.previous_room_id = None
+        try:
+            self.server.db.save_character(self.character)
+        except Exception:
+            self.character.room_id = old
+            self.previous_room_id = previous
+            raise
+        from data.rooms import ROOMS
+        name = self.character.name
+        target_name = teammate.character.name
+        await self.server.broadcast_room(old, f'{name} teleportuje się do drużyny.', exclude=self)
+        await self.server.broadcast_room(target, f'{name} wraca do drużyny teleportem.', exclude=self)
+        await self.send(f'Teleport do {target_name}: {ROOMS.get(target, {}).get("name", target)}.')
+        await self.look()
+        return True
+
     async def dispatch_registered_command(self, command, args):
         # Remote acceptance is executed on the leader's connection. Do not
         # relocate a different player while their own command is in flight.

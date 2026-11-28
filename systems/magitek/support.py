@@ -102,12 +102,29 @@ def dispel_enemy_buffs(mob, now_monotonic=None):
     return tuple(title for _, title in removed)
 
 
+def magitek_spell_mp_cost(actor, skill):
+    from core.classes_skills import effective_skill_mana_cost
+    cost = effective_skill_mana_cost(skill, 'Magitek')
+    multiplier = getattr(actor, 'equipment_mp_cost_multiplier_v11176', lambda: 1.0)()
+    return max(1, int(round(cost * multiplier))) if cost else 0
+
+
+async def magitek_has_mana(actor, skill, cost):
+    if actor.current_mana >= cost:
+        return True
+    await actor.send(f'Za mało Many. {skill["name"]} wymaga {cost}, a masz {actor.current_mana}.')
+    return False
+
+
 async def use_support_skill(actor, skill, target_text):
     """Return handled=True. Commit effects and XP only after all validation."""
     slug = skill['v107_skill']
     valid, error = _can_cast(actor, skill)
     if not valid:
         await actor.send(error)
+        return
+    cost = magitek_spell_mp_cost(actor, skill)
+    if not await magitek_has_mana(actor, skill, cost):
         return
     progress = actor.server.db.skill_progress(actor.account_id, skill['id'])
     level = max(1, int(progress['level'])) if progress is not None else 1
@@ -120,6 +137,7 @@ async def use_support_skill(actor, skill, target_text):
         length = duration_seconds(slug, level, actor.effective_willpower())
         if not hasattr(target, 'active_skill_buffs') or target.active_skill_buffs is None:
             target.active_skill_buffs = {}
+        actor.current_mana -= cost
         # A single shared key enforces source-exclusive TekShield/TekBarrier.
         target.active_skill_buffs[WARD_KEY] = {
             'name': skill['name'], 'source': actor.character.name,
@@ -141,6 +159,7 @@ async def use_support_skill(actor, skill, target_text):
         seconds = duration_seconds(slug, level, actor.effective_willpower())
         if not hasattr(actor, 'active_skill_buffs') or actor.active_skill_buffs is None:
             actor.active_skill_buffs = {}
+        actor.current_mana -= cost
         actor.active_skill_buffs[RUNIC_KEY] = {
             'name': 'Runic Weapon', 'until': now + seconds,
             'source': actor.character.name, 'beneficial': True,
@@ -164,10 +183,13 @@ async def use_support_skill(actor, skill, target_text):
             mob = await actor.skill_combat_target(query)
             if not mob or not mob.alive or mob.room_id != actor.character.room_id:
                 return
-            effects = dispel_enemy_buffs(mob)
-            if not effects:
+            if not removable_enemy_buffs(mob):
                 await actor.send('Diffuser: wróg nie ma czasowych wzmocnień, które można rozproszyć.')
                 return
+            if not await magitek_has_mana(actor, skill, cost):
+                return
+            effects = dispel_enemy_buffs(mob)
+            actor.current_mana -= cost
             await actor.grant_skill_use_xp(skill)
             from data.mobs import MOB_TEMPLATES
             name = MOB_TEMPLATES.get(mob.template_id, {}).get('name', mob.template_id)
@@ -189,6 +211,7 @@ async def use_support_skill(actor, skill, target_text):
         if not keys:
             await actor.send('Diffuser: brak aktywnych pozytywnych efektów do rozproszenia.')
             return
+        actor.current_mana -= cost
         for key in keys:
             buffs.pop(key, None)
         await actor.grant_skill_use_xp(skill)
@@ -237,6 +260,7 @@ async def use_support_skill(actor, skill, target_text):
                 member.server.db.save_character(member.character)
             await actor.send('X-Fer: zapis teleportacji nie powiódł się; pozycje cofnięte.')
             return
+        actor.current_mana -= cost
         await actor.grant_skill_use_xp(skill)
         for member, previous in moved:
             if previous != 'square':

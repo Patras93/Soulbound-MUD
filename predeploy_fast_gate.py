@@ -143,6 +143,12 @@ def run():
     assert personal_portal_test() == 231
     from validation.current_performance_v11681_regression import run as performance81_test
     assert performance81_test() == 28
+    from validation.current_party_return_v11682_regression import run as party_return_test
+    assert party_return_test() == 24
+    from validation.current_magic_mana_v11683_regression import run as magic_mana_test
+    assert magic_mana_test() >= 5703
+    from validation.current_aoe_performance_v11684_regression import run as aoe_perf_test
+    assert aoe_perf_test() == 19
     print('KONTROLA WSTEPNA: historyczna wydajnosc helperow i cache wedrowek PASS; najemnicy w nowej grze nieaktywni',flush=True)
     print('KONTROLA WSTEPNA: globalny balans realnej sily drużyny 1-6 graczy PASS', flush=True)
     print('KONTROLA WSTEPNA: trudnosc calego swiata i 1-6 graczy PASS', flush=True)

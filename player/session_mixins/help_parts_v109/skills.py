@@ -244,7 +244,7 @@ class HelpSkillsV109Mixin:
                 else "Cooldown zwykłego ponownego użycia: brak. "
             )
             await self.send(
-                (f"Mana: {mana}. " if mana else "Mana: nie jest używana przez tę umiejętność. ")
+                ("Mana: 24–30, zależnie od powiązanego rdzenia. " if skill.get("v107_skill") == "magicitelink" else f"Mana: {mana}. " if mana else "Mana: nie jest używana przez tę umiejętność. ")
                 + cooldown_text
                 + f"Opis: {skill.get('desc', 'Brak opisu.')}"
             )

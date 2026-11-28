@@ -127,6 +127,13 @@ class Session(
 ):
     """Player session composed from focused subsystem mixins."""
 
+    async def mob_defeated(self, mob):
+        # Keep the canonical reward path (including helper XP) unchanged.
+        # Diagnostics distinguish reward work from physical EQ ledger checks.
+        from core.perf_diagnostics_v11320 import performance_phase
+        with performance_phase('kill_rewards'):
+            return await super().mob_defeated(mob)
+
     async def read_line(self):
         """Finish an expired Windows TCP read as a disconnect, not a failed command.
 

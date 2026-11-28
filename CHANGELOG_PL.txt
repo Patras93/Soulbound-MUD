@@ -1,3 +1,31 @@
+v116.00.84 — WYDAJNOŚĆ EQ I SERII SKILLI PRZY POMOCNIKACH BOSSÓW
+
+- Audyt własności fizycznych kopii EQ korzysta z grupowania i zbiorczego JOIN zamiast osobnego zapytania dla każdej kopii w magazynie. Nadal wykrywa niezgodność slotów, liczby kopii, właściciela, brakujące i jednocześnie przechowywane/założone sztuki.
+- Jeden synchroniczny odczyt etapów ewolucji wszystkich założonych kopii na obliczenie bonusów statystyk albo obrony; bez przechowywania między akcjami, zmianami EQ lub postaciami. W izolowanym porównaniu z dokładnym audytem v116.83: 12 slotów i 600 kopii w magazynie, 7272 -> 6 zapytań, identyczne etapy. To nie jest pomiar całego skilla ani walki z bossem.
+- Pętla komend oddaje wykonanie innym zadaniom po zakończonym poleceniu, bez stałego opóźnienia i bez rozdzielania transakcji skilla. Diagnostyka wolnych poleceń pokazuje liczbę wywołań, czas, SQL i commity audytu EQ oraz nagród za zabicie (fazy mogą się nakładać), bez argumentów i danych postaci.
+- Bez zmian liczby pomocników bossów, obrażeń, nagród i kolejności EXP, cooldownów, kroku 0,1 s, schematu SQLite i BAT/SH. Zawiera poprawki powrotu do drużyny v116.82 i many v116.83.
+- Lokalnie 19/19 nowych kontroli, 38/38 ewolucji kopii, 35/35 integracji slotów, 13/13 adapterów bariery SQL, 965/965 obrażeń/EQ, 20/20 form, 5703/5703 many, 298/298 AST, składnia i kontrola wyjątków 1747 plików. Historyczny osobny test bariery v107 odwołuje się do nieobecnego wdroz_v107_z_zewnatrz.py także w v116.83; nie przywracano starego instalatora. Pełny PREDEPLOY 60/60 PLUS obowiązkowy. Kolejny log produkcyjny potrzebny do oceny pozostałych kosztów walki z pomocnikami.
+
+---
+
+v116.00.83 — MANA AKTYWNYCH SKILLI MAGICZNYCH
+
+- Zachowane wszystkie dotychczasowe koszty fizycznych skilli, obrażenia, statystyki, EXP, autoataki i pasywy. Istniejące dodatnie koszty MP (w tym Mec i jego warianty wsparcia/V-MAX) bez zmian.
+- Aktywne magiczne skille bez dodatniego kosztu otrzymują koszt 5 + próg odblokowania // 7 MP, wg dotychczasowej siatki Soul; nie zmienia to kosztu nauki AP. W Magiteku fizyczny TekMissile pozostaje darmowy; Magicite Link zachowuje rzeczywisty koszt rdzenia 24–30 MP.
+- Gravity Bomb, osłony, Runic Weapon, Diffuser i X-Fer sprawdzają i odejmują MP tylko przy wykonaniu akcji (także nieudana próba trafienia Gravity Bomb), bez opłaty za błędny cel, nieudany zapis teleportu czy brak uprawnień. Zwykłe czary korzystają ze wspólnej ścieżki use/cast.
+- Lokalnie 5703/5703 kontroli kosztów i wykonania magii (38 profili), Magitek wsparcie 38/38, Diffuser 31/31, routing 12/12, 310/310 kontrakt v114, 24/24 powrót drużyny, składnia i kontrola wyjątków 1746 plików Python. Dawny samodzielny test Magicite nie przechodzi końcowej historycznej kontroli trybu testowego także na niezmienionym v116.82; same koszty rdzeni i ich kod pozostają bez zmian.
+- Wydanie zawiera powrót lidera do drużyny z v116.82. Bez zmian bazy i BAT/SH. Pełny PREDEPLOY 60/60 PLUS obowiązkowy.
+
+---
+
+v116.00.82 — POWRÓT LIDERA DO DRUŻYNY
+
+- tp druzyna pokazuje innych członków online i ich lokacje. tp <imię gracza> (również tp gracz <imię>) pozwala każdemu członkowi, w tym liderowi, dołączyć do wybranego członka swojej drużyny, także po odrodzeniu w Świątyni. tp lider działa również ze Świątyni; lider dostaje listę celów zamiast odmowy.
+- Teleport dotyczy tylko wykonującego polecenie; zachowane przywództwo i skład. Dotychczasowy tp lider między piętrami Krypty bez zmian. Nie można teleportować się do obcej drużyny, podczas walki, powalenia, ruchu ani przez bramy i specjalne lokacje chronione przez zdalne dołączanie. Zapis lokacji z rollbackiem w razie błędu; brak powrotu komendą back do poprzedniego miejsca.
+- Bez zmian EXP, balansu, odradzania, kroku 0,1 s, bazy i BAT/SH. Pełny PREDEPLOY 60/60 PLUS wymagany.
+
+---
+
 v116.00.81 — WYDAJNOŚĆ WALKI, NAWIGACJI I ŚWIATA
 
 - Prognoza najsilniejszego skilla korzysta z jednego synchronicznego odczytu aktywnej klasy, biegłości i pasywnych mnożników; właściciele skilli indeksowani raz w obrębie prognozy. Dane nie pozostają w tej dodatkowej pamięci po zakończeniu obliczenia. Dotychczasowy 12-sekundowy cache końcowej prognozy pozostaje bez zmian.

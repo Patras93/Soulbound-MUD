@@ -268,10 +268,10 @@ def refresh_current_help_v11320(topics, aliases):
             ])
         else:
             old.append('Podczas szybkiego prowadzenia lider nie przechodzi dalej, gdy członek drużyny walczy lub pozostaje w poprzedniej lokacji.')
-            old.append('Zgubiony członek drużyny: teleport to leader / tp lider — ręczny powrót do lidera, poza walką i bez omijania bram bossów.')
+            old.append('Zgubiony członek lub lider: tp druzyna — lista; tp <imię gracza> — powrót do wybranego członka, również ze Świątyni. Bez omijania bram bossów.')
         topics[key] = old
     topics['teleport_to_leader'] = [
-        'teleport to leader / tp lider — gracz w drużynie przenosi się do swojego lidera.',
+        'tp lider — powrót do lidera ze Świątyni lub z Krypty. tp druzyna — lista członków online i lokacji. tp <imię gracza> — również lider może wrócić do wybranego członka.',
         'Nie działa w walce ani przez niezaliczoną bramę bossa. Nie przemieszcza automatycznie pozostałych graczy.',
         'Przy szybkim marszu lider zatrzymuje się, gdy ktoś został z tyłu. Po zebraniu drużyny można wznowić prowadzenie.'
     ]
@@ -321,7 +321,7 @@ def refresh_current_help_v11320(topics, aliases):
         for sentence in topics['tempo_profesji']]
     aliases.update({'multiklasa':'multiclass', 'multiklasowosc':'multiclass',
                     'teleport to leader':'teleport_to_leader', 'tp lider':'teleport_to_leader',
-                    'tp leader':'teleport_to_leader', 'zagubiony':'teleport_to_leader',
+                    'tp leader':'teleport_to_leader', 'tp druzyna':'teleport_to_leader', 'zagubiony':'teleport_to_leader',
                     'ziemia':'ziemia', 'podnies':'ziemia', 'podnieś':'ziemia',
                     'atlasy':'atlas'})
     return {'professions': len(professions), 'classes': len(CLASSES),

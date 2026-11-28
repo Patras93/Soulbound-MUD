@@ -201,6 +201,12 @@ class SessionCommandLoopMixin:
             if dispatched is COMMAND_LOOP_BREAK:
                 break
             if dispatched:
+                # A StreamReader with queued input and a non-blocking drain
+                # need not suspend at all. Give combat/world/other sessions a
+                # turn between completed commands without adding a timer or
+                # changing skill cooldowns, movement speed or payout order.
+                import asyncio
+                await asyncio.sleep(0)
                 continue
 
             await self.send("Nieznana komenda. Wpisz help.")

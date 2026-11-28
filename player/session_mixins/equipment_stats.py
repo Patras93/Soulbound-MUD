@@ -261,6 +261,7 @@ class SessionEquipmentStatsMixin:
                 "hp": 0,
                 "mana": 0,
             }
+            evolution_snapshot = {}
             for row in self.equipped_item_rows():
                 item = ITEMS.get(row["item_id"])
                 if not item:
@@ -280,7 +281,8 @@ class SessionEquipmentStatsMixin:
                 from systems.equipment_evolution_v10500 import stage_stat_bonus
                 from systems.equipment_evolution_stats_v10600 import equipped_evolution_stage
                 _evo = equipped_evolution_stage(
-                    self.server.db, self.account_id, row["slot"], row["item_id"]
+                    self.server.db, self.account_id, row["slot"], row["item_id"],
+                    read_snapshot=evolution_snapshot,
                 )
                 if _evo:
                     totals["constitution"] += stage_stat_bonus(_evo, item)
@@ -1018,6 +1020,7 @@ class SessionEquipmentStatsMixin:
                 self.character.character_level,
                 self.effective_constitution(),
             )
+            evolution_snapshot = {}
             for row in self.server.db.equipment(self.account_id):
                 item = ITEMS.get(row["item_id"])
                 if item:
@@ -1035,7 +1038,8 @@ class SessionEquipmentStatsMixin:
                     from systems.equipment_evolution_stats_v10600 import equipped_evolution_stage
                     total += stage_defense_bonus(
                         equipped_evolution_stage(
-                            self.server.db, self.account_id, row["slot"], row["item_id"]
+                            self.server.db, self.account_id, row["slot"], row["item_id"],
+                            read_snapshot=evolution_snapshot,
                         ), item
                     )
                     total += int(item.get("defense", 0)) + v03042_upgrade_defense_bonus(
