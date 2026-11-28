@@ -1403,6 +1403,7 @@ if "nawigacja" in HELP_TOPICS:
 if "druzyny" in HELP_TOPICS:
     HELP_TOPICS["druzyny"].append("Party 4.0: raport, zbiorka, trasa <cel>/krok/off. help party4.")
     HELP_TOPICS["druzyny"].append("druzyny pokazuje aktywne drużyny. druzyna dolacz <numer lub lider> wysyła prośbę; druzyna prosby pokazuje oczekujące prośby.")
+    HELP_TOPICS["druzyny"].append("tp druzyna — lista członków i lokacji; tp <imię gracza> — powrót do członka drużyny również po odrodzeniu lidera. Bez zmiany przywództwa.")
     HELP_TOPICS["druzyny"].append("Lider: druzyna akceptuj <gracz> przenosi gracza do lidera, druzyna odrzuc <gracz> odrzuca. druzyna anuluj anuluje własną prośbę. Ważność: 3 minuty; istniejące bramy i specjalne lokacje pozostają chronione.")
 
 

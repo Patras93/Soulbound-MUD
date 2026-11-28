@@ -67,7 +67,7 @@ class SessionHelpSystemMixin(HelpHistoryV109Mixin, HelpSkillsV109Mixin):
                 "kariera [status|walka|profesje|rekordy|postep] — odczyt trwałych statystyk; osiagniecia postep — kolejne progi informacyjne",
                 "nawigacja [status|krok|okolica|cel <nazwa>|druzyna] — Nawigacja 2.0 dla NVDA",
                 "druzyna raport / zbiorka / trasa <cel|krok|off> — Party 4.0, koordynacja bez teleportacji",
-                "teleport to leader / tp lider — dołącz do lidera z innego piętra Krypty, poza walką i bez omijania niezaliczonych bossów",
+                "tp druzyna — lista członków i lokacji; tp <imię gracza> — powrót do wybranego członka, także dla lidera ze Świątyni. tp lider — powrót do lidera ze Świątyni lub z Krypty. Poza walką i bez omijania bram",
                 "tytuly / titles; tytul <nazwa> - lista i aktywny tytuł; Titles 2.0 dodaje tytuły za eksplorację, bossy, profesje, Kurierów i gildie; tytuły są prestiżowe i nie dają statystyk",
                 "bounty / zlecenia / contracts - losowana Tablica Zleceń; kontrakty startują od 0/x i czytają postęp na żywo",
                 "kolekcja / collection - Collection Codex; 2.0: kolekcja klasy, sety2, legendy, materialy eq, regiony, instancje",

@@ -37,6 +37,12 @@ def _schema(conn):
 
 def _check_account(conn,aid,catalog):
     """Fail closed if a legacy slot was changed outside the shadow adapter."""
+    from core.perf_diagnostics_v11320 import performance_phase
+    with performance_phase('eq_ledger'):
+        return _check_account_rows_v11684(conn,aid,catalog)
+
+
+def _check_account_rows_v11684(conn,aid,catalog):
     def is_gear(item_id):
         entry=catalog.get(str(item_id))
         return isinstance(entry,dict) and entry.get('type') in ('armor','weapon')
@@ -59,23 +65,23 @@ def _check_account(conn,aid,catalog):
     inventory={str(iid):qty for iid,qty in conn.execute(
         'SELECT item_id,quantity FROM inventory WHERE account_id=?',(aid,))
         if is_gear(iid)}
-    instances={}
-    for iid, in conn.execute('''SELECT i.item_id FROM v106_item_instances i
+    instances={str(iid):count for iid,count in conn.execute('''SELECT i.item_id,COUNT(*) FROM v106_item_instances i
              LEFT JOIN v106_stored_instances st ON st.instance_id=i.instance_id
-             WHERE i.account_id=? AND st.instance_id IS NULL''',(aid,)):
-
-        if is_gear(iid):
-            instances[str(iid)]=instances.get(str(iid),0)+1
+             WHERE i.account_id=? AND st.instance_id IS NULL GROUP BY i.item_id''',(aid,)) if is_gear(iid)}
     # A banked physical copy cannot also be equipped or owned by another account.
-    for uid,stored_owner,actual_owner in conn.execute('''
-        SELECT st.instance_id,st.account_id,i.account_id
+    for uid,stored_owner,actual_owner,worn_instance in conn.execute('''
+        SELECT st.instance_id,st.account_id,i.account_id,e.instance_id
         FROM v106_stored_instances st LEFT JOIN v106_item_instances i
-        ON st.instance_id=i.instance_id WHERE st.account_id=?''',(aid,)):
+        ON st.instance_id=i.instance_id
+        LEFT JOIN v106_equipped_instances e ON e.instance_id=st.instance_id
+        WHERE st.account_id=?''',(aid,)):
         if actual_owner is None or int(actual_owner)!=int(stored_owner):
             raise RuntimeError('v106 EQ: magazyn wskazuje cudzą lub brakującą kopię')
-        if conn.execute('SELECT 1 FROM v106_equipped_instances WHERE instance_id=?',
-                        (uid,)).fetchone():
+        if worn_instance is not None:
             raise RuntimeError('v106 EQ: założona sztuka znajduje się w magazynie')
+    worn_counts={}
+    for _,item in eq:
+        worn_counts[item]=worn_counts.get(item,0)+1
     for iid in set(inventory)|set(instances)|{item for _,item in eq}:
         count=inventory.get(iid,0)
         if type(count)!=int or count<0:
@@ -83,7 +89,7 @@ def _check_account(conn,aid,catalog):
         # Never auto-repair an untracked sell/drop/mail/bank operation.
         if count!=instances.get(iid,0):
             raise RuntimeError('v106 EQ: liczba kopii nie zgadza się z inventory')
-        worn=sum(item==iid for _,item in eq)
+        worn=worn_counts.get(iid,0)
         if worn>count:
             raise RuntimeError('v106 EQ: więcej założonych kopii niż posiadanych')
 
@@ -226,3 +232,15 @@ def equipped_copy(conn,aid,slot,catalog):
         ON i.instance_id=s.instance_id
         WHERE s.account_id=? AND s.slot=?''',(int(aid),str(slot))).fetchone()
     return tuple(row) if row is not None else None
+
+
+def equipped_copies_v11684(conn,aid,catalog):
+    """All worn identities after one complete read-only account audit.
+
+    Call only within a single synchronous calculation; never persist the map.
+    Same owner/count/storage checks as equipped_copy for each slot.
+    """
+    _check_account(conn,int(aid),catalog)
+    return {str(row[0]):tuple(row[1:]) for row in conn.execute('''SELECT s.slot,i.instance_id,i.item_id,i.evolution_stage
+        FROM v106_equipped_instances s JOIN v106_item_instances i
+        ON i.instance_id=s.instance_id WHERE s.account_id=?''',(int(aid),))}

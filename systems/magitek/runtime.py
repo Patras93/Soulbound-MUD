@@ -57,7 +57,7 @@ def install(combat_mixin):
     baseline_multiplier = combat_mixin.offensive_skill_damage_multiplier_v11186
     baseline_heal = combat_mixin.healing_skill_amount_v11196
     baseline_cast = combat_mixin.use_class_skill
-    from systems.magitek.support import use_support_skill
+    from systems.magitek.support import use_support_skill, magitek_spell_mp_cost, magitek_has_mana
 
     @wraps(baseline_core)
     def magitek_power(self, skill, authored_base=0):
@@ -141,13 +141,19 @@ def install(combat_mixin):
             if self.class_mastery_level('Magitek')<skill['unlock'] or not self.server.db.knows_skill(self.account_id,skill['id']):
                 await self.send('Najpierw naucz się Gravity Bomb u nauczyciela Magiteka.')
                 return
+            cost = magitek_spell_mp_cost(self, skill)
+            if not await magitek_has_mana(self, skill, cost):
+                return
             mob=await self.skill_combat_target(target_text)
             if not mob or not mob.alive:
+                return
+            if not await magitek_has_mana(self, skill, cost):
                 return
             mastery = int(self.server.db.skill_progress(self.account_id,skill['id'])['level'])
             will = max(1,int(self.effective_willpower()))
             accuracy = min(.75,.22+min(.20,will/2500.0)+min(.20,mastery/1500.0))
             hit = gravity_bomb_damage(mob.hp,accuracy=accuracy,roll=random.random())
+            self.current_mana -= cost
             if hit:
                 mob.hp=max(0,int(mob.hp)-hit)
                 await self.send(f'Gravity Bomb: {hit} obrażeń grawitacyjnych. HP celu {mob.hp}.')

@@ -686,28 +686,56 @@ PHYSICAL_MANA_FREE_CLASSES = frozenset(
     if class_type == "physical"
 )
 
-def effective_skill_mana_cost(skill, class_name):
-    """Return the gameplay MP cost without discarding source-authored magic costs.
+def _missing_magic_skill_mana_cost(row, class_name):
+    from systems.published_27_master import skill_mana_cost
+    kind = row.get('kind')
+    if not kind or kind == 'passive' or (kind == 'boost' and not row.get('active_special') and row.get('mec_special') != 'vmax'):
+        return 0
+    if row.get('v107_magitek_authored') and row.get('v107_skill') == 'tekmissile':
+        return 0  # its established damage channel is physical
+    if row.get('v107_magitek_authored') and row.get('v107_skill') == 'magicitelink':
+        # Nominal minimum for help/legacy eligibility. The real primary
+        # Magitek cast charges the linked core's exact 24–30 MP separately.
+        from systems.magitek.magicite import CORES
+        return min(core[2] for core in CORES.values())
+    from core.progression_resources import class_type_for_name
+    magical = (row.get('mec_branch') == 'magic' if row.get('mec_authored')
+               else class_type_for_name(str(class_name)) == 'magic')
+    if not magical:
+        return 0
+    # Same low-level MP curve as the existing Soul grid, only when no
+    # nonzero cost was authored. No existing positive cost is changed.
+    try:
+        unlock = max(1, int(row.get('unlock', 1)))
+    except (TypeError, ValueError):
+        unlock = 1
+    return max(1, skill_mana_cost(5 + unlock // 7))
 
-    Physical classes remain mana-free by default, but an authored ability may
-    carry an exact source MP cost (for example the Mec magic/support branches).
+def effective_skill_mana_cost(skill, class_name):
+    """Keep authored costs; active magical skills must have a positive MP cost.
+
+    Physical channels and passive/automatic effects retain their old rules.
+    Magitek's original AP is training currency, not a source MP price.
     """
     from systems.published_27_master import skill_mana_cost
     row = skill or {}
+
     for field in ("uoss_mp_cost", "source_mp_cost"):
         if row.get(field) is not None:
             try:
-                return skill_mana_cost(max(0, int(row.get(field) or 0)))
+                value = skill_mana_cost(max(0, int(row.get(field) or 0)))
             except (TypeError, ValueError):
-                return 0
+                value = 0
+            return value or _missing_magic_skill_mana_cost(row, class_name)
     if str(class_name) in PHYSICAL_MANA_FREE_CLASSES or any(
-        row[0] == str(class_name) and row[1] == 'physical' for row in CLASSES
+        entry[0] == str(class_name) and entry[1] == 'physical' for entry in CLASSES
     ):
-        return 0
+        return _missing_magic_skill_mana_cost(row, class_name) if row.get('mec_authored') and row.get('mec_branch') == 'magic' else 0
     try:
-        return skill_mana_cost(max(0, int(row.get("mana", 0) or 0)))
+        value = skill_mana_cost(max(0, int(row.get("mana", 0) or 0)))
     except (TypeError, ValueError):
-        return 0
+        value = 0
+    return value or _missing_magic_skill_mana_cost(row, class_name)
 
 # v0.30.17: Broń Duszy jest aktywną bronią autoataku, nie tylko ukrytym bonusem.
 SOUL_WEAPON_ATTACK_TECHNIQUES = {

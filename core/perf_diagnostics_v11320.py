@@ -6,7 +6,8 @@ retained. The profiler only tracks calls executed on the active command task.
 """
 from __future__ import annotations
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from contextlib import contextmanager
 from functools import wraps
 from time import perf_counter, process_time
 
@@ -23,6 +24,7 @@ class PerformanceScope:
     sql_commits: int = 0
     sql_commit_seconds: float = 0.0
     closed: bool = False
+    phases: dict = field(default_factory=dict)
 
 
 def begin(kind):
@@ -60,7 +62,31 @@ def finish(scope, token, *, minimum=0.25):
               'SQLite_max=%.3fs, commit=%d/%.3fs (bez argumentow i danych graczy)'
               % (scope.kind, elapsed, cpu, scope.sql_queries, scope.sql_seconds,
                  scope.sql_max, scope.sql_commits, scope.sql_commit_seconds), flush=True)
+        if scope.phases:
+            print('[PERF PHASE v11684] %s: %s (bez argumentow i danych graczy)' % (
+                scope.kind, '; '.join('%s=%d/%.3fs/%d SQL/%d commit' % (
+                    name, calls, seconds, queries, commits)
+                    for name, (calls, seconds, queries, commits) in sorted(scope.phases.items()))), flush=True)
     return elapsed
+
+
+@contextmanager
+def performance_phase(name):
+    """Aggregate a fixed internal phase into the current command task only."""
+    scope = current()
+    if scope is None or scope.closed:
+        yield
+        return
+    start = perf_counter()
+    queries, commits = scope.sql_queries, scope.sql_commits
+    try:
+        yield
+    finally:
+        if not scope.closed:
+            calls, seconds, sql, writes = scope.phases.get(name, (0, 0.0, 0, 0))
+            scope.phases[name] = (calls + 1, seconds + perf_counter() - start,
+                                  sql + scope.sql_queries - queries,
+                                  writes + scope.sql_commits - commits)
 
 
 def equipment_read_snapshot(method):

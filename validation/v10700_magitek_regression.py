@@ -146,7 +146,7 @@ def run():
             @property
             def alive(self): return self.hp>0
         class CastSession:
-            character=Character(); account_id=123; current_hp=100
+            character=Character(); account_id=123; current_hp=100; current_mana=50
             server=SimpleNamespace(db=FakeDB())
             def __init__(self,skill): self.skill=skill; self.sent=[];self.xp=0;self.mob=FakeMob()
             def find_skill_from_input(self,raw): return self.skill,''
